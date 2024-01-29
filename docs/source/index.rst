@@ -17,7 +17,8 @@ The ``mamba-org`` organization hosts multiple Mamba flavors:
 .. note::
     :ref:`micromamba<micromamba>` is especially well fitted for the CI use-case but not limited to that!
 
-You can try Mamba now by visiting the :ref:`installation page<installation>`!
+You can try Mamba now by visiting the installation for
+:ref:`mamba<mamba-install>` or :ref:`micromamba<umamba-install>`
 
 
 .. toctree::
@@ -25,7 +26,8 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :maxdepth: 2
    :hidden:
 
-   installation
+   Mamba <installation/mamba-installation>
+   Micromamba <installation/micromamba-installation>
 
 .. toctree::
    :caption: USER GUIDE
@@ -33,8 +35,8 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :hidden:
 
    user_guide/concepts
-   user_guide/mamba
-   user_guide/micromamba
+   Mamba <user_guide/mamba>
+   Micromamba <user_guide/micromamba>
    user_guide/configuration
    user_guide/troubleshooting
 
@@ -49,17 +51,25 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    advanced_usage/package_resolution
 
 .. toctree::
-   :caption: API reference
+   :caption: LIBMAMBA USAGE
    :maxdepth: 2
    :hidden:
 
    python_api
+   usage/specs
 
 .. toctree::
-   :caption: developer zone
+   :caption: API REFERENCE
+   :maxdepth: 2
+   :hidden:
+
+   api/specs
+
+.. toctree::
+   :caption: DEVELOPER ZONE
    :maxdepth: 2
    :hidden:
 
    developer_zone/contributing
-   developer_zone/build_locally
+   developer_zone/dev_environment
    developer_zone/internals

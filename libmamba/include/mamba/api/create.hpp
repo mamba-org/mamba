@@ -7,14 +7,23 @@
 #ifndef MAMBA_API_CREATE_HPP
 #define MAMBA_API_CREATE_HPP
 
+#include <string>
+
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {
-    void create();
+    class Configuration;
+
+    void create(Configuration& config);
 
     namespace detail
     {
-        void store_platform_config(const fs::u8path& prefix, const std::string& platform);
+        void store_platform_config(
+            const fs::u8path& prefix,
+            const std::string& platform,
+            bool& remove_prefix_on_failure
+        );
     }
 }
 

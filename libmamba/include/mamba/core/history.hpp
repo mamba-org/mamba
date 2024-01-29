@@ -12,15 +12,19 @@
 #include <unordered_map>
 #include <vector>
 
-#include "mamba_fs.hpp"
-#include "match_spec.hpp"
+#include "mamba/core/channel_context.hpp"
+#include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 
 namespace mamba
 {
+    class Context;
+
     class History
     {
     public:
-        History(const fs::u8path& prefix);
+
+        History(const fs::u8path& prefix, ChannelContext& channel_context);
 
         struct ParseResult
         {
@@ -31,7 +35,7 @@ namespace mamba
 
         struct UserRequest
         {
-            static UserRequest prefilled();
+            static UserRequest prefilled(const Context& context);
 
             std::string date;
             std::string cmd;
@@ -48,11 +52,12 @@ namespace mamba
         std::vector<ParseResult> parse();
         bool parse_comment_line(const std::string& line, UserRequest& req);
         std::vector<UserRequest> get_user_requests();
-        std::unordered_map<std::string, MatchSpec> get_requested_specs_map();
+        std::unordered_map<std::string, specs::MatchSpec> get_requested_specs_map();
         void add_entry(const History::UserRequest& entry);
 
         fs::u8path m_prefix;
         fs::u8path m_history_file_path;
+        ChannelContext& m_channel_context;
     };
 
 }  // namespace mamba

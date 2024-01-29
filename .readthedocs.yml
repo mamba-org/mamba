@@ -1,4 +1,17 @@
 version: 2
 
+build:
+  os: "ubuntu-22.04"
+  tools:
+    python: "mambaforge-22.9"
+  jobs:
+    pre_build:
+      - |
+        (
+          cat docs/Doxyfile;
+          echo "INPUT=libmamba/include";
+          echo "XML_OUTPUT=docs/xml"
+        ) | doxygen -
+
 conda:
   environment: docs/environment.yml

@@ -4,66 +4,90 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required (VERSION 3.2)
-if(POLICY CMP0025)
-  cmake_policy(SET CMP0025 NEW)
-endif()
-cmake_policy(SET CMP0077 NEW)
-#if(POLICY CMP0028)
-#  cmake_policy(SET CMP0028 NEW)
-#endif()
+cmake_minimum_required(VERSION 3.16)
+cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
+cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 
 project(mamba)
 
 # Build options
 # =============
 
+option(BUILD_SHARED "Build shared libmamba library" OFF)
+option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 option(BUILD_LIBMAMBA "Build libmamba library" OFF)
 option(BUILD_LIBMAMBAPY "Build libmamba Python bindings" OFF)
 option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
+option(BUILD_MAMBA "Build mamba" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
+option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
+set(
+    MAMBA_LTO
+    "Default"
+    CACHE STRING "Apply Link Time Optimization to targets"
+)
 
-if (MSVC)
-    # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>`
-    # /EHsc : enable C++ exceptions (otherwise exceptions do not work)
-    # /Zc:__cplusplus : makes sure `__cplusplus` is set to the current C++ version language. Otherwise it is always set to an incorrect wrong value.
-    # /MP : enable multi-process build with MSBuild (it should be on by default but CMake generates the project files without the right params).
-    # /W4 : warnings level 4 (default in visual studio projects and recommended minimum level).
-    # /external:I $ENV{CONDA_PREFIX}: consider the conda env prefix libraries headers as "external" to this project.
-    # /external:W0 : set the warning level to 1 for external libraries headers (severe warnings, default when unspecified) to only see important warnings coming from dependencies headers.
-    string(REGEX REPLACE "/W[0-9]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /MP /experimental:external /external:I $ENV{CONDA_PREFIX} /external:W1")
+include("cmake/CompilerWarnings.cmake")
+include("cmake/LinkTimeOptimization.cmake")
+include("cmake/Checks.cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
+
+if(MSVC)
+    # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>` /EHsc :
+    # enable C++ exceptions (otherwise exceptions do not work) /Zc:__cplusplus : makes sure
+    # `__cplusplus` is set to the current C++ version language. Otherwise it is always set to an
+    # incorrect wrong value. /MP : enable multi-process build with MSBuild (it should be on by
+    # default but CMake generates the project files without the right params). /external:I
+    # $ENV{CONDA_PREFIX}: consider the conda env prefix libraries headers as "external" to this
+    # project.
+    set(
+        CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /utf-8 /MP /experimental:external /external:I $ENV{CONDA_PREFIX}"
+    )
     # Force release mode to avoid debug libraries to be linked
-    set(CMAKE_BUILD_TYPE Release)
+    set(
+        CMAKE_BUILD_TYPE
+        "Release"
+        CACHE STRING "The build type"
+    )
     # add_definitions("-DUNICODE -D_UNICODE")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    set(
+        CMAKE_MSVC_RUNTIME_LIBRARY
+        "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+        CACHE STRING "MSVC runtime library"
+    )
 endif()
 
 # Variants
 # ========
 
-# libmamba library and tests
-if (BUILD_LIBMAMBA)
-    if (BUILD_LIBMAMBA_TESTS)
-        set(BUILD_TESTS ON)
-    endif()
+# mamba is a dynamic build of micromamba
+if(BUILD_MAMBA)
+    set(BUILD_SHARED ON)
+endif()
 
+# micromamba requires static linkage
+if(BUILD_MICROMAMBA)
+    set(BUILD_STATIC ON)
+endif()
+
+# libmamba library and tests
+if(BUILD_LIBMAMBA)
     add_subdirectory(libmamba)
 endif()
 
 # Python bindings of libmamba
-if (BUILD_LIBMAMBAPY)
+if(BUILD_LIBMAMBAPY)
     add_subdirectory(libmambapy)
 endif()
 
 # micromamba
-if (BUILD_MICROMAMBA)
+if(BUILD_MICROMAMBA OR BUILD_MAMBA)
     add_subdirectory(micromamba)
 endif()
 
 # mamba package tarball utility
-if (BUILD_MAMBA_PACKAGE)
+if(BUILD_MAMBA_PACKAGE)
     add_subdirectory(mamba_package)
 endif()

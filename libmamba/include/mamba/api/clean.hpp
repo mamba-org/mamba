@@ -7,7 +7,6 @@
 #ifndef MAMBA_API_CLEAN_HPP
 #define MAMBA_API_CLEAN_HPP
 
-
 namespace mamba
 {
     const int MAMBA_CLEAN_ALL = 1 << 0;
@@ -18,7 +17,8 @@ namespace mamba
     const int MAMBA_CLEAN_TRASH = 1 << 5;
     const int MAMBA_CLEAN_FORCE_PKGS_DIRS = 1 << 6;
 
-    void clean(int options);
+    class Configuration;
+    void clean(Configuration& config, int options);
 }
 
 #endif

@@ -1,49 +1,39 @@
-exclude: libmamba/tests/repodata_json_cache*
+exclude: libmamba/tests/data/repodata_json_cache*
 repos:
--   repo: https://github.com/psf/black
-    rev: 22.12.0
-    hooks:
-    -   id: black
-        args: [--safe, --quiet]
--   repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
-    hooks:
-    -   id: blacken-docs
-        additional_dependencies: [black==22.3.0]
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: fix-encoding-pragma
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: fix-encoding-pragma
         args: [--remove]
-    -   id: check-yaml
+      - id: check-yaml
         exclude: ^.+(/tests/|/recipe/).+$
-    -   id: check-toml
-    -   id: check-json
-    -   id: check-merge-conflict
-    -   id: pretty-format-json
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: pretty-format-json
         args: [--autofix]
-    -   id: debug-statements
+      - id: debug-statements
         language_version: python3
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
     hooks:
-        -   id: isort
-            exclude: tests/data
--   repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+  - repo: https://github.com/asottile/blacken-docs
+    rev: 1.16.0
     hooks:
-    -   id: flake8
-        language_version: python3
-        additional_dependencies:
-            - flake8-typing-imports==1.14.0
-            - flake8-builtins==2.0.1
-            - flake8-bugbear==22.10.27
-            - flake8-isort==5.0.0
--   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v15.0.6
+      - id: blacken-docs
+        additional_dependencies: [black==22.3.0]
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v16.0.6
     hooks:
-    -   id: clang-format
+      - id: clang-format
         args: [--style=file]
         exclude: ".json"
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format

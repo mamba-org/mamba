@@ -7,44 +7,54 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
-
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 
-
 namespace mamba
 {
-    void create()
+    void create(Configuration& config)
     {
-        auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
-                       | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+                | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
+
+        bool remove_prefix_on_failure = false;
+
         if (!ctx.dry_run)
         {
-            if (fs::exists(ctx.target_prefix))
+            if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (ctx.target_prefix == ctx.root_prefix)
+                if (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)
                 {
                     LOG_ERROR << "Overwriting root prefix is not permitted";
                     throw std::runtime_error("Aborting.");
                 }
-                else if (fs::exists(ctx.target_prefix / "conda-meta"))
+                else if (fs::exists(ctx.prefix_params.target_prefix / "conda-meta"))
                 {
-                    if (Console::prompt("Found conda-prefix at '" + ctx.target_prefix.string()
-                                            + "'. Overwrite?",
-                                        'n'))
-                        fs::remove_all(ctx.target_prefix);
+                    if (Console::prompt(
+                            "Found conda-prefix at '" + ctx.prefix_params.target_prefix.string()
+                                + "'. Overwrite?",
+                            'n'
+                        ))
+                    {
+                        fs::remove_all(ctx.prefix_params.target_prefix);
+                    }
                     else
+                    {
                         throw std::runtime_error("Aborting.");
+                    }
                 }
                 else
                 {
@@ -53,37 +63,58 @@ namespace mamba
                 }
             }
             if (create_specs.empty())
-                detail::create_empty_target(ctx.target_prefix);
+            {
+                detail::create_empty_target(ctx, ctx.prefix_params.target_prefix);
+            }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
-                detail::store_platform_config(ctx.target_prefix, ctx.platform);
+            {
+                detail::store_platform_config(
+                    ctx.prefix_params.target_prefix,
+                    ctx.platform,
+                    remove_prefix_on_failure
+                );
+            }
         }
 
-        if (Context::instance().env_lockfile)
+        if (ctx.env_lockfile)
         {
-            const auto lockfile_path = Context::instance().env_lockfile.value();
+            const auto lockfile_path = ctx.env_lockfile.value();
             install_lockfile_specs(
+                ctx,
+                channel_context,
                 lockfile_path,
-                Configuration::instance().at("categories").value<std::vector<std::string>>(),
-                true);
+                config.at("categories").value<std::vector<std::string>>(),
+                true,
+                remove_prefix_on_failure
+            );
         }
         else if (!create_specs.empty())
         {
             if (use_explicit)
-                install_explicit_specs(create_specs, true);
+            {
+                install_explicit_specs(ctx, channel_context, create_specs, true, remove_prefix_on_failure);
+            }
             else
-                install_specs(create_specs, true);
+            {
+                install_specs(ctx, channel_context, config, create_specs, true, remove_prefix_on_failure);
+            }
         }
-
-        config.operation_teardown();
     }
 
     namespace detail
     {
-        void store_platform_config(const fs::u8path& prefix, const std::string& platform)
+        void store_platform_config(
+            const fs::u8path& prefix,
+            const std::string& platform,
+            bool& remove_prefix_on_failure
+        )
         {
             if (!fs::exists(prefix))
+            {
+                remove_prefix_on_failure = true;
                 fs::create_directories(prefix);
+            }
 
             auto out = open_ofstream(prefix / ".mambarc");
             out << "platform: " << platform;

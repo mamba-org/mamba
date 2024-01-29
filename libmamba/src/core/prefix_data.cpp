@@ -4,44 +4,48 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
-#include <solv/transaction.h>
-}
+#include <array>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
 
-#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
-
-#include "mamba/core/pool.hpp"
-#include "mamba/core/queue.hpp"
-#include "mamba/core/repo.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/specs/conda_url.hpp"
+#include "mamba/util/graph.hpp"
+#include "mamba/util/string.hpp"
 
 #include <reproc++/run.hpp>
 
 namespace mamba
 {
-    auto PrefixData::create(const fs::u8path& prefix_path) -> expected_t<PrefixData>
+    auto PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context)
+        -> expected_t<PrefixData>
     {
         try
         {
-            return PrefixData(prefix_path);
+            return PrefixData(prefix_path, channel_context);
         }
         catch (std::exception& e)
         {
-            return tl::make_unexpected(
-                mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded));
+            return tl::make_unexpected(mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded)
+            );
         }
         catch (...)
         {
-            return tl::make_unexpected(
-                mamba_error("Unknown error when trying to load prefix data " + prefix_path.string(),
-                            mamba_error_code::unknown));
+            return tl::make_unexpected(mamba_error(
+                "Unknown error when trying to load prefix data " + prefix_path.string(),
+                mamba_error_code::unknown
+            ));
         }
     }
 
-    PrefixData::PrefixData(const fs::u8path& prefix_path)
-        : m_history(prefix_path)
+    PrefixData::PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context)
+        : m_history(prefix_path, channel_context)
         , m_prefix_path(prefix_path)
+        , m_channel_context(channel_context)
     {
         load();
     }
@@ -53,7 +57,7 @@ namespace mamba
         {
             for (auto& p : fs::directory_iterator(conda_meta_dir))
             {
-                if (ends_with(p.path().string(), ".json"))
+                if (util::ends_with(p.path().string(), ".json"))
                 {
                     load_single_record(p.path());
                 }
@@ -62,7 +66,7 @@ namespace mamba
         load_site_packages();
     }
 
-    void PrefixData::add_packages(const std::vector<PackageInfo>& packages)
+    void PrefixData::add_packages(const std::vector<specs::PackageInfo>& packages)
     {
         for (const auto& pkg : packages)
         {
@@ -77,55 +81,70 @@ namespace mamba
         return m_package_records;
     }
 
-    std::vector<PackageInfo> PrefixData::sorted_records() const
+    std::vector<specs::PackageInfo> PrefixData::sorted_records() const
     {
-        std::vector<PackageInfo> result;
-        MPool pool;
+        // TODO add_pip_as_python_dependency
 
-        MQueue q;
+        auto dep_graph = util::DiGraph<const specs::PackageInfo*>();
+        using node_id = typename decltype(dep_graph)::node_id;
+
         {
-            // TODO check prereq marker to `pip` if it's part of the installed packages
-            // so that it gets installed after Python.
-            auto& repo = MRepo::create(pool, *this);
+            auto name_to_node_id = std::unordered_map<std::string_view, node_id>();
 
-            Solvable* s;
-            Id pkg_id;
-            pool_createwhatprovides(pool);
-
-            FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
+            // Add all nodes
+            for (const auto& [name, record] : records())
             {
-                q.push(pkg_id);
+                name_to_node_id[name] = dep_graph.add_node(&record);
             }
-        }
-
-        Pool* pp = pool;
-        pp->installed = nullptr;
-
-        Transaction* t = transaction_create_decisionq(pool, q, nullptr);
-        transaction_order(t, 0);
-
-        for (int i = 0; i < t->steps.count; i++)
-        {
-            Id p = t->steps.elements[i];
-            Id ttype = transaction_type(t, p, SOLVER_TRANSACTION_SHOW_ALL);
-            Solvable* s = pool_id2solvable(t->pool, p);
-
-            package_map::const_iterator it, end = m_package_records.end();
-            switch (ttype)
+            // Add all inverse dependency edges.
+            // Since there must be only one package with a given name, we assume that the dependency
+            // version are matched properly and that only names must be checked.
+            for (const auto& [to_id, record] : dep_graph.nodes())
             {
-                case SOLVER_TRANSACTION_INSTALL:
-                    it = m_package_records.find(pool_id2str(pool, s->name));
-                    if (it != end)
+                for (const auto& dep : record->depends)
+                {
+                    // Creating a matchspec to parse the name (there may be a channel)
+                    auto ms = specs::MatchSpec::parse(dep);
+                    // Ignoring unmatched dependencies, the environment could be broken
+                    // or it could be a matchspec
+                    const auto from_iter = name_to_node_id.find(ms.name().str());
+                    if (from_iter != name_to_node_id.cend())
                     {
-                        result.push_back(it->second);
-                        break;
+                        dep_graph.add_edge(from_iter->second, to_id);
                     }
-                default:
-                    throw std::runtime_error(
-                        "Package not found in prefix records or other unexpected condition");
+                }
+            }
+
+            // Flip known problematic edges.
+            // This is made to adress cycles but there is no straightforward way to make
+            // a generic cycle handler so we instead force flip the given edges
+            static constexpr auto edges_to_flip = std::array{ std::pair{ "pip", "python" } };
+            for (const auto& [from, to] : edges_to_flip)
+            {
+                const auto from_iter = name_to_node_id.find(from);
+                const auto to_iter = name_to_node_id.find(to);
+                const auto end_iter = name_to_node_id.cend();
+                if ((from_iter != end_iter) && (to_iter != end_iter))
+                {
+                    const auto from_id = from_iter->second;
+                    const auto to_id = to_iter->second;
+                    if (dep_graph.has_edge(from_id, to_id))
+                    {
+                        dep_graph.remove_edge(from_id, to_id);
+                        dep_graph.add_edge(to_id, from_id);  // safe if edge already exeists
+                    }
+                }
             }
         }
-        return result;
+
+        auto sorted = std::vector<specs::PackageInfo>();
+        sorted.reserve(dep_graph.number_of_nodes());
+        util::topological_sort_for_each_node_id(
+            dep_graph,
+            [&](node_id id) { sorted.push_back(*dep_graph.node(id)); }
+        );
+
+        return sorted;
     }
 
     History& PrefixData::history()
@@ -144,7 +163,19 @@ namespace mamba
         auto infile = open_ifstream(path);
         nlohmann::json j;
         infile >> j;
-        auto prec = PackageInfo(std::move(j));
+        auto prec = j.get<specs::PackageInfo>();
+
+        // Some versions of micromamba constructor generate repodata_record.json
+        // and conda-meta json files with channel names while mamba expects
+        // specs::PackageInfo channels to be platform urls. This fixes the issue described
+        // in https://github.com/mamba-org/mamba/issues/2665
+
+        auto channels = m_channel_context.make_channel(prec.channel);
+        // If someone wrote multichannel names in repodata_record, we don't know which one is the
+        // correct URL. This is must never happen!
+        assert(channels.size() == 1);
+        using Credentials = specs::CondaURL::Credentials;
+        prec.channel = channels.front().platform_url(prec.subdir).str(Credentials::Remove);
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 
@@ -176,13 +207,13 @@ namespace mamba
             return;
         }
 
-        auto pkgs_info_list = split(strip(out), "\n");
+        auto pkgs_info_list = mamba::util::split(mamba::util::strip(out), "\n");
         for (auto& pkg_info_line : pkgs_info_list)
         {
             if (pkg_info_line.find("==") != std::string::npos)
             {
-                auto pkg_info = split(strip(pkg_info_line), "==");
-                auto prec = PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
+                auto pkg_info = mamba::util::split(mamba::util::strip(pkg_info_line), "==");
+                auto prec = specs::PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", std::string("pypi"));
                 m_package_records.insert({ prec.name, std::move(prec) });
             }
         }

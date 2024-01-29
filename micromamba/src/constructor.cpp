@@ -4,76 +4,74 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "common_options.hpp"
-#include "constructor.hpp"
+#include <CLI/App.hpp>
 
+#include "constructor.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-
 #include "mamba/core/package_handling.hpp"
+#include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/package_info.hpp"
+#include "mamba/util/string.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_constructor_parser(CLI::App* subcom)
+init_constructor_parser(CLI::App* subcom, Configuration& config)
 {
-    auto& config = Configuration::instance();
-
     auto& prefix = config.insert(Configurable("constructor_prefix", fs::u8path(""))
                                      .group("cli")
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
 
     subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description());
 
-    auto& extract_conda_pkgs
-        = config.insert(Configurable("constructor_extract_conda_pkgs", false)
-                            .group("cli")
-                            .description("Extract the conda pkgs in <prefix>/pkgs"));
-    subcom->add_flag("--extract-conda-pkgs",
-                     extract_conda_pkgs.get_cli_config<bool>(),
-                     extract_conda_pkgs.description());
+    auto& extract_conda_pkgs = config.insert(Configurable("constructor_extract_conda_pkgs", false)
+                                                 .group("cli")
+                                                 .description("Extract the conda pkgs in <prefix>/pkgs"
+                                                 ));
+    subcom->add_flag(
+        "--extract-conda-pkgs",
+        extract_conda_pkgs.get_cli_config<bool>(),
+        extract_conda_pkgs.description()
+    );
 
     auto& extract_tarball = config.insert(Configurable("constructor_extract_tarball", false)
                                               .group("cli")
                                               .description("Extract given tarball into prefix"));
     subcom->add_flag(
-        "--extract-tarball", extract_tarball.get_cli_config<bool>(), extract_tarball.description());
+        "--extract-tarball",
+        extract_tarball.get_cli_config<bool>(),
+        extract_tarball.description()
+    );
 }
 
 void
-set_constructor_command(CLI::App* subcom)
+set_constructor_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_constructor_parser(subcom);
+    init_constructor_parser(subcom, config);
 
     subcom->callback(
-        [&]()
+        [&config]
         {
-            auto& c = Configuration::instance();
-
-            auto& prefix = c.at("constructor_prefix").compute().value<fs::u8path>();
-            auto& extract_conda_pkgs
-                = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
-            auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
-
-            construct(prefix, extract_conda_pkgs, extract_tarball);
-        });
+            auto& prefix = config.at("constructor_prefix").compute().value<fs::u8path>();
+            auto& extract_conda_pkgs = config.at("constructor_extract_conda_pkgs")
+                                           .compute()
+                                           .value<bool>();
+            auto& extract_tarball = config.at("constructor_extract_tarball").compute().value<bool>();
+            construct(config, prefix, extract_conda_pkgs, extract_tarball);
+        }
+    );
 }
 
-
 void
-construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
+construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
-    auto& config = Configuration::instance();
-
-    config.at("show_banner").set_value(false);
     config.at("use_target_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
-        .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                   | MAMBA_ALLOW_NOT_ENV_PREFIX);
+        .set_value(
+            MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+        );
     config.load();
 
     std::map<std::string, nlohmann::json> repodatas;
@@ -84,11 +82,11 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
         {
             try
             {
-                if (ends_with(fn, ".tar.bz2"))
+                if (util::ends_with(fn, ".tar.bz2"))
                 {
                     return j.at("packages").at(fn);
                 }
-                else if (ends_with(fn, ".conda"))
+                else if (util::ends_with(fn, ".conda"))
                 {
                     return j.at("packages.conda").at(fn);
                 }
@@ -102,25 +100,28 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
         fs::u8path pkgs_dir = prefix / "pkgs";
         fs::u8path urls_file = pkgs_dir / "urls";
 
-        auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
-
-        for (const auto& pkg_info : package_details)
+        for (const auto& raw_url : read_lines(urls_file))
         {
-            fs::u8path entry = pkgs_dir / pkg_info.fn;
-            LOG_TRACE << "Extracting " << pkg_info.fn << std::endl;
-            std::cout << "Extracting " << pkg_info.fn << std::endl;
+            auto pkg_info = specs::PackageInfo::from_url(raw_url);
 
-            fs::u8path base_path = extract(entry);
+            fs::u8path entry = pkgs_dir / pkg_info.filename;
+            LOG_TRACE << "Extracting " << pkg_info.filename << std::endl;
+            std::cout << "Extracting " << pkg_info.filename << std::endl;
+
+            fs::u8path base_path = extract(entry, ExtractOptions::from_context(config.context()));
 
             fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
             fs::u8path index_path = base_path / "info" / "index.json";
 
             std::string channel_url;
-            if (pkg_info.url.size() > pkg_info.fn.size())
+            if (pkg_info.package_url.size() > pkg_info.filename.size())
             {
-                channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.fn.size());
+                channel_url = pkg_info.package_url.substr(
+                    0,
+                    pkg_info.package_url.size() - pkg_info.filename.size()
+                );
             }
-            std::string repodata_cache_name = concat(cache_name_from_url(channel_url), ".json");
+            std::string repodata_cache_name = util::concat(cache_name_from_url(channel_url), ".json");
             fs::u8path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
 
             nlohmann::json repodata_record;
@@ -134,7 +135,7 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
                     repodatas[repodata_cache_name] = j;
                 }
                 auto& j = repodatas[repodata_cache_name];
-                repodata_record = find_package(j, pkg_info.fn);
+                repodata_record = find_package(j, pkg_info.filename);
             }
 
             nlohmann::json index;
@@ -149,7 +150,7 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
             }
             else
             {
-                LOG_WARNING << "Did not find a repodata record for " << pkg_info.url;
+                LOG_WARNING << "Did not find a repodata record for " << pkg_info.package_url;
                 repodata_record = index;
 
                 repodata_record["size"] = fs::file_size(entry);
@@ -163,12 +164,11 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
                 }
             }
 
-            repodata_record["fn"] = pkg_info.fn;
-            repodata_record["url"] = pkg_info.url;
+            repodata_record["fn"] = pkg_info.filename;
+            repodata_record["url"] = pkg_info.package_url;
             repodata_record["channel"] = pkg_info.channel;
 
-            if (repodata_record.find("size") == repodata_record.end()
-                || repodata_record["size"] == 0)
+            if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
             {
                 repodata_record["size"] = fs::file_size(entry);
             }
@@ -183,11 +183,10 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
     {
         fs::u8path extract_tarball_path = prefix / "_tmp.tar.bz2";
         read_binary_from_stdin_and_write_to_file(extract_tarball_path);
-        extract_archive(extract_tarball_path, prefix);
+        extract_archive(extract_tarball_path, prefix, ExtractOptions::from_context(config.context()));
         fs::remove(extract_tarball_path);
     }
 }
-
 
 void
 read_binary_from_stdin_and_write_to_file(fs::u8path& filename)

@@ -8,19 +8,22 @@
 #ifndef MAMBA_CORE_ENVIRONMENT_LOCKFILE_HPP
 #define MAMBA_CORE_ENVIRONMENT_LOCKFILE_HPP
 
+#include <optional>
 #include <string>
 #include <typeindex>
-#include <optional>
 #include <unordered_map>
 
 #include <tl/expected.hpp>
 
-#include "fsutil.hpp"
-#include "package_info.hpp"
-#include "error_handling.hpp"
+#include "mamba/core/error_handling.hpp"
+#include "mamba/core/fsutil.hpp"
+#include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
+    class Context;
+    class ChannelContext;
 
     enum class file_parsing_error_code
     {
@@ -43,9 +46,11 @@ namespace mamba
         }
 
         template <typename StringT>
-        static mamba_error make_error(file_parsing_error_code error_code,
-                                      StringT&& msg,
-                                      std::optional<std::type_index> yaml_error_type = std::nullopt)
+        static mamba_error make_error(
+            file_parsing_error_code error_code,
+            StringT&& msg,
+            std::optional<std::type_index> yaml_error_type = std::nullopt
+        )
         {
             return mamba_error{ std::forward<StringT>(msg),
                                 mamba_error_code::env_lockfile_parsing_failed,
@@ -56,6 +61,7 @@ namespace mamba
     class EnvironmentLockFile
     {
     public:
+
         struct Channel
         {
             std::string url;
@@ -72,7 +78,7 @@ namespace mamba
 
         struct Package
         {
-            mamba::PackageInfo info;
+            specs::PackageInfo info;
             bool is_optional = false;
             std::string category;
             std::string manager;
@@ -80,44 +86,39 @@ namespace mamba
         };
 
         EnvironmentLockFile(Meta metadata, std::vector<Package> packages)
-            : metadata(std::move(metadata))
-            , packages(std::move(packages))
+            : m_metadata(std::move(metadata))
+            , m_packages(std::move(packages))
         {
         }
 
-        std::vector<PackageInfo> get_packages_for(std::string_view category,
-                                                  std::string_view platform,
-                                                  std::string_view manager) const;
+        std::vector<specs::PackageInfo>
+        get_packages_for(std::string_view category, std::string_view platform, std::string_view manager)
+            const;
 
         const std::vector<Package>& get_all_packages() const
         {
-            return packages;
+            return m_packages;
         }
+
         const Meta& get_metadata() const
         {
-            return metadata;
+            return m_metadata;
         }
 
     private:
-        Meta metadata;
-        std::vector<Package> packages;
+
+        Meta m_metadata;
+        std::vector<Package> m_packages;
     };
 
     /// Read an environment lock YAML file and returns it's structured content or an error if
     /// failed.
-    tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
-        const fs::u8path& lockfile_location);
+    tl::expected<EnvironmentLockFile, mamba_error>
+    read_environment_lockfile(const mamba::fs::u8path& lockfile_location);
 
 
     /// Returns `true` if the filename matches names of files which should be interpreted as conda
     /// environment lockfile. NOTE: this does not check if the file exists.
-    inline bool is_env_lockfile_name(const std::string_view filename)
-    {
-        return ends_with(filename, "-lock.yml") || ends_with(filename, "-lock.yaml");
-    }
-
-
+    bool is_env_lockfile_name(std::string_view filename);
 }
-
-
 #endif

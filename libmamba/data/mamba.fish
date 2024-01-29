@@ -62,10 +62,10 @@ function micromamba --inherit-variable MAMBA_EXE
     set -e argv[1]
     switch $cmd
       case activate deactivate
-        $MAMBA_EXE shell -s fish $cmd $argv | source || return $status
+        $MAMBA_EXE shell $cmd --shell fish $argv | source || return $status
       case install update upgrade remove uninstall
         $MAMBA_EXE $cmd $argv || return $status
-        $MAMBA_EXE shell -s fish reactivate | source || return $status
+        $MAMBA_EXE shell reactivate --shell fish | source || return $status
       case '*'
         $MAMBA_EXE $cmd $argv
     end
@@ -77,7 +77,7 @@ end
 # Autocompletions below
 
 function __fish_mamba_envs
-  micromamba env list | tail -n +11 | cut -d' ' -f3
+  micromamba env list | tail -n +3 | cut -d' ' -f3
 end
 
 function __fish_mamba_packages
@@ -109,7 +109,7 @@ end
 
 function __fish_mamba_complete_subcmds
   for line in (string split \n (string trim $argv[2]))
-    set tmp (string replace -r '\s{5,}+' ___ (string trim $line))
+    set tmp (string replace -r '\s{4,}+' ___ (string trim $line))
     set cmd (string split ___  $tmp -f 1)
     set description (string split ___ $tmp -f 2)
     if test -z $description
@@ -134,6 +134,7 @@ __fish_mamba_complete_subcmds '__fish_mamba_has_command' '
   create                      Create new environment
   install                     Install packages in active environment
   update                      Update packages in active environment
+  self-update                 Update micromamba
   repoquery                   Find and analyze packages in active environment or channels
   remove                      Remove packages from active environment
   list                        List packages in active environment
@@ -148,9 +149,10 @@ __fish_mamba_complete_subcmds '__fish_mamba_has_command' '
   ps                          Show, inspect or kill running processes
   auth                        Login or logout of a given host
   search                      Find packages in active environment or channels
+
+  deactivate                  Deactivate the current environment
 '
 
-# TODO: deactivate
 # TODO: run
 
 # env subcommand
@@ -184,12 +186,14 @@ __fish_mamba_complete_subcmds '__fish_mamba_has_command repoquery' '
 
 # shell
 __fish_mamba_complete_subcmds '__fish_mamba_has_command shell' '
-  init
-  deinit
-  hook
-  activate
-  deactivate
-  reactivate
+  init                        Add initialization in script to rc files
+  deinit                      Remove activation script from rc files
+  reinit                      Restore activation script from rc files
+  hook                        Micromamba hook scripts
+  activate                    Output activation code for the given shell
+  reactivate                  Output reactivateion code for the given shell
+  deactivate                  Output deactivation code for the given shell
+  enable_long_path_support    Output deactivation code for the given shell
 '
 
 # Commands that need environment as parameter

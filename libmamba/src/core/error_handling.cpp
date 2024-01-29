@@ -9,7 +9,9 @@ namespace mamba
         void maybe_dump_backtrace(mamba_error_code ec)
         {
             if (ec == mamba_error_code::internal_failure)
+            {
                 spdlog::dump_backtrace();
+            }
         }
 
     }
@@ -44,7 +46,6 @@ namespace mamba
         maybe_dump_backtrace(m_error_code);
     }
 
-
     mamba_error_code mamba_error::error_code() const noexcept
     {
         return m_error_code;
@@ -78,7 +79,6 @@ namespace mamba
         }
         return m_aggregated_message.c_str();
     }
-
 
     tl::unexpected<mamba_error> make_unexpected(const char* msg, mamba_error_code ec)
     {

@@ -1,0 +1,162 @@
+name: Unix tests impl
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      build_type:
+        required: true
+        type: string
+
+defaults:
+  run:
+    # micromamba activation
+    shell: bash -l -eo pipefail {0}
+
+jobs:
+  build_shared_unix:
+    name: Build binaries
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./dev/environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ inputs.os }}
+          restore-keys: |
+            ccache-libmamba-${{ inputs.os }}
+      - name: Build mamba
+        run: |
+          cmake -B build/ -G Ninja \
+            --preset mamba-unix-shared-${{ inputs.build_type }}  \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -D BUILD_LIBMAMBAPY=OFF
+          cmake --build build/ --parallel
+      - name: Show build cache statistics
+        run: sccache --show-stats
+      - name: Lock environment
+        run: micromamba env export --explicit > build/environment.lock
+      - name: Remove extra files before saving workspace
+        run: find build/ -type f -name '*.o' -exec rm {} +
+      - name: Save workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: save
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+
+  libmamba_tests_unix:
+    name: libmamba tests
+    needs: ["build_shared_unix"]
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+      - name: Run libmamba tests
+        run: |
+          unset CONDARC  # Interferes with tests
+          ./build/libmamba/tests/test_libmamba
+
+  libmambapy_tests_unix:
+    name: libmambapy tests
+    needs: ["build_shared_unix"]
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+      - name: Install libmambapy
+        run: |
+          cmake --install build/ --prefix "${CONDA_PREFIX}"
+          # TODO add some ccache and parallelism to builds
+          python -m pip install --no-deps --no-build-isolation ./libmambapy
+      - name: Run libmamba Python bindings tests
+        run: |
+          python -m pytest libmambapy/tests/ ${{ runner.debug == 'true' && '-v' || '--exitfirst' }}
+
+  mamba_integration_tests_unix:
+    name: mamba integration tests
+    needs: ["build_shared_unix"]
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+      - name: install zsh, xonsh, fish and tcsh in linux
+        if: startsWith(inputs.os, 'ubuntu')
+        run: |
+          sudo apt-get install zsh xonsh fish tcsh -y
+      - name: Install xonsh and fish in mac
+        if: startsWith(inputs.os, 'macos')
+        run: |
+          brew install fish xonsh
+      - name: Diagnose CURL/DNS issue
+        run: |
+          echo 'ping -c 3 conda.anaconda.org'
+          ping -c 3 conda.anaconda.org || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'ping -c 3 repo.mamba.pm'
+          ping -c 3 repo.mamba.pm || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'nslookup conda.anaconda.org'
+          nslookup conda.anaconda.org || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'nslookup repo.mamba.pm'
+          nslookup repo.mamba.pm || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'which curl'
+          which curl  || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'curl -I -vvvv https://conda.anaconda.org/conda-forge/noarch/repodata.json'
+          curl -I -vvv https://conda.anaconda.org/conda-forge/noarch/repodata.json || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'curl -I -vvvv https://repo.mamba.pm/conda-forge/noarch/repodata.json'
+          curl -I -vvv https://repo.mamba.pm/conda-forge/noarch/repodata.json || echo 'FAILED'
+
+      - name: mamba python based tests
+        run: |
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+          unset CONDARC  # Interferes with tests
+          python -m pytest micromamba/tests/ \
+            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}

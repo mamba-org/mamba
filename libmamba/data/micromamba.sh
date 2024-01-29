@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __mamba_exe() (
-    "$MAMBA_EXE" "$@"
+    "$MAMBA_EXE" "${@}"
 )
 
 __mamba_hashr() {
@@ -15,40 +15,33 @@ __mamba_hashr() {
     fi
 }
 
-__mamba_activate() {
+__mamba_xctivate() {
     \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash "$@")" || \return
-    \eval "$ask_conda"
-    __mamba_hashr
-}
-
-__mamba_reactivate() {
-    \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash reactivate)" || \return
-    \eval "$ask_conda"
+    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell "${@}" --shell bash)" || \return
+    \eval "${ask_conda}"
     __mamba_hashr
 }
 
 micromamba() {
     \local cmd="${1-__missing__}"
-    case "$cmd" in
-        activate|deactivate)
-            __mamba_activate "$@"
+    case "${cmd}" in
+        activate|reactivate|deactivate)
+            __mamba_xctivate "${@}"
             ;;
         install|update|upgrade|remove|uninstall)
-            __mamba_exe "$@" || \return
-            __mamba_reactivate
+            __mamba_exe "${@}" || \return
+            __mamba_xctivate reactivate
             ;;
         self-update)
-            __mamba_exe "$@" || \return
+            __mamba_exe "${@}" || \return
 
             # remove leftover backup file on Windows
             if [ -f "$MAMBA_EXE.bkup" ]; then
-                rm -f $MAMBA_EXE.bkup
+                rm -f "$MAMBA_EXE.bkup"
             fi
             ;;
         *)
-            __mamba_exe "$@"
+            __mamba_exe "${@}"
             ;;
     esac
 }

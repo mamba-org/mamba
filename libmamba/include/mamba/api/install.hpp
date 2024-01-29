@@ -7,47 +7,81 @@
 #ifndef MAMBA_API_INSTALL_HPP
 #define MAMBA_API_INSTALL_HPP
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/package_info.hpp"
-#include "mamba/core/pool.hpp"
-#include "mamba/core/repo.hpp"
-#include "mamba/core/solver.hpp"
-
-#include <yaml-cpp/yaml.h>
-
-#include <nlohmann/json.hpp>
-
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+#include <solv/solver.h>
+#include <yaml-cpp/yaml.h>
+
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/solver.hpp"
+#include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
-    void install();
+    class Context;
+    class ChannelContext;
+    class Configuration;
 
-    void install_specs(const std::vector<std::string>& specs,
-                       bool create_env = false,
-                       int solver_flag = SOLVER_INSTALL,
-                       int is_retry = 0);
+    void install(Configuration& config);
 
-    void install_explicit_specs(const std::vector<std::string>& specs, bool create_env = false);
-    void install_lockfile_specs(const std::string& lockfile_specs,
-                                const std::vector<std::string>& categories,
-                                bool create_env = false);
+    void install_specs(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const Configuration& config,
+        const std::vector<std::string>& specs,
+        bool create_env = false,
+        bool remove_prefix_on_failure = false
+    );
+
+    auto create_install_request(  //
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool freeze_installed
+    ) -> solver::Request;
+
+    void add_pins_to_request(
+        solver::Request& request,
+        const Context& ctx,
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool no_pin,
+        bool no_py_pin
+    );
+
+    void print_request_pins_to(const solver::Request& request, std::ostream& out);
+
+    void install_explicit_specs(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs,
+        bool create_env = false,
+        bool remove_prefix_on_failure = false
+    );
+    void install_lockfile_specs(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const std::string& lockfile_specs,
+        const std::vector<std::string>& categories,
+        bool create_env = false,
+        bool remove_prefix_on_failure = false
+    );
 
     namespace detail
     {
-        void create_target_directory(const fs::u8path prefix);
+        void create_target_directory(const Context& context, const fs::u8path prefix);
 
-        void create_empty_target(const fs::u8path& prefix);
+        void create_empty_target(const Context& context, const fs::u8path& prefix);
 
-        void file_specs_hook(std::vector<std::string>& file_specs);
+        void file_specs_hook(Configuration& config, std::vector<std::string>& file_specs);
 
-        void channels_hook(std::vector<std::string>& channels);
+        void channels_hook(Configuration& config, std::vector<std::string>& channels);
 
-        bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
+        bool
+        download_explicit(const std::vector<specs::PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
 
         struct other_pkg_mgr_spec
         {
@@ -65,12 +99,9 @@ namespace mamba
             std::vector<other_pkg_mgr_spec> others_pkg_mgrs_specs;
         };
 
-        bool eval_selector(const std::string& selector);
+        bool eval_selector(const std::string& selector, const std::string& platform);
 
-        yaml_file_contents read_yaml_file(fs::u8path yaml_file);
-
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
-            const std::vector<std::string>& urls);
+        yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform);
 
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {

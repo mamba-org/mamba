@@ -1,35 +1,46 @@
-#include <regex>
 #include <iostream>
+#include <regex>
 
 #ifndef _WIN32
-#include <unistd.h>
 #include <clocale>
+
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 #if defined(__APPLE__)
-#include <mach-o/dyld.h>
 #include <libproc.h>
+#include <mach-o/dyld.h>
 #endif
 #include <inttypes.h>
 #include <limits.h>
 #else
 #include <atomic>
-#include <windows.h>
-#include <io.h>
+
 #include <intrin.h>
+#include <io.h>
+#include <shlobj_core.h>
+#include <windows.h>
+// Incomplete header included last
 #include <tlhelp32.h>
-#include "WinReg.hpp"
+#include <WinReg.hpp>
+
+#include "mamba/core/context.hpp"
 #endif
 
-#include <fmt/format.h>
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/context.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
+
+#ifdef _WIN32
+static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
+#endif
 
 namespace mamba
 {
@@ -124,23 +135,21 @@ namespace mamba
         return true;
     }
 
-    bool enable_long_paths_support(bool force)
+    bool enable_long_paths_support(bool force, Palette palette)
     {
         // Needs to be set system-wide & can only be run as admin ...
         std::string win_ver = windows_version();
-        auto splitted = split(win_ver, ".");
+        auto splitted = util::split(win_ver, ".");
         if (!(splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
               && std::stoull(splitted[2]) >= 14352))
         {
-            LOG_WARNING
-                << "Not setting long path registry key; Windows version must be at least 10 "
-                   "with the fall 2016 \"Anniversary update\" or newer.";
+            LOG_WARNING << "Not setting long path registry key; Windows version must be at least 10 "
+                           "with the fall 2016 \"Anniversary update\" or newer.";
             return false;
         }
 
         winreg::RegKey key;
-        key.Open(
-            HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", KEY_QUERY_VALUE);
+        key.Open(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", KEY_QUERY_VALUE);
         DWORD prev_value;
         try
         {
@@ -155,17 +164,20 @@ namespace mamba
         if (prev_value == 1)
         {
             auto out = Console::stream();
-            fmt::print(out,
-                       "{}",
-                       fmt::styled("Windows long-path support already enabled.",
-                                   Context::instance().palette.ignored));
+            fmt::print(
+                out,
+                "{}",
+                fmt::styled("Windows long-path support already enabled.", palette.ignored)
+            );
             return true;
         }
 
         if (force || is_admin())
         {
-            winreg::RegKey key_for_write(HKEY_LOCAL_MACHINE,
-                                         L"SYSTEM\\CurrentControlSet\\Control\\FileSystem");
+            winreg::RegKey key_for_write(
+                HKEY_LOCAL_MACHINE,
+                L"SYSTEM\\CurrentControlSet\\Control\\FileSystem"
+            );
             key_for_write.SetDwordValue(L"LongPathsEnabled", 1);
         }
         else
@@ -174,7 +186,8 @@ namespace mamba
             {
                 if (!run_as_admin(
                         "reg.exe",
-                        "ADD HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /d 1 /t REG_DWORD /f"))
+                        "ADD HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /d 1 /t REG_DWORD /f"
+                    ))
                 {
                     return false;
                 }
@@ -190,10 +203,7 @@ namespace mamba
         if (prev_value == 1)
         {
             auto out = Console::stream();
-            fmt::print(out,
-                       "{}",
-                       fmt::styled("Windows long-path support enabled.",
-                                   Context::instance().palette.success));
+            fmt::print(out, "{}", fmt::styled("Windows long-path support enabled.", palette.success));
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";
@@ -204,21 +214,25 @@ namespace mamba
     std::string windows_version()
     {
         LOG_DEBUG << "Loading Windows virtual package";
-        auto override_version = env::get("CONDA_OVERRIDE_WIN");
+        auto override_version = util::get_env("CONDA_OVERRIDE_WIN");
         if (override_version)
         {
             return override_version.value();
         }
 
-        if (!on_win)
+        if (!util::on_win)
         {
             return "";
         }
 
         std::string out, err;
-        std::vector<std::string> args = { env::get("COMSPEC").value_or(""), "/c", "ver" };
+        std::vector<std::string> args = { util::get_env("COMSPEC").value_or(""), "/c", "ver" };
         auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
 
         if (ec)
         {
@@ -226,7 +240,7 @@ namespace mamba
                         << "Please file a bug report.\nError: " << ec.message();
             return "";
         }
-        std::string xout(strip(out));
+        std::string xout(util::strip(out));
 
         // from python
         std::regex ver_output_regex("(?:([\\w ]+) ([\\w.]+) .*\\[.* ([\\d.]+)\\])");
@@ -237,8 +251,8 @@ namespace mamba
         if (std::regex_match(xout, rmatch, ver_output_regex))
         {
             full_version = rmatch[3];
-            auto version_els = split(full_version, ".");
-            norm_version = concat(version_els[0], ".", version_els[1], ".", version_els[2]);
+            auto version_els = util::split(full_version, ".");
+            norm_version = util::concat(version_els[0], ".", version_els[1], ".", version_els[2]);
             LOG_DEBUG << "Windows version found: " << norm_version;
         }
         else
@@ -252,13 +266,13 @@ namespace mamba
     std::string macos_version()
     {
         LOG_DEBUG << "Loading macos virtual package";
-        auto override_version = env::get("CONDA_OVERRIDE_OSX");
+        auto override_version = util::get_env("CONDA_OVERRIDE_OSX");
         if (override_version)
         {
             return override_version.value();
         }
 
-        if (!on_mac)
+        if (!util::on_mac)
         {
             return "";
         }
@@ -270,17 +284,20 @@ namespace mamba
         //       parser or some other crude method to read the data
         std::vector<std::string> args = { "sw_vers", "-productVersion" };
         auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
 
         if (ec)
         {
-            LOG_WARNING
-                << "Could not find macOS version by calling 'sw_vers -productVersion'\nPlease file a bug report.\nError: "
-                << ec.message();
+            LOG_WARNING << "Could not find macOS version by calling 'sw_vers -productVersion'\nPlease file a bug report.\nError: "
+                        << ec.message();
             return "";
         }
 
-        auto version = std::string(strip(out));
+        auto version = std::string(util::strip(out));
         LOG_DEBUG << "macos version found: " << version;
         return version;
     }
@@ -288,31 +305,29 @@ namespace mamba
     std::string linux_version()
     {
         LOG_DEBUG << "Loading linux virtual package";
-        auto override_version = env::get("CONDA_OVERRIDE_LINUX");
+        auto override_version = util::get_env("CONDA_OVERRIDE_LINUX");
         if (override_version)
         {
             return override_version.value();
         }
-        if (!on_linux)
+        if (!util::on_linux)
         {
             return "";
         }
 
-        std::string out, err;
-        std::vector<std::string> args = { "uname", "-r" };
-        auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
-
-        if (ec)
+#ifndef _WIN32
+        struct utsname uname_result = {};
+        const auto ret = ::uname(&uname_result);
+        if (ret != 0)
         {
-            LOG_DEBUG << "Could not find linux version by calling 'uname -r' (skipped)";
-            return "";
+            LOG_DEBUG << "Error calling uname (skipping): "
+                      << std::system_error(errno, std::generic_category()).what();
         }
 
-        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
+        static const std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
         std::smatch m;
-
-        if (std::regex_search(out, m, re))
+        std::string const version = uname_result.release;
+        if (std::regex_search(version, m, re))
         {
             if (m.size() == 2)
             {
@@ -323,6 +338,7 @@ namespace mamba
         }
 
         LOG_DEBUG << "Could not parse linux version";
+#endif
 
         return "";
     }
@@ -338,12 +354,16 @@ namespace mamba
         __try
         {
             if (hSnapshot == INVALID_HANDLE_VALUE)
+            {
                 __leave;
+            }
 
             ZeroMemory(&pe32, sizeof(pe32));
             pe32.dwSize = sizeof(pe32);
             if (!Process32First(hSnapshot, &pe32))
+            {
                 __leave;
+            }
 
             do
             {
@@ -357,7 +377,9 @@ namespace mamba
         __finally
         {
             if (hSnapshot != INVALID_HANDLE_VALUE)
+            {
                 CloseHandle(hSnapshot);
+            }
         }
         return ppid;
     }
@@ -403,7 +425,7 @@ namespace mamba
 #elif defined(__linux__)
     std::string get_process_name_by_pid(const int pid)
     {
-        std::ifstream f(concat("/proc/", std::to_string(pid), "/status"));
+        std::ifstream f(util::concat("/proc/", std::to_string(pid), "/status"));
         if (f.good())
         {
             std::string l;
@@ -464,49 +486,6 @@ namespace mamba
 #endif
     }
 
-#ifdef _WIN32
-    std::string to_utf8(const wchar_t* w, size_t s)
-    {
-        std::string output;
-        if (s != 0)
-        {
-            assert(s <= INT_MAX);
-            const int size = WideCharToMultiByte(
-                CP_UTF8, 0, w, static_cast<int>(s), nullptr, 0, nullptr, nullptr);
-            if (size <= 0)
-            {
-                unsigned long last_error = ::GetLastError();
-                LOG_ERROR << "Failed to convert string to UTF-8 "
-                          << std::system_category().message(static_cast<int>(last_error));
-                throw std::runtime_error("Failed to convert string to UTF-8");
-            }
-
-            output.resize(size);
-            int res_size = WideCharToMultiByte(CP_UTF8,
-                                               0,
-                                               w,
-                                               static_cast<int>(s),
-                                               output.data(),
-                                               static_cast<int>(size),
-                                               nullptr,
-                                               nullptr);
-            assert(res_size == size);
-        }
-
-        return output;
-    }
-
-    std::string to_utf8(const wchar_t* w)
-    {
-        return to_utf8(w, wcslen(w));
-    }
-
-    std::string to_utf8(std::wstring const& s)
-    {
-        return to_utf8(s.data(), s.size());
-    }
-#endif
-
     /* From https://github.com/ikalnytskyi/termcolor
      *
      * copyright: (c) 2013 by Ihor Kalnytskyi.
@@ -514,13 +493,13 @@ namespace mamba
      * */
     bool is_atty(const std::ostream& stream)
     {
-        FILE* const std_stream = [](const std::ostream& stream) -> FILE*
+        FILE* const std_stream = [](const std::ostream& lstream) -> FILE*
         {
-            if (&stream == &std::cout)
+            if (&lstream == &std::cout)
             {
                 return stdout;
             }
-            else if ((&stream == &std::cerr) || (&stream == &std::clog))
+            else if ((&lstream == &std::cerr) || (&lstream == &std::clog))
             {
                 return stderr;
             }
@@ -555,12 +534,12 @@ namespace mamba
 #else
         DWORD console_mode;
         bool res = GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &console_mode);
-        features.virtual_terminal_processing
-            = res && console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        features.virtual_terminal_processing = res
+                                               && console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
         features.true_colors = false;
 
         std::string win_ver = windows_version();
-        auto splitted = split(win_ver, ".");
+        auto splitted = util::split(win_ver, ".");
         if (splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
             && std::stoull(splitted[2]) >= 15063)
         {
@@ -610,8 +589,7 @@ namespace mamba
             options.redirect.err = silence;
         }
 
-        const std::vector<std::string> cmd
-            = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
+        const std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
         auto [status, ec] = reproc::run(cmd, options);
         if (ec)
         {

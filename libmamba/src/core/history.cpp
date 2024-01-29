@@ -6,20 +6,24 @@
 
 #include <regex>
 
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
-    History::History(const fs::u8path& prefix)
+    History::History(const fs::u8path& prefix, ChannelContext& channel_context)
         : m_prefix(prefix)
         , m_history_file_path(fs::absolute(m_prefix / "conda-meta" / "history"))
+        , m_channel_context(channel_context)
     {
     }
 
-    History::UserRequest History::UserRequest::prefilled()
+    History::UserRequest History::UserRequest::prefilled(const Context& context)
     {
         UserRequest ur;
         std::time_t t = std::time(nullptr);
@@ -28,8 +32,8 @@ namespace mamba
         {
             ur.date = mbstr;
         }
-        ur.cmd = Context::instance().current_command;
-        ur.conda_version = Context::instance().conda_version;
+        ur.cmd = context.command_params.current_command;
+        ur.conda_version = context.command_params.conda_version;
         return ur;
     }
 
@@ -51,7 +55,9 @@ namespace mamba
         while (getline(in_file, line))
         {
             if (line.size() == 0)
+            {
                 continue;
+            }
             std::smatch base_match;
             if (std::regex_match(line, base_match, head_re))
             {
@@ -91,10 +97,12 @@ namespace mamba
     {
         std::size_t colon_idx = line.find_first_of(':');
         if (colon_idx == std::string::npos)
+        {
             return false;
+        }
 
-        std::string key(strip(line.substr(1, colon_idx - 1)));
-        std::string value(strip(line.substr(colon_idx + 1)));
+        std::string key(util::strip(line.substr(1, colon_idx - 1)));
+        std::string value(util::strip(line.substr(colon_idx + 1)));
 
         if (key == "conda version")
         {
@@ -104,7 +112,7 @@ namespace mamba
         {
             req.cmd = value;
         }
-        else if (ends_with(key, " specs"))
+        else if (util::ends_with(key, " specs"))
         {
             std::string action = key.substr(0, key.find_first_of(" "));
             // small parser for pythonic lists
@@ -183,17 +191,17 @@ namespace mamba
         return res;
     }
 
-    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map()
+    std::unordered_map<std::string, specs::MatchSpec> History::get_requested_specs_map()
     {
-        std::unordered_map<std::string, MatchSpec> map;
+        std::unordered_map<std::string, specs::MatchSpec> map;
 
-        auto to_specs = [](const std::vector<std::string>& sv)
+        auto to_specs = [&](const std::vector<std::string>& sv)
         {
-            std::vector<MatchSpec> v;
+            std::vector<specs::MatchSpec> v;
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(el);
+                v.emplace_back(specs::MatchSpec::parse(el));
             }
             return v;
         };
@@ -203,17 +211,17 @@ namespace mamba
             auto remove_specs = to_specs(request.remove);
             for (auto& spec : remove_specs)
             {
-                map.erase(spec.name);
+                map.erase(spec.name().str());
             }
             auto update_specs = to_specs(request.update);
             for (auto& spec : update_specs)
             {
-                map[spec.name] = spec;
+                map[spec.name().str()] = spec;
             }
             auto neutered_specs = to_specs(request.neutered);
             for (auto& spec : neutered_specs)
             {
-                map[spec.name] = spec;
+                map[spec.name().str()] = spec;
             }
         }
 
@@ -266,7 +274,9 @@ namespace mamba
                                    const std::vector<std::string>& specs) -> std::string
             {
                 if (specs.empty())
+                {
                     return "";
+                }
                 std::stringstream spec_ss;
                 spec_ss << "# " << action << " specs: [";
                 for (auto spec : specs)

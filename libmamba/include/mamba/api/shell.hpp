@@ -7,20 +7,25 @@
 #ifndef MAMBA_API_SHELL_HPP
 #define MAMBA_API_SHELL_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-
 #include <string>
-#include <vector>
+#include <string_view>
 
+#include "mamba/core/palette.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {
-    void detect_shell(std::string& shell_type);
+    class Context;
 
-    void shell(const std::string& action,
-               std::string& shell_type,
-               const std::string& prefix = "",
-               bool stack = false);
+    void shell_init(Context& ctx, const std::string& shell_type, const fs::u8path& prefix);
+    void shell_deinit(Context& ctx, const std::string& shell_type, const fs::u8path& prefix);
+    void shell_reinit(Context& ctx, const fs::u8path& prefix);
+    void shell_hook(Context& ctx, const std::string& shell_type);
+    void
+    shell_activate(Context& ctx, const fs::u8path& prefix, const std::string& shell_type, bool stack);
+    void shell_reactivate(Context& ctx, const std::string& shell_type);
+    void shell_deactivate(Context& ctx, const std::string& shell_type);
+    void shell_enable_long_path_support(Palette palette = Palette::no_color());
 }
 
 #endif

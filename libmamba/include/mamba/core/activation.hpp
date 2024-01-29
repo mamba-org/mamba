@@ -7,17 +7,19 @@
 #ifndef MAMBA_CORE_ACTIVATION_HPP
 #define MAMBA_CORE_ACTIVATION_HPP
 
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 // TODO write a map that keeps insertion order
 
 namespace mamba
 {
+    class Context;
+
     enum class ActivationType
     {
         ACTIVATE,
@@ -38,6 +40,7 @@ namespace mamba
     class Activator
     {
     public:
+
         virtual ~Activator() = default;
 
         Activator(const Activator&) = delete;
@@ -46,9 +49,8 @@ namespace mamba
         Activator& operator=(Activator&&) = delete;
 
         virtual std::string script(const EnvironmentTransform& env) = 0;
-        virtual std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier)
-            = 0;
+        virtual std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) = 0;
         virtual std::string shell_extension() = 0;
         virtual std::string shell() = 0;
 
@@ -56,23 +58,26 @@ namespace mamba
         std::vector<fs::u8path> get_deactivate_scripts(const fs::u8path& prefix);
 
         std::string get_default_env(const fs::u8path& prefix);
-        std::vector<std::pair<std::string, std::string>> get_environment_vars(
-            const fs::u8path& prefix);
+        std::vector<std::pair<std::string, std::string>>
+        get_environment_vars(const fs::u8path& prefix);
 
-        std::string get_prompt_modifier(const fs::u8path& prefix,
-                                        const std::string& conda_default_env,
-                                        int old_conda_shlvl);
+        std::string get_prompt_modifier(
+            const fs::u8path& prefix,
+            const std::string& conda_default_env,
+            int old_conda_shlvl
+        );
 
-        std::vector<fs::u8path> get_clean_dirs();
+        std::vector<fs::u8path> get_PATH();
 
         std::string add_prefix_to_path(const fs::u8path& prefix, int old_conda_shlvl);
-        std::string replace_prefix_in_path(const fs::u8path& old_prefix,
-                                           const fs::u8path& new_prefix);
+        std::string
+        replace_prefix_in_path(const fs::u8path& old_prefix, const fs::u8path& new_prefix);
         std::string remove_prefix_from_path(const fs::u8path& prefix);
 
         void get_export_unset_vars(
             EnvironmentTransform& envt,
-            const std::vector<std::pair<std::string, std::string>>& to_export);
+            const std::vector<std::pair<std::string, std::string>>& to_export
+        );
 
         EnvironmentTransform build_reactivate();
         EnvironmentTransform build_deactivate();
@@ -89,23 +94,30 @@ namespace mamba
         std::string hook(const std::string& shell_type);
 
     protected:
-        Activator();
 
+        explicit Activator(const Context& context);
+
+        const Context& m_context;
         bool m_stack = false;
         ActivationType m_action;
 
-        std::map<std::string, std::string> m_env;
+        std::unordered_map<std::string, std::string> m_env;
     };
 
     class PosixActivator : public Activator
     {
     public:
-        PosixActivator() = default;
+
+        explicit PosixActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
         virtual ~PosixActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
         std::string shell() override;
 
@@ -117,12 +129,17 @@ namespace mamba
     class CshActivator : public Activator
     {
     public:
-        CshActivator() = default;
+
+        explicit CshActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
         virtual ~CshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
         std::string shell() override;
 
@@ -134,12 +151,17 @@ namespace mamba
     class CmdExeActivator : public Activator
     {
     public:
-        CmdExeActivator() = default;
+
+        explicit CmdExeActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
         virtual ~CmdExeActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
         std::string shell() override;
 
@@ -151,12 +173,17 @@ namespace mamba
     class PowerShellActivator : public Activator
     {
     public:
-        PowerShellActivator() = default;
+
+        explicit PowerShellActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
         virtual ~PowerShellActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
         std::string shell() override;
 
@@ -168,12 +195,17 @@ namespace mamba
     class XonshActivator : public Activator
     {
     public:
-        XonshActivator() = default;
+
+        explicit XonshActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
         virtual ~XonshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
         std::string shell() override;
 
@@ -185,12 +217,17 @@ namespace mamba
     class FishActivator : public Activator
     {
     public:
-        FishActivator() = default;
+
+        explicit FishActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
         virtual ~FishActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(
-            const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
         std::string shell() override;
 
@@ -199,6 +236,27 @@ namespace mamba
         fs::u8path hook_source_path() override;
     };
 
+    class NuActivator : public Activator
+    {
+    public:
+
+        explicit NuActivator(const Context& context)
+            : Activator(context)
+        {
+        }
+
+        virtual ~NuActivator() = default;
+
+        std::string script(const EnvironmentTransform& env_transform) override;
+        std::pair<std::string, std::string>
+        update_prompt(const std::string& conda_prompt_modifier) override;
+        std::string shell_extension() override;
+        std::string shell() override;
+
+        std::string hook_preamble() override;
+        std::string hook_postamble() override;
+        fs::u8path hook_source_path() override;
+    };
 
     std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix);
 

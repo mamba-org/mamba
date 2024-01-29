@@ -7,13 +7,15 @@
 #ifndef MAMBA_CORE_ENVIRONMENT_MANAGER
 #define MAMBA_CORE_ENVIRONMENT_MANAGER
 
-#include <string>
 #include <set>
+#include <string>
 
 #include "fsutil.hpp"
 
 namespace mamba
 {
+    class Context;
+
     const char PREFIX_MAGIC_FILE[] = "conda-meta/history";
 
     bool is_conda_environment(const fs::u8path& prefix);
@@ -21,13 +23,18 @@ namespace mamba
     class EnvironmentsManager
     {
     public:
+
+        explicit EnvironmentsManager(const Context& context);
+
         void register_env(const fs::u8path& location);
         void unregister_env(const fs::u8path& location);
         std::set<fs::u8path> list_all_known_prefixes();
 
     private:
-        std::set<std::string> clean_environments_txt(const fs::u8path& env_txt_file,
-                                                     const fs::u8path& location);
+
+        const Context& m_context;
+        std::set<std::string>
+        clean_environments_txt(const fs::u8path& env_txt_file, const fs::u8path& location);
         std::string remove_trailing_slash(std::string p);
         fs::u8path get_environments_txt_file(const fs::u8path& home) const;
     };

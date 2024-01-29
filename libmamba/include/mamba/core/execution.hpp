@@ -7,18 +7,19 @@
 #ifndef MAMBA_CORE_EXECUTION_HPP
 #define MAMBA_CORE_EXECUTION_HPP
 
-#include <vector>
-#include <future>
-#include <thread>
 #include <atomic>
+#include <future>
 #include <mutex>
+#include <thread>
+#include <vector>
 
+#include "mamba/core/error_handling.hpp"
 
 namespace mamba
 {
-    class MainExecutorError : public std::runtime_error
+    struct MainExecutorError : public mamba_error
     {
-        using std::runtime_error::runtime_error;
+        using mamba_error::mamba_error;
     };
 
     // Main execution resource (for example threads) handler for this library.
@@ -33,6 +34,7 @@ namespace mamba
     class MainExecutor
     {
     public:
+
         // Set itself as the main executor.
         // Throws `MainExecutorError` if another instance already exists.
         MainExecutor();
@@ -65,7 +67,9 @@ namespace mamba
         void schedule(Task&& task, Args&&... args)
         {
             if (!is_open)
+            {
                 return;
+            }
 
             std::scoped_lock lock{ threads_mutex };
             if (is_open)  // Double check necessary for correctness
@@ -84,7 +88,9 @@ namespace mamba
         void take_ownership(std::thread thread)
         {
             if (!thread.joinable() || !is_open)
+            {
                 return;
+            }
 
             std::scoped_lock lock{ threads_mutex };
             if (is_open)  // Double check necessary for correctness
@@ -92,7 +98,6 @@ namespace mamba
                 threads.push_back(std::move(thread));
             }
         }
-
 
         // Closes this executor:
         // Only returns once all tasks scheduled before this call are finished
@@ -105,13 +110,17 @@ namespace mamba
         {
             bool expected = true;
             if (!is_open.compare_exchange_strong(expected, false))
+            {
                 return;
+            }
 
             invoke_close_handlers();
 
             std::scoped_lock lock{ threads_mutex };
             for (auto&& t : threads)
+            {
                 t.join();
+            }
             threads.clear();
         }
 
@@ -120,7 +129,9 @@ namespace mamba
         void on_close(on_close_handler handler)
         {
             if (!is_open)
+            {
                 return;
+            }
 
             std::scoped_lock lock{ handlers_mutex };
             if (is_open)  // Double check needed to avoid adding new handles while closing.
@@ -130,6 +141,7 @@ namespace mamba
         }
 
     private:
+
         std::atomic<bool> is_open{ true };
         std::vector<std::thread> threads;
         std::recursive_mutex threads_mutex;  // TODO: replace by synchronized_value once available

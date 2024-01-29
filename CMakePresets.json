@@ -1,0 +1,46 @@
+{
+  "configurePresets": [
+    {
+      "displayName": "Mamba Unix Shared Debug",
+      "inherits": [
+        "conda-unix",
+        "libmamba-all",
+        "mamba-shared",
+        "mamba-debug"
+      ],
+      "name": "mamba-unix-shared-debug"
+    },
+    {
+      "displayName": "Mamba Unix Shared Release",
+      "inherits": [
+        "conda-unix",
+        "libmamba-all",
+        "mamba-shared",
+        "mamba-release"
+      ],
+      "name": "mamba-unix-shared-release"
+    },
+    {
+      "displayName": "Mamba Unix Shared Debug Dev",
+      "inherits": [
+        "mamba-unix-shared-debug",
+        "mamba-dev"
+      ],
+      "name": "mamba-unix-shared-debug-dev"
+    },
+    {
+      "displayName": "Mamba Win Shared Release",
+      "inherits": [
+        "libmamba-all",
+        "mamba-shared",
+        "mamba-release"
+      ],
+      "name": "mamba-win-shared-release"
+    }
+  ],
+  "include": [
+    "dev/CMakePresetsUnix.json",
+    "dev/CMakePresetsMamba.json"
+  ],
+  "version": 4
+}

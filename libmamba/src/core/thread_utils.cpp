@@ -9,9 +9,9 @@
 #include <signal.h>
 #endif
 
-#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/thread_utils.hpp"
 
 namespace mamba
 {

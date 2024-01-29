@@ -1,6 +1,12 @@
 # Git files
 *.orig
 
+# User Taskfile.yml
+Taskfile.yml
+Taskfile.yaml
+taskfile.yml
+taskfile.yaml
+
 # Mamba generated files
 include/mamba/core/version.hpp
 
@@ -16,6 +22,7 @@ include/mamba/core/version.hpp
 **/build/
 **/build-*/
 CMakeUserPresets.json
+**/cmake-build-debug/
 
 # CMake files that should not exists because they should be generated under a build folder
 CMakeLists.txt.user

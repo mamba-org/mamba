@@ -6,15 +6,21 @@
 
 #include <fmt/color.h>
 #include <fmt/format.h>
+#include <reproc++/run.hpp>
+#include <solv/solver.h>
 
-#include "mamba/api/configuration.hpp"
 #include "mamba/api/channel_loader.hpp"
-#include "mamba/api/shell.hpp"
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
-
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
+
+#ifdef __APPLE__
+#include "mamba/core/util_os.hpp"
+#endif
 
 #include "common_options.hpp"
 #include "version.hpp"
@@ -22,20 +28,20 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 int
-update_self(const std::optional<std::string>& version)
+update_self(Configuration& config, const std::optional<std::string>& version)
 {
-    auto& config = mamba::Configuration::instance();
-    auto& ctx = mamba::Context::instance();
+    auto& ctx = config.context();
     config.load();
 
     // set target_prefix to root_prefix (irrelevant, but transaction tries to lock
     // the conda-meta folder of the target_prefix)
-    ctx.target_prefix = ctx.root_prefix;
+    ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
-    mamba::MPool pool;
-    mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    mamba::MPool pool{ ctx, channel_context };
+    mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(pool, package_caches, 0);
+    auto exp_loaded = load_channels(ctx, pool, package_caches);
     if (!exp_loaded)
     {
         throw exp_loaded.error();
@@ -45,42 +51,51 @@ update_self(const std::optional<std::string>& version)
     std::string matchspec = version ? fmt::format("micromamba={}", version.value())
                                     : fmt::format("micromamba>{}", umamba::version());
 
-    auto solvable_ids = pool.select_solvables(pool.matchspec2id(matchspec), true);
+    auto solvable_ids = pool.select_solvables(
+        pool.matchspec2id(specs::MatchSpec::parse(matchspec)),
+        true
+    );
 
     if (solvable_ids.empty())
     {
-        if (pool.select_solvables(pool.matchspec2id("micromamba")).empty())
+        if (pool.select_solvables(pool.matchspec2id(specs::MatchSpec::parse("micromamba"))).empty())
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
-                mamba_error_code::selfupdate_failure);
+                mamba_error_code::selfupdate_failure
+            );
         }
         else
         {
-            Console::instance().print(fmt::format(
-                "\nYour micromamba version ({}) is already up to date.", umamba::version()));
+            Console::instance().print(
+                fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
+            );
             return 0;
         }
     }
 
-    std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
+    std::optional<specs::PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     if (!latest_micromamba)
     {
-        throw mamba::mamba_error("Could not convert solvable to PackageInfo",
-                                 mamba_error_code::internal_failure);
+        throw mamba::mamba_error(
+            "Could not convert solvable to PackageInfo",
+            mamba_error_code::internal_failure
+        );
     }
     Console::stream() << fmt::format(
         fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",
         latest_micromamba.value().version,
-        umamba::version());
+        umamba::version()
+    );
 
     Console::instance().print(
-        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url));
+        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().package_url)
+    );
 
     ctx.download_only = true;
     MTransaction t(pool, { latest_micromamba.value() }, package_caches);
-    auto exp_prefix_data = PrefixData::create(ctx.root_prefix);
+    auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {
         throw exp_prefix_data.error();
@@ -100,16 +115,21 @@ update_self(const std::optional<std::string>& version)
 
     try
     {
-        if (on_win)
+        if (util::on_win)
         {
-            fs::copy_file(cache_path / "Library" / "bin" / "micromamba.exe",
-                          mamba_exe,
-                          fs::copy_options::overwrite_existing);
+            fs::copy_file(
+                cache_path / "Library" / "bin" / "micromamba.exe",
+                mamba_exe,
+                fs::copy_options::overwrite_existing
+            );
         }
         else
         {
             fs::copy_file(
-                cache_path / "bin" / "micromamba", mamba_exe, fs::copy_options::overwrite_existing);
+                cache_path / "bin" / "micromamba",
+                mamba_exe,
+                fs::copy_options::overwrite_existing
+            );
 #ifdef __APPLE__
             codesign(mamba_exe, false);
 #endif
@@ -125,40 +145,49 @@ update_self(const std::optional<std::string>& version)
         throw;
     }
 
-    Console::instance().print("\nReinitializing all previously initialized shells\n");
-    std::string shell_type = "";
-    mamba::shell("reinit", shell_type, ctx.root_prefix, false);
+    // Command to reinit shell from the new executable.
+    std::vector<std::string> command = { mamba_exe, "shell", "reinit" };
 
-    return 0;
+    // The options for the process
+    reproc::options options;
+    options.redirect.parent = true;  // Redirect output
+    options.deadline = reproc::milliseconds(5000);
+
+    // Run the command in a redirected process
+    int status = -1;
+    std::error_code ec;
+    std::tie(status, ec) = reproc::run(command, options);
+
+    if (ec)
+    {
+        std::cerr << "error: " << ec.message() << std::endl;
+    }
+
+    return ec ? ec.value() : status;
 }
 
-
 void
-set_update_command(CLI::App* subcom)
+set_update_command(CLI::App* subcom, Configuration& config)
 {
-    Configuration::instance();
+    init_install_options(subcom, config);
 
-    init_install_options(subcom);
-
-    static bool prune = true;
+    static bool prune_deps = true;
     static bool update_all = false;
-    subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
+    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
 
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    subcom->callback([&]() { update(update_all, prune); });
+    subcom->callback([&] { return update(config, update_all, prune_deps); });
 }
 
 void
-set_self_update_command(CLI::App* subcom)
+set_self_update_command(CLI::App* subcom, Configuration& config)
 {
-    Configuration::instance();
-
-    init_install_options(subcom);
+    init_install_options(subcom, config);
 
     static std::optional<std::string> version;
     subcom->add_option("--version", version, "Install specific micromamba version");
 
-    subcom->callback([&]() { return update_self(version); });
+    subcom->callback([&] { return update_self(config, version); });
 }

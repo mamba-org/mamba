@@ -7,23 +7,22 @@
 #include <iostream>
 
 #include "mamba/api/configuration.hpp"
-
+#include "mamba/util/path_manip.hpp"
 
 namespace mamba
 {
-    void config_describe()
+    void config_describe(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
-        auto show_group
-            = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
+        auto show_group = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS
+                                                                        : 0;
         auto show_long_desc = config.at("show_config_long_descriptions").value<bool>()
                                   ? MAMBA_SHOW_CONFIG_LONG_DESCS
                                   : 0;
@@ -35,26 +34,25 @@ namespace mamba
         config.operation_teardown();
     }
 
-    void config_list()
+    void config_list(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
-        auto show_sources
-            = config.at("show_config_sources").value<bool>() ? MAMBA_SHOW_CONFIG_SRCS : 0;
+        auto show_sources = config.at("show_config_sources").value<bool>() ? MAMBA_SHOW_CONFIG_SRCS
+                                                                           : 0;
         auto show_all = config.at("show_all_configs").value<bool>() ? MAMBA_SHOW_ALL_CONFIGS : 0;
-        auto show_all_rcs
-            = config.at("show_all_rc_configs").value<bool>() ? MAMBA_SHOW_ALL_RC_CONFIGS : 0;
-        auto show_group
-            = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
-        auto show_desc
-            = config.at("show_config_descriptions").value<bool>() ? MAMBA_SHOW_CONFIG_DESCS : 0;
+        auto show_all_rcs = config.at("show_all_rc_configs").value<bool>() ? MAMBA_SHOW_ALL_RC_CONFIGS
+                                                                           : 0;
+        auto show_group = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS
+                                                                        : 0;
+        auto show_desc = config.at("show_config_descriptions").value<bool>() ? MAMBA_SHOW_CONFIG_DESCS
+                                                                             : 0;
         auto show_long_desc = config.at("show_config_long_descriptions").value<bool>()
                                   ? MAMBA_SHOW_CONFIG_LONG_DESCS
                                   : 0;
@@ -67,15 +65,14 @@ namespace mamba
         config.operation_teardown();
     }
 
-    void config_sources()
+    void config_sources(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto& no_rc = config.at("no_rc").value<bool>();
@@ -96,15 +93,13 @@ namespace mamba
                 auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
                 if (found_s != valid_srcs.end())
                 {
-                    std::cout << env::shrink_user(s).string() << std::endl;
+                    std::cout << util::shrink_home(s.string()) << std::endl;
                 }
                 else
                 {
-                    std::cout << env::shrink_user(s).string() + " (invalid)" << std::endl;
+                    std::cout << util::shrink_home(s.string()) + " (invalid)" << std::endl;
                 }
             }
         }
-
-        config.operation_teardown();
     }
 }

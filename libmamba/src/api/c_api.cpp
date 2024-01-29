@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cassert>
+#include <string>
+
 #include "mamba/api/c_api.h"
 #include "mamba/api/config.hpp"
 #include "mamba/api/configuration.hpp"
@@ -13,173 +16,225 @@
 #include "mamba/api/list.hpp"
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 
-#include <string>
+mamba::MainExecutor*
+mamba_new_main_executor()
+{
+    return new mamba::MainExecutor;
+}
 
-using namespace mamba;
+void
+mamba_delete_main_executor(mamba::MainExecutor* main_executor)
+{
+    delete main_executor;
+}
 
+mamba::Context*
+mamba_new_context(mamba::ContextOptions* options)
+{
+    if (options)
+    {
+        return new mamba::Context{ *options };
+    }
+    else
+    {
+        return new mamba::Context;
+    }
+}
+
+void
+mamba_delete_context(mamba::Context* context)
+{
+    delete context;
+}
+
+mamba::Configuration*
+mamba_new_configuration(mamba::Context* context)
+{
+    assert(context != nullptr);
+    return new mamba::Configuration(*context);
+}
+
+void
+mamba_delete_configuration(mamba::Configuration* config)
+{
+    delete config;
+}
 
 int
-mamba_create()
+mamba_create(mamba::Configuration* config)
 {
+    assert(config != nullptr);
     try
     {
-        create();
+        create(*config);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_install()
+mamba_install(mamba::Configuration* config)
 {
+    assert(config != nullptr);
     try
     {
-        install();
+        install(*config);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_update(int update_all)
+mamba_update(mamba::Configuration* config, int update_all)
 {
+    assert(config != nullptr);
     try
     {
-        update(update_all);
+        update(*config, update_all);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_remove(int remove_all)
+mamba_remove(mamba::Configuration* config, int remove_all)
 {
+    assert(config != nullptr);
     try
     {
-        remove(remove_all);
+        remove(*config, remove_all);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_list(const char* regex)
+mamba_list(mamba::Configuration* config, const char* regex)
 {
+    assert(config != nullptr);
     try
     {
-        list(regex);
+        list(*config, regex);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_info()
+mamba_info(mamba::Configuration* config)
 {
+    assert(config != nullptr);
     try
     {
-        info();
+        info(*config);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_config_list()
+mamba_config_list(mamba::Configuration* config)
 {
+    assert(config != nullptr);
     try
     {
-        config_list();
+        config_list(*config);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_set_cli_config(const char* name, const char* value)
+mamba_set_cli_config(mamba::Configuration* config, const char* name, const char* value)
 {
+    assert(config != nullptr);
     try
     {
-        Configuration::instance().at(name).set_cli_yaml_value(value);
+        config->at(name).set_cli_yaml_value(value);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_set_config(const char* name, const char* value)
+mamba_set_config(mamba::Configuration* config, const char* name, const char* value)
 {
+    assert(config != nullptr);
     try
     {
-        Configuration::instance().at(name).set_yaml_value(value);
+        config->at(name).set_yaml_value(value);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_clear_config(const char* name)
+mamba_clear_config(mamba::Configuration* config, const char* name)
 {
+    assert(config != nullptr);
     try
     {
-        Configuration::instance().at(name).clear_values();
+        config->at(name).clear_values();
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }
 
 int
-mamba_use_conda_root_prefix(int force)
+mamba_use_conda_root_prefix(mamba::Configuration* config, int force)
 {
+    assert(config != nullptr);
     try
     {
-        use_conda_root_prefix(force);
+        use_conda_root_prefix(*config, force);
         return 0;
     }
     catch (...)
     {
-        Configuration::instance().operation_teardown();
+        config->operation_teardown();
         return 1;
     }
 }

@@ -9,7 +9,7 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {
@@ -27,22 +27,27 @@ namespace mamba
             storage_type m_storage;
 
             cli_config() = default;
+
             cli_config(const T& value)
                 : m_storage(value)
             {
             }
+
             storage_type& storage()
             {
                 return m_storage;
             }
+
             bool has_value() const
             {
                 return m_storage.has_value();
             }
+
             const T& value() const
             {
                 return m_storage.value();
             }
+
             void reset()
             {
                 m_storage.reset();
@@ -61,10 +66,12 @@ namespace mamba
                 return std::vector<std::string>({ "default" });
             };
 
-            static void merge(const std::map<std::string, T>& values,
-                              const std::vector<std::string>& sources,
-                              T& value,
-                              std::vector<std::string>& source);
+            static void merge(
+                const std::map<std::string, T>& values,
+                const std::vector<std::string>& sources,
+                T& value,
+                std::vector<std::string>& source
+            );
 
             static T deserialize(const std::string& value);
 
@@ -79,10 +86,12 @@ namespace mamba
                 return std::vector<std::string>(init.size(), "default");
             };
 
-            static void merge(const std::map<std::string, std::vector<T>>& values,
-                              const std::vector<std::string>& sources,
-                              std::vector<T>& value,
-                              std::vector<std::string>& source);
+            static void merge(
+                const std::map<std::string, std::vector<T>>& values,
+                const std::vector<std::string>& sources,
+                std::vector<T>& value,
+                std::vector<std::string>& source
+            );
 
             static std::vector<T> deserialize(const std::string& value);
 
@@ -94,10 +103,12 @@ namespace mamba
          *************************/
 
         template <class T>
-        void Source<T>::merge(const std::map<std::string, T>& values,
-                              const std::vector<std::string>& sources,
-                              T& value,
-                              std::vector<std::string>& source)
+        void Source<T>::merge(
+            const std::map<std::string, T>& values,
+            const std::vector<std::string>& sources,
+            T& value,
+            std::vector<std::string>& source
+        )
         {
             source = sources;
             value = values.at(sources.front());
@@ -123,10 +134,12 @@ namespace mamba
         }
 
         template <class T>
-        void Source<std::vector<T>>::merge(const std::map<std::string, std::vector<T>>& values,
-                                           const std::vector<std::string>& sources,
-                                           std::vector<T>& value,
-                                           std::vector<std::string>& source)
+        void Source<std::vector<T>>::merge(
+            const std::map<std::string, std::vector<T>>& values,
+            const std::vector<std::string>& sources,
+            std::vector<T>& value,
+            std::vector<std::string>& source
+        )
         {
             value.clear();
             source.clear();
@@ -192,15 +205,15 @@ namespace YAML
     {
         static Node encode(const mamba::VerificationLevel& rhs)
         {
-            if (rhs == mamba::VerificationLevel::kDisabled)
+            if (rhs == mamba::VerificationLevel::Disabled)
             {
                 return Node("disabled");
             }
-            else if (rhs == mamba::VerificationLevel::kWarn)
+            else if (rhs == mamba::VerificationLevel::Warn)
             {
                 return Node("warn");
             }
-            else if (rhs == mamba::VerificationLevel::kEnabled)
+            else if (rhs == mamba::VerificationLevel::Enabled)
             {
                 return Node("enabled");
             }
@@ -221,20 +234,21 @@ namespace YAML
 
             if (str == "enabled")
             {
-                rhs = mamba::VerificationLevel::kEnabled;
+                rhs = mamba::VerificationLevel::Enabled;
             }
             else if (str == "warn")
             {
-                rhs = mamba::VerificationLevel::kWarn;
+                rhs = mamba::VerificationLevel::Warn;
             }
             else if (str == "disabled")
             {
-                rhs = mamba::VerificationLevel::kDisabled;
+                rhs = mamba::VerificationLevel::Disabled;
             }
             else
             {
                 throw std::runtime_error(
-                    "Invalid 'VerificationLevel', should be in {'enabled', 'warn', 'disabled'}");
+                    "Invalid 'VerificationLevel', should be in {'enabled', 'warn', 'disabled'}"
+                );
             }
 
             return true;
@@ -246,15 +260,15 @@ namespace YAML
     {
         static Node encode(const mamba::ChannelPriority& rhs)
         {
-            if (rhs == mamba::ChannelPriority::kStrict)
+            if (rhs == mamba::ChannelPriority::Strict)
             {
                 return Node("strict");
             }
-            else if (rhs == mamba::ChannelPriority::kFlexible)
+            else if (rhs == mamba::ChannelPriority::Flexible)
             {
                 return Node("flexible");
             }
-            else if (rhs == mamba::ChannelPriority::kDisabled)
+            else if (rhs == mamba::ChannelPriority::Disabled)
             {
                 return Node("disabled");
             }
@@ -275,15 +289,15 @@ namespace YAML
 
             if (str == "strict")
             {
-                rhs = mamba::ChannelPriority::kStrict;
+                rhs = mamba::ChannelPriority::Strict;
             }
             else if ((str == "flexible") || (str == "true"))
             {
-                rhs = mamba::ChannelPriority::kFlexible;
+                rhs = mamba::ChannelPriority::Flexible;
             }
             else if (str == "disabled")
             {
-                rhs = mamba::ChannelPriority::kDisabled;
+                rhs = mamba::ChannelPriority::Disabled;
             }
             else
             {
@@ -295,21 +309,21 @@ namespace YAML
     };
 
     template <>
-    struct convert<fs::u8path>
+    struct convert<mamba::fs::u8path>
     {
-        static Node encode(const fs::u8path& rhs)
+        static Node encode(const mamba::fs::u8path& rhs)
         {
             return Node(rhs.string());
         }
 
-        static bool decode(const Node& node, fs::u8path& rhs)
+        static bool decode(const Node& node, mamba::fs::u8path& rhs)
         {
             if (!node.IsScalar())
             {
                 return false;
             }
 
-            rhs = fs::u8path(node.as<std::string>());
+            rhs = mamba::fs::u8path(node.as<std::string>());
             return true;
         }
     };
@@ -318,10 +332,13 @@ namespace YAML
     struct convert<mamba::log_level>
     {
     private:
-        static inline const std::array<std::string, 7> log_level_names
-            = { "trace", "debug", "info", "warning", "error", "critical", "off" };
+
+        inline static const std::array<std::string, 7> log_level_names = {
+            "trace", "debug", "info", "warning", "error", "critical", "off"
+        };
 
     public:
+
         static Node encode(const mamba::log_level& rhs)
         {
             return Node(log_level_names[static_cast<size_t>(rhs)]);
@@ -337,9 +354,8 @@ namespace YAML
                 return true;
             }
 
-            LOG_ERROR
-                << "Invalid log level, should be in {'critical', 'error', 'warning', 'info', 'debug', 'trace', 'off'} but is '"
-                << name << "'";
+            LOG_ERROR << "Invalid log level, should be in {'critical', 'error', 'warning', 'info', 'debug', 'trace', 'off'} but is '"
+                      << name << "'";
             return false;
         }
     };

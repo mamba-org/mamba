@@ -1,0 +1,48 @@
+name: workspace
+description: 'A action to persist your workspace across different jobs'
+branding:
+  icon: 'box'
+  color: 'green'
+inputs:
+  action:
+    required: true
+    options:
+      - save
+      - restore
+      - delete
+  path:
+    required: true
+  key_prefix:
+    default: workspace
+  key_base:
+    required: true
+    default: ${{ github.workflow }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.sha }}
+  key_suffix:
+    default: ''
+  token:
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create workspace
+      if: ${{ inputs.action == 'save' }}
+      uses: actions/cache/save@v3
+      with:
+        path: ${{ inputs.path }}
+        key: ${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}
+    - name: Restore workspace
+      if: ${{ inputs.action == 'restore' }}
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ inputs.path }}
+        key: ${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}
+        fail-on-cache-miss: true
+    - name: Delete workspace
+      if: ${{ inputs.action == 'delete' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        gh cache delete '${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}'

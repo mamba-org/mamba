@@ -1,3 +1,4 @@
+import os
 import platform
 
 from .helpers import info
@@ -5,7 +6,6 @@ from .helpers import info
 
 class TestVirtualPkgs:
     def test_virtual_packages(self):
-
         infos = info()
 
         assert "virtual packages :" in infos
@@ -20,3 +20,12 @@ class TestVirtualPkgs:
             assert "__glibc" in infos
             linux_ver = platform.release().split("-", 1)[0]
             assert f"__linux={linux_ver}=0" in infos
+
+    def test_virtual_linux(self):
+        if platform.system() == "Linux":
+            infos = info()
+            assert "__linux=" in infos
+            assert "__linux=0=0" not in infos
+        else:
+            infos = info(env={**os.environ, "CONDA_SUBDIR": "linux-64"})
+            assert "__linux=0=0" in infos

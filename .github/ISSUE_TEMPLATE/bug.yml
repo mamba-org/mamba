@@ -2,13 +2,35 @@ name: Bug report
 description: Problem using Mamba / Micromamba
 body:
   - type: checkboxes
-    id: terms
+    id: troubleshooting1
     attributes:
       label: Troubleshooting docs
       description: Please check the [troubleshooting docs](https://mamba.readthedocs.io/en/latest/user_guide/troubleshooting.html) before making a report.
       options:
         - label: "My problem is not solved in the Troubleshooting docs"
           required: true
+  - type: checkboxes
+    id: troubleshooting2
+    attributes:
+      label: Anaconda default channels
+      description: Please be sure that you do NOT use the `pkgs/*` etc. channels. See the [troubleshooting docs](https://mamba.readthedocs.io/en/latest/user_guide/troubleshooting.html#using-the-defaults-channels).
+      options:
+        - label: "I do NOT use the Anaconda default channels (pkgs/* etc.)"
+          required: true
+  - type: dropdown
+    id: mamba_installation_method
+    attributes:
+      label: How did you install Mamba?
+      description: |
+        If you use Mamba, please install it via [Miniforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install).
+
+        If you use Micromamba, please select "Micromamba" below.
+      options:
+        - "Mambaforge or latest Miniforge"
+        - "Micromamba"
+        - "Other (please describe)"
+    validations:
+      required: true
   - type: input
     id: search
     attributes:
@@ -36,9 +58,9 @@ body:
 
         Can you reproduce the problem with Conda?
       options:
-        - "Reproducible with Conda"
-        - "Not reproducible with Conda"
-        - "Didn't try"
+        - "I have this problem with Conda as well, without using Mamba"
+        - "I do not have this problem with Conda, just with Mamba"
+        - "I didn't try"
         - "Not applicable"
     validations:
       required: true

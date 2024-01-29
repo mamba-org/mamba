@@ -4,13 +4,43 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "common_options.hpp"
+#include <string>
+#include <string_view>
+
+#include <CLI/App.hpp>
+#include <fmt/format.h>
 
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+namespace
+{
+    auto get_shell_hook_command(std::string_view guessed_shell) -> std::string
+    {
+        if (guessed_shell == "powershell")
+        {
+            return "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
+        }
+        return fmt::format(R"sh(eval "$(micromamba shell hook --shell {})")sh", guessed_shell);
+    };
+
+    auto get_shell_hook(std::string_view guessed_shell) -> std::string
+    {
+        if (guessed_shell != "cmd.exe")
+        {
+            return fmt::format(
+                "To initialize the current {} shell, run:\n"
+                "    $ {}\nand then activate or deactivate with:\n"
+                "    $ micromamba activate",
+                guessed_shell,
+                get_shell_hook_command(guessed_shell)
+            );
+        }
+        return "";
+    }
+}
 
 void
 set_activate_command(CLI::App* subcom)
@@ -22,48 +52,33 @@ set_activate_command(CLI::App* subcom)
     subcom->add_flag(
         "--stack",
         stack,
-        "Activate the specified environment without first deactivating the current one");
+        "Activate the specified environment without first deactivating the current one"
+    );
 
     subcom->callback(
         [&]()
         {
-            std::string guessed_shell = guess_shell();
-            std::string shell_hook_command = "", shell_hook = "";
+            std::string const guessed_shell = guess_shell();
 
-            if (guessed_shell == "powershell")
-                shell_hook_command
-                    = "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
-            else
-                shell_hook_command
-                    = "eval \"$(micromamba shell hook --shell=" + guessed_shell + ")\"";
+            std::string const message = fmt::format(
+                "\n'micromamba' is running as a subprocess and can't modify the parent shell.\n"
+                "Thus you must initialize your shell before using activate and deactivate.\n"
+                "\n"
+                "{0}\n"
+                "To automatically initialize all future ({1}) shells, run:\n"
+                "    $ micromamba shell init --shell {1} --root-prefix=~/micromamba\n"
+                "If your shell was already initialized, reinitialize your shell with:\n"
+                "    $ micromamba shell reinit --shell {1}\n"
+                "Otherwise, this may be an issue. In the meantime you can run commands. See:\n"
+                "    $ micromamba run --help\n"
+                "\n"
+                "Supported shells are {{bash, zsh, csh, xonsh, cmd.exe, powershell, fish, nu}}.\n",
+                get_shell_hook(guessed_shell),
+                guessed_shell
+            );
 
-            if (guessed_shell != "cmd.exe")
-            {
-                shell_hook = unindent((R"(
-
-                To initialize the current )"
-                                       + guessed_shell + R"( shell, run:
-                    $ )" + shell_hook_command
-                                       + R"(
-                and then activate or deactivate with:
-                    $ micromamba activate
-                )")
-                                          .c_str());
-            }
-
-            std::string message = unindent((R"(
-            'micromamba' is running as a subprocess and can't modify the parent shell.
-            Thus you must initialize your shell before using activate and deactivate.
-            )" + shell_hook + R"(
-            To automatically initialize all future ()"
-                                            + guessed_shell + R"() shells, run:
-                $ micromamba shell init --shell=)"
-                                            + guessed_shell + R"( --prefix=~/micromamba
-
-            Supported shells are {bash, zsh, csh, xonsh, cmd.exe, powershell, fish}.)")
-                                               .c_str());
-
-            std::cout << "\n" << message << "\n" << std::endl;
+            std::cout << message;
             throw std::runtime_error("Shell not initialized");
-        });
+        }
+    );
 }

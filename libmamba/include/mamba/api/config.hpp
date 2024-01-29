@@ -7,14 +7,15 @@
 #ifndef MAMBA_API_CONFIG_HPP
 #define MAMBA_API_CONFIG_HPP
 
-
 namespace mamba
 {
-    void config_describe();
+    class Configuration;
 
-    void config_list();
+    void config_describe(Configuration& config);
 
-    void config_sources();
+    void config_list(Configuration& config);
+
+    void config_sources(Configuration& config);
 }
 
 #endif

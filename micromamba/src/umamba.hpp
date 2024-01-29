@@ -9,77 +9,86 @@
 
 #include <CLI/CLI.hpp>
 
+#include "mamba/core/context.hpp"
 
-const char banner[] = R"MAMBARAW(
-                                           __
-          __  ______ ___  ____ _____ ___  / /_  ____ _
-         / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-        / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
-       / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
-      /_/
-)MAMBARAW";
+namespace mamba
+{
+    class Configuration;
+}
 
 void
-set_clean_command(CLI::App* subcom);
+set_clean_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_config_command(CLI::App* subcom);
+set_config_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_constructor_command(CLI::App* subcom);
+set_constructor_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_create_command(CLI::App* subcom);
+set_create_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_info_command(CLI::App* subcom);
+set_info_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_install_command(CLI::App* subcom);
+set_install_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_list_command(CLI::App* subcom);
+set_list_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_remove_command(CLI::App* subcom);
+set_remove_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_shell_command(CLI::App* subcom);
+set_shell_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_package_command(CLI::App* subcom);
+set_package_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_umamba_command(CLI::App* com);
+set_umamba_command(CLI::App* com, mamba::Configuration& config);
 
 void
-set_update_command(CLI::App* subcom);
+set_update_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_self_update_command(CLI::App* subcom);
+set_self_update_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_repoquery_command(CLI::App* subcom);
+set_repoquery_search_command(CLI::App* subcmd, mamba::Configuration& config);
 
 void
-set_env_command(CLI::App* subcom);
+set_repoquery_whoneeds_command(CLI::App* subcmd, mamba::Configuration& config);
+
+void
+set_repoquery_depends_command(CLI::App* subcmd, mamba::Configuration& config);
+
+void
+set_repoquery_command(CLI::App* subcom, mamba::Configuration& config);
+
+void
+set_env_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
 set_activate_command(CLI::App* subcom);
 
 void
-set_run_command(CLI::App* subcom);
+set_run_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_ps_command(CLI::App* subcom);
+set_ps_command(CLI::App* subcom, mamba::Context& context);
 
 void
-get_completions(CLI::App* app, int argc, char** argv);
+get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** argv);
 
-void
-set_search_command(CLI::App* subcom);
 
 void
 set_auth_command(CLI::App* subcom);
+
+#if !defined(_WIN32) && defined(MICROMAMBA_SERVER)
+void
+set_server_command(CLI::App* subcom, mamba::Configuration& config);
+#endif
 
 #endif

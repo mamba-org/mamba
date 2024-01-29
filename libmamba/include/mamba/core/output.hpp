@@ -13,15 +13,17 @@
 #include <string_view>
 #include <vector>
 
-#include <nlohmann/json.hpp>
 #include <fmt/color.h>
+#include <nlohmann/json.hpp>
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/progress_bar.hpp"
 
 namespace mamba
 {
-    std::string cut_repo_name(const std::string& reponame);
+    class Context;
+
+    std::string cut_repo_name(std::string_view reponame);
 
     namespace printers
     {
@@ -33,6 +35,11 @@ namespace mamba
             FormattedString() = default;
 
             inline FormattedString(const std::string& i)
+                : s(i)
+            {
+            }
+
+            inline FormattedString(const std::string_view i)
                 : s(i)
             {
             }
@@ -54,20 +61,36 @@ namespace mamba
             right,
         };
 
+        constexpr auto alignmentMarker(alignment a) -> std::string_view
+        {
+            switch (a)
+            {
+                case alignment::right:
+                    return "alignment_right";
+                case alignment::left:
+                    return "alignment_right";
+                default:
+                    assert(false);
+                    return "";
+            }
+        }
+
         class Table
         {
         public:
+
             Table(const std::vector<FormattedString>& header);
 
             void set_alignment(const std::vector<alignment>& a);
             void set_padding(const std::vector<int>& p);
             void add_row(const std::vector<FormattedString>& r);
-            void add_rows(const std::string& header,
-                          const std::vector<std::vector<FormattedString>>& rs);
+            void
+            add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs);
 
             std::ostream& print(std::ostream& out);
 
         private:
+
             std::vector<FormattedString> m_header;
             std::vector<alignment> m_align;
             std::vector<int> m_padding;
@@ -82,6 +105,7 @@ namespace mamba
     class ConsoleStream : public std::stringstream
     {
     public:
+
         ConsoleStream() = default;
         ~ConsoleStream();
     };
@@ -92,6 +116,7 @@ namespace mamba
     class Console
     {
     public:
+
         Console(const Console&) = delete;
         Console& operator=(const Console&) = delete;
 
@@ -100,21 +125,18 @@ namespace mamba
 
         static Console& instance();
         static ConsoleStream stream();
-        static bool prompt(const std::string_view& message, char fallback = '_');
-        static bool prompt(const std::string_view& message,
-                           char fallback,
-                           std::istream& input_stream);
+        static bool prompt(std::string_view message, char fallback = '_');
+        static bool prompt(std::string_view message, char fallback, std::istream& input_stream);
 
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0);
         void clear_progress_bars();
-        ProgressBarManager& init_progress_bar_manager(ProgressBarMode mode
-                                                      = ProgressBarMode::multi);
+        ProgressBarManager& init_progress_bar_manager(ProgressBarMode mode = ProgressBarMode::multi);
         void terminate_progress_bar_manager();
         ProgressBarManager& progress_bar_manager();
 
-        static std::string hide_secrets(const std::string_view& str);
+        static std::string hide_secrets(std::string_view str);
 
-        void print(const std::string_view& str, bool force_print = false);
+        void print(std::string_view str, bool force_print = false);
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);
@@ -125,22 +147,28 @@ namespace mamba
 
         void cancel_json_print();
 
-    protected:
-        Console();
+        const Context& context() const;
+
+        Console(const Context& context);
         ~Console();
 
     private:
+
         void json_print();
-        void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
+        void deactivate_progress_bar(std::size_t idx, std::string_view msg = "");
 
         std::unique_ptr<ConsoleData> p_data;
 
         friend class ProgressProxy;
+
+        static void set_singleton(Console& console);
+        static void clear_singleton();
     };
 
     class MessageLogger
     {
     public:
+
         MessageLogger(const char* file, int line, log_level level);
         ~MessageLogger();
 
@@ -151,6 +179,7 @@ namespace mamba
         static void print_buffer(std::ostream& ostream);
 
     private:
+
         std::string m_file;
         int m_line;
         log_level m_level;
@@ -177,4 +206,4 @@ namespace mamba
 #define LOG_ERROR LOG(mamba::log_level::err)
 #define LOG_CRITICAL LOG(mamba::log_level::critical)
 
-#endif  // MAMBA_OUTPUT_HPP
+#endif  // MAMBA_CORE_OUTPUT_HPP

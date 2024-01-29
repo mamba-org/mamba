@@ -3,5 +3,8 @@ channels:
   - conda-forge
 dependencies:
   - myst-parser
-  - sphinx
+  - six
+  - sphinx < 7
   - sphinx-book-theme
+  - doxygen
+  - breathe

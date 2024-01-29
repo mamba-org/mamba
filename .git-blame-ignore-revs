@@ -1,0 +1,13 @@
+# This file is read by GitHub and `git blame --ignore-revs-file`.
+# See: https://docs.github.com/en/repositories/working-with-files/using-files/viewing-a-file#ignore-commits-in-the-blame-view
+
+# Revert "Change brace space in clang-format (#2627)"
+50a627e002d8260fa2e116e5833190a135aff4e8
+# Change brace space in clang-format (#2627)
+3dce9901118a837f889139a052ccc915e0b63198
+# Arrange header sorting (#2375)
+156edfd89f39cba9c8028b8a35656233fae9bdaf
+# Fine tune clang-format proposal (#2290)
+365342cc045a21bfb7a93fccd50a47fdbd573e47
+# Add cpp linter and fix warnings
+98f2530d2384f7e4a03742b5b191919391ce71e6

@@ -7,46 +7,24 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/error_handling.hpp"
-#include "mamba/core/util_string.hpp"
-
-#include "nlohmann/json.hpp"
-#include "tl/expected.hpp"
-
-#include <array>
-#include <limits>
-#include <sstream>
+#include <chrono>
+#include <fstream>
+#include <map>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <time.h>
 #include <vector>
-#include <chrono>
-#include <optional>
 
-#if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
-#include <iomanip>
-#endif
+#include "mamba/core/error_handling.hpp"
+#include "mamba/fs/filesystem.hpp"
+
+#include "tl/expected.hpp"
 
 #define MAMBA_EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 namespace mamba
 {
-#if __APPLE__ || __MACH__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = true;
-#elif __linux__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = true;
-    static constexpr bool on_mac = false;
-#elif _WIN32
-    static constexpr bool on_win = true;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = false;
-#else
-#error "no supported OS detected"
-#endif
+    class Context;
 
     // Used when we want a callback which does nothing.
     struct no_op
@@ -56,27 +34,75 @@ namespace mamba
         }
     };
 
-    bool is_package_file(const std::string_view& fn);
-
     bool lexists(const fs::u8path& p);
     bool lexists(const fs::u8path& p, std::error_code& ec);
     std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix);
     bool paths_equal(const fs::u8path& lhs, const fs::u8path& rhs);
 
-    std::string read_contents(const fs::u8path& path,
-                              std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::string
+    read_contents(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
     std::vector<std::string> read_lines(const fs::u8path& path);
 
     inline void make_executable(const fs::u8path& p)
     {
-        fs::permissions(p,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
-                            | fs::perms::others_exec);
+        fs::permissions(
+            p,
+            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_exec
+        );
     }
+
+    // @return `true` if `TemporaryFile` will not delete files once destroy.
+    //         If `set_persist_temporary_files` was not called, returns `false` by default.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool must_persist_temporary_files();
+
+    // Controls if `TemporaryFile` will delete files once destroy or not.
+    // This is useful for debugging situations where temporary data lead to unexpected behavior.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_persist_temporary_files(must_persist);
+    //    result == must_persist && must_persist_temporary_files() == must_persist
+    bool set_persist_temporary_files(bool will_persist);
+
+    // @return `true` if `TemporaryDirectory` will not delete files once destroy.
+    //         If `set_persist_temporary_files` was not called, returns `false` by default.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool must_persist_temporary_directories();
+
+    // Controls if `TemporaryDirectory` will delete files once destroy or not.
+    // This is useful for debugging situations where temporary data lead to unexpected behavior.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_persist_temporary_directories(must_persist);
+    //    result == must_persist && must_persist_temporary_directories() == must_persist
+    bool set_persist_temporary_directories(bool will_persist);
 
     class TemporaryDirectory
     {
     public:
+
         TemporaryDirectory();
         ~TemporaryDirectory();
 
@@ -88,15 +114,19 @@ namespace mamba
         operator fs::u8path();
 
     private:
+
         fs::u8path m_path;
     };
 
     class TemporaryFile
     {
     public:
-        TemporaryFile(const std::string& prefix = "mambaf",
-                      const std::string& suffix = "",
-                      const std::optional<fs::u8path>& dir = std::nullopt);
+
+        TemporaryFile(
+            const std::string& prefix = "mambaf",
+            const std::string& suffix = "",
+            const std::optional<fs::u8path>& dir = std::nullopt
+        );
         ~TemporaryFile();
 
         TemporaryFile(const TemporaryFile&) = delete;
@@ -107,12 +137,61 @@ namespace mamba
         operator fs::u8path();
 
     private:
+
         fs::u8path m_path;
     };
 
     const std::size_t MAMBA_LOCK_POS = 21;
 
     class LockFileOwner;
+
+    // @return `true` if constructing a `LockFile` will result in locking behavior, `false` if
+    // using `LockFile will not lock the file and behave like a no-op.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool is_file_locking_allowed();
+
+
+    // Controls if, with `true`, constructing a `LockFile` will result in locking behavior,
+    // or, with `false, will not lock the file and behave like a no-op.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = allow_file_locking(allow);
+    //    result == allow && is_file_locking_allowed() == allow
+    bool allow_file_locking(bool allow);
+
+    // @return The file locking timeout used by `LockFile` at construction.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    std::chrono::seconds default_file_locking_timeout();
+
+    // Changes the locking duration when `LockFile` is constructed without a specified locking
+    // timeout.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_file_locking_timeout(timeout);
+    //    result == timeout && default_file_locking_timeout() == timeout
+    std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout);
 
     // This is a non-throwing file-locking mechanism.
     // It can be used on a file or directory path. In the case of a directory path a file will be
@@ -130,12 +209,12 @@ namespace mamba
     // Basically, all instacnes of `LockFile` locking the same path are sharing the lock, which will
     // only be released once there is no instance alive.
     //
-    // Use `Context::instance().use_lockfiles = false` to never have locking happen, in which case
+    // Use `mamba::allow_file_locking(false)` to never have locking happen, in which case
     // the created `LockFile` instance will not be locked (`is_locked()` will return false) but will
     // have no error either (`error()` will return `noopt`).
     //
     // Example:
-    //
+    //      using namespace mamba;
     //      LockFile some_work_on(some_path)
     //      {
     //          LockFile lock{ some_path, timeout };
@@ -160,14 +239,15 @@ namespace mamba
     class LockFile
     {
     public:
+
         // Non-throwing constructors, attempting lock on the provided path, file or directory.
         // In case of a directory, a lock-file will be created, located at `this->lockfile_path()`
         // and `this->is_locked()` (and `if(*this))` will always return true (unless this instance
-        // is moved-from). If the lock acquisition failed or `Context::instance().use_lockfiles ==
-        // false` and until re-assigned:
+        // is moved-from). If the lock acquisition failed or `allow_file_locking(false)` and until
+        // re-assigned:
         // - `this->is_locked() == false` and `if(*this) ...` will go in the `false` branch.
         // - accessors will throw, except `is_locked()`, `count_lock_owners()`, and `error()`
-        LockFile(const fs::u8path& path);
+        explicit LockFile(const fs::u8path& path);
         LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
 
         ~LockFile();
@@ -207,7 +287,7 @@ namespace mamba
         // Returns 0 if `is_locked() == false`.
         std::size_t count_lock_owners() const
         {
-            return impl.has_value() ? impl.value().use_count() : 0;
+            return std::size_t(impl.has_value() ? impl.value().use_count() : 0);
         }
 
 #ifdef _WIN32
@@ -232,48 +312,27 @@ namespace mamba
         std::optional<mamba_error> error() const
         {
             if (impl.has_value())
+            {
                 return {};
+            }
             else
+            {
                 return impl.error();
+            }
         }
 
     private:
+
         tl::expected<std::shared_ptr<LockFileOwner>, mamba_error> impl;
     };
 
+    void split_package_extension(const std::string& file, std::string& name, std::string& extension);
 
-    void split_package_extension(const std::string& file,
-                                 std::string& name,
-                                 std::string& extension);
-    fs::u8path strip_package_extension(const std::string& file);
-
-    template <class T>
-    inline bool vector_is_prefix(const std::vector<T>& prefix, const std::vector<T>& vec)
-    {
-        return vec.size() >= prefix.size()
-               && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
-    }
-
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input);
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input);
-
-
-    // get the value corresponding to a key in a JSON object and assign it to target
-    // if the key is not found, assign default_value to target
-    template <typename T>
-    void assign_or(const nlohmann::json& j, const char* key, T& target, T default_value)
-    {
-        if (j.contains(key))
-            target = j[key];
-        else
-            target = default_value;
-    }
-
-    std::string quote_for_shell(const std::vector<std::string>& arguments,
-                                const std::string& shell = "");
+    std::string
+    quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const fs::u8path& path);
+    std::size_t remove_or_rename(const Context& context, const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -292,39 +351,62 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    std::ofstream open_ofstream(const fs::u8path& path,
-                                std::ios::openmode mode = std::ios::out | std::ios::binary);
+    std::ofstream
+    open_ofstream(const fs::u8path& path, std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-    std::ifstream open_ifstream(const fs::u8path& path,
-                                std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::ifstream
+    open_ifstream(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
-                                             const fs::u8path& prefix,
-                                             bool dev_mode,
-                                             bool debug_wrapper_scripts,
-                                             const std::vector<std::string>& arguments);
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::u8path& prefix, const std::vector<std::string>& cmd);
+    struct WrappedCallOptions
+    {
+        bool is_micromamba = false;
+        bool dev_mode = false;
+        bool debug_wrapper_scripts = false;
+
+        static WrappedCallOptions from_context(const Context&);
+    };
+
+    std::unique_ptr<TemporaryFile> wrap_call(
+        const Context& context,
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix,
+        const std::vector<std::string>& arguments,  // TODO: c++20 replace by std::span
+        WrappedCallOptions options = {}
+    );
+
+    struct PreparedWrappedCall
+    {
+        std::vector<std::string> wrapped_command;
+        std::unique_ptr<TemporaryFile> temporary_file;
+    };
+
+    PreparedWrappedCall prepare_wrapped_call(
+        const Context& context,
+        const fs::u8path& prefix,
+        const std::vector<std::string>& cmd
+    );
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.
-    inline bool is_yaml_file_name(const std::string_view filename)
-    {
-        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
-    }
+    bool is_yaml_file_name(std::string_view filename);
 
-    std::optional<std::string> proxy_match(const std::string& url);
+    std::optional<std::string>
+    proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers);
+
+    std::string hide_secrets(std::string_view str);
 
     class non_copyable_base
     {
     public:
+
         non_copyable_base()
         {
         }
 
     private:
+
         non_copyable_base(const non_copyable_base&);
         non_copyable_base& operator=(const non_copyable_base&);
     };

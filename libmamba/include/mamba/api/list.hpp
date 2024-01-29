@@ -11,11 +11,15 @@
 
 namespace mamba
 {
-    void list(const std::string& regex);
+    class ChannelContext;
+    class Configuration;
+    class Context;
+
+    void list(Configuration& config, const std::string& regex);
 
     namespace detail
     {
-        void list_packages(std::string regex);
+        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context);
 
         struct formatted_pkg;
 

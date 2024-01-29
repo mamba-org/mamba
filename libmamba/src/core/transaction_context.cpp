@@ -9,10 +9,11 @@
 
 #include <reproc++/drain.hpp>
 
-#include "mamba/core/environment.hpp"
-#include "mamba/core/transaction_context.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/transaction_context.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 
 extern const char data_compile_pyc_py[];
 
@@ -25,13 +26,13 @@ namespace mamba
 
     std::string compute_short_python_version(const std::string& long_version)
     {
-        auto sv = split(long_version, ".");
+        auto sv = util::split(long_version, ".");
         if (sv.size() < 2)
         {
             LOG_ERROR << "Could not compute short python version from " << long_version;
             return long_version;
         }
-        return concat(sv[0], '.', sv[1]);
+        return util::concat(sv[0], '.', sv[1]);
     }
 
     // supply short python version, e.g. 2.7, 3.5...
@@ -40,7 +41,7 @@ namespace mamba
 #ifdef _WIN32
         return "python.exe";
 #else
-        return fs::u8path("bin") / concat("python", python_version);
+        return fs::u8path("bin") / util::concat("python", python_version);
 #endif
     }
 
@@ -54,7 +55,7 @@ namespace mamba
 #ifdef _WIN32
         return fs::u8path("Lib") / "site-packages";
 #else
-        return fs::u8path("lib") / concat("python", python_version) / "site-packages";
+        return fs::u8path("lib") / util::concat("python", python_version) / "site-packages";
 #endif
     }
 
@@ -67,16 +68,18 @@ namespace mamba
 #endif
     }
 
-    fs::u8path get_python_noarch_target_path(const std::string& source_short_path,
-                                             const fs::u8path& target_site_packages_short_path)
+    fs::u8path get_python_noarch_target_path(
+        const std::string& source_short_path,
+        const fs::u8path& target_site_packages_short_path
+    )
     {
-        if (starts_with(source_short_path, "site-packages/"))
+        if (util::starts_with(source_short_path, "site-packages/"))
         {
             // replace `site_packages/` with prefix/site_packages
             return target_site_packages_short_path
                    / source_short_path.substr(14, source_short_path.size() - 14);
         }
-        else if (starts_with(source_short_path, "python-scripts/"))
+        else if (util::starts_with(source_short_path, "python-scripts/"))
         {
             return get_bin_directory_short_path()
                    / source_short_path.substr(15, source_short_path.size() - 15);
@@ -87,21 +90,29 @@ namespace mamba
         }
     }
 
-    TransactionContext::TransactionContext()
+    TransactionContext::TransactionContext() = default;
+
+    TransactionContext::TransactionContext(const Context& context)
+        : m_context(&context)
     {
-        compile_pyc = Context::instance().compile_pyc;
+        compile_pyc = this->context().compile_pyc;
     }
 
-    TransactionContext::TransactionContext(const fs::u8path& target_prefix,
-                                           const std::pair<std::string, std::string>& py_versions,
-                                           const std::vector<MatchSpec>& requested_specs)
+    TransactionContext::TransactionContext(
+        const Context& context,
+        const fs::u8path& ltarget_prefix,
+        const std::pair<std::string, std::string>& py_versions,
+        const std::vector<specs::MatchSpec>& lrequested_specs
+    )
         : has_python(py_versions.first.size() != 0)
-        , target_prefix(target_prefix)
+        , target_prefix(ltarget_prefix)
+        , relocate_prefix(ltarget_prefix)
         , python_version(py_versions.first)
         , old_python_version(py_versions.second)
-        , requested_specs(requested_specs)
+        , requested_specs(lrequested_specs)
+        , m_context(&context)
     {
-        auto& ctx = Context::instance();
+        const auto& ctx = this->context();
         compile_pyc = ctx.compile_pyc;
         allow_softlinks = ctx.allow_softlinks;
         always_copy = ctx.always_copy;
@@ -118,37 +129,29 @@ namespace mamba
             python_path = get_python_short_path(short_python_version);
             site_packages_path = get_python_site_packages_short_path(short_python_version);
         }
-        if (old_python_version.size())
+        if (!old_python_version.empty())
         {
             old_short_python_version = compute_short_python_version(old_python_version);
-            relink_noarch = (short_python_version != old_short_python_version);
-        }
-        else
-        {
-            relink_noarch = false;
         }
     }
 
-    TransactionContext& TransactionContext::operator=(const TransactionContext& other)
+    TransactionContext::TransactionContext(
+        const Context& context,
+        const fs::u8path& ltarget_prefix,
+        const fs::u8path& lrelocate_prefix,
+        const std::pair<std::string, std::string>& py_versions,
+        const std::vector<specs::MatchSpec>& lrequested_specs
+    )
+        : TransactionContext(context, ltarget_prefix, py_versions, lrequested_specs)
     {
-        if (this != &other)
+        if (lrelocate_prefix.empty())
         {
-            has_python = other.has_python;
-            target_prefix = other.target_prefix;
-            python_version = other.python_version;
-            old_python_version = other.old_python_version;
-            requested_specs = other.requested_specs;
-
-            compile_pyc = other.compile_pyc;
-            allow_softlinks = other.allow_softlinks;
-            always_copy = other.always_copy;
-            always_softlink = other.always_softlink;
-            short_python_version = other.short_python_version;
-            python_path = other.python_path;
-            site_packages_path = other.site_packages_path;
-            relink_noarch = other.relink_noarch;
+            relocate_prefix = ltarget_prefix;
         }
-        return *this;
+        else
+        {
+            relocate_prefix = lrelocate_prefix;
+        }
     }
 
     TransactionContext::~TransactionContext()
@@ -156,8 +159,21 @@ namespace mamba
         wait_for_pyc_compilation();
     }
 
+    void TransactionContext::throw_if_not_ready() const
+    {
+        if (m_context == nullptr)
+        {
+            throw mamba_error(
+                "attempted to use TransactionContext while no Context was specified",
+                mamba_error_code::internal_failure
+            );
+        }
+    }
+
     bool TransactionContext::start_pyc_compilation_process()
     {
+        throw_if_not_ready();
+
         if (m_pyc_process)
         {
             return true;
@@ -167,30 +183,30 @@ namespace mamba
         std::signal(SIGPIPE, SIG_IGN);
 #endif
         const auto complete_python_path = target_prefix / python_path;
-        std::vector<std::string> command
-            = { complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-" };
+        std::vector<std::string> command = {
+            complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
+        };
 
-        auto py_ver_split = split(python_version, ".");
+        auto py_ver_split = util::split(python_version, ".");
 
         try
         {
-            if (std::stoull(std::string(py_ver_split[0])) >= 3
-                && std::stoull(std::string(py_ver_split[1])) > 5)
+            if (std::stoull(py_ver_split[0]) >= 3 && std::stoull(py_ver_split[1]) > 5)
             {
                 m_pyc_compileall = std::make_unique<TemporaryFile>();
                 std::ofstream compileall_f = open_ofstream(m_pyc_compileall->path());
                 compile_python_sources(compileall_f);
                 compileall_f.close();
 
-                command = {
-                    complete_python_path.string(), "-Wi", "-u", m_pyc_compileall->path().string()
-                };
+                command = { complete_python_path.string(),
+                            "-Wi",
+                            "-u",
+                            m_pyc_compileall->path().string() };
             }
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR << "Bad conversion of Python version '" << python_version
-                      << "': " << e.what();
+            LOG_ERROR << "Bad conversion of Python version '" << python_version << "': " << e.what();
             return false;
         }
 
@@ -201,9 +217,9 @@ namespace mamba
         options.env.behavior = reproc::env::empty;
 #endif
         std::map<std::string, std::string> envmap;
-        auto& ctx = Context::instance();
-        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.extract_threads);
-        auto qemu_ld_prefix = env::get("QEMU_LD_PREFIX");
+        auto& ctx = context();
+        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.threads_params.extract_threads);
+        auto qemu_ld_prefix = util::get_env("QEMU_LD_PREFIX");
         if (qemu_ld_prefix)
         {
             envmap["QEMU_LD_PREFIX"] = qemu_ld_prefix.value();
@@ -222,10 +238,10 @@ namespace mamba
         const std::string cwd = target_prefix.string();
         options.working_directory = cwd.c_str();
 
-        auto [wrapped_command, script_file] = prepare_wrapped_call(target_prefix, command);
+        auto [wrapped_command, script_file] = prepare_wrapped_call(ctx, target_prefix, command);
         m_pyc_script_file = std::move(script_file);
 
-        LOG_INFO << "Running wrapped python compilation command " << join(" ", command);
+        LOG_INFO << "Running wrapped python compilation command " << util::join(" ", command);
         std::error_code ec = m_pyc_process->start(wrapped_command, options);
 
         if (ec == std::errc::no_such_file_or_directory)
@@ -241,6 +257,8 @@ namespace mamba
 
     bool TransactionContext::try_pyc_compilation(const std::vector<fs::u8path>& py_files)
     {
+        throw_if_not_ready();
+
         static std::mutex pyc_compilation_mutex;
         std::lock_guard<std::mutex> lock(pyc_compilation_mutex);
 
@@ -260,8 +278,10 @@ namespace mamba
         {
             auto fs = f.string() + "\n";
 
-            auto [nbytes, ec]
-                = m_pyc_process->write(reinterpret_cast<const uint8_t*>(&fs[0]), fs.size());
+            auto [nbytes, ec] = m_pyc_process->write(
+                reinterpret_cast<const uint8_t*>(&fs[0]),
+                fs.size()
+            );
             if (ec)
             {
                 LOG_INFO << "writing to stdin failed " << ec.message();
@@ -274,6 +294,8 @@ namespace mamba
 
     void TransactionContext::wait_for_pyc_compilation()
     {
+        throw_if_not_ready();
+
         if (m_pyc_process)
         {
             std::error_code ec;

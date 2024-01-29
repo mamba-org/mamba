@@ -1,0 +1,68 @@
+{
+  "configurePresets": [
+    {
+      "cacheVariables": {
+        "BUILD_LIBMAMBA": "ON",
+        "BUILD_LIBMAMBAPY": "ON",
+        "BUILD_LIBMAMBA_TESTS": "ON",
+        "BUILD_MAMBA_PACKAGE": "ON"
+      },
+      "description": "Base profile for building libmamba and related",
+      "displayName": "libmamba All",
+      "hidden": true,
+      "name": "libmamba-all"
+    },
+    {
+      "cacheVariables": {
+        "BUILD_MAMBA": "ON",
+        "BUILD_SHARED": "ON"
+      },
+      "hidden": true,
+      "name": "mamba-shared"
+    },
+    {
+      "cacheVariables": {
+        "BUILD_MICROMAMBA": "ON",
+        "BUILD_MICROMAMBA_SERVER": "ON",
+        "BUILD_STATIC": "ON"
+      },
+      "hidden": true,
+      "name": "mamba-static"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "hidden": true,
+      "name": "mamba-debug"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "hidden": true,
+      "name": "mamba-release"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_COLOR_DIAGNOSTICS": "ON",
+        "CMAKE_COLOR_MAKEFILE": "ON",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "description": "Extra convenience flags used when developping",
+      "displayName": "Mamba Dev",
+      "hidden": true,
+      "name": "mamba-dev",
+      "warnings": {
+        "dev": true,
+        "unusedCli": true
+      }
+    }
+  ],
+  "version": 4
+}

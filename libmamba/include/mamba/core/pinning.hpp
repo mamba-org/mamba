@@ -7,15 +7,21 @@
 #ifndef MAMBA_CORE_PINNING_HPP
 #define MAMBA_CORE_PINNING_HPP
 
-#include "prefix_data.hpp"
-
-#include <vector>
 #include <string>
-
+#include <vector>
 
 namespace mamba
 {
-    std::string python_pin(const PrefixData& prefix_data, const std::vector<std::string>& specs);
+    class Context;
+    class ChannelContext;
+    class PrefixData;
+
+    namespace fs
+    {
+        class u8path;
+    }
+
+    std::string python_pin(PrefixData& prefix_data, const std::vector<std::string>& specs);
 
     std::vector<std::string> file_pins(const fs::u8path& file);
 }

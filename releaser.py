@@ -8,8 +8,7 @@ template = {"version": None, "changes": []}
 templates = {
     "libmamba": "libmamba/include/mamba/version.hpp.tmpl",
     "micromamba": "micromamba/src/version.hpp.tmpl",
-    "libmambapy": "libmambapy/libmambapy/_version.py.tmpl",
-    "mamba": "mamba/mamba/_version.py.tmpl",
+    "libmambapy": "libmambapy/src/libmambapy/version.py.tmpl",
 }
 
 
@@ -54,7 +53,6 @@ def apply_changelog(name, version, changes):
 
 
 def commands(changes):
-
     commit_msg = ", ".join([f"{x} {changes[x]['version']}" for x in changes])
 
     today = datetime.date.today()
@@ -134,7 +132,6 @@ def main():
 
     contents = contents[release_start:]
     for idx, c in enumerate(contents):
-
         if c.startswith("Releases"):
             releases = [x.strip() for x in c[len("Releases: ") :].split(",")]
             for r in releases:
@@ -164,9 +161,7 @@ def main():
             else:
                 sections[-1].items.append(Item())
                 sections[-1].items[-1].text = c[m.end() :].strip()
-                sections[-1].items[-1].applies_to = [
-                    x.strip() for x in m.groups(1)[0].split(",")
-                ]
+                sections[-1].items[-1].applies_to = [x.strip() for x in m.groups(1)[0].split(",")]
 
         else:
             if c.startswith(" "):

@@ -8,122 +8,133 @@
 #define MAMBA_CORE_CONTEXT_HPP
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
-#include <regex>
 
 #include "mamba/core/common_types.hpp"
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/tasksync.hpp"
 #include "mamba/core/palette.hpp"
+#include "mamba/core/tasksync.hpp"
+#include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/authentication_info.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
 
 namespace mamba
 {
-    namespace
-    {
-// Linux
-#if defined(__linux__)
-#if __x86_64__
-        static const char MAMBA_PLATFORM[] = "linux-64";
-#elif defined(i386)
-        static const char MAMBA_PLATFORM[] = "linux-32";
-// armv6l and armv7l
-#elif defined(__arm__) || defined(__thumb__)
-#ifdef ___ARM_ARCH_6__
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif __ARM_ARCH_7__
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
-#else
-#error "Unknown Linux arm platform"
-#endif
-#elif _M_ARM == 6
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif _M_ARM == 7
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
-// aarch64
-#elif defined(__aarch64__)
-        static const char MAMBA_PLATFORM[] = "linux-aarch64";
-#elif defined(__ppc64__) || defined(__powerpc64__)
-#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        static const char MAMBA_PLATFORM[] = "linux-ppc64";
-#else
-        static const char MAMBA_PLATFORM[] = "linux-ppc64le";
-#endif
-#elif defined(__s390x__)
-        static const char MAMBA_PLATFORM[] = "linux-s390x";
-#else
-#error "Unknown Linux platform"
-#endif
-// OSX
-#elif defined(__APPLE__) || defined(__MACH__)
-#if __x86_64__
-        static const char MAMBA_PLATFORM[] = "osx-64";
-#elif __arm64__
-        static const char MAMBA_PLATFORM[] = "osx-arm64";
-#else
-#error "Unknown OSX platform"
-#endif
-// Windows
-#elif defined(_WIN64)
-        static const char MAMBA_PLATFORM[] = "win-64";
-#elif defined(_WIN32)
-        static const char MAMBA_PLATFORM[] = "win-32";
-#else
-#error "Unknown platform"
-#endif
-    }  // namespace
-
     enum class VerificationLevel
     {
-        kDisabled,
-        kWarn,
-        kEnabled
+        Disabled,
+        Warn,
+        Enabled
+    };
+
+    struct ValidationOptions
+    {
+        VerificationLevel safety_checks = VerificationLevel::Warn;
+        bool extra_safety_checks = false;
+        bool verify_artifacts = false;
     };
 
 
     enum class ChannelPriority
     {
-        kDisabled,
-        kFlexible,
-        kStrict
+        Disabled,
+        Flexible,
+        Strict
     };
 
-    enum class AuthenticationType
-    {
-        kBasicHTTPAuthentication,
-        kCondaToken
-    };
-
-    struct AuthenticationInfo
-    {
-        AuthenticationType type;
-        std::string value;
-    };
 
     class Logger;
+    class Context;
 
-    std::string env_name(const fs::u8path& prefix);
-    fs::u8path locate_prefix_by_name(const std::string& name);
+    std::string env_name(const Context& context, const fs::u8path& prefix);
+    std::string env_name(const Context& context);
+
+    struct ContextOptions
+    {
+        bool enable_logging_and_signal_handling = false;
+    };
 
     // Context singleton class
     class Context
     {
     public:
-        std::string caller_version = "";
-        std::string conda_version = "3.8.0";
-        std::string current_command = "mamba";
-        std::string custom_banner = "";
-        bool is_micromamba = false;
-        bool experimental = false;
-        bool debug = false;
 
-        fs::u8path target_prefix;
-        fs::u8path root_prefix;
-        fs::u8path conda_prefix;
+        static void use_default_signal_handler(bool val);
+
+        struct RemoteFetchParams
+        {
+            // ssl_verify can be either an empty string (regular SSL verification),
+            // the string "<false>" to indicate no SSL verification, or a path to
+            // a directory with cert files, or a cert file.
+            std::string ssl_verify{ "" };
+            bool ssl_no_revoke{ false };
+            bool curl_initialized{ false };  // non configurable, used in fetch only
+
+            std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
+
+            double connect_timeout_secs{ 10. };
+            // int read_timeout_secs { 60 };
+            int retry_timeout{ 2 };  // seconds
+            int retry_backoff{ 3 };  // retry_timeout * retry_backoff
+            int max_retries{ 3 };    // max number of retries
+
+            std::map<std::string, std::string> proxy_servers;
+        };
+
+        struct OutputParams
+        {
+            int verbosity{ 0 };
+            log_level logging_level{ log_level::warn };
+
+            bool json{ false };
+            bool quiet{ false };
+
+            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
+            std::size_t log_backtrace{ 0 };
+        };
+
+        struct GraphicsParams
+        {
+            bool no_progress_bars{ false };
+            Palette palette;
+        };
+
+        struct SrcParams
+        {
+            bool no_rc{ false };
+            bool no_env{ false };
+        };
+
+        struct CommandParams
+        {
+            std::string caller_version{ "" };
+            std::string conda_version{ "3.8.0" };
+            std::string current_command{ "mamba" };
+            bool is_micromamba{ false };
+        };
+
+        struct ThreadsParams
+        {
+            std::size_t download_threads{ 5 };
+            int extract_threads{ 0 };
+        };
+
+        struct PrefixParams
+        {
+            fs::u8path target_prefix;
+            fs::u8path root_prefix;
+            fs::u8path conda_prefix;
+            fs::u8path relocate_prefix;
+        };
+
+        // Configurable
+        bool experimental = false;
+        bool experimental_repodata_parsing = true;
+        bool debug = false;
 
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;
@@ -133,37 +144,22 @@ namespace mamba
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
         bool offline = false;
-        bool quiet = false;
-        bool json = false;
-        ChannelPriority channel_priority = ChannelPriority::kFlexible;
+
+        ChannelPriority channel_priority = ChannelPriority::Flexible;
         bool auto_activate_base = false;
 
-        std::size_t download_threads = 5;
-        int extract_threads = 0;
         bool extract_sparse = false;
 
-        int verbosity = 0;
-        void set_verbosity(int lvl);
-        void set_log_level(log_level level);
-
-        log_level logging_level = log_level::warn;
-        std::string log_pattern = "%^%-9!l%-8n%$ %v";
-        std::size_t log_backtrace = 0;
-
-        bool experimental_sat_error_message = false;
-
-        bool dev = false;
-        bool on_ci = false;
+        bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
+                           // be removed if this is the case...
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
 
-        bool no_progress_bars = false;
-        Palette palette;
-
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
+        bool register_envs = true;
 
         // solver options
         bool allow_uninstall = true;
@@ -172,9 +168,7 @@ namespace mamba
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 
-        VerificationLevel safety_checks = VerificationLevel::kWarn;
-        bool extra_safety_checks = false;
-        bool verify_artifacts = false;
+        ValidationOptions validation_params;
 
         // debug helpers
         bool keep_temp_files = false;
@@ -186,23 +180,13 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        std::string user_agent = "mamba/" LIBMAMBA_VERSION_STRING;
-        bool curl_initialized = false;
-        int connect_timeout_secs = 10;
-        // int read_timeout_secs = 60;
-        int retry_timeout = 2;  // seconds
-        int retry_backoff = 3;  // retry_timeout * retry_backoff
-        int max_retries = 3;    // max number of retries
-
-        std::map<std::string, std::string> proxy_servers;
-        // ssl verify can be either an empty string (regular SSL verification),
-        // the string "<false>" to indicate no SSL verification, or a path to
-        // a directory with cert files, or a cert file.
-        std::string ssl_verify = "";
-        bool ssl_no_revoke = false;
-
-        bool no_rc = false;
-        bool no_env = false;
+        RemoteFetchParams remote_fetch_params;
+        OutputParams output_params;
+        GraphicsParams graphics_params;
+        SrcParams src_params;
+        CommandParams command_params;
+        ThreadsParams threads_params;
+        PrefixParams prefix_params;
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
@@ -212,11 +196,11 @@ namespace mamba
         // Conda compat
         bool add_pip_as_python_dependency = true;
 
-        std::string host_platform = MAMBA_PLATFORM;
-        std::string platform = MAMBA_PLATFORM;
-        std::vector<std::string> platforms();
+        std::string host_platform = std::string(specs::build_platform_name());
+        std::string platform = std::string(specs::build_platform_name());
+        std::vector<std::string> platforms() const;
 
-        std::vector<std::string> channels;
+        std::vector<std::string> channels = { "conda-forge" };
         std::map<std::string, std::string> custom_channels;
         std::map<std::string, std::vector<std::string>> custom_multichannels;
 
@@ -226,12 +210,15 @@ namespace mamba
             "https://repo.anaconda.com/pkgs/r",
             "https://repo.anaconda.com/pkgs/msys2"
 #else
-            "https://repo.anaconda.com/pkgs/main", "https://repo.anaconda.com/pkgs/r"
+            "https://repo.anaconda.com/pkgs/main",
+            "https://repo.anaconda.com/pkgs/r"
 #endif
         };
 
+        std::map<std::string, std::vector<std::string>> mirrored_channels;
         std::string channel_alias = "https://conda.anaconda.org";
-        std::map<std::string, AuthenticationInfo>& authentication_info();
+        specs::AuthenticationDataBase& authentication_info();
+        const specs::AuthenticationDataBase& authentication_info() const;
         std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 
         bool override_channels_enabled = true;
@@ -240,16 +227,8 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
-        bool repodata_use_zst = false;
+        bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
-
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-        const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
-
-        static Context& instance();
 
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;
@@ -257,23 +236,34 @@ namespace mamba
         Context(Context&&) = delete;
         Context& operator=(Context&&) = delete;
 
-        const void debug_print();
+        void debug_print() const;
         void dump_backtrace_no_guards();
 
-    protected:
-        Context();
+        void set_verbosity(int lvl);
+        void set_log_level(log_level level);
+
+        Context(const ContextOptions& options = {});
         ~Context();
 
+        // Enables the provided context to drive the logging system and setup signal handling.
+        // This function must be called only for one Context in the lifetime of the program.
+        static void enable_logging_and_signal_handling(Context& context);
 
     private:
+
+        // Used internally
+        bool on_ci = false;
+
         void load_authentication_info();
-        std::map<std::string, AuthenticationInfo> m_authentication_info;
+        specs::AuthenticationDataBase m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
         std::shared_ptr<Logger> logger;
 
         TaskSynchronizer tasksync;
     };
+
+
 }  // namespace mamba
 
 #endif  // MAMBA_CONTEXT_HPP

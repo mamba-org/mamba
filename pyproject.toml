@@ -1,6 +1,10 @@
-[build-system]
-build-backend = 'setuptools.build_meta'
-requires = [
-    'setuptools >= 49.2.1',
-    'pybind11 >= 2.2',
-]
+[tool.pytest.ini_options]
+minversion = "6.0"
+tmp_path_retention_policy = "failed"
+addopts = "--color=yes"
+
+[tool.ruff]
+line-length = 100
+target-version = "py37"
+[tool.ruff.format]
+line-ending = "lf"

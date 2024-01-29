@@ -3,12 +3,17 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include "common_options.hpp"
 
-#include "mamba/api/configuration.hpp"
-#include "mamba/api/list.hpp"
+#include <string>
+
+#include <CLI/App.hpp>
+
+#include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/url.hpp"
+#include "mamba/util/encoding.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
 
 std::string
 read_stdin()
@@ -31,22 +36,19 @@ read_stdin()
 std::string
 get_token_base(const std::string& host)
 {
-    mamba::URLHandler url_handler(host);
+    const auto url = mamba::util::URL::parse(host);
 
     std::string maybe_colon_and_port{};
-    if (!url_handler.port().empty())
+    if (!url.port().empty())
     {
         maybe_colon_and_port.push_back(':');
-        maybe_colon_and_port.append(url_handler.port());
+        maybe_colon_and_port.append(url.port());
     }
-    // Removing the trailing slashes
-    std::string maybe_path = url_handler.path();
-    while ((!maybe_path.empty()) && (maybe_path.back() == '/'))
-    {
-        maybe_path.pop_back();
-    }
-
-    return mamba::concat(url_handler.host(), maybe_colon_and_port, maybe_path);
+    return mamba::util::concat(
+        url.host(),
+        maybe_colon_and_port,
+        mamba::util::rstrip(url.pretty_path(), '/')
+    );
 }
 
 void
@@ -61,13 +63,15 @@ set_logout_command(CLI::App* subcom)
     subcom->callback(
         []()
         {
-            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
-            fs::u8path auth_file = path / "authentication.json";
+            static auto path = mamba::fs::u8path(mamba::util::user_home_dir()) / ".mamba" / "auth";
+            const mamba::fs::u8path auth_file = path / "authentication.json";
 
             if (all)
             {
-                if (fs::exists(auth_file))
-                    fs::remove(auth_file);
+                if (mamba::fs::exists(auth_file))
+                {
+                    mamba::fs::remove(auth_file);
+                }
                 return 0;
             }
 
@@ -75,7 +79,7 @@ set_logout_command(CLI::App* subcom)
 
             try
             {
-                if (fs::exists(auth_file))
+                if (mamba::fs::exists(auth_file))
                 {
                     auto fi = mamba::open_ifstream(auth_file);
                     fi >> auth_info;
@@ -103,24 +107,30 @@ set_logout_command(CLI::App* subcom)
             auto fo = mamba::open_ofstream(auth_file);
             fo << auth_info;
             return 0;
-        });
+        }
+    );
 }
 
 void
 set_login_command(CLI::App* subcom)
 {
-    static std::string user, pass, token, host;
+    static std::string user, pass, token, bearer, host;
     static bool pass_stdin = false;
     static bool token_stdin = false;
+    static bool bearer_stdin = false;
     subcom->add_option("-p,--password", pass, "Password for account");
     subcom->add_option("-u,--username", user, "User name for the account");
     subcom->add_option("-t,--token", token, "Token for the account");
+    subcom->add_option("-b,--bearer", bearer, "Bearer token for the account");
     subcom->add_flag("--password-stdin", pass_stdin, "Read password from stdin");
     subcom->add_flag("--token-stdin", token_stdin, "Read token from stdin");
-    subcom->add_option("host",
-                       host,
-                       "Host for the account. The scheme (e.g. https://) is ignored\n"
-                       "but not the port (optional) nor the channel (optional).");
+    subcom->add_flag("--bearer-stdin", bearer_stdin, "Read bearer token from stdin");
+    subcom->add_option(
+        "host",
+        host,
+        "Host for the account. The scheme (e.g. https://) is ignored\n"
+        "but not the port (optional) nor the channel (optional)."
+    );
 
     subcom->callback(
         []()
@@ -133,21 +143,31 @@ set_login_command(CLI::App* subcom)
             auto token_base = get_token_base(host);
 
             if (pass_stdin)
+            {
                 pass = read_stdin();
+            }
 
             if (token_stdin)
+            {
                 token = read_stdin();
+            }
 
-            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
-            fs::create_directories(path);
+            if (bearer_stdin)
+            {
+                bearer = read_stdin();
+            }
+
+            static const auto path = mamba::fs::u8path(mamba::util::user_home_dir()) / ".mamba"
+                                     / "auth";
+            mamba::fs::create_directories(path);
 
 
             nlohmann::json auth_info;
-            fs::u8path auth_file = path / "authentication.json";
+            const mamba::fs::u8path auth_file = path / "authentication.json";
 
             try
             {
-                if (fs::exists(auth_file))
+                if (mamba::fs::exists(auth_file))
                 {
                     auto fi = mamba::open_ifstream(auth_file);
                     fi >> auth_info;
@@ -158,7 +178,7 @@ set_login_command(CLI::App* subcom)
                 }
                 nlohmann::json auth_object = nlohmann::json::object();
 
-                if (pass.empty() && token.empty())
+                if (pass.empty() && token.empty() && bearer.empty())
                 {
                     throw std::runtime_error("No password or token given.");
                 }
@@ -167,9 +187,11 @@ set_login_command(CLI::App* subcom)
                 {
                     auth_object["type"] = "BasicHTTPAuthentication";
 
-                    auto pass_encoded = mamba::encode_base64(mamba::strip(pass));
+                    auto pass_encoded = mamba::util::encode_base64(mamba::util::strip(pass));
                     if (!pass_encoded)
+                    {
                         throw pass_encoded.error();
+                    }
 
                     auth_object["password"] = pass_encoded.value();
                     auth_object["user"] = user;
@@ -177,7 +199,12 @@ set_login_command(CLI::App* subcom)
                 else if (!token.empty())
                 {
                     auth_object["type"] = "CondaToken";
-                    auth_object["token"] = mamba::strip(token);
+                    auth_object["token"] = mamba::util::strip(token);
+                }
+                else if (!bearer.empty())
+                {
+                    auth_object["type"] = "BearerToken";
+                    auth_object["token"] = mamba::util::strip(bearer);
                 }
 
                 auth_info[token_base] = auth_object;
@@ -193,17 +220,19 @@ set_login_command(CLI::App* subcom)
             out << auth_info.dump(4);
             std::cout << "Successfully stored login information" << std::endl;
             return 0;
-        });
+        }
+    );
 }
 
 void
 set_auth_command(CLI::App* subcom)
 {
-    CLI::App* login_cmd
-        = subcom->add_subcommand("login", "Store login information for a specific host");
+    CLI::App* login_cmd = subcom->add_subcommand("login", "Store login information for a specific host");
     set_login_command(login_cmd);
 
-    CLI::App* logout_cmd
-        = subcom->add_subcommand("logout", "Erase login information for a specific host");
+    CLI::App* logout_cmd = subcom->add_subcommand(
+        "logout",
+        "Erase login information for a specific host"
+    );
     set_logout_command(logout_cmd);
 }

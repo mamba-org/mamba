@@ -10,9 +10,7 @@ namespace mamba
 
     template <typename Func, typename... Args>
     auto safe_invoke(Func&& func, Args&&... args)
-        -> tl::expected<decltype(std::invoke(std::forward<Func>(func),
-                                             std::forward<Args>(args)...)),
-                        mamba_error>
+        -> tl::expected<decltype(std::invoke(std::forward<Func>(func), std::forward<Args>(args)...)), mamba_error>
     {
         try
         {
@@ -34,13 +32,17 @@ namespace mamba
         }
         catch (const std::runtime_error& err)
         {
-            return make_unexpected(std::string("callback invocation failed : ") + err.what(),
-                                   mamba_error_code::unknown);
+            return make_unexpected(
+                std::string("callback invocation failed : ") + err.what(),
+                mamba_error_code::unknown
+            );
         }
         catch (...)
         {
-            return make_unexpected("callback invocation failed : unknown error",
-                                   mamba_error_code::unknown);
+            return make_unexpected(
+                "callback invocation failed : unknown error",
+                mamba_error_code::unknown
+            );
         }
     }
 

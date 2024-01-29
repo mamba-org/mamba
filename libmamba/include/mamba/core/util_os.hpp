@@ -1,4 +1,4 @@
-// Copyright (c) 2019, QuantStack and Mamba Contributors
+// Copyright (c) 2019-2023, QuantStack and Mamba Contributors
 //
 // Distributed under the terms of the BSD 3-Clause License.
 //
@@ -7,13 +7,19 @@
 #ifndef MAMBA_CORE_UTIL_OS_HPP
 #define MAMBA_CORE_UTIL_OS_HPP
 
-#include <string>
 #include <iosfwd>
+#include <string>
 
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/palette.hpp"
 
 namespace mamba
 {
+#ifdef _WIN32
+    // Intention is to avoid including `Windows.h`, while still using the basic Windows API types.
+    using DWORD = unsigned long;
+#endif
+
     bool is_admin();
     fs::u8path get_self_exe_path();
 
@@ -31,19 +37,13 @@ namespace mamba
 #endif
 
     void run_as_admin(const std::string& args);
-    bool enable_long_paths_support(bool force);
+    bool enable_long_paths_support(bool force, Palette palette = Palette::no_color());
     std::string windows_version();
     std::string macos_version();
     std::string linux_version();
 
     void init_console();
     void reset_console();
-
-#ifdef _WIN32
-    std::string to_utf8(const wchar_t* w, size_t s);
-    std::string to_utf8(const wchar_t* w);
-    std::string to_utf8(std::wstring const& s);
-#endif
 
     /* Test whether a given `std::ostream` object refers to a terminal. */
     bool is_atty(const std::ostream& stream);

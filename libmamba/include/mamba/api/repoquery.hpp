@@ -4,12 +4,19 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <string>
+#include <vector>
+
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/query.hpp"
 
 namespace mamba
 {
-    void repoquery(QueryType type,
-                   QueryResultFormat format,
-                   bool use_local,
-                   const std::string& query);
+    bool repoquery(
+        Configuration& config,
+        QueryType type,
+        QueryResultFormat format,
+        bool use_local,
+        const std::vector<std::string>& query
+    );
 }

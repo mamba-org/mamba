@@ -10,8 +10,8 @@
 #include <array>
 #include <string>
 
-#define LIBMAMBA_VERSION_MAJOR 1
-#define LIBMAMBA_VERSION_MINOR 2
+#define LIBMAMBA_VERSION_MAJOR 2
+#define LIBMAMBA_VERSION_MINOR 0
 #define LIBMAMBA_VERSION_PATCH 0
 
 // Binary version
@@ -26,8 +26,7 @@
     (LIBMAMBA_VERSION_MAJOR * 10000 + LIBMAMBA_VERSION_MINOR * 100 + LIBMAMBA_VERSION_PATCH)
 #define LIBMAMBA_VERSION_STRING                                                                    \
     __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MAJOR)                                                   \
-    "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MINOR) "." __LIBMAMBA_STRINGIZE(                     \
-        LIBMAMBA_VERSION_PATCH)
+    "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MINOR) "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_PATCH)
 
 namespace mamba
 {

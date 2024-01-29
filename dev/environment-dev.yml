@@ -1,0 +1,55 @@
+channels:
+  - conda-forge
+dependencies:
+  # libmamba build dependencies
+  - cxx-compiler
+  - cmake >=3.16
+  - pkg-config  # Used by some CMake dependencies
+  - ninja
+  # libmamba dependencies
+  - cpp-expected
+  - fmt
+  - libarchive
+  - libcurl >=7.86
+  - libsodium
+  - libsolv >=0.7.18
+  - nlohmann_json
+  - reproc-cpp >=14.2.4.post0
+  - simdjson >=3.3.0
+  - spdlog
+  - yaml-cpp >=0.8.0
+  - sel(win): winreg
+  # libmamba test dependencies
+  - doctest
+  # micromamba dependencies
+  - cli11 >=2.2
+  # micromamba test dependencies
+  - python =3.9  # Some not too recent version
+  - mitmproxy
+  - pytest >=7.3.0
+  - pytest-asyncio
+  - pytest-lazy-fixture
+  - pytest-xprocess
+  - requests
+  - sel(win): pywin32
+  - sel(win): menuinst
+  - conda-content-trust
+  - conda-package-handling
+  - cryptography<40.0  # Or breaks conda-content-trust
+  - pip:
+    - securesystemslib
+  # libmambapy build dependencies
+  - scikit-build
+  - build
+  - pybind11-stubgen <1.0
+  # libmambapy dependencies
+  - python
+  - pybind11
+  # dev dependencies
+  - pre-commit
+  # Documentation dependencies
+  - doxygen
+  - breathe
+  - sphinx
+  - sphinx-book-theme
+  - myst-parser

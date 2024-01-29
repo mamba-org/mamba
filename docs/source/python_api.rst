@@ -2,43 +2,30 @@
 Python API of ``mamba``
 =======================
 
-High-level Python API
----------------------
-
-Mamba provides high-level Python APIs for creating environments and installing packages:
-
-.. code::
-
-    from mamba.api import create, install
-
-    # create(env_name, packages, channels)
-    create('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
-
-    # install(env_name, packages, channels)
-    install('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
-
 Using internal mamba APIs
 -------------------------
 
-The core of ``mamba`` is written in C++, but we expose the internals of mamba with a Python API (using ``pybind11``).
+The core of ``mamba`` is written in C++, but we expose the internals of mamba with a Python API
+(using ``pybind11``).
 
-You can import the ``mamba_api`` using ``from mamba import mamba_api``.
+You can import ``libmambapy`` containing the Python API using ``import libmambapy`` without having ``mamba`` installed.
 
-The mamba_api exposes the following objects:
+These bindings expose the following objects (`boa`_ has a full example):
 
 - ``Context``: a singleton configuration object. All global configuration goes through this. From Python you can use the context object like so:
 
-.. code::
+.. code:: python
 
-   from mamba import mamba_api
-   mamba_api.Context().conda_prefix = "/home/wolfv/conda"
-   ctx = mamba_api.Context()
+   import libmambapy
+
+   ctx = libmambapy.Context.instance()
+   ctx.conda_prefix = "/home/wolfv/conda"
    print(ctx.root_prefix)
 
 
-Here is an example usage of the mamba_api:
+Here is an example usage of ``libmambapy``:
 
-.. code::
+.. code:: python
 
     def get_index(
         channel_urls=(),
@@ -52,7 +39,7 @@ Here is an example usage of the mamba_api:
     ):
         check_allowlist(channel_urls)
 
-        dlist = mamba_api.DownloadTargetList()
+        dlist = libmambapy.DownloadTargetList()
 
         index = []
         for idx, url in enumerate(channel_urls):
@@ -68,36 +55,37 @@ Here is an example usage of the mamba_api:
                 name_and_subdir = channel.subdir
             else:
                 name_and_subdir = channel.name + "/" + channel.subdir
-            sd = mamba_api.SubdirData(name_and_subdir, full_url, full_path_cache)
+            sd = libmambapy.SubdirData(name_and_subdir, full_url, full_path_cache)
 
             index.append((sd, channel))
             dlist.add(sd)
 
-        is_downloaded = dlist.download(mamba_api.MAMBA_DOWNLOAD_FAILFAST)
+        is_downloaded = dlist.download(libmambapy.MAMBA_DOWNLOAD_FAILFAST)
 
         if not is_downloaded:
             raise RuntimeError("Error downloading repodata.")
 
         return index
 
+
     class MambaSolver:
         def __init__(self, prefix, channels, platform):
 
-            api_ctx = mamba_api.Context()
+            api_ctx = libmambapy.Context()
             api_ctx.conda_prefix = prefix
 
             self.channels = channels
             self.platform = platform
             self.index = get_index(channels, platform=platform)
             self.local_index = []
-            self.pool = mamba_api.Pool()
+            self.pool = libmambapy.Pool()
             self.repos = []
 
             start_prio = len(channels)
             priority = start_prio
             subpriority = 0  # wrong! :)
             for subdir, channel in self.index:
-                repo = mamba_api.Repo(
+                repo = libmambapy.Repo(
                     self.pool,
                     str(channel),
                     subdir.cache_path(),
@@ -122,11 +110,11 @@ Here is an example usage of the mamba_api:
             solvable : bool
                 True if the set of specs has a solution, False otherwise.
             """
-            solver_options = [(mamba_api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
-            api_solver = mamba_api.Solver(self.pool, solver_options)
+            solver_options = [(libmambapy.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+            api_solver = libmambapy.Solver(self.pool, solver_options)
             _specs = specs
 
-            api_solver.add_jobs(_specs, mamba_api.SOLVER_INSTALL)
+            api_solver.add_jobs(_specs, libmambapy.SOLVER_INSTALL)
             success = api_solver.try_solve()
 
             if not success:
@@ -142,12 +130,9 @@ Here is an example usage of the mamba_api:
                 print(error_string)
                 exit(1)
 
-            package_cache = mamba_api.MultiPackageCache(pkgs_dirs)
+            package_cache = libmambapy.MultiPackageCache(pkgs_dirs)
 
-            t = mamba_api.Transaction(api_solver, package_cache)
+            t = libmambapy.Transaction(api_solver, package_cache)
             return t
 
-
-Let's walk through this example:
-
-We first use the ``get_index`` method to download repository data from the channels.
+.. _boa: https://github.com/mamba-org/boa/blob/main/boa/core/solver.py

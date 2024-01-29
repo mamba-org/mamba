@@ -7,13 +7,23 @@
 #ifndef UMAMBA_CONSTRUCTOR_HPP
 #define UMAMBA_CONSTRUCTOR_HPP
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 
+namespace mamba
+{
+    class ChannelContext;
+    class Configuration;
+}
 
 void
-construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball);
+construct(
+    mamba::Configuration& config,
+    const mamba::fs::u8path& prefix,
+    bool extract_conda_pkgs,
+    bool extract_tarball
+);
 
 void
-read_binary_from_stdin_and_write_to_file(fs::u8path& filename);
+read_binary_from_stdin_and_write_to_file(mamba::fs::u8path& filename);
 
 #endif

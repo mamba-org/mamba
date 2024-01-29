@@ -8,21 +8,21 @@
 #define MAMBA_PROBLEMS_GRAPH_HPP
 
 #include <array>
-#include <string>
+#include <functional>
+#include <initializer_list>
 #include <ostream>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
-#include <unordered_map>
-#include <optional>
-#include <vector>
-#include <functional>
 
-#include <solv/solver.h>
 #include <fmt/color.h>
 
-#include "mamba/core/util_graph.hpp"
-#include "mamba/core/package_info.hpp"
+#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
+#include "mamba/util/flat_set.hpp"
+#include "mamba/util/graph.hpp"
 
 namespace mamba
 {
@@ -30,48 +30,24 @@ namespace mamba
     class MSolver;
     class MPool;
 
-    /**
-     * Separate a dependency spec into a package name and the version range.
-     */
-    class DependencyInfo
-    {
-    public:
-        DependencyInfo(const std::string& dependency);
-
-        DependencyInfo(DependencyInfo const&) = default;
-        DependencyInfo(DependencyInfo&&) noexcept = default;
-        DependencyInfo& operator=(DependencyInfo const&) = default;
-        DependencyInfo& operator=(DependencyInfo&&) noexcept = default;
-
-        const std::string& name() const;
-        const std::string& version() const;
-        const std::string& build_string() const;
-        std::string str() const;
-
-        bool operator==(DependencyInfo const& other) const;
-
-    private:
-        std::string m_name;
-        std::string m_version_range;
-        std::string m_build_range;
-    };
-
     template <typename T>
-    class conflict_map : private std::unordered_map<T, vector_set<T>>
+    class conflict_map : private std::unordered_map<T, util::flat_set<T>>
     {
     public:
-        using Base = std::unordered_map<T, vector_set<T>>;
+
+        using Base = std::unordered_map<T, util::flat_set<T>>;
         using typename Base::const_iterator;
         using typename Base::key_type;
         using typename Base::value_type;
 
         conflict_map() = default;
+        conflict_map(std::initializer_list<std::pair<T, T>> conflicts_pairs);
 
         using Base::empty;
         using Base::size;
-        bool has_conflict(key_type const& a) const;
-        auto conflicts(key_type const& a) const -> vector_set<T> const&;
-        bool in_conflict(key_type const& a, key_type const& b) const;
+        bool has_conflict(const key_type& a) const;
+        auto conflicts(const key_type& a) const -> const util::flat_set<T>&;
+        bool in_conflict(const key_type& a, const key_type& b) const;
 
         using Base::cbegin;
         using Base::cend;
@@ -79,7 +55,13 @@ namespace mamba
         const_iterator end() const noexcept;
 
         using Base::clear;
-        void add(key_type const& a, key_type const& b);
+        bool add(const key_type& a, const key_type& b);
+        bool remove(const key_type& a, const key_type& b);
+        bool remove(const key_type& a);
+
+    private:
+
+        bool remove_asym(const key_type& a, const key_type& b);
     };
 
     /**
@@ -88,62 +70,53 @@ namespace mamba
     class ProblemsGraph
     {
     public:
+
         struct RootNode
         {
         };
-        struct PackageNode : PackageInfo
+
+        struct PackageNode : specs::PackageInfo
         {
-            std::optional<SolverRuleinfo> problem_type;
-
-            PackageNode(PackageNode const&) = default;
-            PackageNode(PackageNode&&) noexcept = default;
-            PackageNode& operator=(PackageNode const&) = default;
-            PackageNode& operator=(PackageNode&&) noexcept = default;
         };
-        struct UnresolvedDependencyNode : DependencyInfo
+
+        struct UnresolvedDependencyNode : specs::MatchSpec
         {
-            SolverRuleinfo problem_type;
-
-            UnresolvedDependencyNode(UnresolvedDependencyNode const&) = default;
-            UnresolvedDependencyNode(UnresolvedDependencyNode&&) noexcept = default;
-            UnresolvedDependencyNode& operator=(UnresolvedDependencyNode const&) = default;
-            UnresolvedDependencyNode& operator=(UnresolvedDependencyNode&&) noexcept = default;
         };
-        struct ConstraintNode : DependencyInfo
+
+        struct ConstraintNode : specs::MatchSpec
         {
-            static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_CONSTRAINS;
-
-            ConstraintNode(ConstraintNode const&) = default;
-            ConstraintNode(ConstraintNode&&) noexcept = default;
-            ConstraintNode& operator=(ConstraintNode const&) = default;
-            ConstraintNode& operator=(ConstraintNode&&) noexcept = default;
         };
-        using node_t
-            = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
-        using edge_t = DependencyInfo;
+        using node_t = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
-        using graph_t = DiGraph<node_t, edge_t>;
+        using edge_t = specs::MatchSpec;
+
+        using graph_t = util::DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
-        static ProblemsGraph from_solver(MSolver const& solver, MPool const& pool);
-
         ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
-        graph_t const& graph() const noexcept;
-        conflicts_t const& conflicts() const noexcept;
+        const graph_t& graph() const noexcept;
+        const conflicts_t& conflicts() const noexcept;
         node_id root_node() const noexcept;
 
     private:
+
         graph_t m_graph;
         conflicts_t m_conflicts;
         node_id m_root_node;
     };
 
+    /**
+     * Hand-crafted hurisitics to simplify conflicts in messy situations.
+     */
+    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs);
+
     class CompressedProblemsGraph
     {
     public:
+
         using RootNode = ProblemsGraph::RootNode;
 
         /**
@@ -159,7 +132,7 @@ namespace mamba
         template <typename T>
         struct RoughCompare
         {
-            bool operator()(T const& a, T const& b);
+            bool operator()(const T& a, const T& b) const;
         };
 
         /**
@@ -169,10 +142,11 @@ namespace mamba
          * specialization for needed types.
          */
         template <typename T, typename Allocator = std::allocator<T>>
-        class NamedList : private vector_set<T, RoughCompare<T>, Allocator>
+        class NamedList : private util::flat_set<T, RoughCompare<T>, Allocator>
         {
         public:
-            using Base = vector_set<T, RoughCompare<T>, Allocator>;
+
+            using Base = util::flat_set<T, RoughCompare<T>, Allocator>;
             using typename Base::allocator_type;
             using typename Base::const_iterator;
             using typename Base::const_reverse_iterator;
@@ -184,8 +158,8 @@ namespace mamba
 
             using Base::empty;
             using Base::size;
-            value_type const& front() const noexcept;
-            value_type const& back() const noexcept;
+            const value_type& front() const noexcept;
+            const value_type& back() const noexcept;
             using Base::cbegin;
             using Base::cend;
             using Base::crbegin;
@@ -195,30 +169,35 @@ namespace mamba
             const_reverse_iterator rbegin() const noexcept;
             const_reverse_iterator rend() const noexcept;
 
-            std::string const& name() const;
-            std::pair<std::string, std::size_t> versions_trunc(std::string_view sep = "|",
-                                                               std::string_view etc = "...",
-                                                               std::size_t threshold = 5,
-                                                               bool remove_duplicates = true) const;
-            std::pair<std::string, std::size_t> build_strings_trunc(std::string_view sep = "|",
-                                                                    std::string_view etc = "...",
-                                                                    std::size_t threshold = 5,
-                                                                    bool remove_duplicates
-                                                                    = true) const;
+            const std::string& name() const;
+            std::pair<std::string, std::size_t> versions_trunc(
+                std::string_view sep = "|",
+                std::string_view etc = "...",
+                std::size_t threshold = 5,
+                bool remove_duplicates = true
+            ) const;
+            std::pair<std::string, std::size_t> build_strings_trunc(
+                std::string_view sep = "|",
+                std::string_view etc = "...",
+                std::size_t threshold = 5,
+                bool remove_duplicates = true
+            ) const;
             std::pair<std::string, std::size_t> versions_and_build_strings_trunc(
                 std::string_view sep = "|",
                 std::string_view etc = "...",
                 std::size_t threshold = 5,
-                bool remove_duplicates = true) const;
+                bool remove_duplicates = true
+            ) const;
 
             using Base::clear;
             using Base::reserve;
-            void insert(value_type const& e);
+            void insert(const value_type& e);
             void insert(value_type&& e);
             template <typename InputIterator>
             void insert(InputIterator first, InputIterator last);
 
         private:
+
             template <typename T_>
             void insert_impl(T_&& e);
         };
@@ -226,31 +205,33 @@ namespace mamba
         using PackageListNode = NamedList<ProblemsGraph::PackageNode>;
         using UnresolvedDependencyListNode = NamedList<ProblemsGraph::UnresolvedDependencyNode>;
         using ConstraintListNode = NamedList<ProblemsGraph::ConstraintNode>;
-        using node_t = std::variant<RootNode,  //
-                                    PackageListNode,
-                                    UnresolvedDependencyListNode,
-                                    ConstraintListNode>;
+        using node_t = std::variant<
+            RootNode,  //
+            PackageListNode,
+            UnresolvedDependencyListNode,
+            ConstraintListNode>;
 
-        using edge_t = NamedList<DependencyInfo>;
+        using edge_t = NamedList<specs::MatchSpec>;
 
-        using graph_t = DiGraph<node_t, edge_t>;
+        using graph_t = util::DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
-        using merge_criteria_t = std::function<bool(
-            ProblemsGraph const&, ProblemsGraph::node_id, ProblemsGraph::node_id)>;
+        using merge_criteria_t = std::function<
+            bool(const ProblemsGraph&, ProblemsGraph::node_id, ProblemsGraph::node_id)>;
 
-        static auto from_problems_graph(ProblemsGraph const& pbs,
-                                        merge_criteria_t const& merge_criteria = {})
+        static auto
+        from_problems_graph(const ProblemsGraph& pbs, const merge_criteria_t& merge_criteria = {})
             -> CompressedProblemsGraph;
 
         CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
-        graph_t const& graph() const noexcept;
-        conflicts_t const& conflicts() const noexcept;
+        const graph_t& graph() const noexcept;
+        const conflicts_t& conflicts() const noexcept;
         node_id root_node() const noexcept;
 
     private:
+
         graph_t m_graph;
         conflicts_t m_conflicts;
         node_id m_root_node;
@@ -266,33 +247,41 @@ namespace mamba
         std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
     };
 
-    std::ostream& print_problem_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
-    std::string problem_summary_msg(CompressedProblemsGraph const& pbs);
-
-    std::ostream& print_problem_tree_msg(std::ostream& out,
-                                         CompressedProblemsGraph const& pbs,
-                                         ProblemsMessageFormat const& format = {});
-    std::string problem_tree_msg(CompressedProblemsGraph const& pbs,
-                                 ProblemsMessageFormat const& format = {});
+    std::ostream& print_problem_tree_msg(
+        std::ostream& out,
+        const CompressedProblemsGraph& pbs,
+        const ProblemsMessageFormat& format = {}
+    );
+    std::string
+    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format = {});
 
     /************************************
      *  Implementation of conflict_map  *
      ************************************/
 
     template <typename T>
-    bool conflict_map<T>::has_conflict(key_type const& a) const
+    conflict_map<T>::conflict_map(std::initializer_list<std::pair<T, T>> conflicts_pairs)
+    {
+        for (const auto& [a, b] : conflicts_pairs)
+        {
+            add(a, b);
+        }
+    }
+
+    template <typename T>
+    bool conflict_map<T>::has_conflict(const key_type& a) const
     {
         return Base::find(a) != end();
     }
 
     template <typename T>
-    auto conflict_map<T>::conflicts(key_type const& a) const -> vector_set<T> const&
+    auto conflict_map<T>::conflicts(const key_type& a) const -> const util::flat_set<T>&
     {
         return Base::at(a);
     }
 
     template <typename T>
-    bool conflict_map<T>::in_conflict(key_type const& a, key_type const& b) const
+    bool conflict_map<T>::in_conflict(const key_type& a, const key_type& b) const
     {
         return has_conflict(a) && Base::at(a).contains(b);
     }
@@ -310,10 +299,56 @@ namespace mamba
     }
 
     template <typename T>
-    void conflict_map<T>::add(key_type const& a, key_type const& b)
+    bool conflict_map<T>::add(const key_type& a, const key_type& b)
     {
-        Base::operator[](a).insert(b);
-        Base::operator[](b).insert(a);
+        auto [_, inserted] = Base::operator[](a).insert(b);
+        if (a != b)
+        {
+            Base::operator[](b).insert(a);
+        }
+        return inserted;
+    }
+
+    template <typename T>
+    bool conflict_map<T>::remove_asym(const key_type& a, const key_type& b)
+    {
+        auto iter = Base::find(a);
+        if (iter == Base::end())
+        {
+            return false;
+        }
+        auto& cflcts = iter->second;
+        const bool erased = cflcts.erase(b);
+        if (cflcts.empty())
+        {
+            Base::erase(a);
+        }
+        return erased;
+    };
+
+    template <typename T>
+    bool conflict_map<T>::remove(const key_type& a, const key_type& b)
+    {
+        return remove_asym(a, b) && ((a == b) || remove_asym(b, a));
+    }
+
+    template <typename T>
+    bool conflict_map<T>::remove(const key_type& a)
+    {
+        auto a_iter = Base::find(a);
+        if (a_iter == Base::end())
+        {
+            return false;
+        }
+        for (const auto& b : a_iter->second)
+        {
+            if (a != b)  // Cannot modify while we iterate on it
+            {
+                remove_asym(b, a);
+            }
+        }
+        Base::erase(a);
+        return true;
     }
 
     /*********************************

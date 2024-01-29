@@ -37,7 +37,7 @@ Further documentation will come soon.
 Package tarball
 ---------------
 
-Assuming a valid :ref:`repodata<repodata>` (see the previous :ref:`repodata verification<repodata_verification>`), :ref:`package tarball<tarball>` metadata are used to check if a tarball is valid or not after :ref:`fetching it<fetching_tarball>` from a repository.
+Assuming a valid :ref:`repodata<repodata>` (see the previous :ref:`repodata verification<repodata_verification>`), :ref:`package tarball<tarball>` metadata are used to check if a tarball is valid or not after fetching it from a repository.
 
 
 .. _files_verification:
@@ -45,7 +45,7 @@ Assuming a valid :ref:`repodata<repodata>` (see the previous :ref:`repodata veri
 Package files
 -------------
 
-| All the package files are listed in a ``paths.json`` file index :ref:`extracted<extraction>` from the :ref:`package tarball<tarball>` with files themselves.
+| All the package files are listed in a ``paths.json`` file index extracted from the :ref:`package tarball<tarball>` with files themselves.
 
 This index also contains metadata such as the size and checksum (SHA-256) of each file of the package.
 

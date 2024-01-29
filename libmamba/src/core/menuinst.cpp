@@ -1,22 +1,32 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include <string>
+
+#include "mamba/util/path_manip.hpp"
+
+#ifdef _WIN32
+#include <shlobj.h>
+#include <windows.h>
+
+#include "mamba/util/os_win.hpp"
+#endif
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util.hpp"
-
-#ifdef _WIN32
-#include <windows.h>
-#include <shlobj.h>
-#endif
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
     namespace detail
     {
-        std::string get_formatted_env_name(const fs::u8path& target_prefix)
+        std::string get_formatted_env_name(const Context& context, const fs::u8path& target_prefix)
         {
-            std::string name = env_name(target_prefix);
+            std::string name = env_name(context, target_prefix);
             if (name.find_first_of("\\/") != std::string::npos)
             {
                 return "";
@@ -42,13 +52,15 @@ namespace mamba
          *   icon_path: path to an .ico file
          *   icon_index: index for icon
          */
-        void create_shortcut(const fs::u8path& path,
-                             const std::string& description,
-                             const fs::u8path& filename,
-                             const std::string& arguments,
-                             const fs::u8path& work_dir,
-                             const fs::u8path& icon_path,
-                             int icon_index)
+        void create_shortcut(
+            const fs::u8path& path,
+            const std::string& description,
+            const fs::u8path& filename,
+            const std::string& arguments,
+            const fs::u8path& work_dir,
+            const fs::u8path& icon_path,
+            int icon_index
+        )
         {
             IShellLink* pShellLink = nullptr;
             IPersistFile* pPersistFile = nullptr;
@@ -66,11 +78,13 @@ namespace mamba
                 {
                     throw std::runtime_error("Could not initialize COM");
                 }
-                hres = CoCreateInstance(CLSID_ShellLink,
-                                        nullptr,
-                                        CLSCTX_INPROC_SERVER,
-                                        IID_IShellLink,
-                                        (void**) &pShellLink);
+                hres = CoCreateInstance(
+                    CLSID_ShellLink,
+                    nullptr,
+                    CLSCTX_INPROC_SERVER,
+                    IID_IShellLink,
+                    (void**) &pShellLink
+                );
                 if (FAILED(hres))
                 {
                     throw std::runtime_error("CoCreateInstance failed.");
@@ -79,8 +93,9 @@ namespace mamba
                 hres = pShellLink->QueryInterface(IID_IPersistFile, (void**) &pPersistFile);
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error("QueryInterface(IPersistFile) error 0x"
-                                             + std::to_string(hres));
+                    throw std::runtime_error(
+                        "QueryInterface(IPersistFile) error 0x" + std::to_string(hres)
+                    );
                 }
 
                 hres = pShellLink->SetPath(path.string().c_str());
@@ -92,8 +107,9 @@ namespace mamba
                 hres = pShellLink->SetDescription(description.c_str());
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error("SetDescription() failed, error 0x"
-                                             + std::to_string(hres));
+                    throw std::runtime_error(
+                        "SetDescription() failed, error 0x" + std::to_string(hres)
+                    );
                 }
 
                 if (!arguments.empty())
@@ -110,8 +126,7 @@ namespace mamba
                     hres = pShellLink->SetIconLocation(icon_path.string().c_str(), icon_index);
                     if (FAILED(hres))
                     {
-                        throw std::runtime_error("SetIconLocation() error 0x"
-                                                 + std::to_string(hres));
+                        throw std::runtime_error("SetIconLocation() error 0x" + std::to_string(hres));
                     }
                 }
 
@@ -120,16 +135,20 @@ namespace mamba
                     hres = pShellLink->SetWorkingDirectory(work_dir.string().c_str());
                     if (FAILED(hres))
                     {
-                        throw std::runtime_error("SetWorkingDirectory() error 0x"
-                                                 + std::to_string(hres));
+                        throw std::runtime_error(
+                            "SetWorkingDirectory() error 0x" + std::to_string(hres)
+                        );
                     }
                 }
 
                 hres = pPersistFile->Save(filename.wstring().c_str(), true);
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error(concat(
-                        "Failed to create shortcut: ", filename.string(), std::to_string(hres)));
+                    throw std::runtime_error(util::concat(
+                        "Failed to create shortcut: ",
+                        filename.string(),
+                        std::to_string(hres)
+                    ));
                 }
             }
             catch (const std::runtime_error& e)
@@ -151,31 +170,6 @@ namespace mamba
             pShellLink->Release();
 
             CoUninitialize();
-        }
-
-        const std::map<std::string, KNOWNFOLDERID> knownfolders = {
-            { "programs", FOLDERID_Programs },
-            { "profile", FOLDERID_Profile },
-            { "documents", FOLDERID_Documents },
-        };
-
-        fs::u8path get_folder(const std::string& id)
-        {
-            wchar_t* localAppData;
-            HRESULT hres;
-
-            hres = SHGetKnownFolderPath(
-                knownfolders.at(id), KF_FLAG_DONT_VERIFY, nullptr, &localAppData);
-
-            if (FAILED(hres))
-            {
-                throw std::runtime_error("Could not retrieve known folder");
-            }
-
-            std::wstring tmp(localAppData);
-            fs::u8path res(tmp);
-            CoTaskMemFree(localAppData);
-            return res;
         }
 
         void remove_shortcut(const fs::u8path& filename)
@@ -200,10 +194,10 @@ namespace mamba
 #endif
 
 
-    void replace_variables(std::string& text, TransactionContext* transaction_context)
+    void
+    replace_variables(const Context& ctx, std::string& text, TransactionContext* transaction_context)
     {
-        auto& ctx = mamba::Context::instance();
-        fs::u8path root_prefix = ctx.root_prefix;
+        fs::u8path root_prefix = ctx.prefix_params.root_prefix;
 
         fs::u8path target_prefix;
         std::string py_ver;
@@ -216,26 +210,21 @@ namespace mamba
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
         {
-            distribution_name[0] = std::toupper(distribution_name[0]);
+            distribution_name[0] = util::to_upper(distribution_name[0]);
         }
 
-        auto to_forward_slash = [](const fs::u8path& p)
-        {
-            std::string ps = p.string();
-            replace_all(ps, "\\", "/");
-            return ps;
-        };
+        auto to_forward_slash = [](const fs::u8path& p) { return util::path_to_posix(p.string()); };
 
-        auto platform_split = split(ctx.platform, "-");
+        auto platform_split = util::split(ctx.platform, "-");
         std::string platform_bitness;
         if (platform_split.size() >= 2)
         {
-            platform_bitness = concat("(", platform_split.back(), "-bit)");
+            platform_bitness = util::concat("(", platform_split.back(), "-bit)");
         }
 
         if (py_ver.size())
         {
-            py_ver = split(py_ver, ".")[0];
+            py_ver = util::split(py_ver, ".")[0];
         }
 
         std::map<std::string, std::string> vars = {
@@ -244,39 +233,46 @@ namespace mamba
             { "${PY_VER}", py_ver },
             { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
             { "${DISTRIBUTION_NAME}", distribution_name },
-            { "${ENV_NAME}", detail::get_formatted_env_name(target_prefix) },
+            { "${ENV_NAME}", detail::get_formatted_env_name(ctx, target_prefix) },
             { "${PLATFORM}", platform_bitness },
         };
 
 #ifdef _WIN32
-        vars["${PERSONALDIR}"] = to_forward_slash(win::get_folder("documents"));
-        vars["${USERPROFILE}"] = to_forward_slash(win::get_folder("profile"));
+        vars["${PERSONALDIR}"] = util::path_to_posix(
+            util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Documents)
+        );
+        vars["${USERPROFILE}"] = util::path_to_posix(
+            util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Profile)
+        );
 #endif
 
         for (auto& [key, val] : vars)
         {
-            replace_all(text, key, val);
+            util::replace_all(text, key, val);
         }
     }
 
-    namespace detail
+    namespace
     {
-        void create_remove_shortcut_impl(const fs::u8path& json_file,
-                                         TransactionContext* transaction_context,
-                                         bool remove)
+        void create_remove_shortcut_impl(
+            const Context& ctx,
+            const fs::u8path& json_file,
+            TransactionContext* transaction_context,
+            [[maybe_unused]] bool remove
+        )
         {
             std::string json_content = mamba::read_contents(json_file);
-            replace_variables(json_content, transaction_context);
+            replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
             std::string name_suffix;
-            std::string e_name = detail::get_formatted_env_name(transaction_context->target_prefix);
+            std::string e_name = detail::get_formatted_env_name(ctx, transaction_context->target_prefix);
 
             if (e_name.size())
             {
-                name_suffix = concat(" (", e_name, ")");
+                name_suffix = util::concat(" (", e_name, ")");
             }
 
 #ifdef _WIN32
@@ -294,9 +290,8 @@ namespace mamba
             //     ]
             // }
 
-            auto& ctx = mamba::Context::instance();
-            const fs::u8path root_prefix = ctx.root_prefix;
-            const fs::u8path target_prefix = ctx.target_prefix;
+            const fs::u8path root_prefix = ctx.prefix_params.root_prefix;
+            const fs::u8path target_prefix = ctx.prefix_params.target_prefix;
 
             // using legacy stuff here
             const fs::u8path root_py = root_prefix / "python.exe";
@@ -305,11 +300,17 @@ namespace mamba
             const fs::u8path env_pyw = target_prefix / "pythonw.exe";
             const auto cwp_path = root_prefix / "cwp.py";
             std::vector<std::string> cwp_py_args(
-                { cwp_path.string(), target_prefix.string(), env_py.string() });
+                { cwp_path.string(), target_prefix.string(), env_py.string() }
+            );
             std::vector<std::string> cwp_pyw_args(
-                { cwp_path.string(), target_prefix.string(), env_pyw.string() });
+                { cwp_path.string(), target_prefix.string(), env_pyw.string() }
+            );
 
-            fs::u8path target_dir = win::get_folder("programs") / menu_name;
+            auto target_dir = fs::u8path(util::get_windows_known_user_folder(
+                                  util::WindowsKnowUserFolder::Programs
+                              ))
+                              / menu_name;
+
             if (!fs::exists(target_dir))
             {
                 fs::create_directories(target_dir);
@@ -336,7 +337,7 @@ namespace mamba
             for (auto& item : j["menu_items"])
             {
                 std::string name = item["name"];
-                std::string full_name = concat(name, name_suffix);
+                std::string full_name = util::concat(name, name_suffix);
 
                 std::vector<std::string> arguments;
                 fs::u8path script;
@@ -344,14 +345,14 @@ namespace mamba
                 {
                     script = root_pyw;
                     arguments = cwp_pyw_args;
-                    auto tmp = split(item["pywscript"], " ");
+                    auto tmp = util::split(item["pywscript"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                 }
                 else if (item.contains("pyscript"))
                 {
                     script = root_py;
                     arguments = cwp_py_args;
-                    auto tmp = split(item["pyscript"], " ");
+                    auto tmp = util::split(item["pyscript"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                 }
                 else if (item.contains("webbrowser"))
@@ -363,13 +364,13 @@ namespace mamba
                 {
                     script = root_py;
                     arguments = { cwp_path.string(), target_prefix.string() };
-                    auto tmp = split(item["script"], " ");
+                    auto tmp = util::split(item["script"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     extend_script_args(item, arguments);
                 }
                 else if (item.contains("system"))
                 {
-                    auto tmp = split(item["system"], " ");
+                    auto tmp = util::split(item["system"], " ");
                     script = tmp[0];
                     if (tmp.size() > 1)
                     {
@@ -389,13 +390,13 @@ namespace mamba
                 if (remove == false)
                 {
                     std::string argstring;
-                    std::string lscript = to_lower(script.string());
+                    std::string lscript = util::to_lower(script.string());
 
                     for (auto& arg : arguments)
                     {
                         if (arg.size() >= 1 && arg[0] != '/')
                         {
-                            mamba::replace_all(arg, "/", "\\");
+                            util::replace_all(arg, "/", "\\");
                         }
                     }
 
@@ -404,7 +405,8 @@ namespace mamba
                     {
                         if (arguments.size() > 1)
                         {
-                            if (to_upper(arguments[0]) == "/K" || to_upper(arguments[0]) == "/C")
+                            if (util::to_upper(arguments[0]) == "/K"
+                                || util::to_upper(arguments[0]) == "/C")
                             {
                             }
                         }
@@ -427,8 +429,7 @@ namespace mamba
                         workdir = "%HOMEPATH%";
                     }
 
-                    mamba::win::create_shortcut(
-                        script, full_name, dst, argstring, workdir, iconpath, 0);
+                    mamba::win::create_shortcut(script, full_name, dst, argstring, workdir, iconpath, 0);
                 }
                 else
                 {
@@ -439,11 +440,15 @@ namespace mamba
         }
     }
 
-    void remove_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
+    void remove_menu_from_json(
+        const Context& context,
+        const fs::u8path& json_file,
+        TransactionContext* transaction_context
+    )
     {
         try
         {
-            detail::create_remove_shortcut_impl(json_file, context, true);
+            create_remove_shortcut_impl(context, json_file, transaction_context, true);
         }
         catch (const std::exception& e)
         {
@@ -451,11 +456,15 @@ namespace mamba
         }
     }
 
-    void create_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
+    void create_menu_from_json(
+        const Context& context,
+        const fs::u8path& json_file,
+        TransactionContext* transaction_context
+    )
     {
         try
         {
-            detail::create_remove_shortcut_impl(json_file, context, false);
+            create_remove_shortcut_impl(context, json_file, transaction_context, false);
         }
         catch (const std::exception& e)
         {

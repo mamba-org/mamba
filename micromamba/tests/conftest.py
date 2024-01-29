@@ -1,64 +1,99 @@
+import copy
 import os
 import pathlib
 import platform
-from typing import Generator
+from typing import Any, Generator, Mapping, Optional
 
 import pytest
 
 from . import helpers
 
+####################
+#  Config options  #
+####################
+
+
+def pytest_addoption(parser):
+    """Add command line argument to pytest."""
+    parser.addoption(
+        "--mamba-pkgs-dir",
+        action="store",
+        default=None,
+        help="Package cache to reuse between tests",
+    )
+    parser.addoption(
+        "--no-eager-clean",
+        action="store_true",
+        default=False,
+        help=(
+            "Do not eagerly delete temporary folders such as HOME and MAMBA_ROOT_PREFIX"
+            "created during tests."
+            "These folders take a lot of disk space so we delete them eagerly."
+            "For debugging, it can be convenient to keep them."
+            "With this option, cleaning will fallback on the default pytest policy."
+        ),
+    )
+
+
+##################
+#  Test fixture  #
+##################
+
+
+@pytest.fixture(autouse=True)
+def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
+    """Saves and restore environment variables.
+
+    This is used for test that need to modify ``os.environ``
+    """
+    old_environ = copy.deepcopy(os.environ)
+    yield old_environ
+    os.environ.clear()
+    os.environ.update(old_environ)
+
 
 @pytest.fixture
-def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+def tmp_home(
+    request, tmp_environ, tmp_path_factory: pytest.TempPathFactory
+) -> Generator[pathlib.Path, None, None]:
     """Change the home directory to a tmp folder for the duration of a test."""
     # Try multiple combination for Unix/Windows
     home_envs = ["HOME", "USERPROFILE"]
-    old_homes = {name: os.environ.get(name) for name in home_envs}
+    used_homes = [env for env in home_envs if env in os.environ]
 
-    if len(home_envs) > 0:
-        new_home = tmp_path / "home"
+    new_home = pathlib.Path.home()
+    if len(used_homes) > 0:
+        new_home = tmp_path_factory.mktemp("home")
         new_home.mkdir(parents=True, exist_ok=True)
-        for env in home_envs:
+        for env in used_homes:
             os.environ[env] = str(new_home)
-        yield new_home
-        for env, home in old_homes.items():
-            if old_homes[env] is None:
-                del os.environ[env]
-            else:
-                os.environ[env] = home
-    else:
-        yield pathlib.Path.home()
 
+    if platform.system() == "Windows":
+        os.environ["APPDATA"] = str(new_home / "AppData" / "Roaming")
+        os.environ["LOCALAPPDATA"] = str(new_home / "AppData" / "Local")
 
-@pytest.fixture(scope="session")
-def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
-    """A common package cache for mamba downloads.
+    yield new_home
 
-    The directory is not used automatically when calling this fixture.
-    """
-    return tmp_path_factory.mktemp("pkgs_dirs")
-
-
-@pytest.fixture(params=[False])
-def shared_pkgs_dirs(request) -> bool:
-    """A dummy fixture to control the use of shared package dir."""
-    return request.param
+    # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
+    # We clean it explicitly
+    on_ci = "CI" in os.environ
+    if not request.config.getoption("--no-eager-clean"):
+        try:
+            helpers.rmtree(new_home)
+        # Silence possible cleanup exeptions on CI, weird things happening there
+        except Exception as e:
+            if not on_ci:
+                raise e
 
 
 @pytest.fixture
-def tmp_clean_env(
-    tmp_pkgs_dirs: pathlib.Path, shared_pkgs_dirs: bool
-) -> Generator[None, None, None]:
+def tmp_clean_env(tmp_environ: None) -> None:
     """Remove all Conda/Mamba activation artifacts from environment."""
-    saved_environ = {}
     for k, v in os.environ.items():
-        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA")):
-            saved_environ[k] = v
+        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
             del os.environ[k]
 
-    def keep_in_path(
-        p: str, prefix: str | None = saved_environ.get("CONDA_PREFIX")
-    ) -> bool:
+    def keep_in_path(p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")) -> bool:
         if "condabin" in p:
             return False
         # On windows, PATH is also used for dyanamic libraries.
@@ -71,16 +106,61 @@ def tmp_clean_env(
     path_list = os.environ["PATH"].split(os.pathsep)
     path_list = [p for p in path_list if keep_in_path(p)]
     os.environ["PATH"] = os.pathsep.join(path_list)
+    # os.environ restored by tmp_clean_env and tmp_environ
+
+
+@pytest.fixture(scope="session")
+def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
+    """A common package cache for mamba downloads.
+
+    The directory is not used automatically when calling this fixture.
+    """
+    if (p := request.config.getoption("--mamba-pkgs-dir")) is not None:
+        p = pathlib.Path(p)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    return tmp_path_factory.mktemp("pkgs_dirs")
+
+
+@pytest.fixture(params=[False])
+def shared_pkgs_dirs(request) -> bool:
+    """A dummy fixture to control the use of shared package dir."""
+    return request.param
+
+
+@pytest.fixture
+def tmp_root_prefix(
+    request,
+    tmp_path_factory: pytest.TempPathFactory,
+    tmp_clean_env: None,
+    tmp_pkgs_dirs: pathlib.Path,
+    shared_pkgs_dirs: bool,
+) -> Generator[pathlib.Path, None, None]:
+    """Change the micromamba root directory to a tmp folder for the duration of a test."""
+    new_root_prefix = tmp_path_factory.mktemp("mamba")
+    new_root_prefix.mkdir(parents=True, exist_ok=True)
+    os.environ["MAMBA_ROOT_PREFIX"] = str(new_root_prefix)
 
     if shared_pkgs_dirs:
         os.environ["CONDA_PKGS_DIRS"] = str(tmp_pkgs_dirs)
 
-    yield None
+    yield new_root_prefix
 
-    os.environ.update(saved_environ)
+    # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
+    # We clean it explicitly
+    on_ci = "CI" in os.environ
+    if not request.config.getoption("--no-eager-clean"):
+        try:
+            helpers.rmtree(new_root_prefix)
+        # Silence possible cleanup exeptions on CI, weird things happening there
+        except Exception as e:
+            if not on_ci:
+                raise e
+    # os.environ restored by tmp_clean_env and tmp_environ
 
 
-@pytest.fixture(params=[helpers.random_string, "long_prefix_" * 20])
+@pytest.fixture(params=[helpers.random_string])
 def tmp_env_name(request) -> str:
     """Return the explicit or implicit parametrization."""
     if callable(request.param):
@@ -89,41 +169,24 @@ def tmp_env_name(request) -> str:
 
 
 @pytest.fixture
-def tmp_root_prefix(
-    tmp_path: pathlib.Path, tmp_clean_env: None
-) -> Generator[pathlib.Path, None, None]:
-    """Change the micromamba root directory to a tmp folder for the duration of a test."""
-    old_root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
-    new_root_prefix = tmp_path / "mamba"
-    new_root_prefix.mkdir(parents=True, exist_ok=True)
-    os.environ["MAMBA_ROOT_PREFIX"] = str(new_root_prefix)
-    yield new_root_prefix
-    if old_root_prefix is not None:
-        os.environ["MAMBA_ROOT_PREFIX"] = old_root_prefix
-    else:
-        del os.environ["MAMBA_ROOT_PREFIX"]
-
-
-@pytest.fixture
 def tmp_empty_env(
     tmp_root_prefix: pathlib.Path, tmp_env_name: str
 ) -> Generator[pathlib.Path, None, None]:
-    """An empty envirnment created under a temporary root prefix."""
+    """An empty environment created under a temporary root prefix."""
     helpers.create("-n", tmp_env_name, no_dry_run=True)
-    yield tmp_root_prefix
+    yield tmp_root_prefix / "envs" / tmp_env_name
 
 
 @pytest.fixture
-def tmp_prefix(
-    tmp_root_prefix: pathlib.Path, tmp_env_name: str
-) -> Generator[pathlib.Path, None, None]:
+def tmp_prefix(tmp_empty_env: pathlib.Path) -> Generator[pathlib.Path, None, None]:
     """Change the conda prefix to a tmp folder for the duration of a test."""
-    old_prefix = os.environ.get("CONDA_PREFIX")
-    new_prefix = tmp_root_prefix / "envs" / tmp_env_name
-    new_prefix.mkdir(parents=True, exist_ok=True)
-    os.environ["CONDA_PREFIX"] = str(new_prefix)
-    yield new_prefix
-    if old_prefix is not None:
-        os.environ["CONDA_PREFIX"] = old_prefix
-    else:
-        del os.environ["CONDA_PREFIX"]
+    os.environ["CONDA_PREFIX"] = str(tmp_empty_env)
+    yield tmp_empty_env
+    # os.environ restored by tmp_environ through tmp_root_prefix
+
+
+@pytest.fixture
+def tmp_xtensor_env(tmp_prefix: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+    """An activated environment with Xtensor installed."""
+    helpers.install("-c", "conda-forge", "--json", "xtensor", no_dry_run=True)
+    yield tmp_prefix

@@ -1,7 +1,7 @@
 .. _mamba:
 
-Mamba
------
+Mamba User Guide
+----------------
 
 ``mamba`` is a CLI tool to manage ``conda`` s environments.
 
@@ -22,20 +22,20 @@ You can create an environment with the name ``nameofmyenv`` by calling:
     mamba create -n nameofmyenv <list of packages>
 
 
-After this process has finished, you can _activate_ the virtual environment by calling ``conda activate <nameofmyenv>``.
+After this process has finished, you can _activate_ the virtual environment by calling ``mamba activate <nameofmyenv>``.
 For example, to install JupyterLab from the ``conda-forge`` channel and then run it, you could use the following commands:
 
 .. code::
 
     mamba create -n myjlabenv jupyterlab -c conda-forge
-    conda activate myjlabenv  # activate our environment
+    mamba activate myjlabenv  # activate our environment
     jupyter lab               # this will start up jupyter lab and open a browser
 
 Once an environment is activated, ``mamba install`` can be used to install further packages into the environment.
 
 .. code::
 
-    conda activate myjlabenv
+    mamba activate myjlabenv
     mamba install bqplot  # now you can use bqplot in myjlabenv
     mamba install "matplotlib>=3.5.0" cartopy  # now you installed matplotlib with version>=3.5.0 and default version of cartopy
 
@@ -51,9 +51,15 @@ Once an environment is activated, ``mamba install`` can be used to install furth
    mamba create -n ... -c ... ...
    mamba list
 
-.. warning::
-    The only difference is that you should still use ``conda`` for :ref:`activation<activation>` and :ref:`deactivation<deactivation>`.
+Specification files
+===================
 
+``mamba`` supports the same environment specification file formats as ``conda``.
+
+.. important::
+
+   While ``micromamba`` :ref:`supports conda-lock "unified" lock
+   files<micromamba-conda-lock>`, Mamba currently does not.
 
 Repoquery
 =========
@@ -71,10 +77,14 @@ Here are some examples:
     # you can also specify more constraints on this search query
     $ mamba repoquery search "xtensor>=0.18"
 
-    # will show you a list of the dependencies of xtensor.
+    # will show you a list of the direct dependencies of xtensor.
     $ mamba repoquery depends xtensor
 
-With the ``-t,--tree`` flag, you can get the same information in a tree.
+    # will show you a list of the dependencies (including dependencies of dependencies).
+    $ mamba repoquery depends xtensor --recursive
+
+The flag ``--recursive`` shows also recursive (i.e. transitive) dependencies of dependent packages instead of only direct dependencies.
+With the ``-t,--tree`` flag, you can get the same information of a recursive query in a tree.
 
 .. code::
 
@@ -105,6 +115,7 @@ And you can ask for the inverse, which packages depend on some other package (e.
     ipykernel       6.9.1   py39haa95532_0 ipython >=7.23.1 pkgs/main
     ipywidgets      7.6.5   pyhd3eb1b0_1   ipython >=4.0.0  pkgs/main
 
+
 With the ``-t,--tree`` flag, you can get the same information in a tree.
 
 .. code::
@@ -126,3 +137,8 @@ With the ``-t,--tree`` flag, you can get the same information in a tree.
     │  └─ qtconsole[5.3.0]
     │     └─ jupyter already visited
     └─ ipywidgets already visited
+
+
+.. note::
+  ``depends`` and ``whoneeds`` sub-commands require either the specified package to be installed in you environment, or for the channel to be specified with the ``-c,--channel`` flag.
+  When ``search`` sub-command is used without specifying the **channel** explicitly (using the flag previously mentioned), the search will be performed considering the channels set during the configuration.

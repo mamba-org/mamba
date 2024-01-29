@@ -1,4 +1,5 @@
 #include "mamba/core/progress_bar.hpp"
+
 #include "progress_bar_impl.hpp"
 
 namespace mamba
@@ -48,7 +49,7 @@ namespace mamba
 
     ProgressProxy& ProgressProxy::set_current(std::size_t current)
     {
-        p_bar->set_progress(current);
+        p_bar->set_progress(static_cast<double>(current));
         return *this;
     }
 
@@ -222,5 +223,10 @@ namespace mamba
     ProgressBarRepr& ProgressProxy::repr()
     {
         return p_bar->repr();
+    }
+
+    const ProgressBarOptions& ProgressProxy::options() const
+    {
+        return p_bar->options();
     }
 }

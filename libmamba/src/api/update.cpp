@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <solv/solver.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
@@ -12,9 +11,10 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/request.hpp"
 
 namespace mamba
 {

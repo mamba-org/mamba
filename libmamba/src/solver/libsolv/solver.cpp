@@ -9,7 +9,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/solver.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
 #include "solv-cpp/solver.hpp"
 
 #include "solver/libsolv/helpers.hpp"

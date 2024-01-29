@@ -11,13 +11,12 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
-#include <solv/solver.h>
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/request.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba

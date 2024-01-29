@@ -183,5 +183,4 @@ namespace mamba
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
     }
 }
-
-#endif  // MAMBA_POOL_HPP
+#endif

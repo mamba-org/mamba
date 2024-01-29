@@ -6,8 +6,6 @@
 
 #include <string>
 
-#include <solv/solver.h>
-
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/remove.hpp"

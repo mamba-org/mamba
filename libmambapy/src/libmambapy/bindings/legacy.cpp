@@ -14,7 +14,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <solv/solver.h>
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
@@ -27,12 +26,12 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
@@ -383,6 +382,18 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("SOLVER_NOAUTOSET") = global_solver_job_v2_migrator;
     m.attr("SOLVER_SETNAME") = global_solver_job_v2_migrator;
     m.attr("SOLVER_SETMASK") = global_solver_job_v2_migrator;
+
+    enum struct SolverRuleinfoV2Migrator
+    {
+    };
+
+    py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
+        .def(py::init(
+            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator {
+                throw std::runtime_error("Direct access to libsolv objects is not longer supported.");
+            }
+        ));
+
 
     /**************
      *  Bindings  *
@@ -1361,38 +1372,6 @@ bind_submodule_impl(pybind11::module_ m)
     m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons.context()); });
 
     m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
-
-    // Solver rule flags
-    py::enum_<SolverRuleinfo>(m, "SolverRuleinfo")
-        .value("SOLVER_RULE_UNKNOWN", SolverRuleinfo::SOLVER_RULE_UNKNOWN)
-        .value("SOLVER_RULE_PKG", SolverRuleinfo::SOLVER_RULE_PKG)
-        .value("SOLVER_RULE_PKG_NOT_INSTALLABLE", SolverRuleinfo::SOLVER_RULE_PKG_NOT_INSTALLABLE)
-        .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_PKG_REQUIRES", SolverRuleinfo::SOLVER_RULE_PKG_REQUIRES)
-        .value("SOLVER_RULE_PKG_SELF_CONFLICT", SolverRuleinfo::SOLVER_RULE_PKG_SELF_CONFLICT)
-        .value("SOLVER_RULE_PKG_CONFLICTS", SolverRuleinfo::SOLVER_RULE_PKG_CONFLICTS)
-        .value("SOLVER_RULE_PKG_SAME_NAME", SolverRuleinfo::SOLVER_RULE_PKG_SAME_NAME)
-        .value("SOLVER_RULE_PKG_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_OBSOLETES)
-        .value("SOLVER_RULE_PKG_IMPLICIT_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
-        .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
-        .value("SOLVER_RULE_PKG_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_PKG_RECOMMENDS)
-        .value("SOLVER_RULE_PKG_CONSTRAINS", SolverRuleinfo::SOLVER_RULE_PKG_CONSTRAINS)
-        .value("SOLVER_RULE_UPDATE", SolverRuleinfo::SOLVER_RULE_UPDATE)
-        .value("SOLVER_RULE_FEATURE", SolverRuleinfo::SOLVER_RULE_FEATURE)
-        .value("SOLVER_RULE_JOB", SolverRuleinfo::SOLVER_RULE_JOB)
-        .value("SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM", SolverRuleinfo::SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM)
-        .value("SOLVER_RULE_JOB_UNKNOWN_PACKAGE", SolverRuleinfo::SOLVER_RULE_JOB_UNKNOWN_PACKAGE)
-        .value("SOLVER_RULE_JOB_UNSUPPORTED", SolverRuleinfo::SOLVER_RULE_JOB_UNSUPPORTED)
-        .value("SOLVER_RULE_DISTUPGRADE", SolverRuleinfo::SOLVER_RULE_DISTUPGRADE)
-        .value("SOLVER_RULE_INFARCH", SolverRuleinfo::SOLVER_RULE_INFARCH)
-        .value("SOLVER_RULE_CHOICE", SolverRuleinfo::SOLVER_RULE_CHOICE)
-        .value("SOLVER_RULE_LEARNT", SolverRuleinfo::SOLVER_RULE_LEARNT)
-        .value("SOLVER_RULE_BEST", SolverRuleinfo::SOLVER_RULE_BEST)
-        .value("SOLVER_RULE_YUMOBS", SolverRuleinfo::SOLVER_RULE_YUMOBS)
-        .value("SOLVER_RULE_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_RECOMMENDS)
-        .value("SOLVER_RULE_BLACK", SolverRuleinfo::SOLVER_RULE_BLACK)
-        .value("SOLVER_RULE_STRICT_REPO_PRIORITY", SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

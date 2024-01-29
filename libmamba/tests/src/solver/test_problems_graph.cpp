@@ -12,16 +12,15 @@
 #include <doctest/doctest.h>
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
-#include <solv/solver.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/specs/package_info.hpp"

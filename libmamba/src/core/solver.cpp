@@ -66,6 +66,11 @@ namespace mamba
         return m_solution;
     }
 
+    [[nodiscard]] UnSolvable MSolver::unsolvable()
+    {
+        return UnSolvable(std::move(m_solver));
+    }
+
     namespace
     {
         void set_solver_flags(solv::ObjSolver& solver, const solver::Request::Flags& flags)
@@ -132,7 +137,7 @@ namespace mamba
         const bool success = try_solve(pool);
         if (!success)
         {
-            explain_problems_to(pool, LOG_ERROR);
+            UnSolvable(std::move(m_solver)).explain_problems_to(pool, LOG_ERROR);
             throw mamba_error(
                 "Could not solve for environment specs",
                 mamba_error_code::satisfiablitity_error
@@ -143,14 +148,14 @@ namespace mamba
     namespace
     {
         // TODO change MSolver problem
-        SolverProblem make_solver_problem(
-            const MSolver& solver,
+        auto make_solver_problem(
+            const solv::ObjSolver& solver,
             const MPool& pool,
             SolverRuleinfo type,
             Id source_id,
             Id target_id,
             Id dep_id
-        )
+        ) -> SolverProblem
         {
             return {
                 /* .type= */ type,
@@ -162,8 +167,7 @@ namespace mamba
                 /* .dep= */ pool.dep2str(dep_id),
                 /* .description= */
                 solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver.solver().raw()),  // Not const because might
-                                                                   // alloctmp space
+                    const_cast<::Solver*>(solver.raw()),  // Not const because might alloctmp space
                     type,
                     source_id,
                     target_id,
@@ -173,7 +177,20 @@ namespace mamba
         }
     }
 
-    std::vector<SolverProblem> MSolver::all_problems_structured(const MPool& pool) const
+    UnSolvable::UnSolvable(std::unique_ptr<solv::ObjSolver>&& solver)
+        : m_solver(std::move(solver))
+    {
+    }
+
+    UnSolvable::~UnSolvable() = default;
+
+    auto UnSolvable::solver() const -> const solv::ObjSolver&
+    {
+        assert(m_solver != nullptr);
+        return *m_solver;
+    }
+
+    auto UnSolvable::all_problems_structured(const MPool& pool) const -> std::vector<SolverProblem>
     {
         std::vector<SolverProblem> res = {};
         res.reserve(solver().problem_count());  // Lower bound
@@ -184,7 +201,7 @@ namespace mamba
                 {
                     auto info = solver().get_rule_info(pool.pool(), rule);
                     res.push_back(make_solver_problem(
-                        /* solver= */ *this,
+                        /* solver= */ solver(),
                         /* pool= */ pool,
                         /* type= */ info.type,
                         /* source_id= */ info.from_id.value_or(0),
@@ -197,7 +214,7 @@ namespace mamba
         return res;
     }
 
-    std::string MSolver::all_problems_to_str(MPool& pool) const
+    auto UnSolvable::all_problems_to_str(MPool& pool) const -> std::string
     {
         std::stringstream problems;
         solver().for_each_problem_id(
@@ -213,7 +230,7 @@ namespace mamba
         return problems.str();
     }
 
-    std::ostream& MSolver::explain_problems_to(MPool& pool, std::ostream& out) const
+    auto UnSolvable::explain_problems_to(MPool& pool, std::ostream& out) const -> std::ostream&
     {
         const auto& ctx = pool.context();
         out << "Could not solve for environment specs\n";
@@ -229,14 +246,14 @@ namespace mamba
         return out;
     }
 
-    std::string MSolver::explain_problems(MPool& pool) const
+    auto UnSolvable::explain_problems(MPool& pool) const -> std::string
     {
         std::stringstream ss;
         explain_problems_to(pool, ss);
         return ss.str();
     }
 
-    std::string MSolver::problems_to_str(MPool& pool) const
+    auto UnSolvable::problems_to_str(MPool& pool) const -> std::string
     {
         std::stringstream problems;
         solver().for_each_problem_id(
@@ -246,7 +263,7 @@ namespace mamba
         return "Encountered problems while solving:\n" + problems.str();
     }
 
-    std::vector<std::string> MSolver::all_problems(MPool& pool) const
+    auto UnSolvable::all_problems(MPool& pool) const -> std::vector<std::string>
     {
         std::vector<std::string> problems;
         solver().for_each_problem_id(
@@ -281,13 +298,13 @@ namespace mamba
             using edge_t = ProblemsGraph::edge_t;
             using conflicts_t = ProblemsGraph::conflicts_t;
 
-            ProblemsGraphCreator(const MSolver& solver, const MPool& pool);
+            ProblemsGraphCreator(const UnSolvable& unsolvable, const MPool& pool);
 
             ProblemsGraph problem_graph() &&;
 
         private:
 
-            const MSolver& m_solver;
+            const UnSolvable& m_unsolvable;
             const MPool& m_pool;
             graph_t m_graph;
             conflicts_t m_conflicts;
@@ -309,8 +326,8 @@ namespace mamba
             void parse_problems();
         };
 
-        ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
-            : m_solver{ solver }
+        ProblemsGraphCreator::ProblemsGraphCreator(const UnSolvable& unsolvable, const MPool& pool)
+            : m_unsolvable{ unsolvable }
             , m_pool{ pool }
         {
             m_root_node = m_graph.add_node(RootNode());
@@ -364,7 +381,7 @@ namespace mamba
 
         void ProblemsGraphCreator::parse_problems()
         {
-            for (auto& problem : m_solver.all_problems_structured(m_pool))
+            for (auto& problem : m_unsolvable.all_problems_structured(m_pool))
             {
                 std::optional<specs::PackageInfo>& source = problem.source;
                 std::optional<specs::PackageInfo>& target = problem.target;
@@ -546,7 +563,7 @@ namespace mamba
         }
     }
 
-    auto MSolver::problems_graph(const MPool& pool) const -> ProblemsGraph
+    auto UnSolvable::problems_graph(const MPool& pool) const -> ProblemsGraph
     {
         return ProblemsGraphCreator(*this, pool).problem_graph();
     }

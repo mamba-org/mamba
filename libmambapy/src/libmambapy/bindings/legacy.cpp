@@ -532,10 +532,11 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_libsolv_flags", flags_v2_migrator)
         .def("set_postsolve_flags", flags_v2_migrator)
         .def("is_solved", &MSolver::is_solved)
-        .def("problems_to_str", &MSolver::problems_to_str)
-        .def("all_problems_to_str", &MSolver::all_problems_to_str)
-        .def("explain_problems", &MSolver::explain_problems_to)
-        .def("all_problems_structured", &MSolver::all_problems_structured)
+        // TODO move to UnSolvable bindings
+        // .def("problems_to_str", &MSolver::problems_to_str)
+        // .def("all_problems_to_str", &MSolver::all_problems_to_str)
+        // .def("explain_problems", &MSolver::explain_problems_to)
+        // .def("all_problems_structured", &MSolver::all_problems_structured)
         .def(
             // TODO figure out a better interface
             "solve",

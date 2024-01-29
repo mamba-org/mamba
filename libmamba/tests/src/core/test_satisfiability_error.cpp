@@ -599,7 +599,8 @@ TEST_CASE("Create problem graph")
         auto [pool, solver] = factory(ctx, channel_context);
         const auto solved = solver.try_solve(pool);
         REQUIRE_FALSE(solved);
-        const auto pbs_init = solver.problems_graph(pool);
+        auto unsolvable = solver.unsolvable();
+        const auto pbs_init = unsolvable.problems_graph(pool);
         const auto& graph_init = pbs_init.graph();
 
         REQUIRE_GE(graph_init.number_of_nodes(), 1);

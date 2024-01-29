@@ -43,12 +43,42 @@ namespace mamba
         std::string description;
     };
 
+    class UnSolvable
+    {
+    public:
+
+        ~UnSolvable();
+
+        [[nodiscard]] auto problems_to_str(MPool& pool) const -> std::string;
+        [[nodiscard]] auto all_problems(MPool& pool) const -> std::vector<std::string>;
+        [[nodiscard]] auto all_problems_structured(const MPool& pool) const
+            -> std::vector<SolverProblem>;
+        [[nodiscard]] auto problems_graph(const MPool& pool) const -> ProblemsGraph;
+        [[nodiscard]] auto all_problems_to_str(MPool& pool) const -> std::string;
+        auto explain_problems_to(MPool& pool, std::ostream& out) const -> std::ostream&;
+        [[nodiscard]] auto explain_problems(MPool& pool) const -> std::string;
+
+    private:
+
+        // Pimpl all libsolv to keep it private
+        // We could make it a reference if we consider it is worth keeping the data in the Solver
+        // for potential resolve.
+        std::unique_ptr<solv::ObjSolver> m_solver;
+
+        explicit UnSolvable(std::unique_ptr<solv::ObjSolver>&& solver);
+
+        [[nodiscard]] auto solver() const -> const solv::ObjSolver&;
+
+        friend class MSolver;
+    };
+
     class MSolver
     {
     public:
 
         using Request = solver::Request;
         using Solution = solver::Solution;
+        using Outcome = std::variant<Solution, UnSolvable>;
 
         MSolver();
         MSolver(const MSolver&) = delete;
@@ -63,18 +93,12 @@ namespace mamba
         void must_solve(MPool& pool);
         [[nodiscard]] bool is_solved() const;
 
-        [[nodiscard]] std::string problems_to_str(MPool& pool) const;
-        [[nodiscard]] std::vector<std::string> all_problems(MPool& pool) const;
-        [[nodiscard]] std::vector<SolverProblem> all_problems_structured(const MPool& pool) const;
-        [[nodiscard]] ProblemsGraph problems_graph(const MPool& pool) const;
-        [[nodiscard]] std::string all_problems_to_str(MPool& pool) const;
-        std::ostream& explain_problems_to(MPool& pool, std::ostream& out) const;
-        [[nodiscard]] std::string explain_problems(MPool& pool) const;
 
         void set_request(Request request);
         [[nodiscard]] const Request& request() const;
 
         [[nodiscard]] const Solution& solution() const;
+        [[nodiscard]] UnSolvable unsolvable();
 
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
@@ -83,7 +107,7 @@ namespace mamba
 
         Request m_request = {};
         Solution m_solution = {};
-        // Temporary Pimpl all libsolv to keep it private
+        // Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
         bool m_is_solved = false;
     };

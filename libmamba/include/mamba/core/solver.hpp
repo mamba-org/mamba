@@ -32,18 +32,6 @@ namespace mamba
 {
     class MPool;
 
-    struct SolverProblem
-    {
-        SolverRuleinfo type;
-        Id source_id;
-        Id target_id;
-        Id dep_id;
-        std::optional<specs::PackageInfo> source;
-        std::optional<specs::PackageInfo> target;
-        std::optional<std::string> dep;
-        std::string description;
-    };
-
     class UnSolvable
     {
     public:
@@ -56,8 +44,6 @@ namespace mamba
 
         [[nodiscard]] auto problems_to_str(MPool& pool) const -> std::string;
         [[nodiscard]] auto all_problems(MPool& pool) const -> std::vector<std::string>;
-        [[nodiscard]] auto all_problems_structured(const MPool& pool) const
-            -> std::vector<SolverProblem>;
         [[nodiscard]] auto problems_graph(const MPool& pool) const -> ProblemsGraph;
         [[nodiscard]] auto all_problems_to_str(MPool& pool) const -> std::string;
         auto explain_problems_to(MPool& pool, std::ostream& out) const -> std::ostream&;

@@ -76,38 +76,6 @@ namespace mamba
             );
     }
 
-    namespace
-    {
-        // TODO change MSolver problem
-        auto make_solver_problem(
-            const solv::ObjSolver& solver,
-            const MPool& pool,
-            SolverRuleinfo type,
-            Id source_id,
-            Id target_id,
-            Id dep_id
-        ) -> SolverProblem
-        {
-            return {
-                /* .type= */ type,
-                /* .source_id= */ source_id,
-                /* .target_id= */ target_id,
-                /* .dep_id= */ dep_id,
-                /* .source= */ pool.id2pkginfo(source_id),
-                /* .target= */ pool.id2pkginfo(target_id),
-                /* .dep= */ pool.dep2str(dep_id),
-                /* .description= */
-                solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver.raw()),  // Not const because might alloctmp space
-                    type,
-                    source_id,
-                    target_id,
-                    dep_id
-                ),
-            };
-        }
-    }
-
     UnSolvable::UnSolvable(std::unique_ptr<solv::ObjSolver>&& solver)
         : m_solver(std::move(solver))
     {
@@ -123,30 +91,6 @@ namespace mamba
     {
         assert(m_solver != nullptr);
         return *m_solver;
-    }
-
-    auto UnSolvable::all_problems_structured(const MPool& pool) const -> std::vector<SolverProblem>
-    {
-        std::vector<SolverProblem> res = {};
-        res.reserve(solver().problem_count());  // Lower bound
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            {
-                for (solv::RuleId const rule : solver().problem_rules(pb))
-                {
-                    auto info = solver().get_rule_info(pool.pool(), rule);
-                    res.push_back(make_solver_problem(
-                        /* solver= */ solver(),
-                        /* pool= */ pool,
-                        /* type= */ info.type,
-                        /* source_id= */ info.from_id.value_or(0),
-                        /* target_id= */ info.to_id.value_or(0),
-                        /* dep_id= */ info.dep_id.value_or(0)
-                    ));
-                }
-            }
-        );
-        return res;
     }
 
     auto UnSolvable::all_problems_to_str(MPool& pool) const -> std::string
@@ -210,6 +154,71 @@ namespace mamba
 
     namespace
     {
+        struct SolverProblem
+        {
+            SolverRuleinfo type;
+            Id source_id;
+            Id target_id;
+            Id dep_id;
+            std::optional<specs::PackageInfo> source;
+            std::optional<specs::PackageInfo> target;
+            std::optional<std::string> dep;
+            std::string description;
+        };
+
+        // TODO change MSolver problem
+        auto make_solver_problem(
+            const solv::ObjSolver& solver,
+            const MPool& pool,
+            SolverRuleinfo type,
+            Id source_id,
+            Id target_id,
+            Id dep_id
+        ) -> SolverProblem
+        {
+            return {
+                /* .type= */ type,
+                /* .source_id= */ source_id,
+                /* .target_id= */ target_id,
+                /* .dep_id= */ dep_id,
+                /* .source= */ pool.id2pkginfo(source_id),
+                /* .target= */ pool.id2pkginfo(target_id),
+                /* .dep= */ pool.dep2str(dep_id),
+                /* .description= */
+                ::solver_problemruleinfo2str(
+                    const_cast<::Solver*>(solver.raw()),  // Not const because might alloctmp space
+                    type,
+                    source_id,
+                    target_id,
+                    dep_id
+                ),
+            };
+        }
+
+        auto all_problems_structured(const MPool& pool, const solv::ObjSolver& solver)
+            -> std::vector<SolverProblem>
+        {
+            std::vector<SolverProblem> res = {};
+            res.reserve(solver.problem_count());  // Lower bound
+            solver.for_each_problem_id(
+                [&](solv::ProblemId pb)
+                {
+                    for (solv::RuleId const rule : solver.problem_rules(pb))
+                    {
+                        auto info = solver.get_rule_info(pool.pool(), rule);
+                        res.push_back(make_solver_problem(
+                            /* solver= */ solver,
+                            /* pool= */ pool,
+                            /* type= */ info.type,
+                            /* source_id= */ info.from_id.value_or(0),
+                            /* target_id= */ info.to_id.value_or(0),
+                            /* dep_id= */ info.dep_id.value_or(0)
+                        ));
+                    }
+                }
+            );
+            return res;
+        }
 
         void warn_unexpected_problem(const SolverProblem& problem)
         {
@@ -233,13 +242,13 @@ namespace mamba
             using edge_t = ProblemsGraph::edge_t;
             using conflicts_t = ProblemsGraph::conflicts_t;
 
-            ProblemsGraphCreator(const UnSolvable& unsolvable, const MPool& pool);
+            ProblemsGraphCreator(const MPool& pool, const solv::ObjSolver& solver);
 
             ProblemsGraph problem_graph() &&;
 
         private:
 
-            const UnSolvable& m_unsolvable;
+            const solv::ObjSolver& m_solver;
             const MPool& m_pool;
             graph_t m_graph;
             conflicts_t m_conflicts;
@@ -261,8 +270,8 @@ namespace mamba
             void parse_problems();
         };
 
-        ProblemsGraphCreator::ProblemsGraphCreator(const UnSolvable& unsolvable, const MPool& pool)
-            : m_unsolvable{ unsolvable }
+        ProblemsGraphCreator::ProblemsGraphCreator(const MPool& pool, const solv::ObjSolver& solver)
+            : m_solver{ solver }
             , m_pool{ pool }
         {
             m_root_node = m_graph.add_node(RootNode());
@@ -316,7 +325,7 @@ namespace mamba
 
         void ProblemsGraphCreator::parse_problems()
         {
-            for (auto& problem : m_unsolvable.all_problems_structured(m_pool))
+            for (auto& problem : all_problems_structured(m_pool, m_solver))
             {
                 std::optional<specs::PackageInfo>& source = problem.source;
                 std::optional<specs::PackageInfo>& target = problem.target;
@@ -500,7 +509,8 @@ namespace mamba
 
     auto UnSolvable::problems_graph(const MPool& pool) const -> ProblemsGraph
     {
-        return ProblemsGraphCreator(*this, pool).problem_graph();
+        assert(m_solver != nullptr);
+        return ProblemsGraphCreator(pool, *m_solver).problem_graph();
     }
 
 }  // namespace mamba

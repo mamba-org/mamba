@@ -508,17 +508,6 @@ bind_submodule_impl(pybind11::module_ m)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
 
-    py::class_<SolverProblem>(m, "SolverProblem")
-        .def_readwrite("type", &SolverProblem::type)
-        .def_readwrite("source_id", &SolverProblem::source_id)
-        .def_readwrite("target_id", &SolverProblem::target_id)
-        .def_readwrite("dep_id", &SolverProblem::dep_id)
-        .def_readwrite("source", &SolverProblem::source)
-        .def_readwrite("target", &SolverProblem::target)
-        .def_readwrite("dep", &SolverProblem::dep)
-        .def_readwrite("description", &SolverProblem::description)
-        .def("__str__", [](const SolverProblem& self) { return self.description; });
-
     constexpr auto flags_v2_migrator = [](MSolver&, py::args, py::kwargs)
     { throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request."); };
     constexpr auto job_v2_migrator = [](MSolver&, py::args, py::kwargs)
@@ -543,7 +532,6 @@ bind_submodule_impl(pybind11::module_ m)
         // .def("problems_to_str", &MSolver::problems_to_str)
         // .def("all_problems_to_str", &MSolver::all_problems_to_str)
         // .def("explain_problems", &MSolver::explain_problems_to)
-        // .def("all_problems_structured", &MSolver::all_problems_structured)
         .def("solve", &MSolver::solve)
         .def(
             "try_solve",

@@ -26,7 +26,7 @@ namespace mamba
         }
     }
 
-    auto MSolver::solve(MPool& mpool, const Request& request) -> expected_t<Outcome>
+    auto Solver::solve(MPool& mpool, const Request& request) -> expected_t<Outcome>
     {
         auto& pool = mpool.pool();
         const auto& chan_params = mpool.channel_context().params();

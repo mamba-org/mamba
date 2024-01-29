@@ -161,7 +161,7 @@ namespace mamba
             // Console stream prints on destrucion
         }
 
-        auto outcome = MSolver().solve(pool, request).value();
+        auto outcome = Solver().solve(pool, request).value();
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
             if (ctx.output_params.json)

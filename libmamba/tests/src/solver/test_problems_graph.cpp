@@ -116,7 +116,7 @@ TEST_CASE("Test create_pool utility")
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     auto pool = create_pkgs_pool(ctx, channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
-    const auto outcome = MSolver().solve(pool, request).value();
+    const auto outcome = Solver().solve(pool, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
@@ -130,7 +130,7 @@ TEST_CASE("Test empty specs")
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
     );
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
-    const auto outcome = MSolver().solve(pool, request).value();
+    const auto outcome = Solver().solve(pool, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
@@ -358,7 +358,7 @@ TEST_CASE("Test create_conda_forge utility")
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     auto pool = create_conda_forge_pool(ctx, channel_context);
     auto request = Request{ {}, { Request::Install{ "xtensor>=0.7"_ms } } };
-    const auto outcome = MSolver().solve(pool, request).value();
+    const auto outcome = Solver().solve(pool, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
@@ -576,7 +576,7 @@ TEST_CASE("Create problem graph")
         std::string_view name_copy = name;
         CAPTURE(name_copy);
         auto [pool, request] = factory(ctx, channel_context);
-        auto outcome = MSolver().solve(pool, request).value();
+        auto outcome = Solver().solve(pool, request).value();
         // REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
         auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
         const auto pbs_init = unsolvable.problems_graph(pool);

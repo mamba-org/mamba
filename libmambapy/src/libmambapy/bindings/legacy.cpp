@@ -401,7 +401,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
-    auto pySolver = py::class_<MSolver>(m, "Solver");
+    auto pySolver = py::class_<Solver>(m, "Solver");
 
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
@@ -519,9 +519,9 @@ bind_submodule_impl(pybind11::module_ m)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
 
-    constexpr auto flags_v2_migrator = [](MSolver&, py::args, py::kwargs)
+    constexpr auto flags_v2_migrator = [](Solver&, py::args, py::kwargs)
     { throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request."); };
-    constexpr auto job_v2_migrator = [](MSolver&, py::args, py::kwargs)
+    constexpr auto job_v2_migrator = [](Solver&, py::args, py::kwargs)
     { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
 
     pySolver.def(py::init<>())
@@ -533,7 +533,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_postsolve_flags", flags_v2_migrator)
         .def(
             "is_solved",
-            [](MSolver&, py::args, py::kwargs)
+            [](Solver&, py::args, py::kwargs)
             {
                 // V2 migrator
                 throw std::runtime_error("Solve status is provided as an outcome to Solver.solve.");
@@ -543,10 +543,10 @@ bind_submodule_impl(pybind11::module_ m)
         // .def("problems_to_str", &MSolver::problems_to_str)
         // .def("all_problems_to_str", &MSolver::all_problems_to_str)
         // .def("explain_problems", &MSolver::explain_problems_to)
-        .def("solve", &MSolver::solve)
+        .def("solve", &Solver::solve)
         .def(
             "try_solve",
-            [](MSolver&, py::args, py::kwargs)
+            [](Solver&, py::args, py::kwargs)
             {
                 // V2 migrator
                 throw std::runtime_error("Use Solver.solve");
@@ -554,7 +554,7 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "must_solve",
-            [](MSolver&, py::args, py::kwargs)
+            [](Solver&, py::args, py::kwargs)
             {
                 // V2 migrator
                 throw std::runtime_error("Use Solver.solve");

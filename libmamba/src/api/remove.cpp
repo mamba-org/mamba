@@ -172,7 +172,7 @@ namespace mamba
                     /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                 };
 
-                auto outcome = MSolver().solve(pool, request).value();
+                auto outcome = Solver().solve(pool, request).value();
                 if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
                 {
                     if (ctx.output_params.json)

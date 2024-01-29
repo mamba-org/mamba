@@ -15,7 +15,7 @@
 namespace mamba
 {
 
-    class MSolver
+    class Solver
     {
     public:
 

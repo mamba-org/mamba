@@ -12,11 +12,12 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/satisfiability_error.hpp"
+#include "mamba/solver/problems_graph.hpp"
 
 namespace mamba
 {
     class MPool;
+    class MSolver;
 
     namespace solv
     {

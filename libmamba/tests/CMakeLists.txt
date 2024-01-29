@@ -56,6 +56,8 @@ set(
     src/specs/test_unresolved_channel.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
+    # Solver tests
+    src/solver/test_problems_graph.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
@@ -85,7 +87,6 @@ set(
     src/core/test_invoke.cpp
     src/core/test_tasksync.cpp
     src/core/test_filesystem.cpp
-    src/core/test_satisfiability_error.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

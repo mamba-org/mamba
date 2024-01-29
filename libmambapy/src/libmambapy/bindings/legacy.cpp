@@ -27,13 +27,13 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -550,7 +550,7 @@ bind_submodule_impl(pybind11::module_ m)
             }
         );
 
-    using PbGraph = ProblemsGraph;
+    using PbGraph = solver::ProblemsGraph;
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
 
     py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
@@ -589,9 +589,9 @@ bind_submodule_impl(pybind11::module_ m)
             }
         );
 
-    m.def("simplify_conflicts", &simplify_conflicts);
+    m.def("simplify_conflicts", &solver::simplify_conflicts);
 
-    using CpPbGraph = CompressedProblemsGraph;
+    using CpPbGraph = solver::CompressedProblemsGraph;
     auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
 
     pyCpPbGraph.def_property_readonly_static(

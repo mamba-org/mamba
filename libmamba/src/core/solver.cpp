@@ -4,16 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <solv/pool.h>
-#include <solv/solvable.h>
 #include <solv/solver.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "solv-cpp/solver.hpp"
 

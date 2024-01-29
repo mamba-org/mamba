@@ -171,11 +171,29 @@ namespace mamba
                     /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                 };
 
-                auto solver = MSolver();
-                solver.set_request(std::move(request));
-                solver.must_solve(pool);
+                auto outcome = MSolver().solve(pool, request).value();
+                if (auto* unsolvable = std::get_if<UnSolvable>(&outcome))
+                {
+                    if (ctx.output_params.json)
+                    {
+                        Console::instance().json_write({ { "success", false },
+                                                         { "solver_problems",
+                                                           unsolvable->all_problems(pool) } });
+                    }
+                    throw mamba_error(
+                        "Could not solve for environment specs",
+                        mamba_error_code::satisfiablitity_error
+                    );
+                }
 
-                auto transaction = MTransaction(pool, solver.request(), solver.solution(), package_caches);
+                Console::instance().json_write({ { "success", true } });
+                auto transaction = MTransaction(
+                    pool,
+                    request,
+                    std::get<solver::Solution>(outcome),
+                    package_caches
+                );
+
                 execute_transaction(transaction);
             }
         }

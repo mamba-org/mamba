@@ -28,49 +28,6 @@
 
 namespace mamba
 {
-    MSolver::MSolver() = default;
-
-    MSolver::MSolver(MSolver&&) = default;
-
-    MSolver::~MSolver() = default;
-
-    auto MSolver::operator=(MSolver&&) -> MSolver& = default;
-
-    auto MSolver::solver() -> solv::ObjSolver&
-    {
-        return *m_solver;
-    }
-
-    auto MSolver::solver() const -> const solv::ObjSolver&
-    {
-        return *m_solver;
-    }
-
-    void MSolver::set_request(Request request)
-    {
-        m_request = std::move(request);
-    }
-
-    bool MSolver::is_solved() const
-    {
-        return m_is_solved;
-    }
-
-    auto MSolver::request() const -> const Request&
-    {
-        return m_request;
-    }
-
-    auto MSolver::solution() const -> const Solution&
-    {
-        return m_solution;
-    }
-
-    [[nodiscard]] UnSolvable MSolver::unsolvable()
-    {
-        return UnSolvable(std::move(m_solver));
-    }
-
     namespace
     {
         void set_solver_flags(solv::ObjSolver& solver, const solver::Request::Flags& flags)
@@ -81,68 +38,42 @@ namespace mamba
         }
     }
 
-    bool MSolver::try_solve(MPool& pool)
+    auto MSolver::solve(MPool& mpool, const Request& request) -> expected_t<Outcome>
     {
-        auto solv_jobs = solver::libsolv::request_to_decision_queue(
-            m_request,
-            pool.pool(),
-            pool.channel_context().params(),
-            m_request.flags.force_reinstall
-        );
-        if (!solv_jobs)
-        {
-            throw solv_jobs.error();
-        }
+        auto& pool = mpool.pool();
+        const auto& chan_params = mpool.channel_context().params();
+        const auto& flags = request.flags;
 
-        m_solver = std::make_unique<solv::ObjSolver>(pool.pool());
-        set_solver_flags(*m_solver, m_request.flags);
+        return solver::libsolv::request_to_decision_queue(request, pool, chan_params, flags.force_reinstall)
+            .transform(
+                [&](auto&& jobs) -> Outcome
+                {
+                    auto solver = std::make_unique<solv::ObjSolver>(pool);
+                    set_solver_flags(*solver, flags);
+                    const bool success = solver->solve(pool, jobs);
+                    if (!success)
+                    {
+                        return { UnSolvable(std::move(solver)) };
+                    }
 
-        const bool success = solver().solve(pool.pool(), solv_jobs.value());
-        m_is_solved = true;
-        if (success)
-        {
-            auto trans = solv::ObjTransaction::from_solver(pool.pool(), solver());
-            trans.order(pool.pool());
+                    auto trans = solv::ObjTransaction::from_solver(pool, *solver);
+                    trans.order(pool);
 
-            const auto& flags = request().flags;
-            if (flags.keep_user_specs && flags.keep_dependencies)
-            {
-                m_solution = solver::libsolv::transaction_to_solution(pool.pool(), trans);
-            }
-            else if (flags.keep_user_specs && !flags.keep_dependencies)
-            {
-                m_solution = solver::libsolv::transaction_to_solution_no_deps(
-                    pool.pool(),
-                    trans,
-                    request()
-                );
-            }
-            else if (!flags.keep_user_specs && flags.keep_dependencies)
-            {
-                m_solution = solver::libsolv::transaction_to_solution_only_deps(
-                    pool.pool(),
-                    trans,
-                    request()
-                );
-            }
-        }
-
-        LOG_INFO << "Problem count: " << solver().problem_count();
-        Console::instance().json_write({ { "success", success } });
-        return success;
-    }
-
-    void MSolver::must_solve(MPool& pool)
-    {
-        const bool success = try_solve(pool);
-        if (!success)
-        {
-            UnSolvable(std::move(m_solver)).explain_problems_to(pool, LOG_ERROR);
-            throw mamba_error(
-                "Could not solve for environment specs",
-                mamba_error_code::satisfiablitity_error
+                    if (!flags.keep_user_specs && flags.keep_dependencies)
+                    {
+                        return {
+                            solver::libsolv::transaction_to_solution_only_deps(pool, trans, request)
+                        };
+                    }
+                    else if (flags.keep_user_specs && !flags.keep_dependencies)
+                    {
+                        return {
+                            solver::libsolv::transaction_to_solution_no_deps(pool, trans, request)
+                        };
+                    }
+                    return { solver::libsolv::transaction_to_solution(pool, trans) };
+                }
             );
-        }
     }
 
     namespace
@@ -182,7 +113,11 @@ namespace mamba
     {
     }
 
+    UnSolvable::UnSolvable(UnSolvable&&) = default;
+
     UnSolvable::~UnSolvable() = default;
+
+    auto UnSolvable::operator=(UnSolvable&&) -> UnSolvable& = default;
 
     auto UnSolvable::solver() const -> const solv::ObjSolver&
     {

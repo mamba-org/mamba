@@ -577,14 +577,11 @@ namespace mamba
                 // Console stream prints on destrucion
             }
 
-            auto solver = MSolver();
-            solver.set_request(std::move(request));
+            auto outcome = MSolver().solve(pool, request).value();
 
-            bool success = solver.try_solve(pool);
-            if (!success)
+            if (auto* unsolvable = std::get_if<UnSolvable>(&outcome))
             {
-                auto unsolvable = solver.unsolvable();
-                unsolvable.explain_problems_to(pool, LOG_ERROR);
+                unsolvable->explain_problems_to(pool, LOG_ERROR);
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;
@@ -607,7 +604,7 @@ namespace mamba
                 if (ctx.output_params.json)
                 {
                     Console::instance().json_write(
-                        { { "success", false }, { "solver_problems", unsolvable.all_problems(pool) } }
+                        { { "success", false }, { "solver_problems", unsolvable->all_problems(pool) } }
                     );
                 }
                 throw mamba_error(
@@ -623,7 +620,8 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
-            auto trans = MTransaction(pool, solver.request(), solver.solution(), package_caches);
+            Console::instance().json_write({ { "success", true } });
+            auto trans = MTransaction(pool, request, std::get<solver::Solution>(outcome), package_caches);
 
             if (ctx.output_params.json)
             {

@@ -156,10 +156,8 @@ namespace
 
         auto pool = MPool{ ctx, channel_context };
         pool.add_repo_from_repodata_json(repodata_f, "some-url");
-        auto solver = MSolver();
-        solver.set_request(std::move(request));
 
-        return std::pair(std::move(pool), std::move(solver));
+        return std::pair(std::move(pool), std::move(request));
     }
 }
 
@@ -167,28 +165,28 @@ TEST_CASE("Test create_problem utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto [pool, solver] = create_problem(
+    auto [pool, request] = create_problem(
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}) },
         { {}, { Request::Install{ "foo"_ms } } }
     );
-    const auto solved = solver.try_solve(pool);
-    REQUIRE(solved);
+    const auto outcome = MSolver().solve(pool, request).value();
+    REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
 TEST_CASE("Test empty specs")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto [pool, solver] = create_problem(
+    auto [pool, request] = create_problem(
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
         { {}, { Request::Install{ "foo"_ms } } }
     );
-    const auto solved = solver.try_solve(pool);
-    REQUIRE(solved);
+    const auto outcome = MSolver().solve(pool, request).value();
+    REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
 namespace
@@ -401,10 +399,7 @@ namespace
         load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = MSolver();
-        solver.set_request(std::move(request));
-
-        return std::pair(std::move(pool), std::move(solver));
+        return std::pair(std::move(pool), std::move(request));
     }
 }
 
@@ -412,13 +407,13 @@ TEST_CASE("Test create_conda_forge utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto [pool, solver] = create_conda_forge(
+    auto [pool, request] = create_conda_forge(
         ctx,
         channel_context,
         { {}, { Request::Install{ "xtensor>=0.7"_ms } } }
     );
-    const auto solved = solver.try_solve(pool);
-    REQUIRE(solved);
+    const auto outcome = MSolver().solve(pool, request).value();
+    REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
 namespace
@@ -596,10 +591,10 @@ TEST_CASE("Create problem graph")
         // Somehow the capture does not work directly on ``name``
         std::string_view name_copy = name;
         CAPTURE(name_copy);
-        auto [pool, solver] = factory(ctx, channel_context);
-        const auto solved = solver.try_solve(pool);
-        REQUIRE_FALSE(solved);
-        auto unsolvable = solver.unsolvable();
+        auto [pool, request] = factory(ctx, channel_context);
+        auto outcome = MSolver().solve(pool, request).value();
+        REQUIRE(std::holds_alternative<UnSolvable>(outcome));
+        auto& unsolvable = std::get<UnSolvable>(outcome);
         const auto pbs_init = unsolvable.problems_graph(pool);
         const auto& graph_init = pbs_init.graph();
 

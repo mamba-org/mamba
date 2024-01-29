@@ -17,6 +17,7 @@
 // Incomplete header
 #include <solv/rules.h>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
@@ -47,7 +48,11 @@ namespace mamba
     {
     public:
 
+        UnSolvable(UnSolvable&&);
+
         ~UnSolvable();
+
+        auto operator=(UnSolvable&&) -> UnSolvable&;
 
         [[nodiscard]] auto problems_to_str(MPool& pool) const -> std::string;
         [[nodiscard]] auto all_problems(MPool& pool) const -> std::vector<std::string>;
@@ -80,36 +85,7 @@ namespace mamba
         using Solution = solver::Solution;
         using Outcome = std::variant<Solution, UnSolvable>;
 
-        MSolver();
-        MSolver(const MSolver&) = delete;
-        MSolver(MSolver&&);
-
-        ~MSolver();
-
-        auto operator=(const MSolver&) -> MSolver& = delete;
-        auto operator=(MSolver&&) -> MSolver&;
-
-        [[nodiscard]] bool try_solve(MPool& pool);
-        void must_solve(MPool& pool);
-        [[nodiscard]] bool is_solved() const;
-
-
-        void set_request(Request request);
-        [[nodiscard]] const Request& request() const;
-
-        [[nodiscard]] const Solution& solution() const;
-        [[nodiscard]] UnSolvable unsolvable();
-
-        auto solver() -> solv::ObjSolver&;
-        auto solver() const -> const solv::ObjSolver&;
-
-    private:
-
-        Request m_request = {};
-        Solution m_solution = {};
-        // Pimpl all libsolv to keep it private
-        std::unique_ptr<solv::ObjSolver> m_solver;
-        bool m_is_solved = false;
+        [[nodiscard]] auto solve(MPool& pool, const Request& request) -> expected_t<Outcome>;
     };
 }  // namespace mamba
 

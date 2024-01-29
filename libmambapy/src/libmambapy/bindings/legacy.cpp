@@ -531,19 +531,36 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_flags", flags_v2_migrator)
         .def("set_libsolv_flags", flags_v2_migrator)
         .def("set_postsolve_flags", flags_v2_migrator)
-        .def("is_solved", &MSolver::is_solved)
+        .def(
+            "is_solved",
+            [](MSolver&, py::args, py::kwargs)
+            {
+                // V2 migrator
+                throw std::runtime_error("Solve status is provided as an outcome to Solver.solve.");
+            }
+        )
         // TODO move to UnSolvable bindings
         // .def("problems_to_str", &MSolver::problems_to_str)
         // .def("all_problems_to_str", &MSolver::all_problems_to_str)
         // .def("explain_problems", &MSolver::explain_problems_to)
         // .def("all_problems_structured", &MSolver::all_problems_structured)
+        .def("solve", &MSolver::solve)
         .def(
-            // TODO figure out a better interface
-            "solve",
-            &MSolver::try_solve
+            "try_solve",
+            [](MSolver&, py::args, py::kwargs)
+            {
+                // V2 migrator
+                throw std::runtime_error("Use Solver.solve");
+            }
         )
-        .def("try_solve", &MSolver::try_solve)
-        .def("must_solve", &MSolver::must_solve);
+        .def(
+            "must_solve",
+            [](MSolver&, py::args, py::kwargs)
+            {
+                // V2 migrator
+                throw std::runtime_error("Use Solver.solve");
+            }
+        );
 
     using PbGraph = ProblemsGraph;
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");

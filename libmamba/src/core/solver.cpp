@@ -61,6 +61,11 @@ namespace mamba
         return m_request;
     }
 
+    auto MSolver::solution() const -> const Solution&
+    {
+        return m_solution;
+    }
+
     namespace
     {
         void set_solver_flags(solv::ObjSolver& solver, const solver::Request::Flags& flags)
@@ -89,6 +94,34 @@ namespace mamba
 
         const bool success = solver().solve(pool.pool(), solv_jobs.value());
         m_is_solved = true;
+        if (success)
+        {
+            auto trans = solv::ObjTransaction::from_solver(pool.pool(), solver());
+            trans.order(pool.pool());
+
+            const auto& flags = request().flags;
+            if (flags.keep_user_specs && flags.keep_dependencies)
+            {
+                m_solution = solver::libsolv::transaction_to_solution(pool.pool(), trans);
+            }
+            else if (flags.keep_user_specs && !flags.keep_dependencies)
+            {
+                m_solution = solver::libsolv::transaction_to_solution_no_deps(
+                    pool.pool(),
+                    trans,
+                    request()
+                );
+            }
+            else if (!flags.keep_user_specs && flags.keep_dependencies)
+            {
+                m_solution = solver::libsolv::transaction_to_solution_only_deps(
+                    pool.pool(),
+                    trans,
+                    request()
+                );
+            }
+        }
+
         LOG_INFO << "Problem count: " << solver().problem_count();
         Console::instance().json_write({ { "success", success } });
         return success;

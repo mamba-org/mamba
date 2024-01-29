@@ -19,6 +19,7 @@
 
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/solver/solution.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba::solv
@@ -47,6 +48,7 @@ namespace mamba
     public:
 
         using Request = solver::Request;
+        using Solution = solver::Solution;
 
         MSolver();
         MSolver(const MSolver&) = delete;
@@ -72,12 +74,15 @@ namespace mamba
         void set_request(Request request);
         [[nodiscard]] const Request& request() const;
 
+        [[nodiscard]] const Solution& solution() const;
+
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
 
     private:
 
         Request m_request = {};
+        Solution m_solution = {};
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
         bool m_is_solved = false;

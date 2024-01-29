@@ -622,7 +622,7 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
-            MTransaction trans(pool, solver, package_caches);
+            auto trans = MTransaction(pool, solver.request(), solver.solution(), package_caches);
 
             if (ctx.output_params.json)
             {

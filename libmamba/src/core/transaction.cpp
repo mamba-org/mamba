@@ -211,28 +211,28 @@ namespace mamba
         );
     }
 
-    MTransaction::MTransaction(MPool& p_pool, MSolver& solver, MultiPackageCache& caches)
+    MTransaction::MTransaction(
+        MPool& p_pool,
+        const solver::Request& request,
+        solver::Solution solution,
+        MultiPackageCache& caches
+    )
         : MTransaction(p_pool, caches)
     {
-        if (!solver.is_solved())
-        {
-            throw std::runtime_error("Cannot create transaction without calling solver.solve() first."
-            );
-        }
         auto& pool = m_pool.pool();
 
-        const auto& flags = solver.request().flags;
-        m_solution = solver.solution();
+        const auto& flags = request.flags;
+        m_solution = std::move(solution);
 
         if (flags.keep_user_specs)
         {
             using Request = solver::Request;
             solver::for_each_of<Request::Install, Request::Update>(
-                solver.request(),
+                request,
                 [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
             );
             solver::for_each_of<Request::Remove, Request::Update>(
-                solver.request(),
+                request,
                 [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
             );
         }
@@ -254,7 +254,7 @@ namespace mamba
         auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
-            solver.request(),
+            request,
             [&](const auto& item) { requested_specs.push_back(item.spec); }
         );
         const auto& context = m_pool.context();

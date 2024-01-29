@@ -165,6 +165,8 @@ namespace mamba
         solver.set_request(std::move(request));
         solver.must_solve(pool);
 
+        auto transaction = MTransaction(pool, solver.request(), solver.solution(), package_caches);
+
         auto execute_transaction = [&](MTransaction& transaction)
         {
             if (ctx.output_params.json)
@@ -179,7 +181,6 @@ namespace mamba
             }
         };
 
-        MTransaction transaction(pool, solver, package_caches);
         execute_transaction(transaction);
     }
 }

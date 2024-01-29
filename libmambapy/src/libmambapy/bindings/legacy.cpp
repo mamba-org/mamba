@@ -499,7 +499,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MPool&, MSolver&, MultiPackageCache&>())
+        .def(py::init<MPool&, const solver::Request&, solver::Solution, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)

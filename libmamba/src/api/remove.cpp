@@ -175,7 +175,7 @@ namespace mamba
                 solver.set_request(std::move(request));
                 solver.must_solve(pool);
 
-                MTransaction transaction(pool, solver, package_caches);
+                auto transaction = MTransaction(pool, solver.request(), solver.solution(), package_caches);
                 execute_transaction(transaction);
             }
         }

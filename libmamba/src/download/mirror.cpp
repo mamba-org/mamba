@@ -1,3 +1,9 @@
+// Copyright (c) 2023, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include <fmt/format.h>
 
 #include "mamba/download/mirror.hpp"
@@ -8,8 +14,8 @@ namespace mamba::download
      * MirrorID implementation *
      ***************************/
 
-    MirrorID::MirrorID(std::string_view v)
-        : m_value(v)
+    MirrorID::MirrorID(std::string v)
+        : m_value(std::move(v))
     {
     }
 
@@ -32,11 +38,7 @@ namespace mamba::download
      * MirrorRequest *
      *****************/
 
-    MirrorRequest::MirrorRequest(
-        const RequestBase& base,
-        std::string_view lurl,
-        std::optional<header_list> lheaders
-    )
+    MirrorRequest::MirrorRequest(const RequestBase& base, std::string_view lurl, header_list lheaders)
         : RequestBase(base)
         , url(lurl)
         , headers(std::move(lheaders))
@@ -138,14 +140,19 @@ namespace mamba::download
      * PassThroughMirror implementation *
      ************************************/
 
+    namespace
+    {
+        const auto PASSTHROUGH_MIRROR_ID = MirrorID("");
+    }
+
     PassThroughMirror::PassThroughMirror()
-        : Mirror(PassThroughMirror::id())
+        : Mirror(PassThroughMirror::make_id())
     {
     }
 
-    MirrorID PassThroughMirror::id()
+    MirrorID PassThroughMirror::make_id()
     {
-        return MirrorID("");
+        return PASSTHROUGH_MIRROR_ID;
     }
 
     auto PassThroughMirror::get_request_generators_impl() const -> request_generator_list

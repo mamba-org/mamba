@@ -67,7 +67,7 @@ namespace mamba::download
     {
         static_assert(std::is_base_of_v<Mirror, MirrorType>);
 
-        const auto new_id = MirrorType::id(args...);
+        const auto new_id = MirrorType::make_id(args...);
 
         auto& mirrors = m_mirrors[mirror_name];
         auto iter = std::find_if(

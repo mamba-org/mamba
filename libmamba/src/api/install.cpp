@@ -787,7 +787,7 @@ namespace mamba
                 lockfile,
                 tmp_lock_file->path()
             );
-            download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
+            const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
 
             if (!res || res.value().transfer.http_status != 200)
             {

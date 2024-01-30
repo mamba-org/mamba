@@ -23,7 +23,7 @@ namespace mamba::download
     {
     public:
 
-        explicit MirrorID(std::string_view v);
+        explicit MirrorID(std::string v);
 
         std::string to_string() const;
 
@@ -40,13 +40,9 @@ namespace mamba::download
         using header_list = std::vector<std::string>;
 
         std::string url;
-        std::optional<header_list> headers;
+        header_list headers;
 
-        MirrorRequest(
-            const RequestBase& base,
-            std::string_view url,
-            std::optional<header_list> headers = std::nullopt
-        );
+        MirrorRequest(const RequestBase& base, std::string_view url, header_list headers = {});
 
         ~MirrorRequest() = default;
         MirrorRequest(const MirrorRequest&) = default;
@@ -55,6 +51,9 @@ namespace mamba::download
         MirrorRequest& operator=(MirrorRequest&&) = default;
     };
 
+    // A Mirror represents a location from where an asset can be downloaded.
+    // It handles the generation of required requests to get the asset, and
+    // provides some statistics about its usage.
     class Mirror
     {
     public:
@@ -85,7 +84,7 @@ namespace mamba::download
 
     protected:
 
-        Mirror(MirrorID id, std::size_t max_retries = 3);
+        explicit Mirror(MirrorID id, std::size_t max_retries = 3);
 
     private:
 
@@ -103,7 +102,7 @@ namespace mamba::download
         std::size_t m_failed_transfers = 0;
     };
 
-    // This class will be renamed FileMirror when
+    // TODO: This class will be renamed FileMirror when
     // other mirrors have been plugged. It is used
     // for everything to ensure a smooth transition
     class PassThroughMirror : public Mirror
@@ -114,7 +113,7 @@ namespace mamba::download
 
         PassThroughMirror();
 
-        static MirrorID id();
+        static MirrorID make_id();
 
     private:
 

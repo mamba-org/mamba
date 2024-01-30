@@ -16,7 +16,6 @@ namespace mamba
     {
         TEST_CASE("file_does_not_exist")
         {
-#ifdef __linux__
             download::Request request(
                 "test",
                 download::MirrorName(""),
@@ -35,12 +34,10 @@ namespace mamba
             CHECK_EQ(res.size(), std::size_t(1));
             CHECK(!res[0]);
             CHECK_EQ(res[0].error().attempt_number, std::size_t(1));
-#endif
         }
 
         TEST_CASE("file_does_not_exist_throw")
         {
-#ifdef __linux__
             download::Request request(
                 "test",
                 download::MirrorName(""),
@@ -53,7 +50,6 @@ namespace mamba
             auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
             context.output_params.quiet = true;
             CHECK_THROWS_AS(download::download(dl_request, context.mirrors, context), std::runtime_error);
-#endif
         }
     }
 }

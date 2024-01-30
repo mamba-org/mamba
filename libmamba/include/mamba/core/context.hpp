@@ -231,7 +231,7 @@ namespace mamba
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
-        // Should not be stored here
+        // FIXME: Should not be stored here
         // Notice that we cannot build this map directly from mirrored_channels,
         // since we need to add a single "mirror" for non mirrored channels
         download::mirror_map mirrors;

@@ -563,8 +563,8 @@ namespace mamba::download
      * LAST_REQUEST_FAILED:
      *     - m_retries == p_mirror->max_retries ? => SEQUENCE_FAILED
      */
-    MirrorAttempt::MirrorAttempt(Mirror* mirror)
-        : p_mirror(mirror)
+    MirrorAttempt::MirrorAttempt(Mirror& mirror)
+        : p_mirror(&mirror)
         , m_request_generators(p_mirror->get_request_generators())
     {
     }
@@ -862,7 +862,7 @@ namespace mamba::download
         if (mirror != nullptr)
         {
             m_tried_mirrors.insert(mirror->id());
-            m_mirror_attempt = MirrorAttempt(mirror);
+            m_mirror_attempt = MirrorAttempt(*mirror);
         }
         else
         {

@@ -942,7 +942,7 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto transaction_to_solution(const solv::ObjPool& pool, const solv::ObjTransaction& trans)
+    auto transaction_to_solution_all(const solv::ObjPool& pool, const solv::ObjTransaction& trans)
         -> Solution
     {
         return transaction_to_solution_impl(pool, trans, [](const auto&) { return true; });
@@ -995,6 +995,28 @@ namespace mamba::solver::libsolv
             trans,
             [&](const auto& pkg) -> bool { return package_is_requested(request, pkg); }
         );
+    }
+
+    auto transaction_to_solution(
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans,
+        const Request& request,
+        const Request::Flags& flags
+    ) -> Solution
+    {
+        if (!flags.keep_user_specs && flags.keep_dependencies)
+        {
+            return { solver::libsolv::transaction_to_solution_only_deps(pool, trans, request) };
+        }
+        else if (flags.keep_user_specs && !flags.keep_dependencies)
+        {
+            return { solver::libsolv::transaction_to_solution_no_deps(pool, trans, request) };
+        }
+        else if (flags.keep_user_specs && flags.keep_dependencies)
+        {
+            return { solver::libsolv::transaction_to_solution_all(pool, trans) };
+        }
+        return {};
     }
 
     auto installed_python(const solv::ObjPool& pool) -> std::optional<solv::ObjSolvableViewConst>

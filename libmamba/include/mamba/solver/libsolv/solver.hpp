@@ -14,7 +14,6 @@
 
 namespace mamba::solver::libsolv
 {
-
     class Solver
     {
     public:
@@ -24,4 +23,4 @@ namespace mamba::solver::libsolv
         [[nodiscard]] auto solve(MPool& pool, const Request& request) -> expected_t<Outcome>;
     };
 }
-#endif  // MAMBA_SOLVER_HPP
+#endif

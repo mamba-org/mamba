@@ -47,19 +47,7 @@ namespace mamba::solver::libsolv
                     auto trans = solv::ObjTransaction::from_solver(pool, *solver);
                     trans.order(pool);
 
-                    if (!flags.keep_user_specs && flags.keep_dependencies)
-                    {
-                        return {
-                            solver::libsolv::transaction_to_solution_only_deps(pool, trans, request)
-                        };
-                    }
-                    else if (flags.keep_user_specs && !flags.keep_dependencies)
-                    {
-                        return {
-                            solver::libsolv::transaction_to_solution_no_deps(pool, trans, request)
-                        };
-                    }
-                    return { solver::libsolv::transaction_to_solution(pool, trans) };
+                    return { solver::libsolv::transaction_to_solution(pool, trans, request, flags) };
                 }
             );
     }

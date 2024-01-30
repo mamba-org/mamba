@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include <reproc++/run.hpp>
+
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -16,8 +18,6 @@
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
-
-#include <reproc++/run.hpp>
 
 namespace mamba
 {
@@ -195,7 +195,11 @@ namespace mamba
         std::string out, err;
         std::vector<std::string> args = { "pip", "freeze", "-l" };
         auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
         if (ec)
         {
             throw std::runtime_error(ec.message());

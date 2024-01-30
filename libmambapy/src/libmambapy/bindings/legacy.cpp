@@ -64,49 +64,6 @@ deprecated(std::string_view message, std::string_view since_version = "1.5")
     warnings.attr("warn")(total_message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
 }
 
-template <typename PyClass>
-auto
-bind_NamedList(PyClass pyclass)
-{
-    using type = typename PyClass::type;
-    pyclass.def(py::init())
-        .def("__len__", [](const type& self) { return self.size(); })
-        .def("__bool__", [](const type& self) { return !self.empty(); })
-        .def(
-            "__iter__",
-            [](const type& self) { return py::make_iterator(self.begin(), self.end()); },
-            py::keep_alive<0, 1>()
-        )
-        .def("clear", [](type& self) { return self.clear(); })
-        .def("add", [](type& self, const typename type::value_type& v) { self.insert(v); })
-        .def("name", &type::name)
-        .def(
-            "versions_trunc",
-            &type::versions_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        )
-        .def(
-            "build_strings_trunc",
-            &type::build_strings_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        )
-        .def(
-            "versions_and_build_strings_trunc",
-            &type::versions_and_build_strings_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        );
-    return pyclass;
-}
-
 namespace mambapy
 {
     class Singletons
@@ -560,82 +517,6 @@ bind_submodule_impl(pybind11::module_ m)
                 throw std::runtime_error("Use Solver.solve");
             }
         );
-
-    using PbGraph = solver::ProblemsGraph;
-    auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
-
-    py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
-    py::class_<PbGraph::PackageNode, specs::PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, specs::MatchSpec>(
-        pyPbGraph,
-        "UnresolvedDependencyNode"
-    );
-    py::class_<PbGraph::ConstraintNode, specs::MatchSpec>(pyPbGraph, "ConstraintNode");
-
-    py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
-        .def(py::init([]() { return PbGraph::conflicts_t(); }))
-        .def("__len__", [](const PbGraph::conflicts_t& self) { return self.size(); })
-        .def("__bool__", [](const PbGraph::conflicts_t& self) { return !self.empty(); })
-        .def(
-            "__iter__",
-            [](const PbGraph::conflicts_t& self)
-            { return py::make_iterator(self.begin(), self.end()); },
-            py::keep_alive<0, 1>()
-        )
-        .def("has_conflict", &PbGraph::conflicts_t::has_conflict)
-        .def("__contains__", &PbGraph::conflicts_t::has_conflict)
-        .def("conflicts", &PbGraph::conflicts_t::conflicts)
-        .def("in_conflict", &PbGraph::conflicts_t::in_conflict)
-        .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
-        .def("add", &PbGraph::conflicts_t::add);
-
-    pyPbGraph.def("root_node", &PbGraph::root_node)
-        .def("conflicts", &PbGraph::conflicts)
-        .def(
-            "graph",
-            [](const PbGraph& self)
-            {
-                auto const& g = self.graph();
-                return std::pair(g.nodes(), g.edges());
-            }
-        );
-
-    m.def("simplify_conflicts", &solver::simplify_conflicts);
-
-    using CpPbGraph = solver::CompressedProblemsGraph;
-    auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
-
-    pyCpPbGraph.def_property_readonly_static(
-        "RootNode",
-        [](py::handle) { return py::type::of<PbGraph::RootNode>(); }
-    );
-    bind_NamedList(py::class_<CpPbGraph::PackageListNode>(pyCpPbGraph, "PackageListNode"));
-    bind_NamedList(
-        py::class_<CpPbGraph::UnresolvedDependencyListNode>(pyCpPbGraph, "UnresolvedDependencyListNode")
-    );
-    bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
-    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyList"));
-    pyCpPbGraph.def_property_readonly_static(
-        "ConflictMap",
-        [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); }
-    );
-
-    pyCpPbGraph.def_static("from_problems_graph", &CpPbGraph::from_problems_graph)
-        .def_static(
-            "from_problems_graph",
-            [](const PbGraph& pbs) { return CpPbGraph::from_problems_graph(pbs); }
-        )
-        .def("root_node", &CpPbGraph::root_node)
-        .def("conflicts", &CpPbGraph::conflicts)
-        .def(
-            "graph",
-            [](const CpPbGraph& self)
-            {
-                auto const& g = self.graph();
-                return std::pair(g.nodes(), g.edges());
-            }
-        )
-        .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
         .def(

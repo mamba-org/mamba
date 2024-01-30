@@ -7,6 +7,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 
@@ -324,5 +325,138 @@ namespace mambapy
             )
             .def("__copy__", &copy<Solution>)
             .def("__deepcopy__", &deepcopy<Solution>, py::arg("memo"));
+
+        auto py_problems_graph = py::class_<ProblemsGraph>(m, "ProblemsGraph");
+
+        py::class_<ProblemsGraph::RootNode>(py_problems_graph, "RootNode")  //
+            .def(py::init<>());
+        py::class_<ProblemsGraph::PackageNode, specs::PackageInfo>(py_problems_graph, "PackageNode");
+        py::class_<ProblemsGraph::UnresolvedDependencyNode, specs::MatchSpec>(
+            py_problems_graph,
+            "UnresolvedDependencyNode"
+        );
+        py::class_<ProblemsGraph::ConstraintNode, specs::MatchSpec>(py_problems_graph, "ConstraintNode");
+
+        py::class_<ProblemsGraph::conflicts_t>(py_problems_graph, "ConflictMap")
+            .def(py::init([]() { return ProblemsGraph::conflicts_t(); }))
+            .def("__len__", [](const ProblemsGraph::conflicts_t& self) { return self.size(); })
+            .def("__bool__", [](const ProblemsGraph::conflicts_t& self) { return !self.empty(); })
+            .def(
+                "__iter__",
+                [](const ProblemsGraph::conflicts_t& self)
+                { return py::make_iterator(self.begin(), self.end()); },
+                py::keep_alive<0, 1>()
+            )
+            .def("has_conflict", &ProblemsGraph::conflicts_t::has_conflict)
+            .def("__contains__", &ProblemsGraph::conflicts_t::has_conflict)
+            .def("conflicts", &ProblemsGraph::conflicts_t::conflicts)
+            .def("in_conflict", &ProblemsGraph::conflicts_t::in_conflict)
+            .def("clear", [](ProblemsGraph::conflicts_t& self) { return self.clear(); })
+            .def("add", &ProblemsGraph::conflicts_t::add);
+
+        py_problems_graph.def("root_node", &ProblemsGraph::root_node)
+            .def("conflicts", &ProblemsGraph::conflicts)
+            .def(
+                "graph",
+                [](const ProblemsGraph& self)
+                {
+                    auto const& g = self.graph();
+                    return std::pair(g.nodes(), g.edges());
+                }
+            );
+
+        m.def("simplify_conflicts", &solver::simplify_conflicts);
+
+        auto py_compressed_problems_graph = py::class_<CompressedProblemsGraph>(
+            m,
+            "CompressedProblemsGraph"
+        );
+
+        auto bind_NamedList = [](auto&& pyclass)
+        {
+            using type = typename std::decay_t<decltype(pyclass)>::type;
+            pyclass.def(py::init())
+                .def("__len__", [](const type& self) { return self.size(); })
+                .def("__bool__", [](const type& self) { return !self.empty(); })
+                .def(
+                    "__iter__",
+                    [](const type& self) { return py::make_iterator(self.begin(), self.end()); },
+                    py::keep_alive<0, 1>()
+                )
+                .def("clear", [](type& self) { return self.clear(); })
+                .def("add", [](type& self, const typename type::value_type& v) { self.insert(v); })
+                .def("name", &type::name)
+                .def(
+                    "versions_trunc",
+                    &type::versions_trunc,
+                    py::arg("sep") = "|",
+                    py::arg("etc") = "...",
+                    py::arg("threshold") = 5,
+                    py::arg("remove_duplicates") = true
+                )
+                .def(
+                    "build_strings_trunc",
+                    &type::build_strings_trunc,
+                    py::arg("sep") = "|",
+                    py::arg("etc") = "...",
+                    py::arg("threshold") = 5,
+                    py::arg("remove_duplicates") = true
+                )
+                .def(
+                    "versions_and_build_strings_trunc",
+                    &type::versions_and_build_strings_trunc,
+                    py::arg("sep") = "|",
+                    py::arg("etc") = "...",
+                    py::arg("threshold") = 5,
+                    py::arg("remove_duplicates") = true
+                );
+            return pyclass;
+        };
+
+        py_compressed_problems_graph.def_property_readonly_static(
+            "RootNode",
+            [](py::handle) { return py::type::of<ProblemsGraph::RootNode>(); }
+        );
+        bind_NamedList(py::class_<CompressedProblemsGraph::PackageListNode>(
+            py_compressed_problems_graph,
+            "PackageListNode"
+        ));
+        bind_NamedList(py::class_<CompressedProblemsGraph::UnresolvedDependencyListNode>(
+            py_compressed_problems_graph,
+            "UnresolvedDependencyListNode"
+        ));
+        bind_NamedList(py::class_<CompressedProblemsGraph::ConstraintListNode>(
+            py_compressed_problems_graph,
+            "ConstraintListNode"
+        ));
+        bind_NamedList(
+            py::class_<CompressedProblemsGraph::edge_t>(py_compressed_problems_graph, "DependencyList")
+        );
+        py_compressed_problems_graph.def_property_readonly_static(
+            "ConflictMap",
+            [](py::handle) { return py::type::of<ProblemsGraph::conflicts_t>(); }
+        );
+
+        py_compressed_problems_graph
+            .def_static("from_problems_graph", &CompressedProblemsGraph::from_problems_graph)
+            .def_static(
+                "from_problems_graph",
+                [](const ProblemsGraph& pbs)
+                { return CompressedProblemsGraph::from_problems_graph(pbs); }
+            )
+            .def("root_node", &CompressedProblemsGraph::root_node)
+            .def("conflicts", &CompressedProblemsGraph::conflicts)
+            .def(
+                "graph",
+                [](const CompressedProblemsGraph& self)
+                {
+                    auto const& g = self.graph();
+                    return std::pair(g.nodes(), g.edges());
+                }
+            )
+            .def(
+                "tree_message",
+                [](const CompressedProblemsGraph& self) { return problem_tree_msg(self); }
+            );
     }
 }

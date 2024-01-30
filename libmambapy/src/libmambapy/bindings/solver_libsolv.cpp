@@ -7,8 +7,10 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
+#include "mamba/core/pool.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
 
 #include "bindings.hpp"
 #include "utils.hpp"
@@ -86,5 +88,47 @@ namespace mambapy
             .def(py::self != py::self)
             .def("__copy__", &copy<RepoInfo>)
             .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
+
+        constexpr auto solver_flags_v2_migrator = [](Solver&, py::args, py::kwargs) {
+            throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request.");
+        };
+        constexpr auto solver_job_v2_migrator = [](Solver&, py::args, py::kwargs) {
+            throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request.");
+        };
+
+        py::class_<Solver>(m, "Solver")  //
+            .def(py::init())
+            .def("solve", &Solver::solve)
+            .def("add_jobs", solver_job_v2_migrator)
+            .def("add_global_job", solver_job_v2_migrator)
+            .def("add_pin", solver_job_v2_migrator)
+            .def("set_flags", solver_flags_v2_migrator)
+            .def("set_libsolv_flags", solver_flags_v2_migrator)
+            .def("set_postsolve_flags", solver_flags_v2_migrator)
+            .def(
+                "is_solved",
+                [](Solver&, py::args, py::kwargs)
+                {
+                    // V2 migrator
+                    throw std::runtime_error("Solve status is provided as an outcome to Solver.solve."
+                    );
+                }
+            )
+            .def(
+                "try_solve",
+                [](Solver&, py::args, py::kwargs)
+                {
+                    // V2 migrator
+                    throw std::runtime_error("Use Solver.solve");
+                }
+            )
+            .def(
+                "must_solve",
+                [](Solver&, py::args, py::kwargs)
+                {
+                    // V2 migrator
+                    throw std::runtime_error("Use Solver.solve");
+                }
+            );
     }
 }

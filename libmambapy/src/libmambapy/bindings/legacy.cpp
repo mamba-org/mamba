@@ -31,7 +31,6 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
-#include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
@@ -351,6 +350,19 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ));
 
+    enum struct SolverV2Migrator
+    {
+    };
+
+    py::enum_<SolverV2Migrator>(m, "Solver")
+        .def(py::init(
+            [](py::args, py::kwargs) -> SolverV2Migrator
+            {
+                throw std::runtime_error(
+                    "libmambapy.Solver has been moved to libmambapy.solver.libsolv.Solver."
+                );
+            }
+        ));
 
     /**************
      *  Bindings  *
@@ -358,7 +370,6 @@ bind_submodule_impl(pybind11::module_ m)
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
-    auto pySolver = py::class_<solver::libsolv::Solver>(m, "Solver");
 
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
@@ -475,50 +486,6 @@ bind_submodule_impl(pybind11::module_ m)
         .def("prompt", &MTransaction::prompt)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
-
-    using Solver = solver::libsolv::Solver;
-
-    constexpr auto flags_v2_migrator = [](Solver&, py::args, py::kwargs)
-    { throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request."); };
-    constexpr auto job_v2_migrator = [](Solver&, py::args, py::kwargs)
-    { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
-
-    pySolver.def(py::init<>())
-        .def("add_jobs", job_v2_migrator)
-        .def("add_global_job", job_v2_migrator)
-        .def("add_pin", job_v2_migrator)
-        .def("set_flags", flags_v2_migrator)
-        .def("set_libsolv_flags", flags_v2_migrator)
-        .def("set_postsolve_flags", flags_v2_migrator)
-        .def(
-            "is_solved",
-            [](Solver&, py::args, py::kwargs)
-            {
-                // V2 migrator
-                throw std::runtime_error("Solve status is provided as an outcome to Solver.solve.");
-            }
-        )
-        // TODO move to UnSolvable bindings
-        // .def("problems_to_str", &MSolver::problems_to_str)
-        // .def("all_problems_to_str", &MSolver::all_problems_to_str)
-        // .def("explain_problems", &MSolver::explain_problems_to)
-        .def("solve", &Solver::solve)
-        .def(
-            "try_solve",
-            [](Solver&, py::args, py::kwargs)
-            {
-                // V2 migrator
-                throw std::runtime_error("Use Solver.solve");
-            }
-        )
-        .def(
-            "must_solve",
-            [](Solver&, py::args, py::kwargs)
-            {
-                // V2 migrator
-                throw std::runtime_error("Use Solver.solve");
-            }
-        );
 
     py::class_<History>(m, "History")
         .def(

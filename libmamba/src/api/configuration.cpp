@@ -1467,16 +1467,18 @@ namespace mamba
                    .group("Solver")
                    .description("Freeze already installed dependencies"));
 
-        insert(Configurable("no_deps", &m_context.solver_flags.keep_dependencies)
+        insert(Configurable("no_deps", false)
                    .group("Solver")
                    .description("Do not install dependencies. This WILL lead to broken environments "
                                 "and inconsistent behavior. Use at your own risk")
-                   .set_post_merge_hook<bool>([&](bool& value) { value = !value; }));
+                   .set_post_merge_hook<bool>([&](bool& value)
+                                              { m_context.solver_flags.keep_dependencies = !value; }));
 
-        insert(Configurable("only_deps", &m_context.solver_flags.keep_user_specs)
+        insert(Configurable("only_deps", false)
                    .group("Solver")
                    .description("Only install dependencies")
-                   .set_post_merge_hook<bool>([&](bool& value) { value = !value; }));
+                   .set_post_merge_hook<bool>([&](bool& value)
+                                              { m_context.solver_flags.keep_user_specs = !value; }));
 
         insert(Configurable("force_reinstall", &m_context.solver_flags.force_reinstall)
                    .group("Solver")

@@ -1495,6 +1495,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Allow downgrade when installing packages. Default is false."));
 
+        insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Order the solver request specs to get a deterministic solution."));
+
         insert(Configurable("categories", std::vector<std::string>({ "main" }))
                    .group("Solver")
                    .description("Package categories to consider when installing from a lock file"));

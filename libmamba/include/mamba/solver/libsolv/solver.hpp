@@ -4,24 +4,21 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_SOLVER_HPP
-#define MAMBA_CORE_SOLVER_HPP
+#ifndef MAMBA_SOLVER_LIBSOLV_SOLVER_HPP
+#define MAMBA_SOLVER_LIBSOLV_SOLVER_HPP
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 
-namespace mamba
+namespace mamba::solver::libsolv
 {
 
     class Solver
     {
     public:
 
-        using Request = solver::Request;
-        using Solution = solver::Solution;
-        using UnSolvable = solver::libsolv::UnSolvable;
         using Outcome = std::variant<Solution, UnSolvable>;
 
         [[nodiscard]] auto solve(MPool& pool, const Request& request) -> expected_t<Outcome>;

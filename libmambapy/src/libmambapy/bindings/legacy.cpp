@@ -358,7 +358,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
-    auto pySolver = py::class_<Solver>(m, "Solver");
+    auto pySolver = py::class_<solver::libsolv::Solver>(m, "Solver");
 
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
@@ -475,6 +475,8 @@ bind_submodule_impl(pybind11::module_ m)
         .def("prompt", &MTransaction::prompt)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
+
+    using Solver = solver::libsolv::Solver;
 
     constexpr auto flags_v2_migrator = [](Solver&, py::args, py::kwargs)
     { throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request."); };

@@ -17,7 +17,6 @@
 namespace mamba
 {
     class MPool;
-    class Solver;
 
     namespace solv
     {
@@ -27,6 +26,8 @@ namespace mamba
 
 namespace mamba::solver::libsolv
 {
+    class Solver;
+
     class UnSolvable
     {
     public:
@@ -58,7 +59,7 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto solver() const -> const solv::ObjSolver&;
 
-        friend class mamba::Solver;
+        friend class Solver;
     };
 }
 #endif

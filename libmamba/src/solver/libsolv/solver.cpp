@@ -14,7 +14,7 @@
 
 #include "solver/libsolv/helpers.hpp"
 
-namespace mamba
+namespace mamba::solver::libsolv
 {
     namespace
     {

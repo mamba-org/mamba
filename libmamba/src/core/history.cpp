@@ -225,20 +225,6 @@ namespace mamba
             }
         }
 
-        // TODO Add this back in once we merge the PrefixData PR!
-        // auto& current_records = m_prefix->records();
-        // for (auto it = map.begin(); it != map.end();)
-        // {
-        //     if (current_records.find(it->first) == current_records.end())
-        //     {
-        //         LOG_INFO << it->first << " not installed, removing from specs";
-        //         it = map.erase(it);
-        //     }
-        //     else
-        //     {
-        //         it++;
-        //     }
-        // }
         return map;
     }
 

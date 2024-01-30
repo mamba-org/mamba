@@ -184,8 +184,8 @@ namespace mamba
     {
         LOG_INFO << "Loading site packages";
 
-        // Look for "python" package and return if doesn't exist
-        auto python_pkg_record = m_package_records.find("python");
+        // Look for "pip" package and return if it doesn't exist
+        auto python_pkg_record = m_package_records.find("pip");
         if (python_pkg_record == m_package_records.end())
         {
             return;
@@ -213,7 +213,7 @@ namespace mamba
             if (pkg_info_line.find("==") != std::string::npos)
             {
                 auto pkg_info = mamba::util::split(mamba::util::strip(pkg_info_line), "==");
-                auto prec = specs::PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", std::string("pypi"));
+                auto prec = specs::PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
                 m_package_records.insert({ prec.name, std::move(prec) });
             }
         }

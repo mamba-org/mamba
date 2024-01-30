@@ -499,20 +499,20 @@ namespace mamba
     expected_t<void> SubdirData::download_indexes(
         std::vector<SubdirData>& subdirs,
         const Context& context,
-        DownloadMonitor* check_monitor,
-        DownloadMonitor* download_monitor
+        download::Monitor* check_monitor,
+        download::Monitor* download_monitor
     )
     {
-        MultiDownloadRequest check_requests;
+        download::MultiRequest check_requests;
         for (auto& subdir : subdirs)
         {
             if (!subdir.is_loaded())
             {
-                MultiDownloadRequest check_list = subdir.build_check_requests();
+                download::MultiRequest check_list = subdir.build_check_requests();
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
             }
         }
-        download(std::move(check_requests), context, {}, check_monitor);
+        download::download(std::move(check_requests), context.mirrors, context, {}, check_monitor);
 
         if (is_sig_interrupted())
         {
@@ -522,7 +522,7 @@ namespace mamba
         // TODO load local channels even when offline if (!ctx.offline)
         if (!context.offline)
         {
-            MultiDownloadRequest index_requests;
+            download::MultiRequest index_requests;
             for (auto& subdir : subdirs)
             {
                 if (!subdir.is_loaded())
@@ -533,7 +533,13 @@ namespace mamba
 
             try
             {
-                download(std::move(index_requests), context, { /*fail_fast=*/true }, download_monitor);
+                download::download(
+                    std::move(index_requests),
+                    context.mirrors,
+                    context,
+                    { /*fail_fast=*/true },
+                    download_monitor
+                );
             }
             catch (const std::runtime_error& e)
             {
@@ -680,22 +686,23 @@ namespace mamba
         }
     }
 
-    MultiDownloadRequest SubdirData::build_check_requests()
+    download::MultiRequest SubdirData::build_check_requests()
     {
-        MultiDownloadRequest request;
+        download::MultiRequest request;
 
         if ((!p_context->offline || forbid_cache(m_repodata_url)) && p_context->repodata_use_zst
             && !m_metadata.has_zst())
         {
-            request.push_back(DownloadRequest(
+            request.push_back(download::Request(
                 m_name + " (check zst)",
+                download::MirrorName(""),
                 m_repodata_url + ".zst",
                 "",
                 /* lhead_only = */ true,
                 /* lignore_failure = */ true
             ));
 
-            request.back().on_success = [this](const DownloadSuccess& success)
+            request.back().on_success = [this](const download::Success& success)
             {
                 const std::string& effective_url = success.transfer.effective_url;
                 int http_status = success.transfer.http_status;
@@ -707,7 +714,7 @@ namespace mamba
                 return expected_t<void>();
             };
 
-            request.back().on_failure = [this](const DownloadError& error)
+            request.back().on_failure = [this](const download::Error& error)
             {
                 if (error.transfer.has_value())
                 {
@@ -720,7 +727,7 @@ namespace mamba
         return request;
     }
 
-    DownloadRequest SubdirData::build_index_request()
+    download::Request SubdirData::build_index_request()
     {
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
@@ -728,8 +735,9 @@ namespace mamba
 
         bool use_zst = m_metadata.has_zst();
 
-        DownloadRequest request(
+        download::Request request(
             m_name,
+            download::MirrorName(""),
             m_repodata_url + (use_zst ? ".zst" : ""),
             m_temp_file->path().string(),
             /*head_only*/ false,
@@ -738,7 +746,7 @@ namespace mamba
         request.etag = m_metadata.etag();
         request.last_modified = m_metadata.last_modified();
 
-        request.on_success = [this](const DownloadSuccess& success)
+        request.on_success = [this](const download::Success& success)
         {
             if (success.transfer.http_status == 304)
             {
@@ -753,7 +761,7 @@ namespace mamba
             }
         };
 
-        request.on_failure = [](const DownloadError& error)
+        request.on_failure = [](const download::Error& error)
         {
             if (error.transfer.has_value())
             {

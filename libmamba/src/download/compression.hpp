@@ -12,7 +12,7 @@
 
 #include "curl.hpp"
 
-namespace mamba
+namespace mamba::download
 {
 
     class CompressionStream

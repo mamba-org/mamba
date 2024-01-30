@@ -514,7 +514,7 @@ namespace mamba
         {
             conda_extract_context(scoped_archive_read& lsource)
                 : source(lsource)
-                , buffer(get_zstd_buff_out_size())
+                , buffer(download::get_zstd_buff_out_size())
             {
             }
 

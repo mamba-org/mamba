@@ -15,7 +15,7 @@ namespace mamba
         void update_progress_bar(
             ProgressProxy& progress_bar,
             time_point& throttle_time,
-            const DownloadProgress& progress
+            const download::Progress& progress
         )
         {
             const auto now = std::chrono::steady_clock::now();
@@ -43,7 +43,7 @@ namespace mamba
             progress_bar.set_speed(progress.speed_Bps);
         }
 
-        void update_progress_bar(ProgressProxy& progress_bar, const DownloadError& error)
+        void update_progress_bar(ProgressProxy& progress_bar, const download::Error& error)
         {
             if (error.transfer.has_value())
             {
@@ -58,7 +58,7 @@ namespace mamba
             progress_bar.mark_as_completed();
         }
 
-        void update_progress_bar(ProgressProxy& progress_bar, const DownloadSuccess& success)
+        void update_progress_bar(ProgressProxy& progress_bar, const download::Success& success)
         {
             if (success.transfer.http_status == 304)
             {
@@ -150,7 +150,7 @@ namespace mamba
         );
     }
 
-    void SubdirDataMonitor::observe_impl(MultiDownloadRequest& requests, DownloadOptions& options)
+    void SubdirDataMonitor::observe_impl(download::MultiRequest& requests, download::Options& options)
     {
         m_throttle_time.resize(requests.size(), std::chrono::steady_clock::now());
         m_progress_bar.reserve(requests.size());
@@ -163,7 +163,7 @@ namespace mamba
             {
                 m_progress_bar.back().repr().postfix.set_value("Checking");
             }
-            requests[i].progress = [this, i](const DownloadEvent& e) { update_progress_bar(i, e); };
+            requests[i].progress = [this, i](const download::Event& e) { update_progress_bar(i, e); };
         }
 
         auto& pbar_manager = Console::instance().progress_bar_manager();
@@ -196,17 +196,17 @@ namespace mamba
         Console::instance().progress_bar_manager().terminate();
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const DownloadEvent& event)
+    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Event& event)
     {
         std::visit([this, index](auto&& arg) { update_progress_bar(index, arg); }, event);
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const DownloadProgress& progress)
+    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Progress& progress)
     {
         mamba::update_progress_bar(m_progress_bar[index], m_throttle_time[index], progress);
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const DownloadError& error)
+    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Error& error)
     {
         if (m_options.checking_download)
         {
@@ -218,7 +218,7 @@ namespace mamba
         }
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const DownloadSuccess& success)
+    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Success& success)
     {
         if (m_options.checking_download)
         {
@@ -254,9 +254,9 @@ namespace mamba
     }
 
     void PackageDownloadMonitor::observe(
-        MultiDownloadRequest& dl_requests,
+        download::MultiRequest& dl_requests,
         std::vector<PackageExtractTask>& extract_tasks,
-        DownloadOptions& options
+        download::Options& options
     )
     {
         assert(extract_tasks.size() >= dl_requests.size());
@@ -278,7 +278,7 @@ namespace mamba
                 assert(extract_tasks[i].needs_download());
                 m_download_bar.push_back(Console::instance().add_progress_bar(dl_requests[i].name));
                 init_download_bar(m_download_bar.back());
-                dl_requests[i].progress = [this, i](const DownloadEvent& e)
+                dl_requests[i].progress = [this, i](const download::Event& e)
                 { update_progress_bar(i, e); };
             }
         }
@@ -462,7 +462,7 @@ namespace mamba
         }
     }
 
-    void PackageDownloadMonitor::observe_impl(MultiDownloadRequest&, DownloadOptions&)
+    void PackageDownloadMonitor::observe_impl(download::MultiRequest&, download::Options&)
     {
         // Nothing to do, everything has been initialized in the public observe overload
     }
@@ -477,24 +477,24 @@ namespace mamba
         Console::instance().progress_bar_manager().terminate();
     }
 
-    void PackageDownloadMonitor::update_progress_bar(std::size_t index, const DownloadEvent& event)
+    void PackageDownloadMonitor::update_progress_bar(std::size_t index, const download::Event& event)
     {
         std::visit([this, index](auto&& arg) { update_progress_bar(index, arg); }, event);
     }
 
     void
-    PackageDownloadMonitor::update_progress_bar(std::size_t index, const DownloadProgress& progress)
+    PackageDownloadMonitor::update_progress_bar(std::size_t index, const download::Progress& progress)
     {
         mamba::update_progress_bar(m_download_bar[index], m_throttle_time[index], progress);
     }
 
-    void PackageDownloadMonitor::update_progress_bar(std::size_t index, const DownloadError& error)
+    void PackageDownloadMonitor::update_progress_bar(std::size_t index, const download::Error& error)
     {
         mamba::update_progress_bar(m_download_bar[index], error);
     }
 
     void
-    PackageDownloadMonitor::update_progress_bar(std::size_t index, const DownloadSuccess& success)
+    PackageDownloadMonitor::update_progress_bar(std::size_t index, const download::Success& success)
     {
         mamba::update_progress_bar(m_download_bar[index], success);
     }

@@ -136,8 +136,8 @@ namespace mamba
         static expected_t<void> download_indexes(
             std::vector<SubdirData>& subdirs,
             const Context& context,
-            DownloadMonitor* check_monitor = nullptr,
-            DownloadMonitor* download_monitor = nullptr
+            download::Monitor* check_monitor = nullptr,
+            download::Monitor* download_monitor = nullptr
         );
 
     private:
@@ -157,8 +157,8 @@ namespace mamba
         void load_cache(MultiPackageCache& caches);
         void update_metadata_zst(ChannelContext& context, const specs::Channel& channel);
 
-        MultiDownloadRequest build_check_requests();
-        DownloadRequest build_index_request();
+        download::MultiRequest build_check_requests();
+        download::Request build_index_request();
 
         expected_t<void> use_existing_cache();
         expected_t<void> finalize_transfer(SubdirMetadata::HttpMetadata http_data);

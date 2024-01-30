@@ -91,6 +91,20 @@ namespace mamba
             }
         }
 
+        void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors)
+        {
+            if (!mirrors.has_mirrors(channel.id()))
+            {
+                for (const specs::CondaURL& url : channel.mirror_urls())
+                {
+                    mirrors.add_unique_mirror(
+                        channel.id(),
+                        download::make_mirror(url.str(specs::CondaURL::Credentials::Show))
+                    );
+                }
+            }
+        }
+
         expected_t<void, mamba_aggregated_error>
         load_channels_impl(Context& ctx, MPool& pool, MultiPackageCache& package_caches, bool is_retry)
         {
@@ -108,12 +122,11 @@ namespace mamba
             {
                 for (auto channel : pool.channel_context().make_channel(mirror.first, mirror.second))
                 {
+                    create_mirrors(channel, ctx.mirrors);
                     create_subdirs(
                         ctx,
                         pool.channel_context(),
                         channel,
-                        //                        platform,
-                        //                        channel.platform_url(platform).str(specs::CondaURL::Credentials::Show),
                         package_caches,
                         subdirs,
                         error_list,
@@ -131,6 +144,7 @@ namespace mamba
                 {
                     for (auto channel : pool.channel_context().make_channel(location))
                     {
+                        create_mirrors(channel, ctx.mirrors);
                         create_subdirs(
                             ctx,
                             pool.channel_context(),
@@ -198,7 +212,7 @@ namespace mamba
                     .transform([&](solver::libsolv::RepoInfo&& repo)
                                { pool.set_repo_priority(repo, priorities[i]); })
                     .or_else(
-                        [&](const auto& error)
+                        [&](const auto&)
                         {
                             if (is_retry)
                             {

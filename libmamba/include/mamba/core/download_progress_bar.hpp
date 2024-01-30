@@ -23,7 +23,7 @@ namespace mamba
         bool no_clear_progress_bar = false;
     };
 
-    class SubdirDataMonitor : public DownloadMonitor
+    class SubdirDataMonitor : public download::Monitor
     {
     public:
 
@@ -42,14 +42,14 @@ namespace mamba
 
     private:
 
-        void observe_impl(MultiDownloadRequest& requests, DownloadOptions& options) override;
+        void observe_impl(download::MultiRequest& requests, download::Options& options) override;
         void on_done_impl() override;
         void on_unexpected_termination_impl() override;
 
-        void update_progress_bar(std::size_t index, const DownloadEvent& event);
-        void update_progress_bar(std::size_t index, const DownloadProgress& progress);
-        void update_progress_bar(std::size_t index, const DownloadError& error);
-        void update_progress_bar(std::size_t index, const DownloadSuccess& success);
+        void update_progress_bar(std::size_t index, const download::Event& event);
+        void update_progress_bar(std::size_t index, const download::Progress& progress);
+        void update_progress_bar(std::size_t index, const download::Error& error);
+        void update_progress_bar(std::size_t index, const download::Success& success);
 
         void complete_checking_progress_bar(std::size_t index);
 
@@ -59,7 +59,7 @@ namespace mamba
         MonitorOptions m_options;
     };
 
-    class PackageDownloadMonitor : public DownloadMonitor
+    class PackageDownloadMonitor : public download::Monitor
     {
     public:
 
@@ -77,9 +77,9 @@ namespace mamba
         // Requires extract_tasks.size() >= requests.size()
         // Requires for i in [0, dl_requests.size()), extract_tasks[i].needs_download()
         void observe(
-            MultiDownloadRequest& dl_requests,
+            download::MultiRequest& dl_requests,
             std::vector<PackageExtractTask>& extract_tasks,
-            DownloadOptions& options
+            download::Options& options
         );
 
         void end_monitoring();
@@ -93,14 +93,14 @@ namespace mamba
 
         void update_extract_bar(std::size_t index, PackageExtractEvent event);
 
-        void observe_impl(MultiDownloadRequest& requests, DownloadOptions& options) override;
+        void observe_impl(download::MultiRequest& requests, download::Options& options) override;
         void on_done_impl() override;
         void on_unexpected_termination_impl() override;
 
-        void update_progress_bar(std::size_t index, const DownloadEvent& event);
-        void update_progress_bar(std::size_t index, const DownloadProgress& progress);
-        void update_progress_bar(std::size_t index, const DownloadError& error);
-        void update_progress_bar(std::size_t index, const DownloadSuccess& success);
+        void update_progress_bar(std::size_t index, const download::Event& event);
+        void update_progress_bar(std::size_t index, const download::Progress& progress);
+        void update_progress_bar(std::size_t index, const download::Error& error);
+        void update_progress_bar(std::size_t index, const download::Success& success);
 
         std::vector<ProgressProxy> m_extract_bar;
 

@@ -4,9 +4,11 @@
 
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
 #include "mamba/solver/request.hpp"
+#include "mamba/solver/solution.hpp"
 
 #include "bindings.hpp"
 #include "utils.hpp"
@@ -17,9 +19,15 @@ namespace mamba::solver
     // of comparions operators, so we tell it explicitly.
     auto operator==(const Request::Item&, const Request::Item&) -> bool = delete;
     auto operator!=(const Request::Item&, const Request::Item&) -> bool = delete;
+
+    // Fix Pybind11 py::bind_vector<Solution::actions> has trouble detecting the abscence
+    // of comparions operators, so we tell it explicitly.
+    auto operator==(const Solution::Action&, const Solution::Action&) -> bool = delete;
+    auto operator!=(const Solution::Action&, const Solution::Action&) -> bool = delete;
 }
 
 PYBIND11_MAKE_OPAQUE(mamba::solver::Request::item_list);
+PYBIND11_MAKE_OPAQUE(mamba::solver::Solution::action_list);
 
 namespace mambapy
 {
@@ -167,6 +175,154 @@ namespace mambapy
             .def("__copy__", &copy<Request>)
             .def("__deepcopy__", &deepcopy<Request>, py::arg("memo"));
 
-        ;
+        auto py_solution = py::class_<Solution>(m, "Solution");
+
+        py::class_<Solution::Omit>(py_solution, "Omit")
+            .def(
+                py::init([](specs::PackageInfo pkg) -> Solution::Omit { return { std::move(pkg) }; }),
+                py::arg("what")
+            )
+            .def_readwrite("what", &Solution::Omit::what)
+            .def("__copy__", &copy<Solution::Omit>)
+            .def("__deepcopy__", &deepcopy<Solution::Omit>, py::arg("memo"));
+
+        py::class_<Solution::Upgrade>(py_solution, "Upgrade")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Upgrade {
+                        return { std::move(remove), std::move(install) };
+                    }
+                ),
+                py::arg("remove"),
+                py::arg("install")
+            )
+            .def_readwrite("remove", &Solution::Upgrade::remove)
+            .def_readwrite("install", &Solution::Upgrade::install)
+            .def("__copy__", &copy<Solution::Upgrade>)
+            .def("__deepcopy__", &deepcopy<Solution::Upgrade>, py::arg("memo"));
+
+        py::class_<Solution::Downgrade>(py_solution, "Downgrade")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Downgrade {
+                        return { std::move(remove), std::move(install) };
+                    }
+                ),
+                py::arg("remove"),
+                py::arg("install")
+            )
+            .def_readwrite("remove", &Solution::Downgrade::remove)
+            .def_readwrite("install", &Solution::Downgrade::install)
+            .def("__copy__", &copy<Solution::Downgrade>)
+            .def("__deepcopy__", &deepcopy<Solution::Downgrade>, py::arg("memo"));
+
+        py::class_<Solution::Change>(py_solution, "Change")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Change {
+                        return { std::move(remove), std::move(install) };
+                    }
+                ),
+                py::arg("remove"),
+                py::arg("install")
+            )
+            .def_readwrite("remove", &Solution::Change::remove)
+            .def_readwrite("install", &Solution::Change::install)
+            .def("__copy__", &copy<Solution::Change>)
+            .def("__deepcopy__", &deepcopy<Solution::Change>, py::arg("memo"));
+
+        py::class_<Solution::Reinstall>(py_solution, "Reinstall")
+            .def(
+                py::init(
+                    [](specs::PackageInfo pkg) -> Solution::Reinstall { return { std::move(pkg) }; }
+                ),
+                py::arg("what")
+            )
+            .def_readwrite("what", &Solution::Reinstall::what)
+            .def("__copy__", &copy<Solution::Reinstall>)
+            .def("__deepcopy__", &deepcopy<Solution::Reinstall>, py::arg("memo"));
+
+        py::class_<Solution::Remove>(py_solution, "Remove")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove) -> Solution::Remove
+                    { return { std::move(remove) }; }
+                ),
+                py::arg("remove")
+            )
+            .def_readwrite("remove", &Solution::Remove::remove)
+            .def("__copy__", &copy<Solution::Remove>)
+            .def("__deepcopy__", &deepcopy<Solution::Remove>, py::arg("memo"));
+
+        py::class_<Solution::Install>(py_solution, "Install")
+            .def(
+                py::init(
+                    [](specs::PackageInfo install) -> Solution::Install
+                    { return { std::move(install) }; }
+                ),
+                py::arg("install")
+            )
+            .def_readwrite("install", &Solution::Install::install)
+            .def("__copy__", &copy<Solution::Install>)
+            .def("__deepcopy__", &deepcopy<Solution::Install>, py::arg("memo"));
+
+        // Type made opaque at the top of this file
+        py::bind_vector<Solution::action_list>(py_solution, "ActionList");
+
+        py_solution
+            .def(
+                // Big copy unfortunately
+                py::init(
+                    [](Solution::action_list actions) -> Solution { return { std::move(actions) }; }
+                )
+            )
+            .def(py::init(
+                [](py::iterable actions) -> Solution
+                {
+                    auto solution = Solution();
+                    solution.actions.reserve(py::len_hint(actions));
+                    for (py::handle act : actions)
+                    {
+                        solution.actions.push_back(py::cast<Solution::Action>(act));
+                    }
+                    return solution;
+                }
+            ))
+            .def_readwrite("actions", &Solution::actions)
+            .def(
+                "to_install",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Upper bound
+                    for_each_to_install(
+                        solution.actions,
+                        [&](auto const& pkg) { out.push_back(pkg); }
+                    );
+                    return out;
+                }
+            )
+            .def(
+                "to_remove",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Upper bound
+                    for_each_to_remove(solution.actions, [&](auto const& pkg) { out.push_back(pkg); });
+                    return out;
+                }
+            )
+            .def(
+                "to_omit",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Upper bound
+                    for_each_to_omit(solution.actions, [&](auto const& pkg) { out.push_back(pkg); });
+                    return out;
+                }
+            )
+            .def("__copy__", &copy<Solution>)
+            .def("__deepcopy__", &deepcopy<Solution>, py::arg("memo"));
     }
 }

@@ -122,7 +122,8 @@ namespace mambapy
                        bool force_reinstall,
                        bool allow_downgrade,
                        bool allow_uninstall,
-                       bool strict_repo_priority) -> Request::Flags
+                       bool strict_repo_priority,
+                       bool order_request) -> Request::Flags
                     {
                         return {
                             /* .keep_dependencies= */ keep_dependencies,
@@ -131,6 +132,7 @@ namespace mambapy
                             /* .allow_downgrade= */ allow_downgrade,
                             /* .allow_uninstall= */ allow_uninstall,
                             /* .strict_repo_priority= */ strict_repo_priority,
+                            /* .order_request= */ order_request,
                         };
                     }
                 ),
@@ -139,7 +141,8 @@ namespace mambapy
                 py::arg("force_reinstall") = false,
                 py::arg("allow_downgrade") = true,
                 py::arg("allow_uninstall") = true,
-                py::arg("strict_repo_priority") = true
+                py::arg("strict_repo_priority") = true,
+                py::arg("order_request") = true
             )
             .def_readwrite("keep_dependencies", &Request::Flags::keep_dependencies)
             .def_readwrite("keep_user_specs", &Request::Flags::keep_user_specs)
@@ -147,6 +150,7 @@ namespace mambapy
             .def_readwrite("allow_downgrade", &Request::Flags::allow_downgrade)
             .def_readwrite("allow_uninstall", &Request::Flags::allow_uninstall)
             .def_readwrite("strict_repo_priority", &Request::Flags::strict_repo_priority)
+            .def_readwrite("order_request", &Request::Flags::order_request)
             .def("__copy__", &copy<Request::Flags>)
             .def("__deepcopy__", &deepcopy<Request::Flags>, py::arg("memo"));
 

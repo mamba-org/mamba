@@ -32,6 +32,8 @@ namespace mamba::solver
             bool allow_uninstall = true;
             /** Prefer packages by repoitory order. */
             bool strict_repo_priority = true;
+            /** Order the request to get a deterministic solution. */
+            bool order_request = true;
         };
 
         /** Instruct to install a package matching the given spec. */

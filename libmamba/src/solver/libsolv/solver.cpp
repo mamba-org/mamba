@@ -24,9 +24,36 @@ namespace mamba::solver::libsolv
             ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_UNINSTALL, flags.allow_uninstall);
             ::solver_set_flag(solver.raw(), SOLVER_FLAG_STRICT_REPO_PRIORITY, flags.strict_repo_priority);
         }
+
+        /**
+         * An arbitrary comparison function to get determinist output.
+         *
+         * Could be improved as libsolv seems to be sensitive to sort order.
+         * https://github.com/mamba-org/mamba/issues/3058
+         */
+        auto request_cmp(const Request::Item& lhs, const Request::Item& rhs) -> bool
+        {
+            if (lhs.index() != rhs.index())
+            {
+                return lhs.index() < rhs.index();
+            }
+            return std::visit(
+                [&](const auto& l) -> bool
+                {
+                    using Itm = std::decay_t<decltype(l)>;
+                    auto const& r = std::get<Itm>(rhs);
+                    if constexpr (!std::is_same_v<Itm, Request::UpdateAll>)
+                    {
+                        return l.spec.name().str() < r.spec.name().str();
+                    }
+                    return false;
+                },
+                lhs
+            );
+        }
     }
 
-    auto Solver::solve(MPool& mpool, const Request& request) -> expected_t<Outcome>
+    auto Solver::solve_impl(MPool& mpool, const Request& request) -> expected_t<Outcome>
     {
         auto& pool = mpool.pool();
         const auto& chan_params = mpool.channel_context().params();
@@ -50,6 +77,34 @@ namespace mamba::solver::libsolv
                     return { solver::libsolv::transaction_to_solution(pool, trans, request, flags) };
                 }
             );
+    }
+
+    auto Solver::solve(MPool& mpool, Request&& request) -> expected_t<Outcome>
+    {
+        if (request.flags.order_request)
+        {
+            std::sort(
+                request.items.begin(),
+                request.items.end(),
+                [](const auto& lhs, const auto& rhs) { return request_cmp(lhs, rhs); }
+            );
+        }
+        return solve_impl(mpool, request);
+    }
+
+    auto Solver::solve(MPool& mpool, const Request& request) -> expected_t<Outcome>
+    {
+        if (request.flags.order_request)
+        {
+            auto sorted_request = request;
+            std::sort(
+                sorted_request.items.begin(),
+                sorted_request.items.end(),
+                [](const auto& lhs, const auto& rhs) { return request_cmp(lhs, rhs); }
+            );
+            return solve_impl(mpool, sorted_request);
+        }
+        return solve_impl(mpool, request);
     }
 
 }  // namespace mamba

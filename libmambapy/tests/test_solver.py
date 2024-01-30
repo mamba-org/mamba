@@ -77,6 +77,7 @@ def test_Request_Item_clean(Item, kwargs):
         "allow_downgrade",
         "allow_uninstall",
         "strict_repo_priority",
+        "order_request",
     ],
 )
 def test_Request_Flags_boolean(attr):

@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <solv/solver.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
@@ -12,9 +11,10 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/request.hpp"
 
 namespace mamba
 {
@@ -161,9 +161,24 @@ namespace mamba
             // Console stream prints on destrucion
         }
 
-        auto solver = MSolver(pool);
-        solver.set_request(std::move(request));
-        solver.must_solve();
+        auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+        if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
+        {
+            if (ctx.output_params.json)
+            {
+                Console::instance().json_write(
+                    { { "success", false }, { "solver_problems", unsolvable->all_problems(pool) } }
+                );
+            }
+            throw mamba_error(
+                "Could not solve for environment specs",
+                mamba_error_code::satisfiablitity_error
+            );
+        }
+
+        Console::instance().json_write({ { "success", true } });
+        auto transaction = MTransaction(pool, request, std::get<solver::Solution>(outcome), package_caches);
+
 
         auto execute_transaction = [&](MTransaction& transaction)
         {
@@ -179,7 +194,6 @@ namespace mamba
             }
         };
 
-        MTransaction transaction(pool, solver, package_caches);
         execute_transaction(transaction);
     }
 }

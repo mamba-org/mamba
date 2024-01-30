@@ -19,10 +19,10 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#include "mamba/core/satisfiability_error.hpp"
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
 
-namespace mamba
+namespace mamba::solver
 {
     ProblemsGraph::ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node)
         : m_graph(std::move(graph))
@@ -50,7 +50,7 @@ namespace mamba
      *  Implementation of simplify_conflicts  *
      ******************************************/
 
-    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs)
+    auto simplify_conflicts(const ProblemsGraph& pbs) -> ProblemsGraph
     {
         using node_id = ProblemsGraph::node_id;
         using node_t = ProblemsGraph::node_t;
@@ -237,7 +237,7 @@ namespace mamba
          * Credits to Nykakin on StackOverflow (https://stackoverflow.com/a/52303671).
          */
         template <typename VariantType, typename T, std::size_t index = 0>
-        constexpr std::size_t variant_type_index()
+        constexpr auto variant_type_index() -> std::size_t
         {
             static_assert(std::variant_size_v<VariantType> > index, "Type not found in variant");
             if constexpr (std::is_same_v<std::variant_alternative_t<index, VariantType>, T>)
@@ -347,7 +347,7 @@ namespace mamba
         inline constexpr bool has_name_v = has_name<T>::value;
 
         template <typename T, typename Str>
-        decltype(auto) name_or(const T& obj, Str val)
+        auto name_or(const T& obj, Str val) -> decltype(auto)
         {
             if constexpr (has_name_v<T>)
             {
@@ -362,7 +362,7 @@ namespace mamba
         /**
          * The name of a ProblemsGraph::node_t, used to avoid merging.
          */
-        std::string_view node_name(const ProblemsGraph::node_t& node)
+        auto node_name(const ProblemsGraph::node_t& node) -> std::string_view
         {
             return std::visit([](const auto& n) -> std::string_view { return name_or(n, ""); }, node);
         }
@@ -835,8 +835,8 @@ namespace mamba
              */
             enum struct SiblingNumber : bool
             {
-                not_last = 0,
-                last = 1,
+                not_last = false,
+                last = true,
             };
 
             /** Progagate a status up the tree, such as whether the package is installable. */
@@ -855,7 +855,7 @@ namespace mamba
             Type type_from;
             Status status;
 
-            auto depth() const -> std::size_t
+            [[nodiscard]] auto depth() const -> std::size_t
             {
                 return ancestry.size();
             }
@@ -926,7 +926,7 @@ namespace mamba
             /**
              * Get the type of a node depending on the exploration.
              */
-            auto node_type(node_id id) const -> TreeNode::Type;
+            [[nodiscard]] auto node_type(node_id id) const -> TreeNode::Type;
 
             /**
              * The successors of a node, grouped by same dependency name (edge data).
@@ -1596,11 +1596,11 @@ namespace mamba
         }
     }
 
-    std::ostream& print_problem_tree_msg(
+    auto print_problem_tree_msg(
         std::ostream& out,
         const CompressedProblemsGraph& pbs,
         const ProblemsMessageFormat& format
-    )
+    ) -> std::ostream&
     {
         auto dfs = TreeDFS(pbs);
         auto path = dfs.explore();
@@ -1608,8 +1608,8 @@ namespace mamba
         return out;
     }
 
-    std::string
-    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
+    auto problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
+        -> std::string
     {
         std::stringstream ss;
         print_problem_tree_msg(ss, pbs, format);

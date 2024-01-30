@@ -4,9 +4,12 @@
 
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/solver/solution.hpp"
 
 #include "bindings.hpp"
 #include "utils.hpp"
@@ -17,9 +20,15 @@ namespace mamba::solver
     // of comparions operators, so we tell it explicitly.
     auto operator==(const Request::Item&, const Request::Item&) -> bool = delete;
     auto operator!=(const Request::Item&, const Request::Item&) -> bool = delete;
+
+    // Fix Pybind11 py::bind_vector<Solution::actions> has trouble detecting the abscence
+    // of comparions operators, so we tell it explicitly.
+    auto operator==(const Solution::Action&, const Solution::Action&) -> bool = delete;
+    auto operator!=(const Solution::Action&, const Solution::Action&) -> bool = delete;
 }
 
 PYBIND11_MAKE_OPAQUE(mamba::solver::Request::item_list);
+PYBIND11_MAKE_OPAQUE(mamba::solver::Solution::action_list);
 
 namespace mambapy
 {
@@ -167,6 +176,287 @@ namespace mambapy
             .def("__copy__", &copy<Request>)
             .def("__deepcopy__", &deepcopy<Request>, py::arg("memo"));
 
-        ;
+        auto py_solution = py::class_<Solution>(m, "Solution");
+
+        py::class_<Solution::Omit>(py_solution, "Omit")
+            .def(
+                py::init([](specs::PackageInfo pkg) -> Solution::Omit { return { std::move(pkg) }; }),
+                py::arg("what")
+            )
+            .def_readwrite("what", &Solution::Omit::what)
+            .def("__copy__", &copy<Solution::Omit>)
+            .def("__deepcopy__", &deepcopy<Solution::Omit>, py::arg("memo"));
+
+        py::class_<Solution::Upgrade>(py_solution, "Upgrade")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Upgrade {
+                        return { std::move(remove), std::move(install) };
+                    }
+                ),
+                py::arg("remove"),
+                py::arg("install")
+            )
+            .def_readwrite("remove", &Solution::Upgrade::remove)
+            .def_readwrite("install", &Solution::Upgrade::install)
+            .def("__copy__", &copy<Solution::Upgrade>)
+            .def("__deepcopy__", &deepcopy<Solution::Upgrade>, py::arg("memo"));
+
+        py::class_<Solution::Downgrade>(py_solution, "Downgrade")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Downgrade {
+                        return { std::move(remove), std::move(install) };
+                    }
+                ),
+                py::arg("remove"),
+                py::arg("install")
+            )
+            .def_readwrite("remove", &Solution::Downgrade::remove)
+            .def_readwrite("install", &Solution::Downgrade::install)
+            .def("__copy__", &copy<Solution::Downgrade>)
+            .def("__deepcopy__", &deepcopy<Solution::Downgrade>, py::arg("memo"));
+
+        py::class_<Solution::Change>(py_solution, "Change")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Change {
+                        return { std::move(remove), std::move(install) };
+                    }
+                ),
+                py::arg("remove"),
+                py::arg("install")
+            )
+            .def_readwrite("remove", &Solution::Change::remove)
+            .def_readwrite("install", &Solution::Change::install)
+            .def("__copy__", &copy<Solution::Change>)
+            .def("__deepcopy__", &deepcopy<Solution::Change>, py::arg("memo"));
+
+        py::class_<Solution::Reinstall>(py_solution, "Reinstall")
+            .def(
+                py::init(
+                    [](specs::PackageInfo pkg) -> Solution::Reinstall { return { std::move(pkg) }; }
+                ),
+                py::arg("what")
+            )
+            .def_readwrite("what", &Solution::Reinstall::what)
+            .def("__copy__", &copy<Solution::Reinstall>)
+            .def("__deepcopy__", &deepcopy<Solution::Reinstall>, py::arg("memo"));
+
+        py::class_<Solution::Remove>(py_solution, "Remove")
+            .def(
+                py::init(
+                    [](specs::PackageInfo remove) -> Solution::Remove
+                    { return { std::move(remove) }; }
+                ),
+                py::arg("remove")
+            )
+            .def_readwrite("remove", &Solution::Remove::remove)
+            .def("__copy__", &copy<Solution::Remove>)
+            .def("__deepcopy__", &deepcopy<Solution::Remove>, py::arg("memo"));
+
+        py::class_<Solution::Install>(py_solution, "Install")
+            .def(
+                py::init(
+                    [](specs::PackageInfo install) -> Solution::Install
+                    { return { std::move(install) }; }
+                ),
+                py::arg("install")
+            )
+            .def_readwrite("install", &Solution::Install::install)
+            .def("__copy__", &copy<Solution::Install>)
+            .def("__deepcopy__", &deepcopy<Solution::Install>, py::arg("memo"));
+
+        // Type made opaque at the top of this file
+        py::bind_vector<Solution::action_list>(py_solution, "ActionList");
+
+        py_solution
+            .def(
+                // Big copy unfortunately
+                py::init(
+                    [](Solution::action_list actions) -> Solution { return { std::move(actions) }; }
+                )
+            )
+            .def(py::init(
+                [](py::iterable actions) -> Solution
+                {
+                    auto solution = Solution();
+                    solution.actions.reserve(py::len_hint(actions));
+                    for (py::handle act : actions)
+                    {
+                        solution.actions.push_back(py::cast<Solution::Action>(act));
+                    }
+                    return solution;
+                }
+            ))
+            .def_readwrite("actions", &Solution::actions)
+            .def(
+                "to_install",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Upper bound
+                    for_each_to_install(
+                        solution.actions,
+                        [&](auto const& pkg) { out.push_back(pkg); }
+                    );
+                    return out;
+                }
+            )
+            .def(
+                "to_remove",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Upper bound
+                    for_each_to_remove(solution.actions, [&](auto const& pkg) { out.push_back(pkg); });
+                    return out;
+                }
+            )
+            .def(
+                "to_omit",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Upper bound
+                    for_each_to_omit(solution.actions, [&](auto const& pkg) { out.push_back(pkg); });
+                    return out;
+                }
+            )
+            .def("__copy__", &copy<Solution>)
+            .def("__deepcopy__", &deepcopy<Solution>, py::arg("memo"));
+
+        auto py_problems_graph = py::class_<ProblemsGraph>(m, "ProblemsGraph");
+
+        py::class_<ProblemsGraph::RootNode>(py_problems_graph, "RootNode")  //
+            .def(py::init<>());
+        py::class_<ProblemsGraph::PackageNode, specs::PackageInfo>(py_problems_graph, "PackageNode");
+        py::class_<ProblemsGraph::UnresolvedDependencyNode, specs::MatchSpec>(
+            py_problems_graph,
+            "UnresolvedDependencyNode"
+        );
+        py::class_<ProblemsGraph::ConstraintNode, specs::MatchSpec>(py_problems_graph, "ConstraintNode");
+
+        py::class_<ProblemsGraph::conflicts_t>(py_problems_graph, "ConflictMap")
+            .def(py::init([]() { return ProblemsGraph::conflicts_t(); }))
+            .def("__len__", [](const ProblemsGraph::conflicts_t& self) { return self.size(); })
+            .def("__bool__", [](const ProblemsGraph::conflicts_t& self) { return !self.empty(); })
+            .def(
+                "__iter__",
+                [](const ProblemsGraph::conflicts_t& self)
+                { return py::make_iterator(self.begin(), self.end()); },
+                py::keep_alive<0, 1>()
+            )
+            .def("has_conflict", &ProblemsGraph::conflicts_t::has_conflict)
+            .def("__contains__", &ProblemsGraph::conflicts_t::has_conflict)
+            .def("conflicts", &ProblemsGraph::conflicts_t::conflicts)
+            .def("in_conflict", &ProblemsGraph::conflicts_t::in_conflict)
+            .def("clear", [](ProblemsGraph::conflicts_t& self) { return self.clear(); })
+            .def("add", &ProblemsGraph::conflicts_t::add);
+
+        py_problems_graph.def("root_node", &ProblemsGraph::root_node)
+            .def("conflicts", &ProblemsGraph::conflicts)
+            .def(
+                "graph",
+                [](const ProblemsGraph& self)
+                {
+                    auto const& g = self.graph();
+                    return std::pair(g.nodes(), g.edges());
+                }
+            );
+
+        m.def("simplify_conflicts", &solver::simplify_conflicts);
+
+        auto py_compressed_problems_graph = py::class_<CompressedProblemsGraph>(
+            m,
+            "CompressedProblemsGraph"
+        );
+
+        auto bind_NamedList = [](auto&& pyclass)
+        {
+            using type = typename std::decay_t<decltype(pyclass)>::type;
+            pyclass.def(py::init())
+                .def("__len__", [](const type& self) { return self.size(); })
+                .def("__bool__", [](const type& self) { return !self.empty(); })
+                .def(
+                    "__iter__",
+                    [](const type& self) { return py::make_iterator(self.begin(), self.end()); },
+                    py::keep_alive<0, 1>()
+                )
+                .def("clear", [](type& self) { return self.clear(); })
+                .def("add", [](type& self, const typename type::value_type& v) { self.insert(v); })
+                .def("name", &type::name)
+                .def(
+                    "versions_trunc",
+                    &type::versions_trunc,
+                    py::arg("sep") = "|",
+                    py::arg("etc") = "...",
+                    py::arg("threshold") = 5,
+                    py::arg("remove_duplicates") = true
+                )
+                .def(
+                    "build_strings_trunc",
+                    &type::build_strings_trunc,
+                    py::arg("sep") = "|",
+                    py::arg("etc") = "...",
+                    py::arg("threshold") = 5,
+                    py::arg("remove_duplicates") = true
+                )
+                .def(
+                    "versions_and_build_strings_trunc",
+                    &type::versions_and_build_strings_trunc,
+                    py::arg("sep") = "|",
+                    py::arg("etc") = "...",
+                    py::arg("threshold") = 5,
+                    py::arg("remove_duplicates") = true
+                );
+            return pyclass;
+        };
+
+        py_compressed_problems_graph.def_property_readonly_static(
+            "RootNode",
+            [](py::handle) { return py::type::of<ProblemsGraph::RootNode>(); }
+        );
+        bind_NamedList(py::class_<CompressedProblemsGraph::PackageListNode>(
+            py_compressed_problems_graph,
+            "PackageListNode"
+        ));
+        bind_NamedList(py::class_<CompressedProblemsGraph::UnresolvedDependencyListNode>(
+            py_compressed_problems_graph,
+            "UnresolvedDependencyListNode"
+        ));
+        bind_NamedList(py::class_<CompressedProblemsGraph::ConstraintListNode>(
+            py_compressed_problems_graph,
+            "ConstraintListNode"
+        ));
+        bind_NamedList(
+            py::class_<CompressedProblemsGraph::edge_t>(py_compressed_problems_graph, "DependencyList")
+        );
+        py_compressed_problems_graph.def_property_readonly_static(
+            "ConflictMap",
+            [](py::handle) { return py::type::of<ProblemsGraph::conflicts_t>(); }
+        );
+
+        py_compressed_problems_graph
+            .def_static("from_problems_graph", &CompressedProblemsGraph::from_problems_graph)
+            .def_static(
+                "from_problems_graph",
+                [](const ProblemsGraph& pbs)
+                { return CompressedProblemsGraph::from_problems_graph(pbs); }
+            )
+            .def("root_node", &CompressedProblemsGraph::root_node)
+            .def("conflicts", &CompressedProblemsGraph::conflicts)
+            .def(
+                "graph",
+                [](const CompressedProblemsGraph& self)
+                {
+                    auto const& g = self.graph();
+                    return std::pair(g.nodes(), g.edges());
+                }
+            )
+            .def(
+                "tree_message",
+                [](const CompressedProblemsGraph& self) { return problem_tree_msg(self); }
+            );
     }
 }

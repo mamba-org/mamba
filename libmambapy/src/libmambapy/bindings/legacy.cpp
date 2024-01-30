@@ -14,7 +14,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <solv/solver.h>
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
@@ -27,13 +26,12 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/satisfiability_error.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -63,49 +61,6 @@ deprecated(std::string_view message, std::string_view since_version = "1.5")
     const auto builtins = py::module_::import("builtins");
     auto total_message = fmt::format("Deprecated since version {}: {}", since_version, message);
     warnings.attr("warn")(total_message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
-}
-
-template <typename PyClass>
-auto
-bind_NamedList(PyClass pyclass)
-{
-    using type = typename PyClass::type;
-    pyclass.def(py::init())
-        .def("__len__", [](const type& self) { return self.size(); })
-        .def("__bool__", [](const type& self) { return !self.empty(); })
-        .def(
-            "__iter__",
-            [](const type& self) { return py::make_iterator(self.begin(), self.end()); },
-            py::keep_alive<0, 1>()
-        )
-        .def("clear", [](type& self) { return self.clear(); })
-        .def("add", [](type& self, const typename type::value_type& v) { self.insert(v); })
-        .def("name", &type::name)
-        .def(
-            "versions_trunc",
-            &type::versions_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        )
-        .def(
-            "build_strings_trunc",
-            &type::build_strings_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        )
-        .def(
-            "versions_and_build_strings_trunc",
-            &type::versions_and_build_strings_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        );
-    return pyclass;
 }
 
 namespace mambapy
@@ -384,13 +339,37 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("SOLVER_SETNAME") = global_solver_job_v2_migrator;
     m.attr("SOLVER_SETMASK") = global_solver_job_v2_migrator;
 
+    enum struct SolverRuleinfoV2Migrator
+    {
+    };
+
+    py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
+        .def(py::init(
+            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator {
+                throw std::runtime_error("Direct access to libsolv objects is not longer supported.");
+            }
+        ));
+
+    enum struct SolverV2Migrator
+    {
+    };
+
+    py::enum_<SolverV2Migrator>(m, "Solver")
+        .def(py::init(
+            [](py::args, py::kwargs) -> SolverV2Migrator
+            {
+                throw std::runtime_error(
+                    "libmambapy.Solver has been moved to libmambapy.solver.libsolv.Solver."
+                );
+            }
+        ));
+
     /**************
      *  Bindings  *
      **************/
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
-    auto pySolver = py::class_<MSolver>(m, "Solver");
 
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
@@ -499,14 +478,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<>(
-            [](MSolver& solver, MultiPackageCache& mpc)
-            {
-                deprecated("Use Transaction(Pool, Solver, MultiPackageCache) instead");
-                return std::make_unique<MTransaction>(solver.pool(), solver, mpc);
-            }
-        ))
-        .def(py::init<MPool&, MSolver&, MultiPackageCache&>())
+        .def(py::init<MPool&, const solver::Request&, solver::Solution, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
@@ -514,130 +486,6 @@ bind_submodule_impl(pybind11::module_ m)
         .def("prompt", &MTransaction::prompt)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
-
-    py::class_<SolverProblem>(m, "SolverProblem")
-        .def_readwrite("type", &SolverProblem::type)
-        .def_readwrite("source_id", &SolverProblem::source_id)
-        .def_readwrite("target_id", &SolverProblem::target_id)
-        .def_readwrite("dep_id", &SolverProblem::dep_id)
-        .def_readwrite("source", &SolverProblem::source)
-        .def_readwrite("target", &SolverProblem::target)
-        .def_readwrite("dep", &SolverProblem::dep)
-        .def_readwrite("description", &SolverProblem::description)
-        .def("__str__", [](const SolverProblem& self) { return self.description; });
-
-    constexpr auto flags_v2_migrator = [](MSolver&, py::args, py::kwargs)
-    { throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request."); };
-    constexpr auto job_v2_migrator = [](MSolver&, py::args, py::kwargs)
-    { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
-
-    pySolver.def(py::init<MPool&>(), py::keep_alive<1, 2>())
-        .def("add_jobs", job_v2_migrator)
-        .def("add_global_job", job_v2_migrator)
-        .def("add_pin", job_v2_migrator)
-        .def("set_flags", flags_v2_migrator)
-        .def("set_libsolv_flags", flags_v2_migrator)
-        .def("set_postsolve_flags", flags_v2_migrator)
-        .def("is_solved", &MSolver::is_solved)
-        .def("problems_to_str", &MSolver::problems_to_str)
-        .def("all_problems_to_str", &MSolver::all_problems_to_str)
-        .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
-        .def("all_problems_structured", &MSolver::all_problems_structured)
-        .def(
-            "solve",
-            [](MSolver& self)
-            {
-                // TODO figure out a better interface
-                return self.try_solve();
-            }
-        )
-        .def("try_solve", &MSolver::try_solve)
-        .def("must_solve", &MSolver::must_solve);
-
-    using PbGraph = ProblemsGraph;
-    auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
-
-    py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
-    py::class_<PbGraph::PackageNode, specs::PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, specs::MatchSpec>(
-        pyPbGraph,
-        "UnresolvedDependencyNode"
-    );
-    py::class_<PbGraph::ConstraintNode, specs::MatchSpec>(pyPbGraph, "ConstraintNode");
-
-    py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
-        .def(py::init([]() { return PbGraph::conflicts_t(); }))
-        .def("__len__", [](const PbGraph::conflicts_t& self) { return self.size(); })
-        .def("__bool__", [](const PbGraph::conflicts_t& self) { return !self.empty(); })
-        .def(
-            "__iter__",
-            [](const PbGraph::conflicts_t& self)
-            { return py::make_iterator(self.begin(), self.end()); },
-            py::keep_alive<0, 1>()
-        )
-        .def("has_conflict", &PbGraph::conflicts_t::has_conflict)
-        .def("__contains__", &PbGraph::conflicts_t::has_conflict)
-        .def("conflicts", &PbGraph::conflicts_t::conflicts)
-        .def("in_conflict", &PbGraph::conflicts_t::in_conflict)
-        .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
-        .def("add", &PbGraph::conflicts_t::add);
-
-    pyPbGraph
-        .def_static(
-            "from_solver",
-            [](const MSolver& solver, const MPool& /* pool */)
-            {
-                deprecated("Use Solver.problems_graph() instead");
-                return solver.problems_graph();
-            }
-        )
-        .def("root_node", &PbGraph::root_node)
-        .def("conflicts", &PbGraph::conflicts)
-        .def(
-            "graph",
-            [](const PbGraph& self)
-            {
-                auto const& g = self.graph();
-                return std::pair(g.nodes(), g.edges());
-            }
-        );
-
-    m.def("simplify_conflicts", &simplify_conflicts);
-
-    using CpPbGraph = CompressedProblemsGraph;
-    auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
-
-    pyCpPbGraph.def_property_readonly_static(
-        "RootNode",
-        [](py::handle) { return py::type::of<PbGraph::RootNode>(); }
-    );
-    bind_NamedList(py::class_<CpPbGraph::PackageListNode>(pyCpPbGraph, "PackageListNode"));
-    bind_NamedList(
-        py::class_<CpPbGraph::UnresolvedDependencyListNode>(pyCpPbGraph, "UnresolvedDependencyListNode")
-    );
-    bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
-    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyList"));
-    pyCpPbGraph.def_property_readonly_static(
-        "ConflictMap",
-        [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); }
-    );
-
-    pyCpPbGraph.def_static("from_problems_graph", &CpPbGraph::from_problems_graph)
-        .def_static(
-            "from_problems_graph",
-            [](const PbGraph& pbs) { return CpPbGraph::from_problems_graph(pbs); }
-        )
-        .def("root_node", &CpPbGraph::root_node)
-        .def("conflicts", &CpPbGraph::conflicts)
-        .def(
-            "graph",
-            [](const CpPbGraph& self)
-            {
-                auto const& g = self.graph();
-                return std::pair(g.nodes(), g.edges());
-            }
-        )
-        .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
         .def(
@@ -1374,38 +1222,6 @@ bind_submodule_impl(pybind11::module_ m)
     m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons.context()); });
 
     m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
-
-    // Solver rule flags
-    py::enum_<SolverRuleinfo>(m, "SolverRuleinfo")
-        .value("SOLVER_RULE_UNKNOWN", SolverRuleinfo::SOLVER_RULE_UNKNOWN)
-        .value("SOLVER_RULE_PKG", SolverRuleinfo::SOLVER_RULE_PKG)
-        .value("SOLVER_RULE_PKG_NOT_INSTALLABLE", SolverRuleinfo::SOLVER_RULE_PKG_NOT_INSTALLABLE)
-        .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_PKG_REQUIRES", SolverRuleinfo::SOLVER_RULE_PKG_REQUIRES)
-        .value("SOLVER_RULE_PKG_SELF_CONFLICT", SolverRuleinfo::SOLVER_RULE_PKG_SELF_CONFLICT)
-        .value("SOLVER_RULE_PKG_CONFLICTS", SolverRuleinfo::SOLVER_RULE_PKG_CONFLICTS)
-        .value("SOLVER_RULE_PKG_SAME_NAME", SolverRuleinfo::SOLVER_RULE_PKG_SAME_NAME)
-        .value("SOLVER_RULE_PKG_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_OBSOLETES)
-        .value("SOLVER_RULE_PKG_IMPLICIT_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
-        .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
-        .value("SOLVER_RULE_PKG_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_PKG_RECOMMENDS)
-        .value("SOLVER_RULE_PKG_CONSTRAINS", SolverRuleinfo::SOLVER_RULE_PKG_CONSTRAINS)
-        .value("SOLVER_RULE_UPDATE", SolverRuleinfo::SOLVER_RULE_UPDATE)
-        .value("SOLVER_RULE_FEATURE", SolverRuleinfo::SOLVER_RULE_FEATURE)
-        .value("SOLVER_RULE_JOB", SolverRuleinfo::SOLVER_RULE_JOB)
-        .value("SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM", SolverRuleinfo::SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM)
-        .value("SOLVER_RULE_JOB_UNKNOWN_PACKAGE", SolverRuleinfo::SOLVER_RULE_JOB_UNKNOWN_PACKAGE)
-        .value("SOLVER_RULE_JOB_UNSUPPORTED", SolverRuleinfo::SOLVER_RULE_JOB_UNSUPPORTED)
-        .value("SOLVER_RULE_DISTUPGRADE", SolverRuleinfo::SOLVER_RULE_DISTUPGRADE)
-        .value("SOLVER_RULE_INFARCH", SolverRuleinfo::SOLVER_RULE_INFARCH)
-        .value("SOLVER_RULE_CHOICE", SolverRuleinfo::SOLVER_RULE_CHOICE)
-        .value("SOLVER_RULE_LEARNT", SolverRuleinfo::SOLVER_RULE_LEARNT)
-        .value("SOLVER_RULE_BEST", SolverRuleinfo::SOLVER_RULE_BEST)
-        .value("SOLVER_RULE_YUMOBS", SolverRuleinfo::SOLVER_RULE_YUMOBS)
-        .value("SOLVER_RULE_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_RECOMMENDS)
-        .value("SOLVER_RULE_BLACK", SolverRuleinfo::SOLVER_RULE_BLACK)
-        .value("SOLVER_RULE_STRICT_REPO_PRIORITY", SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

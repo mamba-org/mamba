@@ -91,3 +91,104 @@ def test_Request_Flags_boolean(attr):
         val = bool(random.randint(0, 1))
         setattr(flags, attr, val)
         assert getattr(flags, attr) == val
+
+
+@pytest.mark.parametrize(
+    "Action",
+    [
+        libmambapy.solver.Solution.Omit,
+        libmambapy.solver.Solution.Reinstall,
+    ],
+)
+def test_Solution_Action_what(Action):
+    act = Action(what=libmambapy.specs.PackageInfo(name="foo"))
+
+    assert act.what.name == "foo"
+
+    # Setter
+    act.what = libmambapy.specs.PackageInfo(name="bar")
+    assert act.what.name == "bar"
+
+    # Copy
+    other = copy.deepcopy(act)
+    assert other is not act
+    assert other.what.name == act.what.name
+
+
+@pytest.mark.parametrize(
+    ("Action", "attrs"),
+    [
+        (libmambapy.solver.Solution.Upgrade, {"remove", "install"}),
+        (libmambapy.solver.Solution.Downgrade, {"remove", "install"}),
+        (libmambapy.solver.Solution.Change, {"remove", "install"}),
+        (libmambapy.solver.Solution.Remove, {"remove"}),
+        (libmambapy.solver.Solution.Install, {"install"}),
+    ],
+)
+def test_Solution_Action_remove_install(Action, attrs):
+    act = Action(**{a: libmambapy.specs.PackageInfo(name=a) for a in attrs})
+
+    for a in attrs:
+        assert getattr(act, a).name == a
+
+    # Setter
+    for a in attrs:
+        setattr(act, a, libmambapy.specs.PackageInfo(name=f"{a}-new"))
+        assert getattr(act, a).name == f"{a}-new"
+
+    # Copy
+    other = copy.deepcopy(act)
+    assert other is not act
+    for a in attrs:
+        assert getattr(other, a).name == getattr(act, a).name
+
+
+def test_Solution():
+    Solution = libmambapy.solver.Solution
+    PackageInfo = libmambapy.specs.PackageInfo
+
+    actions = [
+        Solution.Omit(PackageInfo(name="Omit_what")),
+        Solution.Reinstall(PackageInfo(name="Reinstall_what")),
+        Solution.Install(install=PackageInfo(name="Install_install")),
+        Solution.Remove(remove=PackageInfo(name="Remove_remove")),
+        Solution.Upgrade(
+            install=PackageInfo(name="Upgrade_install"),
+            remove=PackageInfo(name="Upgrade_remove"),
+        ),
+        Solution.Downgrade(
+            install=PackageInfo(name="Downgrade_install"),
+            remove=PackageInfo(name="Downgrade_remove"),
+        ),
+        Solution.Change(
+            install=PackageInfo(name="Change_install"),
+            remove=PackageInfo(name="Change_remove"),
+        ),
+    ]
+
+    sol = Solution(actions)
+
+    assert len(sol.actions) == len(actions)
+    for i in range(len(actions)):
+        assert isinstance(sol.actions[i], type(actions[i]))
+
+    assert {pkg.name for pkg in sol.to_install()} == {
+        "Reinstall_what",
+        "Install_install",
+        "Upgrade_install",
+        "Downgrade_install",
+        "Change_install",
+    }
+    assert {pkg.name for pkg in sol.to_remove()} == {
+        "Reinstall_what",
+        "Remove_remove",
+        "Upgrade_remove",
+        "Downgrade_remove",
+        "Change_remove",
+    }
+    assert {pkg.name for pkg in sol.to_omit()} == {"Omit_what"}
+
+    # Copy
+    other = copy.deepcopy(sol)
+    assert other is not sol
+    assert len(other.actions) == len(sol.actions)

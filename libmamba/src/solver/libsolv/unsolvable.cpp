@@ -1,143 +1,103 @@
-// Copyright (c) 2019, QuantStack and Mamba Contributors
+// Copyright (c) 2023, QuantStack and Mamba Contributors
 //
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <sstream>
+#include <string>
+#include <vector>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <solv/pool.h>
-#include <solv/solvable.h>
-#include <solv/solver.h>
+#include <solv/problems.h>
 
-#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/satisfiability_error.hpp"
-#include "mamba/core/solver.hpp"
+#include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/solver.hpp"
 
-#include "solver/libsolv/helpers.hpp"
-
-namespace mamba
+namespace mamba::solver::libsolv
 {
-    MSolver::MSolver(MPool pool)
-        : m_pool(std::move(pool))
-        , m_solver(nullptr)
-        , m_is_solved(false)
+    UnSolvable::UnSolvable(std::unique_ptr<solv::ObjSolver>&& solver)
+        : m_solver(std::move(solver))
     {
     }
 
-    MSolver::~MSolver() = default;
+    UnSolvable::UnSolvable(UnSolvable&&) = default;
 
-    MSolver::MSolver(MSolver&&) = default;
+    UnSolvable::~UnSolvable() = default;
 
-    MSolver& MSolver::operator=(MSolver&&) = default;
+    auto UnSolvable::operator=(UnSolvable&&) -> UnSolvable& = default;
 
-    auto MSolver::solver() -> solv::ObjSolver&
+    auto UnSolvable::solver() const -> const solv::ObjSolver&
     {
+        assert(m_solver != nullptr);
         return *m_solver;
     }
 
-    auto MSolver::solver() const -> const solv::ObjSolver&
+    auto UnSolvable::all_problems_to_str(MPool& pool) const -> std::string
     {
-        return *m_solver;
-    }
-
-    void MSolver::set_request(Request request)
-    {
-        m_request = std::move(request);
-    }
-
-    bool MSolver::is_solved() const
-    {
-        return m_is_solved;
-    }
-
-    const MPool& MSolver::pool() const&
-    {
-        return m_pool;
-    }
-
-    MPool& MSolver::pool() &
-    {
-        return m_pool;
-    }
-
-    MPool&& MSolver::pool() &&
-    {
-        return std::move(m_pool);
-    }
-
-    auto MSolver::request() const -> const Request&
-    {
-        return m_request;
-    }
-
-    namespace
-    {
-        void set_solver_flags(solv::ObjSolver& solver, const solver::Request::Flags& flags)
-        {
-            ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_DOWNGRADE, flags.allow_downgrade);
-            ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_UNINSTALL, flags.allow_uninstall);
-            ::solver_set_flag(solver.raw(), SOLVER_FLAG_STRICT_REPO_PRIORITY, flags.strict_repo_priority);
-        }
-    }
-
-    bool MSolver::try_solve()
-    {
-        auto solv_jobs = solver::libsolv::request_to_decision_queue(
-            m_request,
-            m_pool.pool(),
-            m_pool.channel_context().params(),
-            m_request.flags.force_reinstall
+        std::stringstream problems;
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            {
+                for (solv::RuleId const rule : solver().problem_rules(pb))
+                {
+                    auto const info = solver().get_rule_info(pool.pool(), rule);
+                    problems << "  - " << solver().rule_info_to_string(pool.pool(), info) << "\n";
+                }
+            }
         );
-        if (!solv_jobs)
-        {
-            throw solv_jobs.error();
-        }
-
-        m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
-        set_solver_flags(*m_solver, m_request.flags);
-
-        const bool success = solver().solve(m_pool.pool(), solv_jobs.value());
-        m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver().problem_count();
-        Console::instance().json_write({ { "success", success } });
-        return success;
+        return problems.str();
     }
 
-    void MSolver::must_solve()
+    auto UnSolvable::problems_to_str(MPool& pool) const -> std::string
     {
-        const bool success = try_solve();
-        if (!success)
-        {
-            explain_problems(LOG_ERROR);
-            throw mamba_error(
-                "Could not solve for environment specs",
-                mamba_error_code::satisfiablitity_error
-            );
-        }
+        std::stringstream problems;
+        problems << "Encountered problems while solving:\n";
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems << "  - " << solver().problem_to_string(pool.pool(), pb) << "\n"; }
+        );
+        return problems.str();
+    }
+
+    auto UnSolvable::all_problems(MPool& pool) const -> std::vector<std::string>
+    {
+        std::vector<std::string> problems;
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems.emplace_back(solver().problem_to_string(pool.pool(), pb)); }
+        );
+        return problems;
     }
 
     namespace
     {
+        struct SolverProblem
+        {
+            SolverRuleinfo type;
+            Id source_id;
+            Id target_id;
+            Id dep_id;
+            std::optional<specs::PackageInfo> source;
+            std::optional<specs::PackageInfo> target;
+            std::optional<std::string> dep;
+            std::string description;
+        };
+
         // TODO change MSolver problem
-        SolverProblem make_solver_problem(
-            const MSolver& solver,
+        auto make_solver_problem(
+            const solv::ObjSolver& solver,
             const MPool& pool,
             SolverRuleinfo type,
             Id source_id,
             Id target_id,
             Id dep_id
-        )
+        ) -> SolverProblem
         {
             return {
                 /* .type= */ type,
@@ -148,9 +108,8 @@ namespace mamba
                 /* .target= */ pool.id2pkginfo(target_id),
                 /* .dep= */ pool.dep2str(dep_id),
                 /* .description= */
-                solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver.solver().raw()),  // Not const because might
-                                                                   // alloctmp space
+                ::solver_problemruleinfo2str(
+                    const_cast<::Solver*>(solver.raw()),  // Not const because might alloctmp space
                     type,
                     source_id,
                     target_id,
@@ -158,93 +117,31 @@ namespace mamba
                 ),
             };
         }
-    }
 
-    std::vector<SolverProblem> MSolver::all_problems_structured() const
-    {
-        std::vector<SolverProblem> res = {};
-        res.reserve(solver().problem_count());  // Lower bound
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            {
-                for (solv::RuleId const rule : solver().problem_rules(pb))
+        auto all_problems_structured(const MPool& pool, const solv::ObjSolver& solver)
+            -> std::vector<SolverProblem>
+        {
+            std::vector<SolverProblem> res = {};
+            res.reserve(solver.problem_count());  // Lower bound
+            solver.for_each_problem_id(
+                [&](solv::ProblemId pb)
                 {
-                    auto info = solver().get_rule_info(m_pool.pool(), rule);
-                    res.push_back(make_solver_problem(
-                        /* solver= */ *this,
-                        /* pool= */ m_pool,
-                        /* type= */ info.type,
-                        /* source_id= */ info.from_id.value_or(0),
-                        /* target_id= */ info.to_id.value_or(0),
-                        /* dep_id= */ info.dep_id.value_or(0)
-                    ));
+                    for (solv::RuleId const rule : solver.problem_rules(pb))
+                    {
+                        auto info = solver.get_rule_info(pool.pool(), rule);
+                        res.push_back(make_solver_problem(
+                            /* solver= */ solver,
+                            /* pool= */ pool,
+                            /* type= */ info.type,
+                            /* source_id= */ info.from_id.value_or(0),
+                            /* target_id= */ info.to_id.value_or(0),
+                            /* dep_id= */ info.dep_id.value_or(0)
+                        ));
+                    }
                 }
-            }
-        );
-        return res;
-    }
-
-    std::string MSolver::all_problems_to_str() const
-    {
-        std::stringstream problems;
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            {
-                for (solv::RuleId const rule : solver().problem_rules(pb))
-                {
-                    auto const info = solver().get_rule_info(m_pool.pool(), rule);
-                    problems << "  - " << solver().rule_info_to_string(m_pool.pool(), info) << "\n";
-                }
-            }
-        );
-        return problems.str();
-    }
-
-    std::ostream& MSolver::explain_problems(std::ostream& out) const
-    {
-        const auto& ctx = m_pool.context();
-        out << "Could not solve for environment specs\n";
-        const auto pbs = problems_graph();
-        const auto pbs_simplified = simplify_conflicts(pbs);
-        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
-        print_problem_tree_msg(
-            out,
-            cp_pbs,
-            { /* .unavailable= */ ctx.graphics_params.palette.failure,
-              /* .available= */ ctx.graphics_params.palette.success }
-        );
-        return out;
-    }
-
-    std::string MSolver::explain_problems() const
-    {
-        std::stringstream ss;
-        explain_problems(ss);
-        return ss.str();
-    }
-
-    std::string MSolver::problems_to_str() const
-    {
-        std::stringstream problems;
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb) << "\n"; }
-        );
-        return "Encountered problems while solving:\n" + problems.str();
-    }
-
-    std::vector<std::string> MSolver::all_problems() const
-    {
-        std::vector<std::string> problems;
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            { problems.emplace_back(solver().problem_to_string(m_pool.pool(), pb)); }
-        );
-        return problems;
-    }
-
-    namespace
-    {
+            );
+            return res;
+        }
 
         void warn_unexpected_problem(const SolverProblem& problem)
         {
@@ -268,13 +165,13 @@ namespace mamba
             using edge_t = ProblemsGraph::edge_t;
             using conflicts_t = ProblemsGraph::conflicts_t;
 
-            ProblemsGraphCreator(const MSolver& solver, const MPool& pool);
+            ProblemsGraphCreator(const MPool& pool, const solv::ObjSolver& solver);
 
-            ProblemsGraph problem_graph() &&;
+            auto problem_graph() && -> ProblemsGraph;
 
         private:
 
-            const MSolver& m_solver;
+            const solv::ObjSolver& m_solver;
             const MPool& m_pool;
             graph_t m_graph;
             conflicts_t m_conflicts;
@@ -287,16 +184,24 @@ namespace mamba
              * If the node is already present and ``update`` is false then the current
              * node is left as it is, otherwise the new value is inserted.
              */
-            node_id add_solvable(solv::SolvableId solv_id, node_t&& pkg_info, bool update = true);
+            auto add_solvable(  //
+                solv::SolvableId solv_id,
+                node_t&& pkg_info,
+                bool update = true
+            ) -> node_id;
 
             void add_conflict(node_id n1, node_id n2);
-            [[nodiscard]] bool
-            add_expanded_deps_edges(node_id from_id, solv::SolvableId dep_id, const edge_t& edge);
+
+            [[nodiscard]] auto add_expanded_deps_edges(  //
+                node_id from_id,
+                solv::SolvableId dep_id,
+                const edge_t& edge
+            ) -> bool;
 
             void parse_problems();
         };
 
-        ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
+        ProblemsGraphCreator::ProblemsGraphCreator(const MPool& pool, const solv::ObjSolver& solver)
             : m_solver{ solver }
             , m_pool{ pool }
         {
@@ -304,13 +209,16 @@ namespace mamba
             parse_problems();
         }
 
-        ProblemsGraph ProblemsGraphCreator::problem_graph() &&
+        auto ProblemsGraphCreator::problem_graph() && -> ProblemsGraph
         {
             return { std::move(m_graph), std::move(m_conflicts), m_root_node };
         }
 
-        auto ProblemsGraphCreator::add_solvable(solv::SolvableId solv_id, node_t&& node, bool update)
-            -> node_id
+        auto ProblemsGraphCreator::add_solvable(  //
+            solv::SolvableId solv_id,
+            node_t&& node,
+            bool update
+        ) -> node_id
         {
             if (const auto iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
             {
@@ -331,11 +239,11 @@ namespace mamba
             m_conflicts.add(n1, n2);
         }
 
-        bool ProblemsGraphCreator::add_expanded_deps_edges(
+        auto ProblemsGraphCreator::add_expanded_deps_edges(
             node_id from_id,
             solv::SolvableId dep_id,
             const edge_t& edge
-        )
+        ) -> bool
         {
             bool added = false;
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
@@ -351,7 +259,7 @@ namespace mamba
 
         void ProblemsGraphCreator::parse_problems()
         {
-            for (auto& problem : m_solver.all_problems_structured())
+            for (auto& problem : all_problems_structured(m_pool, m_solver))
             {
                 std::optional<specs::PackageInfo>& source = problem.source;
                 std::optional<specs::PackageInfo>& target = problem.target;
@@ -533,9 +441,32 @@ namespace mamba
         }
     }
 
-    auto MSolver::problems_graph() const -> ProblemsGraph
+    auto UnSolvable::problems_graph(const MPool& pool) const -> ProblemsGraph
     {
-        return ProblemsGraphCreator(*this, m_pool).problem_graph();
+        assert(m_solver != nullptr);
+        return ProblemsGraphCreator(pool, *m_solver).problem_graph();
     }
 
-}  // namespace mamba
+    auto UnSolvable::explain_problems_to(MPool& pool, std::ostream& out) const -> std::ostream&
+    {
+        const auto& ctx = pool.context();
+        out << "Could not solve for environment specs\n";
+        const auto pbs = problems_graph(pool);
+        const auto pbs_simplified = simplify_conflicts(pbs);
+        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
+        print_problem_tree_msg(
+            out,
+            cp_pbs,
+            { /* .unavailable= */ ctx.graphics_params.palette.failure,
+              /* .available= */ ctx.graphics_params.palette.success }
+        );
+        return out;
+    }
+
+    auto UnSolvable::explain_problems(MPool& pool) const -> std::string
+    {
+        std::stringstream ss;
+        explain_problems_to(pool, ss);
+        return ss.str();
+    }
+}

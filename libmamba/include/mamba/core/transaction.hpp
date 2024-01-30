@@ -23,8 +23,12 @@
 
 namespace mamba
 {
+    namespace solver
+    {
+        struct Request;
+    }
+
     class ChannelContext;
-    class MSolver;
 
     class MTransaction
     {
@@ -36,7 +40,12 @@ namespace mamba
             const std::vector<specs::MatchSpec>& specs_to_install,
             MultiPackageCache& caches
         );
-        MTransaction(MPool& pool, MSolver& solver, MultiPackageCache& caches);
+        MTransaction(
+            MPool& pool,
+            const solver::Request& request,
+            solver::Solution solution,
+            MultiPackageCache& caches
+        );
 
         // Only use if the packages have been solved previously already.
         MTransaction(MPool& pool, const std::vector<specs::PackageInfo>& packages, MultiPackageCache& caches);

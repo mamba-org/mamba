@@ -101,6 +101,9 @@ The main changes are:
   solver API without ``Context``.
   It currently contains:
     - A refactoring and thinning of ``MRepo`` as a new ``RepoInfo``.
+    - A refactoring of ``Solver``, whose outcome is split between a ``Solution`` and an
+      ``UnSolvable`` state.
+    - The ``ProblemsGraph`` reach SAT error state.
 
 - Improved downloaders.
 

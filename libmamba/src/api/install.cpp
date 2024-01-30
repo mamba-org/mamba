@@ -23,11 +23,11 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -577,13 +577,11 @@ namespace mamba
                 // Console stream prints on destrucion
             }
 
-            auto solver = MSolver(pool);
-            solver.set_request(std::move(request));
+            auto outcome = solver::libsolv::Solver().solve(pool, request).value();
 
-            bool success = solver.try_solve();
-            if (!success)
+            if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
-                solver.explain_problems(LOG_ERROR);
+                unsolvable->explain_problems_to(pool, LOG_ERROR);
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;
@@ -605,8 +603,9 @@ namespace mamba
 
                 if (ctx.output_params.json)
                 {
-                    Console::instance().json_write({ { "success", false },
-                                                     { "solver_problems", solver.all_problems() } });
+                    Console::instance().json_write(
+                        { { "success", false }, { "solver_problems", unsolvable->all_problems(pool) } }
+                    );
                 }
                 throw mamba_error(
                     "Could not solve for environment specs",
@@ -621,7 +620,8 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
-            MTransaction trans(pool, solver, package_caches);
+            Console::instance().json_write({ { "success", true } });
+            auto trans = MTransaction(pool, request, std::get<solver::Solution>(outcome), package_caches);
 
             if (ctx.output_params.json)
             {

@@ -11,9 +11,10 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/request.hpp"
 
 namespace mamba
 {
@@ -171,11 +172,29 @@ namespace mamba
                     /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                 };
 
-                auto solver = MSolver(pool);
-                solver.set_request(std::move(request));
-                solver.must_solve();
+                auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+                if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
+                {
+                    if (ctx.output_params.json)
+                    {
+                        Console::instance().json_write({ { "success", false },
+                                                         { "solver_problems",
+                                                           unsolvable->all_problems(pool) } });
+                    }
+                    throw mamba_error(
+                        "Could not solve for environment specs",
+                        mamba_error_code::satisfiablitity_error
+                    );
+                }
 
-                MTransaction transaction(pool, solver, package_caches);
+                Console::instance().json_write({ { "success", true } });
+                auto transaction = MTransaction(
+                    pool,
+                    request,
+                    std::get<solver::Solution>(outcome),
+                    package_caches
+                );
+
                 execute_transaction(transaction);
             }
         }

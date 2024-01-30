@@ -26,9 +26,11 @@
 
 namespace mamba
 {
-
-    class MSolver;
     class MPool;
+}
+
+namespace mamba::solver
+{
 
     template <typename T>
     class conflict_map : private std::unordered_map<T, util::flat_set<T>>
@@ -45,23 +47,23 @@ namespace mamba
 
         using Base::empty;
         using Base::size;
-        bool has_conflict(const key_type& a) const;
-        auto conflicts(const key_type& a) const -> const util::flat_set<T>&;
-        bool in_conflict(const key_type& a, const key_type& b) const;
+        [[nodiscard]] auto has_conflict(const key_type& a) const -> bool;
+        [[nodiscard]] auto conflicts(const key_type& a) const -> const util::flat_set<T>&;
+        [[nodiscard]] auto in_conflict(const key_type& a, const key_type& b) const -> bool;
 
         using Base::cbegin;
         using Base::cend;
-        const_iterator begin() const noexcept;
-        const_iterator end() const noexcept;
+        auto begin() const noexcept -> const_iterator;
+        auto end() const noexcept -> const_iterator;
 
         using Base::clear;
-        bool add(const key_type& a, const key_type& b);
-        bool remove(const key_type& a, const key_type& b);
-        bool remove(const key_type& a);
+        auto add(const key_type& a, const key_type& b) -> bool;
+        auto remove(const key_type& a, const key_type& b) -> bool;
+        auto remove(const key_type& a) -> bool;
 
     private:
 
-        bool remove_asym(const key_type& a, const key_type& b);
+        auto remove_asym(const key_type& a, const key_type& b) -> bool;
     };
 
     /**
@@ -97,9 +99,9 @@ namespace mamba
 
         ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
-        const graph_t& graph() const noexcept;
-        const conflicts_t& conflicts() const noexcept;
-        node_id root_node() const noexcept;
+        [[nodiscard]] auto graph() const noexcept -> const graph_t&;
+        [[nodiscard]] auto conflicts() const noexcept -> const conflicts_t&;
+        [[nodiscard]] auto root_node() const noexcept -> node_id;
 
     private:
 
@@ -111,7 +113,7 @@ namespace mamba
     /**
      * Hand-crafted hurisitics to simplify conflicts in messy situations.
      */
-    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs);
+    auto simplify_conflicts(const ProblemsGraph& pbs) -> ProblemsGraph;
 
     class CompressedProblemsGraph
     {
@@ -132,7 +134,7 @@ namespace mamba
         template <typename T>
         struct RoughCompare
         {
-            bool operator()(const T& a, const T& b) const;
+            auto operator()(const T& a, const T& b) const -> bool;
         };
 
         /**
@@ -158,36 +160,36 @@ namespace mamba
 
             using Base::empty;
             using Base::size;
-            const value_type& front() const noexcept;
-            const value_type& back() const noexcept;
+            auto front() const noexcept -> const value_type&;
+            auto back() const noexcept -> const value_type&;
             using Base::cbegin;
             using Base::cend;
             using Base::crbegin;
             using Base::crend;
-            const_iterator begin() const noexcept;
-            const_iterator end() const noexcept;
-            const_reverse_iterator rbegin() const noexcept;
-            const_reverse_iterator rend() const noexcept;
+            auto begin() const noexcept -> const_iterator;
+            auto end() const noexcept -> const_iterator;
+            auto rbegin() const noexcept -> const_reverse_iterator;
+            auto rend() const noexcept -> const_reverse_iterator;
 
-            const std::string& name() const;
-            std::pair<std::string, std::size_t> versions_trunc(
+            [[nodiscard]] auto name() const -> const std::string&;
+            [[nodiscard]] auto versions_trunc(
                 std::string_view sep = "|",
                 std::string_view etc = "...",
                 std::size_t threshold = 5,
                 bool remove_duplicates = true
-            ) const;
-            std::pair<std::string, std::size_t> build_strings_trunc(
+            ) const -> std::pair<std::string, std::size_t>;
+            [[nodiscard]] auto build_strings_trunc(
                 std::string_view sep = "|",
                 std::string_view etc = "...",
                 std::size_t threshold = 5,
                 bool remove_duplicates = true
-            ) const;
-            std::pair<std::string, std::size_t> versions_and_build_strings_trunc(
+            ) const -> std::pair<std::string, std::size_t>;
+            [[nodiscard]] auto versions_and_build_strings_trunc(
                 std::string_view sep = "|",
                 std::string_view etc = "...",
                 std::size_t threshold = 5,
                 bool remove_duplicates = true
-            ) const;
+            ) const -> std::pair<std::string, std::size_t>;
 
             using Base::clear;
             using Base::reserve;
@@ -226,9 +228,9 @@ namespace mamba
 
         CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
-        const graph_t& graph() const noexcept;
-        const conflicts_t& conflicts() const noexcept;
-        node_id root_node() const noexcept;
+        [[nodiscard]] auto graph() const noexcept -> const graph_t&;
+        [[nodiscard]] auto conflicts() const noexcept -> const conflicts_t&;
+        [[nodiscard]] auto root_node() const noexcept -> node_id;
 
     private:
 
@@ -247,13 +249,16 @@ namespace mamba
         std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
     };
 
-    std::ostream& print_problem_tree_msg(
+    auto print_problem_tree_msg(
         std::ostream& out,
         const CompressedProblemsGraph& pbs,
         const ProblemsMessageFormat& format = {}
-    );
-    std::string
-    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format = {});
+    ) -> std::ostream&;
+
+    auto problem_tree_msg(  //
+        const CompressedProblemsGraph& pbs,
+        const ProblemsMessageFormat& format = {}
+    ) -> std::string;
 
     /************************************
      *  Implementation of conflict_map  *
@@ -269,7 +274,7 @@ namespace mamba
     }
 
     template <typename T>
-    bool conflict_map<T>::has_conflict(const key_type& a) const
+    auto conflict_map<T>::has_conflict(const key_type& a) const -> bool
     {
         return Base::find(a) != end();
     }
@@ -281,7 +286,7 @@ namespace mamba
     }
 
     template <typename T>
-    bool conflict_map<T>::in_conflict(const key_type& a, const key_type& b) const
+    auto conflict_map<T>::in_conflict(const key_type& a, const key_type& b) const -> bool
     {
         return has_conflict(a) && Base::at(a).contains(b);
     }
@@ -299,7 +304,7 @@ namespace mamba
     }
 
     template <typename T>
-    bool conflict_map<T>::add(const key_type& a, const key_type& b)
+    auto conflict_map<T>::add(const key_type& a, const key_type& b) -> bool
     {
         auto [_, inserted] = Base::operator[](a).insert(b);
         if (a != b)
@@ -310,7 +315,7 @@ namespace mamba
     }
 
     template <typename T>
-    bool conflict_map<T>::remove_asym(const key_type& a, const key_type& b)
+    auto conflict_map<T>::remove_asym(const key_type& a, const key_type& b) -> bool
     {
         auto iter = Base::find(a);
         if (iter == Base::end())
@@ -327,13 +332,13 @@ namespace mamba
     };
 
     template <typename T>
-    bool conflict_map<T>::remove(const key_type& a, const key_type& b)
+    auto conflict_map<T>::remove(const key_type& a, const key_type& b) -> bool
     {
         return remove_asym(a, b) && ((a == b) || remove_asym(b, a));
     }
 
     template <typename T>
-    bool conflict_map<T>::remove(const key_type& a)
+    auto conflict_map<T>::remove(const key_type& a) -> bool
     {
         auto a_iter = Base::find(a);
         if (a_iter == Base::end())

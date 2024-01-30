@@ -6,31 +6,32 @@
 
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <doctest/doctest.h>
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
-#include <solv/solver.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/satisfiability_error.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/libsolv/unsolvable.hpp"
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/specs/package_info.hpp"
-#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
 
 using namespace mamba;
+using namespace mamba::solver;
 
-TEST_SUITE("conflict_map")
+TEST_SUITE("solver::conflict_map")
 {
     TEST_CASE("symetric")
     {
@@ -75,30 +76,12 @@ TEST_SUITE("conflict_map")
     }
 }
 
-TEST_SUITE_BEGIN("satisfiability_error");
+TEST_SUITE_BEGIN("solver::problems_graph");
 
 namespace
 {
     using namespace mamba::specs::match_spec_literals;
-
-    /**
-     * A RAII object to ensure a path exists only for the lifetime of the guard.
-     */
-    struct dir_guard
-    {
-        fs::u8path path;
-
-        dir_guard(fs::u8path&& path_)
-            : path(std::move(path_))
-        {
-            fs::create_directories(path);
-        }
-
-        ~dir_guard()
-        {
-            fs::remove_all(path);
-        }
-    };
+    using Request = solver::Request;
 
     /**
      * Simple factory for building a specs::PackageInfo.
@@ -114,95 +97,58 @@ namespace
     }
 
     /**
-     * Create the repodata.json file containing the package information.
-     */
-    template <typename PkgRange>
-    auto create_repodata_json(fs::u8path dir, const PkgRange& packages) -> fs::u8path
-    {
-        namespace nl = nlohmann;
-
-        auto packages_j = nl::json::object();
-        for (const auto& pkg : packages)
-        {
-            auto fname = fmt::format("{}-{}-{}.tar.bz2", pkg.name, pkg.version, pkg.build_string);
-            packages_j[std::move(fname)] = nl::json(pkg);
-        }
-        auto repodata_j = nl::json::object();
-        repodata_j["packages"] = std::move(packages_j);
-
-        fs::create_directories(dir / "noarch");
-        auto repodata_f = dir / "noarch/repodata.json";
-        open_ofstream(repodata_f, std::ofstream::app) << repodata_j;
-
-        return repodata_f;
-    }
-
-    using Request = solver::Request;
-
-    /**
      * Create a solver and a pool of a conflict.
      *
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto
-    create_problem(Context& ctx, ChannelContext& channel_context, const PkgRange& packages, Request request)
+    auto create_pkgs_pool(Context& ctx, ChannelContext& channel_context, const PkgRange& packages)
     {
-        const auto tmp_dir = dir_guard(
-            fs::temp_directory_path() / "mamba/tests" / util::generate_random_alphanumeric_string(20)
-        );
-        const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
-
         auto pool = MPool{ ctx, channel_context };
-        pool.add_repo_from_repodata_json(repodata_f, "some-url");
-        auto solver = MSolver(std::move(pool));
-        solver.set_request(std::move(request));
-
-        return solver;
+        pool.add_repo_from_packages(packages);
+        return pool;
     }
 }
 
-TEST_CASE("Test create_problem utility")
+TEST_CASE("Test create_pool utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_problem(
-        ctx,
-        channel_context,
-        std::array{ mkpkg("foo", "0.1.0", {}) },
-        { {}, { Request::Install{ "foo"_ms } } }
-    );
-    const auto solved = solver.try_solve();
-    REQUIRE(solved);
+    auto pool = create_pkgs_pool(ctx, channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
+    auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
+    const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+    REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
 TEST_CASE("Test empty specs")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_problem(
+    auto pool = create_pkgs_pool(
         ctx,
         channel_context,
-        std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
-        { {}, { Request::Install{ "foo"_ms } } }
+        std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
     );
-    const auto solved = solver.try_solve();
-    REQUIRE(solved);
+    auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
+    const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+    REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
 namespace
 {
-    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context)
     {
-        return create_problem(
-            ctx,
-            channel_context,
-            std::array{
-                mkpkg("A", "0.1.0"),
-                mkpkg("A", "0.2.0"),
-                mkpkg("A", "0.3.0"),
-            },
-            { {}, { Request::Install{ "A=0.4.0"_ms } } }
+        return std::pair(
+            create_pkgs_pool(
+                ctx,
+                channel_context,
+                std::array{
+                    mkpkg("A", "0.1.0"),
+                    mkpkg("A", "0.2.0"),
+                    mkpkg("A", "0.3.0"),
+                }
+            ),
+            Request{ {}, { Request::Install{ "A=0.4.0"_ms } } }
         );
     }
 
@@ -212,40 +158,43 @@ namespace
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub(Context& ctx, ChannelContext& channel_context)
     {
-        return create_problem(
-            ctx,
-            channel_context,
-            std::array{
-                mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
-                mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
-                mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
-                mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
-                mkpkg("menu", "1.1.0", { "dropdown=2.*" }),
-                mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
-                mkpkg("dropdown", "2.3.0", { "icons=2.*" }),
-                mkpkg("dropdown", "2.2.0", { "icons=2.*" }),
-                mkpkg("dropdown", "2.1.0", { "icons=2.*" }),
-                mkpkg("dropdown", "2.0.0", { "icons=2.*" }),
-                mkpkg("dropdown", "1.8.0", { "icons=1.*", "intl=3.*" }),
-                mkpkg("icons", "2.0.0"),
-                mkpkg("icons", "1.0.0"),
-                mkpkg("intl", "5.0.0"),
-                mkpkg("intl", "4.0.0"),
-                mkpkg("intl", "3.0.0"),
-            },
-            { {},
-              {
-                  Request::Install{ "menu"_ms },
-                  Request::Install{ "icons=1.*"_ms },
-                  Request::Install{ "intl=5.*"_ms },
-              } }
+        return std::pair(
+            create_pkgs_pool(
+                ctx,
+                channel_context,
+                std::array{
+                    mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
+                    mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
+                    mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
+                    mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
+                    mkpkg("menu", "1.1.0", { "dropdown=2.*" }),
+                    mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
+                    mkpkg("dropdown", "2.3.0", { "icons=2.*" }),
+                    mkpkg("dropdown", "2.2.0", { "icons=2.*" }),
+                    mkpkg("dropdown", "2.1.0", { "icons=2.*" }),
+                    mkpkg("dropdown", "2.0.0", { "icons=2.*" }),
+                    mkpkg("dropdown", "1.8.0", { "icons=1.*", "intl=3.*" }),
+                    mkpkg("icons", "2.0.0"),
+                    mkpkg("icons", "1.0.0"),
+                    mkpkg("intl", "5.0.0"),
+                    mkpkg("intl", "4.0.0"),
+                    mkpkg("intl", "3.0.0"),
+                }
+            ),
+            Request{
+                {},
+                {
+                    Request::Install{ "menu"_ms },
+                    Request::Install{ "icons=1.*"_ms },
+                    Request::Install{ "intl=5.*"_ms },
+                },
+            }
         );
     }
 
     auto create_pubgrub_hard_(Context& ctx, ChannelContext& channel_context, bool missing_package)
-        -> MSolver
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
@@ -294,25 +243,25 @@ namespace
             packages.push_back(mkpkg("dropdown", "2.9.1", { "libicons>10.0", "libnothere>1.0" }));
             packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
-        return create_problem(
-            ctx,
-            channel_context,
-            packages,
-            { {},
-              {
-                  Request::Install{ "menu"_ms },
-                  Request::Install{ "pyicons=1.*"_ms },
-                  Request::Install{ "intl=5.*"_ms },
-                  Request::Install{ "intl-mod"_ms },
-                  Request::Install{ "pretty>=1.0"_ms },
-              } }
+        return std::pair(
+            create_pkgs_pool(ctx, channel_context, packages),
+            Request{
+                {},
+                {
+                    Request::Install{ "menu"_ms },
+                    Request::Install{ "pyicons=1.*"_ms },
+                    Request::Install{ "intl=5.*"_ms },
+                    Request::Install{ "intl-mod"_ms },
+                    Request::Install{ "pretty>=1.0"_ms },
+                },
+            }
         );
     }
 
     /**
      * A harder version of ``create_pubgrub``.
      */
-    auto create_pubgrub_hard(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub_hard(Context& ctx, ChannelContext& channel_context)
     {
         return create_pubgrub_hard_(ctx, channel_context, false);
     }
@@ -320,19 +269,9 @@ namespace
     /**
      * The hard version of the alternate PubGrub with missing packages.
      */
-    auto create_pubgrub_missing(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub_missing(Context& ctx, ChannelContext& channel_context)
     {
         return create_pubgrub_hard_(ctx, channel_context, true);
-    }
-
-    template <typename T, typename E>
-    auto expected_value_or_throw(tl::expected<T, E>&& ex)
-    {
-        if (!ex.has_value())
-        {
-            throw ex.error();
-        }
-        return std::move(ex).value();
     }
 
     auto
@@ -358,14 +297,15 @@ namespace
             {
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = expected_value_or_throw(SubdirData::create(
-                        ctx,
-                        pool.channel_context(),
-                        chan,
-                        platform,
-                        chan.platform_url(platform).str(),
-                        cache
-                    ));
+                    auto sub_dir = SubdirData::create(
+                                       ctx,
+                                       pool.channel_context(),
+                                       chan,
+                                       platform,
+                                       chan.platform_url(platform).str(),
+                                       cache
+                    )
+                                       .value();
                     sub_dirs.push_back(std::move(sub_dir));
                 }
             }
@@ -382,29 +322,25 @@ namespace
     /**
      * Create a solver and a pool of a conflict from conda-forge packages.
      */
-    auto create_conda_forge(
+    auto create_conda_forge_pool(
         Context& ctx,
         ChannelContext& channel_context,
-        Request&& request,
         const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
         std::vector<std::string>&& channels = { "conda-forge" },
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
-    ) -> MSolver
+    )
     {
         // Reusing the cache for all invocation of this funciton for speedup
-        static const auto tmp_dir = dir_guard(
-            fs::temp_directory_path() / "mamba/tests" / util::generate_random_alphanumeric_string(20)
-        );
 
-        auto prefix_data = expected_value_or_throw(
-            PrefixData::create(tmp_dir.path / "prefix", channel_context)
-        );
+        static const auto tmp_dir = TemporaryDirectory();
+
+        auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
         prefix_data.add_packages(virtual_packages);
         auto pool = MPool{ ctx, channel_context };
 
         load_installed_packages_in_pool(ctx, pool, prefix_data);
 
-        auto cache = MultiPackageCache({ tmp_dir.path / "cache" }, ctx.validation_params);
+        auto cache = MultiPackageCache({ tmp_dir.path() / "cache" }, ctx.validation_params);
         create_cache_dir(cache.first_writable_path());
 
         bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
@@ -412,10 +348,7 @@ namespace
         load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = MSolver(std::move(pool));
-        solver.set_request(std::move(request));
-
-        return solver;
+        return pool;
     }
 }
 
@@ -423,102 +356,137 @@ TEST_CASE("Test create_conda_forge utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_conda_forge(
-        ctx,
-        channel_context,
-        { {}, { Request::Install{ "xtensor>=0.7"_ms } } }
-    );
-    const auto solved = solver.try_solve();
-    REQUIRE(solved);
+    auto pool = create_conda_forge_pool(ctx, channel_context);
+    auto request = Request{ {}, { Request::Install{ "xtensor>=0.7"_ms } } };
+    const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+    REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
 namespace
 {
-    auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {}, { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } }
+        return std::pair(
+            create_conda_forge_pool(ctx, channel_context),
+            Request{
+                {},
+                {
+                    Request::Install{ "python=2.7"_ms },
+                    Request::Install{ "pytorch=1.12"_ms },
+                },
+            }
         );
     }
 
-    auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {}, { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } },
-            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
+        return std::pair(
+            create_conda_forge_pool(
+                ctx,
+                channel_context,
+                { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
+            ),
+            Request{
+                {},
+                {
+                    Request::Install{ "python=2.7"_ms },
+                    Request::Install{ "pytorch=1.12"_ms },
+                },
+            }
         );
     }
 
-    auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {},
-              {
-                  Request::Install{ "python=3.7"_ms },
-                  Request::Install{ "cudatoolkit=11.1"_ms },
-                  Request::Install{ "cudnn=8.0"_ms },
-                  Request::Install{ "pytorch=1.8"_ms },
-                  Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
-              } },
-            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
+        return std::pair(
+            create_conda_forge_pool(
+                ctx,
+                channel_context,
+                { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
+            ),
+            Request{
+                {},
+                {
+                    Request::Install{ "python=3.7"_ms },
+                    Request::Install{ "cudatoolkit=11.1"_ms },
+                    Request::Install{ "cudnn=8.0"_ms },
+                    Request::Install{ "pytorch=1.8"_ms },
+                    Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
+                },
+            }
         );
     }
 
-    auto create_jpeg9b(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_jpeg9b(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {}, { Request::Install{ "python=3.7"_ms }, Request::Install{ "jpeg=9b"_ms } } }
+        return std::pair(
+            create_conda_forge_pool(ctx, channel_context),
+            Request{
+                {},
+                {
+                    Request::Install{ "python=3.7"_ms },
+                    Request::Install{ "jpeg=9b"_ms },
+                },
+            }
         );
     }
 
-    auto create_r_base(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_r_base(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {},
-              {
-                  Request::Install{ "r-base=3.5.* "_ms },
-                  Request::Install{ "pandas=0"_ms },
-                  Request::Install{ "numpy<1.20.0"_ms },
-                  Request::Install{ "matplotlib=2"_ms },
-                  Request::Install{ "r-matchit=4.*"_ms },
-              } }
+        return std::pair(
+            create_conda_forge_pool(ctx, channel_context),
+            Request{
+                {},
+                {
+                    Request::Install{ "r-base=3.5.* "_ms },
+                    Request::Install{ "pandas=0"_ms },
+                    Request::Install{ "numpy<1.20.0"_ms },
+                    Request::Install{ "matplotlib=2"_ms },
+                    Request::Install{ "r-matchit=4.*"_ms },
+                },
+            }
         );
     }
 
-    auto create_scip(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_scip(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {}, { Request::Install{ "scip=8.*"_ms }, Request::Install{ "pyscipopt<4.0"_ms } } }
+        return std::pair(
+            create_conda_forge_pool(ctx, channel_context),
+            Request{
+                {},
+                {
+                    Request::Install{ "scip=8.*"_ms },
+                    Request::Install{ "pyscipopt<4.0"_ms },
+                },
+            }
         );
     }
 
-    auto create_double_python(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_double_python(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {}, { Request::Install{ "python=3.9.*"_ms }, Request::Install{ "python=3.10.*"_ms } } }
+        return std::pair(
+            create_conda_forge_pool(ctx, channel_context),
+            Request{
+                {},
+                {
+                    Request::Install{ "python=3.9.*"_ms },
+                    Request::Install{ "python=3.10.*"_ms },
+                },
+            }
         );
     }
 
-    auto create_numba(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_numba(Context& ctx, ChannelContext& channel_context)
     {
-        return create_conda_forge(
-            ctx,
-            channel_context,
-            { {}, { Request::Install{ "python=3.11"_ms }, Request::Install{ "numba<0.56"_ms } } }
+        return std::pair(
+            create_conda_forge_pool(ctx, channel_context),
+            Request{
+                {},
+                {
+                    Request::Install{ "python=3.11"_ms },
+                    Request::Install{ "numba<0.56"_ms },
+                },
+            }
         );
     }
 
@@ -607,10 +575,11 @@ TEST_CASE("Create problem graph")
         // Somehow the capture does not work directly on ``name``
         std::string_view name_copy = name;
         CAPTURE(name_copy);
-        auto solver = factory(ctx, channel_context);
-        const auto solved = solver.try_solve();
-        REQUIRE_FALSE(solved);
-        const auto pbs_init = solver.problems_graph();
+        auto [pool, request] = factory(ctx, channel_context);
+        auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+        // REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
+        auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
+        const auto pbs_init = unsolvable.problems_graph(pool);
         const auto& graph_init = pbs_init.graph();
 
         REQUIRE_GE(graph_init.number_of_nodes(), 1);

@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/selection.h>
+#include <solv/solver.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -25,7 +26,6 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -33,7 +33,6 @@
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
-#include "solv-cpp/solver.hpp"
 #include "solv-cpp/transaction.hpp"
 
 #include "solver/helpers.hpp"
@@ -211,50 +210,28 @@ namespace mamba
         );
     }
 
-    MTransaction::MTransaction(MPool& p_pool, MSolver& solver, MultiPackageCache& caches)
+    MTransaction::MTransaction(
+        MPool& p_pool,
+        const solver::Request& request,
+        solver::Solution solution,
+        MultiPackageCache& caches
+    )
         : MTransaction(p_pool, caches)
     {
-        if (!solver.is_solved())
-        {
-            throw std::runtime_error("Cannot create transaction without calling solver.solve() first."
-            );
-        }
         auto& pool = m_pool.pool();
 
-        auto trans = solv::ObjTransaction::from_solver(pool, solver.solver());
-        trans.order(pool);
-
-        const auto& flags = solver.request().flags;
-        if (flags.keep_user_specs && flags.keep_dependencies)
-        {
-            m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
-        }
-        else if (flags.keep_user_specs && !flags.keep_dependencies)
-        {
-            m_solution = solver::libsolv::transaction_to_solution_no_deps(
-                m_pool.pool(),
-                trans,
-                solver.request()
-            );
-        }
-        else if (!flags.keep_user_specs && flags.keep_dependencies)
-        {
-            m_solution = solver::libsolv::transaction_to_solution_only_deps(
-                m_pool.pool(),
-                trans,
-                solver.request()
-            );
-        }
+        const auto& flags = request.flags;
+        m_solution = std::move(solution);
 
         if (flags.keep_user_specs)
         {
             using Request = solver::Request;
             solver::for_each_of<Request::Install, Request::Update>(
-                solver.request(),
+                request,
                 [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
             );
             solver::for_each_of<Request::Remove, Request::Update>(
-                solver.request(),
+                request,
                 [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
             );
         }
@@ -276,7 +253,7 @@ namespace mamba
         auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
-            solver.request(),
+            request,
             [&](const auto& item) { requested_specs.push_back(item.spec); }
         );
         const auto& context = m_pool.context();

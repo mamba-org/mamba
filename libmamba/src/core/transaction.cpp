@@ -179,7 +179,7 @@ namespace mamba
         // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
         // ``fetch_extract_packages`` is called.
 
-        m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
+        m_solution = solver::libsolv::transaction_to_solution_all(m_pool.pool(), trans);
 
         m_history_entry.remove.reserve(specs_to_remove.size());
         for (auto& s : specs_to_remove)
@@ -307,7 +307,7 @@ namespace mamba
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
         trans.order(m_pool.pool());
 
-        m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
+        m_solution = solver::libsolv::transaction_to_solution_all(m_pool.pool(), trans);
 
         std::vector<specs::MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)

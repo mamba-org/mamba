@@ -1416,7 +1416,12 @@ namespace mamba
                         With channel priority disabled, package version takes precedence, and the
                         configured priority of channels is used only to break ties. In
                         previous versions of conda, this parameter was configured as either
-                        True or False. True is now an alias to 'flexible'.)")));
+                        True or False. True is now an alias to 'flexible'.)"))
+                   .set_post_merge_hook<ChannelPriority>(
+                       [&](ChannelPriority& value) {
+                           m_context.solver_flags.strict_repo_priority = (value == ChannelPriority::Strict);
+                       }
+                   ));
 
         insert(Configurable("explicit_install", false)
                    .group("Solver")
@@ -1462,18 +1467,41 @@ namespace mamba
                    .group("Solver")
                    .description("Freeze already installed dependencies"));
 
-        insert(
-            Configurable("force_reinstall", false).group("Solver").description("Force reinstall of package")
-        );
-
         insert(Configurable("no_deps", false)
                    .group("Solver")
                    .description("Do not install dependencies. This WILL lead to broken environments "
-                                "and inconsistent behavior. Use at your own risk"));
+                                "and inconsistent behavior. Use at your own risk")
+                   .set_post_merge_hook<bool>([&](bool& value)
+                                              { m_context.solver_flags.keep_dependencies = !value; }));
 
-        insert(
-            Configurable("only_deps", false).group("Solver").description("Only install dependencies")
-        );
+        insert(Configurable("only_deps", false)
+                   .group("Solver")
+                   .description("Only install dependencies")
+                   .set_post_merge_hook<bool>([&](bool& value)
+                                              { m_context.solver_flags.keep_user_specs = !value; }));
+
+        insert(Configurable("force_reinstall", &m_context.solver_flags.force_reinstall)
+                   .group("Solver")
+                   .description("Force reinstall of package"));
+
+        insert(Configurable("allow_uninstall", &m_context.solver_flags.allow_uninstall)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Allow uninstall when installing or updating packages. Default is true."
+                   ));
+
+        insert(Configurable("allow_downgrade", &m_context.solver_flags.allow_downgrade)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Allow downgrade when installing packages. Default is false."));
+
+        insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Order the solver request specs to get a deterministic solution."));
 
         insert(Configurable("categories", std::vector<std::string>({ "main" }))
                    .group("Solver")
@@ -1483,19 +1511,6 @@ namespace mamba
                    .group("Solver")
                    .set_env_var_names()
                    .description("If solve fails, try to fetch updated repodata"));
-
-        insert(Configurable("allow_uninstall", &m_context.allow_uninstall)
-                   .group("Solver")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Allow uninstall when installing or updating packages. Default is true."
-                   ));
-
-        insert(Configurable("allow_downgrade", &m_context.allow_downgrade)
-                   .group("Solver")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Allow downgrade when installing packages. Default is false."));
 
         // Extract, Link & Install
         insert(Configurable("download_threads", &m_context.threads_params.download_threads)

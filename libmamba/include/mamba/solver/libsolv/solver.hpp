@@ -14,14 +14,18 @@
 
 namespace mamba::solver::libsolv
 {
-
     class Solver
     {
     public:
 
         using Outcome = std::variant<Solution, UnSolvable>;
 
+        [[nodiscard]] auto solve(MPool& pool, Request&& request) -> expected_t<Outcome>;
         [[nodiscard]] auto solve(MPool& pool, const Request& request) -> expected_t<Outcome>;
+
+    private:
+
+        auto solve_impl(MPool& pool, const Request& request) -> expected_t<Outcome>;
     };
 }
-#endif  // MAMBA_SOLVER_HPP
+#endif

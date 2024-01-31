@@ -17,6 +17,7 @@
 #include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/request.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"
@@ -163,8 +164,7 @@ namespace mamba
         bool register_envs = true;
 
         // solver options
-        bool allow_uninstall = true;
-        bool allow_downgrade = false;
+        solver::Request::Flags solver_flags = {};
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

@@ -500,9 +500,6 @@ namespace mamba
             auto& no_pin = config.at("no_pin").value<bool>();
             auto& no_py_pin = config.at("no_py_pin").value<bool>();
             auto& freeze_installed = config.at("freeze_installed").value<bool>();
-            auto& force_reinstall = config.at("force_reinstall").value<bool>();
-            auto& no_deps = config.at("no_deps").value<bool>();
-            auto& only_deps = config.at("only_deps").value<bool>();
             auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
             if (ctx.prefix_params.target_prefix.empty())
@@ -562,14 +559,7 @@ namespace mamba
 
             auto request = create_install_request(prefix_data, specs, freeze_installed);
             add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
-            request.flags = {
-                /* .keep_dependencies= */ !no_deps,
-                /* .keep_user_specs= */ !only_deps,
-                /* .force_reinstall= */ force_reinstall,
-                /* .allow_downgrade= */ ctx.allow_downgrade,
-                /* .allow_uninstall= */ ctx.allow_uninstall,
-                /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
-            };
+            request.flags = ctx.solver_flags;
 
             {
                 auto out = Console::stream();

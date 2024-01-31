@@ -781,6 +781,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
+        .def_readwrite("solver_flags", &Context::solver_flags)
         .def_property(
             "experimental_sat_error_message",
             [](const Context&)

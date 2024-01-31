@@ -20,6 +20,7 @@ namespace mambapy
     void bind_submodule_solver_libsolv(pybind11::module_ m)
     {
         namespace py = pybind11;
+        using namespace mamba;
         using namespace mamba::solver::libsolv;
 
         py::enum_<RepodataParser>(m, "RepodataParser")
@@ -98,7 +99,11 @@ namespace mambapy
 
         py::class_<Solver>(m, "Solver")  //
             .def(py::init())
-            .def("solve", &Solver::solve)
+            .def(
+                "solve",
+                [](Solver& self, MPool& pool, const solver::Request& request)
+                { return self.solve(pool, request); }
+            )
             .def("add_jobs", solver_job_v2_migrator)
             .def("add_global_job", solver_job_v2_migrator)
             .def("add_pin", solver_job_v2_migrator)

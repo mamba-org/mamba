@@ -146,14 +146,8 @@ namespace mamba
             /* no_pin= */ config.at("no_pin").value<bool>(),
             /* no_py_pin = */ config.at("no_py_pin").value<bool>()
         );
-        request.flags = {
-            /* .keep_dependencies= */ true,
-            /* .keep_user_specs= */ true,
-            /* .force_reinstall= */ false,
-            /* .allow_downgrade= */ ctx.allow_downgrade,
-            /* .allow_uninstall= */ ctx.allow_uninstall,
-            /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
-        };
+
+        request.flags = ctx.solver_flags;
 
         {
             auto out = Console::stream();

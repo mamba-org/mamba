@@ -37,6 +37,8 @@ Breaking changes include:
 - ``micromamba shell init`` root prefix parameter ``--prefix`` (``-p``) was renamed
   ``--root-prefix`` (``-r``).
   Both options were supported in version ``1.5``.
+- A new config `order_solver_request` (default true) can be used to order the dependencies passed
+  to the solver, getting order independent solutions.
 
 .. TODO is micromamba executable renamed mamba?
 

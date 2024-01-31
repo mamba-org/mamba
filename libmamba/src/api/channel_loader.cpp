@@ -13,6 +13,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -137,6 +138,8 @@ namespace mamba
                 }
             }
 
+            auto packages = std::vector<specs::PackageInfo>();
+
             for (const auto& location : ctx.channels)
             {
                 // TODO: C++20, replace with contains
@@ -144,6 +147,13 @@ namespace mamba
                 {
                     for (auto channel : pool.channel_context().make_channel(location))
                     {
+                        if (channel.is_package())
+                        {
+                            auto pkg_info = specs::PackageInfo::from_url(channel.url().str());
+                            packages.push_back(pkg_info);
+                            continue;
+                        }
+
                         create_mirrors(channel, ctx.mirrors);
                         create_subdirs(
                             ctx,
@@ -158,6 +168,11 @@ namespace mamba
                         );
                     }
                 }
+            }
+
+            if (!packages.empty())
+            {
+                pool.add_repo_from_packages(packages, "packages");
             }
 
             expected_t<void> download_res;

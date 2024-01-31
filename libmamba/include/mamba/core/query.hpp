@@ -47,21 +47,27 @@ namespace mamba
         auto operator=(const QueryResult&) -> QueryResult& = default;
         auto operator=(QueryResult&&) -> QueryResult& = default;
 
-        [[nodiscard]] auto query_type() const -> QueryType;
+        [[nodiscard]] auto type() const -> QueryType;
         [[nodiscard]] auto query() const -> const std::string&;
+        [[nodiscard]] auto empty() const -> bool;
 
         auto sort(std::string_view field) -> QueryResult&;
+
         auto groupby(std::string_view field) -> QueryResult&;
+
         auto reset() -> QueryResult&;
 
         auto table(std::ostream&) const -> std::ostream&;
         auto table(std::ostream&, const std::vector<std::string_view>& fmt) const -> std::ostream&;
+        [[nodiscard]] auto table_to_str() const -> std::string;
+
         auto tree(std::ostream&, const GraphicsParams& graphics) const -> std::ostream&;
+        [[nodiscard]] auto tree_to_str(const GraphicsParams& graphics) const -> std::string;
+
         [[nodiscard]] auto json() const -> nlohmann::json;
 
-        auto pretty(std::ostream&, const Context::OutputParams& outputParams) const -> std::ostream&;
-
-        [[nodiscard]] auto empty() const -> bool;
+        auto pretty(std::ostream&, bool show_all_builds) const -> std::ostream&;
+        [[nodiscard]] auto pretty_to_str(bool show_all_builds) const -> std::string;
 
     private:
 

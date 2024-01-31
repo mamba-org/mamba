@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,16 @@ namespace mamba
         Pretty = 3,
         RecursiveTable = 4,
     };
+
+    [[nodiscard]] auto make_repoquery(
+        MPool& pool,
+        QueryType type,
+        QueryResultFormat format,
+        const std::vector<std::string>& queries,
+        bool show_all_builds,
+        const Context::GraphicsParams& graphics_params,
+        std::ostream& out
+    ) -> bool;
 
     [[nodiscard]] auto repoquery(
         Configuration& config,

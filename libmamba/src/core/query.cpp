@@ -514,7 +514,7 @@ namespace mamba
         reset_pkg_view_list();
     }
 
-    auto QueryResult::query_type() const -> QueryType
+    auto QueryResult::type() const -> QueryType
     {
         return m_type;
     }
@@ -588,6 +588,13 @@ namespace mamba
               "Channel",
               "Subdir" }
         );
+    }
+
+    auto QueryResult::table_to_str() const -> std::string
+    {
+        auto ss = std::stringstream();
+        table(ss);
+        return ss.str();
     }
 
     namespace
@@ -867,6 +874,13 @@ namespace mamba
         return out;
     }
 
+    auto QueryResult::tree_to_str(const Context::GraphicsParams& params) const -> std::string
+    {
+        auto ss = std::stringstream();
+        tree(ss, params);
+        return ss.str();
+    }
+
     auto QueryResult::json() const -> nlohmann::json
     {
         nlohmann::json j;
@@ -912,8 +926,7 @@ namespace mamba
         return j;
     }
 
-    auto QueryResult::pretty(std::ostream& out, const Context::OutputParams& outputParams) const
-        -> std::ostream&
+    auto QueryResult::pretty(std::ostream& out, bool show_all_builds) const -> std::ostream&
     {
         if (m_pkg_id_list.empty())
         {
@@ -934,11 +947,18 @@ namespace mamba
                     out,
                     entry.second[0],
                     std::vector(entry.second.begin() + 1, entry.second.end()),
-                    outputParams.verbosity > 0
+                    show_all_builds
                 );
             }
         }
         return out;
+    }
+
+    auto QueryResult::pretty_to_str(bool show_all_builds) const -> std::string
+    {
+        auto ss = std::stringstream();
+        pretty(ss, show_all_builds);
+        return ss.str();
     }
 
     auto QueryResult::empty() const -> bool

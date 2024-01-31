@@ -38,6 +38,27 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
+    auto UnSolvable::problems(MPool& pool) const -> std::vector<std::string>
+    {
+        std::vector<std::string> problems;
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems.emplace_back(solver().problem_to_string(pool.pool(), pb)); }
+        );
+        return problems;
+    }
+
+    auto UnSolvable::problems_to_str(MPool& pool) const -> std::string
+    {
+        std::stringstream problems;
+        problems << "Encountered problems while solving:\n";
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems << "  - " << solver().problem_to_string(pool.pool(), pb) << "\n"; }
+        );
+        return problems.str();
+    }
+
     auto UnSolvable::all_problems_to_str(MPool& pool) const -> std::string
     {
         std::stringstream problems;
@@ -52,27 +73,6 @@ namespace mamba::solver::libsolv
             }
         );
         return problems.str();
-    }
-
-    auto UnSolvable::problems_to_str(MPool& pool) const -> std::string
-    {
-        std::stringstream problems;
-        problems << "Encountered problems while solving:\n";
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            { problems << "  - " << solver().problem_to_string(pool.pool(), pb) << "\n"; }
-        );
-        return problems.str();
-    }
-
-    auto UnSolvable::all_problems(MPool& pool) const -> std::vector<std::string>
-    {
-        std::vector<std::string> problems;
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            { problems.emplace_back(solver().problem_to_string(pool.pool(), pb)); }
-        );
-        return problems;
     }
 
     namespace

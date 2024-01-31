@@ -160,9 +160,8 @@ namespace mamba
         {
             if (ctx.output_params.json)
             {
-                Console::instance().json_write(
-                    { { "success", false }, { "solver_problems", unsolvable->all_problems(pool) } }
-                );
+                Console::instance().json_write({ { "success", false },
+                                                 { "solver_problems", unsolvable->problems(pool) } });
             }
             throw mamba_error(
                 "Could not solve for environment specs",

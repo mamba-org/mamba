@@ -115,7 +115,6 @@ class TestRun:
         proc.wait()
 
 
-
 @pytest.fixture()
 def temp_env_prefix():
     previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]

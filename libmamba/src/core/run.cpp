@@ -294,7 +294,6 @@ namespace mamba
         while (1)
         {
             wpid = waitpid(pid, &status, WUNTRACED);
-            std::cout << "Stopped waiting for process. Status: " << status << std::endl;
             if (wpid == pid && WIFSTOPPED(status))
             {
                 // If the child was suspended (e.g. CTRL-Z),
@@ -494,7 +493,6 @@ namespace mamba
             {
                 if (signum != SIGCHLD)
                 {
-                    std::cout << "mamba forwarding signal " << signum << std::endl;
                     kill(pid, signum);
                 }
             };

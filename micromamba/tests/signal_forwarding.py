@@ -15,14 +15,17 @@ all_signals = signal.valid_signals() - {signal.SIGKILL, signal.SIGCHLD, signal.S
 # Keep it global to have it accessible from the signal handler.
 received_signals = {int(s): False for s in all_signals}
 
+
 # Define the signal handler
 def signal_handler(sig, _):
     received_signals[sig] = True
+
 
 def set_signal_handlers():
     """Set signal handlers for all signals."""
     for s in all_signals:
         signal.signal(s, signal_handler)
+
 
 def send_signals():
     """Send all signals to the parent process."""
@@ -31,6 +34,7 @@ def send_signals():
         os.kill(ppid, s)
         # wait so that the handlers are executed (and in order)
         sleep(sleep_time)
+
 
 def main():
     set_signal_handlers()
@@ -47,6 +51,7 @@ def main():
         exit(1)
 
     print("Signal forwarding ok")
+
 
 if __name__ == "__main__":
     main()

@@ -30,6 +30,7 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/variant_cmp.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
@@ -1052,25 +1053,44 @@ namespace mamba
                 format_row(installed, act.install, Status::install, "+");
             }
         };
-        for (const auto& pkg : m_solution.actions)
-        {
-            std::visit(format_action, pkg);
-        }
 
-        // Sort row to print alphabetically according to first member (the name of the package).
+        // Sort actions to print by type first and package name second.
+        // The type does not really influence anything since they are later grouped together.
         // In the absence of a better/alternative solution, such as a tree view of install
         // requirements, this is more readable than the Solution's order.
         // WARNING: do not sort the solution as it is topologically sorted for installing
         // dependencies before dependent.
-        constexpr auto cmp_rows = [](const auto& lhs, const auto& rhs) -> bool
-        { return !lhs.empty() && !rhs.empty() && lhs.front().s < rhs.front().s; };
-        std::sort(installed.begin(), installed.end(), cmp_rows);
-        std::sort(erased.begin(), erased.end(), cmp_rows);
-        std::sort(changed.begin(), changed.end(), cmp_rows);
-        std::sort(reinstalled.begin(), reinstalled.end(), cmp_rows);
-        std::sort(upgraded.begin(), upgraded.end(), cmp_rows);
-        std::sort(downgraded.begin(), downgraded.end(), cmp_rows);
-        std::sort(ignored.begin(), ignored.end(), cmp_rows);
+        auto actions = m_solution.actions;
+        std::sort(
+            actions.begin(),
+            actions.end(),
+            util::make_variant_cmp(
+                /* index_cmp= */
+                [](auto lhs, auto rhs) { return lhs < rhs; },
+                /* alternative_cmp= */
+                [](const auto& lhs, const auto& rhs)
+                {
+                    using Action = std::decay_t<decltype(lhs)>;  // rhs has same type.
+                    if constexpr (solver::Solution::has_remove_v<Action>)
+                    {
+                        return lhs.remove.name < rhs.remove.name;
+                    }
+                    else if constexpr (solver::Solution::has_install_v<Action>)
+                    {
+                        return lhs.install.name < rhs.install.name;
+                    }
+                    else
+                    {
+                        return lhs.what.name < rhs.what.name;
+                    }
+                }
+            )
+        );
+
+        for (const auto& pkg : actions)
+        {
+            std::visit(format_action, pkg);
+        }
 
         std::stringstream summary;
         summary << "Summary:\n\n";

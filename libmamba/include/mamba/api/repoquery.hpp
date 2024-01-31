@@ -12,11 +12,20 @@
 
 namespace mamba
 {
-    bool repoquery(
+    enum class QueryResultFormat
+    {
+        Json = 0,
+        Tree = 1,
+        Table = 2,
+        Pretty = 3,
+        RecursiveTable = 4,
+    };
+
+    [[nodiscard]] auto repoquery(
         Configuration& config,
         QueryType type,
         QueryResultFormat format,
         bool use_local,
         const std::vector<std::string>& query
-    );
+    ) -> bool;
 }

@@ -86,12 +86,10 @@ namespace mamba
     {
         auto& ctx = config.context();
         auto pool = repoquery_init(ctx, config, format, use_local);
-        Query q(pool);
-
 
         if (type == QueryType::Search)
         {
-            auto res = q.find(queries);
+            auto res = Query::find(pool, queries);
             switch (format)
             {
                 case QueryResultFormat::Json:
@@ -111,9 +109,11 @@ namespace mamba
             {
                 throw std::invalid_argument("Only one query supported for 'depends'.");
             }
-            auto res = q.depends(
+            auto res = Query::depends(
+                pool,
                 queries.front(),
-                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
+                /* tree= */ format == QueryResultFormat::Tree
+                    || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
@@ -136,9 +136,11 @@ namespace mamba
             {
                 throw std::invalid_argument("Only one query supported for 'whoneeds'.");
             }
-            auto res = q.whoneeds(
+            auto res = Query::whoneeds(
+                pool,
                 queries.front(),
-                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
+                /* tree= */ format == QueryResultFormat::Tree
+                    || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {

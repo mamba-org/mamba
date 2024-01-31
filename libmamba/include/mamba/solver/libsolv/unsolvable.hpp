@@ -38,8 +38,9 @@ namespace mamba::solver::libsolv
 
         auto operator=(UnSolvable&&) -> UnSolvable&;
 
+        [[nodiscard]] auto problems(MPool& pool) const -> std::vector<std::string>;
+
         [[nodiscard]] auto problems_to_str(MPool& pool) const -> std::string;
-        [[nodiscard]] auto all_problems(MPool& pool) const -> std::vector<std::string>;
 
         [[nodiscard]] auto all_problems_to_str(MPool& pool) const -> std::string;
 

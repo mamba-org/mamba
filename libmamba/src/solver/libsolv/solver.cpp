@@ -10,6 +10,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/util/variant_cmp.hpp"
 #include "solv-cpp/solver.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -31,24 +32,21 @@ namespace mamba::solver::libsolv
          * Could be improved as libsolv seems to be sensitive to sort order.
          * https://github.com/mamba-org/mamba/issues/3058
          */
-        auto request_cmp(const Request::Item& lhs, const Request::Item& rhs) -> bool
+        auto make_request_cmp()
         {
-            if (lhs.index() != rhs.index())
-            {
-                return lhs.index() < rhs.index();
-            }
-            return std::visit(
-                [&](const auto& l) -> bool
+            return util::make_variant_cmp(
+                /** index_cmp= */
+                [](auto lhs, auto rhs) { return lhs < rhs; },
+                /** alternative_cmp= */
+                [](const auto& lhs, const auto& rhs)
                 {
-                    using Itm = std::decay_t<decltype(l)>;
-                    auto const& r = std::get<Itm>(rhs);
+                    using Itm = std::decay_t<decltype(lhs)>;
                     if constexpr (!std::is_same_v<Itm, Request::UpdateAll>)
                     {
-                        return l.spec.name().str() < r.spec.name().str();
+                        return lhs.spec.name().str() < rhs.spec.name().str();
                     }
                     return false;
-                },
-                lhs
+                }
             );
         }
     }
@@ -83,11 +81,7 @@ namespace mamba::solver::libsolv
     {
         if (request.flags.order_request)
         {
-            std::sort(
-                request.items.begin(),
-                request.items.end(),
-                [](const auto& lhs, const auto& rhs) { return request_cmp(lhs, rhs); }
-            );
+            std::sort(request.items.begin(), request.items.end(), make_request_cmp());
         }
         return solve_impl(mpool, request);
     }
@@ -97,11 +91,7 @@ namespace mamba::solver::libsolv
         if (request.flags.order_request)
         {
             auto sorted_request = request;
-            std::sort(
-                sorted_request.items.begin(),
-                sorted_request.items.end(),
-                [](const auto& lhs, const auto& rhs) { return request_cmp(lhs, rhs); }
-            );
+            std::sort(sorted_request.items.begin(), sorted_request.items.end(), make_request_cmp());
             return solve_impl(mpool, sorted_request);
         }
         return solve_impl(mpool, request);

@@ -103,7 +103,7 @@ class TestRun:
     @pytest.mark.skipif(platform == "win32", reason="not supported for windows yet")
     def test_suspension(self):
         umamba = get_umamba()
-        proc = subprocess.Popen([umamba, "run", "sleep", "1"])
+        proc = subprocess.Popen([umamba, "run", "sleep", "60"])
         pid = proc.pid
         os.kill(pid, signal.SIGTSTP)
         time.sleep(0.1)

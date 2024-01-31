@@ -283,7 +283,6 @@ namespace mamba
             }
         }
     }
-#endif
 
     // Wait for a process to finish
     // Similar to reproc::process.wait, but also handles suspension
@@ -306,7 +305,8 @@ namespace mamba
             }
         }
 
-        // Compute the return status mimicking the private logic in reproc++
+        // Compute the return status mimicing the private logic in reproc++
+        // https://github.com/DaanDeMeyer/reproc/blob/1c07bdbec3f2ecba7125b9499b9a8a77bf9aa8c7/reproc/src/process.posix.c#L455
         if (wpid < 0)
         {
             status = -errno;
@@ -317,6 +317,7 @@ namespace mamba
         }
         return status;
     }
+#endif
 
     int run_in_environment(
         const Context& context,
@@ -488,7 +489,7 @@ namespace mamba
 
             std::map<int, struct sigaction> prev_actions;
 
-            // Signal handler lambda forwarding all signals except CHLD to the child
+            // Signal handler that forwards all signals except CHLD to the child
             auto forward_signal = [](int signum)
             {
                 if (signum != SIGCHLD)

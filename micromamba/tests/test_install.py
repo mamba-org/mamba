@@ -440,7 +440,7 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_link_packages = {"python"} if os.name == "nt" else {"python", "python_abi"}
+        expected_link_packages = {"python"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_link_packages.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}

@@ -49,7 +49,8 @@ namespace
             spec,
             [&](auto pkg)
             {
-                if (out && (specs::Version::parse(pkg.version) > specs::Version::parse(out->version)))
+                if (!out
+                    || (specs::Version::parse(pkg.version) > specs::Version::parse(out->version)))
                 {
                     out = std::move(pkg);
                 }
@@ -80,40 +81,31 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     }
 
     pool.create_whatprovides();
-    std::string matchspec = version ? fmt::format("micromamba={}", version.value())
-                                    : fmt::format("micromamba>{}", umamba::version());
-
-    auto solvable_ids = pool.select_solvables(
-        pool.matchspec2id(specs::MatchSpec::parse(matchspec)),
-        true
+    auto matchspec = specs::MatchSpec::parse(
+        version ? fmt::format("micromamba={}", version.value())
+                : fmt::format("micromamba>{}", umamba::version())
     );
 
-    if (solvable_ids.empty())
+    auto latest_micromamba = pool_latest_package(pool, matchspec);
+
+    if (!latest_micromamba.has_value())
     {
-        if (pool.select_solvables(pool.matchspec2id(specs::MatchSpec::parse("micromamba"))).empty())
-        {
-            throw mamba::mamba_error(
-                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
-                mamba_error_code::selfupdate_failure
-            );
-        }
-        else
+        if (pool_has_package(pool, specs::MatchSpec::parse("micromamba")))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
             );
             return 0;
         }
+        else
+        {
+            throw mamba::mamba_error(
+                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
+                mamba_error_code::selfupdate_failure
+            );
+        }
     }
 
-    std::optional<specs::PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
-    if (!latest_micromamba)
-    {
-        throw mamba::mamba_error(
-            "Could not convert solvable to PackageInfo",
-            mamba_error_code::internal_failure
-        );
-    }
     Console::stream() << fmt::format(
         fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",

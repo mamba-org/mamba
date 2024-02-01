@@ -36,10 +36,16 @@ namespace mamba
 {
     namespace
     {
+
+        auto get_package_repr(const specs::PackageInfo& pkg) -> std::string
+        {
+            return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
+        }
+
         void walk_graph(
             MPool pool,
-            query_result::dependency_graph& dep_graph,
-            query_result::dependency_graph::node_id parent,
+            QueryResult::dependency_graph& dep_graph,
+            QueryResult::dependency_graph::node_id parent,
             Solvable* s,
             std::map<Solvable*, size_t>& visited,
             std::map<std::string, size_t>& not_found,
@@ -115,8 +121,8 @@ namespace mamba
 
         void reverse_walk_graph(
             MPool& pool,
-            query_result::dependency_graph& dep_graph,
-            query_result::dependency_graph::node_id parent,
+            QueryResult::dependency_graph& dep_graph,
+            QueryResult::dependency_graph::node_id parent,
             Solvable* s,
             std::map<Solvable*, size_t>& visited
         )
@@ -157,15 +163,8 @@ namespace mamba
      * Query implementation *
      ************************/
 
-    Query::Query(MPool& pool)
-        : m_pool(pool)
-    {
-        m_pool.get().create_whatprovides();
-    }
-
     namespace
     {
-
         /**
          * Prints metadata for a given package.
          */
@@ -354,13 +353,13 @@ namespace mamba
         }
     }
 
-    query_result Query::find(const std::vector<std::string>& queries) const
+    auto Query::find(MPool& mpool, const std::vector<std::string>& queries) -> QueryResult
     {
         solv::ObjQueue job, solvables;
 
         for (const auto& query : queries)
         {
-            const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
+            const Id id = pool_conda_matchspec(mpool, query.c_str());
             if (!id)
             {
                 throw std::runtime_error("Could not generate query for " + query);
@@ -368,10 +367,10 @@ namespace mamba
             job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
         }
 
-        selection_solvables(m_pool.get(), job.raw(), solvables.raw());
-        query_result::dependency_graph g;
+        selection_solvables(mpool, job.raw(), solvables.raw());
+        QueryResult::dependency_graph g;
 
-        Pool* pool = m_pool.get();
+        Pool* pool = mpool;
         std::sort(
             solvables.begin(),
             solvables.end(),
@@ -387,80 +386,78 @@ namespace mamba
 
         for (auto& el : solvables)
         {
-            auto pkg_info = m_pool.get().id2pkginfo(el);
+            auto pkg_info = mpool.id2pkginfo(el);
             assert(pkg_info.has_value());
             g.add_node(std::move(pkg_info).value());
         }
 
-        return query_result(
-            QueryType::Search,
-            fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
-            std::move(g)
-        );
+        return { QueryType::Search,
+                 fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
+                 std::move(g) };
     }
 
-    query_result Query::whoneeds(const std::string& query, bool tree) const
+    auto Query::whoneeds(MPool& mpool, const std::string& query, bool tree) -> QueryResult
     {
-        const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
+        const Id id = pool_conda_matchspec(mpool, query.c_str());
         if (!id)
         {
             throw std::runtime_error("Could not generate query for " + query);
         }
 
         solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
-        query_result::dependency_graph g;
+        QueryResult::dependency_graph g;
 
         if (tree)
         {
             solv::ObjQueue solvables = {};
-            selection_solvables(m_pool.get(), job.raw(), solvables.raw());
+            selection_solvables(mpool, job.raw(), solvables.raw());
             if (!solvables.empty())
             {
-                auto pkg_info = m_pool.get().id2pkginfo(solvables.front());
+                auto pkg_info = mpool.id2pkginfo(solvables.front());
                 assert(pkg_info.has_value());
                 const auto node_id = g.add_node(std::move(pkg_info).value());
-                Solvable* const latest = pool_id2solvable(m_pool.get(), solvables.front());
+                Solvable* const latest = pool_id2solvable(mpool, solvables.front());
                 std::map<Solvable*, size_t> visited = { { latest, node_id } };
-                reverse_walk_graph(m_pool, g, node_id, latest, visited);
+                reverse_walk_graph(mpool, g, node_id, latest, visited);
             }
         }
         else
         {
             solv::ObjQueue solvables = {};
-            pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, solvables.raw(), -1);
+            pool_whatmatchesdep(mpool, SOLVABLE_REQUIRES, id, solvables.raw(), -1);
             for (auto& el : solvables)
             {
-                auto pkg_info = m_pool.get().id2pkginfo(el);
+                auto pkg_info = mpool.id2pkginfo(el);
                 assert(pkg_info.has_value());
                 g.add_node(std::move(pkg_info).value());
             }
         }
-        return query_result(QueryType::WhoNeeds, query, std::move(g));
+        return { QueryType::WhoNeeds, query, std::move(g) };
     }
 
-    query_result Query::depends(const std::string& query, bool tree) const
+    auto Query::depends(MPool& mpool, const std::string& query, bool tree) -> QueryResult
     {
         solv::ObjQueue job, solvables;
 
-        const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
+        const Id id = pool_conda_matchspec(mpool, query.c_str());
         if (!id)
         {
             throw std::runtime_error("Could not generate query for " + query);
         }
         job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
 
-        query_result::dependency_graph g;
-        selection_solvables(m_pool.get(), job.raw(), solvables.raw());
+        QueryResult::dependency_graph g;
+        selection_solvables(mpool, job.raw(), solvables.raw());
 
         int depth = tree ? -1 : 1;
 
         auto find_latest_in_non_empty = [&](solv::ObjQueue& lsolvables) -> Solvable*
         {
-            ::Solvable* latest = pool_id2solvable(m_pool.get(), lsolvables.front());
+            ::Solvable* latest = pool_id2solvable(mpool, lsolvables.front());
             for (Id const solv : solvables)
             {
-                Solvable* s = pool_id2solvable(m_pool.get(), solv);
-                if (pool_evrcmp(m_pool.get(), s->evr, latest->evr, 0) > 0)
+                Solvable* s = pool_id2solvable(mpool, solv);
+                if (pool_evrcmp(mpool, s->evr, latest->evr, 0) > 0)
                 {
                     latest = s;
                 }
@@ -471,23 +468,23 @@ namespace mamba
         if (!solvables.empty())
         {
             ::Solvable* const latest = find_latest_in_non_empty(solvables);
-            auto pkg_info = m_pool.get().id2pkginfo(pool_solvable2id(m_pool.get(), latest));
+            auto pkg_info = mpool.id2pkginfo(pool_solvable2id(mpool, latest));
             assert(pkg_info.has_value());
             const auto node_id = g.add_node(std::move(pkg_info).value());
 
             std::map<Solvable*, size_t> visited = { { latest, node_id } };
             std::map<std::string, size_t> not_found;
-            walk_graph(m_pool, g, node_id, latest, visited, not_found, depth);
+            walk_graph(mpool, g, node_id, latest, visited, not_found, depth);
         }
 
-        return query_result(QueryType::Depends, query, std::move(g));
+        return { QueryType::Depends, query, std::move(g) };
     }
 
     /******************************
      *  QueryType implementation  *
      ******************************/
 
-    auto QueryType_from_name(std::string_view name) -> QueryType
+    auto query_type_parse(std::string_view name) -> QueryType
     {
         auto l_name = util::to_lower(name);
         if (l_name == "search")
@@ -509,25 +506,25 @@ namespace mamba
      * query_result implementation *
      *******************************/
 
-    query_result::query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph)
+    QueryResult::QueryResult(QueryType type, std::string query, dependency_graph dep_graph)
         : m_type(type)
-        , m_query(query)
+        , m_query(std::move(query))
         , m_dep_graph(std::move(dep_graph))
     {
         reset_pkg_view_list();
     }
 
-    QueryType query_result::query_type() const
+    auto QueryResult::type() const -> QueryType
     {
         return m_type;
     }
 
-    const std::string& query_result::query() const
+    auto QueryResult::query() const -> const std::string&
     {
         return m_query;
     }
 
-    query_result& query_result::sort(std::string_view field)
+    auto QueryResult::sort(std::string_view field) -> QueryResult&
     {
         auto compare_ids = [&](node_id lhs, node_id rhs)
         { return m_dep_graph.node(lhs).field(field) < m_dep_graph.node(rhs).field(field); };
@@ -547,7 +544,7 @@ namespace mamba
         return *this;
     }
 
-    query_result& query_result::groupby(std::string_view field)
+    auto QueryResult::groupby(std::string_view field) -> QueryResult&
     {
         if (m_ordered_pkg_id_list.empty())
         {
@@ -572,14 +569,14 @@ namespace mamba
         return *this;
     }
 
-    query_result& query_result::reset()
+    auto QueryResult::reset() -> QueryResult&
     {
         reset_pkg_view_list();
         m_ordered_pkg_id_list.clear();
         return *this;
     }
 
-    std::ostream& query_result::table(std::ostream& out) const
+    auto QueryResult::table(std::ostream& out) const -> std::ostream&
     {
         return table(
             out,
@@ -591,6 +588,13 @@ namespace mamba
               "Channel",
               "Subdir" }
         );
+    }
+
+    auto QueryResult::table_to_str() const -> std::string
+    {
+        auto ss = std::stringstream();
+        table(ss);
+        return ss.str();
     }
 
     namespace
@@ -609,8 +613,8 @@ namespace mamba
 
     }
 
-    std::ostream&
-    query_result::table(std::ostream& out, const std::vector<std::string_view>& columns) const
+    auto QueryResult::table(std::ostream& out, const std::vector<std::string_view>& columns) const
+        -> std::ostream&
     {
         if (m_pkg_id_list.empty())
         {
@@ -626,9 +630,9 @@ namespace mamba
                 || col == printers::alignmentMarker(printers::alignment::left))
             {
                 // If an alignment marker is passed, we remove the column name.
-                headers.push_back("");
-                cmds.push_back("");
-                args.push_back("");
+                headers.emplace_back("");
+                cmds.emplace_back("");
+                args.emplace_back("");
                 // We only check for the right alignment marker, as left alignment is set the
                 // default.
                 if (col == printers::alignmentMarker(printers::alignment::right))
@@ -639,14 +643,14 @@ namespace mamba
             }
             else if (col.find_first_of(":") == col.npos)
             {
-                headers.push_back(col);
+                headers.emplace_back(col);
                 cmds.push_back(col);
-                args.push_back("");
+                args.emplace_back("");
             }
             else
             {
                 auto sfmt = util::split(col, ":", 1);
-                headers.push_back(sfmt[0]);
+                headers.emplace_back(sfmt[0]);
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);
             }
@@ -663,33 +667,33 @@ namespace mamba
                 const auto& cmd = cmds[i];
                 if (cmd == "Name")
                 {
-                    row.push_back(pkg.name);
+                    row.emplace_back(pkg.name);
                 }
                 else if (cmd == "Version")
                 {
-                    row.push_back(pkg.version);
+                    row.emplace_back(pkg.version);
                 }
                 else if (cmd == "Build")
                 {
-                    row.push_back(pkg.build_string);
+                    row.emplace_back(pkg.build_string);
                     if (builds.size() > 1)
                     {
-                        row.push_back("(+");
-                        row.push_back(fmt::format("{} builds)", builds.size() - 1));
+                        row.emplace_back("(+");
+                        row.emplace_back(fmt::format("{} builds)", builds.size() - 1));
                     }
                     else
                     {
-                        row.push_back("");
-                        row.push_back("");
+                        row.emplace_back("");
+                        row.emplace_back("");
                     }
                 }
                 else if (cmd == "Channel")
                 {
-                    row.push_back(cut_subdir(cut_repo_name(pkg.channel)));
+                    row.emplace_back(cut_subdir(cut_repo_name(pkg.channel)));
                 }
                 else if (cmd == "Subdir")
                 {
-                    row.push_back(get_subdir(pkg.channel));
+                    row.emplace_back(get_subdir(pkg.channel));
                 }
                 else if (cmd == "Depends")
                 {
@@ -702,7 +706,7 @@ namespace mamba
                             break;
                         }
                     }
-                    row.push_back(depends_qualifier);
+                    row.emplace_back(depends_qualifier);
                 }
             }
             return row;
@@ -754,7 +758,7 @@ namespace mamba
     {
     public:
 
-        using graph_type = query_result::dependency_graph;
+        using graph_type = QueryResult::dependency_graph;
         using node_id = graph_type::node_id;
 
         explicit graph_printer(std::ostream& out, GraphicsParams graphics)
@@ -770,15 +774,15 @@ namespace mamba
             m_out << get_package_repr(g.node(node)) << '\n';
             if (node == 0u)
             {
-                m_prefix_stack.push_back("  ");
+                m_prefix_stack.emplace_back("  ");
             }
             else if (is_on_last_stack(node))
             {
-                m_prefix_stack.push_back("   ");
+                m_prefix_stack.emplace_back("   ");
             }
             else
             {
-                m_prefix_stack.push_back("│  ");
+                m_prefix_stack.emplace_back("│  ");
             }
         }
 
@@ -820,7 +824,7 @@ namespace mamba
 
     private:
 
-        bool is_on_last_stack(node_id node) const
+        [[nodiscard]] auto is_on_last_stack(node_id node) const -> bool
         {
             return !m_last_stack.empty() && m_last_stack.top() == node;
         }
@@ -837,7 +841,7 @@ namespace mamba
             }
         }
 
-        std::string get_package_repr(const specs::PackageInfo& pkg) const
+        [[nodiscard]] auto get_package_repr(const specs::PackageInfo& pkg) const -> std::string
         {
             return pkg.version.empty() ? pkg.name : pkg.name + '[' + pkg.version + ']';
         }
@@ -849,7 +853,7 @@ namespace mamba
         const GraphicsParams m_graphics;
     };
 
-    std::ostream& query_result::tree(std::ostream& out, const GraphicsParams& graphics) const
+    auto QueryResult::tree(std::ostream& out, const GraphicsParams& graphics) const -> std::ostream&
     {
         bool use_graph = (m_dep_graph.number_of_nodes() > 0) && !m_dep_graph.successors(0).empty();
         if (use_graph)
@@ -870,7 +874,14 @@ namespace mamba
         return out;
     }
 
-    nlohmann::json query_result::json() const
+    auto QueryResult::tree_to_str(const Context::GraphicsParams& params) const -> std::string
+    {
+        auto ss = std::stringstream();
+        tree(ss, params);
+        return ss.str();
+    }
+
+    auto QueryResult::json() const -> nlohmann::json
     {
         nlohmann::json j;
         std::string query_type = std::string(util::to_lower(enum_name(m_type)));
@@ -881,9 +892,9 @@ namespace mamba
         j["result"] = { { "msg", msg }, { "status", "OK" } };
 
         j["result"]["pkgs"] = nlohmann::json::array();
-        for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
+        for (auto id : m_pkg_id_list)
         {
-            nlohmann::json pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]);
+            nlohmann::json pkg_info_json = m_dep_graph.node(id);
             // We want the cannonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
@@ -915,8 +926,7 @@ namespace mamba
         return j;
     }
 
-    std::ostream&
-    query_result::pretty(std::ostream& out, const Context::OutputParams& outputParams) const
+    auto QueryResult::pretty(std::ostream& out, bool show_all_builds) const -> std::ostream&
     {
         if (m_pkg_id_list.empty())
         {
@@ -931,34 +941,35 @@ namespace mamba
                 packages[package.name].push_back(package);
             }
 
-            auto out = Console::stream();
             for (const auto& entry : packages)
             {
                 print_solvable(
                     out,
                     entry.second[0],
                     std::vector(entry.second.begin() + 1, entry.second.end()),
-                    outputParams.verbosity > 0
+                    show_all_builds
                 );
             }
         }
         return out;
     }
 
-    bool query_result::empty() const
+    auto QueryResult::pretty_to_str(bool show_all_builds) const -> std::string
+    {
+        auto ss = std::stringstream();
+        pretty(ss, show_all_builds);
+        return ss.str();
+    }
+
+    auto QueryResult::empty() const -> bool
     {
         return m_dep_graph.empty();
     }
 
-    void query_result::reset_pkg_view_list()
+    void QueryResult::reset_pkg_view_list()
     {
         m_pkg_id_list.clear();
         m_pkg_id_list.reserve(m_dep_graph.number_of_nodes());
         m_dep_graph.for_each_node_id([&](node_id id) { m_pkg_id_list.push_back(id); });
     }
-
-    std::string query_result::get_package_repr(const specs::PackageInfo& pkg) const
-    {
-        return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
-    }
-}  // namespace mamba
+}

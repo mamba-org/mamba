@@ -72,36 +72,34 @@ namespace mamba
                     throw std::runtime_error(exp_load.error().what());
                 }
             }
+            pool.create_whatprovides();
             return pool;
         }
     }
 
-    bool repoquery(
-        Configuration& config,
+    auto make_repoquery(
+        MPool& pool,
         QueryType type,
         QueryResultFormat format,
-        bool use_local,
-        const std::vector<std::string>& queries
-    )
+        const std::vector<std::string>& queries,
+        bool show_all_builds,
+        const Context::GraphicsParams& graphics_params,
+        std::ostream& out
+    ) -> bool
     {
-        auto& ctx = config.context();
-        auto pool = repoquery_init(ctx, config, format, use_local);
-        Query q(pool);
-
-
         if (type == QueryType::Search)
         {
-            auto res = q.find(queries);
+            auto res = Query::find(pool, queries);
             switch (format)
             {
                 case QueryResultFormat::Json:
-                    std::cout << res.groupby("name").json().dump(4);
+                    out << res.groupby("name").json().dump(4);
                     break;
                 case QueryResultFormat::Pretty:
-                    res.pretty(std::cout, ctx.output_params);
+                    res.pretty(out, show_all_builds);
                     break;
                 default:
-                    res.groupby("name").table(std::cout);
+                    res.groupby("name").table(out);
             }
             return !res.empty();
         }
@@ -111,22 +109,24 @@ namespace mamba
             {
                 throw std::invalid_argument("Only one query supported for 'depends'.");
             }
-            auto res = q.depends(
+            auto res = Query::depends(
+                pool,
                 queries.front(),
-                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
+                /* tree= */ format == QueryResultFormat::Tree
+                    || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
                 case QueryResultFormat::Tree:
                 case QueryResultFormat::Pretty:
-                    res.tree(std::cout, config.context().graphics_params);
+                    res.tree(out, graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    std::cout << res.json().dump(4);
+                    out << res.json().dump(4);
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:
-                    res.sort("name").table(std::cout);
+                    res.sort("name").table(out);
             }
             return !res.empty();
         }
@@ -136,23 +136,25 @@ namespace mamba
             {
                 throw std::invalid_argument("Only one query supported for 'whoneeds'.");
             }
-            auto res = q.whoneeds(
+            auto res = Query::whoneeds(
+                pool,
                 queries.front(),
-                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
+                /* tree= */ format == QueryResultFormat::Tree
+                    || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
                 case QueryResultFormat::Tree:
                 case QueryResultFormat::Pretty:
-                    res.tree(std::cout, config.context().graphics_params);
+                    res.tree(out, graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    std::cout << res.json().dump(4);
+                    out << res.json().dump(4);
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:
                     res.sort("name").table(
-                        std::cout,
+                        out,
                         { "Name",
                           "Version",
                           "Build",
@@ -165,5 +167,28 @@ namespace mamba
             }
             return !res.empty();
         }
+        throw std::invalid_argument("Invalid QueryType");
     }
+
+    bool repoquery(
+        Configuration& config,
+        QueryType type,
+        QueryResultFormat format,
+        bool use_local,
+        const std::vector<std::string>& queries
+    )
+    {
+        auto& ctx = config.context();
+        auto pool = repoquery_init(ctx, config, format, use_local);
+        return make_repoquery(
+            pool,
+            type,
+            format,
+            queries,
+            ctx.output_params.verbosity > 0,
+            ctx.graphics_params,
+            std::cout
+        );
+    }
+
 }

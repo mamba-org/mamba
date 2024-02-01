@@ -17,6 +17,7 @@
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/repoquery.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
@@ -39,20 +40,9 @@
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
+#include "utils.hpp"
 
 namespace py = pybind11;
-
-namespace query
-{
-    enum RESULT_FORMAT
-    {
-        JSON = 0,
-        TREE = 1,
-        TABLE = 2,
-        PRETTY = 3,
-        RECURSIVETABLE = 4,
-    };
-}
 
 void
 deprecated(std::string_view message, std::string_view since_version = "1.5")
@@ -499,125 +489,46 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
-    /*py::class_<Query>(m, "Query")
-        .def(py::init<MPool&>())
-        .def("find", &Query::find)
-        .def("whoneeds", &Query::whoneeds)
-        .def("depends", &Query::depends)
-    ;*/
+    py::enum_<QueryType>(m, "QueryType")
+        .value("Search", QueryType::Search)
+        .value("Depends", QueryType::Depends)
+        .value("WhoNeeds", QueryType::WhoNeeds)
+        .def(py::init(&mambapy::enum_from_str<QueryType>))
+        .def_static("parse", &query_type_parse);
+    py::implicitly_convertible<py::str, QueryType>();
 
-    py::enum_<query::RESULT_FORMAT>(m, "QueryFormat")
-        .value("JSON", query::RESULT_FORMAT::JSON)
-        .value("TREE", query::RESULT_FORMAT::TREE)
-        .value("TABLE", query::RESULT_FORMAT::TABLE)
-        .value("PRETTY", query::RESULT_FORMAT::PRETTY)
-        .value("RECURSIVETABLE", query::RESULT_FORMAT::RECURSIVETABLE);
+    py::enum_<QueryResultFormat>(m, "QueryResultFormat")
+        .value("Json", QueryResultFormat::Json)
+        .value("Tree", QueryResultFormat::Tree)
+        .value("Table", QueryResultFormat::Table)
+        .value("Pretty", QueryResultFormat::Pretty)
+        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
+        .def(py::init(&mambapy::enum_from_str<QueryResultFormat>));
+    py::implicitly_convertible<py::str, QueryType>();
 
-    auto queries_find = [](const Query& q,
-                           const std::vector<std::string>& queries,
-                           const query::RESULT_FORMAT format) -> std::string
-    {
-        query_result res = q.find(queries);
-        std::stringstream res_stream;
-        switch (format)
-        {
-            case query::JSON:
-                res_stream << res.groupby("name").json().dump(4);
-                break;
-            case query::TREE:
-            case query::TABLE:
-            case query::RECURSIVETABLE:
-                res.groupby("name").table(res_stream);
-                break;
-            case query::PRETTY:
-                res.groupby("name").pretty(res_stream, mambapy::singletons.context().output_params);
-        }
-        if (res.empty() && format != query::JSON)
-        {
-            res_stream << fmt::format("{}", fmt::join(queries, " "))
-                       << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
-        }
-        return res_stream.str();
-    };
-
-    py::class_<Query>(m, "Query")
-        .def(py::init<MPool&>())
+    py::class_<QueryResult>(m, "QueryResult")
+        .def_property_readonly("type", &QueryResult::type)
+        .def_property_readonly("query", &QueryResult::query)
+        .def("sort", &QueryResult::sort, py::return_value_policy::reference)
+        .def("groupby", &QueryResult::groupby, py::return_value_policy::reference)
+        .def("reset", &QueryResult::reset, py::return_value_policy::reference)
+        .def("table", &QueryResult::table_to_str)
+        .def("tree", &QueryResult::tree_to_str)
+        .def("pretty", &QueryResult::pretty_to_str, py::arg("show_all_builds") = true)
+        .def("json", [](const QueryResult& query) { return query.json().dump(); })
         .def(
-            "find",
-            [queries_find](const Query& q, const std::string& query, const query::RESULT_FORMAT format)
-                -> std::string { return queries_find(q, { query }, format); }
-        )
-        .def("find", queries_find)
-        .def(
-            "whoneeds",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            "to_dict",
+            [](const QueryResult& query)
             {
-                // QueryResult res = q.whoneeds(query, tree);
-                std::stringstream res_stream;
-                query_result res = q.whoneeds(query, (format == query::TREE));
-                switch (format)
-                {
-                    case query::TREE:
-                    case query::PRETTY:
-                        res.tree(res_stream, mambapy::singletons.context().graphics_params);
-                        break;
-                    case query::JSON:
-                        res_stream << res.json().dump(4);
-                        break;
-                    case query::TABLE:
-                    case query::RECURSIVETABLE:
-                        res.table(
-                            res_stream,
-                            { "Name",
-                              "Version",
-                              "Build",
-                              printers::alignmentMarker(printers::alignment::left),
-                              printers::alignmentMarker(printers::alignment::right),
-                              util::concat("Depends:", query),
-                              "Channel",
-                              "Subdir" }
-                        );
-                }
-                if (res.empty() && format != query::JSON)
-                {
-                    res_stream << query
-                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
-                }
-                return res_stream.str();
-            }
-        )
-        .def(
-            "depends",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
-            {
-                query_result res = q.depends(
-                    query,
-                    (format == query::TREE || format == query::RECURSIVETABLE)
-                );
-                std::stringstream res_stream;
-                switch (format)
-                {
-                    case query::TREE:
-                    case query::PRETTY:
-                        res.tree(res_stream, mambapy::singletons.context().graphics_params);
-                        break;
-                    case query::JSON:
-                        res_stream << res.json().dump(4);
-                        break;
-                    case query::TABLE:
-                    case query::RECURSIVETABLE:
-                        // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
-                        // query), "Channel"});
-                        res.table(res_stream);
-                }
-                if (res.empty() && format != query::JSON)
-                {
-                    res_stream << query
-                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
-                }
-                return res_stream.str();
+                auto json_module = pybind11::module_::import("json");
+                return json_module.attr("loads")(query.json().dump());
             }
         );
+
+    py::class_<Query>(m, "Query")
+        .def_static("find", &Query::find)
+        .def_static("whoneeds", &Query::whoneeds)
+        .def_static("depends", &Query::depends);
 
     py::class_<SubdirData>(m, "SubdirData")
         .def(

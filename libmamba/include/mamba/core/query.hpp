@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_QUERY_HPP
 #define MAMBA_CORE_QUERY_HPP
 
+#include <iosfwd>
 #include <map>
 #include <string>
 #include <string_view>
@@ -17,39 +18,8 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/graph.hpp"
 
-typedef struct s_Solvable Solvable;
-
 namespace mamba
 {
-    using GraphicsParams = Context::GraphicsParams;
-
-    void print_dep_graph(
-        std::ostream& out,
-        Solvable* s,
-        const std::string& solv_str,
-        int level,
-        int max_level,
-        bool last,
-        const std::string& prefix
-    );
-
-    class query_result;
-
-    class Query
-    {
-    public:
-
-        Query(MPool& pool);
-
-        query_result find(const std::vector<std::string>& queries) const;
-        query_result whoneeds(const std::string& query, bool tree) const;
-        query_result depends(const std::string& query, bool tree) const;
-
-    private:
-
-        std::reference_wrapper<MPool> m_pool;
-    };
-
     enum class QueryType
     {
         Search,
@@ -58,47 +28,46 @@ namespace mamba
     };
 
     constexpr auto enum_name(QueryType t) -> std::string_view;
-    auto QueryType_from_name(std::string_view name) -> QueryType;
 
-    enum class QueryResultFormat
-    {
-        Json = 0,
-        Tree = 1,
-        Table = 2,
-        Pretty = 3,
-        RecursiveTable = 4,
-    };
+    auto query_type_parse(std::string_view name) -> QueryType;
 
-    class query_result
+    class QueryResult
     {
     public:
 
+        using GraphicsParams = Context::GraphicsParams;
         using dependency_graph = util::DiGraph<specs::PackageInfo>;
 
-        query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph);
+        QueryResult(QueryType type, std::string query, dependency_graph dep_graph);
+        QueryResult(const QueryResult&) = default;
+        QueryResult(QueryResult&&) = default;
 
-        ~query_result() = default;
+        ~QueryResult() = default;
 
-        query_result(const query_result&) = default;
-        query_result& operator=(const query_result&) = default;
-        query_result(query_result&&) = default;
-        query_result& operator=(query_result&&) = default;
+        auto operator=(const QueryResult&) -> QueryResult& = default;
+        auto operator=(QueryResult&&) -> QueryResult& = default;
 
-        QueryType query_type() const;
-        const std::string& query() const;
+        [[nodiscard]] auto type() const -> QueryType;
+        [[nodiscard]] auto query() const -> const std::string&;
+        [[nodiscard]] auto empty() const -> bool;
 
-        query_result& sort(std::string_view field);
-        query_result& groupby(std::string_view field);
-        query_result& reset();
+        auto sort(std::string_view field) -> QueryResult&;
 
-        std::ostream& table(std::ostream&) const;
-        std::ostream& table(std::ostream&, const std::vector<std::string_view>& fmt) const;
-        std::ostream& tree(std::ostream&, const GraphicsParams& graphics) const;
-        nlohmann::json json() const;
+        auto groupby(std::string_view field) -> QueryResult&;
 
-        std::ostream& pretty(std::ostream&, const Context::OutputParams& outputParams) const;
+        auto reset() -> QueryResult&;
 
-        bool empty() const;
+        auto table(std::ostream&) const -> std::ostream&;
+        auto table(std::ostream&, const std::vector<std::string_view>& fmt) const -> std::ostream&;
+        [[nodiscard]] auto table_to_str() const -> std::string;
+
+        auto tree(std::ostream&, const GraphicsParams& graphics) const -> std::ostream&;
+        [[nodiscard]] auto tree_to_str(const GraphicsParams& graphics) const -> std::string;
+
+        [[nodiscard]] auto json() const -> nlohmann::json;
+
+        auto pretty(std::ostream&, bool show_all_builds) const -> std::ostream&;
+        [[nodiscard]] auto pretty_to_str(bool show_all_builds) const -> std::string;
 
     private:
 
@@ -107,13 +76,26 @@ namespace mamba
         using ordered_package_list = std::map<std::string, package_id_list>;
 
         void reset_pkg_view_list();
-        std::string get_package_repr(const specs::PackageInfo& pkg) const;
 
         QueryType m_type;
         std::string m_query;
         dependency_graph m_dep_graph;
         package_id_list m_pkg_id_list = {};
         ordered_package_list m_ordered_pkg_id_list = {};
+    };
+
+    class Query
+    {
+    public:
+
+        [[nodiscard]] static auto find(MPool& pool, const std::vector<std::string>& queries)
+            -> QueryResult;
+
+        [[nodiscard]] static auto whoneeds(MPool& pool, const std::string& query, bool tree)
+            -> QueryResult;
+
+        [[nodiscard]] static auto depends(MPool& pool, const std::string& query, bool tree)
+            -> QueryResult;
     };
 
     /********************
@@ -133,7 +115,5 @@ namespace mamba
         }
         throw std::invalid_argument("Invalid enum value");
     }
-
-}  // namespace mamba
-
-#endif  // MAMBA_QUERY_HPP
+}
+#endif

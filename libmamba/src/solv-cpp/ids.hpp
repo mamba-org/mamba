@@ -19,6 +19,7 @@ namespace mamba::solv
     using RuleId = ::Id;
     using ProblemId = ::Id;
     using DependencyMarker = ::Id;
+    using KeyNameId = ::Id;
 
     using RelationFlag = int;
     using DistType = int;

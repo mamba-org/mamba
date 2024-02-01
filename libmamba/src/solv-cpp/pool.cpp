@@ -173,6 +173,14 @@ namespace mamba::solv
         return solvables;
     }
 
+    auto ObjPool::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const
+        -> ObjQueue
+    {
+        ObjQueue solvables = {};
+        ::pool_whatmatchesdep(const_cast<::Pool*>(raw()), key, dep, solvables.raw(), marker);
+        return solvables;
+    }
+
     void ObjPool::create_whatprovides()
     {
         ::pool_createwhatprovides(raw());

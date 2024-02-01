@@ -345,13 +345,18 @@ TEST_SUITE("solv::ObjPool")
         auto [id1, s1] = repo.add_solvable();
         s1.set_name(pool.add_string("pkg"));
         s1.set_version(pool.add_string("2.0.0"));
+        // Dependency foo>2.0
+        s1.add_dependency(pool.add_dependency(pool.add_string("foo"), REL_GT, pool.add_string("2.0")));
         s1.add_self_provide();
 
         auto [id2, s2] = repo.add_solvable();
         s2.set_name(pool.add_string("pkg"));
         s2.set_version(pool.add_string("3.0.0"));
+        // Dependency foo>3.0
+        s2.add_dependency(pool.add_dependency(pool.add_string("foo"), REL_GT, pool.add_string("3.0")));
         s2.add_self_provide();
 
+        repo.internalize();
         pool.create_whatprovides();  // Required otherwise segfault
 
         SUBCASE("Select Solvables")
@@ -379,6 +384,41 @@ TEST_SUITE("solv::ObjPool")
                 auto solvs = pool.select_solvables({ SOLVER_SOLVABLE_PROVIDES, dep_id });
                 CHECK_EQ(solvs.size(), 1);
                 CHECK(solvs.contains(id2));
+            }
+        }
+
+        SUBCASE("What matches dep")
+        {
+            SUBCASE("Who depends on a foo")
+            {
+                auto solvs = pool.what_matches_dep(SOLVABLE_REQUIRES, pool.add_string("foo"));
+                CHECK_EQ(solvs.size(), 2);
+                CHECK(solvs.contains(id1));
+                CHECK(solvs.contains(id2));
+            }
+
+            SUBCASE("Who depends on a foo>4.0")
+            {
+                const auto dep_id = pool.add_dependency(
+                    pool.add_string("foo"),
+                    REL_GT,
+                    pool.add_string("4.0")
+                );
+                auto solvs = pool.what_matches_dep(SOLVABLE_REQUIRES, dep_id);
+                CHECK_EQ(solvs.size(), 2);
+                CHECK(solvs.contains(id1));
+                CHECK(solvs.contains(id2));
+            }
+
+            SUBCASE("Who depends on foo<0.5")
+            {
+                const auto dep_id = pool.add_dependency(
+                    pool.add_string("foo"),
+                    REL_LT,
+                    pool.add_string("0.5")
+                );
+                auto solvs = pool.what_matches_dep(SOLVABLE_REQUIRES, dep_id);
+                CHECK(solvs.empty());
             }
         }
     }

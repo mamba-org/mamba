@@ -328,6 +328,15 @@ namespace mamba
         return out;
     }
 
+    auto MPool::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
+    {
+        const auto ms_id = matchspec2id(ms);
+        auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
+        auto out = std::vector<SolvableId>(solvables.size());
+        std::copy(solvables.begin(), solvables.end(), out.begin());
+        return out;
+    }
+
     // TODO machinery functions in separate files
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>

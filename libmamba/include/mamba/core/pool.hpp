@@ -116,6 +116,9 @@ namespace mamba
         template <typename Func>
         void for_each_package_matching(const specs::MatchSpec& ms, Func&&);
 
+        template <typename Func>
+        void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
+
         ChannelContext& channel_context() const;
         const Context& context() const;
 
@@ -153,6 +156,9 @@ namespace mamba
         [[nodiscard]] auto solvable_id_to_package_info(SolvableId id) const -> specs::PackageInfo;
 
         [[nodiscard]] auto packages_matching_ids(const specs::MatchSpec& ms)
+            -> std::vector<SolvableId>;
+
+        [[nodiscard]] auto packages_depending_on_ids(const specs::MatchSpec& ms)
             -> std::vector<SolvableId>;
     };
 
@@ -199,6 +205,26 @@ namespace mamba
     void MPool::for_each_package_matching(const specs::MatchSpec& ms, Func&& func)
     {
         for (auto id : packages_matching_ids(ms))
+        {
+            if constexpr (std::is_same_v<decltype(func(solvable_id_to_package_info(id))), util::LoopControl>)
+            {
+                if (func(solvable_id_to_package_info(id)) == util::LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(solvable_id_to_package_info(id));
+            }
+        }
+    }
+
+    // TODO(C++20): Use ranges::transform
+    template <typename Func>
+    void MPool::for_each_package_depending_on(const specs::MatchSpec& ms, Func&& func)
+    {
+        for (auto id : packages_depending_on_ids(ms))
         {
             if constexpr (std::is_same_v<decltype(func(solvable_id_to_package_info(id))), util::LoopControl>)
             {

@@ -543,6 +543,13 @@ class TestInstall:
         reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
 
+    def install_local_package(self):
+        """Attempts to install a .tar.bz2 package from a local directory."""
+        file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
+
+        res = helpers.install(f"file://{file_path}", "--json", default_channel=False)
+        assert "cph_test_data" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
     def test_force_reinstall(self, existing_cache):
         """Force reinstall installs existing package again."""
         res = helpers.install("xtensor", "--json")

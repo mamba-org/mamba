@@ -355,60 +355,35 @@ namespace mamba
 
     auto Query::find(MPool& mpool, const std::vector<std::string>& queries) -> QueryResult
     {
-        solv::ObjQueue job, solvables;
-
+        QueryResult::dependency_graph g;
         for (const auto& query : queries)
+        {
+            mpool.for_each_package_matching(
+                specs::MatchSpec::parse(query),
+                [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
+            );
+        }
+
+        return {
+            QueryType::Search,
+            fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
+            std::move(g),
+        };
+    }
+
+    auto Query::whoneeds(MPool& mpool, const std::string& query, bool tree) -> QueryResult
+    {
+        QueryResult::dependency_graph g;
+
+        if (tree)
         {
             const Id id = pool_conda_matchspec(mpool, query.c_str());
             if (!id)
             {
                 throw std::runtime_error("Could not generate query for " + query);
             }
-            job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
-        }
 
-        selection_solvables(mpool, job.raw(), solvables.raw());
-        QueryResult::dependency_graph g;
-
-        Pool* pool = mpool;
-        std::sort(
-            solvables.begin(),
-            solvables.end(),
-            [pool](Id a, Id b)
-            {
-                Solvable* sa;
-                Solvable* sb;
-                sa = pool_id2solvable(pool, a);
-                sb = pool_id2solvable(pool, b);
-                return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-            }
-        );
-
-        for (auto& el : solvables)
-        {
-            auto pkg_info = mpool.id2pkginfo(el);
-            assert(pkg_info.has_value());
-            g.add_node(std::move(pkg_info).value());
-        }
-
-        return { QueryType::Search,
-                 fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
-                 std::move(g) };
-    }
-
-    auto Query::whoneeds(MPool& mpool, const std::string& query, bool tree) -> QueryResult
-    {
-        const Id id = pool_conda_matchspec(mpool, query.c_str());
-        if (!id)
-        {
-            throw std::runtime_error("Could not generate query for " + query);
-        }
-
-        solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
-        QueryResult::dependency_graph g;
-
-        if (tree)
-        {
+            solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
             solv::ObjQueue solvables = {};
             selection_solvables(mpool, job.raw(), solvables.raw());
             if (!solvables.empty())
@@ -423,14 +398,10 @@ namespace mamba
         }
         else
         {
-            solv::ObjQueue solvables = {};
-            pool_whatmatchesdep(mpool, SOLVABLE_REQUIRES, id, solvables.raw(), -1);
-            for (auto& el : solvables)
-            {
-                auto pkg_info = mpool.id2pkginfo(el);
-                assert(pkg_info.has_value());
-                g.add_node(std::move(pkg_info).value());
-            }
+            mpool.for_each_package_depending_on(
+                specs::MatchSpec::parse(query),
+                [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
+            );
         }
         return { QueryType::WhoNeeds, query, std::move(g) };
     }

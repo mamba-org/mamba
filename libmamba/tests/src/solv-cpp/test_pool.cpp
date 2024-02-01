@@ -11,6 +11,7 @@
 
 #include <doctest/doctest.h>
 #include <solv/pool.h>
+#include <solv/solver.h>
 
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/pool.hpp"
@@ -333,6 +334,52 @@ TEST_SUITE("solv::ObjPool")
                 [&](auto* /* pool */, StringId /* name */, StringId /* version */) noexcept -> OffsetId
                 { return 0; }
             );
+        }
+    }
+
+    TEST_CASE("Query Pool")
+    {
+        auto pool = ObjPool();
+        auto [repo_id, repo] = pool.add_repo("repo");
+
+        auto [id1, s1] = repo.add_solvable();
+        s1.set_name(pool.add_string("pkg"));
+        s1.set_version(pool.add_string("2.0.0"));
+        s1.add_self_provide();
+
+        auto [id2, s2] = repo.add_solvable();
+        s2.set_name(pool.add_string("pkg"));
+        s2.set_version(pool.add_string("3.0.0"));
+        s2.add_self_provide();
+
+        pool.create_whatprovides();  // Required otherwise segfault
+
+        SUBCASE("Select Solvables")
+        {
+            SUBCASE("Resolving pkg>1.0.0")
+            {
+                const auto dep_id = pool.add_dependency(
+                    pool.add_string("pkg"),
+                    REL_GT,
+                    pool.add_string("1.0.0")
+                );
+                auto solvs = pool.select_solvables({ SOLVER_SOLVABLE_PROVIDES, dep_id });
+                CHECK_EQ(solvs.size(), 2);
+                CHECK(solvs.contains(id1));
+                CHECK(solvs.contains(id2));
+            }
+
+            SUBCASE("Resolving pkg>2.1")
+            {
+                const auto dep_id = pool.add_dependency(
+                    pool.add_string("pkg"),
+                    REL_GT,
+                    pool.add_string("2.1")
+                );
+                auto solvs = pool.select_solvables({ SOLVER_SOLVABLE_PROVIDES, dep_id });
+                CHECK_EQ(solvs.size(), 1);
+                CHECK(solvs.contains(id2));
+            }
         }
     }
 }

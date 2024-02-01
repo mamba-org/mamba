@@ -8,7 +8,6 @@
 #define MAMBA_SOLV_QUEUE_HPP
 
 #include <iterator>
-#include <utility>
 
 #include <solv/queue.h>
 

@@ -26,6 +26,39 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+namespace
+{
+    auto pool_has_package(MPool& pool, specs::MatchSpec spec) -> bool
+    {
+        bool found = false;
+        pool.for_each_package_matching(
+            spec,
+            [&](const auto&)
+            {
+                found = true;
+                return util::LoopControl::Break;
+            }
+        );
+        return found;
+    };
+
+    auto pool_latest_package(MPool& pool, specs::MatchSpec spec) -> std::optional<specs::PackageInfo>
+    {
+        auto out = std::optional<specs::PackageInfo>();
+        pool.for_each_package_matching(
+            spec,
+            [&](auto pkg)
+            {
+                if (out && (specs::Version::parse(pkg.version) > specs::Version::parse(out->version)))
+                {
+                    out = std::move(pkg);
+                }
+            }
+        );
+        return out;
+    };
+}
+
 int
 update_self(Configuration& config, const std::optional<std::string>& version)
 {

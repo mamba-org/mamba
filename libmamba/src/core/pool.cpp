@@ -313,6 +313,21 @@ namespace mamba
         repo.m_ptr->subpriority = priorities.subpriority;
     }
 
+    auto MPool::solvable_id_to_package_info(SolvableId id) const -> specs::PackageInfo
+    {
+        static_assert(std::is_same_v<SolvableId, solv::SolvableId>);
+        return id2pkginfo(id).value();  // Safe because the ID is coming from libsolv
+    }
+
+    auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
+    {
+        const auto ms_id = matchspec2id(ms);
+        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
+        auto out = std::vector<SolvableId>(solvables.size());
+        std::copy(solvables.begin(), solvables.end(), out.begin());
+        return out;
+    }
+
     // TODO machinery functions in separate files
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>

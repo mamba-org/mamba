@@ -102,15 +102,17 @@ namespace mamba
             const solver::libsolv::RepodataOrigin& metadata
         ) -> expected_t<solver::libsolv::RepoInfo>;
 
-        void set_installed_repo(const solver::libsolv::RepoInfo& repo);
+        [[nodiscard]] auto installed_repo() const -> std::optional<solver::libsolv::RepoInfo>;
+
+        void set_installed_repo(solver::libsolv::RepoInfo repo);
 
         void
-        set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities);
+        set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities);
 
         void remove_repo(::Id repo_id, bool reuse_ids);
 
         template <typename Func>
-        void for_each_package_in_repo(const solver::libsolv::RepoInfo& repo, Func&&);
+        void for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&&) const;
 
         template <typename Func>
         void for_each_package_matching(const specs::MatchSpec& ms, Func&&);
@@ -154,7 +156,7 @@ namespace mamba
 
         [[nodiscard]] auto package_id_to_package_info(PackageId id) const -> specs::PackageInfo;
 
-        [[nodiscard]] auto packages_in_repo(const solver::libsolv::RepoInfo& repo)
+        [[nodiscard]] auto packages_in_repo(solver::libsolv::RepoInfo repo) const
             -> std::vector<PackageId>;
 
         [[nodiscard]] auto packages_matching_ids(const specs::MatchSpec& ms)
@@ -204,7 +206,7 @@ namespace mamba
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
-    void MPool::for_each_package_in_repo(const solver::libsolv::RepoInfo& repo, Func&& func)
+    void MPool::for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&& func) const
     {
         for (auto id : packages_in_repo(repo))
         {

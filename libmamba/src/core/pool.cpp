@@ -287,13 +287,23 @@ namespace mamba
         pool().remove_repo(repo_id, reuse_ids);
     }
 
-    void MPool::set_installed_repo(const solver::libsolv::RepoInfo& repo)
+    auto MPool::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>
+    {
+        if (auto repo = pool().installed_repo())
+        {
+            // Safe because the Repo does not modify its internals
+            return solver::libsolv::RepoInfo(const_cast<::Repo*>(repo->raw()));
+        }
+        return {};
+    }
+
+    void MPool::set_installed_repo(solver::libsolv::RepoInfo repo)
     {
         pool().set_installed_repo(repo.id());
     }
 
     void
-    MPool::set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities)
+    MPool::set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities)
     {
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
@@ -310,7 +320,7 @@ namespace mamba
         return id2pkginfo(static_cast<solv::SolvableId>(id)).value();
     }
 
-    auto MPool::packages_in_repo(const solver::libsolv::RepoInfo& repo) -> std::vector<PackageId>
+    auto MPool::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
     {
         // TODO maybe we could use a span here depending on libsolv layout
         auto solv_repo = solv::ObjRepoViewConst(*repo.m_ptr);

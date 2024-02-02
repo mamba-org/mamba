@@ -84,7 +84,29 @@ namespace mamba
             return out;
         }
 
-        auto find_python_version(const solver::Solution& solution, const solv::ObjPool& pool)
+        auto installed_python(const MPool& pool) -> std::optional<specs::PackageInfo>
+        {
+            // TODO combine Repo and MatchSpec search API in Pool
+            auto out = std::optional<specs::PackageInfo>();
+            if (auto repo = pool.installed_repo())
+            {
+                pool.for_each_package_in_repo(
+                    *repo,
+                    [&](specs::PackageInfo&& pkg)
+                    {
+                        if (pkg.name == "python")
+                        {
+                            out = std::move(pkg);
+                            return util::LoopControl::Break;
+                        }
+                        return util::LoopControl::Continue;
+                    }
+                );
+            }
+            return out;
+        }
+
+        auto find_python_version(const solver::Solution& solution, const MPool& pool)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -94,9 +116,9 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string installed_py_ver = {};
-            if (auto s = solver::libsolv::installed_python(pool))
+            if (auto pkg = installed_python(pool))
             {
-                installed_py_ver = s->version();
+                installed_py_ver = pkg->version;
                 LOG_INFO << "Found python in installed packages " << installed_py_ver;
             }
 
@@ -192,7 +214,7 @@ namespace mamba
             context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
-            find_python_version(m_solution, m_pool.pool()),
+            find_python_version(m_solution, m_pool),
             specs_to_install
         );
     }
@@ -205,8 +227,6 @@ namespace mamba
     )
         : MTransaction(p_pool, caches)
     {
-        auto& pool = m_pool.pool();
-
         const auto& flags = request.flags;
         m_solution = std::move(solution);
 
@@ -237,6 +257,8 @@ namespace mamba
             );
         }
 
+        auto& pool = m_pool.pool();
+
         auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
@@ -248,7 +270,7 @@ namespace mamba
             context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
-            find_python_version(m_solution, m_pool.pool()),
+            find_python_version(m_solution, m_pool),
             std::move(requested_specs)
         );
 
@@ -306,14 +328,14 @@ namespace mamba
             context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
-            find_python_version(m_solution, m_pool.pool()),
+            find_python_version(m_solution, m_pool),
             std::move(specs_to_install)
         );
     }
 
     auto MTransaction::py_find_python_version() const -> std::pair<std::string, std::string>
     {
-        return find_python_version(m_solution, m_pool.pool());
+        return find_python_version(m_solution, m_pool);
     }
 
     class TransactionRollback

@@ -778,7 +778,7 @@ def do_call(args, parser):
             " deactivate are supported through mamba."
         )
 
-        return 0
+        return 1
     return exit_code
 
 

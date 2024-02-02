@@ -149,15 +149,20 @@ namespace mamba
 
             if (force)
             {
-                std::vector<specs::MatchSpec> mspecs;
-                mspecs.reserve(raw_specs.size());
-                std::transform(
-                    raw_specs.begin(),
-                    raw_specs.end(),
-                    std::back_inserter(mspecs),
-                    [&](const auto& spec_str) { return specs::MatchSpec::parse(spec_str); }
-                );
-                auto transaction = MTransaction(pool, mspecs, {}, package_caches);
+                std::vector<specs::PackageInfo> pkgs_to_remove;
+                pkgs_to_remove.reserve(raw_specs.size());
+                for (const auto& str : raw_specs)
+                {
+                    auto spec = specs::MatchSpec::parse(str);
+                    const auto& installed = prefix_data.records();
+                    // TODO should itreate over all packages and use MatchSpec.contains
+                    // TODO should move such method over Pool for consitent use
+                    if (auto iter = installed.find(spec.name().str()); iter != installed.cend())
+                    {
+                        pkgs_to_remove.push_back(iter->second);
+                    }
+                }
+                auto transaction = MTransaction(pool, pkgs_to_remove, {}, package_caches);
                 execute_transaction(transaction);
             }
             else

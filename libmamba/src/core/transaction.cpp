@@ -69,32 +69,17 @@ namespace mamba
             return found;
         };
 
-        template <typename Range>
-        auto make_pkg_info_from_explicit_match_specs(Range&& specs)
+        auto explicit_spec(const specs::PackageInfo& pkg) -> specs::MatchSpec
         {
-            std::vector<specs::PackageInfo> out = {};
-            out.reserve(specs.size());
-
-            for (auto& ms : specs)
+            auto out = specs::MatchSpec();
+            out.set_name(specs::MatchSpec::NameSpec(pkg.name));
+            if (!pkg.version.empty())
             {
-                out.emplace_back(ms.name().str());
-                auto& p = out.back();
-                p.package_url = ms.url();
-                p.build_string = ms.build_string().str();
-                p.version = ms.version().str_conda_build();
-                if (ms.channel().has_value())
-                {
-                    p.channel = ms.channel()->location();
-                    if (!ms.channel()->platform_filters().empty())
-                    {
-                        // There must be only one since we are expecting URLs
-                        assert(ms.channel()->platform_filters().size() == 1);
-                        p.subdir = ms.channel()->platform_filters().front();
-                    }
-                }
-                p.filename = ms.filename();
-                p.md5 = ms.md5();
-                p.sha256 = ms.sha256();
+                out.set_version(specs::VersionSpec::parse(fmt::format("=={}", pkg.version)));
+            }
+            if (!pkg.build_string.empty())
+            {
+                out.set_build_string(specs::MatchSpec::BuildStringSpec(pkg.build_string));
             }
             return out;
         }
@@ -134,33 +119,39 @@ namespace mamba
 
     MTransaction::MTransaction(
         MPool& pool,
-        const std::vector<specs::MatchSpec>& specs_to_remove,
-        const std::vector<specs::MatchSpec>& specs_to_install,
+        std::vector<specs::PackageInfo> pkgs_to_remove,
+        std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
     )
         : MTransaction(pool, caches)
     {
-        auto pkgs_to_install = make_pkg_info_from_explicit_match_specs(specs_to_install);
-        auto pkgs_to_remove = make_pkg_info_from_explicit_match_specs(specs_to_remove);
-
-        std::vector<std::string> not_found = {};
-        for (const auto& pkg : specs_to_remove)
+        auto not_found = std::stringstream();
+        for (const auto& pkg : pkgs_to_remove)
         {
-            if (!pool_has_package(pool, pkg))
+            auto spec = explicit_spec(pkg);
+            if (!pool_has_package(pool, spec))
             {
-                not_found.push_back(fmt::format("\n - {}", pkg.str()));
+                not_found << "\n - " << spec.str();
             }
         }
 
-        if (!not_found.empty())
+        if (auto list = not_found.str(); !list.empty())
         {
-            LOG_ERROR << "Could not find packages to remove:" + util::join("", not_found)
-                      << std::endl;
+            LOG_ERROR << "Could not find packages to remove:" << list << '\n';
             Console::instance().json_write({ { "success", false } });
-            throw std::runtime_error("Could not find packages to remove:" + util::join("", not_found));
+            throw std::runtime_error("Could not find packages to remove:" + list);
         }
 
         Console::instance().json_write({ { "success", true } });
+
+        auto specs_to_install = std::vector<specs::MatchSpec>();
+        specs_to_install.reserve(pkgs_to_install.size());
+        std::transform(
+            pkgs_to_install.begin(),
+            pkgs_to_install.end(),
+            std::back_insert_iterator(specs_to_install),
+            [](const auto& pkg) { return explicit_spec(pkg); }
+        );
 
         m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
         std::transform(
@@ -176,15 +167,15 @@ namespace mamba
             [](specs::PackageInfo&& pkg) { return solver::Solution::Remove{ std::move(pkg) }; }
         );
 
-        m_history_entry.remove.reserve(specs_to_remove.size());
-        for (auto& s : specs_to_remove)
+        m_history_entry.remove.reserve(pkgs_to_remove.size());
+        for (auto& pkg : pkgs_to_remove)
         {
-            m_history_entry.remove.push_back(s.str());
+            m_history_entry.remove.push_back(explicit_spec(pkg).str());
         }
-        m_history_entry.update.reserve(specs_to_install.size());
-        for (auto& s : specs_to_install)
+        m_history_entry.update.reserve(pkgs_to_install.size());
+        for (auto& pkg : pkgs_to_install)
         {
-            m_history_entry.update.push_back(s.str());
+            m_history_entry.update.push_back(explicit_spec(pkg).str());
         }
 
         const auto& context = m_pool.context();
@@ -1134,37 +1125,14 @@ namespace mamba
     MTransaction
     create_explicit_transaction_from_urls(MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
-        std::vector<specs::MatchSpec> specs_to_install = {};
+        std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
-        for (auto& raw_url : urls)
-        {
-            std::string_view url = util::strip(raw_url);
-            if (url.empty())
-            {
-                continue;
-            }
-
-            const auto hash_idx = url.find_first_of('#');
-            specs_to_install.emplace_back(specs::MatchSpec::parse(url.substr(0, hash_idx)));
-            specs::MatchSpec& ms = specs_to_install.back();
-
-            if (hash_idx != std::string::npos)
-            {
-                std::string_view hash = url.substr(hash_idx + 1);
-                if (util::starts_with(hash, "sha256:"))
-                {
-                    ms.set_sha256(std::string(hash.substr(7)));
-                }
-                if (util::starts_with(hash, "md5:"))
-                {
-                    ms.set_sha256(std::string(hash.substr(4)));
-                }
-                else
-                {
-                    ms.set_md5(std::string(hash));
-                }
-            }
-        }
+        std::transform(
+            urls.cbegin(),
+            urls.cend(),
+            std::back_insert_iterator(specs_to_install),
+            [&](const auto& u) { return specs::PackageInfo::from_url(u); }
+        );
         return MTransaction(pool, {}, specs_to_install, package_caches);
     }
 

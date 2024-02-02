@@ -36,8 +36,8 @@ namespace mamba
 
         MTransaction(
             MPool& pool,
-            const std::vector<specs::MatchSpec>& specs_to_remove,
-            const std::vector<specs::MatchSpec>& specs_to_install,
+            std::vector<specs::PackageInfo> pkgs_to_remove,
+            std::vector<specs::PackageInfo> pkgs_to_install,
             MultiPackageCache& caches
         );
 

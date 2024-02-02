@@ -228,7 +228,7 @@ namespace mamba
         };
     }
 
-    auto Query::whoneeds(MPool& mpool, const std::string& query, bool tree) -> QueryResult
+    auto Query::whoneeds(MPool& mpool, std::string query, bool tree) -> QueryResult
     {
         if (tree)
         {
@@ -236,7 +236,7 @@ namespace mamba
             {
                 auto walker = PoolWalker(mpool);
                 walker.reverse_walk(std::move(pkg).value());
-                return { QueryType::WhoNeeds, query, std::move(walker).graph() };
+                return { QueryType::WhoNeeds, std::move(query), std::move(walker).graph() };
             }
         }
         else
@@ -246,12 +246,12 @@ namespace mamba
                 specs::MatchSpec::parse(query),
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
-            return { QueryType::WhoNeeds, query, std::move(g) };
+            return { QueryType::WhoNeeds, std::move(query), std::move(g) };
         }
-        return { QueryType::WhoNeeds, query, QueryResult::dependency_graph() };
+        return { QueryType::WhoNeeds, std::move(query), QueryResult::dependency_graph() };
     }
 
-    auto Query::depends(MPool& mpool, const std::string& query, bool tree) -> QueryResult
+    auto Query::depends(MPool& mpool, std::string query, bool tree) -> QueryResult
     {
         if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
         {
@@ -264,9 +264,9 @@ namespace mamba
             {
                 walker.walk(std::move(pkg).value(), 1);
             }
-            return { QueryType::Depends, query, std::move(walker).graph() };
+            return { QueryType::Depends, std::move(query), std::move(walker).graph() };
         }
-        return { QueryType::Depends, query, QueryResult::dependency_graph() };
+        return { QueryType::Depends, std::move(query), QueryResult::dependency_graph() };
     }
 
     /********************************

@@ -54,6 +54,21 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
+        // TODO duplicated function, consider moving it to Pool
+        auto pool_has_package(MPool& pool, const specs::MatchSpec& spec) -> bool
+        {
+            bool found = false;
+            pool.for_each_package_matching(
+                spec,
+                [&](const auto&)
+                {
+                    found = true;
+                    return util::LoopControl::Break;
+                }
+            );
+            return found;
+        };
+
         template <typename Range>
         auto make_pkg_info_from_explicit_match_specs(Range&& specs)
         {
@@ -125,36 +140,15 @@ namespace mamba
     )
         : MTransaction(pool, caches)
     {
-        auto mrepo = m_pool.add_repo_from_packages(
-            make_pkg_info_from_explicit_match_specs(specs_to_install),
-            "__explicit_specs__",
-            solver::libsolv::PipAsPythonDependency::No
-        );
-
-        m_pool.create_whatprovides();
-
-        // Just add the packages we want to remove directly to the transaction
-        solv::ObjQueue job, decision;
+        auto pkgs_to_install = make_pkg_info_from_explicit_match_specs(specs_to_install);
+        auto pkgs_to_remove = make_pkg_info_from_explicit_match_specs(specs_to_remove);
 
         std::vector<std::string> not_found = {};
-        for (auto& s : specs_to_remove)
+        for (const auto& pkg : specs_to_remove)
         {
-            job = {
-                SOLVER_SOLVABLE_PROVIDES,
-                m_pool.pool().add_conda_dependency(s.conda_build_form()),
-            };
-
-            if (const auto q = m_pool.pool().select_solvables(job); !q.empty())
+            if (!pool_has_package(pool, pkg))
             {
-                for (auto& el : q)
-                {
-                    // To remove, these have to be negative
-                    decision.push_back(-el);
-                }
-            }
-            else
-            {
-                not_found.push_back("\n - " + s.str());
+                not_found.push_back(fmt::format("\n - {}", pkg.str()));
             }
         }
 
@@ -162,25 +156,25 @@ namespace mamba
         {
             LOG_ERROR << "Could not find packages to remove:" + util::join("", not_found)
                       << std::endl;
+            Console::instance().json_write({ { "success", false } });
             throw std::runtime_error("Could not find packages to remove:" + util::join("", not_found));
         }
 
-        // TODO why is this only using the last job?
-        const auto q = m_pool.pool().select_solvables(job);
-        const bool remove_success = q.size() >= specs_to_remove.size();
-        Console::instance().json_write({ { "success", remove_success } });
+        Console::instance().json_write({ { "success", true } });
 
-        // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
-        repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
-
-        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
-        // We cannot order the transaction here because we do no have dependency information
-        // from the lockfile
-        // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
-        // ``fetch_extract_packages`` is called.
-
-        m_solution = solver::libsolv::transaction_to_solution_all(m_pool.pool(), trans);
+        m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
+        std::transform(
+            std::move_iterator(pkgs_to_install.begin()),
+            std::move_iterator(pkgs_to_install.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
+        );
+        std::transform(
+            std::move_iterator(pkgs_to_remove.begin()),
+            std::move_iterator(pkgs_to_remove.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Remove{ std::move(pkg) }; }
+        );
 
         m_history_entry.remove.reserve(specs_to_remove.size());
         for (auto& s : specs_to_remove)

@@ -186,6 +186,14 @@ namespace mamba::solv
         ::pool_createwhatprovides(raw());
     }
 
+    void ObjPool::ensure_whatprovides()
+    {
+        if (!raw()->whatprovides)
+        {
+            ::pool_createwhatprovides(raw());
+        }
+    }
+
     auto ObjPool::add_to_whatprovides_data(const ObjQueue& solvables) -> OffsetId
     {
         return add_to_whatprovdies_data(solvables.data(), solvables.size());

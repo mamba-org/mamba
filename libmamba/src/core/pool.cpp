@@ -311,6 +311,7 @@ namespace mamba
 
     auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
     {
+        pool().ensure_whatprovides();
         const auto ms_id = matchspec2id(ms);
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
         auto out = std::vector<SolvableId>(solvables.size());
@@ -320,6 +321,7 @@ namespace mamba
 
     auto MPool::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
     {
+        pool().ensure_whatprovides();
         const auto ms_id = matchspec2id(ms);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
         auto out = std::vector<SolvableId>(solvables.size());

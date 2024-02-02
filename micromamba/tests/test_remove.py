@@ -69,7 +69,7 @@ def test_remove_force(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
     # it in a bad state, actually)
     helpers.install("xframe", "-n", tmp_env_name, no_dry_run=True)
 
-    res = helpers.remove("xtl", "-p", tmp_xtensor_env, "--json", "--force")
+    res = helpers.remove("xtl", "-p", str(tmp_xtensor_env), "--json", "--force")
 
     keys = {"dry_run", "success", "prefix", "actions"}
     assert keys.issubset(set(res.keys()))

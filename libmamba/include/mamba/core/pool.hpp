@@ -64,10 +64,6 @@ namespace mamba
         std::optional<specs::PackageInfo> id2pkginfo(Id solv_id) const;
         std::optional<std::string> dep2str(Id dep_id) const;
 
-        // TODO: (TMP) This is not meant to exist but is needed for a transition period
-        operator ::Pool*();
-        operator const ::Pool*() const;
-
         // TODO: (TMP) This is not meant to be public but is needed for a transition period
         solv::ObjPool& pool();
         const solv::ObjPool& pool() const;

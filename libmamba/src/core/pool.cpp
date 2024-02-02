@@ -112,16 +112,6 @@ namespace mamba
         pool().create_whatprovides();
     }
 
-    MPool::operator Pool*()
-    {
-        return pool().raw();
-    }
-
-    MPool::operator const Pool*() const
-    {
-        return pool().raw();
-    }
-
     std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
     {
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });

@@ -40,6 +40,7 @@ namespace mamba
             const std::vector<specs::MatchSpec>& specs_to_install,
             MultiPackageCache& caches
         );
+
         MTransaction(
             MPool& pool,
             const solver::Request& request,
@@ -48,7 +49,7 @@ namespace mamba
         );
 
         // Only use if the packages have been solved previously already.
-        MTransaction(MPool& pool, const std::vector<specs::PackageInfo>& packages, MultiPackageCache& caches);
+        MTransaction(MPool& pool, std::vector<specs::PackageInfo> packages, MultiPackageCache& caches);
 
         MTransaction(const MTransaction&) = delete;
         MTransaction(MTransaction&&) = delete;

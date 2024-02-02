@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <stack>
 #include <string>
 #include <utility>
@@ -286,36 +287,34 @@ namespace mamba
 
     MTransaction::MTransaction(
         MPool& pool,
-        const std::vector<specs::PackageInfo>& packages,
+        std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
         : MTransaction(pool, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        auto mrepo = m_pool.add_repo_from_packages(
-            packages,
-            "__explicit_specs__",
-            solver::libsolv::PipAsPythonDependency::No
+
+        auto specs_to_install = std::vector<specs::MatchSpec>();
+        specs_to_install.reserve(packages.size());
+        std::transform(
+            packages.cbegin(),
+            packages.cend(),
+            std::back_insert_iterator(specs_to_install),
+            [](const auto& pkg)
+            {
+                return specs::MatchSpec::parse(
+                    fmt::format("{}=={}={}", pkg.name, pkg.version, pkg.build_string)
+                );
+            }
         );
-        m_pool.create_whatprovides();
 
-        solv::ObjQueue decision = {};
-        // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
-        repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
-
-        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
-        trans.order(m_pool.pool());
-
-        m_solution = solver::libsolv::transaction_to_solution_all(m_pool.pool(), trans);
-
-        std::vector<specs::MatchSpec> specs_to_install;
-        for (const auto& pkginfo : packages)
-        {
-            specs_to_install.push_back(specs::MatchSpec::parse(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
-            ));
-        }
+        m_solution.actions.reserve(packages.size());
+        std::transform(
+            std::move_iterator(packages.begin()),
+            std::move_iterator(packages.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
+        );
 
         const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
@@ -323,7 +322,7 @@ namespace mamba
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
-            specs_to_install
+            std::move(specs_to_install)
         );
     }
 
@@ -1241,7 +1240,7 @@ namespace mamba
             );
         }
 
-        return MTransaction{ pool, conda_packages, package_caches };
+        return MTransaction{ pool, std::move(conda_packages), package_caches };
     }
 
 }  // namespace mamba

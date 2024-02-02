@@ -1,3 +1,39 @@
+micromamba 2.0.0alpha2 (February 02, 2024)
+==========================================
+
+Enhancements:
+
+- Remove hard coded mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3069
+- Support multiple env yaml specs by @jchorl in https://github.com/mamba-org/mamba/pull/2993
+- Duplicate reposerver to isolate micromamba tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3071
+- Some future proofing MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3082
+- Remove micromamba shell init -p by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3092
+- Clean PackageInfo interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3103
+- Move PackageInfo in specs:: by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3109
+- Move util_random.hpp > util/random.hpp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3129
+- Refactor test_remove.py to use fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3131
+- MRepo refactor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3118
+- Explcit transaction duplicate code by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3138
+- Solver Request by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3141
+- Split Solver and Unsolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3156
+- Solver sort deps by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3163
+
+Bug fixes:
+
+- Fix URL enconding in repodata.json by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3076
+- gracefully handle conflicting names in yaml specs by @jchorl in https://github.com/mamba-org/mamba/pull/3083
+- add manually given .tar.bz2 / .conda packages to solver pool by @0xbe7a in https://github.com/mamba-org/mamba/pull/3164
+
+CI fixes and doc:
+
+- Document specs::Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3077
+- Fix --override-channels docs by @jonashaag in https://github.com/mamba-org/mamba/pull/3084
+- Add 2.0 changes draft by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3091
+- Add Breathe for API documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3087
+- Add instructions for gnu coreutils on OSX by @benmoss in https://github.com/mamba-org/mamba/pull/3111
+- Warning around manual install and add ref to conda-libmamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3119
+- Add MacOS DNS issue logging by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3130
+
 micromamba 2.0.0alpha1 (December 18, 2023)
 ==========================================
 

@@ -1,3 +1,47 @@
+libmambapy 2.0.0alpha2 (February 02, 2024)
+==========================================
+
+Enhancements:
+
+- More specs bindings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3080
+- Add VersionSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3081
+- Some future proofing MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3082
+- Fix VersionSpec free ranges by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3088
+- MatchSpec use VersionSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3089
+- GlobSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3094
+- Clean PackageInfo interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3103
+- NoArchType as standalone enum by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3108
+- Move PackageInfo in specs:: by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3109
+- Change PackageInfo types by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3113
+- Add some PackageInfo tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3115
+- Rename ChannelSpec > UndefinedChannel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3117
+- Add Channel::contains_package by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3121
+- Pool channel match by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3122
+- Add expected caster to Union by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3135
+- MRepo refactor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3118
+- No M by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3137
+- Solver improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3140
+- Solver Request by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3141
+- Refactor solver flags by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3153
+- Split Solver and Unsolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3156
+- Solver sort deps by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3163
+- Bind solver::libsolv::UnSolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3166
+- Improve Query API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3167
+
+Bug fixes:
+
+- Fix expected caster by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3136
+
+CI fixes and doc:
+
+- Remove dead mamba.py doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3078
+- Document specs::Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3077
+- Fix --override-channels docs by @jonashaag in https://github.com/mamba-org/mamba/pull/3084
+- Add 2.0 changes draft by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3091
+- Add Breathe for API documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3087
+- Warning around manual install and add ref to conda-libmamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3119
+- Add MacOS DNS issue logging by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3130
+
 libmambapy 2.0.0alpha1 (December 18, 2023)
 ==========================================
 

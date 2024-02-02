@@ -14,16 +14,6 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <solv/evr.h>
-#include <solv/pool.h>
-#include <solv/repo.h>
-#include <solv/selection.h>
-#include <solv/solver.h>
-#include <spdlog/spdlog.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
@@ -31,7 +21,6 @@ extern "C"  // Incomplete header
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
-#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
@@ -112,6 +101,8 @@ namespace mamba
             void walk(specs::PackageInfo pkg, std::size_t max_depth);
             void walk(specs::PackageInfo pkg);
 
+            void reverse_walk(specs::PackageInfo pkg);
+
             auto graph() && -> DepGraph&&;
 
         private:
@@ -125,6 +116,7 @@ namespace mamba
             MPool& m_pool;
 
             void walk_impl(node_id id, std::size_t max_depth);
+            void reverse_walk_impl(node_id id);
         };
 
         PoolWalker::PoolWalker(MPool& pool)
@@ -141,11 +133,6 @@ namespace mamba
         void PoolWalker::walk(specs::PackageInfo pkg)
         {
             return walk(std::move(pkg), std::numeric_limits<std::size_t>::max());
-        }
-
-        auto PoolWalker::graph() && -> DepGraph&&
-        {
-            return std::move(m_graph);
         }
 
         void PoolWalker::walk_impl(node_id id, std::size_t max_depth)
@@ -190,43 +177,36 @@ namespace mamba
             }
         }
 
-        void reverse_walk_graph(
-            MPool& pool,
-            QueryResult::dependency_graph& dep_graph,
-            QueryResult::dependency_graph::node_id parent,
-            Solvable* s,
-            std::map<Solvable*, size_t>& visited
-        )
+        void PoolWalker::reverse_walk(specs::PackageInfo pkg)
         {
-            if (s)
-            {
-                // figure out who requires `s`
-                solv::ObjQueue solvables = {};
+            const auto id = m_graph.add_node(std::move(pkg));
+            reverse_walk_impl(id);
+        }
 
-                pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables.raw(), -1);
-
-                if (solvables.size() != 0)
+        void PoolWalker::reverse_walk_impl(node_id id)
+        {
+            m_pool.for_each_package_depending_on(
+                specs::MatchSpec::parse(m_graph.node(id).name),
+                [&](specs::PackageInfo pkg)
                 {
-                    for (auto& el : solvables)
+                    if (auto it = m_visited.find(&pkg); it != m_visited.cend())
                     {
-                        ::Solvable* rs = pool_id2solvable(pool, el);
-                        auto it = visited.find(rs);
-                        if (it == visited.end())
-                        {
-                            auto pkg_info = pool.id2pkginfo(el);
-                            assert(pkg_info.has_value());
-                            auto dep_id = dep_graph.add_node(std::move(pkg_info).value());
-                            dep_graph.add_edge(parent, dep_id);
-                            visited.insert(std::make_pair(rs, dep_id));
-                            reverse_walk_graph(pool, dep_graph, dep_id, rs, visited);
-                        }
-                        else
-                        {
-                            dep_graph.add_edge(parent, it->second);
-                        }
+                        m_graph.add_edge(id, it->second);
+                    }
+                    else
+                    {
+                        auto const child_id = m_graph.add_node(std::move(pkg));
+                        m_graph.add_edge(id, child_id);
+                        m_visited.emplace(&m_graph.node(child_id), child_id);
+                        reverse_walk_impl(child_id);
                     }
                 }
-            }
+            );
+        }
+
+        auto PoolWalker::graph() && -> DepGraph&&
+        {
+            return std::move(m_graph);
         }
     }
 
@@ -250,37 +230,25 @@ namespace mamba
 
     auto Query::whoneeds(MPool& mpool, const std::string& query, bool tree) -> QueryResult
     {
-        QueryResult::dependency_graph g;
-
         if (tree)
         {
-            const Id id = pool_conda_matchspec(mpool, query.c_str());
-            if (!id)
+            if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
             {
-                throw std::runtime_error("Could not generate query for " + query);
-            }
-
-            solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
-            solv::ObjQueue solvables = {};
-            selection_solvables(mpool, job.raw(), solvables.raw());
-            if (!solvables.empty())
-            {
-                auto pkg_info = mpool.id2pkginfo(solvables.front());
-                assert(pkg_info.has_value());
-                const auto node_id = g.add_node(std::move(pkg_info).value());
-                Solvable* const latest = pool_id2solvable(mpool, solvables.front());
-                std::map<Solvable*, size_t> visited = { { latest, node_id } };
-                reverse_walk_graph(mpool, g, node_id, latest, visited);
+                auto walker = PoolWalker(mpool);
+                walker.reverse_walk(std::move(pkg).value());
+                return { QueryType::WhoNeeds, query, std::move(walker).graph() };
             }
         }
         else
         {
+            QueryResult::dependency_graph g;
             mpool.for_each_package_depending_on(
                 specs::MatchSpec::parse(query),
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
+            return { QueryType::WhoNeeds, query, std::move(g) };
         }
-        return { QueryType::WhoNeeds, query, std::move(g) };
+        return { QueryType::WhoNeeds, query, QueryResult::dependency_graph() };
     }
 
     auto Query::depends(MPool& mpool, const std::string& query, bool tree) -> QueryResult

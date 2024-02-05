@@ -769,7 +769,7 @@ def do_call(args, parser):
         exit_code = update(args, parser)
     elif relative_mod == ".main_init":
         exit_code = shell_init(args)
-    elif relative_mod in (".main_repoquery", "repoquery"):
+    elif relative_mod in (".main_repoquery", ".repoquery"):
         exit_code = repoquery(args, parser)
     else:
         print(
@@ -778,7 +778,7 @@ def do_call(args, parser):
             " deactivate are supported through mamba."
         )
 
-        return 0
+        return 1
     return exit_code
 
 

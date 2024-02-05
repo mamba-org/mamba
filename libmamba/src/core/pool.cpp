@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <exception>
+#include <iostream>
+#include <limits>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -42,11 +45,13 @@ namespace mamba
         ChannelContext& channel_context;
     };
 
-    MPool::MPool(const Context& ctx, ChannelContext& channel_context)
+    MPool::MPool(ChannelContext& channel_context)
         : m_data(std::make_shared<MPoolData>(channel_context))
     {
         pool().set_disttype(DISTTYPE_CONDA);
-        set_debuglevel(ctx.output_params.verbosity);
+        // Ensure that debug logging never goes to stdout as to not interfere json output
+        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
+        ::pool_setdebuglevel(pool().raw(), -1);  // Off
     }
 
     MPool::~MPool() = default;
@@ -66,38 +71,43 @@ namespace mamba
         return m_data->pool;
     }
 
-    void MPool::set_debuglevel(int verbosity)
+    namespace
     {
-        // ensure that debug logging goes to stderr as to not interfere with stdout json output
-        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (verbosity > 2)
+        auto libsolv_to_log_level(int type) -> solver::libsolv::LogLevel
         {
-            ::pool_setdebuglevel(pool().raw(), verbosity - 1);
-            pool().set_debug_callback(
-                [logger = spdlog::get("libsolv"),
-                 verbosity](::Pool*, int type, std::string_view msg) noexcept
-                {
-                    if (msg.size() == 0 || msg.back() != '\n')
-                    {
-                        return;
-                    }
-
-                    auto log = Console::hide_secrets(msg);
-                    if (type & SOLV_FATAL || type & SOLV_ERROR)
-                    {
-                        logger->error(log);
-                    }
-                    else if (type & SOLV_WARN)
-                    {
-                        logger->warn(log);
-                    }
-                    else if (verbosity > 2)
-                    {
-                        logger->info(log);
-                    }
-                }
-            );
+            if (type & SOLV_FATAL)
+            {
+                return solver::libsolv::LogLevel::Fatal;
+            }
+            if (type & SOLV_ERROR)
+            {
+                return solver::libsolv::LogLevel::Error;
+            }
+            if (type & SOLV_WARN)
+            {
+                return solver::libsolv::LogLevel::Warning;
+            }
+            return solver::libsolv::LogLevel::Debug;
         }
+    }
+
+    void MPool::set_logger(logger_type callback)
+    {
+        ::pool_setdebuglevel(pool().raw(), std::numeric_limits<int>::max());  // All
+        pool().set_debug_callback(
+            [logger = std::move(callback)](::Pool*, int type, std::string_view msg) noexcept
+            {
+                try
+                {
+                    logger(libsolv_to_log_level(type), msg);
+                }
+                catch (std::exception const& e)
+                {
+                    std::cerr << "Developer error: error in libsolv logging function: \n"
+                              << e.what();
+                }
+            }
+        );
     }
 
     void MPool::create_whatprovides()
@@ -361,6 +371,27 @@ namespace mamba
     }
 
     // TODO machinery functions in separate files
+
+    void add_spdlog_logger_to_pool(MPool& pool)
+    {
+        pool.set_logger(
+            [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
+            {
+                switch (level)
+                {
+                    case (solver::libsolv::LogLevel::Fatal):
+                        logger->critical(msg);
+                    case (solver::libsolv::LogLevel::Error):
+                        logger->error(msg);
+                    case (solver::libsolv::LogLevel::Warning):
+                        logger->warn(msg);
+                    case (solver::libsolv::LogLevel::Debug):
+                        logger->debug(msg);
+                }
+            }
+        );
+    }
+
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {

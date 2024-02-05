@@ -28,7 +28,8 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            MPool pool{ ctx, channel_context };
+            MPool pool{ channel_context };
+            add_spdlog_logger_to_pool(pool);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);

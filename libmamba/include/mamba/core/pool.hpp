@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -52,10 +53,13 @@ namespace mamba
     {
     public:
 
-        MPool(const Context& ctx, ChannelContext& channel_context);
+        using logger_type = std::function<void(solver::libsolv::LogLevel, std::string_view)>;
+
+        MPool(ChannelContext& channel_context);
         ~MPool();
 
-        void set_debuglevel(int verbosity);
+        void set_logger(logger_type callback);
+
         void create_whatprovides();
 
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
@@ -167,6 +171,8 @@ namespace mamba
     };
 
     // TODO machinery functions in separate files
+    void add_spdlog_logger_to_pool(MPool& pool);
+
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>;
 

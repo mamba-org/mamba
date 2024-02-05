@@ -126,7 +126,8 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
-            MPool pool{ ctx, channel_context };
+            MPool pool{ channel_context };
+            add_spdlog_logger_to_pool(pool);
             mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 
             ctx.platform = "linux-64";

@@ -106,7 +106,9 @@ namespace mamba
             }
         }
 
-        MPool pool{ ctx, channel_context };
+        MPool pool{ channel_context };
+        add_spdlog_logger_to_pool(pool);
+
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
         auto exp_loaded = load_channels(ctx, channel_context, pool, package_caches);

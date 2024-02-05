@@ -36,6 +36,26 @@ def test_PipASPythonDependency():
     assert libsolv.PipAsPythonDependency(True) == libsolv.PipAsPythonDependency.Yes
 
 
+def test_UseOnlyTarBz2():
+    assert libsolv.UseOnlyTarBz2.No.name == "No"
+    assert libsolv.UseOnlyTarBz2.Yes.name == "Yes"
+
+    assert libsolv.UseOnlyTarBz2(True) == libsolv.UseOnlyTarBz2.Yes
+
+
+def test_Platform():
+    assert libsolv.LogLevel.Debug.name == "Debug"
+    assert libsolv.LogLevel.Warning.name == "Warning"
+    assert libsolv.LogLevel.Error.name == "Error"
+    assert libsolv.LogLevel.Fatal.name == "Fatal"
+
+    assert libsolv.LogLevel("Error") == libsolv.LogLevel.Error
+
+    with pytest.raises(KeyError):
+        # No parsing, explicit name
+        libsolv.LogLevel("Unicorn")
+
+
 def test_Priorities():
     p = libsolv.Priorities(priority=-1, subpriority=-2)
 

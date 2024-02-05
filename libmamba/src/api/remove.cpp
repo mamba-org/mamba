@@ -127,8 +127,8 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool{ ctx, channel_context };
-
+            MPool pool{ channel_context };
+            add_spdlog_logger_to_pool(pool);
             load_installed_packages_in_pool(ctx, pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");

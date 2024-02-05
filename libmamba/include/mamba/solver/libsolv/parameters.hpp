@@ -31,6 +31,14 @@ namespace mamba::solver::libsolv
         Yes = true,
     };
 
+    enum class LogLevel
+    {
+        Debug,
+        Warning,
+        Error,
+        Fatal,
+    };
+
     struct Priorities
     {
         using value_type = int;

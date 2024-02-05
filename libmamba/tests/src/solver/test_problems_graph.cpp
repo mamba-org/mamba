@@ -104,7 +104,7 @@ namespace
     template <typename PkgRange>
     auto create_pkgs_pool(Context& ctx, ChannelContext& channel_context, const PkgRange& packages)
     {
-        auto pool = MPool{ ctx, channel_context };
+        MPool pool{ channel_context };
         pool.add_repo_from_packages(packages);
         return pool;
     }
@@ -341,7 +341,7 @@ namespace
 
         auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool{ ctx, channel_context };
+        auto pool = MPool{ channel_context };
 
         load_installed_packages_in_pool(ctx, pool, prefix_data);
 

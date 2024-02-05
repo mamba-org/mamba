@@ -380,15 +380,8 @@ bind_submodule_impl(pybind11::module_ m)
     py::add_ostream_redirect(m, "ostream_redirect");
 
     py::class_<MPool>(m, "Pool")
-        .def(
-            py::init<>(
-                [](ChannelContext& channel_context) {
-                    return MPool{ mambapy::singletons.context(), channel_context };
-                }
-            ),
-            py::arg("channel_context")
-        )
-        .def("set_debuglevel", &MPool::set_debuglevel)
+        .def(py::init<ChannelContext&>(), py::arg("channel_context"))
+        .def("set_logger", &MPool::set_logger, py::call_guard<py::gil_scoped_acquire>())
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))

@@ -6,11 +6,18 @@
 
 #include "mamba/download/mirror_map.hpp"
 
+#include "mirror_impl.hpp"
+
 namespace mamba::download
 {
     mirror_map::mirror_map()
     {
         create_unique_mirror<PassThroughMirror>("");
+    }
+
+    std::size_t mirror_map::size() const
+    {
+        return m_mirrors.size();
     }
 
     bool mirror_map::has_mirrors(std::string_view mirror_name) const

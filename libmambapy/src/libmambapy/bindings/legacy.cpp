@@ -129,12 +129,13 @@ namespace mambapy
         using entry_list = std::vector<Entry>;
         using iterator = entry_list::const_iterator;
 
+        // TODO: remove full_url from API
         void create(
             mamba::Context& ctx,
             mamba::ChannelContext& channel_context,
             const mamba::specs::Channel& channel,
             const std::string& platform,
-            const std::string& full_url,
+            const std::string& /*full_url*/,
             mamba::MultiPackageCache& caches,
             const std::string& repodata_fn,
             const std::string& url
@@ -142,7 +143,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                SubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
+                SubdirData::create(ctx, channel_context, channel, platform, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)

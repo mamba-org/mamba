@@ -71,6 +71,7 @@ namespace mamba::solver::libsolv
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,
+            const std::string& channel_id,
             PipAsPythonDependency add = PipAsPythonDependency::No,
             UseOnlyTarBz2 only_tar = UseOnlyTarBz2::No,
             RepodataParser parser = RepodataParser::Mamba
@@ -79,6 +80,7 @@ namespace mamba::solver::libsolv
         auto add_repo_from_native_serialization(
             const fs::u8path& path,
             const RepodataOrigin& expected,
+            const std::string& channel_id,
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> expected_t<RepoInfo>;
 

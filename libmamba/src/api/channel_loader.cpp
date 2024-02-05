@@ -68,7 +68,6 @@ namespace mamba
                     channel_context,
                     channel,
                     platform,
-                    channel.platform_url(platform).str(specs::CondaURL::Credentials::Show),
                     package_caches,
                     "repodata.json"
                 );

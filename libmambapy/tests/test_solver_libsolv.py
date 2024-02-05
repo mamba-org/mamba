@@ -183,11 +183,13 @@ def test_Database_RepoInfo_from_repodata(
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
 
     url = "https://repo.mamba.pm"
+    channel_id = "conda-forge"
 
     # Json
     repo = db.add_repo_from_repodata_json(
         path=tmp_repodata_json,
         url=url,
+        channel_id=channel_id,
         add_pip_as_python_dependency=add_pip_as_python_dependency,
         use_only_tar_bz2=use_only_tar_bz2,
         repodata_parser=repodata_parser,
@@ -214,20 +216,26 @@ def test_Database_RepoInfo_from_repodata(
     assert db.package_count() == 0
 
     repo_loaded = db.add_repo_from_native_serialization(
-        path=solv_file, expected=origin, add_pip_as_python_dependency=add_pip_as_python_dependency
+        path=solv_file,
+        expected=origin,
+        channel_id=channel_id,
+        add_pip_as_python_dependency=add_pip_as_python_dependency,
     )
     assert repo_loaded.package_count() == 1 if use_only_tar_bz2 else 2
 
 
 def test_Database_RepoInfo_from_repodata_error():
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+    channel_id = "conda-forge"
 
     with pytest.raises(libmambapy.MambaNativeException, match=r"[/\\]does[/\\]not[/\\]exists"):
-        db.add_repo_from_repodata_json(path="/does/not/exists", url="https://repo..mamba.pm")
+        db.add_repo_from_repodata_json(
+            path="/does/not/exists", url="https://repo..mamba.pm", channel_id=channel_id
+        )
 
     with pytest.raises(libmambapy.MambaNativeException, match=r"[/\\]does[/\\]not[/\\]exists"):
         db.add_repo_from_native_serialization(
-            path="/does/not/exists", expected=libsolv.RepodataOrigin()
+            path="/does/not/exists", expected=libsolv.RepodataOrigin(), channel_id=channel_id
         )
 
 

@@ -102,25 +102,7 @@ namespace mamba::download
         std::size_t m_failed_transfers = 0;
     };
 
-    // TODO: This class will be renamed FileMirror when
-    // other mirrors have been plugged. It is used
-    // for everything to ensure a smooth transition
-    class PassThroughMirror : public Mirror
-    {
-    public:
-
-        using request_gerenrator_list = Mirror::request_generator_list;
-
-        PassThroughMirror();
-
-        static MirrorID make_id();
-
-    private:
-
-        request_generator_list get_request_generators_impl() const override;
-    };
-
-    std::unique_ptr<Mirror> make_mirror(std::string_view url);
+    std::unique_ptr<Mirror> make_mirror(std::string url);
 }
 
 #endif

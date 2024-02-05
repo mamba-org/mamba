@@ -202,6 +202,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/download/downloader.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/mirror.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/mirror_map.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/request.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp

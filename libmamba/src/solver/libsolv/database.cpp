@@ -120,6 +120,7 @@ namespace mamba::solver::libsolv
     auto Database::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,
+        const std::string& channel_id,
         PipAsPythonDependency add,
         UseOnlyTarBz2 only_tar,
         RepodataParser parser
@@ -141,13 +142,13 @@ namespace mamba::solver::libsolv
         {
             if (parser == RepodataParser::Mamba)
             {
-                return mamba_read_json(pool(), repo, path, std::string(url), use_only_tar_bz2);
+                return mamba_read_json(pool(), repo, path, std::string(url), channel_id, use_only_tar_bz2);
             }
             return libsolv_read_json(repo, path, use_only_tar_bz2)
                 .transform(
-                    [&url](solv::ObjRepoView p_repo)
+                    [&url, &channel_id](solv::ObjRepoView p_repo)
                     {
-                        set_solvables_url(p_repo, std::string(url));
+                        set_solvables_url(p_repo, std::string(url), channel_id);
                         return p_repo;
                     }
                 );
@@ -171,6 +172,7 @@ namespace mamba::solver::libsolv
     auto Database::add_repo_from_native_serialization(
         const fs::u8path& path,
         const RepodataOrigin& expected,
+        const std::string& channel_id,
         PipAsPythonDependency add
     ) -> expected_t<RepoInfo>
     {
@@ -181,7 +183,7 @@ namespace mamba::solver::libsolv
                 [&](solv::ObjRepoView p_repo) -> RepoInfo
                 {
                     p_repo.set_url(expected.url);
-                    set_solvables_url(p_repo, expected.url);
+                    set_solvables_url(p_repo, expected.url, channel_id);
                     if (add == PipAsPythonDependency::Yes)
                     {
                         add_pip_as_python_dependency(pool(), p_repo);

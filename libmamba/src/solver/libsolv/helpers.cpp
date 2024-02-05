@@ -142,8 +142,9 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
-            const std::string& repo_url_str,
+            // const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
+            const std::string& channel_id,
             solv::ObjSolvableView solv,
             const std::string& filename,
             const simdjson::dom::element& pkg,
@@ -152,7 +153,7 @@ namespace mamba::solver::libsolv
         {
             // Not available from RepoDataPackage
             solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
-            solv.set_channel(repo_url_str);
+            solv.set_channel(channel_id);
 
             solv.set_file_name(filename);
             if (auto fn = pkg["fn"].get_string(); !fn.error())
@@ -313,8 +314,9 @@ namespace mamba::solver::libsolv
         void set_repo_solvables(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
-            const std::string& repo_url_str,
+            // const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
+            const std::string& channel_id,
             const std::string& default_subdir,
             const simdjson::dom::object& packages
         )
@@ -326,8 +328,9 @@ namespace mamba::solver::libsolv
                 filename = fn;
                 const bool parsed = set_solvable(
                     pool,
-                    repo_url_str,
+                    // repo_url_str,
                     repo_url,
+                    channel_id,
                     solv,
                     filename,
                     pkg,
@@ -378,6 +381,7 @@ namespace mamba::solver::libsolv
         solv::ObjRepoView repo,
         const fs::u8path& filename,
         const std::string& repo_url,
+        const std::string& channel_id,
         bool only_tar_bz2
     ) -> expected_t<solv::ObjRepoView>
     {
@@ -399,12 +403,26 @@ namespace mamba::solver::libsolv
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
-            set_repo_solvables(pool, repo, repo_url, parsed_url, default_subdir, pkgs.value());
+            set_repo_solvables(
+                pool,
+                repo,
+                /*repo_url,*/ parsed_url,
+                channel_id,
+                default_subdir,
+                pkgs.value()
+            );
         }
 
         if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error() && !only_tar_bz2)
         {
-            set_repo_solvables(pool, repo, repo_url, parsed_url, default_subdir, pkgs.value());
+            set_repo_solvables(
+                pool,
+                repo,
+                /*repo_url,*/ parsed_url,
+                channel_id,
+                default_subdir,
+                pkgs.value()
+            );
         }
 
         return { repo };
@@ -547,7 +565,8 @@ namespace mamba::solver::libsolv
             );
     }
 
-    void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url)
+    void
+    set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url, const std::string& channel_id)
     {
         // WARNING cannot call ``url()`` at this point because it has not been internalized.
         // Setting the channel url on where the solvable so that we can retrace
@@ -562,7 +581,7 @@ namespace mamba::solver::libsolv
                 s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
                 // The name of the channel where it came from, may be different from repo name
                 // for instance with the installed repo
-                s.set_channel(repo_url);
+                s.set_channel(channel_id);
             }
         );
     }

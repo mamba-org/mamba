@@ -35,6 +35,7 @@ namespace mamba::download
         mirror_map(mirror_map&&) = default;
         mirror_map& operator=(mirror_map&&) = default;
 
+        std::size_t size() const;
 
         // Returns true if there are registered mirrors stored here, false if none are.
         bool has_mirrors(std::string_view mirror_name) const;

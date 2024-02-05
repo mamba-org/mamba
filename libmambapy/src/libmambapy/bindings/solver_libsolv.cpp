@@ -116,6 +116,7 @@ namespace mambapy
                 &Database::add_repo_from_repodata_json,
                 py::arg("path"),
                 py::arg("url"),
+                py::arg("channel_id"),
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
                 py::arg("use_only_tar_bz2") = UseOnlyTarBz2::No,
                 py::arg("repodata_parser") = RepodataParser::Mamba
@@ -125,6 +126,7 @@ namespace mambapy
                 &Database::add_repo_from_native_serialization,
                 py::arg("path"),
                 py::arg("expected"),
+                py::arg("channel_id"),
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No
             )
             .def(

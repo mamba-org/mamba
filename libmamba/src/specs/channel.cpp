@@ -38,7 +38,6 @@ namespace mamba::specs
 
     Channel::Channel(CondaURL url, std::string display_name, platform_list platforms)
         : Channel(std::vector<CondaURL>(1u, std::move(url)), std::move(display_name), std::move(platforms))
-    //: Channel({ std::move(url) }, std::move(display_name), std::move(platforms))
     {
     }
 

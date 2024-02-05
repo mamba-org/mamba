@@ -33,7 +33,6 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/problems_graph.hpp"
-#include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 
@@ -468,13 +467,13 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MPool&, const solver::Request&, solver::Solution, MultiPackageCache&>())
+        .def(py::init<const Context&, MPool&, const solver::Request&, solver::Solution, MultiPackageCache&>(
+        ))
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
-        .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
 
     py::class_<History>(m, "History")

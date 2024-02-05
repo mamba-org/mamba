@@ -611,7 +611,13 @@ namespace mamba
             }
 
             Console::instance().json_write({ { "success", true } });
-            auto trans = MTransaction(pool, request, std::get<solver::Solution>(outcome), package_caches);
+            auto trans = MTransaction(
+                ctx,
+                pool,
+                request,
+                std::get<solver::Solution>(outcome),
+                package_caches
+            );
 
             if (ctx.output_params.json)
             {
@@ -620,14 +626,14 @@ namespace mamba
 
             Console::stream();
 
-            if (trans.prompt())
+            if (trans.prompt(ctx, channel_context))
             {
                 if (create_env && !ctx.dry_run)
                 {
                     detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
                 }
 
-                trans.execute(prefix_data);
+                trans.execute(ctx, channel_context, prefix_data);
 
                 for (auto other_spec : config.at("others_pkg_mgrs_specs")
                                            .value<std::vector<detail::other_pkg_mgr_spec>>())
@@ -710,14 +716,14 @@ namespace mamba
                 transaction.log_json();
             }
 
-            if (transaction.prompt())
+            if (transaction.prompt(ctx, channel_context))
             {
                 if (create_env && !ctx.dry_run)
                 {
                     detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
                 }
 
-                transaction.execute(prefix_data);
+                transaction.execute(ctx, channel_context, prefix_data);
 
                 for (auto other_spec : others)
                 {
@@ -749,7 +755,7 @@ namespace mamba
             ctx,
             channel_context,
             [&](auto& pool, auto& pkg_caches, auto& others)
-            { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
+            { return create_explicit_transaction_from_urls(ctx, pool, specs, pkg_caches, others); },
             create_env,
             remove_prefix_on_failure
         );
@@ -796,8 +802,16 @@ namespace mamba
         install_explicit_with_transaction(
             ctx,
             channel_context,
-            [&](auto& pool, auto& pkg_caches, auto& others) {
-                return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);
+            [&](auto& pool, auto& pkg_caches, auto& others)
+            {
+                return create_explicit_transaction_from_lockfile(
+                    ctx,
+                    pool,
+                    file,
+                    categories,
+                    pkg_caches,
+                    others
+                );
             },
             create_env,
             remove_prefix_on_failure

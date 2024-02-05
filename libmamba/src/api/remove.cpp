@@ -141,9 +141,9 @@ namespace mamba
                     transaction.log_json();
                 }
 
-                if (transaction.prompt())
+                if (transaction.prompt(ctx, channel_context))
                 {
-                    transaction.execute(prefix_data);
+                    transaction.execute(ctx, channel_context, prefix_data);
                 }
             };
 
@@ -162,7 +162,7 @@ namespace mamba
                         pkgs_to_remove.push_back(iter->second);
                     }
                 }
-                auto transaction = MTransaction(pool, pkgs_to_remove, {}, package_caches);
+                auto transaction = MTransaction(ctx, pool, pkgs_to_remove, {}, package_caches);
                 execute_transaction(transaction);
             }
             else
@@ -194,6 +194,7 @@ namespace mamba
 
                 Console::instance().json_write({ { "success", true } });
                 auto transaction = MTransaction(
+                    ctx,
                     pool,
                     request,
                     std::get<solver::Solution>(outcome),

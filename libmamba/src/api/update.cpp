@@ -170,7 +170,13 @@ namespace mamba
         }
 
         Console::instance().json_write({ { "success", true } });
-        auto transaction = MTransaction(pool, request, std::get<solver::Solution>(outcome), package_caches);
+        auto transaction = MTransaction(
+            ctx,
+            pool,
+            request,
+            std::get<solver::Solution>(outcome),
+            package_caches
+        );
 
 
         auto execute_transaction = [&](MTransaction& transaction)
@@ -180,10 +186,10 @@ namespace mamba
                 transaction.log_json();
             }
 
-            bool yes = transaction.prompt();
+            bool yes = transaction.prompt(ctx, channel_context);
             if (yes)
             {
-                transaction.execute(prefix_data);
+                transaction.execute(ctx, channel_context, prefix_data);
             }
         };
 

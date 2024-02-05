@@ -29,12 +29,14 @@ namespace mamba
     }
 
     class ChannelContext;
+    class Context;
 
     class MTransaction
     {
     public:
 
         MTransaction(
+            const Context& ctx,
             MPool& pool,
             std::vector<specs::PackageInfo> pkgs_to_remove,
             std::vector<specs::PackageInfo> pkgs_to_install,
@@ -42,6 +44,7 @@ namespace mamba
         );
 
         MTransaction(
+            const Context& ctx,
             MPool& pool,
             const solver::Request& request,
             solver::Solution solution,
@@ -49,7 +52,12 @@ namespace mamba
         );
 
         // Only use if the packages have been solved previously already.
-        MTransaction(MPool& pool, std::vector<specs::PackageInfo> packages, MultiPackageCache& caches);
+        MTransaction(
+            const Context& ctx,
+            MPool& pool,
+            std::vector<specs::PackageInfo> packages,
+            MultiPackageCache& caches
+        );
 
         MTransaction(const MTransaction&) = delete;
         MTransaction(MTransaction&&) = delete;
@@ -63,17 +71,14 @@ namespace mamba
 
         to_conda_type to_conda();
         void log_json();
-        bool fetch_extract_packages();
+        bool fetch_extract_packages(const Context& ctx, ChannelContext& channel_context);
         bool empty();
-        bool prompt();
-        void print();
-        bool execute(PrefixData& prefix);
-
-        [[deprecated]] std::pair<std::string, std::string> py_find_python_version() const;
+        bool prompt(const Context& ctx, ChannelContext& channel_context);
+        void print(const Context& ctx, ChannelContext& channel_context);
+        bool execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix);
 
     private:
 
-        MPool m_pool;
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
@@ -83,10 +88,11 @@ namespace mamba
 
         std::vector<specs::MatchSpec> m_requested_specs;
 
-        MTransaction(MPool&, MultiPackageCache&);
+        MTransaction(const Context& ctx, MultiPackageCache&);
     };
 
     MTransaction create_explicit_transaction_from_urls(
+        const Context& ctx,
         MPool& pool,
         const std::vector<std::string>& urls,
         MultiPackageCache& package_caches,
@@ -94,6 +100,7 @@ namespace mamba
     );
 
     MTransaction create_explicit_transaction_from_lockfile(
+        const Context& ctx,
         MPool& pool,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,

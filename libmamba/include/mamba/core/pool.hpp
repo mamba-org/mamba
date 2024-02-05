@@ -52,10 +52,10 @@ namespace mamba
     {
     public:
 
-        MPool(Context& ctx, ChannelContext& channel_context);
+        MPool(const Context& ctx, ChannelContext& channel_context);
         ~MPool();
 
-        void set_debuglevel();
+        void set_debuglevel(int verbosity);
         void create_whatprovides();
 
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
@@ -122,7 +122,6 @@ namespace mamba
         void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
 
         ChannelContext& channel_context() const;
-        const Context& context() const;
 
     private:
 

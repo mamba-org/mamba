@@ -162,9 +162,12 @@ namespace mamba
         const fs::u8path& path,
         std::string_view url,
         solver::libsolv::PipAsPythonDependency add,
+        solver::libsolv::UseOnlyTarBz2 only_tar,
         solver::libsolv::RepodataParser parser
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
+        const auto use_only_tar_bz2 = static_cast<bool>(only_tar);
+
         if (!fs::exists(path))
         {
             return make_unexpected(
@@ -184,10 +187,10 @@ namespace mamba
                     repo,
                     path,
                     std::string(url),
-                    context().use_only_tar_bz2
+                    use_only_tar_bz2
                 );
             }
-            return solver::libsolv::libsolv_read_json(repo, path, context().use_only_tar_bz2)
+            return solver::libsolv::libsolv_read_json(repo, path, use_only_tar_bz2)
                 .transform(
                     [&url](solv::ObjRepoView repo)
                     {
@@ -408,6 +411,7 @@ namespace mamba
                         repodata_json,
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
                         add_pip,
+                        static_cast<solver::libsolv::UseOnlyTarBz2>(ctx.use_only_tar_bz2),
                         json_parser
                     );
                 }

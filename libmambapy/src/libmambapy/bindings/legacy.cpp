@@ -399,6 +399,7 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("path"),
             py::arg("url"),
             py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
+            py::arg("use_only_tar_bz2") = solver::libsolv::UseOnlyTarBz2::No,
             py::arg("repodata_parsers") = solver::libsolv::RepodataParser::Mamba
         )
         .def(

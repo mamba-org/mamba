@@ -72,6 +72,7 @@ namespace mamba
             const fs::u8path& path,
             std::string_view url,
             solver::libsolv::PipAsPythonDependency add = solver::libsolv::PipAsPythonDependency::No,
+            solver::libsolv::UseOnlyTarBz2 only_tar = solver::libsolv::UseOnlyTarBz2::No,
             solver::libsolv::RepodataParser parser = solver::libsolv::RepodataParser::Mamba
         ) -> expected_t<solver::libsolv::RepoInfo>;
 

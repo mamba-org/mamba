@@ -25,6 +25,12 @@ namespace mamba::solver::libsolv
         Yes = true,
     };
 
+    enum class UseOnlyTarBz2
+    {
+        No = false,
+        Yes = true,
+    };
+
     struct Priorities
     {
         using value_type = int;

@@ -38,6 +38,12 @@ namespace mambapy
             .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
 
+        py::enum_<UseOnlyTarBz2>(m, "UseOnlyTarBz2")
+            .value("No", UseOnlyTarBz2::No)
+            .value("Yes", UseOnlyTarBz2::Yes)
+            .def(py::init([](bool val) { return static_cast<UseOnlyTarBz2>(val); }));
+        py::implicitly_convertible<py::bool_, UseOnlyTarBz2>();
+
         py::class_<Priorities>(m, "Priorities")
             .def(
                 py::init(

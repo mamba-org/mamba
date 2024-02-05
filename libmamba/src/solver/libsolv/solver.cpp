@@ -72,7 +72,17 @@ namespace mamba::solver::libsolv
                     auto trans = solv::ObjTransaction::from_solver(pool, *solver);
                     trans.order(pool);
 
-                    return { solver::libsolv::transaction_to_solution(pool, trans, request, flags) };
+                    auto solution = solver::libsolv::transaction_to_solution(pool, trans, request, flags);
+
+                    if (solver::libsolv::solution_needs_python_relink(pool, solution))
+                    {
+                        return { solver::libsolv::add_noarch_relink_to_solution(
+                            std::move(solution),
+                            pool,
+                            "python"
+                        ) };
+                    }
+                    return { std::move(solution) };
                 }
             );
     }

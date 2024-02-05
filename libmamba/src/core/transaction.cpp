@@ -15,8 +15,6 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <solv/selection.h>
-#include <solv/solver.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -30,15 +28,9 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/specs/match_spec.hpp"
-#include "mamba/util/string.hpp"
 #include "mamba/util/variant_cmp.hpp"
-#include "solv-cpp/pool.hpp"
-#include "solv-cpp/queue.hpp"
-#include "solv-cpp/repo.hpp"
-#include "solv-cpp/transaction.hpp"
 
 #include "solver/helpers.hpp"
-#include "solver/libsolv/helpers.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -257,8 +249,6 @@ namespace mamba
             );
         }
 
-        auto& pool = m_pool.pool();
-
         auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
@@ -273,15 +263,6 @@ namespace mamba
             find_python_version(m_solution, m_pool),
             std::move(requested_specs)
         );
-
-        if (solver::libsolv::solution_needs_python_relink(pool, m_solution))
-        {
-            m_solution = solver::libsolv::add_noarch_relink_to_solution(
-                std::move(m_solution),
-                pool,
-                "python"
-            );
-        }
 
         // if no action required, don't even start logging them
         if (!empty())
@@ -926,8 +907,6 @@ namespace mamba
                           printers::alignment::left,
                           printers::alignment::right });
         t.set_padding({ 2, 2, 2, 2, 5 });
-        solv::ObjQueue classes = {};
-        solv::ObjQueue pkgs = {};
 
         using rows = std::vector<std::vector<printers::FormattedString>>;
 

@@ -11,7 +11,6 @@
 
 namespace mamba
 {
-
     struct Palette
     {
         /** Something that is possible or exsists. */
@@ -45,21 +44,21 @@ namespace mamba
         fmt::text_style progress_bar_extracted;
 
         /** A Palette with no colors at all. */
-        static constexpr Palette no_color();
+        static constexpr auto no_color() -> Palette;
         /** A Palette with terminal 4 bit colors. */
-        static constexpr Palette terminal();
+        static constexpr auto terminal() -> Palette;
     };
 
     /*******************************
      *  Implementation of Palette  *
      *******************************/
 
-    inline constexpr Palette Palette::no_color()
+    inline constexpr auto Palette::no_color() -> Palette
     {
         return {};
     }
 
-    inline constexpr Palette Palette::terminal()
+    inline constexpr auto Palette::terminal() -> Palette
     {
         return {
             /* .success= */ fmt::fg(fmt::terminal_color::green),

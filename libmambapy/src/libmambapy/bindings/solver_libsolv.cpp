@@ -7,6 +7,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
+#include "mamba/core/palette.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"

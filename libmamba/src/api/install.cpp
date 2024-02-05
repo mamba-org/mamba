@@ -568,7 +568,7 @@ namespace mamba
 
             if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
-                unsolvable->explain_problems_to(pool, LOG_ERROR);
+                unsolvable->explain_problems_to(pool, LOG_ERROR, ctx.graphics_params.palette);
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;

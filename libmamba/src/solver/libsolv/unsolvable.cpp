@@ -447,9 +447,9 @@ namespace mamba::solver::libsolv
         return ProblemsGraphCreator(pool, *m_solver).problem_graph();
     }
 
-    auto UnSolvable::explain_problems_to(MPool& pool, std::ostream& out) const -> std::ostream&
+    auto UnSolvable::explain_problems_to(MPool& pool, std::ostream& out, const Palette& palette) const
+        -> std::ostream&
     {
-        const auto& ctx = pool.context();
         out << "Could not solve for environment specs\n";
         const auto pbs = problems_graph(pool);
         const auto pbs_simplified = simplify_conflicts(pbs);
@@ -457,16 +457,17 @@ namespace mamba::solver::libsolv
         print_problem_tree_msg(
             out,
             cp_pbs,
-            { /* .unavailable= */ ctx.graphics_params.palette.failure,
-              /* .available= */ ctx.graphics_params.palette.success }
+            { /* .unavailable= */ palette.failure,
+              /* .available= */ palette.success }
         );
         return out;
     }
 
-    auto UnSolvable::explain_problems(MPool& pool) const -> std::string
+    auto UnSolvable::explain_problems(MPool& pool, const Palette& palette) const -> std::string
+
     {
         std::stringstream ss;
-        explain_problems_to(pool, ss);
+        explain_problems_to(pool, ss, palette);
         return ss.str();
     }
 }

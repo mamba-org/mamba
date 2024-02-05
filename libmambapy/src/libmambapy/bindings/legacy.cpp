@@ -655,6 +655,10 @@ bind_submodule_impl(pybind11::module_ m)
         .def("params", &ChannelContext::params)
         .def("has_zst", &ChannelContext::has_zst);
 
+    py::class_<Palette>(m, "Palette")
+        .def_static("no_color", &Palette::no_color)
+        .def_static("terminal", &Palette::terminal);
+
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx  //
         .def_static(

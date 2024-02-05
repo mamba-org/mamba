@@ -21,9 +21,9 @@ namespace mamba::solver::libsolv
     {
         void set_solver_flags(solv::ObjSolver& solver, const solver::Request::Flags& flags)
         {
-            ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_DOWNGRADE, flags.allow_downgrade);
-            ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_UNINSTALL, flags.allow_uninstall);
-            ::solver_set_flag(solver.raw(), SOLVER_FLAG_STRICT_REPO_PRIORITY, flags.strict_repo_priority);
+            solver.set_flag(SOLVER_FLAG_ALLOW_DOWNGRADE, flags.allow_downgrade);
+            solver.set_flag(SOLVER_FLAG_ALLOW_UNINSTALL, flags.allow_uninstall);
+            solver.set_flag(SOLVER_FLAG_STRICT_REPO_PRIORITY, flags.strict_repo_priority);
         }
 
         /**
@@ -72,7 +72,17 @@ namespace mamba::solver::libsolv
                     auto trans = solv::ObjTransaction::from_solver(pool, *solver);
                     trans.order(pool);
 
-                    return { solver::libsolv::transaction_to_solution(pool, trans, request, flags) };
+                    auto solution = solver::libsolv::transaction_to_solution(pool, trans, request, flags);
+
+                    if (solver::libsolv::solution_needs_python_relink(pool, solution))
+                    {
+                        return { solver::libsolv::add_noarch_relink_to_solution(
+                            std::move(solution),
+                            pool,
+                            "python"
+                        ) };
+                    }
+                    return { std::move(solution) };
                 }
             );
     }

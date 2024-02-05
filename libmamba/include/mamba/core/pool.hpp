@@ -102,12 +102,17 @@ namespace mamba
             const solver::libsolv::RepodataOrigin& metadata
         ) -> expected_t<solver::libsolv::RepoInfo>;
 
-        void set_installed_repo(const solver::libsolv::RepoInfo& repo);
+        [[nodiscard]] auto installed_repo() const -> std::optional<solver::libsolv::RepoInfo>;
+
+        void set_installed_repo(solver::libsolv::RepoInfo repo);
 
         void
-        set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities);
+        set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities);
 
         void remove_repo(::Id repo_id, bool reuse_ids);
+
+        template <typename Func>
+        void for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&&) const;
 
         template <typename Func>
         void for_each_package_matching(const specs::MatchSpec& ms, Func&&);
@@ -147,15 +152,18 @@ namespace mamba
             solver::libsolv::PipAsPythonDependency add
         );
 
-        using SolvableId = int;
+        enum class PackageId : int;
 
-        [[nodiscard]] auto solvable_id_to_package_info(SolvableId id) const -> specs::PackageInfo;
+        [[nodiscard]] auto package_id_to_package_info(PackageId id) const -> specs::PackageInfo;
+
+        [[nodiscard]] auto packages_in_repo(solver::libsolv::RepoInfo repo) const
+            -> std::vector<PackageId>;
 
         [[nodiscard]] auto packages_matching_ids(const specs::MatchSpec& ms)
-            -> std::vector<SolvableId>;
+            -> std::vector<PackageId>;
 
         [[nodiscard]] auto packages_depending_on_ids(const specs::MatchSpec& ms)
-            -> std::vector<SolvableId>;
+            -> std::vector<PackageId>;
     };
 
     // TODO machinery functions in separate files
@@ -198,20 +206,40 @@ namespace mamba
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
-    void MPool::for_each_package_matching(const specs::MatchSpec& ms, Func&& func)
+    void MPool::for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&& func) const
     {
-        for (auto id : packages_matching_ids(ms))
+        for (auto id : packages_in_repo(repo))
         {
-            if constexpr (std::is_same_v<decltype(func(solvable_id_to_package_info(id))), util::LoopControl>)
+            if constexpr (std::is_same_v<decltype(func(package_id_to_package_info(id))), util::LoopControl>)
             {
-                if (func(solvable_id_to_package_info(id)) == util::LoopControl::Break)
+                if (func(package_id_to_package_info(id)) == util::LoopControl::Break)
                 {
                     break;
                 }
             }
             else
             {
-                func(solvable_id_to_package_info(id));
+                func(package_id_to_package_info(id));
+            }
+        }
+    }
+
+    // TODO(C++20): Use ranges::transform
+    template <typename Func>
+    void MPool::for_each_package_matching(const specs::MatchSpec& ms, Func&& func)
+    {
+        for (auto id : packages_matching_ids(ms))
+        {
+            if constexpr (std::is_same_v<decltype(func(package_id_to_package_info(id))), util::LoopControl>)
+            {
+                if (func(package_id_to_package_info(id)) == util::LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(package_id_to_package_info(id));
             }
         }
     }
@@ -222,16 +250,16 @@ namespace mamba
     {
         for (auto id : packages_depending_on_ids(ms))
         {
-            if constexpr (std::is_same_v<decltype(func(solvable_id_to_package_info(id))), util::LoopControl>)
+            if constexpr (std::is_same_v<decltype(func(package_id_to_package_info(id))), util::LoopControl>)
             {
-                if (func(solvable_id_to_package_info(id)) == util::LoopControl::Break)
+                if (func(package_id_to_package_info(id)) == util::LoopControl::Break)
                 {
                     break;
                 }
             }
             else
             {
-                func(solvable_id_to_package_info(id));
+                func(package_id_to_package_info(id));
             }
         }
     }

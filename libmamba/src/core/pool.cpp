@@ -287,13 +287,23 @@ namespace mamba
         pool().remove_repo(repo_id, reuse_ids);
     }
 
-    void MPool::set_installed_repo(const solver::libsolv::RepoInfo& repo)
+    auto MPool::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>
+    {
+        if (auto repo = pool().installed_repo())
+        {
+            // Safe because the Repo does not modify its internals
+            return solver::libsolv::RepoInfo(const_cast<::Repo*>(repo->raw()));
+        }
+        return {};
+    }
+
+    void MPool::set_installed_repo(solver::libsolv::RepoInfo repo)
     {
         pool().set_installed_repo(repo.id());
     }
 
     void
-    MPool::set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities)
+    MPool::set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities)
     {
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
@@ -303,27 +313,54 @@ namespace mamba
         repo.m_ptr->subpriority = priorities.subpriority;
     }
 
-    auto MPool::solvable_id_to_package_info(SolvableId id) const -> specs::PackageInfo
+    auto MPool::package_id_to_package_info(PackageId id) const -> specs::PackageInfo
     {
-        static_assert(std::is_same_v<SolvableId, solv::SolvableId>);
-        return id2pkginfo(id).value();  // Safe because the ID is coming from libsolv
+        static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
+        // Safe because the ID is coming from libsolv
+        return id2pkginfo(static_cast<solv::SolvableId>(id)).value();
     }
 
-    auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
+    auto MPool::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
     {
-        const auto ms_id = matchspec2id(ms);
-        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
-        auto out = std::vector<SolvableId>(solvables.size());
-        std::copy(solvables.begin(), solvables.end(), out.begin());
+        // TODO maybe we could use a span here depending on libsolv layout
+        auto solv_repo = solv::ObjRepoViewConst(*repo.m_ptr);
+        auto out = std::vector<PackageId>();
+        out.reserve(solv_repo.solvable_count());
+        solv_repo.for_each_solvable_id([&](auto id) { out.push_back(static_cast<PackageId>(id)); });
         return out;
     }
 
-    auto MPool::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
+    auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
     {
+        static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
+
+        pool().ensure_whatprovides();
+        const auto ms_id = matchspec2id(ms);
+        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
+        auto out = std::vector<PackageId>(solvables.size());
+        std::transform(
+            solvables.begin(),
+            solvables.end(),
+            out.begin(),
+            [](auto id) { return static_cast<PackageId>(id); }
+        );
+        return out;
+    }
+
+    auto MPool::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
+    {
+        static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
+
+        pool().ensure_whatprovides();
         const auto ms_id = matchspec2id(ms);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
-        auto out = std::vector<SolvableId>(solvables.size());
-        std::copy(solvables.begin(), solvables.end(), out.begin());
+        auto out = std::vector<PackageId>(solvables.size());
+        std::transform(
+            solvables.begin(),
+            solvables.end(),
+            out.begin(),
+            [](auto id) { return static_cast<PackageId>(id); }
+        );
         return out;
     }
 

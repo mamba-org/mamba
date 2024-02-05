@@ -118,7 +118,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    MTransaction t(pool, { latest_micromamba.value() }, package_caches);
+    MTransaction t(ctx, pool, { latest_micromamba.value() }, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {
@@ -126,7 +126,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     }
 
     PrefixData& prefix_data = exp_prefix_data.value();
-    t.execute(prefix_data);
+    t.execute(ctx, channel_context, prefix_data);
 
     fs::u8path mamba_exe = get_self_exe_path();
     fs::u8path mamba_exe_bkup = mamba_exe;

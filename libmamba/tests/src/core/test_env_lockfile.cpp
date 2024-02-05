@@ -136,6 +136,7 @@ namespace mamba
             {
                 std::vector<detail::other_pkg_mgr_spec> other_specs;
                 auto transaction = create_explicit_transaction_from_lockfile(
+                    ctx,
                     pool,
                     lockfile_path,
                     categories,

@@ -128,6 +128,13 @@ namespace mamba::solv
         void create_whatprovides();
 
         /**
+         * Call @ref create_whatprovides if it does not exists.
+         *
+         * This does not update the whatprovides index if it was outdated.
+         */
+        void ensure_whatprovides();
+
+        /**
          * Add an entry on the ``whatprovides_data``.
          *
          * This works in as an input to @ref add_to_whatprovides or @ref set_namespace_callback.

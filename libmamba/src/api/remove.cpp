@@ -141,23 +141,28 @@ namespace mamba
                     transaction.log_json();
                 }
 
-                if (transaction.prompt())
+                if (transaction.prompt(ctx, channel_context))
                 {
-                    transaction.execute(prefix_data);
+                    transaction.execute(ctx, channel_context, prefix_data);
                 }
             };
 
             if (force)
             {
-                std::vector<specs::MatchSpec> mspecs;
-                mspecs.reserve(raw_specs.size());
-                std::transform(
-                    raw_specs.begin(),
-                    raw_specs.end(),
-                    std::back_inserter(mspecs),
-                    [&](const auto& spec_str) { return specs::MatchSpec::parse(spec_str); }
-                );
-                auto transaction = MTransaction(pool, mspecs, {}, package_caches);
+                std::vector<specs::PackageInfo> pkgs_to_remove;
+                pkgs_to_remove.reserve(raw_specs.size());
+                for (const auto& str : raw_specs)
+                {
+                    auto spec = specs::MatchSpec::parse(str);
+                    const auto& installed = prefix_data.records();
+                    // TODO should itreate over all packages and use MatchSpec.contains
+                    // TODO should move such method over Pool for consitent use
+                    if (auto iter = installed.find(spec.name().str()); iter != installed.cend())
+                    {
+                        pkgs_to_remove.push_back(iter->second);
+                    }
+                }
+                auto transaction = MTransaction(ctx, pool, pkgs_to_remove, {}, package_caches);
                 execute_transaction(transaction);
             }
             else
@@ -189,6 +194,7 @@ namespace mamba
 
                 Console::instance().json_write({ { "success", true } });
                 auto transaction = MTransaction(
+                    ctx,
                     pool,
                     request,
                     std::get<solver::Solution>(outcome),

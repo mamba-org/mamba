@@ -538,16 +538,13 @@ namespace mamba
                PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const
                mamba_error& err) { throw std::runtime_error(err.what());
                                     });*/
-            auto exp_load = load_channels(ctx, pool, package_caches);
+            auto exp_load = load_channels(ctx, channel_context, pool, package_caches);
             if (!exp_load)
             {
                 throw std::runtime_error(exp_load.error().what());
             }
 
-            auto exp_prefix_data = PrefixData::create(
-                ctx.prefix_params.target_prefix,
-                pool.channel_context()
-            );
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
                 throw std::runtime_error(exp_prefix_data.error().what());

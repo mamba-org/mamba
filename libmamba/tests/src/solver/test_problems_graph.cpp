@@ -287,19 +287,24 @@ namespace
     /**
      * Mock of channel_loader.hpp:load_channels that takes a list of channels.
      */
-    auto
-    load_channels(Context& ctx, MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
+    auto load_channels(
+        Context& ctx,
+        ChannelContext& channel_context,
+        MPool& pool,
+        MultiPackageCache& cache,
+        std::vector<std::string>&& channels
+    )
     {
         auto sub_dirs = std::vector<SubdirData>();
         for (const auto& location : channels)
         {
-            for (const auto& chan : pool.channel_context().make_channel(location))
+            for (const auto& chan : channel_context.make_channel(location))
             {
                 for (const auto& platform : chan.platforms())
                 {
                     auto sub_dir = SubdirData::create(
                                        ctx,
-                                       pool.channel_context(),
+                                       channel_context,
                                        chan,
                                        platform,
                                        chan.platform_url(platform).str(),
@@ -345,7 +350,13 @@ namespace
 
         bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
         ctx.graphics_params.no_progress_bars = true;
-        load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
+        load_channels(
+            ctx,
+            channel_context,
+            pool,
+            cache,
+            make_platform_channels(std::move(channels), platforms)
+        );
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
         return pool;

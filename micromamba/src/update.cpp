@@ -74,7 +74,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     mamba::MPool pool{ ctx, channel_context };
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(ctx, pool, package_caches);
+    auto exp_loaded = load_channels(ctx, channel_context, pool, package_caches);
     if (!exp_loaded)
     {
         throw exp_loaded.error();

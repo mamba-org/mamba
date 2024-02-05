@@ -11,7 +11,6 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/download/downloader.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -19,15 +18,19 @@ namespace mamba
 {
     namespace
     {
-        solver::libsolv::RepoInfo
-        create_repo_from_pkgs_dir(const Context& ctx, MPool& pool, const fs::u8path& pkgs_dir)
+        auto create_repo_from_pkgs_dir(
+            const Context& ctx,
+            ChannelContext& channel_context,
+            MPool& pool,
+            const fs::u8path& pkgs_dir
+        ) -> solver::libsolv::RepoInfo
         {
             if (!fs::exists(pkgs_dir))
             {
                 // TODO : us tl::expected mechanis
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
-            auto sprefix_data = PrefixData::create(pkgs_dir, pool.channel_context());
+            auto sprefix_data = PrefixData::create(pkgs_dir, channel_context);
             if (!sprefix_data)
             {
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
@@ -106,8 +109,13 @@ namespace mamba
             }
         }
 
-        expected_t<void, mamba_aggregated_error>
-        load_channels_impl(Context& ctx, MPool& pool, MultiPackageCache& package_caches, bool is_retry)
+        auto load_channels_impl(
+            Context& ctx,
+            ChannelContext& channel_context,
+            MPool& pool,
+            MultiPackageCache& package_caches,
+            bool is_retry
+        ) -> expected_t<void, mamba_aggregated_error>
         {
             std::vector<SubdirData> subdirs;
 
@@ -121,12 +129,12 @@ namespace mamba
 
             for (const auto& mirror : ctx.mirrored_channels)
             {
-                for (auto channel : pool.channel_context().make_channel(mirror.first, mirror.second))
+                for (auto channel : channel_context.make_channel(mirror.first, mirror.second))
                 {
                     create_mirrors(channel, ctx.mirrors);
                     create_subdirs(
                         ctx,
-                        pool.channel_context(),
+                        channel_context,
                         channel,
                         package_caches,
                         subdirs,
@@ -145,7 +153,7 @@ namespace mamba
                 // TODO: C++20, replace with contains
                 if (ctx.mirrored_channels.find(location) == ctx.mirrored_channels.end())
                 {
-                    for (auto channel : pool.channel_context().make_channel(location))
+                    for (auto channel : channel_context.make_channel(location))
                     {
                         if (channel.is_package())
                         {
@@ -157,7 +165,7 @@ namespace mamba
                         create_mirrors(channel, ctx.mirrors);
                         create_subdirs(
                             ctx,
-                            pool.channel_context(),
+                            channel_context,
                             channel,
                             package_caches,
                             subdirs,
@@ -203,7 +211,7 @@ namespace mamba
                 LOG_INFO << "Creating repo from pkgs_dir for offline";
                 for (const auto& c : ctx.pkgs_dirs)
                 {
-                    create_repo_from_pkgs_dir(ctx, pool, c);
+                    create_repo_from_pkgs_dir(ctx, channel_context, pool, c);
                 }
             }
             std::string prev_channel;
@@ -255,12 +263,12 @@ namespace mamba
                 if (!ctx.offline && !is_retry)
                 {
                     LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    return load_channels_impl(ctx, pool, package_caches, true);
+                    return load_channels_impl(ctx, channel_context, pool, package_caches, true);
                 }
-                error_list.push_back(mamba_error(
+                error_list.emplace_back(
                     "Could not load repodata. Cache corrupted?",
                     mamba_error_code::repodata_not_loaded
-                ));
+                );
             }
             using return_type = expected_t<void, mamba_aggregated_error>;
             return error_list.empty() ? return_type()
@@ -268,9 +276,10 @@ namespace mamba
         }
     }
 
-    expected_t<void, mamba_aggregated_error>
-    load_channels(Context& ctx, MPool& pool, MultiPackageCache& package_caches)
+    auto
+    load_channels(Context& ctx, ChannelContext& channel_context, MPool& pool, MultiPackageCache& package_caches)
+        -> expected_t<void, mamba_aggregated_error>
     {
-        return load_channels_impl(ctx, pool, package_caches, false);
+        return load_channels_impl(ctx, channel_context, pool, package_caches, false);
     }
 }

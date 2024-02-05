@@ -622,7 +622,7 @@ namespace mamba::solver::libsolv
             }
 
             // conda_build_form does **NOT** contain the channel info
-            const solv::DependencyId match = pool_conda_matchspec(
+            const solv::DependencyId match_id = pool_conda_matchspec(
                 pool.raw(),
                 ms.conda_build_form().c_str()
             );
@@ -632,7 +632,7 @@ namespace mamba::solver::libsolv
             solv::ObjQueue selected_pkgs = {};
             auto other_subdir_match = std::string();
             pool.for_each_whatprovides(
-                match,
+                match_id,
                 [&](solv::ObjSolvableViewConst s)
                 {
                     if (s.installed())
@@ -1021,7 +1021,7 @@ namespace mamba::solver::libsolv
 
     auto installed_python(const solv::ObjPool& pool) -> std::optional<solv::ObjSolvableViewConst>
     {
-        auto py_id = solv::SolvableId(0);
+        auto py_id = solv::SolvableId{ 0 };
         pool.for_each_installed_solvable(
             [&](solv::ObjSolvableViewConst s)
             {

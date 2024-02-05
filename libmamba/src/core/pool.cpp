@@ -112,16 +112,6 @@ namespace mamba
         pool().create_whatprovides();
     }
 
-    MPool::operator Pool*()
-    {
-        return pool().raw();
-    }
-
-    MPool::operator const Pool*() const
-    {
-        return pool().raw();
-    }
-
     std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
     {
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });
@@ -311,6 +301,30 @@ namespace mamba
         static_assert(std::is_same_v<decltype(repo.m_ptr->priority), solver::libsolv::Priorities::value_type>);
         repo.m_ptr->priority = priorities.priority;
         repo.m_ptr->subpriority = priorities.subpriority;
+    }
+
+    auto MPool::solvable_id_to_package_info(SolvableId id) const -> specs::PackageInfo
+    {
+        static_assert(std::is_same_v<SolvableId, solv::SolvableId>);
+        return id2pkginfo(id).value();  // Safe because the ID is coming from libsolv
+    }
+
+    auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
+    {
+        const auto ms_id = matchspec2id(ms);
+        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
+        auto out = std::vector<SolvableId>(solvables.size());
+        std::copy(solvables.begin(), solvables.end(), out.begin());
+        return out;
+    }
+
+    auto MPool::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<SolvableId>
+    {
+        const auto ms_id = matchspec2id(ms);
+        auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
+        auto out = std::vector<SolvableId>(solvables.size());
+        std::copy(solvables.begin(), solvables.end(), out.begin());
+        return out;
     }
 
     // TODO machinery functions in separate files

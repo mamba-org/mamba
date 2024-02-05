@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
@@ -13,16 +14,6 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <solv/evr.h>
-#include <solv/pool.h>
-#include <solv/repo.h>
-#include <solv/selection.h>
-#include <solv/solver.h>
-#include <spdlog/spdlog.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
@@ -30,138 +21,257 @@ extern "C"  // Incomplete header
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
-#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
+    /******************************
+     *  QueryType implementation  *
+     ******************************/
+
+    auto query_type_parse(std::string_view name) -> QueryType
+    {
+        auto l_name = util::to_lower(name);
+        if (l_name == "search")
+        {
+            return QueryType::Search;
+        }
+        if (l_name == "depends")
+        {
+            return QueryType::Depends;
+        }
+        if (l_name == "whoneeds")
+        {
+            return QueryType::WhoNeeds;
+        }
+        throw std::invalid_argument(fmt::format("Invalid enum name \"{}\"", name));
+    }
+
+    /**************************
+     *  Query implementation  *
+     **************************/
+
     namespace
     {
-
         auto get_package_repr(const specs::PackageInfo& pkg) -> std::string
         {
             return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
         }
 
-        void walk_graph(
-            MPool pool,
-            QueryResult::dependency_graph& dep_graph,
-            QueryResult::dependency_graph::node_id parent,
-            Solvable* s,
-            std::map<Solvable*, size_t>& visited,
-            std::map<std::string, size_t>& not_found,
-            int depth = -1
-        )
+        struct PkgInfoCmp
         {
-            if (depth == 0)
+            auto operator()(const specs::PackageInfo* lhs, const specs::PackageInfo* rhs) const -> bool
+            {
+                auto attrs = [](const auto& pkg)
+                {
+                    return std::tuple<decltype(pkg.name) const&, specs::Version>(
+                        pkg.name,
+                        specs::Version::parse(pkg.version)
+                    );
+                };
+                return attrs(*lhs) < attrs(*rhs);
+            }
+        };
+
+        auto pool_latest_package(MPool& pool, specs::MatchSpec spec)
+            -> std::optional<specs::PackageInfo>
+        {
+            auto out = std::optional<specs::PackageInfo>();
+            pool.for_each_package_matching(
+                spec,
+                [&](auto pkg)
+                {
+                    if (!out || PkgInfoCmp()(&*out, &pkg))
+                    {
+                        out = std::move(pkg);
+                    }
+                }
+            );
+            return out;
+        };
+
+        class PoolWalker
+        {
+        public:
+
+            using DepGraph = typename QueryResult::dependency_graph;
+            using node_id = typename QueryResult::dependency_graph::node_id;
+
+            PoolWalker(MPool& pool);
+
+            void walk(specs::PackageInfo pkg, std::size_t max_depth);
+            void walk(specs::PackageInfo pkg);
+
+            void reverse_walk(specs::PackageInfo pkg);
+
+            auto graph() && -> DepGraph&&;
+
+        private:
+
+            using VisitedMap = std::map<specs::PackageInfo*, node_id, PkgInfoCmp>;
+            using NotFoundMap = std::map<std::string_view, node_id>;
+
+            DepGraph m_graph;
+            VisitedMap m_visited;
+            NotFoundMap m_not_found;
+            MPool& m_pool;
+
+            void walk_impl(node_id id, std::size_t max_depth);
+            void reverse_walk_impl(node_id id);
+        };
+
+        PoolWalker::PoolWalker(MPool& pool)
+            : m_pool(pool)
+        {
+        }
+
+        void PoolWalker::walk(specs::PackageInfo pkg, std::size_t max_depth)
+        {
+            const auto id = m_graph.add_node(std::move(pkg));
+            walk_impl(id, max_depth);
+        }
+
+        void PoolWalker::walk(specs::PackageInfo pkg)
+        {
+            return walk(std::move(pkg), std::numeric_limits<std::size_t>::max());
+        }
+
+        void PoolWalker::walk_impl(node_id id, std::size_t max_depth)
+        {
+            if (max_depth == 0)
             {
                 return;
             }
-            depth -= 1;
-
-            if (s && s->requires)
+            for (const auto& dep : m_graph.node(id).depends)
             {
-                Id* reqp = s->repo->idarraydata + s->requires;
-                Id req = *reqp;
-
-                while (req != 0)
+                // This is an approximation.
+                // Resolving all depenndencies, even of a single Matchspec isnot as simple
+                // as taking any package matching a dependency recursively.
+                // Package dependencies can appear mulitple time, further reducing its valid set.
+                // To do this properly, we should instanciate a solver and resolve the spec.
+                if (auto child = pool_latest_package(m_pool, specs::MatchSpec::parse(dep)))
                 {
-                    solv::ObjQueue rec_solvables = {};
-                    // the following prints the requested version
-                    solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, req };
-                    selection_solvables(pool, job.raw(), rec_solvables.raw());
-
-                    if (rec_solvables.size() != 0)
+                    if (auto it = m_visited.find(&(*child)); it != m_visited.cend())
                     {
-                        Solvable* rs = nullptr;
-                        for (auto& el : rec_solvables)
-                        {
-                            rs = pool_id2solvable(pool, el);
-                            if (rs->name == req)
-                            {
-                                break;
-                            }
-                        }
-                        auto it = visited.find(rs);
-                        if (it == visited.end())
-                        {
-                            auto pkg_info = pool.id2pkginfo(pool_solvable2id(pool, rs));
-                            assert(pkg_info.has_value());
-                            auto dep_id = dep_graph.add_node(std::move(pkg_info).value());
-                            dep_graph.add_edge(parent, dep_id);
-                            visited.insert(std::make_pair(rs, dep_id));
-                            walk_graph(pool, dep_graph, dep_id, rs, visited, not_found, depth);
-                        }
-                        else
-                        {
-                            dep_graph.add_edge(parent, it->second);
-                        }
+                        m_graph.add_edge(id, it->second);
                     }
                     else
                     {
-                        std::string name = pool_id2str(pool, req);
-                        auto it = not_found.find(name);
-                        if (it == not_found.end())
-                        {
-                            auto dep_id = dep_graph.add_node(
-                                specs::PackageInfo(util::concat(name, " >>> NOT FOUND <<<"))
-                            );
-                            dep_graph.add_edge(parent, dep_id);
-                            not_found.insert(std::make_pair(name, dep_id));
-                        }
-                        else
-                        {
-                            dep_graph.add_edge(parent, it->second);
-                        }
+                        auto child_id = m_graph.add_node(std::move(child).value());
+                        m_graph.add_edge(id, child_id);
+                        m_visited.emplace(&m_graph.node(child_id), child_id);
+                        walk_impl(child_id, max_depth - 1);
                     }
-                    ++reqp;
-                    req = *reqp;
+                }
+                else if (auto it = m_not_found.find(dep); it != m_not_found.end())
+                {
+                    m_graph.add_edge(id, it->second);
+                }
+                else
+                {
+                    auto dep_id = m_graph.add_node(
+                        specs::PackageInfo(util::concat(dep, " >>> NOT FOUND <<<"))
+                    );
+                    m_graph.add_edge(id, dep_id);
+                    m_not_found.emplace(dep, dep_id);
                 }
             }
         }
 
-        void reverse_walk_graph(
-            MPool& pool,
-            QueryResult::dependency_graph& dep_graph,
-            QueryResult::dependency_graph::node_id parent,
-            Solvable* s,
-            std::map<Solvable*, size_t>& visited
-        )
+        void PoolWalker::reverse_walk(specs::PackageInfo pkg)
         {
-            if (s)
-            {
-                // figure out who requires `s`
-                solv::ObjQueue solvables = {};
+            const auto id = m_graph.add_node(std::move(pkg));
+            reverse_walk_impl(id);
+        }
 
-                pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables.raw(), -1);
-
-                if (solvables.size() != 0)
+        void PoolWalker::reverse_walk_impl(node_id id)
+        {
+            m_pool.for_each_package_depending_on(
+                specs::MatchSpec::parse(m_graph.node(id).name),
+                [&](specs::PackageInfo pkg)
                 {
-                    for (auto& el : solvables)
+                    if (auto it = m_visited.find(&pkg); it != m_visited.cend())
                     {
-                        ::Solvable* rs = pool_id2solvable(pool, el);
-                        auto it = visited.find(rs);
-                        if (it == visited.end())
-                        {
-                            auto pkg_info = pool.id2pkginfo(el);
-                            assert(pkg_info.has_value());
-                            auto dep_id = dep_graph.add_node(std::move(pkg_info).value());
-                            dep_graph.add_edge(parent, dep_id);
-                            visited.insert(std::make_pair(rs, dep_id));
-                            reverse_walk_graph(pool, dep_graph, dep_id, rs, visited);
-                        }
-                        else
-                        {
-                            dep_graph.add_edge(parent, it->second);
-                        }
+                        m_graph.add_edge(id, it->second);
+                    }
+                    else
+                    {
+                        auto const child_id = m_graph.add_node(std::move(pkg));
+                        m_graph.add_edge(id, child_id);
+                        m_visited.emplace(&m_graph.node(child_id), child_id);
+                        reverse_walk_impl(child_id);
                     }
                 }
-            }
+            );
+        }
+
+        auto PoolWalker::graph() && -> DepGraph&&
+        {
+            return std::move(m_graph);
         }
     }
 
-    /************************
-     * Query implementation *
-     ************************/
+    auto Query::find(MPool& mpool, const std::vector<std::string>& queries) -> QueryResult
+    {
+        QueryResult::dependency_graph g;
+        for (const auto& query : queries)
+        {
+            mpool.for_each_package_matching(
+                specs::MatchSpec::parse(query),
+                [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
+            );
+        }
+
+        return {
+            QueryType::Search,
+            fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
+            std::move(g),
+        };
+    }
+
+    auto Query::whoneeds(MPool& mpool, std::string query, bool tree) -> QueryResult
+    {
+        if (tree)
+        {
+            if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
+            {
+                auto walker = PoolWalker(mpool);
+                walker.reverse_walk(std::move(pkg).value());
+                return { QueryType::WhoNeeds, std::move(query), std::move(walker).graph() };
+            }
+        }
+        else
+        {
+            QueryResult::dependency_graph g;
+            mpool.for_each_package_depending_on(
+                specs::MatchSpec::parse(query),
+                [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
+            );
+            return { QueryType::WhoNeeds, std::move(query), std::move(g) };
+        }
+        return { QueryType::WhoNeeds, std::move(query), QueryResult::dependency_graph() };
+    }
+
+    auto Query::depends(MPool& mpool, std::string query, bool tree) -> QueryResult
+    {
+        if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
+        {
+            auto walker = PoolWalker(mpool);
+            if (tree)
+            {
+                walker.walk(std::move(pkg).value());
+            }
+            else
+            {
+                walker.walk(std::move(pkg).value(), 1);
+            }
+            return { QueryType::Depends, std::move(query), std::move(walker).graph() };
+        }
+        return { QueryType::Depends, std::move(query), QueryResult::dependency_graph() };
+    }
+
+    /********************************
+     *  QueryResult implementation  *
+     ********************************/
 
     namespace
     {
@@ -352,159 +462,6 @@ namespace mamba
             out << '\n';
         }
     }
-
-    auto Query::find(MPool& mpool, const std::vector<std::string>& queries) -> QueryResult
-    {
-        solv::ObjQueue job, solvables;
-
-        for (const auto& query : queries)
-        {
-            const Id id = pool_conda_matchspec(mpool, query.c_str());
-            if (!id)
-            {
-                throw std::runtime_error("Could not generate query for " + query);
-            }
-            job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
-        }
-
-        selection_solvables(mpool, job.raw(), solvables.raw());
-        QueryResult::dependency_graph g;
-
-        Pool* pool = mpool;
-        std::sort(
-            solvables.begin(),
-            solvables.end(),
-            [pool](Id a, Id b)
-            {
-                Solvable* sa;
-                Solvable* sb;
-                sa = pool_id2solvable(pool, a);
-                sb = pool_id2solvable(pool, b);
-                return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-            }
-        );
-
-        for (auto& el : solvables)
-        {
-            auto pkg_info = mpool.id2pkginfo(el);
-            assert(pkg_info.has_value());
-            g.add_node(std::move(pkg_info).value());
-        }
-
-        return { QueryType::Search,
-                 fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
-                 std::move(g) };
-    }
-
-    auto Query::whoneeds(MPool& mpool, const std::string& query, bool tree) -> QueryResult
-    {
-        const Id id = pool_conda_matchspec(mpool, query.c_str());
-        if (!id)
-        {
-            throw std::runtime_error("Could not generate query for " + query);
-        }
-
-        solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
-        QueryResult::dependency_graph g;
-
-        if (tree)
-        {
-            solv::ObjQueue solvables = {};
-            selection_solvables(mpool, job.raw(), solvables.raw());
-            if (!solvables.empty())
-            {
-                auto pkg_info = mpool.id2pkginfo(solvables.front());
-                assert(pkg_info.has_value());
-                const auto node_id = g.add_node(std::move(pkg_info).value());
-                Solvable* const latest = pool_id2solvable(mpool, solvables.front());
-                std::map<Solvable*, size_t> visited = { { latest, node_id } };
-                reverse_walk_graph(mpool, g, node_id, latest, visited);
-            }
-        }
-        else
-        {
-            solv::ObjQueue solvables = {};
-            pool_whatmatchesdep(mpool, SOLVABLE_REQUIRES, id, solvables.raw(), -1);
-            for (auto& el : solvables)
-            {
-                auto pkg_info = mpool.id2pkginfo(el);
-                assert(pkg_info.has_value());
-                g.add_node(std::move(pkg_info).value());
-            }
-        }
-        return { QueryType::WhoNeeds, query, std::move(g) };
-    }
-
-    auto Query::depends(MPool& mpool, const std::string& query, bool tree) -> QueryResult
-    {
-        solv::ObjQueue job, solvables;
-
-        const Id id = pool_conda_matchspec(mpool, query.c_str());
-        if (!id)
-        {
-            throw std::runtime_error("Could not generate query for " + query);
-        }
-        job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
-
-        QueryResult::dependency_graph g;
-        selection_solvables(mpool, job.raw(), solvables.raw());
-
-        int depth = tree ? -1 : 1;
-
-        auto find_latest_in_non_empty = [&](solv::ObjQueue& lsolvables) -> Solvable*
-        {
-            ::Solvable* latest = pool_id2solvable(mpool, lsolvables.front());
-            for (Id const solv : solvables)
-            {
-                Solvable* s = pool_id2solvable(mpool, solv);
-                if (pool_evrcmp(mpool, s->evr, latest->evr, 0) > 0)
-                {
-                    latest = s;
-                }
-            }
-            return latest;
-        };
-
-        if (!solvables.empty())
-        {
-            ::Solvable* const latest = find_latest_in_non_empty(solvables);
-            auto pkg_info = mpool.id2pkginfo(pool_solvable2id(mpool, latest));
-            assert(pkg_info.has_value());
-            const auto node_id = g.add_node(std::move(pkg_info).value());
-
-            std::map<Solvable*, size_t> visited = { { latest, node_id } };
-            std::map<std::string, size_t> not_found;
-            walk_graph(mpool, g, node_id, latest, visited, not_found, depth);
-        }
-
-        return { QueryType::Depends, query, std::move(g) };
-    }
-
-    /******************************
-     *  QueryType implementation  *
-     ******************************/
-
-    auto query_type_parse(std::string_view name) -> QueryType
-    {
-        auto l_name = util::to_lower(name);
-        if (l_name == "search")
-        {
-            return QueryType::Search;
-        }
-        if (l_name == "depends")
-        {
-            return QueryType::Depends;
-        }
-        if (l_name == "whoneeds")
-        {
-            return QueryType::WhoNeeds;
-        }
-        throw std::invalid_argument(fmt::format("Invalid enum name \"{}\"", name));
-    }
-
-    /*******************************
-     * query_result implementation *
-     *******************************/
 
     QueryResult::QueryResult(QueryType type, std::string query, dependency_graph dep_graph)
         : m_type(type)

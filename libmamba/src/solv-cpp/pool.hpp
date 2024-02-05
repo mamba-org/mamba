@@ -173,6 +173,15 @@ namespace mamba::solv
         auto select_solvables(const ObjQueue& job) const -> ObjQueue;
 
         /**
+         * Find solvables whose dependency in keyname match the dependency.
+         *
+         * For instance, with ``key=SOLVABLE_REQUIRES``, find solvables for which @p dep satisfies
+         * a dependency.
+         */
+        auto what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker = -1) const
+            -> ObjQueue;
+
+        /**
          * Add a repository with a given name.
          *
          * Solvable belong to a repository, although they are stored in the pool.

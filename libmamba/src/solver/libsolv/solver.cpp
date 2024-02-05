@@ -54,7 +54,7 @@ namespace mamba::solver::libsolv
     auto Solver::solve_impl(MPool& mpool, const Request& request) -> expected_t<Outcome>
     {
         auto& pool = mpool.pool();
-        const auto& chan_params = mpool.channel_context().params();
+        const auto& chan_params = mpool.channel_params();
         const auto& flags = request.flags;
 
         return solver::libsolv::request_to_decision_queue(request, pool, chan_params, flags.force_reinstall)

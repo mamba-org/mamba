@@ -102,9 +102,9 @@ namespace
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_pkgs_pool(Context& ctx, ChannelContext& channel_context, const PkgRange& packages)
+    auto create_pkgs_pool(ChannelContext& channel_context, const PkgRange& packages)
     {
-        MPool pool{ channel_context };
+        MPool pool{ channel_context.params() };
         pool.add_repo_from_packages(packages);
         return pool;
     }
@@ -114,7 +114,7 @@ TEST_CASE("Test create_pool utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto pool = create_pkgs_pool(ctx, channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
+    auto pool = create_pkgs_pool(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
     const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
@@ -125,7 +125,6 @@ TEST_CASE("Test empty specs")
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     auto pool = create_pkgs_pool(
-        ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
     );
@@ -140,7 +139,6 @@ namespace
     {
         return std::pair(
             create_pkgs_pool(
-                ctx,
                 channel_context,
                 std::array{
                     mkpkg("A", "0.1.0"),
@@ -162,7 +160,6 @@ namespace
     {
         return std::pair(
             create_pkgs_pool(
-                ctx,
                 channel_context,
                 std::array{
                     mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
@@ -244,7 +241,7 @@ namespace
             packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
         return std::pair(
-            create_pkgs_pool(ctx, channel_context, packages),
+            create_pkgs_pool(channel_context, packages),
             Request{
                 {},
                 {
@@ -341,7 +338,7 @@ namespace
 
         auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool{ channel_context };
+        auto pool = MPool{ channel_context.params() };
 
         load_installed_packages_in_pool(ctx, pool, prefix_data);
 

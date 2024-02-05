@@ -16,12 +16,12 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/loop_control.hpp"
 
 namespace mamba
 {
-    class ChannelContext;
     class Context;
     class PrefixData;
     class SubdirData;
@@ -55,8 +55,10 @@ namespace mamba
 
         using logger_type = std::function<void(solver::libsolv::LogLevel, std::string_view)>;
 
-        MPool(ChannelContext& channel_context);
+        MPool(specs::ChannelResolveParams channel_params);
         ~MPool();
+
+        [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
         void set_logger(logger_type callback);
 
@@ -124,8 +126,6 @@ namespace mamba
 
         template <typename Func>
         void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
-
-        ChannelContext& channel_context() const;
 
     private:
 

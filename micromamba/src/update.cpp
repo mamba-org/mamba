@@ -72,7 +72,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-    MPool pool{ channel_context };
+    MPool pool{ channel_context.params() };
     add_spdlog_logger_to_pool(pool);
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);

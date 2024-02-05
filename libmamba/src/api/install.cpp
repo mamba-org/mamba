@@ -530,7 +530,7 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            MPool pool{ channel_context };
+            MPool pool{ channel_context.params() };
             add_spdlog_logger_to_pool(pool);
             // functions implied in 'and_then' coding-styles must return the same type
             // which limits this syntax
@@ -684,7 +684,7 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            MPool pool{ channel_context };
+            MPool pool{ channel_context.params() };
             add_spdlog_logger_to_pool(pool);
 
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);

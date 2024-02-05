@@ -127,7 +127,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool{ channel_context };
+            MPool pool{ channel_context.params() };
             add_spdlog_logger_to_pool(pool);
             load_installed_packages_in_pool(ctx, pool, prefix_data);
 

@@ -36,17 +36,17 @@ namespace mamba
 {
     struct MPool::MPoolData
     {
-        MPoolData(ChannelContext& cc)
-            : channel_context(cc)
+        MPoolData(specs::ChannelResolveParams channel_params)
+            : channel_params(std::move(channel_params))
         {
         }
 
+        specs::ChannelResolveParams channel_params;
         solv::ObjPool pool = {};
-        ChannelContext& channel_context;
     };
 
-    MPool::MPool(ChannelContext& channel_context)
-        : m_data(std::make_shared<MPoolData>(channel_context))
+    MPool::MPool(specs::ChannelResolveParams channel_params)
+        : m_data(std::make_unique<MPoolData>(std::move(channel_params)))
     {
         pool().set_disttype(DISTTYPE_CONDA);
         // Ensure that debug logging never goes to stdout as to not interfere json output
@@ -56,9 +56,9 @@ namespace mamba
 
     MPool::~MPool() = default;
 
-    ChannelContext& MPool::channel_context() const
+    auto MPool::channel_params() const -> const specs::ChannelResolveParams&
     {
-        return m_data->channel_context;
+        return m_data->channel_params;
     }
 
     solv::ObjPool& MPool::pool()
@@ -137,7 +137,7 @@ namespace mamba
 
     auto MPool::matchspec2id(const specs::MatchSpec& ms) -> ::Id
     {
-        return solver::libsolv::pool_add_matchspec(pool(), ms, channel_context().params())
+        return solver::libsolv::pool_add_matchspec(pool(), ms, channel_params())
             .or_else([](mamba_error&& error) { throw std::move(error); })
             .value_or(0);
     }

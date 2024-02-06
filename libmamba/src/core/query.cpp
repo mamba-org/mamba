@@ -72,7 +72,7 @@ namespace mamba
             }
         };
 
-        auto pool_latest_package(MPool& pool, specs::MatchSpec spec)
+        auto pool_latest_package(Database& pool, specs::MatchSpec spec)
             -> std::optional<specs::PackageInfo>
         {
             auto out = std::optional<specs::PackageInfo>();
@@ -96,7 +96,7 @@ namespace mamba
             using DepGraph = typename QueryResult::dependency_graph;
             using node_id = typename QueryResult::dependency_graph::node_id;
 
-            PoolWalker(MPool& pool);
+            PoolWalker(Database& pool);
 
             void walk(specs::PackageInfo pkg, std::size_t max_depth);
             void walk(specs::PackageInfo pkg);
@@ -113,13 +113,13 @@ namespace mamba
             DepGraph m_graph;
             VisitedMap m_visited;
             NotFoundMap m_not_found;
-            MPool& m_pool;
+            Database& m_pool;
 
             void walk_impl(node_id id, std::size_t max_depth);
             void reverse_walk_impl(node_id id);
         };
 
-        PoolWalker::PoolWalker(MPool& pool)
+        PoolWalker::PoolWalker(Database& pool)
             : m_pool(pool)
         {
         }
@@ -210,7 +210,7 @@ namespace mamba
         }
     }
 
-    auto Query::find(MPool& mpool, const std::vector<std::string>& queries) -> QueryResult
+    auto Query::find(Database& mpool, const std::vector<std::string>& queries) -> QueryResult
     {
         QueryResult::dependency_graph g;
         for (const auto& query : queries)
@@ -228,7 +228,7 @@ namespace mamba
         };
     }
 
-    auto Query::whoneeds(MPool& mpool, std::string query, bool tree) -> QueryResult
+    auto Query::whoneeds(Database& mpool, std::string query, bool tree) -> QueryResult
     {
         if (tree)
         {
@@ -251,7 +251,7 @@ namespace mamba
         return { QueryType::WhoNeeds, std::move(query), QueryResult::dependency_graph() };
     }
 
-    auto Query::depends(MPool& mpool, std::string query, bool tree) -> QueryResult
+    auto Query::depends(Database& mpool, std::string query, bool tree) -> QueryResult
     {
         if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
         {

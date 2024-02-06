@@ -379,12 +379,12 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
-    py::class_<MPool>(m, "Pool")
+    py::class_<Database>(m, "Pool")
         .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
-        .def("set_logger", &MPool::set_logger, py::call_guard<py::gil_scoped_acquire>())
+        .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
         .def(
             "add_repo_from_repodata_json",
-            &MPool::add_repo_from_repodata_json,
+            &Database::add_repo_from_repodata_json,
             py::arg("path"),
             py::arg("url"),
             py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
@@ -393,14 +393,14 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "add_repo_from_native_serialization",
-            &MPool::add_repo_from_native_serialization,
+            &Database::add_repo_from_native_serialization,
             py::arg("path"),
             py::arg("expected"),
             py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
         )
         .def(
             "add_repo_from_packages",
-            [](MPool& pool,
+            [](Database& pool,
                py::iterable packages,
                std::string_view name,
                solver::libsolv::PipAsPythonDependency add)
@@ -419,13 +419,13 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "native_serialize_repo",
-            &MPool::native_serialize_repo,
+            &Database::native_serialize_repo,
             py::arg("repo"),
             py::arg("path"),
             py::arg("metadata")
         )
-        .def("set_installed_repo", &MPool::set_installed_repo, py::arg("repo"))
-        .def("set_repo_priority", &MPool::set_repo_priority, py::arg("repo"), py::arg("priorities"));
+        .def("set_installed_repo", &Database::set_installed_repo, py::arg("repo"))
+        .def("set_repo_priority", &Database::set_repo_priority, py::arg("repo"), py::arg("priorities"));
 
     m.def(
         "load_subdir_in_pool",
@@ -457,7 +457,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<const Context&, MPool&, const solver::Request&, solver::Solution, MultiPackageCache&>(
+        .def(py::init<const Context&, Database&, const solver::Request&, solver::Solution, MultiPackageCache&>(
         ))
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
@@ -522,7 +522,7 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& subdir, MPool& pool) -> solver::libsolv::RepoInfo
+            [](SubdirData& subdir, Database& pool) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use `load_subdir_in_pool` instead", "2.0");
                 return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir));

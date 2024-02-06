@@ -47,7 +47,7 @@ namespace mamba
         }
 
         // TODO duplicated function, consider moving it to Pool
-        auto pool_has_package(MPool& pool, const specs::MatchSpec& spec) -> bool
+        auto pool_has_package(Database& pool, const specs::MatchSpec& spec) -> bool
         {
             bool found = false;
             pool.for_each_package_matching(
@@ -76,7 +76,7 @@ namespace mamba
             return out;
         }
 
-        auto installed_python(const MPool& pool) -> std::optional<specs::PackageInfo>
+        auto installed_python(const Database& pool) -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
@@ -98,7 +98,7 @@ namespace mamba
             return out;
         }
 
-        auto find_python_version(const solver::Solution& solution, const MPool& pool)
+        auto find_python_version(const solver::Solution& solution, const Database& pool)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -132,7 +132,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        MPool& pool,
+        Database& pool,
         std::vector<specs::PackageInfo> pkgs_to_remove,
         std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
@@ -210,7 +210,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        MPool& pool,
+        Database& pool,
         const solver::Request& request,
         solver::Solution solution,
         MultiPackageCache& caches
@@ -273,7 +273,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        MPool& pool,
+        Database& pool,
         std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
@@ -1112,7 +1112,7 @@ namespace mamba
     }
 
     MTransaction
-    create_explicit_transaction_from_urls(const Context& ctx, MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
+    create_explicit_transaction_from_urls(const Context& ctx, Database& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
         std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
@@ -1127,7 +1127,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_lockfile(
         const Context& ctx,
-        MPool& pool,
+        Database& pool,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,

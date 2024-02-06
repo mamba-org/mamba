@@ -125,7 +125,7 @@ namespace mambapy
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, MPool& pool, const solver::Request& request)
+                [](Solver& self, Database& pool, const solver::Request& request)
                 { return self.solve(pool, request); }
             )
             .def("add_jobs", solver_job_v2_migrator)

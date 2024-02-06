@@ -88,12 +88,14 @@ namespace mamba
     {
     public:
 
-        [[nodiscard]] static auto find(MPool& pool, const std::vector<std::string>& queries)
+        [[nodiscard]] static auto find(Database& pool, const std::vector<std::string>& queries)
             -> QueryResult;
 
-        [[nodiscard]] static auto whoneeds(MPool& pool, std::string query, bool tree) -> QueryResult;
+        [[nodiscard]] static auto whoneeds(Database& pool, std::string query, bool tree)
+            -> QueryResult;
 
-        [[nodiscard]] static auto depends(MPool& pool, std::string query, bool tree) -> QueryResult;
+        [[nodiscard]] static auto depends(Database& pool, std::string query, bool tree)
+            -> QueryResult;
     };
 
     /********************

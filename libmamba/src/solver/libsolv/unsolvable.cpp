@@ -41,9 +41,9 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
-    auto UnSolvable::problems(MPool& mpool) const -> std::vector<std::string>
+    auto UnSolvable::problems(Database& mpool) const -> std::vector<std::string>
     {
-        auto& pool = MPool::Impl::get(mpool);
+        auto& pool = Database::Impl::get(mpool);
         std::vector<std::string> problems;
         solver().for_each_problem_id([&](solv::ProblemId pb)
                                      { problems.emplace_back(solver().problem_to_string(pool, pb)); }
@@ -51,9 +51,9 @@ namespace mamba::solver::libsolv
         return problems;
     }
 
-    auto UnSolvable::problems_to_str(MPool& mpool) const -> std::string
+    auto UnSolvable::problems_to_str(Database& mpool) const -> std::string
     {
-        auto& pool = MPool::Impl::get(mpool);
+        auto& pool = Database::Impl::get(mpool);
         std::stringstream problems;
         problems << "Encountered problems while solving:\n";
         solver().for_each_problem_id(
@@ -63,9 +63,9 @@ namespace mamba::solver::libsolv
         return problems.str();
     }
 
-    auto UnSolvable::all_problems_to_str(MPool& mpool) const -> std::string
+    auto UnSolvable::all_problems_to_str(Database& mpool) const -> std::string
     {
-        auto& pool = MPool::Impl::get(mpool);
+        auto& pool = Database::Impl::get(mpool);
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
@@ -467,13 +467,14 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto UnSolvable::problems_graph(const MPool& pool) const -> ProblemsGraph
+    auto UnSolvable::problems_graph(const Database& pool) const -> ProblemsGraph
     {
         assert(m_solver != nullptr);
-        return ProblemsGraphCreator(MPool::Impl::get(pool), *m_solver).problem_graph();
+        return ProblemsGraphCreator(Database::Impl::get(pool), *m_solver).problem_graph();
     }
 
-    auto UnSolvable::explain_problems_to(MPool& pool, std::ostream& out, const Palette& palette) const
+    auto
+    UnSolvable::explain_problems_to(Database& pool, std::ostream& out, const Palette& palette) const
         -> std::ostream&
     {
         out << "Could not solve for environment specs\n";
@@ -491,7 +492,7 @@ namespace mamba::solver::libsolv
         return out;
     }
 
-    auto UnSolvable::explain_problems(MPool& pool, const Palette& palette) const -> std::string
+    auto UnSolvable::explain_problems(Database& pool, const Palette& palette) const -> std::string
 
     {
         std::stringstream ss;

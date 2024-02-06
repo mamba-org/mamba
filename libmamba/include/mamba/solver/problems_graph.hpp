@@ -26,7 +26,7 @@
 
 namespace mamba
 {
-    class MPool;
+    class Database;
 }
 
 namespace mamba::solver

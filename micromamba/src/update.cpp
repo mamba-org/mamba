@@ -28,7 +28,7 @@ using namespace mamba;  // NOLINT(build/namespaces)
 
 namespace
 {
-    auto pool_has_package(MPool& pool, specs::MatchSpec spec) -> bool
+    auto pool_has_package(Database& pool, specs::MatchSpec spec) -> bool
     {
         bool found = false;
         pool.for_each_package_matching(
@@ -42,7 +42,8 @@ namespace
         return found;
     };
 
-    auto pool_latest_package(MPool& pool, specs::MatchSpec spec) -> std::optional<specs::PackageInfo>
+    auto pool_latest_package(Database& pool, specs::MatchSpec spec)
+        -> std::optional<specs::PackageInfo>
     {
         auto out = std::optional<specs::PackageInfo>();
         pool.for_each_package_matching(
@@ -72,7 +73,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-    MPool pool{ channel_context.params() };
+    Database pool{ channel_context.params() };
     add_spdlog_logger_to_pool(pool);
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);

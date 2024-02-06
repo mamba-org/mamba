@@ -13,13 +13,13 @@ namespace mamba
 {
     class Context;
     class ChannelContext;
-    class MPool;
+    class Database;
     class MultiPackageCache;
 
     auto load_channels(  //
         Context& ctx,
         ChannelContext& channel_context,
-        MPool& pool,
+        Database& pool,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>;
 }

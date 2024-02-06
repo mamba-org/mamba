@@ -21,7 +21,7 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            MPool& pool,
+            Database& pool,
             const fs::u8path& pkgs_dir
         ) -> solver::libsolv::RepoInfo
         {
@@ -112,7 +112,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            MPool& pool,
+            Database& pool,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -276,9 +276,12 @@ namespace mamba
         }
     }
 
-    auto
-    load_channels(Context& ctx, ChannelContext& channel_context, MPool& pool, MultiPackageCache& package_caches)
-        -> expected_t<void, mamba_aggregated_error>
+    auto load_channels(
+        Context& ctx,
+        ChannelContext& channel_context,
+        Database& pool,
+        MultiPackageCache& package_caches
+    ) -> expected_t<void, mamba_aggregated_error>
     {
         return load_channels_impl(ctx, channel_context, pool, package_caches, false);
     }

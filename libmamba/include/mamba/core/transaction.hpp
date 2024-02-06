@@ -37,7 +37,7 @@ namespace mamba
 
         MTransaction(
             const Context& ctx,
-            MPool& pool,
+            Database& pool,
             std::vector<specs::PackageInfo> pkgs_to_remove,
             std::vector<specs::PackageInfo> pkgs_to_install,
             MultiPackageCache& caches
@@ -45,7 +45,7 @@ namespace mamba
 
         MTransaction(
             const Context& ctx,
-            MPool& pool,
+            Database& pool,
             const solver::Request& request,
             solver::Solution solution,
             MultiPackageCache& caches
@@ -54,7 +54,7 @@ namespace mamba
         // Only use if the packages have been solved previously already.
         MTransaction(
             const Context& ctx,
-            MPool& pool,
+            Database& pool,
             std::vector<specs::PackageInfo> packages,
             MultiPackageCache& caches
         );
@@ -93,7 +93,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_urls(
         const Context& ctx,
-        MPool& pool,
+        Database& pool,
         const std::vector<std::string>& urls,
         MultiPackageCache& package_caches,
         std::vector<detail::other_pkg_mgr_spec>& other_specs
@@ -101,7 +101,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_lockfile(
         const Context& ctx,
-        MPool& pool,
+        Database& pool,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,

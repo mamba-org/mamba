@@ -53,20 +53,20 @@ namespace mamba
      * ecosystem.
      * Behaves like a ``std::shared_ptr``, meaning ressources are shared on copy.
      */
-    class MPool
+    class Database
     {
     public:
 
         using logger_type = std::function<void(solver::libsolv::LogLevel, std::string_view)>;
 
-        MPool(specs::ChannelResolveParams channel_params);
-        MPool(const MPool&) = delete;
-        MPool(MPool&&);
+        Database(specs::ChannelResolveParams channel_params);
+        Database(const Database&) = delete;
+        Database(Database&&);
 
-        ~MPool();
+        ~Database();
 
-        auto operator=(const MPool&) -> MPool& = delete;
-        auto operator=(MPool&&) -> MPool&;
+        auto operator=(const Database&) -> Database& = delete;
+        auto operator=(Database&&) -> Database&;
 
         [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
@@ -133,8 +133,8 @@ namespace mamba
          */
         class Impl
         {
-            [[nodiscard]] static auto get(MPool& pool) -> solv::ObjPool&;
-            [[nodiscard]] static auto get(const MPool& pool) -> const solv::ObjPool&;
+            [[nodiscard]] static auto get(Database& pool) -> solv::ObjPool&;
+            [[nodiscard]] static auto get(const Database& pool) -> const solv::ObjPool&;
 
             friend class solver::libsolv::Solver;
             friend class solver::libsolv::UnSolvable;
@@ -142,9 +142,9 @@ namespace mamba
 
     private:
 
-        struct MPoolData;
+        struct DatabaseImpl;
 
-        std::unique_ptr<MPoolData> m_data;
+        std::unique_ptr<DatabaseImpl> m_data;
 
         friend class Impl;
         auto pool() -> solv::ObjPool&;
@@ -175,12 +175,12 @@ namespace mamba
     };
 
     // TODO machinery functions in separate files
-    void add_spdlog_logger_to_pool(MPool& pool);
+    void add_spdlog_logger_to_pool(Database& pool);
 
-    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
+    auto load_subdir_in_pool(const Context& ctx, Database& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>;
 
-    auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
+    auto load_installed_packages_in_pool(const Context& ctx, Database& pool, const PrefixData& prefix)
         -> solver::libsolv::RepoInfo;
 
     /********************
@@ -188,7 +188,7 @@ namespace mamba
      ********************/
 
     template <typename Iter>
-    auto MPool::add_repo_from_packages(
+    auto Database::add_repo_from_packages(
         Iter first_package,
         Iter last_package,
         std::string_view name,
@@ -205,7 +205,7 @@ namespace mamba
     }
 
     template <typename Range>
-    auto MPool::add_repo_from_packages(
+    auto Database::add_repo_from_packages(
         const Range& packages,
         std::string_view name,
         solver::libsolv::PipAsPythonDependency add
@@ -216,7 +216,7 @@ namespace mamba
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
-    void MPool::for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&& func) const
+    void Database::for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&& func) const
     {
         for (auto id : packages_in_repo(repo))
         {
@@ -236,7 +236,7 @@ namespace mamba
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
-    void MPool::for_each_package_matching(const specs::MatchSpec& ms, Func&& func)
+    void Database::for_each_package_matching(const specs::MatchSpec& ms, Func&& func)
     {
         for (auto id : packages_matching_ids(ms))
         {
@@ -256,7 +256,7 @@ namespace mamba
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
-    void MPool::for_each_package_depending_on(const specs::MatchSpec& ms, Func&& func)
+    void Database::for_each_package_depending_on(const specs::MatchSpec& ms, Func&& func)
     {
         for (auto id : packages_depending_on_ids(ms))
         {

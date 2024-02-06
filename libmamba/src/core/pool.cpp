@@ -34,9 +34,9 @@
 
 namespace mamba
 {
-    struct MPool::MPoolData
+    struct Database::DatabaseImpl
     {
-        MPoolData(specs::ChannelResolveParams p_channel_params)
+        DatabaseImpl(specs::ChannelResolveParams p_channel_params)
             : channel_params(std::move(p_channel_params))
         {
         }
@@ -45,8 +45,8 @@ namespace mamba
         solv::ObjPool pool = {};
     };
 
-    MPool::MPool(specs::ChannelResolveParams channel_params)
-        : m_data(std::make_unique<MPoolData>(std::move(channel_params)))
+    Database::Database(specs::ChannelResolveParams channel_params)
+        : m_data(std::make_unique<DatabaseImpl>(std::move(channel_params)))
     {
         pool().set_disttype(DISTTYPE_CONDA);
         // Ensure that debug logging never goes to stdout as to not interfere json output
@@ -54,33 +54,33 @@ namespace mamba
         ::pool_setdebuglevel(pool().raw(), -1);  // Off
     }
 
-    MPool::~MPool() = default;
+    Database::~Database() = default;
 
-    MPool::MPool(MPool&&) = default;
+    Database::Database(Database&&) = default;
 
-    auto MPool::operator=(MPool&&) -> MPool& = default;
+    auto Database::operator=(Database&&) -> Database& = default;
 
-    auto MPool::pool() -> solv::ObjPool&
+    auto Database::pool() -> solv::ObjPool&
     {
         return m_data->pool;
     }
 
-    auto MPool::pool() const -> const solv::ObjPool&
+    auto Database::pool() const -> const solv::ObjPool&
     {
         return m_data->pool;
     }
 
-    auto MPool::Impl::get(MPool& pool) -> solv::ObjPool&
+    auto Database::Impl::get(Database& pool) -> solv::ObjPool&
     {
         return pool.pool();
     }
 
-    auto MPool::Impl::get(const MPool& pool) -> const solv::ObjPool&
+    auto Database::Impl::get(const Database& pool) -> const solv::ObjPool&
     {
         return pool.pool();
     }
 
-    auto MPool::channel_params() const -> const specs::ChannelResolveParams&
+    auto Database::channel_params() const -> const specs::ChannelResolveParams&
     {
         return m_data->channel_params;
     }
@@ -105,7 +105,7 @@ namespace mamba
         }
     }
 
-    void MPool::set_logger(logger_type callback)
+    void Database::set_logger(logger_type callback)
     {
         ::pool_setdebuglevel(pool().raw(), std::numeric_limits<int>::max());  // All
         pool().set_debug_callback(
@@ -124,7 +124,7 @@ namespace mamba
         );
     }
 
-    auto MPool::add_repo_from_repodata_json(
+    auto Database::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,
         solver::libsolv::PipAsPythonDependency add,
@@ -181,7 +181,7 @@ namespace mamba
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
-    auto MPool::add_repo_from_native_serialization(
+    auto Database::add_repo_from_native_serialization(
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& expected,
         solver::libsolv::PipAsPythonDependency add
@@ -206,7 +206,7 @@ namespace mamba
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
-    auto MPool::add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo
+    auto Database::add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo
     {
         if (name.empty())
         {
@@ -217,7 +217,7 @@ namespace mamba
         return solver::libsolv::RepoInfo(pool().add_repo(name).second.raw());
     }
 
-    void MPool::add_repo_from_packages_impl_loop(
+    void Database::add_repo_from_packages_impl_loop(
         const solver::libsolv::RepoInfo& repo,
         const specs::PackageInfo& pkg
     )
@@ -227,7 +227,7 @@ namespace mamba
         solver::libsolv::set_solvable(pool(), solv, pkg);
     }
 
-    void MPool::add_repo_from_packages_impl_post(
+    void Database::add_repo_from_packages_impl_post(
         const solver::libsolv::RepoInfo& repo,
         solver::libsolv::PipAsPythonDependency add
     )
@@ -240,7 +240,7 @@ namespace mamba
         s_repo.internalize();
     }
 
-    auto MPool::native_serialize_repo(
+    auto Database::native_serialize_repo(
         const solver::libsolv::RepoInfo& repo,
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& metadata
@@ -252,12 +252,12 @@ namespace mamba
                        { return solver::libsolv::RepoInfo(solv_repo.raw()); });
     }
 
-    void MPool::remove_repo(solver::libsolv::RepoInfo repo)
+    void Database::remove_repo(solver::libsolv::RepoInfo repo)
     {
         pool().remove_repo(repo.id(), /* reuse_ids= */ true);
     }
 
-    auto MPool::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>
+    auto Database::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>
     {
         if (auto repo = pool().installed_repo())
         {
@@ -267,13 +267,13 @@ namespace mamba
         return {};
     }
 
-    void MPool::set_installed_repo(solver::libsolv::RepoInfo repo)
+    void Database::set_installed_repo(solver::libsolv::RepoInfo repo)
     {
         pool().set_installed_repo(repo.id());
     }
 
     void
-    MPool::set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities)
+    Database::set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities)
     {
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
@@ -283,7 +283,7 @@ namespace mamba
         repo.m_ptr->subpriority = priorities.subpriority;
     }
 
-    auto MPool::package_id_to_package_info(PackageId id) const -> specs::PackageInfo
+    auto Database::package_id_to_package_info(PackageId id) const -> specs::PackageInfo
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
         const auto solv = pool().get_solvable(static_cast<solv::SolvableId>(id));
@@ -291,7 +291,7 @@ namespace mamba
         return { solver::libsolv::make_package_info(pool(), solv.value()) };
     }
 
-    auto MPool::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
+    auto Database::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
     {
         // TODO maybe we could use a span here depending on libsolv layout
         auto solv_repo = solv::ObjRepoViewConst(*repo.m_ptr);
@@ -315,7 +315,7 @@ namespace mamba
         }
     }
 
-    auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
+    auto Database::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
@@ -332,7 +332,7 @@ namespace mamba
         return out;
     }
 
-    auto MPool::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
+    auto Database::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
@@ -351,7 +351,7 @@ namespace mamba
 
     // TODO machinery functions in separate files
 
-    void add_spdlog_logger_to_pool(MPool& pool)
+    void add_spdlog_logger_to_pool(Database& pool)
     {
         pool.set_logger(
             [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
@@ -375,7 +375,7 @@ namespace mamba
         );
     }
 
-    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
+    auto load_subdir_in_pool(const Context& ctx, Database& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
@@ -444,7 +444,7 @@ namespace mamba
             );
     }
 
-    auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
+    auto load_installed_packages_in_pool(const Context& ctx, Database& pool, const PrefixData& prefix)
         -> solver::libsolv::RepoInfo
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing thems.

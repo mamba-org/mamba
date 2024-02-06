@@ -28,7 +28,7 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            MPool pool{ channel_context.params() };
+            Database pool{ channel_context.params() };
             add_spdlog_logger_to_pool(pool);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
@@ -76,7 +76,7 @@ namespace mamba
     }
 
     auto make_repoquery(
-        MPool& pool,
+        Database& pool,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,

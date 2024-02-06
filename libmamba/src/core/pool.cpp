@@ -248,9 +248,9 @@ namespace mamba
                        { return solver::libsolv::RepoInfo(solv_repo.raw()); });
     }
 
-    void MPool::remove_repo(::Id repo_id, bool reuse_ids)
+    void MPool::remove_repo(solver::libsolv::RepoInfo repo)
     {
-        pool().remove_repo(repo_id, reuse_ids);
+        pool().remove_repo(repo.id(), /* reuse_ids= */ true);
     }
 
     auto MPool::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>

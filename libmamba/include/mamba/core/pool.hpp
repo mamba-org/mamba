@@ -11,8 +11,6 @@
 #include <memory>
 #include <optional>
 
-#include <solv/pooltypes.h>
-
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -110,7 +108,7 @@ namespace mamba
         void
         set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities);
 
-        void remove_repo(::Id repo_id, bool reuse_ids);
+        void remove_repo(solver::libsolv::RepoInfo repo);
 
         template <typename Func>
         void for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&&) const;

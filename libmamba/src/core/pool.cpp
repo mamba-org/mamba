@@ -125,16 +125,6 @@ namespace mamba
         pool().create_whatprovides();
     }
 
-    std::optional<std::string> MPool::dep2str(Id dep_id) const
-    {
-        if (!dep_id)
-        {
-            return std::nullopt;
-        }
-        // Not const because might alloctmp space
-        return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
-    }
-
     auto MPool::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,

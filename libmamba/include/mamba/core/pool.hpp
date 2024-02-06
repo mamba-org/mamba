@@ -70,8 +70,6 @@ namespace mamba
 
         void create_whatprovides();
 
-        std::optional<std::string> dep2str(Id dep_id) const;
-
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,

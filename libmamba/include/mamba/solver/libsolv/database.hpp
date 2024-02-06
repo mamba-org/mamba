@@ -55,7 +55,7 @@ namespace mamba::solver::libsolv
 
         using logger_type = std::function<void(LogLevel, std::string_view)>;
 
-        Database(specs::ChannelResolveParams channel_params);
+        explicit Database(specs::ChannelResolveParams channel_params);
         Database(const Database&) = delete;
         Database(Database&&);
 

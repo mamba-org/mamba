@@ -60,7 +60,13 @@ namespace mamba
         using logger_type = std::function<void(solver::libsolv::LogLevel, std::string_view)>;
 
         MPool(specs::ChannelResolveParams channel_params);
+        MPool(const MPool&) = delete;
+        MPool(MPool&&);
+
         ~MPool();
+
+        auto operator=(const MPool&) -> MPool& = delete;
+        auto operator=(MPool&&) -> MPool&;
 
         [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
@@ -119,7 +125,12 @@ namespace mamba
         template <typename Func>
         void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
 
-        /** A wrapper struct to fine-grain controll who can access the raw repr of the Pool. */
+        /**
+         * An access control wrapper.
+         *
+         * This struct is to control who can access the underlying private representation
+         * of the ObjPool without giving them full friend access.
+         */
         class Impl
         {
             [[nodiscard]] static auto get(MPool& pool) -> solv::ObjPool&;
@@ -133,19 +144,7 @@ namespace mamba
 
         struct MPoolData;
 
-        /**
-         * Make MPool behave like a shared_ptr (with move and copy).
-         *
-         * The pool is passed to the ``MSolver`` for its lifetime but the pool can legitimely
-         * be reused with different solvers (in fact it is in ``conda-forge``'s ``regro-bot``
-         * and ``boa``).
-         * An alternative considered was to make ``MPool`` a move-only type, moving it in and out
-         * of ``MSolver`` (effectively borrowing).
-         * It was decided to make ``MPool`` share ressources for the following reasons.
-         *    - Rvalue semantics would be unexpected in Python (and breaking ``conda-forge``);
-         *    - Facilitate (potential) future investigation of parallel solves.
-         */
-        std::shared_ptr<MPoolData> m_data;
+        std::unique_ptr<MPoolData> m_data;
 
         friend class Impl;
         auto pool() -> solv::ObjPool&;

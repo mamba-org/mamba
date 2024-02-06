@@ -56,6 +56,10 @@ namespace mamba
 
     MPool::~MPool() = default;
 
+    MPool::MPool(MPool&&) = default;
+
+    auto MPool::operator=(MPool&&) -> MPool& = default;
+
     auto MPool::pool() -> solv::ObjPool&
     {
         return m_data->pool;

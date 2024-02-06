@@ -385,7 +385,6 @@ bind_submodule_impl(pybind11::module_ m)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))
-        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"))
         .def(
             "add_repo_from_repodata_json",
             &MPool::add_repo_from_repodata_json,

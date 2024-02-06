@@ -36,8 +36,8 @@ namespace mamba
 {
     struct MPool::MPoolData
     {
-        MPoolData(specs::ChannelResolveParams channel_params)
-            : channel_params(std::move(channel_params))
+        MPoolData(specs::ChannelResolveParams p_channel_params)
+            : channel_params(std::move(p_channel_params))
         {
         }
 
@@ -152,15 +152,6 @@ namespace mamba
             .value_or(0);
     }
 
-    std::optional<specs::PackageInfo> MPool::id2pkginfo(Id solv_id) const
-    {
-        if (const auto solv = pool().get_solvable(solv_id))
-        {
-            return { solver::libsolv::make_package_info(pool(), solv.value()) };
-        }
-        return std::nullopt;
-    }
-
     std::optional<std::string> MPool::dep2str(Id dep_id) const
     {
         if (!dep_id)
@@ -205,24 +196,24 @@ namespace mamba
             }
             return solver::libsolv::libsolv_read_json(repo, path, use_only_tar_bz2)
                 .transform(
-                    [&url](solv::ObjRepoView repo)
+                    [&url](solv::ObjRepoView p_repo)
                     {
-                        solver::libsolv::set_solvables_url(repo, std::string(url));
-                        return repo;
+                        solver::libsolv::set_solvables_url(p_repo, std::string(url));
+                        return p_repo;
                     }
                 );
         };
 
         return make_repo()
             .transform(
-                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
+                [&](solv::ObjRepoView p_repo) -> solver::libsolv::RepoInfo
                 {
                     if (add == solver::libsolv::PipAsPythonDependency::Yes)
                     {
-                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                        solver::libsolv::add_pip_as_python_dependency(pool(), p_repo);
                     }
-                    repo.internalize();
-                    return solver::libsolv::RepoInfo{ repo.raw() };
+                    p_repo.internalize();
+                    return solver::libsolv::RepoInfo{ p_repo.raw() };
                 }
             )
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
@@ -238,16 +229,16 @@ namespace mamba
 
         return solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add))
             .transform(
-                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
+                [&](solv::ObjRepoView p_repo) -> solver::libsolv::RepoInfo
                 {
-                    repo.set_url(expected.url);
-                    solver::libsolv::set_solvables_url(repo, expected.url);
+                    p_repo.set_url(expected.url);
+                    solver::libsolv::set_solvables_url(p_repo, expected.url);
                     if (add == solver::libsolv::PipAsPythonDependency::Yes)
                     {
-                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                        solver::libsolv::add_pip_as_python_dependency(pool(), p_repo);
                     }
-                    repo.internalize();
-                    return solver::libsolv::RepoInfo(repo.raw());
+                    p_repo.internalize();
+                    return solver::libsolv::RepoInfo(p_repo.raw());
                 }
             )
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
@@ -295,7 +286,8 @@ namespace mamba
     {
         assert(repo.m_ptr != nullptr);
         return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_ptr), path, metadata)
-            .transform([](solv::ObjRepoView repo) { return solver::libsolv::RepoInfo(repo.raw()); });
+            .transform([](solv::ObjRepoView solv_repo)
+                       { return solver::libsolv::RepoInfo(solv_repo.raw()); });
     }
 
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
@@ -332,8 +324,9 @@ namespace mamba
     auto MPool::package_id_to_package_info(PackageId id) const -> specs::PackageInfo
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
-        // Safe because the ID is coming from libsolv
-        return id2pkginfo(static_cast<solv::SolvableId>(id)).value();
+        const auto solv = pool().get_solvable(static_cast<solv::SolvableId>(id));
+        assert(solv.has_value());  // Safe because the ID is coming from libsolv
+        return { solver::libsolv::make_package_info(pool(), solv.value()) };
     }
 
     auto MPool::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
@@ -391,12 +384,16 @@ namespace mamba
                 {
                     case (solver::libsolv::LogLevel::Fatal):
                         logger->critical(msg);
+                        break;
                     case (solver::libsolv::LogLevel::Error):
                         logger->error(msg);
+                        break;
                     case (solver::libsolv::LogLevel::Warning):
                         logger->warn(msg);
+                        break;
                     case (solver::libsolv::LogLevel::Debug):
                         logger->debug(msg);
+                        break;
                 }
             }
         );

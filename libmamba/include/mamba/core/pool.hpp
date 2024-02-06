@@ -70,9 +70,6 @@ namespace mamba
 
         void create_whatprovides();
 
-        std::vector<Id> select_solvables(Id id, bool sorted = false) const;
-        Id matchspec2id(const specs::MatchSpec& ms);
-
         std::optional<std::string> dep2str(Id dep_id) const;
 
         auto add_repo_from_repodata_json(

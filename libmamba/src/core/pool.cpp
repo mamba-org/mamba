@@ -125,33 +125,6 @@ namespace mamba
         pool().create_whatprovides();
     }
 
-    std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
-    {
-        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });
-
-        if (sorted)
-        {
-            std::sort(
-                solvables.begin(),
-                solvables.end(),
-                [pool_ptr = pool().raw()](Id a, Id b)
-                {
-                    Solvable* sa = pool_id2solvable(pool_ptr, a);
-                    Solvable* sb = pool_id2solvable(pool_ptr, b);
-                    return (pool_evrcmp(pool_ptr, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-                }
-            );
-        }
-        return solvables.as<std::vector>();
-    }
-
-    auto MPool::matchspec2id(const specs::MatchSpec& ms) -> ::Id
-    {
-        return solver::libsolv::pool_add_matchspec(pool(), ms, channel_params())
-            .or_else([](mamba_error&& error) { throw std::move(error); })
-            .value_or(0);
-    }
-
     std::optional<std::string> MPool::dep2str(Id dep_id) const
     {
         if (!dep_id)
@@ -339,12 +312,26 @@ namespace mamba
         return out;
     }
 
+    namespace
+    {
+        auto matchspec2id(
+            solv::ObjPool& pool,
+            const specs::ChannelResolveParams& channel_params,
+            const specs::MatchSpec& ms
+        ) -> solv::DependencyId
+        {
+            return solver::libsolv::pool_add_matchspec(pool, ms, channel_params)
+                .or_else([](mamba_error&& error) { throw std::move(error); })
+                .value_or(0);
+        }
+    }
+
     auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(ms);
+        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(
@@ -361,7 +348,7 @@ namespace mamba
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(ms);
+        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(

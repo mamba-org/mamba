@@ -71,7 +71,6 @@ namespace mamba
                     throw std::runtime_error(exp_load.error().what());
                 }
             }
-            pool.create_whatprovides();
             return pool;
         }
     }

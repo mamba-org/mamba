@@ -68,8 +68,6 @@ namespace mamba
 
         void set_logger(logger_type callback);
 
-        void create_whatprovides();
-
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,

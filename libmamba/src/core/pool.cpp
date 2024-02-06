@@ -120,11 +120,6 @@ namespace mamba
         );
     }
 
-    void MPool::create_whatprovides()
-    {
-        pool().create_whatprovides();
-    }
-
     auto MPool::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,

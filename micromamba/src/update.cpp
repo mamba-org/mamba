@@ -83,7 +83,6 @@ update_self(Configuration& config, const std::optional<std::string>& version)
         throw exp_loaded.error();
     }
 
-    pool.create_whatprovides();
     auto matchspec = specs::MatchSpec::parse(
         version ? fmt::format("micromamba={}", version.value())
                 : fmt::format("micromamba>{}", umamba::version())

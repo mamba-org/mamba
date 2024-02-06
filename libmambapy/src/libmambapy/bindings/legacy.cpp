@@ -382,7 +382,6 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MPool>(m, "Pool")
         .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
         .def("set_logger", &MPool::set_logger, py::call_guard<py::gil_scoped_acquire>())
-        .def("create_whatprovides", &MPool::create_whatprovides)
         .def(
             "add_repo_from_repodata_json",
             &MPool::add_repo_from_repodata_json,

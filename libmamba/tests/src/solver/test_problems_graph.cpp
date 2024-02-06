@@ -135,7 +135,7 @@ TEST_CASE("Test empty specs")
 
 namespace
 {
-    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context)
+    auto create_basic_conflict(Context&, ChannelContext& channel_context)
     {
         return std::pair(
             create_pkgs_pool(
@@ -156,7 +156,7 @@ namespace
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub(Context& ctx, ChannelContext& channel_context)
+    auto create_pubgrub(Context&, ChannelContext& channel_context)
     {
         return std::pair(
             create_pkgs_pool(
@@ -191,7 +191,7 @@ namespace
         );
     }
 
-    auto create_pubgrub_hard_(Context& ctx, ChannelContext& channel_context, bool missing_package)
+    auto create_pubgrub_hard_(Context&, ChannelContext& channel_context, bool missing_package)
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),

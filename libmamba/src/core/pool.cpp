@@ -56,19 +56,29 @@ namespace mamba
 
     MPool::~MPool() = default;
 
+    auto MPool::pool() -> solv::ObjPool&
+    {
+        return m_data->pool;
+    }
+
+    auto MPool::pool() const -> const solv::ObjPool&
+    {
+        return m_data->pool;
+    }
+
+    auto MPool::Impl::get(MPool& pool) -> solv::ObjPool&
+    {
+        return pool.pool();
+    }
+
+    auto MPool::Impl::get(const MPool& pool) -> const solv::ObjPool&
+    {
+        return pool.pool();
+    }
+
     auto MPool::channel_params() const -> const specs::ChannelResolveParams&
     {
         return m_data->channel_params;
-    }
-
-    solv::ObjPool& MPool::pool()
-    {
-        return m_data->pool;
-    }
-
-    const solv::ObjPool& MPool::pool() const
-    {
-        return m_data->pool;
     }
 
     namespace

@@ -41,37 +41,39 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
-    auto UnSolvable::problems(MPool& pool) const -> std::vector<std::string>
+    auto UnSolvable::problems(MPool& mpool) const -> std::vector<std::string>
     {
+        auto& pool = MPool::Impl::get(mpool);
         std::vector<std::string> problems;
-        solver().for_each_problem_id(
-            [&](solv::ProblemId pb)
-            { problems.emplace_back(solver().problem_to_string(pool.pool(), pb)); }
+        solver().for_each_problem_id([&](solv::ProblemId pb)
+                                     { problems.emplace_back(solver().problem_to_string(pool, pb)); }
         );
         return problems;
     }
 
-    auto UnSolvable::problems_to_str(MPool& pool) const -> std::string
+    auto UnSolvable::problems_to_str(MPool& mpool) const -> std::string
     {
+        auto& pool = MPool::Impl::get(mpool);
         std::stringstream problems;
         problems << "Encountered problems while solving:\n";
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
-            { problems << "  - " << solver().problem_to_string(pool.pool(), pb) << "\n"; }
+            { problems << "  - " << solver().problem_to_string(pool, pb) << "\n"; }
         );
         return problems.str();
     }
 
-    auto UnSolvable::all_problems_to_str(MPool& pool) const -> std::string
+    auto UnSolvable::all_problems_to_str(MPool& mpool) const -> std::string
     {
+        auto& pool = MPool::Impl::get(mpool);
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
             {
                 for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    auto const info = solver().get_rule_info(pool.pool(), rule);
-                    problems << "  - " << solver().rule_info_to_string(pool.pool(), info) << "\n";
+                    auto const info = solver().get_rule_info(pool, rule);
+                    problems << "  - " << solver().rule_info_to_string(pool, info) << "\n";
                 }
             }
         );
@@ -152,7 +154,6 @@ namespace mamba::solver::libsolv
                 {
                     for (solv::RuleId const rule : solver.problem_rules(pb))
                     {
-                        // TODO remove Mpool usage here and then use Impl
                         auto info = solver.get_rule_info(pool, rule);
                         res.push_back(make_solver_problem(
                             /* solver= */ solver,
@@ -469,7 +470,7 @@ namespace mamba::solver::libsolv
     auto UnSolvable::problems_graph(const MPool& pool) const -> ProblemsGraph
     {
         assert(m_solver != nullptr);
-        return ProblemsGraphCreator(pool.pool(), *m_solver).problem_graph();
+        return ProblemsGraphCreator(MPool::Impl::get(pool), *m_solver).problem_graph();
     }
 
     auto UnSolvable::explain_problems_to(MPool& pool, std::ostream& out, const Palette& palette) const

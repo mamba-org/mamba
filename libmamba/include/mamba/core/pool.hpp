@@ -41,6 +41,12 @@ namespace mamba
         class MatchSpec;
     }
 
+    namespace solver::libsolv
+    {
+        class Solver;
+        class UnSolvable;
+    }
+
     /**
      * Pool of solvable involved in resolving en environment.
      *
@@ -69,10 +75,6 @@ namespace mamba
 
         std::optional<specs::PackageInfo> id2pkginfo(Id solv_id) const;
         std::optional<std::string> dep2str(Id dep_id) const;
-
-        // TODO: (TMP) This is not meant to be public but is needed for a transition period
-        solv::ObjPool& pool();
-        const solv::ObjPool& pool() const;
 
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
@@ -127,10 +129,19 @@ namespace mamba
         template <typename Func>
         void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
 
+        /** A wrapper struct to fine-grain controll who can access the raw repr of the Pool. */
+        class Impl
+        {
+            [[nodiscard]] static auto get(MPool& pool) -> solv::ObjPool&;
+            [[nodiscard]] static auto get(const MPool& pool) -> const solv::ObjPool&;
+
+            friend class solver::libsolv::Solver;
+            friend class solver::libsolv::UnSolvable;
+        };
+
     private:
 
         struct MPoolData;
-
 
         /**
          * Make MPool behave like a shared_ptr (with move and copy).
@@ -145,6 +156,10 @@ namespace mamba
          *    - Facilitate (potential) future investigation of parallel solves.
          */
         std::shared_ptr<MPoolData> m_data;
+
+        friend class Impl;
+        auto pool() -> solv::ObjPool&;
+        [[nodiscard]] auto pool() const -> const solv::ObjPool&;
 
         auto add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo;
         void add_repo_from_packages_impl_loop(

@@ -17,13 +17,10 @@ extern "C"
     using Repo = struct s_Repo;
 }
 
-namespace mamba
-{
-    class Database;
-}
-
 namespace mamba::solver::libsolv
 {
+    class Database;
+
     /**
      * A libsolv repository descriptor.
      *
@@ -61,7 +58,7 @@ namespace mamba::solver::libsolv
 
         explicit RepoInfo(::Repo* repo);
 
-        friend class ::mamba::Database;
+        friend class Database;
         friend auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool;
     };
 

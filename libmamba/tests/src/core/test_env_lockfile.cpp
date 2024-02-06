@@ -10,7 +10,9 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/pool.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 
 #include "mambatests.hpp"
 
@@ -126,8 +128,8 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
-            Database pool{ channel_context.params() };
-            add_spdlog_logger_to_pool(pool);
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_pool(db);
             mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 
             ctx.platform = "linux-64";
@@ -138,7 +140,7 @@ namespace mamba
                 std::vector<detail::other_pkg_mgr_spec> other_specs;
                 auto transaction = create_explicit_transaction_from_lockfile(
                     ctx,
-                    pool,
+                    db,
                     lockfile_path,
                     categories,
                     pkg_cache,

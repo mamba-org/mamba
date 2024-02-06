@@ -11,15 +11,18 @@
 
 namespace mamba
 {
+    namespace solver::libsolv
+    {
+        class Database;
+    }
     class Context;
     class ChannelContext;
-    class Database;
     class MultiPackageCache;
 
     auto load_channels(  //
         Context& ctx,
         ChannelContext& channel_context,
-        Database& pool,
+        solver::libsolv::Database& pool,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>;
 }

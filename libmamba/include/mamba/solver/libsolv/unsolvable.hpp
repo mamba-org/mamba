@@ -16,7 +16,6 @@
 
 namespace mamba
 {
-    class Database;
     class Palette;
 
     namespace solv
@@ -28,6 +27,7 @@ namespace mamba
 namespace mamba::solver::libsolv
 {
     class Solver;
+    class Database;
 
     class UnSolvable
     {

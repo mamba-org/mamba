@@ -19,6 +19,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
@@ -97,26 +98,26 @@ namespace
     }
 
     /**
-     * Create a solver and a pool of a conflict.
+     * Create a solver and a database of a conflict.
      *
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_pkgs_pool(ChannelContext& channel_context, const PkgRange& packages)
+    auto create_pkgs_database(ChannelContext& channel_context, const PkgRange& packages)
     {
-        Database pool{ channel_context.params() };
-        pool.add_repo_from_packages(packages);
-        return pool;
+        solver::libsolv::Database db{ channel_context.params() };
+        db.add_repo_from_packages(packages);
+        return db;
     }
 }
 
-TEST_CASE("Test create_pool utility")
+TEST_CASE("Test create_pkgs_database utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto pool = create_pkgs_pool(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
+    auto db = create_pkgs_database(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
-    const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+    const auto outcome = solver::libsolv::Solver().solve(db, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
@@ -124,12 +125,12 @@ TEST_CASE("Test empty specs")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto pool = create_pkgs_pool(
+    auto db = create_pkgs_database(
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
     );
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
-    const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+    const auto outcome = solver::libsolv::Solver().solve(db, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
@@ -138,7 +139,7 @@ namespace
     auto create_basic_conflict(Context&, ChannelContext& channel_context)
     {
         return std::pair(
-            create_pkgs_pool(
+            create_pkgs_database(
                 channel_context,
                 std::array{
                     mkpkg("A", "0.1.0"),
@@ -159,7 +160,7 @@ namespace
     auto create_pubgrub(Context&, ChannelContext& channel_context)
     {
         return std::pair(
-            create_pkgs_pool(
+            create_pkgs_database(
                 channel_context,
                 std::array{
                     mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
@@ -241,7 +242,7 @@ namespace
             packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
         return std::pair(
-            create_pkgs_pool(channel_context, packages),
+            create_pkgs_database(channel_context, packages),
             Request{
                 {},
                 {
@@ -287,7 +288,7 @@ namespace
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        Database& pool,
+        solver::libsolv::Database& db,
         MultiPackageCache& cache,
         std::vector<std::string>&& channels
     )
@@ -317,14 +318,14 @@ namespace
 
         for (auto& sub_dir : sub_dirs)
         {
-            auto repo = load_subdir_in_pool(ctx, pool, sub_dir);
+            auto repo = load_subdir_in_pool(ctx, db, sub_dir);
         }
     }
 
     /**
-     * Create a solver and a pool of a conflict from conda-forge packages.
+     * Create a solver and a database of a conflict from conda-forge packages.
      */
-    auto create_conda_forge_pool(
+    auto create_conda_forge_database(
         Context& ctx,
         ChannelContext& channel_context,
         const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
@@ -338,9 +339,9 @@ namespace
 
         auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
         prefix_data.add_packages(virtual_packages);
-        auto pool = Database{ channel_context.params() };
+        auto db = solver::libsolv::Database{ channel_context.params() };
 
-        load_installed_packages_in_pool(ctx, pool, prefix_data);
+        load_installed_packages_in_pool(ctx, db, prefix_data);
 
         auto cache = MultiPackageCache({ tmp_dir.path() / "cache" }, ctx.validation_params);
         create_cache_dir(cache.first_writable_path());
@@ -350,13 +351,13 @@ namespace
         load_channels(
             ctx,
             channel_context,
-            pool,
+            db,
             cache,
             make_platform_channels(std::move(channels), platforms)
         );
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        return pool;
+        return db;
     }
 }
 
@@ -364,9 +365,9 @@ TEST_CASE("Test create_conda_forge utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto pool = create_conda_forge_pool(ctx, channel_context);
+    auto db = create_conda_forge_database(ctx, channel_context);
     auto request = Request{ {}, { Request::Install{ "xtensor>=0.7"_ms } } };
-    const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+    const auto outcome = solver::libsolv::Solver().solve(db, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
@@ -375,7 +376,7 @@ namespace
     auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(ctx, channel_context),
+            create_conda_forge_database(ctx, channel_context),
             Request{
                 {},
                 {
@@ -389,7 +390,7 @@ namespace
     auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(
+            create_conda_forge_database(
                 ctx,
                 channel_context,
                 { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
@@ -407,7 +408,7 @@ namespace
     auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(
+            create_conda_forge_database(
                 ctx,
                 channel_context,
                 { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
@@ -428,7 +429,7 @@ namespace
     auto create_jpeg9b(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(ctx, channel_context),
+            create_conda_forge_database(ctx, channel_context),
             Request{
                 {},
                 {
@@ -442,7 +443,7 @@ namespace
     auto create_r_base(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(ctx, channel_context),
+            create_conda_forge_database(ctx, channel_context),
             Request{
                 {},
                 {
@@ -459,7 +460,7 @@ namespace
     auto create_scip(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(ctx, channel_context),
+            create_conda_forge_database(ctx, channel_context),
             Request{
                 {},
                 {
@@ -473,7 +474,7 @@ namespace
     auto create_double_python(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(ctx, channel_context),
+            create_conda_forge_database(ctx, channel_context),
             Request{
                 {},
                 {
@@ -487,7 +488,7 @@ namespace
     auto create_numba(Context& ctx, ChannelContext& channel_context)
     {
         return std::pair(
-            create_conda_forge_pool(ctx, channel_context),
+            create_conda_forge_database(ctx, channel_context),
             Request{
                 {},
                 {
@@ -583,11 +584,11 @@ TEST_CASE("Create problem graph")
         // Somehow the capture does not work directly on ``name``
         std::string_view name_copy = name;
         CAPTURE(name_copy);
-        auto [pool, request] = factory(ctx, channel_context);
-        auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+        auto [db, request] = factory(ctx, channel_context);
+        auto outcome = solver::libsolv::Solver().solve(db, request).value();
         // REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
         auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
-        const auto pbs_init = unsolvable.problems_graph(pool);
+        const auto pbs_init = unsolvable.problems_graph(db);
         const auto& graph_init = pbs_init.graph();
 
         REQUIRE_GE(graph_init.number_of_nodes(), 1);

@@ -7,23 +7,33 @@
 #ifndef MAMBA_API_INSTALL_HPP
 #define MAMBA_API_INSTALL_HPP
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/request.hpp"
-#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
     class Context;
     class ChannelContext;
     class Configuration;
+    class PrefixData;
+    class MultiPackageCache;
+
+    namespace specs
+    {
+        class PackageInfo;
+    }
+
+    namespace solver::libsolv
+    {
+        class DataBase;
+    }
 
     void install(Configuration& config);
 

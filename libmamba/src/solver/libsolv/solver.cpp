@@ -6,9 +6,8 @@
 
 #include <solv/solver.h>
 
-#include "mamba/core/channel_context.hpp"
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/util/variant_cmp.hpp"
 #include "solv-cpp/solver.hpp"

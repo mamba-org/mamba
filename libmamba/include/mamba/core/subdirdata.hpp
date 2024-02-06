@@ -24,7 +24,7 @@ namespace mamba
     {
         class Channel;
     }
-    class Database;
+
     class Context;
     class ChannelContext;
     class DownloadMonitor;

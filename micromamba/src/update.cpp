@@ -13,6 +13,7 @@
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/pool.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
@@ -28,10 +29,10 @@ using namespace mamba;  // NOLINT(build/namespaces)
 
 namespace
 {
-    auto pool_has_package(Database& pool, specs::MatchSpec spec) -> bool
+    auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
     {
         bool found = false;
-        pool.for_each_package_matching(
+        database.for_each_package_matching(
             spec,
             [&](const auto&)
             {
@@ -42,11 +43,11 @@ namespace
         return found;
     };
 
-    auto pool_latest_package(Database& pool, specs::MatchSpec spec)
+    auto database_latest_package(solver::libsolv::Database& db, specs::MatchSpec spec)
         -> std::optional<specs::PackageInfo>
     {
         auto out = std::optional<specs::PackageInfo>();
-        pool.for_each_package_matching(
+        db.for_each_package_matching(
             spec,
             [&](auto pkg)
             {
@@ -73,12 +74,12 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-    Database pool{ channel_context.params() };
-    add_spdlog_logger_to_pool(pool);
+    solver::libsolv::Database db{ channel_context.params() };
+    add_spdlog_logger_to_pool(db);
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(ctx, channel_context, pool, package_caches);
+    auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
     if (!exp_loaded)
     {
         throw exp_loaded.error();
@@ -89,11 +90,11 @@ update_self(Configuration& config, const std::optional<std::string>& version)
                 : fmt::format("micromamba>{}", umamba::version())
     );
 
-    auto latest_micromamba = pool_latest_package(pool, matchspec);
+    auto latest_micromamba = database_latest_package(db, matchspec);
 
     if (!latest_micromamba.has_value())
     {
-        if (pool_has_package(pool, specs::MatchSpec::parse("micromamba")))
+        if (database_has_package(db, specs::MatchSpec::parse("micromamba")))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
@@ -121,7 +122,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    MTransaction t(ctx, pool, { latest_micromamba.value() }, package_caches);
+    MTransaction t(ctx, db, { latest_micromamba.value() }, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {

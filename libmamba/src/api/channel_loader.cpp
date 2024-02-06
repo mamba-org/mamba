@@ -11,6 +11,7 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -21,7 +22,7 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            Database& pool,
+            solver::libsolv::Database& pool,
             const fs::u8path& pkgs_dir
         ) -> solver::libsolv::RepoInfo
         {
@@ -112,7 +113,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            Database& pool,
+            solver::libsolv::Database& pool,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -279,7 +280,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        Database& pool,
+        solver::libsolv::Database& pool,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>
     {

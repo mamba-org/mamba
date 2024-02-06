@@ -14,6 +14,8 @@
 
 namespace mamba::solver::libsolv
 {
+    class Database;
+
     class Solver
     {
     public:

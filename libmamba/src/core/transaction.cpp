@@ -24,9 +24,9 @@
 #include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
@@ -47,10 +47,10 @@ namespace mamba
         }
 
         // TODO duplicated function, consider moving it to Pool
-        auto pool_has_package(Database& pool, const specs::MatchSpec& spec) -> bool
+        auto database_has_package(solver::libsolv::Database& db, const specs::MatchSpec& spec) -> bool
         {
             bool found = false;
-            pool.for_each_package_matching(
+            db.for_each_package_matching(
                 spec,
                 [&](const auto&)
                 {
@@ -76,13 +76,14 @@ namespace mamba
             return out;
         }
 
-        auto installed_python(const Database& pool) -> std::optional<specs::PackageInfo>
+        auto installed_python(const solver::libsolv::Database& db)
+            -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
-            if (auto repo = pool.installed_repo())
+            if (auto repo = db.installed_repo())
             {
-                pool.for_each_package_in_repo(
+                db.for_each_package_in_repo(
                     *repo,
                     [&](specs::PackageInfo&& pkg)
                     {
@@ -98,7 +99,8 @@ namespace mamba
             return out;
         }
 
-        auto find_python_version(const solver::Solution& solution, const Database& pool)
+        auto
+        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& db)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -108,7 +110,7 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string installed_py_ver = {};
-            if (auto pkg = installed_python(pool))
+            if (auto pkg = installed_python(db))
             {
                 installed_py_ver = pkg->version;
                 LOG_INFO << "Found python in installed packages " << installed_py_ver;
@@ -132,7 +134,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        Database& pool,
+        solver::libsolv::Database& db,
         std::vector<specs::PackageInfo> pkgs_to_remove,
         std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
@@ -143,7 +145,7 @@ namespace mamba
         for (const auto& pkg : pkgs_to_remove)
         {
             auto spec = explicit_spec(pkg);
-            if (!pool_has_package(pool, spec))
+            if (!database_has_package(db, spec))
             {
                 not_found << "\n - " << spec.str();
             }
@@ -203,14 +205,14 @@ namespace mamba
             ctx,
             ctx.prefix_params.target_prefix,
             ctx.prefix_params.relocate_prefix,
-            find_python_version(m_solution, pool),
+            find_python_version(m_solution, db),
             specs_to_install
         );
     }
 
     MTransaction::MTransaction(
         const Context& ctx,
-        Database& pool,
+        solver::libsolv::Database& db,
         const solver::Request& request,
         solver::Solution solution,
         MultiPackageCache& caches
@@ -257,7 +259,7 @@ namespace mamba
             ctx,
             ctx.prefix_params.target_prefix,
             ctx.prefix_params.relocate_prefix,
-            find_python_version(m_solution, pool),
+            find_python_version(m_solution, db),
             std::move(requested_specs)
         );
 
@@ -273,7 +275,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        Database& pool,
+        solver::libsolv::Database& db,
         std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
@@ -307,7 +309,7 @@ namespace mamba
             ctx,
             ctx.prefix_params.target_prefix,
             ctx.prefix_params.relocate_prefix,
-            find_python_version(m_solution, pool),
+            find_python_version(m_solution, db),
             std::move(specs_to_install)
         );
     }
@@ -1112,7 +1114,7 @@ namespace mamba
     }
 
     MTransaction
-    create_explicit_transaction_from_urls(const Context& ctx, Database& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
+    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& db, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
         std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
@@ -1122,12 +1124,12 @@ namespace mamba
             std::back_insert_iterator(specs_to_install),
             [&](const auto& u) { return specs::PackageInfo::from_url(u); }
         );
-        return MTransaction(ctx, pool, {}, specs_to_install, package_caches);
+        return MTransaction(ctx, db, {}, specs_to_install, package_caches);
     }
 
     MTransaction create_explicit_transaction_from_lockfile(
         const Context& ctx,
-        Database& pool,
+        solver::libsolv::Database& db,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
@@ -1191,7 +1193,7 @@ namespace mamba
             );
         }
 
-        return MTransaction{ ctx, pool, std::move(conda_packages), package_caches };
+        return MTransaction{ ctx, db, std::move(conda_packages), package_caches };
     }
 
 }  // namespace mamba

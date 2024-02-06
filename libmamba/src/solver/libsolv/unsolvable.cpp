@@ -13,7 +13,7 @@
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/palette.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"

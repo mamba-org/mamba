@@ -8,7 +8,7 @@
 #include <pybind11/pybind11.h>
 
 #include "mamba/core/palette.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
@@ -125,8 +125,8 @@ namespace mambapy
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& pool, const solver::Request& request)
-                { return self.solve(pool, request); }
+                [](Solver& self, Database& db, const solver::Request& request)
+                { return self.solve(db, request); }
             )
             .def("add_jobs", solver_job_v2_migrator)
             .def("add_global_job", solver_job_v2_migrator)

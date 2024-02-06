@@ -4,9 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <exception>
-#include <iostream>
-#include <limits>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -22,338 +19,18 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
-#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
-#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
-#include "solv-cpp/pool.hpp"
-#include "solv-cpp/queue.hpp"
 
 #include "solver/libsolv/helpers.hpp"
 
 namespace mamba
 {
-    struct Database::DatabaseImpl
+    void add_spdlog_logger_to_pool(solver::libsolv::Database& db)
     {
-        DatabaseImpl(specs::ChannelResolveParams p_channel_params)
-            : channel_params(std::move(p_channel_params))
-        {
-        }
-
-        specs::ChannelResolveParams channel_params;
-        solv::ObjPool pool = {};
-    };
-
-    Database::Database(specs::ChannelResolveParams channel_params)
-        : m_data(std::make_unique<DatabaseImpl>(std::move(channel_params)))
-    {
-        pool().set_disttype(DISTTYPE_CONDA);
-        // Ensure that debug logging never goes to stdout as to not interfere json output
-        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        ::pool_setdebuglevel(pool().raw(), -1);  // Off
-    }
-
-    Database::~Database() = default;
-
-    Database::Database(Database&&) = default;
-
-    auto Database::operator=(Database&&) -> Database& = default;
-
-    auto Database::pool() -> solv::ObjPool&
-    {
-        return m_data->pool;
-    }
-
-    auto Database::pool() const -> const solv::ObjPool&
-    {
-        return m_data->pool;
-    }
-
-    auto Database::Impl::get(Database& pool) -> solv::ObjPool&
-    {
-        return pool.pool();
-    }
-
-    auto Database::Impl::get(const Database& pool) -> const solv::ObjPool&
-    {
-        return pool.pool();
-    }
-
-    auto Database::channel_params() const -> const specs::ChannelResolveParams&
-    {
-        return m_data->channel_params;
-    }
-
-    namespace
-    {
-        auto libsolv_to_log_level(int type) -> solver::libsolv::LogLevel
-        {
-            if (type & SOLV_FATAL)
-            {
-                return solver::libsolv::LogLevel::Fatal;
-            }
-            if (type & SOLV_ERROR)
-            {
-                return solver::libsolv::LogLevel::Error;
-            }
-            if (type & SOLV_WARN)
-            {
-                return solver::libsolv::LogLevel::Warning;
-            }
-            return solver::libsolv::LogLevel::Debug;
-        }
-    }
-
-    void Database::set_logger(logger_type callback)
-    {
-        ::pool_setdebuglevel(pool().raw(), std::numeric_limits<int>::max());  // All
-        pool().set_debug_callback(
-            [logger = std::move(callback)](::Pool*, int type, std::string_view msg) noexcept
-            {
-                try
-                {
-                    logger(libsolv_to_log_level(type), msg);
-                }
-                catch (std::exception const& e)
-                {
-                    std::cerr << "Developer error: error in libsolv logging function: \n"
-                              << e.what();
-                }
-            }
-        );
-    }
-
-    auto Database::add_repo_from_repodata_json(
-        const fs::u8path& path,
-        std::string_view url,
-        solver::libsolv::PipAsPythonDependency add,
-        solver::libsolv::UseOnlyTarBz2 only_tar,
-        solver::libsolv::RepodataParser parser
-    ) -> expected_t<solver::libsolv::RepoInfo>
-    {
-        const auto use_only_tar_bz2 = static_cast<bool>(only_tar);
-
-        if (!fs::exists(path))
-        {
-            return make_unexpected(
-                fmt::format(R"(File "{}" does not exist)", path),
-                mamba_error_code::repodata_not_loaded
-            );
-        }
-        auto repo = pool().add_repo(url).second;
-        repo.set_url(std::string(url));
-
-        auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
-        {
-            if (parser == solver::libsolv::RepodataParser::Mamba)
-            {
-                return solver::libsolv::mamba_read_json(
-                    pool(),
-                    repo,
-                    path,
-                    std::string(url),
-                    use_only_tar_bz2
-                );
-            }
-            return solver::libsolv::libsolv_read_json(repo, path, use_only_tar_bz2)
-                .transform(
-                    [&url](solv::ObjRepoView p_repo)
-                    {
-                        solver::libsolv::set_solvables_url(p_repo, std::string(url));
-                        return p_repo;
-                    }
-                );
-        };
-
-        return make_repo()
-            .transform(
-                [&](solv::ObjRepoView p_repo) -> solver::libsolv::RepoInfo
-                {
-                    if (add == solver::libsolv::PipAsPythonDependency::Yes)
-                    {
-                        solver::libsolv::add_pip_as_python_dependency(pool(), p_repo);
-                    }
-                    p_repo.internalize();
-                    return solver::libsolv::RepoInfo{ p_repo.raw() };
-                }
-            )
-            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
-    }
-
-    auto Database::add_repo_from_native_serialization(
-        const fs::u8path& path,
-        const solver::libsolv::RepodataOrigin& expected,
-        solver::libsolv::PipAsPythonDependency add
-    ) -> expected_t<solver::libsolv::RepoInfo>
-    {
-        auto repo = pool().add_repo(expected.url).second;
-
-        return solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add))
-            .transform(
-                [&](solv::ObjRepoView p_repo) -> solver::libsolv::RepoInfo
-                {
-                    p_repo.set_url(expected.url);
-                    solver::libsolv::set_solvables_url(p_repo, expected.url);
-                    if (add == solver::libsolv::PipAsPythonDependency::Yes)
-                    {
-                        solver::libsolv::add_pip_as_python_dependency(pool(), p_repo);
-                    }
-                    p_repo.internalize();
-                    return solver::libsolv::RepoInfo(p_repo.raw());
-                }
-            )
-            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
-    }
-
-    auto Database::add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo
-    {
-        if (name.empty())
-        {
-            return solver::libsolv::RepoInfo(
-                pool().add_repo(util::generate_random_alphanumeric_string(20)).second.raw()
-            );
-        }
-        return solver::libsolv::RepoInfo(pool().add_repo(name).second.raw());
-    }
-
-    void Database::add_repo_from_packages_impl_loop(
-        const solver::libsolv::RepoInfo& repo,
-        const specs::PackageInfo& pkg
-    )
-    {
-        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
-        auto [id, solv] = s_repo.add_solvable();
-        solver::libsolv::set_solvable(pool(), solv, pkg);
-    }
-
-    void Database::add_repo_from_packages_impl_post(
-        const solver::libsolv::RepoInfo& repo,
-        solver::libsolv::PipAsPythonDependency add
-    )
-    {
-        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
-        if (add == solver::libsolv::PipAsPythonDependency::Yes)
-        {
-            solver::libsolv::add_pip_as_python_dependency(pool(), s_repo);
-        }
-        s_repo.internalize();
-    }
-
-    auto Database::native_serialize_repo(
-        const solver::libsolv::RepoInfo& repo,
-        const fs::u8path& path,
-        const solver::libsolv::RepodataOrigin& metadata
-    ) -> expected_t<solver::libsolv::RepoInfo>
-    {
-        assert(repo.m_ptr != nullptr);
-        return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_ptr), path, metadata)
-            .transform([](solv::ObjRepoView solv_repo)
-                       { return solver::libsolv::RepoInfo(solv_repo.raw()); });
-    }
-
-    void Database::remove_repo(solver::libsolv::RepoInfo repo)
-    {
-        pool().remove_repo(repo.id(), /* reuse_ids= */ true);
-    }
-
-    auto Database::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>
-    {
-        if (auto repo = pool().installed_repo())
-        {
-            // Safe because the Repo does not modify its internals
-            return solver::libsolv::RepoInfo(const_cast<::Repo*>(repo->raw()));
-        }
-        return {};
-    }
-
-    void Database::set_installed_repo(solver::libsolv::RepoInfo repo)
-    {
-        pool().set_installed_repo(repo.id());
-    }
-
-    void
-    Database::set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities)
-    {
-        // NOTE: The Pool is not involved directly in this operations, but since it is needed
-        // in so many repo operations, this setter was put here to keep the Repo class
-        // immutable.
-        static_assert(std::is_same_v<decltype(repo.m_ptr->priority), solver::libsolv::Priorities::value_type>);
-        repo.m_ptr->priority = priorities.priority;
-        repo.m_ptr->subpriority = priorities.subpriority;
-    }
-
-    auto Database::package_id_to_package_info(PackageId id) const -> specs::PackageInfo
-    {
-        static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
-        const auto solv = pool().get_solvable(static_cast<solv::SolvableId>(id));
-        assert(solv.has_value());  // Safe because the ID is coming from libsolv
-        return { solver::libsolv::make_package_info(pool(), solv.value()) };
-    }
-
-    auto Database::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
-    {
-        // TODO maybe we could use a span here depending on libsolv layout
-        auto solv_repo = solv::ObjRepoViewConst(*repo.m_ptr);
-        auto out = std::vector<PackageId>();
-        out.reserve(solv_repo.solvable_count());
-        solv_repo.for_each_solvable_id([&](auto id) { out.push_back(static_cast<PackageId>(id)); });
-        return out;
-    }
-
-    namespace
-    {
-        auto matchspec2id(
-            solv::ObjPool& pool,
-            const specs::ChannelResolveParams& channel_params,
-            const specs::MatchSpec& ms
-        ) -> solv::DependencyId
-        {
-            return solver::libsolv::pool_add_matchspec(pool, ms, channel_params)
-                .or_else([](mamba_error&& error) { throw std::move(error); })
-                .value_or(0);
-        }
-    }
-
-    auto Database::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
-    {
-        static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
-
-        pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
-        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
-        auto out = std::vector<PackageId>(solvables.size());
-        std::transform(
-            solvables.begin(),
-            solvables.end(),
-            out.begin(),
-            [](auto id) { return static_cast<PackageId>(id); }
-        );
-        return out;
-    }
-
-    auto Database::packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
-    {
-        static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
-
-        pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
-        auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
-        auto out = std::vector<PackageId>(solvables.size());
-        std::transform(
-            solvables.begin(),
-            solvables.end(),
-            out.begin(),
-            [](auto id) { return static_cast<PackageId>(id); }
-        );
-        return out;
-    }
-
-    // TODO machinery functions in separate files
-
-    void add_spdlog_logger_to_pool(Database& pool)
-    {
-        pool.set_logger(
+        db.set_logger(
             [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
             {
                 switch (level)
@@ -375,7 +52,8 @@ namespace mamba
         );
     }
 
-    auto load_subdir_in_pool(const Context& ctx, Database& pool, const SubdirData& subdir)
+    auto
+    load_subdir_in_pool(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
@@ -396,7 +74,7 @@ namespace mamba
         {
             auto maybe_repo = subdir.valid_solv_cache().and_then(
                 [&](fs::u8path&& solv_file) {
-                    return pool.add_repo_from_native_serialization(
+                    return db.add_repo_from_native_serialization(
                         solv_file,
                         expected_cache_origin,
                         add_pip
@@ -414,7 +92,7 @@ namespace mamba
                 [&](fs::u8path&& repodata_json)
                 {
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
-                    return pool.add_repo_from_repodata_json(
+                    return db.add_repo_from_repodata_json(
                         repodata_json,
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
                         add_pip,
@@ -428,7 +106,7 @@ namespace mamba
                 {
                     if (!util::on_win)
                     {
-                        pool.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
+                        db.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
                             .or_else(
                                 [&](const auto& err)
                                 {
@@ -444,8 +122,11 @@ namespace mamba
             );
     }
 
-    auto load_installed_packages_in_pool(const Context& ctx, Database& pool, const PrefixData& prefix)
-        -> solver::libsolv::RepoInfo
+    auto load_installed_packages_in_pool(
+        const Context& ctx,
+        solver::libsolv::Database& db,
+        const PrefixData& prefix
+    ) -> solver::libsolv::RepoInfo
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing thems.
         auto pkgs = prefix.sorted_records();
@@ -457,12 +138,12 @@ namespace mamba
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
-        auto repo = pool.add_repo_from_packages(
+        auto repo = db.add_repo_from_packages(
             pkgs,
             "installed",
             solver::libsolv::PipAsPythonDependency::No
         );
-        pool.set_installed_repo(repo);
+        db.set_installed_repo(repo);
         return repo;
     }
 }

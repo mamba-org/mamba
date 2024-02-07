@@ -446,13 +446,13 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC
-                fmt::fmt-header-only
-                spdlog::spdlog_header_only
-                yaml-cpp::yaml-cpp
+            PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
+            PRIVATE
+                reproc
+                reproc++
+                simdjson::simdjson_static
                 solv::libsolv_static
                 solv::libsolvext_static
-            PRIVATE reproc reproc++ simdjson::simdjson_static
         )
 
         if(UNIX)
@@ -589,8 +589,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 # only version to avoid chasing after the correct fmt version mathching the one used
                 # in the bundle
                 spdlog::spdlog_header_only
-                solv::libsolv
-                solv::libsolvext
             PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}
@@ -600,6 +598,8 @@ macro(libmamba_create_target target_name linkage output_name)
                 reproc++
                 simdjson::simdjson
                 zstd::libzstd_shared
+                solv::libsolv
+                solv::libsolvext
         )
     endif()
 
@@ -749,8 +749,6 @@ install(
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
-# Need to install the FindLibsolv for the installed target to work
-install(FILES "../cmake/modules/FindLibsolv.cmake" DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
 
 install(
     EXPORT ${PROJECT_NAME}Targets

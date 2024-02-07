@@ -530,7 +530,8 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            MPool pool{ ctx, channel_context };
+            MPool pool{ channel_context.params() };
+            add_spdlog_logger_to_pool(pool);
             // functions implied in 'and_then' coding-styles must return the same type
             // which limits this syntax
             /*auto exp_prefix_data = load_channels(pool, package_caches)
@@ -538,16 +539,13 @@ namespace mamba
                PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const
                mamba_error& err) { throw std::runtime_error(err.what());
                                     });*/
-            auto exp_load = load_channels(ctx, pool, package_caches);
+            auto exp_load = load_channels(ctx, channel_context, pool, package_caches);
             if (!exp_load)
             {
                 throw std::runtime_error(exp_load.error().what());
             }
 
-            auto exp_prefix_data = PrefixData::create(
-                ctx.prefix_params.target_prefix,
-                pool.channel_context()
-            );
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
                 throw std::runtime_error(exp_prefix_data.error().what());
@@ -571,7 +569,7 @@ namespace mamba
 
             if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
-                unsolvable->explain_problems_to(pool, LOG_ERROR);
+                unsolvable->explain_problems_to(pool, LOG_ERROR, ctx.graphics_params.palette);
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;
@@ -686,7 +684,9 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            MPool pool{ ctx, channel_context };
+            MPool pool{ channel_context.params() };
+            add_spdlog_logger_to_pool(pool);
+
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {

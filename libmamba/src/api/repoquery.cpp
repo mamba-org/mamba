@@ -6,8 +6,6 @@
 
 #include <iostream>
 
-#include <solv/solver.h>
-
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
@@ -30,7 +28,8 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            MPool pool{ ctx, channel_context };
+            MPool pool{ channel_context.params() };
+            add_spdlog_logger_to_pool(pool);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -66,13 +65,12 @@ namespace mamba
                 {
                     Console::stream() << "Getting repodata from channels..." << std::endl;
                 }
-                auto exp_load = load_channels(ctx, pool, package_caches);
+                auto exp_load = load_channels(ctx, channel_context, pool, package_caches);
                 if (!exp_load)
                 {
                     throw std::runtime_error(exp_load.error().what());
                 }
             }
-            pool.create_whatprovides();
             return pool;
         }
     }

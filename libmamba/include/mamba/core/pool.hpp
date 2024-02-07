@@ -7,20 +7,19 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
+#include <functional>
 #include <memory>
 #include <optional>
-
-#include <solv/pooltypes.h>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/loop_control.hpp"
 
 namespace mamba
 {
-    class ChannelContext;
     class Context;
     class PrefixData;
     class SubdirData;
@@ -40,6 +39,12 @@ namespace mamba
         class MatchSpec;
     }
 
+    namespace solver::libsolv
+    {
+        class Solver;
+        class UnSolvable;
+    }
+
     /**
      * Pool of solvable involved in resolving en environment.
      *
@@ -52,26 +57,20 @@ namespace mamba
     {
     public:
 
-        MPool(Context& ctx, ChannelContext& channel_context);
+        using logger_type = std::function<void(solver::libsolv::LogLevel, std::string_view)>;
+
+        MPool(specs::ChannelResolveParams channel_params);
         ~MPool();
 
-        void set_debuglevel();
-        void create_whatprovides();
+        [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
-        std::vector<Id> select_solvables(Id id, bool sorted = false) const;
-        Id matchspec2id(const specs::MatchSpec& ms);
-
-        std::optional<specs::PackageInfo> id2pkginfo(Id solv_id) const;
-        std::optional<std::string> dep2str(Id dep_id) const;
-
-        // TODO: (TMP) This is not meant to be public but is needed for a transition period
-        solv::ObjPool& pool();
-        const solv::ObjPool& pool() const;
+        void set_logger(logger_type callback);
 
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,
             solver::libsolv::PipAsPythonDependency add = solver::libsolv::PipAsPythonDependency::No,
+            solver::libsolv::UseOnlyTarBz2 only_tar = solver::libsolv::UseOnlyTarBz2::No,
             solver::libsolv::RepodataParser parser = solver::libsolv::RepodataParser::Mamba
         ) -> expected_t<solver::libsolv::RepoInfo>;
 
@@ -109,7 +108,7 @@ namespace mamba
         void
         set_repo_priority(solver::libsolv::RepoInfo repo, solver::libsolv::Priorities priorities);
 
-        void remove_repo(::Id repo_id, bool reuse_ids);
+        void remove_repo(solver::libsolv::RepoInfo repo);
 
         template <typename Func>
         void for_each_package_in_repo(solver::libsolv::RepoInfo repo, Func&&) const;
@@ -120,13 +119,19 @@ namespace mamba
         template <typename Func>
         void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
 
-        ChannelContext& channel_context() const;
-        const Context& context() const;
+        /** A wrapper struct to fine-grain controll who can access the raw repr of the Pool. */
+        class Impl
+        {
+            [[nodiscard]] static auto get(MPool& pool) -> solv::ObjPool&;
+            [[nodiscard]] static auto get(const MPool& pool) -> const solv::ObjPool&;
+
+            friend class solver::libsolv::Solver;
+            friend class solver::libsolv::UnSolvable;
+        };
 
     private:
 
         struct MPoolData;
-
 
         /**
          * Make MPool behave like a shared_ptr (with move and copy).
@@ -141,6 +146,10 @@ namespace mamba
          *    - Facilitate (potential) future investigation of parallel solves.
          */
         std::shared_ptr<MPoolData> m_data;
+
+        friend class Impl;
+        auto pool() -> solv::ObjPool&;
+        [[nodiscard]] auto pool() const -> const solv::ObjPool&;
 
         auto add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo;
         void add_repo_from_packages_impl_loop(
@@ -167,6 +176,8 @@ namespace mamba
     };
 
     // TODO machinery functions in separate files
+    void add_spdlog_logger_to_pool(MPool& pool);
+
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>;
 

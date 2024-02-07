@@ -380,25 +380,15 @@ bind_submodule_impl(pybind11::module_ m)
     py::add_ostream_redirect(m, "ostream_redirect");
 
     py::class_<MPool>(m, "Pool")
-        .def(
-            py::init<>(
-                [](ChannelContext& channel_context) {
-                    return MPool{ mambapy::singletons.context(), channel_context };
-                }
-            ),
-            py::arg("channel_context")
-        )
-        .def("set_debuglevel", &MPool::set_debuglevel)
-        .def("create_whatprovides", &MPool::create_whatprovides)
-        .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
-        .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))
-        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"))
+        .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
+        .def("set_logger", &MPool::set_logger, py::call_guard<py::gil_scoped_acquire>())
         .def(
             "add_repo_from_repodata_json",
             &MPool::add_repo_from_repodata_json,
             py::arg("path"),
             py::arg("url"),
             py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
+            py::arg("use_only_tar_bz2") = solver::libsolv::UseOnlyTarBz2::No,
             py::arg("repodata_parsers") = solver::libsolv::RepodataParser::Mamba
         )
         .def(
@@ -654,6 +644,10 @@ bind_submodule_impl(pybind11::module_ m)
         .def("make_channel", py::overload_cast<specs::UnresolvedChannel>(&ChannelContext::make_channel))
         .def("params", &ChannelContext::params)
         .def("has_zst", &ChannelContext::has_zst);
+
+    py::class_<Palette>(m, "Palette")
+        .def_static("no_color", &Palette::no_color)
+        .def_static("terminal", &Palette::terminal);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx  //

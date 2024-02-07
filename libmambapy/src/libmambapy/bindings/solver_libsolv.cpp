@@ -7,6 +7,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
+#include "mamba/core/palette.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -36,6 +37,20 @@ namespace mambapy
             .value("Yes", PipAsPythonDependency::Yes)
             .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
+
+        py::enum_<UseOnlyTarBz2>(m, "UseOnlyTarBz2")
+            .value("No", UseOnlyTarBz2::No)
+            .value("Yes", UseOnlyTarBz2::Yes)
+            .def(py::init([](bool val) { return static_cast<UseOnlyTarBz2>(val); }));
+        py::implicitly_convertible<py::bool_, UseOnlyTarBz2>();
+
+        py::enum_<LogLevel>(m, "LogLevel")
+            .value("Debug", LogLevel::Debug)
+            .value("Warning", LogLevel::Warning)
+            .value("Error", LogLevel::Error)
+            .value("Fatal", LogLevel::Fatal)
+            .def(py::init(&enum_from_str<LogLevel>));
+        py::implicitly_convertible<py::bool_, LogLevel>();
 
         py::class_<Priorities>(m, "Priorities")
             .def(

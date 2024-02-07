@@ -106,10 +106,12 @@ namespace mamba
             }
         }
 
-        MPool pool{ ctx, channel_context };
+        MPool pool{ channel_context.params() };
+        add_spdlog_logger_to_pool(pool);
+
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(ctx, pool, package_caches);
+        auto exp_loaded = load_channels(ctx, channel_context, pool, package_caches);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());

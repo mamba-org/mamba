@@ -104,11 +104,12 @@ target_include_directories(
 
 find_package(doctest REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Libsolv REQUIRED)
 
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE doctest::doctest Threads::Threads
+    PRIVATE doctest::doctest Threads::Threads solv::libsolv solv::libsolvext
 )
 
 # Copy data directory into binary dir to avoid modifications

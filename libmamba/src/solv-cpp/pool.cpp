@@ -6,18 +6,14 @@
 
 #include <cassert>
 #include <limits>
-#include <sstream>
 #include <stdexcept>
 
+#include <solv/conda.h>
 #include <solv/pool.h>
 #include <solv/poolid.h>
 #include <solv/pooltypes.h>
 #include <solv/repo.h>
 #include <solv/selection.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 
 #include "solv-cpp/pool.hpp"
 

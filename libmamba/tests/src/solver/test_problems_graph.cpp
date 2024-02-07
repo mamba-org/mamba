@@ -102,9 +102,9 @@ namespace
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_pkgs_pool(Context& ctx, ChannelContext& channel_context, const PkgRange& packages)
+    auto create_pkgs_pool(ChannelContext& channel_context, const PkgRange& packages)
     {
-        auto pool = MPool{ ctx, channel_context };
+        MPool pool{ channel_context.params() };
         pool.add_repo_from_packages(packages);
         return pool;
     }
@@ -114,7 +114,7 @@ TEST_CASE("Test create_pool utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto pool = create_pkgs_pool(ctx, channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
+    auto pool = create_pkgs_pool(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
     const auto outcome = solver::libsolv::Solver().solve(pool, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
@@ -125,7 +125,6 @@ TEST_CASE("Test empty specs")
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     auto pool = create_pkgs_pool(
-        ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
     );
@@ -136,11 +135,10 @@ TEST_CASE("Test empty specs")
 
 namespace
 {
-    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context)
+    auto create_basic_conflict(Context&, ChannelContext& channel_context)
     {
         return std::pair(
             create_pkgs_pool(
-                ctx,
                 channel_context,
                 std::array{
                     mkpkg("A", "0.1.0"),
@@ -158,11 +156,10 @@ namespace
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub(Context& ctx, ChannelContext& channel_context)
+    auto create_pubgrub(Context&, ChannelContext& channel_context)
     {
         return std::pair(
             create_pkgs_pool(
-                ctx,
                 channel_context,
                 std::array{
                     mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
@@ -194,7 +191,7 @@ namespace
         );
     }
 
-    auto create_pubgrub_hard_(Context& ctx, ChannelContext& channel_context, bool missing_package)
+    auto create_pubgrub_hard_(Context&, ChannelContext& channel_context, bool missing_package)
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
@@ -244,7 +241,7 @@ namespace
             packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
         return std::pair(
-            create_pkgs_pool(ctx, channel_context, packages),
+            create_pkgs_pool(channel_context, packages),
             Request{
                 {},
                 {
@@ -287,19 +284,24 @@ namespace
     /**
      * Mock of channel_loader.hpp:load_channels that takes a list of channels.
      */
-    auto
-    load_channels(Context& ctx, MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
+    auto load_channels(
+        Context& ctx,
+        ChannelContext& channel_context,
+        MPool& pool,
+        MultiPackageCache& cache,
+        std::vector<std::string>&& channels
+    )
     {
         auto sub_dirs = std::vector<SubdirData>();
         for (const auto& location : channels)
         {
-            for (const auto& chan : pool.channel_context().make_channel(location))
+            for (const auto& chan : channel_context.make_channel(location))
             {
                 for (const auto& platform : chan.platforms())
                 {
                     auto sub_dir = SubdirData::create(
                                        ctx,
-                                       pool.channel_context(),
+                                       channel_context,
                                        chan,
                                        platform,
                                        chan.platform_url(platform).str(),
@@ -336,7 +338,7 @@ namespace
 
         auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool{ ctx, channel_context };
+        auto pool = MPool{ channel_context.params() };
 
         load_installed_packages_in_pool(ctx, pool, prefix_data);
 
@@ -345,7 +347,13 @@ namespace
 
         bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
         ctx.graphics_params.no_progress_bars = true;
-        load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
+        load_channels(
+            ctx,
+            channel_context,
+            pool,
+            cache,
+            make_platform_channels(std::move(channels), platforms)
+        );
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
         return pool;

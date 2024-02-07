@@ -17,6 +17,7 @@
 namespace mamba
 {
     class MPool;
+    class Palette;
 
     namespace solv
     {
@@ -46,8 +47,13 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto problems_graph(const MPool& pool) const -> ProblemsGraph;
 
-        auto explain_problems_to(MPool& pool, std::ostream& out) const -> std::ostream&;
-        [[nodiscard]] auto explain_problems(MPool& pool) const -> std::string;
+        auto explain_problems_to(  //
+            MPool& pool,
+            std::ostream& out,
+            const Palette& palette
+        ) const -> std::ostream&;
+
+        [[nodiscard]] auto explain_problems(MPool& pool, const Palette& palette) const -> std::string;
 
     private:
 

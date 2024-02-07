@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <exception>
+#include <iostream>
+#include <limits>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -33,138 +36,100 @@ namespace mamba
 {
     struct MPool::MPoolData
     {
-        MPoolData(Context& ctx, ChannelContext& cc)
-            : context(ctx)
-            , channel_context(cc)
+        MPoolData(specs::ChannelResolveParams p_channel_params)
+            : channel_params(std::move(p_channel_params))
         {
         }
 
+        specs::ChannelResolveParams channel_params;
         solv::ObjPool pool = {};
-        Context& context;
-        ChannelContext& channel_context;
     };
 
-    MPool::MPool(Context& ctx, ChannelContext& channel_context)
-        : m_data(std::make_shared<MPoolData>(ctx, channel_context))
+    MPool::MPool(specs::ChannelResolveParams channel_params)
+        : m_data(std::make_unique<MPoolData>(std::move(channel_params)))
     {
         pool().set_disttype(DISTTYPE_CONDA);
-        set_debuglevel();
+        // Ensure that debug logging never goes to stdout as to not interfere json output
+        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
+        ::pool_setdebuglevel(pool().raw(), -1);  // Off
     }
 
     MPool::~MPool() = default;
 
-    ChannelContext& MPool::channel_context() const
-    {
-        return m_data->channel_context;
-    }
-
-    const Context& MPool::context() const
-    {
-        return m_data->context;
-    }
-
-    solv::ObjPool& MPool::pool()
+    auto MPool::pool() -> solv::ObjPool&
     {
         return m_data->pool;
     }
 
-    const solv::ObjPool& MPool::pool() const
+    auto MPool::pool() const -> const solv::ObjPool&
     {
         return m_data->pool;
     }
 
-    void MPool::set_debuglevel()
+    auto MPool::Impl::get(MPool& pool) -> solv::ObjPool&
     {
-        // ensure that debug logging goes to stderr as to not interfere with stdout json output
-        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        const auto& ctx = context();
-        if (ctx.output_params.verbosity > 2)
+        return pool.pool();
+    }
+
+    auto MPool::Impl::get(const MPool& pool) -> const solv::ObjPool&
+    {
+        return pool.pool();
+    }
+
+    auto MPool::channel_params() const -> const specs::ChannelResolveParams&
+    {
+        return m_data->channel_params;
+    }
+
+    namespace
+    {
+        auto libsolv_to_log_level(int type) -> solver::libsolv::LogLevel
         {
-            pool_setdebuglevel(pool().raw(), ctx.output_params.verbosity - 1);
-            pool().set_debug_callback(
-                [logger = spdlog::get("libsolv"), &ctx](::Pool*, int type, std::string_view msg) noexcept
+            if (type & SOLV_FATAL)
+            {
+                return solver::libsolv::LogLevel::Fatal;
+            }
+            if (type & SOLV_ERROR)
+            {
+                return solver::libsolv::LogLevel::Error;
+            }
+            if (type & SOLV_WARN)
+            {
+                return solver::libsolv::LogLevel::Warning;
+            }
+            return solver::libsolv::LogLevel::Debug;
+        }
+    }
+
+    void MPool::set_logger(logger_type callback)
+    {
+        ::pool_setdebuglevel(pool().raw(), std::numeric_limits<int>::max());  // All
+        pool().set_debug_callback(
+            [logger = std::move(callback)](::Pool*, int type, std::string_view msg) noexcept
+            {
+                try
                 {
-                    if (msg.size() == 0 || msg.back() != '\n')
-                    {
-                        return;
-                    }
-
-                    auto log = Console::hide_secrets(msg);
-                    if (type & SOLV_FATAL || type & SOLV_ERROR)
-                    {
-                        logger->error(log);
-                    }
-                    else if (type & SOLV_WARN)
-                    {
-                        logger->warn(log);
-                    }
-                    else if (ctx.output_params.verbosity > 2)
-                    {
-                        logger->info(log);
-                    }
+                    logger(libsolv_to_log_level(type), msg);
                 }
-            );
-        }
-    }
-
-    void MPool::create_whatprovides()
-    {
-        pool().create_whatprovides();
-    }
-
-    std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
-    {
-        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });
-
-        if (sorted)
-        {
-            std::sort(
-                solvables.begin(),
-                solvables.end(),
-                [pool_ptr = pool().raw()](Id a, Id b)
+                catch (std::exception const& e)
                 {
-                    Solvable* sa = pool_id2solvable(pool_ptr, a);
-                    Solvable* sb = pool_id2solvable(pool_ptr, b);
-                    return (pool_evrcmp(pool_ptr, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+                    std::cerr << "Developer error: error in libsolv logging function: \n"
+                              << e.what();
                 }
-            );
-        }
-        return solvables.as<std::vector>();
-    }
-
-    auto MPool::matchspec2id(const specs::MatchSpec& ms) -> ::Id
-    {
-        return solver::libsolv::pool_add_matchspec(pool(), ms, channel_context().params())
-            .or_else([](mamba_error&& error) { throw std::move(error); })
-            .value_or(0);
-    }
-
-    std::optional<specs::PackageInfo> MPool::id2pkginfo(Id solv_id) const
-    {
-        if (const auto solv = pool().get_solvable(solv_id))
-        {
-            return { solver::libsolv::make_package_info(pool(), solv.value()) };
-        }
-        return std::nullopt;
-    }
-
-    std::optional<std::string> MPool::dep2str(Id dep_id) const
-    {
-        if (!dep_id)
-        {
-            return std::nullopt;
-        }
-        // Not const because might alloctmp space
-        return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
+            }
+        );
     }
 
     auto MPool::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,
         solver::libsolv::PipAsPythonDependency add,
+        solver::libsolv::UseOnlyTarBz2 only_tar,
         solver::libsolv::RepodataParser parser
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
+        const auto use_only_tar_bz2 = static_cast<bool>(only_tar);
+
         if (!fs::exists(path))
         {
             return make_unexpected(
@@ -184,29 +149,29 @@ namespace mamba
                     repo,
                     path,
                     std::string(url),
-                    context().use_only_tar_bz2
+                    use_only_tar_bz2
                 );
             }
-            return solver::libsolv::libsolv_read_json(repo, path, context().use_only_tar_bz2)
+            return solver::libsolv::libsolv_read_json(repo, path, use_only_tar_bz2)
                 .transform(
-                    [&url](solv::ObjRepoView repo)
+                    [&url](solv::ObjRepoView p_repo)
                     {
-                        solver::libsolv::set_solvables_url(repo, std::string(url));
-                        return repo;
+                        solver::libsolv::set_solvables_url(p_repo, std::string(url));
+                        return p_repo;
                     }
                 );
         };
 
         return make_repo()
             .transform(
-                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
+                [&](solv::ObjRepoView p_repo) -> solver::libsolv::RepoInfo
                 {
                     if (add == solver::libsolv::PipAsPythonDependency::Yes)
                     {
-                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                        solver::libsolv::add_pip_as_python_dependency(pool(), p_repo);
                     }
-                    repo.internalize();
-                    return solver::libsolv::RepoInfo{ repo.raw() };
+                    p_repo.internalize();
+                    return solver::libsolv::RepoInfo{ p_repo.raw() };
                 }
             )
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
@@ -222,16 +187,16 @@ namespace mamba
 
         return solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add))
             .transform(
-                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
+                [&](solv::ObjRepoView p_repo) -> solver::libsolv::RepoInfo
                 {
-                    repo.set_url(expected.url);
-                    solver::libsolv::set_solvables_url(repo, expected.url);
+                    p_repo.set_url(expected.url);
+                    solver::libsolv::set_solvables_url(p_repo, expected.url);
                     if (add == solver::libsolv::PipAsPythonDependency::Yes)
                     {
-                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                        solver::libsolv::add_pip_as_python_dependency(pool(), p_repo);
                     }
-                    repo.internalize();
-                    return solver::libsolv::RepoInfo(repo.raw());
+                    p_repo.internalize();
+                    return solver::libsolv::RepoInfo(p_repo.raw());
                 }
             )
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
@@ -279,12 +244,13 @@ namespace mamba
     {
         assert(repo.m_ptr != nullptr);
         return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_ptr), path, metadata)
-            .transform([](solv::ObjRepoView repo) { return solver::libsolv::RepoInfo(repo.raw()); });
+            .transform([](solv::ObjRepoView solv_repo)
+                       { return solver::libsolv::RepoInfo(solv_repo.raw()); });
     }
 
-    void MPool::remove_repo(::Id repo_id, bool reuse_ids)
+    void MPool::remove_repo(solver::libsolv::RepoInfo repo)
     {
-        pool().remove_repo(repo_id, reuse_ids);
+        pool().remove_repo(repo.id(), /* reuse_ids= */ true);
     }
 
     auto MPool::installed_repo() const -> std::optional<solver::libsolv::RepoInfo>
@@ -316,8 +282,9 @@ namespace mamba
     auto MPool::package_id_to_package_info(PackageId id) const -> specs::PackageInfo
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
-        // Safe because the ID is coming from libsolv
-        return id2pkginfo(static_cast<solv::SolvableId>(id)).value();
+        const auto solv = pool().get_solvable(static_cast<solv::SolvableId>(id));
+        assert(solv.has_value());  // Safe because the ID is coming from libsolv
+        return { solver::libsolv::make_package_info(pool(), solv.value()) };
     }
 
     auto MPool::packages_in_repo(solver::libsolv::RepoInfo repo) const -> std::vector<PackageId>
@@ -330,12 +297,26 @@ namespace mamba
         return out;
     }
 
+    namespace
+    {
+        auto matchspec2id(
+            solv::ObjPool& pool,
+            const specs::ChannelResolveParams& channel_params,
+            const specs::MatchSpec& ms
+        ) -> solv::DependencyId
+        {
+            return solver::libsolv::pool_add_matchspec(pool, ms, channel_params)
+                .or_else([](mamba_error&& error) { throw std::move(error); })
+                .value_or(0);
+        }
+    }
+
     auto MPool::packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>
     {
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(ms);
+        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(
@@ -352,7 +333,7 @@ namespace mamba
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(ms);
+        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(
@@ -365,6 +346,31 @@ namespace mamba
     }
 
     // TODO machinery functions in separate files
+
+    void add_spdlog_logger_to_pool(MPool& pool)
+    {
+        pool.set_logger(
+            [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
+            {
+                switch (level)
+                {
+                    case (solver::libsolv::LogLevel::Fatal):
+                        logger->critical(msg);
+                        break;
+                    case (solver::libsolv::LogLevel::Error):
+                        logger->error(msg);
+                        break;
+                    case (solver::libsolv::LogLevel::Warning):
+                        logger->warn(msg);
+                        break;
+                    case (solver::libsolv::LogLevel::Debug):
+                        logger->debug(msg);
+                        break;
+                }
+            }
+        );
+    }
+
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
@@ -408,6 +414,7 @@ namespace mamba
                         repodata_json,
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
                         add_pip,
+                        static_cast<solver::libsolv::UseOnlyTarBz2>(ctx.use_only_tar_bz2),
                         json_parser
                     );
                 }

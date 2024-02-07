@@ -19,6 +19,7 @@ add_executable(
     src/test_transaction.cpp
 )
 target_include_directories(test_solv_cpp PRIVATE src/)
+target_compile_definitions(test_solv_cpp PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
 
 find_package(doctest REQUIRED)
 target_link_libraries(test_solv_cpp PRIVATE doctest::doctest solv::cpp)

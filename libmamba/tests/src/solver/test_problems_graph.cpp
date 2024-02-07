@@ -14,7 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"

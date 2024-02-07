@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_POOL_HPP
-#define MAMBA_CORE_POOL_HPP
+#ifndef MAMBA_CORE_PACKAGE_DATABASE_LOADER_HPP
+#define MAMBA_CORE_PACKAGE_DATABASE_LOADER_HPP
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"

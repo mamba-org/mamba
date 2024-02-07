@@ -13,7 +13,7 @@
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"

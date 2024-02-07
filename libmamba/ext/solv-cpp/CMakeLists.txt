@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 add_library(
-    solv-cpp STATIC
+    solv-cpp OBJECT
     src/pool.cpp src/queue.cpp src/repo.cpp src/solvable.cpp src/solver.cpp src/transaction.cpp
 )
 target_include_directories(solv-cpp PUBLIC include)

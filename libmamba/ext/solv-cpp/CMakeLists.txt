@@ -10,7 +10,10 @@ add_library(
     solv-cpp OBJECT
     src/pool.cpp src/queue.cpp src/repo.cpp src/solvable.cpp src/solver.cpp src/transaction.cpp
 )
-target_include_directories(solv-cpp PUBLIC include)
+target_include_directories(
+    solv-cpp
+    PUBLIC $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
 
 find_package(tl-expected REQUIRED)
 find_package(Libsolv REQUIRED)
@@ -22,6 +25,7 @@ else()
 endif()
 
 target_link_libraries(solv-cpp PUBLIC tl::expected ${LIBSOLV_DEPS})
+target_compile_features(solv-cpp PUBLIC cxx_std_17)
 
 mamba_target_add_compile_warnings(solv-cpp WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 mamba_target_set_lto(solv-cpp MODE ${MAMBA_LTO})
@@ -31,3 +35,13 @@ add_library(solv::cpp ALIAS solv-cpp)
 if(BUILD_LIBMAMBA_TESTS)
     add_subdirectory(tests)
 endif()
+
+# Object libraries are installed as an interface library (in libmambaTargets) but do not install any
+# objects (.o files) or headers without the ``OBJETS DESTINATION`` property.
+install(
+    TARGETS solv-cpp
+    EXPORT ${PROJECT_NAME}Targets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

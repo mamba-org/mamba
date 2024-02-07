@@ -49,6 +49,7 @@ set(
     src/specs/test_version_spec.cpp
     # Solver tests
     src/solver/test_request.cpp
+    src/solver/test_solution.cpp
     src/solver/test_problems_graph.cpp
     # Artifacts validation
     src/validation/test_tools.cpp

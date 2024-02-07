@@ -14,14 +14,14 @@
 
 #include "mamba/solver/problems_graph.hpp"
 
+namespace solv
+{
+    class ObjSolver;
+}
+
 namespace mamba
 {
     class Palette;
-
-    namespace solv
-    {
-        class ObjSolver;
-    }
 }
 
 namespace mamba::solver::libsolv

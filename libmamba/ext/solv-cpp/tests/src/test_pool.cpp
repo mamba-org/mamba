@@ -16,7 +16,7 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/pool.hpp"
 
-using namespace mamba::solv;
+using namespace solv;
 
 TEST_SUITE("solv::ObjPool")
 {

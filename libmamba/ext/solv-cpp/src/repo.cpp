@@ -20,7 +20,7 @@ extern "C"  // Incomplete header in libsolv 0.7.23
 
 #include "solv-cpp/repo.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     /****************************************
      *  Implementation of ConstObjRepoView  *

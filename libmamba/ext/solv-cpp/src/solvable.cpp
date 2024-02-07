@@ -17,7 +17,7 @@
 
 #include "solv-cpp/solvable.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     /********************************************
      *  Implementation of ConstObjSolvableView  *

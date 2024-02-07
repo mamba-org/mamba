@@ -17,7 +17,7 @@
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     auto enum_name(::SolverRuleinfo rule) -> std::string_view
     {

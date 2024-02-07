@@ -9,14 +9,13 @@
 
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
-#include "solv-cpp/repo.hpp"
 #include "solv-cpp/solver.hpp"
 #include "solv-cpp/transaction.hpp"
 
 #include "pool_data.hpp"
 
-using namespace mamba::solv;
-using namespace mamba::test;
+using namespace solv;
+using namespace solv::test;
 
 TEST_SUITE("solv::scenariso")
 {

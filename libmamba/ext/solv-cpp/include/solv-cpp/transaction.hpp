@@ -17,7 +17,7 @@
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     class ObjPool;
     class ObjSolver;

@@ -17,7 +17,7 @@
 
 #include "solv-cpp/pool.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     void ObjPool::PoolDeleter::operator()(::Pool* ptr)
     {

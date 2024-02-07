@@ -19,16 +19,16 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/loop_control.hpp"
 
+namespace solv
+{
+    class ObjPool;
+}
+
 namespace mamba
 {
     namespace fs
     {
         class u8path;
-    }
-
-    namespace solv
-    {
-        class ObjPool;
     }
 
     namespace specs

@@ -15,8 +15,7 @@
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
-using namespace mamba::solv;
-using namespace mamba;
+using namespace solv;
 
 /** Current timestamp in seconds. */
 auto
@@ -40,7 +39,7 @@ struct TmpDir
     }
 
     TmpDir()
-        : TmpDir(std::filesystem::temp_directory_path() / "mamba/tests" / timestamp())
+        : TmpDir(std::filesystem::temp_directory_path() / "solv-cpp/tests" / timestamp())
     {
     }
 

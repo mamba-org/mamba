@@ -13,7 +13,7 @@
 #include "solv-cpp/solver.hpp"
 #include "solv-cpp/transaction.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     void ObjTransaction::TransactionDeleter::operator()(::Transaction* ptr)
     {

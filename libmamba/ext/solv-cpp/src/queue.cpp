@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <exception>
 #include <limits>
 #include <sstream>
 
@@ -15,7 +14,7 @@
 
 #include "solv-cpp/queue.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     ObjQueue::ObjQueue(std::nullptr_t)
     {
@@ -300,6 +299,4 @@ namespace mamba::solv
     {
         return !(a == b);
     }
-
-
-}  // namespace mamba
+}

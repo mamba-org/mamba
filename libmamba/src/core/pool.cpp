@@ -28,7 +28,7 @@
 
 namespace mamba
 {
-    void add_spdlog_logger_to_pool(solver::libsolv::Database& db)
+    void add_spdlog_logger_to_database(solver::libsolv::Database& db)
     {
         db.set_logger(
             [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
@@ -53,7 +53,7 @@ namespace mamba
     }
 
     auto
-    load_subdir_in_pool(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)
+    load_subdir_in_database(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
@@ -122,7 +122,7 @@ namespace mamba
             );
     }
 
-    auto load_installed_packages_in_pool(
+    auto load_installed_packages_in_database(
         const Context& ctx,
         solver::libsolv::Database& db,
         const PrefixData& prefix

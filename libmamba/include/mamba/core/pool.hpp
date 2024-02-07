@@ -22,15 +22,15 @@ namespace mamba
         class Database;
     }
 
-    void add_spdlog_logger_to_pool(solver::libsolv::Database& db);
+    void add_spdlog_logger_to_database(solver::libsolv::Database& db);
 
-    auto load_subdir_in_pool(  //
+    auto load_subdir_in_database(  //
         const Context& ctx,
         solver::libsolv::Database& db,
         const SubdirData& subdir
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
-    auto load_installed_packages_in_pool(
+    auto load_installed_packages_in_database(
         const Context& ctx,
         solver::libsolv::Database& db,
         const PrefixData& prefix

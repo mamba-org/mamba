@@ -46,7 +46,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return load_installed_packages_in_pool(ctx, pool, prefix_data);
+            return load_installed_packages_in_database(ctx, pool, prefix_data);
         }
 
         void create_subdirs(
@@ -232,7 +232,7 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_pool(ctx, pool, subdir)
+                load_subdir_in_database(ctx, pool, subdir)
                     .transform([&](solver::libsolv::RepoInfo&& repo)
                                { pool.set_repo_priority(repo, priorities[i]); })
                     .or_else(

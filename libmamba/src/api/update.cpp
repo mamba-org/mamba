@@ -109,7 +109,7 @@ namespace mamba
         }
 
         solver::libsolv::Database db{ channel_context.params() };
-        add_spdlog_logger_to_pool(db);
+        add_spdlog_logger_to_database(db);
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
@@ -133,7 +133,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        load_installed_packages_in_pool(ctx, db, prefix_data);
+        load_installed_packages_in_database(ctx, db, prefix_data);
 
         auto request = create_update_request(
             prefix_data,

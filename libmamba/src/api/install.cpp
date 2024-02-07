@@ -532,7 +532,7 @@ namespace mamba
             }
 
             solver::libsolv::Database pool{ channel_context.params() };
-            add_spdlog_logger_to_pool(pool);
+            add_spdlog_logger_to_database(pool);
             // functions implied in 'and_then' coding-styles must return the same type
             // which limits this syntax
             /*auto exp_prefix_data = load_channels(pool, package_caches)
@@ -553,7 +553,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            load_installed_packages_in_pool(ctx, pool, prefix_data);
+            load_installed_packages_in_database(ctx, pool, prefix_data);
 
 
             auto request = create_install_request(prefix_data, specs, freeze_installed);
@@ -686,7 +686,7 @@ namespace mamba
         )
         {
             solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_pool(db);
+            add_spdlog_logger_to_database(db);
 
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
@@ -698,7 +698,7 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-            load_installed_packages_in_pool(ctx, db, prefix_data);
+            load_installed_packages_in_database(ctx, db, prefix_data);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,

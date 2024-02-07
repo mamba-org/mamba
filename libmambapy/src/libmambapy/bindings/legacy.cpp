@@ -439,7 +439,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     m.def(
         "load_subdir_in_pool",
-        &load_subdir_in_pool,
+        &load_subdir_in_database,
         py::arg("context"),
         py::arg("pool"),
         py::arg("subdir")
@@ -447,7 +447,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     m.def(
         "load_installed_packages_in_pool",
-        &load_installed_packages_in_pool,
+        &load_installed_packages_in_database,
         py::arg("context"),
         py::arg("pool"),
         py::arg("prefix_data")
@@ -535,7 +535,7 @@ bind_submodule_impl(pybind11::module_ m)
             [](SubdirData& subdir, solver::libsolv::Database& db) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use `load_subdir_in_pool` instead", "2.0");
-                return extract(load_subdir_in_pool(mambapy::singletons.context(), db, subdir));
+                return extract(load_subdir_in_database(mambapy::singletons.context(), db, subdir));
             }
         )
         .def("loaded", &SubdirData::is_loaded)

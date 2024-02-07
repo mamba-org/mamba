@@ -318,7 +318,7 @@ namespace
 
         for (auto& sub_dir : sub_dirs)
         {
-            auto repo = load_subdir_in_pool(ctx, db, sub_dir);
+            auto repo = load_subdir_in_database(ctx, db, sub_dir);
         }
     }
 
@@ -341,7 +341,7 @@ namespace
         prefix_data.add_packages(virtual_packages);
         auto db = solver::libsolv::Database{ channel_context.params() };
 
-        load_installed_packages_in_pool(ctx, db, prefix_data);
+        load_installed_packages_in_database(ctx, db, prefix_data);
 
         auto cache = MultiPackageCache({ tmp_dir.path() / "cache" }, ctx.validation_params);
         create_cache_dir(cache.first_writable_path());

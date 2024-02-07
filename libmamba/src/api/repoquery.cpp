@@ -31,7 +31,7 @@ namespace mamba
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
             solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_pool(db);
+            add_spdlog_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -52,7 +52,7 @@ namespace mamba
                 }
                 PrefixData& prefix_data = exp_prefix_data.value();
 
-                load_installed_packages_in_pool(ctx, db, prefix_data);
+                load_installed_packages_in_database(ctx, db, prefix_data);
 
                 if (format != QueryResultFormat::Json)
                 {

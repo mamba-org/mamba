@@ -192,7 +192,7 @@ TEST_SUITE("solv::ObjRepo")
             {
                 // Using only C OS encoding API for test.
                 auto dir = TmpDir();
-                const auto solv_file = dir.path / "test-forge.solv";
+                const auto solv_file = (dir.path / "test-forge.solv").string();
                 {
                     std::FILE* fptr = std::fopen(solv_file.c_str(), "wb");
                     REQUIRE_NE(fptr, nullptr);

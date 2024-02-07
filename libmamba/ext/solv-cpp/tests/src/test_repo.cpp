@@ -6,16 +6,49 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
+#include <filesystem>
+#include <string>
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/util.hpp"
-#include "mamba/util/cfile.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
 using namespace mamba::solv;
 using namespace mamba;
+
+/** Current timestamp in seconds. */
+auto
+timestamp() -> std::string
+{
+    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    );
+    return std::to_string(seconds.count());
+}
+
+/** Unique  temporary directory deleted after tests. */
+struct TmpDir
+{
+    std::filesystem::path path;
+
+    TmpDir(std::filesystem::path path_)
+        : path(std::move(path_))
+    {
+        std::filesystem::create_directories(path);
+    }
+
+    TmpDir()
+        : TmpDir(std::filesystem::temp_directory_path() / "mamba/tests" / timestamp())
+    {
+    }
+
+    ~TmpDir()
+    {
+        std::filesystem::remove_all(path);
+    }
+};
 
 TEST_SUITE("solv::ObjRepo")
 {
@@ -158,14 +191,15 @@ TEST_SUITE("solv::ObjRepo")
 
             SUBCASE("Write repo to file")
             {
-                auto dir = mamba::TemporaryDirectory();
-                const auto solv_file = dir.path() / "test-forge.hpp";
+                // Using only C OS encoding API for test.
+                auto dir = TmpDir();
+                const auto solv_file = dir.path / "test-forge.solv";
                 {
-                    auto fptr = util::CFile::try_open(solv_file, "wb");
-                    REQUIRE(fptr);
-                    const auto written = repo.write(fptr->raw());
+                    std::FILE* fptr = std::fopen(solv_file.c_str(), "wb");
+                    REQUIRE_NE(fptr, nullptr);
+                    const auto written = repo.write(fptr);
                     REQUIRE(written);
-                    REQUIRE(fptr->try_close());
+                    REQUIRE_EQ(std::fclose(fptr), 0);
                 }
 
                 SUBCASE("Read repo from file")
@@ -176,11 +210,11 @@ TEST_SUITE("solv::ObjRepo")
 
                     // Create new repo from file
                     auto [repo_id2, repo2] = pool.add_repo("test-forge");
-                    auto fptr = util::CFile::try_open(solv_file, "rb");
-                    REQUIRE(fptr);
-                    const auto read = repo2.read(fptr->raw());
+                    std::FILE* fptr = std::fopen(solv_file.c_str(), "rb");
+                    REQUIRE_NE(fptr, nullptr);
+                    const auto read = repo2.read(fptr);
                     REQUIRE(read);
-                    REQUIRE(fptr->try_close());
+                    REQUIRE_EQ(std::fclose(fptr), 0);
 
                     CHECK_EQ(repo2.solvable_count(), n_solvables);
                     // True because we reused ids

@@ -12,15 +12,6 @@ set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     src/test_main.cpp
-    # C++ wrapping of libsolv
-    src/solv-cpp/pool_data.cpp
-    src/solv-cpp/test_pool.cpp
-    src/solv-cpp/test_queue.cpp
-    src/solv-cpp/test_repo.cpp
-    src/solv-cpp/test_scenarios.cpp
-    src/solv-cpp/test_solvable.cpp
-    src/solv-cpp/test_solver.cpp
-    src/solv-cpp/test_transaction.cpp
     # Utility library
     src/util/test_cast.cpp
     src/util/test_compare.cpp
@@ -104,12 +95,11 @@ target_include_directories(
 
 find_package(doctest REQUIRED)
 find_package(Threads REQUIRED)
-find_package(Libsolv REQUIRED)
 
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE doctest::doctest Threads::Threads solv::libsolv solv::libsolvext
+    PRIVATE doctest::doctest Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications

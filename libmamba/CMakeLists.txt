@@ -73,7 +73,6 @@ endif()
 
 # TODO: move this into the mamba_create_target macro
 if(BUILD_STATIC)
-    add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif()
 
@@ -410,22 +409,31 @@ macro(libmamba_create_target target_name linkage output_name)
     # ======
     add_library(${target_name} ${linkage_upper} ${LIBMAMBA_PUBLIC_HEADERS} ${LIBMAMBA_SOURCES})
 
+    target_include_directories(
+        ${target_name}
+        PUBLIC $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>
+        PRIVATE ${LIBMAMBA_SOURCE_DIR}
+    )
+
     # Header only libraries are always linked the same way
     target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
+
+    target_compile_features(${target_name} PUBLIC cxx_std_17)
 
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
 
+    # For some reasons, using target_compile_definitions does not set the definitions properly
+    add_compile_definitions(
+        SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}"
+    )
+
     if(${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
-
-        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
 
         mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc++ STATIC_LIBRARY FATAL_ERROR)
-
-        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
 
         target_link_libraries(
             ${target_name}
@@ -560,8 +568,6 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(BZip2 REQUIRED)
         find_package(OpenSSL REQUIRED)
 
-        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
-
         target_link_libraries(
             ${target_name}
             PUBLIC
@@ -588,22 +594,14 @@ macro(libmamba_create_target target_name linkage output_name)
         )
     endif()
 
-    target_compile_features(${target_name} PUBLIC cxx_std_17)
-
-    target_include_directories(
-        ${target_name}
-        PUBLIC $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>
-    )
-
     if(WIN32)
         find_path(
             WINREG_INCLUDE_DIR
             NAMES WinReg.hpp
             PATH_SUFFIXES winreg
         )
+        target_include_directories(${target_name} PRIVATE ${WINREG_INCLUDE_DIR})
     endif()
-
-    target_include_directories(${target_name} PRIVATE ${LIBMAMBA_SOURCE_DIR} ${WINREG_INCLUDE_DIR})
 
     if(UNIX)
         math(EXPR LIBMAMBA_BINARY_COMPATIBLE "${LIBMAMBA_BINARY_CURRENT} - ${LIBMAMBA_BINARY_AGE}")

@@ -166,6 +166,11 @@ namespace mamba
         return *main_console;
     }
 
+    bool Console::has_instance()
+    {
+        return main_console != nullptr;
+    }
+
     void Console::set_singleton(Console& console)
     {
         Console* expected = nullptr;

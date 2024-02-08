@@ -20,7 +20,7 @@ extern "C"
     using Solvable = struct s_Solvable;
 }
 
-namespace mamba::solv
+namespace solv
 {
     /**
      * We use solvable for all sort of things, including virtual packages and pins.

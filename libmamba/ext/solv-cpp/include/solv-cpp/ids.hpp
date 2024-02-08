@@ -9,7 +9,7 @@
 
 #include <solv/pooltypes.h>
 
-namespace mamba::solv
+namespace solv
 {
     using StringId = ::Id;
     using DependencyId = ::Id;

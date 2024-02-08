@@ -73,6 +73,9 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+      - name: Run solv-cpp tests
+        run: |
+          ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
       - name: Run libmamba tests
         run: |
           unset CONDARC  # Interferes with tests

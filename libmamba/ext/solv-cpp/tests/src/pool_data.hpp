@@ -15,7 +15,7 @@
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
-namespace mamba::test
+namespace solv::test
 {
     struct SimplePkg
     {
@@ -67,7 +67,5 @@ namespace mamba::test
         }
         return out;
     }
-
-
 }
 #endif

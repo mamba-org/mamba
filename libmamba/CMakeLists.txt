@@ -176,13 +176,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
-    # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # Solver generic interface
     ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/problems_graph.cpp
@@ -393,18 +386,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )
 
-set(
-    LIBMAMBA_PRIVATE_HEADERS
-    # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.hpp
-)
-
 # Targets and link
 # ================
 
@@ -417,6 +398,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(reproc REQUIRED)
 find_package(reproc++ REQUIRED)
 find_package(Libsolv REQUIRED)
+add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
@@ -426,10 +408,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
     # Output
     # ======
-    add_library(
-        ${target_name}
-        ${linkage_upper} ${LIBMAMBA_PUBLIC_HEADERS} ${LIBMAMBA_PRIVATE_HEADERS} ${LIBMAMBA_SOURCES}
-    )
+    add_library(${target_name} ${linkage_upper} ${LIBMAMBA_PUBLIC_HEADERS} ${LIBMAMBA_SOURCES})
 
     # Header only libraries are always linked the same way
     target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
@@ -457,6 +436,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 simdjson::simdjson_static
                 solv::libsolv_static
                 solv::libsolvext_static
+                solv::cpp
         )
 
         if(UNIX)
@@ -604,6 +584,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 zstd::libzstd_shared
                 solv::libsolv
                 solv::libsolvext
+                solv::cpp
         )
     endif()
 

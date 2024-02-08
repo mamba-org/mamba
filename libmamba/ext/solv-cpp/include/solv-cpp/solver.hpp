@@ -30,7 +30,7 @@ extern "C"
     using Solver = struct s_Solver;
 }
 
-namespace mamba::solv
+namespace solv
 {
     class ObjPool;
     class ObjQueue;

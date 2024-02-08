@@ -18,12 +18,7 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/solvable.hpp"
 
-namespace mamba::fs
-{
-    class u8path;
-}
-
-namespace mamba::solv
+namespace solv
 {
 
     class ObjRepoViewConst

@@ -154,6 +154,22 @@ tasks:
     cmds:
       - '"{{.TEST_MAMBA_EXE}}" {{.CLI_ARGS}}'
 
+  _test-solv-cpp:
+    internal: true
+    deps: [{task: _build, vars: {target: 'test_solv_cpp'}}]
+    dir: ''
+    cmds:
+      - '{{.CMAKE_BUILD_DIR}}/libmamba/ext/solv-cpp/tests/test_solv_cpp {{.args}}'
+  test-solv-cpp:
+    desc: Run `libmamba` C++ based tests.
+    summary: |
+      Run fast C++ tests of the libsolc C++ wrappers. Running this command will rebuild only
+      `solv-cpp` and its tests, so compilation error may still happen when building other targets.
+      Test options can be passed as extra command line arguments:
+
+          task test-solv-cpp -- --test-suite='util::*'
+    cmds: [{task: '_test-solv-cpp', vars: {args: '{{.CLI_ARGS}}'}}]
+
   _test-libmamba:
     internal: true
     deps: [{task: _build, vars: {target: 'test_libmamba'}}]

@@ -4,20 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <string>
-#include <vector>
-
 #include <doctest/doctest.h>
 #include <solv/solver.h>
 
 #include "solv-cpp/pool.hpp"
-#include "solv-cpp/repo.hpp"
 #include "solv-cpp/solver.hpp"
 
 #include "pool_data.hpp"
 
-using namespace mamba::solv;
-using namespace mamba::test;
+using namespace solv;
+using namespace solv::test;
 
 TEST_SUITE("solv::ObjSolver")
 {

@@ -22,7 +22,7 @@
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 
-namespace mamba::solv
+namespace solv
 {
     /**
      * Pool of solvable involved in resolving en environment.

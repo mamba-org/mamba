@@ -10,7 +10,7 @@
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 
-using namespace mamba::solv;
+using namespace solv;
 
 TEST_SUITE("solv::ObjSolvable")
 {

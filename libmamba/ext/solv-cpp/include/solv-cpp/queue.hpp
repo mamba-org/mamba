@@ -11,7 +11,7 @@
 
 #include <solv/queue.h>
 
-namespace mamba::solv
+namespace solv
 {
     /**
      * A ``std::vector`` like structure used in libsolv.
@@ -147,6 +147,5 @@ namespace mamba::solv
         return C<value_type>(begin(), end());
     }
 
-}  // namespace mamba
-
+}
 #endif

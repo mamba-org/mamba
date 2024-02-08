@@ -17,8 +17,8 @@
 
 #include "pool_data.hpp"
 
-using namespace mamba::solv;
-using namespace mamba::test;
+using namespace solv;
+using namespace solv::test;
 
 TEST_SUITE("solv::ObjTransaction")
 {

@@ -8,7 +8,7 @@
 
 #include "pool_data.hpp"
 
-namespace mamba::test
+namespace solv::test
 {
     namespace
     {
@@ -61,5 +61,4 @@ namespace mamba::test
         solv.add_self_provide();
         return solv_id;
     }
-
 }

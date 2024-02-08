@@ -166,7 +166,7 @@ namespace mamba
         return *main_console;
     }
 
-    bool Console::has_instance()
+    bool Console::is_available()
     {
         return main_console != nullptr;
     }

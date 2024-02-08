@@ -6,9 +6,8 @@
 
 #include <solv/solver.h>
 
-#include "mamba/core/channel_context.hpp"
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/util/variant_cmp.hpp"
 #include "solv-cpp/solver.hpp"
@@ -51,9 +50,9 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto Solver::solve_impl(MPool& mpool, const Request& request) -> expected_t<Outcome>
+    auto Solver::solve_impl(Database& mpool, const Request& request) -> expected_t<Outcome>
     {
-        auto& pool = MPool::Impl::get(mpool);
+        auto& pool = Database::Impl::get(mpool);
         const auto& chan_params = mpool.channel_params();
         const auto& flags = request.flags;
 
@@ -87,7 +86,7 @@ namespace mamba::solver::libsolv
             );
     }
 
-    auto Solver::solve(MPool& mpool, Request&& request) -> expected_t<Outcome>
+    auto Solver::solve(Database& mpool, Request&& request) -> expected_t<Outcome>
     {
         if (request.flags.order_request)
         {
@@ -96,7 +95,7 @@ namespace mamba::solver::libsolv
         return solve_impl(mpool, request);
     }
 
-    auto Solver::solve(MPool& mpool, const Request& request) -> expected_t<Outcome>
+    auto Solver::solve(Database& mpool, const Request& request) -> expected_t<Outcome>
     {
         if (request.flags.order_request)
         {

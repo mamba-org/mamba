@@ -756,7 +756,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
     pin_name = "xtensor"
     pin_max_version = "0.20"
-    # We add the channel to test a fragile behavior of ``MPool``
+    # We add the channel to test a fragile behavior of ``Database``
     spec_name = "conda-forge::xtensor"
     rc_file = tmp_path / "rc.yaml"
 

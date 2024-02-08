@@ -9,7 +9,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -127,9 +127,9 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool{ channel_context.params() };
-            add_spdlog_logger_to_pool(pool);
-            load_installed_packages_in_pool(ctx, pool, prefix_data);
+            solver::libsolv::Database pool{ channel_context.params() };
+            add_spdlog_logger_to_database(pool);
+            load_installed_packages_in_database(ctx, pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);

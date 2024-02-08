@@ -31,7 +31,7 @@
 
 using namespace mamba;
 
-MPool
+Database
 load_pool(
     const std::vector<std::string>& channels,
     MultiPackageCache& package_caches,
@@ -40,7 +40,7 @@ load_pool(
 )
 {
     ctx.channels = channels;
-    mamba::MPool pool{ ctx, channel_context };
+    mamba::Database pool{ ctx, channel_context };
     auto exp_load = load_channels(ctx, pool, package_caches, false);
     if (!exp_load)
     {
@@ -59,7 +59,7 @@ handle_solve_request(
 {
     struct cache
     {
-        std::optional<mamba::MPool> pool;
+        std::optional<mamba::Database> pool;
         std::chrono::time_point<std::chrono::system_clock> last_update;
     };
 

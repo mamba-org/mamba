@@ -16,7 +16,6 @@
 
 namespace mamba
 {
-    class MPool;
     class Palette;
 
     namespace solv
@@ -28,6 +27,7 @@ namespace mamba
 namespace mamba::solver::libsolv
 {
     class Solver;
+    class Database;
 
     class UnSolvable
     {
@@ -39,21 +39,22 @@ namespace mamba::solver::libsolv
 
         auto operator=(UnSolvable&&) -> UnSolvable&;
 
-        [[nodiscard]] auto problems(MPool& pool) const -> std::vector<std::string>;
+        [[nodiscard]] auto problems(Database& pool) const -> std::vector<std::string>;
 
-        [[nodiscard]] auto problems_to_str(MPool& pool) const -> std::string;
+        [[nodiscard]] auto problems_to_str(Database& pool) const -> std::string;
 
-        [[nodiscard]] auto all_problems_to_str(MPool& pool) const -> std::string;
+        [[nodiscard]] auto all_problems_to_str(Database& pool) const -> std::string;
 
-        [[nodiscard]] auto problems_graph(const MPool& pool) const -> ProblemsGraph;
+        [[nodiscard]] auto problems_graph(const Database& pool) const -> ProblemsGraph;
 
         auto explain_problems_to(  //
-            MPool& pool,
+            Database& pool,
             std::ostream& out,
             const Palette& palette
         ) const -> std::ostream&;
 
-        [[nodiscard]] auto explain_problems(MPool& pool, const Palette& palette) const -> std::string;
+        [[nodiscard]] auto explain_problems(Database& pool, const Palette& palette) const
+            -> std::string;
 
     private:
 

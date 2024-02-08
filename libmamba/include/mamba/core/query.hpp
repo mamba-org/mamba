@@ -14,12 +14,16 @@
 #include <vector>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/graph.hpp"
 
 namespace mamba
 {
+    namespace solver::libsolv
+    {
+        class Database;
+    }
+
     enum class QueryType
     {
         Search,
@@ -88,12 +92,14 @@ namespace mamba
     {
     public:
 
-        [[nodiscard]] static auto find(MPool& pool, const std::vector<std::string>& queries)
+        using Database = solver::libsolv::Database;
+
+        [[nodiscard]] static auto find(Database& db, const std::vector<std::string>& queries)
             -> QueryResult;
 
-        [[nodiscard]] static auto whoneeds(MPool& pool, std::string query, bool tree) -> QueryResult;
+        [[nodiscard]] static auto whoneeds(Database& db, std::string query, bool tree) -> QueryResult;
 
-        [[nodiscard]] static auto depends(MPool& pool, std::string query, bool tree) -> QueryResult;
+        [[nodiscard]] static auto depends(Database& db, std::string query, bool tree) -> QueryResult;
     };
 
     /********************

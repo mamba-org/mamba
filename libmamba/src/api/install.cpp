@@ -22,6 +22,7 @@
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -530,8 +531,8 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            MPool pool{ channel_context.params() };
-            add_spdlog_logger_to_pool(pool);
+            solver::libsolv::Database pool{ channel_context.params() };
+            add_spdlog_logger_to_database(pool);
             // functions implied in 'and_then' coding-styles must return the same type
             // which limits this syntax
             /*auto exp_prefix_data = load_channels(pool, package_caches)
@@ -552,7 +553,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            load_installed_packages_in_pool(ctx, pool, prefix_data);
+            load_installed_packages_in_database(ctx, pool, prefix_data);
 
 
             auto request = create_install_request(prefix_data, specs, freeze_installed);
@@ -674,7 +675,7 @@ namespace mamba
 
     namespace
     {
-        // TransactionFunc: (MPool& pool, MultiPackageCache& package_caches) -> MTransaction
+        // TransactionFunc: (Database& pool, MultiPackageCache& package_caches) -> MTransaction
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             Context& ctx,
@@ -684,8 +685,8 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            MPool pool{ channel_context.params() };
-            add_spdlog_logger_to_pool(pool);
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
 
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
@@ -697,12 +698,12 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-            load_installed_packages_in_pool(ctx, pool, prefix_data);
+            load_installed_packages_in_database(ctx, db, prefix_data);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the pool before this line
-            auto transaction = create_transaction(pool, pkg_caches, others);
+            auto transaction = create_transaction(db, pkg_caches, others);
 
             std::vector<LockFile> lock_pkgs;
 
@@ -754,8 +755,8 @@ namespace mamba
         install_explicit_with_transaction(
             ctx,
             channel_context,
-            [&](auto& pool, auto& pkg_caches, auto& others)
-            { return create_explicit_transaction_from_urls(ctx, pool, specs, pkg_caches, others); },
+            [&](auto& db, auto& pkg_caches, auto& others)
+            { return create_explicit_transaction_from_urls(ctx, db, specs, pkg_caches, others); },
             create_env,
             remove_prefix_on_failure
         );
@@ -802,11 +803,11 @@ namespace mamba
         install_explicit_with_transaction(
             ctx,
             channel_context,
-            [&](auto& pool, auto& pkg_caches, auto& others)
+            [&](auto& db, auto& pkg_caches, auto& others)
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,
-                    pool,
+                    db,
                     file,
                     categories,
                     pkg_caches,

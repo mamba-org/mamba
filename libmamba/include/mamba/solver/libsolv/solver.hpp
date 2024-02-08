@@ -14,18 +14,20 @@
 
 namespace mamba::solver::libsolv
 {
+    class Database;
+
     class Solver
     {
     public:
 
         using Outcome = std::variant<Solution, UnSolvable>;
 
-        [[nodiscard]] auto solve(MPool& pool, Request&& request) -> expected_t<Outcome>;
-        [[nodiscard]] auto solve(MPool& pool, const Request& request) -> expected_t<Outcome>;
+        [[nodiscard]] auto solve(Database& pool, Request&& request) -> expected_t<Outcome>;
+        [[nodiscard]] auto solve(Database& pool, const Request& request) -> expected_t<Outcome>;
 
     private:
 
-        auto solve_impl(MPool& pool, const Request& request) -> expected_t<Outcome>;
+        auto solve_impl(Database& pool, const Request& request) -> expected_t<Outcome>;
     };
 }
 #endif

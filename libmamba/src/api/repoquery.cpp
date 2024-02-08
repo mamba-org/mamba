@@ -11,7 +11,9 @@
 #include "mamba/api/repoquery.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/util/string.hpp"
 
@@ -28,8 +30,8 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            MPool pool{ channel_context.params() };
-            add_spdlog_logger_to_pool(pool);
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -50,7 +52,7 @@ namespace mamba
                 }
                 PrefixData& prefix_data = exp_prefix_data.value();
 
-                load_installed_packages_in_pool(ctx, pool, prefix_data);
+                load_installed_packages_in_database(ctx, db, prefix_data);
 
                 if (format != QueryResultFormat::Json)
                 {
@@ -65,18 +67,18 @@ namespace mamba
                 {
                     Console::stream() << "Getting repodata from channels..." << std::endl;
                 }
-                auto exp_load = load_channels(ctx, channel_context, pool, package_caches);
+                auto exp_load = load_channels(ctx, channel_context, db, package_caches);
                 if (!exp_load)
                 {
                     throw std::runtime_error(exp_load.error().what());
                 }
             }
-            return pool;
+            return db;
         }
     }
 
     auto make_repoquery(
-        MPool& pool,
+        solver::libsolv::Database& db,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,
@@ -87,7 +89,7 @@ namespace mamba
     {
         if (type == QueryType::Search)
         {
-            auto res = Query::find(pool, queries);
+            auto res = Query::find(db, queries);
             switch (format)
             {
                 case QueryResultFormat::Json:
@@ -108,7 +110,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'depends'.");
             }
             auto res = Query::depends(
-                pool,
+                db,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable
@@ -135,7 +137,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'whoneeds'.");
             }
             auto res = Query::whoneeds(
-                pool,
+                db,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable
@@ -177,9 +179,9 @@ namespace mamba
     )
     {
         auto& ctx = config.context();
-        auto pool = repoquery_init(ctx, config, format, use_local);
+        auto db = repoquery_init(ctx, config, format, use_local);
         return make_repoquery(
-            pool,
+            db,
             type,
             format,
             queries,

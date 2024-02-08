@@ -18,6 +18,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/query.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
@@ -72,11 +73,11 @@ namespace mamba
             }
         };
 
-        auto pool_latest_package(MPool& pool, specs::MatchSpec spec)
+        auto database_latest_package(solver::libsolv::Database& db, specs::MatchSpec spec)
             -> std::optional<specs::PackageInfo>
         {
             auto out = std::optional<specs::PackageInfo>();
-            pool.for_each_package_matching(
+            db.for_each_package_matching(
                 spec,
                 [&](auto pkg)
                 {
@@ -96,7 +97,7 @@ namespace mamba
             using DepGraph = typename QueryResult::dependency_graph;
             using node_id = typename QueryResult::dependency_graph::node_id;
 
-            PoolWalker(MPool& pool);
+            PoolWalker(solver::libsolv::Database& db);
 
             void walk(specs::PackageInfo pkg, std::size_t max_depth);
             void walk(specs::PackageInfo pkg);
@@ -113,14 +114,14 @@ namespace mamba
             DepGraph m_graph;
             VisitedMap m_visited;
             NotFoundMap m_not_found;
-            MPool& m_pool;
+            solver::libsolv::Database& m_database;
 
             void walk_impl(node_id id, std::size_t max_depth);
             void reverse_walk_impl(node_id id);
         };
 
-        PoolWalker::PoolWalker(MPool& pool)
-            : m_pool(pool)
+        PoolWalker::PoolWalker(solver::libsolv::Database& db)
+            : m_database(db)
         {
         }
 
@@ -148,7 +149,7 @@ namespace mamba
                 // as taking any package matching a dependency recursively.
                 // Package dependencies can appear mulitple time, further reducing its valid set.
                 // To do this properly, we should instanciate a solver and resolve the spec.
-                if (auto child = pool_latest_package(m_pool, specs::MatchSpec::parse(dep)))
+                if (auto child = database_latest_package(m_database, specs::MatchSpec::parse(dep)))
                 {
                     if (auto it = m_visited.find(&(*child)); it != m_visited.cend())
                     {
@@ -185,7 +186,7 @@ namespace mamba
 
         void PoolWalker::reverse_walk_impl(node_id id)
         {
-            m_pool.for_each_package_depending_on(
+            m_database.for_each_package_depending_on(
                 specs::MatchSpec::parse(m_graph.node(id).name),
                 [&](specs::PackageInfo pkg)
                 {
@@ -210,12 +211,12 @@ namespace mamba
         }
     }
 
-    auto Query::find(MPool& mpool, const std::vector<std::string>& queries) -> QueryResult
+    auto Query::find(Database& db, const std::vector<std::string>& queries) -> QueryResult
     {
         QueryResult::dependency_graph g;
         for (const auto& query : queries)
         {
-            mpool.for_each_package_matching(
+            db.for_each_package_matching(
                 specs::MatchSpec::parse(query),
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
@@ -228,13 +229,13 @@ namespace mamba
         };
     }
 
-    auto Query::whoneeds(MPool& mpool, std::string query, bool tree) -> QueryResult
+    auto Query::whoneeds(Database& db, std::string query, bool tree) -> QueryResult
     {
         if (tree)
         {
-            if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
+            if (auto pkg = database_latest_package(db, specs::MatchSpec::parse(query)))
             {
-                auto walker = PoolWalker(mpool);
+                auto walker = PoolWalker(db);
                 walker.reverse_walk(std::move(pkg).value());
                 return { QueryType::WhoNeeds, std::move(query), std::move(walker).graph() };
             }
@@ -242,7 +243,7 @@ namespace mamba
         else
         {
             QueryResult::dependency_graph g;
-            mpool.for_each_package_depending_on(
+            db.for_each_package_depending_on(
                 specs::MatchSpec::parse(query),
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
@@ -251,11 +252,11 @@ namespace mamba
         return { QueryType::WhoNeeds, std::move(query), QueryResult::dependency_graph() };
     }
 
-    auto Query::depends(MPool& mpool, std::string query, bool tree) -> QueryResult
+    auto Query::depends(Database& db, std::string query, bool tree) -> QueryResult
     {
-        if (auto pkg = pool_latest_package(mpool, specs::MatchSpec::parse(query)))
+        if (auto pkg = database_latest_package(db, specs::MatchSpec::parse(query)))
         {
-            auto walker = PoolWalker(mpool);
+            auto walker = PoolWalker(db);
             if (tree)
             {
                 walker.walk(std::move(pkg).value());

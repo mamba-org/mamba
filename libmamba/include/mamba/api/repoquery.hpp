@@ -13,6 +13,11 @@
 
 namespace mamba
 {
+    namespace solver::libsolv
+    {
+        class DataBase;
+    }
+
     enum class QueryResultFormat
     {
         Json = 0,
@@ -23,7 +28,7 @@ namespace mamba
     };
 
     [[nodiscard]] auto make_repoquery(
-        MPool& pool,
+        solver::libsolv::Database& pool,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,

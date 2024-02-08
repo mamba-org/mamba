@@ -8,9 +8,10 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -21,7 +22,7 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            MPool& pool,
+            solver::libsolv::Database& pool,
             const fs::u8path& pkgs_dir
         ) -> solver::libsolv::RepoInfo
         {
@@ -45,7 +46,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return load_installed_packages_in_pool(ctx, pool, prefix_data);
+            return load_installed_packages_in_database(ctx, pool, prefix_data);
         }
 
         void create_subdirs(
@@ -112,7 +113,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            MPool& pool,
+            solver::libsolv::Database& pool,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -231,7 +232,7 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_pool(ctx, pool, subdir)
+                load_subdir_in_database(ctx, pool, subdir)
                     .transform([&](solver::libsolv::RepoInfo&& repo)
                                { pool.set_repo_priority(repo, priorities[i]); })
                     .or_else(
@@ -276,9 +277,12 @@ namespace mamba
         }
     }
 
-    auto
-    load_channels(Context& ctx, ChannelContext& channel_context, MPool& pool, MultiPackageCache& package_caches)
-        -> expected_t<void, mamba_aggregated_error>
+    auto load_channels(
+        Context& ctx,
+        ChannelContext& channel_context,
+        solver::libsolv::Database& pool,
+        MultiPackageCache& package_caches
+    ) -> expected_t<void, mamba_aggregated_error>
     {
         return load_channels_impl(ctx, channel_context, pool, package_caches, false);
     }

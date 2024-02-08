@@ -24,13 +24,12 @@
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/graph.hpp"
 
-namespace mamba
-{
-    class MPool;
-}
-
 namespace mamba::solver
 {
+    namespace libsolv
+    {
+        class Database;
+    }
 
     template <typename T>
     class conflict_map : private std::unordered_map<T, util::flat_set<T>>

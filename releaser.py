@@ -1,4 +1,6 @@
-# script to release any of the mamba packages
+# Script to release any of the mamba packages
+# Please refer to `update_changelog.py` for more info about the release process
+
 import copy
 import datetime
 import re

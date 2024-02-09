@@ -590,11 +590,69 @@ namespace mambapy
         py::class_<PackageInfo>(m, "PackageInfo")
             .def_static("from_url", PackageInfo::from_url)
             .def(
-                py::init<std::string, std::string, std::string, std::size_t>(),
-                py::arg("name") = "",
-                py::arg("version") = "",
-                py::arg("build_string") = "",
-                py::arg("build_number") = 0
+                py::init(
+                    [](decltype(PackageInfo::name) name,
+                       decltype(PackageInfo::version) version,
+                       decltype(PackageInfo::build_string) build_string,
+                       decltype(PackageInfo::build_number) build_number,
+                       decltype(PackageInfo::channel) channel,
+                       decltype(PackageInfo::package_url) package_url,
+                       decltype(PackageInfo::subdir) subdir,
+                       decltype(PackageInfo::filename) filename,
+                       decltype(PackageInfo::license) license,
+                       decltype(PackageInfo::md5) md5,
+                       decltype(PackageInfo::sha256) sha256,
+                       decltype(PackageInfo::signatures) signatures,
+                       decltype(PackageInfo::track_features) track_features,
+                       decltype(PackageInfo::depends) depends,
+                       decltype(PackageInfo::constrains) constrains,
+                       decltype(PackageInfo::defaulted_keys) defaulted_keys,
+                       decltype(PackageInfo::noarch) noarch,
+                       decltype(PackageInfo::size) size,
+                       decltype(PackageInfo::timestamp) timestamp) -> PackageInfo
+                    {
+                        auto pkg = PackageInfo();
+                        pkg.name = std::move(name);
+                        pkg.version = std::move(version);
+                        pkg.build_string = std::move(build_string);
+                        pkg.build_number = std::move(build_number);
+                        pkg.channel = channel;
+                        pkg.package_url = package_url;
+                        pkg.subdir = subdir;
+                        pkg.filename = filename;
+                        pkg.license = license;
+                        pkg.md5 = md5;
+                        pkg.sha256 = sha256;
+                        pkg.signatures = signatures;
+                        pkg.track_features = track_features;
+                        pkg.depends = depends;
+                        pkg.constrains = constrains;
+                        pkg.defaulted_keys = defaulted_keys;
+                        pkg.noarch = noarch;
+                        pkg.size = size;
+                        pkg.timestamp = timestamp;
+                        return pkg;
+                    }
+                ),
+                py::arg("name") = decltype(PackageInfo::name)(),
+                py::arg("version") = decltype(PackageInfo::version)(),
+                py::arg("build_string") = decltype(PackageInfo::build_string)(),
+                py::arg("build_number") = decltype(PackageInfo::build_number)(),
+                py::arg("channel") = decltype(PackageInfo::channel)(),
+                py::arg("package_url") = decltype(PackageInfo::package_url)(),
+                py::arg("subdir") = decltype(PackageInfo::subdir)(),
+                py::arg("filename") = decltype(PackageInfo::filename)(),
+                py::arg("license") = decltype(PackageInfo::license)(),
+                py::arg("md5") = decltype(PackageInfo::md5)(),
+                py::arg("sha256") = decltype(PackageInfo::sha256)(),
+                py::arg("signatures") = decltype(PackageInfo::signatures)(),
+                py::arg("track_features") = decltype(PackageInfo::track_features)(),
+                py::arg("depends") = decltype(PackageInfo::depends)(),
+                py::arg("constrains") = decltype(PackageInfo::constrains)(),
+                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys)(),
+                py::arg("noarch") = decltype(PackageInfo::noarch)(),
+                py::arg("size") = decltype(PackageInfo::size)(),
+                py::arg("timestamp") = decltype(PackageInfo::timestamp)()
             )
             .def_readwrite("name", &PackageInfo::name)
             .def_readwrite("version", &PackageInfo::version)

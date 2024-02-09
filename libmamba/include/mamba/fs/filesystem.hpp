@@ -87,6 +87,9 @@ namespace mamba::fs
     {
     public:
 
+        using value_type = char;
+        using string_type = std::basic_string<value_type>;
+
         u8path() = default;
 
         // Copy is allowed.
@@ -301,6 +304,12 @@ namespace mamba::fs
         std::string string() const
         {
             return to_utf8(m_path);
+        }
+
+        // Returns a default encoded string.
+        decltype(auto) native() const
+        {
+            return m_path.native();
         }
 
         // Returns an utf-8 string.

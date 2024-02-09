@@ -1,7 +1,10 @@
 import copy
+import json
+import itertools
 
 import pytest
 
+import libmambapy
 import libmambapy.solver.libsolv as libsolv
 
 
@@ -103,3 +106,126 @@ def test_RepodataOrigin():
     other = copy.deepcopy(orig)
     assert other is not orig
     assert other == orig
+
+
+@pytest.mark.parametrize("add_pip_as_python_dependency", [True, False])
+def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency):
+    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+    assert db.repo_count() == 0
+    assert db.installed_repo() is None
+    assert db.package_count() == 0
+
+    repo = db.add_repo_from_packages(
+        [libmambapy.specs.PackageInfo(name="python")],
+        name="duck",
+        add_pip_as_python_dependency=add_pip_as_python_dependency,
+    )
+    db.set_installed_repo(repo)
+
+    assert repo.id > 0
+    assert repo.name == "duck"
+    assert repo.priority == libsolv.Priorities()
+    assert repo.package_count() == 1
+    assert db.repo_count() == 1
+    assert db.package_count() == 1
+    assert db.installed_repo() == repo
+
+    new_priority = libsolv.Priorities(2, 3)
+    db.set_repo_priority(repo, new_priority)
+    assert repo.priority == new_priority
+
+    pkgs = db.packages_in_repo(repo)
+    assert len(pkgs) == 1
+    assert pkgs[0].name == "python"
+    assert pkgs[0].depends == [] if add_pip_as_python_dependency else ["pip"]
+
+    db.remove_repo(repo)
+    assert db.repo_count() == 0
+    assert db.package_count() == 0
+    assert db.installed_repo() is None
+
+
+@pytest.fixture
+def tmp_repodata_json(tmp_path):
+    file = tmp_path / "repodata.json"
+    with open(file, "w+") as f:
+        json.dump(
+            {
+                "packages": {
+                    "python-1.0-bld": {
+                        "name": "python",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                    },
+                },
+                "packages.conda": {
+                    "foo-1.0-bld": {
+                        "name": "foo",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                    }
+                },
+            },
+            f,
+        )
+    return file
+
+
+@pytest.mark.parametrize(
+    ["add_pip_as_python_dependency", "use_only_tar_bz2", "repodata_parser"],
+    itertools.product([True, False], [True, False], ["Mamba", "Libsolv"]),
+)
+def test_Database_RepoInfo_from_repodata(
+    tmp_path, tmp_repodata_json, add_pip_as_python_dependency, use_only_tar_bz2, repodata_parser
+):
+    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+
+    url = "https://repo.mamba.pm"
+
+    # Json
+    repo = db.add_repo_from_repodata_json(
+        path=tmp_repodata_json,
+        url=url,
+        add_pip_as_python_dependency=add_pip_as_python_dependency,
+        use_only_tar_bz2=use_only_tar_bz2,
+        repodata_parser=repodata_parser,
+    )
+    db.set_installed_repo(repo)
+
+    assert repo.package_count() == 1 if use_only_tar_bz2 else 2
+    assert db.package_count() == repo.package_count()
+
+    pkgs = db.packages_in_repo(repo)
+    assert len(pkgs) == repo.package_count()
+    assert pkgs[0].name == "python"
+    assert pkgs[0].depends == [] if add_pip_as_python_dependency else ["pip"]
+
+    # Native serialize repo
+    solv_file = tmp_path / "repodata.solv"
+
+    origin = libsolv.RepodataOrigin(url=url)
+    repo_saved = db.native_serialize_repo(repo, path=solv_file, metadata=origin)
+    assert repo_saved == repo
+
+    # Native deserialize repo
+    db.remove_repo(repo)
+    assert db.package_count() == 0
+
+    repo_loaded = db.add_repo_from_native_serialization(
+        path=solv_file, expected=origin, add_pip_as_python_dependency=add_pip_as_python_dependency
+    )
+    assert repo_loaded.package_count() == 1 if use_only_tar_bz2 else 2
+
+
+def test_Database_RepoInfo_from_repodata_error():
+    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+
+    with pytest.raises(libmambapy.MambaNativeException, match=r"[/\\]does[/\\]not[/\\]exists"):
+        db.add_repo_from_repodata_json(path="/does/not/exists", url="https://repo..mamba.pm")
+
+    with pytest.raises(libmambapy.MambaNativeException, match=r"[/\\]does[/\\]not[/\\]exists"):
+        db.add_repo_from_native_serialization(
+            path="/does/not/exists", expected=libsolv.RepodataOrigin()
+        )

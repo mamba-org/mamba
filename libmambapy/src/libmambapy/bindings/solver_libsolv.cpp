@@ -16,6 +16,7 @@
 
 #include "bindings.hpp"
 #include "expected_caster.hpp"
+#include "path_caster.hpp"
 #include "utils.hpp"
 
 namespace mambapy
@@ -98,14 +99,108 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<RepodataOrigin>, py::arg("memo"));
 
         py::class_<RepoInfo>(m, "RepoInfo")
-            .def("id", &RepoInfo::id)
-            .def("name", &RepoInfo::name)
-            .def("priority", &RepoInfo::priority)
+            .def_property_readonly("id", &RepoInfo::id)
+            .def_property_readonly("name", &RepoInfo::name)
+            .def_property_readonly("priority", &RepoInfo::priority)
             .def("package_count", &RepoInfo::package_count)
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<RepoInfo>)
             .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
+
+        py::class_<Database>(m, "Database")
+            .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
+            .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
+            .def(
+                "add_repo_from_repodata_json",
+                &Database::add_repo_from_repodata_json,
+                py::arg("path"),
+                py::arg("url"),
+                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
+                py::arg("use_only_tar_bz2") = UseOnlyTarBz2::No,
+                py::arg("repodata_parser") = RepodataParser::Mamba
+            )
+            .def(
+                "add_repo_from_native_serialization",
+                &Database::add_repo_from_native_serialization,
+                py::arg("path"),
+                py::arg("expected"),
+                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No
+            )
+            .def(
+                "add_repo_from_packages",
+                [](Database& db, py::iterable packages, std::string_view name, PipAsPythonDependency add)
+                {
+                    // TODO(C++20): No need to copy in a vector, simply transform the input range.
+                    auto pkg_infos = std::vector<specs::PackageInfo>();
+                    for (py::handle pkg : packages)
+                    {
+                        pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
+                    }
+                    return db.add_repo_from_packages(pkg_infos, name, add);
+                },
+                py::arg("packages"),
+                py::arg("name") = "",
+                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No
+            )
+            .def(
+                "native_serialize_repo",
+                &Database::native_serialize_repo,
+                py::arg("repo"),
+                py::arg("path"),
+                py::arg("metadata")
+            )
+            .def("set_installed_repo", &Database::set_installed_repo, py::arg("repo"))
+            .def("installed_repo", &Database::installed_repo)
+            .def("set_repo_priority", &Database::set_repo_priority, py::arg("repo"), py::arg("priorities"))
+            .def("remove_repo", &Database::remove_repo, py::arg("repo"))
+            .def("repo_count", &Database::repo_count)
+            .def("package_count", &Database::package_count)
+            .def(
+                "packages_in_repo",
+                [](const Database& db, RepoInfo repo)
+                {
+                    // TODO(C++20): When Database function are refactored to use range, take the
+                    // opportunity here to make a Python iterator to avoid large alloc.
+                    auto out = py::list();
+                    db.for_each_package_in_repo(
+                        repo,
+                        [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
+                    );
+                    return out;
+                },
+                py::arg("repo")
+            )
+            .def(
+                "packages_matching",
+                [](Database& db, const specs::MatchSpec& ms)
+                {
+                    // TODO(C++20): When Database function are refactored to use range, take the
+                    // opportunity here to make a Python iterator to avoid large alloc.
+                    auto out = py::list();
+                    db.for_each_package_matching(
+                        ms,
+                        [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
+                    );
+                    return out;
+                },
+                py::arg("spec")
+            )
+            .def(
+                "packages_depending_on",
+                [](Database& db, const specs::MatchSpec& ms)
+                {
+                    // TODO(C++20): When Database function are refactored to use range, take the
+                    // opportunity here to make a Python iterator to avoid large alloc.
+                    auto out = py::list();
+                    db.for_each_package_depending_on(
+                        ms,
+                        [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
+                    );
+                    return out;
+                },
+                py::arg("spec")
+            );
 
         py::class_<UnSolvable>(m, "UnSolvable")
             .def("problems", &UnSolvable::problems)

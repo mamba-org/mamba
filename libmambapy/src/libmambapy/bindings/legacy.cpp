@@ -31,8 +31,6 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -40,6 +38,7 @@
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
+#include "path_caster.hpp"
 #include "utils.hpp"
 
 namespace py = pybind11;
@@ -247,10 +246,28 @@ bind_submodule_impl(pybind11::module_ m)
             throw std::runtime_error(  //
                 "Use Pool.add_repo_from_repodata_json or Pool.add_repo_from_native_serialization"
                 " instead and cache with Pool.native_serialize_repo."
-                " Also consider load_subdir_in_pool for a high_level function to load"
-                " subdir index and manage cache, and load_installed_packages_in_pool for loading"
-                " prefix packages."
-                "The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+                " Also consider load_subdir_in_database for a high_level function to load"
+                " subdir index and manage cache, and load_installed_packages_in_database for"
+                " loading prefix packages."
+                " The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+            );
+        }
+    ));
+
+    struct PoolV2Migrator
+    {
+    };
+
+    py::class_<PoolV2Migrator>(m, "Pool").def(py::init(
+        [](py::args, py::kwargs) -> PoolV2Migrator
+        {
+            throw std::runtime_error(  //
+                "libmambapy.Pool has been moved to libmambapy.solver.libsolv.Database."
+                " The database contains functions to directly load packages, from a list or a"
+                " repodata.json."
+                " High level functions such as libmambapy.load_subdir_in_database and"
+                " libmambapy.load_installed_packages_in_database are also available to work"
+                " with other Mamba objects and Context parameters."
             );
         }
     ));
@@ -380,76 +397,19 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
-    py::class_<solver::libsolv::Database>(m, "Pool")
-        .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
-        .def(
-            "set_logger",
-            &solver::libsolv::Database::set_logger,
-            py::call_guard<py::gil_scoped_acquire>()
-        )
-        .def(
-            "add_repo_from_repodata_json",
-            &solver::libsolv::Database::add_repo_from_repodata_json,
-            py::arg("path"),
-            py::arg("url"),
-            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
-            py::arg("use_only_tar_bz2") = solver::libsolv::UseOnlyTarBz2::No,
-            py::arg("repodata_parsers") = solver::libsolv::RepodataParser::Mamba
-        )
-        .def(
-            "add_repo_from_native_serialization",
-            &solver::libsolv::Database::add_repo_from_native_serialization,
-            py::arg("path"),
-            py::arg("expected"),
-            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
-        )
-        .def(
-            "add_repo_from_packages",
-            [](solver::libsolv::Database& db,
-               py::iterable packages,
-               std::string_view name,
-               solver::libsolv::PipAsPythonDependency add)
-            {
-                // TODO(C++20): No need to copy in a vector, simply transform the input range.
-                auto pkg_infos = std::vector<specs::PackageInfo>();
-                for (py::handle pkg : packages)
-                {
-                    pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
-                }
-                return db.add_repo_from_packages(pkg_infos, name, add);
-            },
-            py::arg("packages"),
-            py::arg("name") = "",
-            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
-        )
-        .def(
-            "native_serialize_repo",
-            &solver::libsolv::Database::native_serialize_repo,
-            py::arg("repo"),
-            py::arg("path"),
-            py::arg("metadata")
-        )
-        .def("set_installed_repo", &solver::libsolv::Database::set_installed_repo, py::arg("repo"))
-        .def(
-            "set_repo_priority",
-            &solver::libsolv::Database::set_repo_priority,
-            py::arg("repo"),
-            py::arg("priorities")
-        );
-
     m.def(
-        "load_subdir_in_pool",
+        "load_subdir_in_database",
         &load_subdir_in_database,
         py::arg("context"),
-        py::arg("pool"),
+        py::arg("database"),
         py::arg("subdir")
     );
 
     m.def(
-        "load_installed_packages_in_pool",
+        "load_installed_packages_in_database",
         &load_installed_packages_in_database,
         py::arg("context"),
-        py::arg("pool"),
+        py::arg("database"),
         py::arg("prefix_data")
     );
 
@@ -534,7 +494,7 @@ bind_submodule_impl(pybind11::module_ m)
             "create_repo",
             [](SubdirData& subdir, solver::libsolv::Database& db) -> solver::libsolv::RepoInfo
             {
-                deprecated("Use `load_subdir_in_pool` instead", "2.0");
+                deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
                 return extract(load_subdir_in_database(mambapy::singletons.context(), db, subdir));
             }
         )

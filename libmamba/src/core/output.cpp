@@ -557,7 +557,7 @@ namespace mamba
 
     MessageLogger::~MessageLogger()
     {
-        if (!MessageLoggerData::use_buffer)
+        if (!MessageLoggerData::use_buffer && Console::is_available())
         {
             emit(m_stream.str(), m_level);
         }

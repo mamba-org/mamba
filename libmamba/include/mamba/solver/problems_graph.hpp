@@ -62,8 +62,21 @@ namespace mamba::solver
 
     private:
 
+        auto base() const -> const Base&;
+
         auto remove_asym(const key_type& a, const key_type& b) -> bool;
+
+        template <typename TT>
+        friend auto operator==(const conflict_map<TT>& lhs, const conflict_map<TT>& rhs) -> bool;
+        template <typename TT>
+        friend auto operator!=(const conflict_map<TT>& lhs, const conflict_map<TT>& rhs) -> bool;
     };
+
+    template <typename T>
+    auto operator==(const conflict_map<T>& lhs, const conflict_map<T>& rhs) -> bool;
+
+    template <typename T>
+    auto operator!=(const conflict_map<T>& lhs, const conflict_map<T>& rhs) -> bool;
 
     /**
      * A directed graph of the packages involved in a libsolv conflict.
@@ -314,6 +327,12 @@ namespace mamba::solver
     }
 
     template <typename T>
+    auto conflict_map<T>::base() const -> const Base&
+    {
+        return static_cast<const Base&>(*this);
+    }
+
+    template <typename T>
     auto conflict_map<T>::remove_asym(const key_type& a, const key_type& b) -> bool
     {
         auto iter = Base::find(a);
@@ -355,6 +374,18 @@ namespace mamba::solver
         return true;
     }
 
+    template <typename T>
+    auto operator==(const conflict_map<T>& lhs, const conflict_map<T>& rhs) -> bool
+    {
+        return lhs.base() == rhs.base();
+    }
+
+    template <typename T>
+    auto operator!=(const conflict_map<T>& lhs, const conflict_map<T>& rhs) -> bool
+    {
+        return !(lhs == rhs);
+    }
+
     /*********************************
      *  Implementation of NamedList  *
      *********************************/
@@ -369,5 +400,4 @@ namespace mamba::solver
         }
     }
 }
-
-#endif  // MAMBA_PROBLEMS_GRAPH_HPP
+#endif

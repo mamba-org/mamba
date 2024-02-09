@@ -3,7 +3,7 @@ import copy
 
 import pytest
 
-import libmambapy.solver
+import libmambapy
 
 
 def test_import_submodule():
@@ -193,3 +193,49 @@ def test_Solution():
     other = copy.deepcopy(sol)
     assert other is not sol
     assert len(other.actions) == len(sol.actions)
+
+
+def test_ProblemsGraph():
+    # Create a ProblemsGraph
+    db = libmambapy.solver.libsolv.Database(libmambapy.specs.ChannelResolveParams())
+    db.add_repo_from_packages(
+        [
+            libmambapy.specs.PackageInfo(name="a", version="1.0", depends=["b>=2.0", "c>=2.1"]),
+            libmambapy.specs.PackageInfo(name="b", version="2.0", depends=["c<2.0"]),
+            libmambapy.specs.PackageInfo(name="c", version="1.0"),
+            libmambapy.specs.PackageInfo(name="c", version="3.0"),
+        ],
+    )
+
+    request = libmambapy.solver.Request(
+        [libmambapy.solver.Request.Install(libmambapy.specs.MatchSpec.parse("a"))]
+    )
+
+    outcome = libmambapy.solver.libsolv.Solver().solve(db, request)
+
+    assert isinstance(outcome, libmambapy.solver.libsolv.UnSolvable)
+    pbg = outcome.problems_graph(db)
+
+    # ProblemsGraph conflicts
+    conflicts = pbg.conflicts()
+    assert len(conflicts) == 2
+    assert len(list(conflicts)) == 2
+    node, in_conflict = next(iter(conflicts))
+    assert conflicts.has_conflict(node)
+    for other in in_conflict:
+        assert conflicts.in_conflict(node, other)
+
+    other_conflicts = copy.deepcopy(conflicts)
+    assert other_conflicts is not conflicts
+    assert other_conflicts == conflicts
+
+    other_conflicts.clear()
+    assert len(other_conflicts) == 0
+
+    other_conflicts.add(7, 42)
+    assert other_conflicts.in_conflict(7, 42)
+
+    # ProblemsGraph graph
+    nodes, edges = pbg.graph()
+    assert len(nodes) > 0
+    assert len(edges) > 0

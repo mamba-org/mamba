@@ -12,6 +12,7 @@
 #include "mamba/solver/solution.hpp"
 
 #include "bindings.hpp"
+#include "flat_set_caster.hpp"
 #include "utils.hpp"
 
 namespace mamba::solver
@@ -356,7 +357,12 @@ namespace mambapy
             .def("conflicts", &ProblemsGraph::conflicts_t::conflicts)
             .def("in_conflict", &ProblemsGraph::conflicts_t::in_conflict)
             .def("clear", [](ProblemsGraph::conflicts_t& self) { return self.clear(); })
-            .def("add", &ProblemsGraph::conflicts_t::add);
+            .def("add", &ProblemsGraph::conflicts_t::add)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<ProblemsGraph::conflicts_t>)
+            .def("__deepcopy__", &deepcopy<ProblemsGraph::conflicts_t>, py::arg("memo"));
+
 
         py_problems_graph.def("root_node", &ProblemsGraph::root_node)
             .def("conflicts", &ProblemsGraph::conflicts)

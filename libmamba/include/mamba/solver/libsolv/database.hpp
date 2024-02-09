@@ -109,6 +109,10 @@ namespace mamba::solver::libsolv
 
         void remove_repo(RepoInfo repo);
 
+        [[nodiscard]] auto repo_count() const -> std::size_t;
+
+        [[nodiscard]] auto package_count() const -> std::size_t;
+
         template <typename Func>
         void for_each_package_in_repo(RepoInfo repo, Func&&) const;
 

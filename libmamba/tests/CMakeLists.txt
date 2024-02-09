@@ -48,7 +48,11 @@ set(
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
     # Solver tests
+    src/solver/test_request.cpp
+    src/solver/test_solution.cpp
     src/solver/test_problems_graph.cpp
+    # Solver libsolv implementation tests
+    src/solver/libsolv/test_database.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
@@ -103,7 +107,16 @@ target_link_libraries(
 )
 
 # Copy data directory into binary dir to avoid modifications
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+add_custom_target(
+    test_libmamba_data
+    COMMENT "Copying libmamba tests data"
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/data"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/data"
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        "${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+add_dependencies(test_libmamba test_libmamba_data)
 
 target_compile_definitions(
     test_libmamba

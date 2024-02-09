@@ -30,11 +30,6 @@ namespace mamba
         class PackageInfo;
     }
 
-    namespace solver::libsolv
-    {
-        class DataBase;
-    }
-
     void install(Configuration& config);
 
     void install_specs(

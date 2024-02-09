@@ -238,6 +238,16 @@ namespace mamba::solver::libsolv
         pool().remove_repo(repo.id(), /* reuse_ids= */ true);
     }
 
+    auto Database::repo_count() const -> std::size_t
+    {
+        return pool().repo_count();
+    }
+
+    auto Database::package_count() const -> std::size_t
+    {
+        return pool().solvable_count();
+    }
+
     auto Database::installed_repo() const -> std::optional<RepoInfo>
     {
         if (auto repo = pool().installed_repo())

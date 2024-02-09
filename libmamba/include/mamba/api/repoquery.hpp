@@ -13,11 +13,6 @@
 
 namespace mamba
 {
-    namespace solver::libsolv
-    {
-        class DataBase;
-    }
-
     enum class QueryResultFormat
     {
         Json = 0,

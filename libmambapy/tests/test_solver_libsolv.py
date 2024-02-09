@@ -229,3 +229,40 @@ def test_Database_RepoInfo_from_repodata_error():
         db.add_repo_from_native_serialization(
             path="/does/not/exists", expected=libsolv.RepodataOrigin()
         )
+
+
+def test_Solver_UnSolvable():
+    Request = libmambapy.solver.Request
+
+    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+
+    request = Request([Request.Install(libmambapy.specs.MatchSpec.parse("a>1.0"))])
+
+    solver = libsolv.Solver()
+    outcome = solver.solve(db, request)
+
+    assert isinstance(outcome, libsolv.UnSolvable)
+    assert "nothing provides" in "\n".join(outcome.problems(db))
+    assert "nothing provides" in outcome.problems_to_str(db)
+    assert "nothing provides" in outcome.all_problems_to_str(db)
+    assert "The following package could not be installed" in outcome.explain_problems(
+        db, libmambapy.Palette.no_color()
+    )
+    assert outcome.problems_graph(db).graph() is not None
+
+
+def test_Solver_Solution():
+    Request = libmambapy.solver.Request
+
+    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+    db.add_repo_from_packages(
+        [libmambapy.specs.PackageInfo(name="foo")],
+    )
+
+    request = Request([Request.Install(libmambapy.specs.MatchSpec.parse("foo"))])
+
+    solver = libsolv.Solver()
+    outcome = solver.solve(db, request)
+
+    assert isinstance(outcome, libmambapy.solver.Solution)
+    assert len(outcome.actions) == 1

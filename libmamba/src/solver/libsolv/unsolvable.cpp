@@ -41,9 +41,9 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
-    auto UnSolvable::problems(Database& mpool) const -> std::vector<std::string>
+    auto UnSolvable::problems(Database& db) const -> std::vector<std::string>
     {
-        auto& pool = Database::Impl::get(mpool);
+        auto& pool = Database::Impl::get(db);
         std::vector<std::string> problems;
         solver().for_each_problem_id([&](solv::ProblemId pb)
                                      { problems.emplace_back(solver().problem_to_string(pool, pb)); }
@@ -51,9 +51,9 @@ namespace mamba::solver::libsolv
         return problems;
     }
 
-    auto UnSolvable::problems_to_str(Database& mpool) const -> std::string
+    auto UnSolvable::problems_to_str(Database& db) const -> std::string
     {
-        auto& pool = Database::Impl::get(mpool);
+        auto& pool = Database::Impl::get(db);
         std::stringstream problems;
         problems << "Encountered problems while solving:\n";
         solver().for_each_problem_id(
@@ -63,9 +63,9 @@ namespace mamba::solver::libsolv
         return problems.str();
     }
 
-    auto UnSolvable::all_problems_to_str(Database& mpool) const -> std::string
+    auto UnSolvable::all_problems_to_str(Database& db) const -> std::string
     {
-        auto& pool = Database::Impl::get(mpool);
+        auto& pool = Database::Impl::get(db);
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)

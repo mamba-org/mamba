@@ -25,7 +25,7 @@ dependencies:
   - pytest >=7.3
   - pyyaml
   - boltons
-  - conda >=23.11.0
+  - conda >=24.1.0
   - conda-content-trust
   - cryptography<40.0  # Or breaks conda-content-trust
   - pip:

@@ -188,7 +188,7 @@ namespace mamba::validation::v0_6
     }
 
     auto RootImpl::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -352,7 +352,7 @@ namespace mamba::validation::v0_6
     }
 
     auto KeyMgrRole::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -589,7 +589,12 @@ namespace mamba::validation::v0_6
 
     auto PkgMgrRole::pkg_signatures(const nlohmann::json& j) const -> std::set<RoleSignature>
     {
-        auto sigs = j.get<std::map<std::string, std::map<std::string, std::string>>>();
+        // Libsolv's `repodata.json` parsing returns the signatures alongside other package info
+        // But, we are here only interested in the signatures
+        // In the case of parsing using mamba/simdjson, the solvable signatures are set to have the
+        // same format
+        auto j_sig = j["signatures"];
+        auto sigs = j_sig.get<std::map<std::string, std::map<std::string, std::string>>>();
         std::set<RoleSignature> unique_sigs;
 
         for (auto& s : sigs)

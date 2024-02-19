@@ -56,6 +56,7 @@ namespace solv
         auto md5() const -> std::string_view;
         auto noarch() const -> std::string_view;
         auto sha256() const -> std::string_view;
+        auto signatures() const -> std::string_view;
         auto size() const -> std::size_t;
         auto timestamp() const -> std::size_t;
 
@@ -190,7 +191,7 @@ namespace solv
         void set_noarch(const std::string& str) const;
 
         /**
-         * Set the sha256 has of the solvable file..
+         * Set the sha256 hash of the solvable file.
          *
          * This is not used by libsolv and is purely for data storing.
          *
@@ -199,6 +200,12 @@ namespace solv
          */
         void set_sha256(raw_str_view str) const;
         void set_sha256(const std::string& str) const;
+
+        /**
+         * Set the signatures of the solvable file.
+         */
+        void set_signatures(raw_str_view str) const;
+        void set_signatures(const std::string& str) const;
 
         /**
          * Set the size of the solvable size.

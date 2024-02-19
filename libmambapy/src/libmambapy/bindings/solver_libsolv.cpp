@@ -119,6 +119,7 @@ namespace mambapy
                 py::arg("channel_id"),
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
                 py::arg("use_only_tar_bz2") = UseOnlyTarBz2::No,
+                py::arg("verify_packages") = false,
                 py::arg("repodata_parser") = RepodataParser::Mamba
             )
             .def(

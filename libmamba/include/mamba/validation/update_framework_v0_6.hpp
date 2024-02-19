@@ -74,7 +74,7 @@ namespace mamba::validation::v0_6
          * Return a ``RepoIndexChecker`` implementation (derived class) from repository base URL.
          */
         auto build_index_checker(
-            Context& context,
+            const Context& context,
             const TimeRef& time_reference,
             const std::string& url,
             const fs::u8path& cache_path
@@ -131,7 +131,7 @@ namespace mamba::validation::v0_6
          * Return a ``RepoIndexChecker`` implementation (derived class) from repository base URL.
          */
         auto build_index_checker(
-            Context& context,
+            const Context& context,
             const TimeRef& time_reference,
             const std::string& url,
             const fs::u8path& cache_path

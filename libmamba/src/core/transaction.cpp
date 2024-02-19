@@ -24,6 +24,7 @@
 #include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
+#include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -568,7 +569,7 @@ namespace mamba
         {
             FetcherList fetchers;
 
-            if (ctx.experimental && ctx.validation_params.verify_artifacts)
+            if (ctx.validation_params.verify_artifacts)
             {
                 LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
             }
@@ -576,46 +577,32 @@ namespace mamba
                 solution.actions,
                 [&](const auto& pkg)
                 {
-                    // The following was used for the The Update Framework (TUF) / package signing
-                    // proof of concept.
-                    //
-                    // Due to uncertainties on how TUF would be implemented, this was left commented
-                    // out as in was getting in the way of the Channel refactoring.
-
-                    // In channel.cpp, repo-checkers were instanciated with the folowing:
-                    // const validation::RepoChecker&
-                    //    Channel::repo_checker(Context& context, MultiPackageCache& caches) const
-                    //    {
-                    //        if (p_repo_checker == nullptr)
-                    //        {
-                    //            p_repo_checker = std::make_unique<validation::RepoChecker>(
-                    //                context,
-                    //                util::rsplit(base_url(), "/", 1).front(),
-                    //                context.prefix_params.root_prefix / "etc" / "trusted-repos"
-                    //                    / util::cache_name_from_url(base_url()),
-                    //                caches.first_writable_path() / "cache" /
-                    //                util::cache_name_from_url(base_url())
-                    //            );
-                    //
-                    //            fs::create_directories(p_repo_checker->cache_path());
-                    //            p_repo_checker->generate_index_checker();
-                    //        }
-                    //
-                    //        return *p_repo_checker;
-                    //    }
-
-                    // Here, the repo-checker would be fetched the following way:
-                    // if (ctx.experimental && ctx.validation_params.verify_artifacts)
-                    // {
-                    //     const auto& repo_checker = channel_context.make_channel(pkg.channel)
-                    //                                    .repo_checker(ctx, multi_cache);
-                    //     repo_checker.verify_package(
-                    //         pkg.json_signable(),
-                    //         nlohmann::json::parse(pkg.signatures)
-                    //     );
-                    //
-                    //     LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
-                    // }
+                    if (ctx.validation_params.verify_artifacts)
+                    {
+                        LOG_INFO << "Creating RepoChecker...";
+                        auto repo_checker_store = RepoCheckerStore::make(
+                            ctx,
+                            channel_context,
+                            multi_cache
+                        );
+                        for (auto& chan : channel_context.make_channel(pkg.channel))
+                        {
+                            auto repo_checker = repo_checker_store.find_checker(chan);
+                            if (repo_checker)
+                            {
+                                LOG_INFO << "RepoChecker successfully created.";
+                                repo_checker->verify_package(
+                                    pkg.json_signable(),
+                                    std::string_view(pkg.signatures)
+                                );
+                            }
+                            else
+                            {
+                                LOG_ERROR << "Could not create a valid RepoChecker.";
+                            }
+                        }
+                        LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
+                    }
 
                     // FIXME: only do this for micromamba for now
                     if (ctx.command_params.is_micromamba)
@@ -643,7 +630,7 @@ namespace mamba
                 }
             );
 
-            if (ctx.experimental && ctx.validation_params.verify_artifacts)
+            if (ctx.validation_params.verify_artifacts)
             {
                 auto out = Console::stream();
                 fmt::print(

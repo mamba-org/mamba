@@ -1224,9 +1224,14 @@ namespace mamba
 
         insert(Configurable("experimental_repodata_parsing", &m_context.experimental_repodata_parsing)
                    .group("Basic")
-                   .description("Enable experimental parsing of repodata.json using nl::json")
+                   .description(  //
+                       "Enable experimental parsing of `repodata.json` using simdjson.\n"
+                       "Default is `true`. `false` means libsolv is used.\n"
+                       "This feature may be still under active development and not stable yet.\n"
+                   )
                    .set_rc_configurable()
-                   .set_env_var_names());
+                   .set_env_var_names()
+                   .set_post_merge_hook(detail::experimental_hook));
 
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")

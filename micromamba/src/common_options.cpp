@@ -434,6 +434,13 @@ init_install_options(CLI::App* subcom, Configuration& config)
     auto& av = config.at("verify_artifacts");
     subcom->add_flag("--verify-artifacts", av.get_cli_config<bool>(), av.description());
 
+    auto& repo_parsing = config.at("experimental_repodata_parsing");
+    subcom->add_flag(
+        "--exp-repodata-parsing, !--no-exp-repodata-parsing",
+        repo_parsing.get_cli_config<bool>(),
+        repo_parsing.description()
+    );
+
     auto& platform = config.at("platform");
     subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
 

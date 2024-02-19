@@ -281,6 +281,26 @@ namespace solv
         return set_sha256(str.c_str());
     }
 
+    auto ObjSolvableViewConst::signatures() const -> std::string_view
+    {
+        // NOTE This returns the package signatures json object alongside other package info
+        // in the following format:
+        // {"info":{},"signatures":{"public_key":{"signature":"metadata_signature"}}}
+        return ptr_to_strview(
+            ::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_SIGNATUREDATA)
+        );
+    }
+
+    void ObjSolvableView::set_signatures(raw_str_view str) const
+    {
+        ::solvable_set_str(raw(), SOLVABLE_SIGNATUREDATA, str);
+    }
+
+    void ObjSolvableView::set_signatures(const std::string& str) const
+    {
+        return set_signatures(str.c_str());
+    }
+
     auto ObjSolvableViewConst::size() const -> std::size_t
     {
         return ::solvable_lookup_num(const_cast<::Solvable*>(raw()), SOLVABLE_DOWNLOADSIZE, 0);

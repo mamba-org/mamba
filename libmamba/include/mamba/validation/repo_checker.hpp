@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -41,14 +42,23 @@ namespace mamba::validation
          * @param ref_path Path to the reference directory, hosting trusted root metadata
          * @param cache_path Path to the cache directory
          */
-        RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path = "");
+        RepoChecker(
+            const Context& context,
+            std::string base_url,
+            fs::u8path ref_path,
+            fs::u8path cache_path = ""
+        );
+        RepoChecker(RepoChecker&&) noexcept;
         ~RepoChecker();
+
+        auto operator=(RepoChecker&&) noexcept -> RepoChecker&;
 
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const nlohmann::json& j) const;
         void verify_index(const fs::u8path& p) const;
         void
         verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const;
+        void verify_package(const nlohmann::json& signed_data, std::string_view signatures) const;
 
         void generate_index_checker();
 
@@ -58,19 +68,20 @@ namespace mamba::validation
 
     private:
 
+        std::unique_ptr<RepoIndexChecker> p_index_checker;
+        std::reference_wrapper<const Context> m_context;
+
         std::string m_base_url;
-        std::size_t m_root_version = 0;
         fs::u8path m_ref_path;
         fs::u8path m_cache_path;
-        Context& m_context;
+
+        std::size_t m_root_version;
 
         auto initial_trusted_root() -> fs::u8path;
         auto ref_root() -> fs::u8path;
         auto cached_root() -> fs::u8path;
 
         void persist_file(const fs::u8path& file_path);
-
-        std::unique_ptr<RepoIndexChecker> p_index_checker;
 
         auto get_root_role(const TimeRef& time_reference) -> std::unique_ptr<RootRole>;
     };

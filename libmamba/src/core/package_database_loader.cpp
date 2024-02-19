@@ -100,6 +100,7 @@ namespace mamba
                         subdir.channel_id(),
                         add_pip,
                         static_cast<solver::libsolv::UseOnlyTarBz2>(ctx.use_only_tar_bz2),
+                        ctx.validation_params.verify_artifacts,
                         json_parser
                     );
                 }

@@ -38,6 +38,14 @@ namespace mamba
         VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
         bool verify_artifacts = false;
+        // Leave this empty?
+        // Need to populate from server? from config?.... to think about it (TODO)
+        // if we just specify "channel0" it becomes "https://conda.anaconda.org/channel0" ...
+        // TODO test with multiple channels in there and check behavior: like uncommenting
+        // conda-forge as first channel
+        std::vector<std::string> trusted_channels = {
+            /*"conda-forge", */ "http://127.0.0.1:8000/get/channel0"
+        };
     };
 
 

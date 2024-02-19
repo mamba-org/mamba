@@ -99,6 +99,7 @@ namespace mamba::solver::libsolv
         out.timestamp = s.timestamp();
         out.md5 = s.md5();
         out.sha256 = s.sha256();
+        out.signatures = s.signatures();
 
         const auto dep_to_str = [&pool](solv::DependencyId id)
         { return pool.dependency_to_string(id); };
@@ -140,6 +141,15 @@ namespace mamba::solver::libsolv
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
+        void
+        get_fake_signatures(simdjson::dom::parser& fake_parser, simdjson::dom::object& fake_signatures)
+        {
+            // Getting a fake simdjson::dom::object to simulate empty signatures
+            // A valid empty simdjson::dom::object is not handled in simdjson
+            const auto fake_signatures_json = R"(  { "fake_signatures": "val" }  )"_padded;
+            fake_signatures = fake_parser.parse(fake_signatures_json).get_object().value();
+        }
+
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
             // const std::string& repo_url_str,
@@ -148,6 +158,7 @@ namespace mamba::solver::libsolv
             solv::ObjSolvableView solv,
             const std::string& filename,
             const simdjson::dom::element& pkg,
+            const simdjson::dom::object& signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -307,6 +318,32 @@ namespace mamba::solver::libsolv
                 }
             }
 
+            // Setting signatures in solvable if they are available and `verify-artifacts` flag is
+            // enabled NOTE We need to use an intermediate nlohmann::json object to store signatures
+            // as simdjson objects are not conceived to be modified smoothly
+            // and we need an equivalent structure to how libsolv is storing the signatures
+            nlohmann::json glob_sigs, nested_sigs;
+            if (auto sigs = signatures[filename].get_object(); !sigs.error())
+            {
+                for (auto dict : sigs)
+                {
+                    for (auto nested_dict : dict.value.get_object())
+                    {
+                        nested_sigs[dict.key]["signature"] = nested_dict.value;
+                    }
+                    glob_sigs["signatures"] = nested_sigs;
+
+                    solv.set_signatures(glob_sigs.dump());
+                    LOG_INFO << "Signatures for '" << filename
+                             << "' are set in corresponding solvable.";
+                }
+            }
+            else
+            {
+                LOG_INFO << "No signatures available for '" << filename
+                         << "'. Downloading without verifying artifacts.";
+            }
+
             solv.add_self_provide();
             return true;
         }
@@ -318,7 +355,8 @@ namespace mamba::solver::libsolv
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages
+            const simdjson::dom::object& packages,
+            const simdjson::dom::object& signatures
         )
         {
             std::string filename = {};
@@ -334,6 +372,7 @@ namespace mamba::solver::libsolv
                     solv,
                     filename,
                     pkg,
+                    signatures,
                     default_subdir
                 );
                 if (parsed)
@@ -347,14 +386,70 @@ namespace mamba::solver::libsolv
                 }
             }
         }
+
+        void set_repo_solvables_with_sigs(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const specs::CondaURL& parsed_url,
+            const std::string& channel_id,
+            const std::string& default_subdir,
+            const simdjson::dom::object& packages,
+            const simdjson::dom::object& repodata,
+            bool verify_artifacts
+        )
+        {
+            if (auto signatures = repodata["signatures"].get_object();
+                !signatures.error() && verify_artifacts)
+            {
+                set_repo_solvables(
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    packages,
+                    signatures.value()
+                );
+            }
+            else
+            {
+                // NOTE We need to create a fake signatures json doc to get a valid
+                // simdjson::dom::object (otherwise we get a segfault because constructor yields to
+                // an invalid simdjson::dom::object)
+                simdjson::dom::parser fake_parser;
+                simdjson::dom::object fake_signatures;
+                get_fake_signatures(fake_parser, fake_signatures);
+                set_repo_solvables(
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    packages,
+                    fake_signatures
+                );
+            }
+        }
     }
 
-    auto libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
-        -> expected_t<solv::ObjRepoView>
+    auto libsolv_read_json(
+        solv::ObjRepoView repo,
+        const fs::u8path& filename,
+        bool only_tar_bz2,
+        bool verify_artifacts
+    ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using libsolv";
-        const int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+
+        int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        if (verify_artifacts)
+        {
+            // cf.
+            // https://github.com/openSUSE/libsolv/commit/cc2da2e789f651b2d0d55fe31c258426bf9e984d
+            flags |= CONDA_ADD_WITH_SIGNATUREDATA;
+        }
+
         const auto lock = LockFile(filename);
 
         return util::CFile::try_open(filename, "rb")
@@ -382,7 +477,8 @@ namespace mamba::solver::libsolv
         const fs::u8path& filename,
         const std::string& repo_url,
         const std::string& channel_id,
-        bool only_tar_bz2
+        bool only_tar_bz2,
+        bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
@@ -405,25 +501,29 @@ namespace mamba::solver::libsolv
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
-            set_repo_solvables(
+            set_repo_solvables_with_sigs(
                 pool,
                 repo,
                 /*repo_url,*/ parsed_url,
                 channel_id,
                 default_subdir,
-                pkgs.value()
+                pkgs.value(),
+                repodata,
+                verify_artifacts
             );
         }
 
         if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error() && !only_tar_bz2)
         {
-            set_repo_solvables(
+            set_repo_solvables_with_sigs(
                 pool,
                 repo,
                 /*repo_url,*/ parsed_url,
                 channel_id,
                 default_subdir,
-                pkgs.value()
+                pkgs.value(),
+                repodata,
+                verify_artifacts
             );
         }
 

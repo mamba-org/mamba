@@ -124,6 +124,7 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
    assert uc.type == specs.UnresolvedChannel.Type.Name
 
 
+.. _libmamba_usage_channel:
 Channel
 -------
 The :cpp:type:`Channel <mamba::specs::Channel>` are represented by a

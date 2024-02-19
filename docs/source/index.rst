@@ -57,6 +57,7 @@ You can try Mamba now by visiting the installation for
 
    python_api
    usage/specs
+   usage/solver
 
 .. toctree::
    :caption: API REFERENCE
@@ -64,6 +65,7 @@ You can try Mamba now by visiting the installation for
    :hidden:
 
    api/specs
+   api/solver
 
 .. toctree::
    :caption: DEVELOPER ZONE

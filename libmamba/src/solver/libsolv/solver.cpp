@@ -90,7 +90,7 @@ namespace mamba::solver::libsolv
     {
         if (request.flags.order_request)
         {
-            std::sort(request.items.begin(), request.items.end(), make_request_cmp());
+            std::sort(request.jobs.begin(), request.jobs.end(), make_request_cmp());
         }
         return solve_impl(mpool, request);
     }
@@ -100,7 +100,7 @@ namespace mamba::solver::libsolv
         if (request.flags.order_request)
         {
             auto sorted_request = request;
-            std::sort(sorted_request.items.begin(), sorted_request.items.end(), make_request_cmp());
+            std::sort(sorted_request.jobs.begin(), sorted_request.jobs.end(), make_request_cmp());
             return solve_impl(mpool, sorted_request);
         }
         return solve_impl(mpool, request);

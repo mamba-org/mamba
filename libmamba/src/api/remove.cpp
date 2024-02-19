@@ -76,24 +76,24 @@ namespace mamba
             using Request = solver::Request;
 
             auto request = Request();
-            request.items.reserve(raw_specs.size());
+            request.jobs.reserve(raw_specs.size());
 
             if (prune)
             {
                 History history(ctx.prefix_params.target_prefix, channel_context);
                 auto hist_map = history.get_requested_specs_map();
 
-                request.items.reserve(request.items.capacity() + hist_map.size());
+                request.jobs.reserve(request.jobs.capacity() + hist_map.size());
 
                 for (auto& [name, spec] : hist_map)
                 {
-                    request.items.emplace_back(Request::Keep{ std::move(spec) });
+                    request.jobs.emplace_back(Request::Keep{ std::move(spec) });
                 }
             }
 
             for (const auto& s : raw_specs)
             {
-                request.items.emplace_back(Request::Remove{
+                request.jobs.emplace_back(Request::Remove{
                     specs::MatchSpec::parse(s),
                     /* .clean_dependencies= */ prune,
                 });

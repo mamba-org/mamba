@@ -17,10 +17,10 @@
 
 namespace mamba::solver
 {
-    // Fix Pybind11 py::bind_vector<Request::item_list> has trouble detecting the abscence
+    // Fix Pybind11 py::bind_vector<Request::job_list> has trouble detecting the abscence
     // of comparions operators, so we tell it explicitly.
-    auto operator==(const Request::Item&, const Request::Item&) -> bool = delete;
-    auto operator!=(const Request::Item&, const Request::Item&) -> bool = delete;
+    auto operator==(const Request::Job&, const Request::Job&) -> bool = delete;
+    auto operator!=(const Request::Job&, const Request::Job&) -> bool = delete;
 
     // Fix Pybind11 py::bind_vector<Solution::actions> has trouble detecting the abscence
     // of comparions operators, so we tell it explicitly.
@@ -28,7 +28,7 @@ namespace mamba::solver
     auto operator!=(const Solution::Action&, const Solution::Action&) -> bool = delete;
 }
 
-PYBIND11_MAKE_OPAQUE(mamba::solver::Request::item_list);
+PYBIND11_MAKE_OPAQUE(mamba::solver::Request::job_list);
 PYBIND11_MAKE_OPAQUE(mamba::solver::Solution::action_list);
 
 namespace mambapy
@@ -113,7 +113,7 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<Request::Pin>, py::arg("memo"));
 
         // Type made opaque at the top of this file
-        py::bind_vector<Request::item_list>(py_request, "ItemList");
+        py::bind_vector<Request::job_list>(py_request, "JobList");
 
         py::class_<Request::Flags>(py_request, "Flags")
             .def(
@@ -159,25 +159,31 @@ namespace mambapy
             .def(
                 // Big copy unfortunately
                 py::init(
-                    [](Request::Flags flags, Request::item_list items) -> Request {
-                        return { std::move(flags), std::move(items) };
+                    [](Request::job_list jobs, Request::Flags flags) -> Request {
+                        return { std::move(flags), std::move(jobs) };
                     }
-                )
+                ),
+                py::arg("jobs"),
+                py::arg("flags") = Request::Flags()
             )
-            .def(py::init(
-                [](py::iterable items) -> Request
-                {
-                    auto request = Request();
-                    request.items.reserve(py::len_hint(items));
-                    for (py::handle itm : items)
+            .def(
+                py::init(
+                    [](py::iterable jobs, Request::Flags flags) -> Request
                     {
-                        request.items.push_back(py::cast<Request::Item>(itm));
+                        auto request = Request{ std::move(flags) };
+                        request.jobs.reserve(py::len_hint(jobs));
+                        for (py::handle itm : jobs)
+                        {
+                            request.jobs.push_back(py::cast<Request::Job>(itm));
+                        }
+                        return request;
                     }
-                    return request;
-                }
-            ))
+                ),
+                py::arg("jobs"),
+                py::arg("flags") = Request::Flags()
+            )
             .def_readwrite("flags", &Request::flags)
-            .def_readwrite("items", &Request::items)
+            .def_readwrite("jobs", &Request::jobs)
             .def("__copy__", &copy<Request>)
             .def("__deepcopy__", &deepcopy<Request>, py::arg("memo"));
 

@@ -963,11 +963,11 @@ namespace mamba::solver::libsolv
             };
 
             auto iter = std::find_if(
-                request.items.cbegin(),
-                request.items.cend(),
+                request.jobs.cbegin(),
+                request.jobs.cend(),
                 [&](const auto& unknown_job) { return std::visit(job_matches, unknown_job); }
             );
-            return iter != request.items.cend();
+            return iter != request.jobs.cend();
         }
     }
 
@@ -1177,83 +1177,84 @@ namespace mamba::solver::libsolv
                 .transform([&](auto id) { jobs.push_back(install_flag, id); });
         }
 
-        template <typename Item>
+        template <typename Job>
         [[nodiscard]] auto add_job(
-            const Item& item,
-            solv::ObjQueue& jobs,
+            const Job& job,
+            solv::ObjQueue& raw_jobs,
             solv::ObjPool& pool,
             const specs::ChannelResolveParams& params,
             bool force_reinstall
         ) -> expected_t<void>
         {
-            if constexpr (std::is_same_v<Item, Request::Install>)
+            if constexpr (std::is_same_v<Job, Request::Install>)
             {
                 if (force_reinstall)
                 {
-                    return add_reinstall_job(jobs, pool, item.spec, params);
+                    return add_reinstall_job(raw_jobs, pool, job.spec, params);
                 }
                 else
                 {
-                    return pool_add_matchspec(pool, item.spec, params)
-                        .transform([&](auto id)
-                                   { jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id); }
+                    return pool_add_matchspec(pool, job.spec, params)
+                        .transform(
+                            [&](auto id)
+                            { raw_jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id); }
                         );
                 }
             }
-            if constexpr (std::is_same_v<Item, Request::Remove>)
+            if constexpr (std::is_same_v<Job, Request::Remove>)
             {
-                return pool_add_matchspec(pool, item.spec, params)
+                return pool_add_matchspec(pool, job.spec, params)
                     .transform(
                         [&](auto id)
                         {
-                            jobs.push_back(
+                            raw_jobs.push_back(
                                 SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
-                                    | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                                    | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
                                 id
                             );
                         }
                     );
             }
-            if constexpr (std::is_same_v<Item, Request::Update>)
+            if constexpr (std::is_same_v<Job, Request::Update>)
             {
-                return pool_add_matchspec(pool, item.spec, params)
+                return pool_add_matchspec(pool, job.spec, params)
                     .transform(
                         [&](auto id)
                         {
                             // TODO: ignoring update specs here for now
-                            if (!item.spec.is_simple())
+                            if (!job.spec.is_simple())
                             {
-                                jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
+                                raw_jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
                             }
-                            jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
+                            raw_jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
                         }
                     );
             }
-            if constexpr (std::is_same_v<Item, Request::UpdateAll>)
+            if constexpr (std::is_same_v<Job, Request::UpdateAll>)
             {
-                jobs.push_back(
+                raw_jobs.push_back(
                     SOLVER_UPDATE | SOLVER_SOLVABLE_ALL
-                        | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                        | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
                     0
                 );
                 return {};
             }
-            if constexpr (std::is_same_v<Item, Request::Freeze>)
+            if constexpr (std::is_same_v<Job, Request::Freeze>)
             {
-                return pool_add_matchspec(pool, item.spec, params)
-                    .transform([&](auto id) { jobs.push_back(SOLVER_LOCK, id); });
+                return pool_add_matchspec(pool, job.spec, params)
+                    .transform([&](auto id) { raw_jobs.push_back(SOLVER_LOCK, id); });
             }
-            if constexpr (std::is_same_v<Item, Request::Keep>)
+            if constexpr (std::is_same_v<Job, Request::Keep>)
             {
-                jobs.push_back(
+                raw_jobs.push_back(
                     SOLVER_USERINSTALLED,
-                    pool_add_matchspec(pool, item.spec, params).value()
+                    pool_add_matchspec(pool, job.spec, params).value()
                 );
                 return {};
             }
-            if constexpr (std::is_same_v<Item, Request::Pin>)
+            if constexpr (std::is_same_v<Job, Request::Pin>)
             {
-                return pool_add_pin(pool, item.spec, params)
+                return pool_add_pin(pool, job.spec, params)
                     .transform(
                         [&](solv::ObjSolvableView pin_solv)
                         {
@@ -1261,9 +1262,9 @@ namespace mamba::solver::libsolv
                             // WARNING keep separate or libsolv does not understand
                             // Force verify the dummy solvable dependencies, as this is not the
                             // default for installed packages.
-                            jobs.push_back(SOLVER_VERIFY, name_id);
+                            raw_jobs.push_back(SOLVER_VERIFY, name_id);
                             // Lock the dummy solvable so that it stays install.
-                            jobs.push_back(SOLVER_LOCK, name_id);
+                            raw_jobs.push_back(SOLVER_LOCK, name_id);
                         }
                     );
             }
@@ -1282,18 +1283,18 @@ namespace mamba::solver::libsolv
         auto solv_jobs = solv::ObjQueue();
 
         auto error = expected_t<void>();
-        for (const auto& item : request.items)
+        for (const auto& unknown_job : request.jobs)
         {
             auto xpt = std::visit(
-                [&](const auto& r) -> expected_t<void>
+                [&](const auto& job) -> expected_t<void>
                 {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(job)>, Request::Pin>)
                     {
-                        return add_job(r, solv_jobs, pool, chan_params, force_reinstall);
+                        return add_job(job, solv_jobs, pool, chan_params, force_reinstall);
                     }
                     return {};
                 },
-                item
+                unknown_job
             );
             if (!xpt)
             {
@@ -1304,18 +1305,18 @@ namespace mamba::solver::libsolv
         // Channel specific MatchSpec write to whatprovides and hence require it is not modified
         // afterwards.
         pool.create_whatprovides();
-        for (const auto& item : request.items)
+        for (const auto& unkown_job : request.jobs)
         {
             auto xpt = std::visit(
-                [&](const auto& r) -> expected_t<void>
+                [&](const auto& job) -> expected_t<void>
                 {
-                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(job)>, Request::Pin>)
                     {
-                        return add_job(r, solv_jobs, pool, chan_params, force_reinstall);
+                        return add_job(job, solv_jobs, pool, chan_params, force_reinstall);
                     }
                     return {};
                 },
-                item
+                unkown_job
             );
             if (!xpt)
             {

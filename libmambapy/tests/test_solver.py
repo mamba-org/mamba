@@ -21,7 +21,7 @@ def test_import_recursive():
 
 
 @pytest.mark.parametrize(
-    "Item",
+    "Job",
     [
         libmambapy.solver.Request.Install,
         libmambapy.solver.Request.Remove,
@@ -31,8 +31,8 @@ def test_import_recursive():
         libmambapy.solver.Request.Pin,
     ],
 )
-def test_Request_Item_spec(Item):
-    itm = Item(spec=libmambapy.specs.MatchSpec.parse("foo"))
+def test_Request_Job_spec(Job):
+    itm = Job(spec=libmambapy.specs.MatchSpec.parse("foo"))
 
     assert str(itm.spec) == "foo"
 
@@ -47,14 +47,14 @@ def test_Request_Item_spec(Item):
 
 
 @pytest.mark.parametrize(
-    ["Item", "kwargs"],
+    ["Job", "kwargs"],
     [
         (libmambapy.solver.Request.Remove, {"spec": libmambapy.specs.MatchSpec.parse("foo")}),
         (libmambapy.solver.Request.UpdateAll, {}),
     ],
 )
-def test_Request_Item_clean(Item, kwargs):
-    itm = Item(**kwargs, clean_dependencies=False)
+def test_Request_Job_clean(Job, kwargs):
+    itm = Job(**kwargs, clean_dependencies=False)
 
     assert not itm.clean_dependencies
 

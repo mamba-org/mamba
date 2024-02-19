@@ -341,12 +341,18 @@ namespace mambapy
 
         py::class_<ProblemsGraph::RootNode>(py_problems_graph, "RootNode")  //
             .def(py::init<>());
-        py::class_<ProblemsGraph::PackageNode, specs::PackageInfo>(py_problems_graph, "PackageNode");
+
+        py::class_<ProblemsGraph::PackageNode, specs::PackageInfo>(py_problems_graph, "PackageNode")
+            .def(py::init<specs::PackageInfo>());
+
         py::class_<ProblemsGraph::UnresolvedDependencyNode, specs::MatchSpec>(
             py_problems_graph,
             "UnresolvedDependencyNode"
-        );
-        py::class_<ProblemsGraph::ConstraintNode, specs::MatchSpec>(py_problems_graph, "ConstraintNode");
+        )
+            .def(py::init<specs::MatchSpec>());
+
+        py::class_<ProblemsGraph::ConstraintNode, specs::MatchSpec>(py_problems_graph, "ConstraintNode")
+            .def(py::init<specs::MatchSpec>());
 
         py::class_<ProblemsGraph::conflicts_t>(py_problems_graph, "ConflictMap")
             .def(py::init([]() { return ProblemsGraph::conflicts_t(); }))
@@ -379,9 +385,8 @@ namespace mambapy
                     auto const& g = self.graph();
                     return std::pair(g.nodes(), g.edges());
                 }
-            );
-
-        m.def("simplify_conflicts", &solver::simplify_conflicts);
+            )
+            .def_static("simplify_conflicts", &solver::simplify_conflicts);
 
         auto py_compressed_problems_graph = py::class_<CompressedProblemsGraph>(
             m,
@@ -454,11 +459,17 @@ namespace mambapy
         );
 
         py_compressed_problems_graph
-            .def_static("from_problems_graph", &CompressedProblemsGraph::from_problems_graph)
+            .def_static(
+                "from_problems_graph",
+                &CompressedProblemsGraph::from_problems_graph,
+                py::arg("problems_graph"),
+                py::arg("merge_criteria")
+            )
             .def_static(
                 "from_problems_graph",
                 [](const ProblemsGraph& pbs)
-                { return CompressedProblemsGraph::from_problems_graph(pbs); }
+                { return CompressedProblemsGraph::from_problems_graph(pbs); },
+                py::arg("problems_graph")
             )
             .def("root_node", &CompressedProblemsGraph::root_node)
             .def("conflicts", &CompressedProblemsGraph::conflicts)

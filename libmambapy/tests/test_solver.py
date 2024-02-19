@@ -240,6 +240,7 @@ def test_ProblemsGraph():
 
     assert isinstance(outcome, libmambapy.solver.libsolv.UnSolvable)
     pbg = outcome.problems_graph(db)
+    assert isinstance(pbg.root_node(), int)
 
     # ProblemsGraph conflicts
     conflicts = pbg.conflicts()
@@ -264,3 +265,51 @@ def test_ProblemsGraph():
     nodes, edges = pbg.graph()
     assert len(nodes) > 0
     assert len(edges) > 0
+
+    # Simplify conflicts
+    pbg = pbg.simplify_conflicts(pbg)
+
+    # CompressedProblemsGraph
+    cp_pbg = libmambapy.solver.CompressedProblemsGraph.from_problems_graph(pbg)
+
+    assert isinstance(cp_pbg.root_node(), int)
+    assert len(cp_pbg.conflicts()) == 2
+    nodes, edges = cp_pbg.graph()
+    assert len(nodes) > 0
+    assert len(edges) > 0
+    assert "is not installable" in cp_pbg.tree_message()
+
+
+def test_CompressedProblemsGraph_NamedList():
+    ProblemsGraph = libmambapy.solver.ProblemsGraph
+    CompressedProblemsGraph = libmambapy.solver.CompressedProblemsGraph
+    PackageInfo = libmambapy.specs.PackageInfo
+
+    named_list = CompressedProblemsGraph.PackageListNode()
+    assert len(named_list) == 0
+    assert not named_list
+
+    # Add
+    for ver, bld in [("1.0", "bld1"), ("2.0", "bld2"), ("3.0", "bld3"), ("4.0", "bld4")]:
+        named_list.add(ProblemsGraph.PackageNode(PackageInfo("a", version=ver, build_string=bld)))
+
+    # Enumeration
+    assert len(named_list) == 4
+    assert named_list
+    assert len(list(named_list)) == len(named_list)
+
+    # Methods
+    assert named_list.name() == "a"
+    list_str, count = named_list.versions_trunc(sep=":", etc="*", threshold=2)
+    assert count == 4
+    assert list_str == "1.0:2.0:*:4.0"
+    list_str, count = named_list.build_strings_trunc(sep=":", etc="*", threshold=2)
+    assert count == 4
+    assert list_str == "bld1:bld2:*:bld4"
+    list_str, count = named_list.versions_and_build_strings_trunc(sep=":", etc="*", threshold=2)
+    assert count == 4
+    assert list_str == "1.0 bld1:2.0 bld2:*:4.0 bld4"
+
+    # Clear
+    named_list.clear()
+    assert len(named_list) == 0

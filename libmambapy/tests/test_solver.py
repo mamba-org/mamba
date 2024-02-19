@@ -94,6 +94,31 @@ def test_Request_Flags_boolean(attr):
         assert getattr(flags, attr) == val
 
 
+def test_Request():
+    Request = libmambapy.solver.Request
+    MatchSpec = libmambapy.specs.MatchSpec
+
+    request = Request(
+        jobs=[Request.Install(MatchSpec.parse("foo"))],
+        flags=Request.Flags(keep_dependencies=False),
+    )
+
+    # Getters
+    assert len(request.jobs) == 1
+    assert not request.flags.keep_dependencies
+
+    # Setters
+    request.jobs.append(Request.Remove(MatchSpec.parse("bar<2.0")))
+    assert len(request.jobs) == 2
+    request.flags.keep_dependencies = True
+    assert request.flags.keep_dependencies
+
+    # Copy
+    other = copy.deepcopy(request)
+    assert other is not request
+    assert len(other.jobs) == len(request.jobs)
+
+
 @pytest.mark.parametrize(
     "Action",
     [

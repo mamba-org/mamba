@@ -589,12 +589,7 @@ namespace mamba::validation::v0_6
 
     auto PkgMgrRole::pkg_signatures(const nlohmann::json& j) const -> std::set<RoleSignature>
     {
-        // Libsolv's `repodata.json` parsing returns the signatures alongside other package info
-        // But, we are here only interested in the signatures
-        // In the case of parsing using mamba/simdjson, the solvable signatures are set to have the
-        // same format
-        auto j_sig = j["signatures"];
-        auto sigs = j_sig.get<std::map<std::string, std::map<std::string, std::string>>>();
+        auto sigs = j.get<std::map<std::string, std::map<std::string, std::string>>>();
         std::set<RoleSignature> unique_sigs;
 
         for (auto& s : sigs)
@@ -680,7 +675,15 @@ namespace mamba::validation::v0_6
     {
         try
         {
-            check_pkg_signatures(signed_data, signatures);
+            // Libsolv's `repodata.json` parsing returns the signatures alongside other package info
+            // i.e: {"info":{},"signatures":{"public_key":{"signature":"metadata_signature"}}}
+            // But, we are here only interested in the signatures
+            // In the case of parsing using mamba/simdjson, the solvable signatures are set to have
+            // the same format
+            check_pkg_signatures(
+                signed_data,
+                signatures.at("signatures").get<nlohmann::json::object_t>()
+            );
         }
         catch (const threshold_error& e)
         {

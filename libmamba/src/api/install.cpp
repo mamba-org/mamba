@@ -686,6 +686,7 @@ namespace mamba
             solver::libsolv::Database db{ channel_context.params() };
             add_spdlog_logger_to_database(db);
 
+            init_channels(ctx, channel_context);
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {

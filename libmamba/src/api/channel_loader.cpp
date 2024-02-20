@@ -285,4 +285,28 @@ namespace mamba
     {
         return load_channels_impl(ctx, channel_context, pool, package_caches, false);
     }
+
+    void init_channels(Context& context, ChannelContext& channel_context)
+    {
+        for (const auto& mirror : context.mirrored_channels)
+        {
+            for (auto channel : channel_context.make_channel(mirror.first, mirror.second))
+            {
+                create_mirrors(channel, context.mirrors);
+            }
+        }
+
+        for (const auto& location : context.channels)
+        {
+            // TODO: C++20, replace with contains
+            if (context.mirrored_channels.find(location) == context.mirrored_channels.end())
+            {
+                for (auto channel : channel_context.make_channel(location))
+                {
+                    create_mirrors(channel, context.mirrors);
+                }
+            }
+        }
+    }
+
 }

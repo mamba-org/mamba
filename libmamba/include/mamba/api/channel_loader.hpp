@@ -19,11 +19,19 @@ namespace mamba
     class ChannelContext;
     class MultiPackageCache;
 
+    // Creates channels and mirrors objects
+    // and loads channels, i.e. download
+    // repodata.json files if they are not
+    // cached locally.
     auto load_channels(  //
         Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& pool,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>;
+
+    // Creates channels and mirrors objects,
+    // but does not load channels.
+    void init_channels(Context& context, ChannelContext& channel_context);
 }
 #endif

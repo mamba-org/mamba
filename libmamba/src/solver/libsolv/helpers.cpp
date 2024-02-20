@@ -340,8 +340,8 @@ namespace mamba::solver::libsolv
             }
             else
             {
-                LOG_INFO << "No signatures available for '" << filename
-                         << "'. Downloading without verifying artifacts.";
+                LOG_DEBUG << "No signatures available for '" << filename
+                          << "'. Downloading without verifying artifacts.";
             }
 
             solv.add_self_provide();

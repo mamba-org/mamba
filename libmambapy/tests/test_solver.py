@@ -21,7 +21,7 @@ def test_import_recursive():
 
 
 @pytest.mark.parametrize(
-    "Item",
+    "Job",
     [
         libmambapy.solver.Request.Install,
         libmambapy.solver.Request.Remove,
@@ -31,8 +31,8 @@ def test_import_recursive():
         libmambapy.solver.Request.Pin,
     ],
 )
-def test_Request_Item_spec(Item):
-    itm = Item(spec=libmambapy.specs.MatchSpec.parse("foo"))
+def test_Request_Job_spec(Job):
+    itm = Job(spec=libmambapy.specs.MatchSpec.parse("foo"))
 
     assert str(itm.spec) == "foo"
 
@@ -47,14 +47,14 @@ def test_Request_Item_spec(Item):
 
 
 @pytest.mark.parametrize(
-    ["Item", "kwargs"],
+    ["Job", "kwargs"],
     [
         (libmambapy.solver.Request.Remove, {"spec": libmambapy.specs.MatchSpec.parse("foo")}),
         (libmambapy.solver.Request.UpdateAll, {}),
     ],
 )
-def test_Request_Item_clean(Item, kwargs):
-    itm = Item(**kwargs, clean_dependencies=False)
+def test_Request_Job_clean(Job, kwargs):
+    itm = Job(**kwargs, clean_dependencies=False)
 
     assert not itm.clean_dependencies
 
@@ -92,6 +92,31 @@ def test_Request_Flags_boolean(attr):
         val = bool(random.randint(0, 1))
         setattr(flags, attr, val)
         assert getattr(flags, attr) == val
+
+
+def test_Request():
+    Request = libmambapy.solver.Request
+    MatchSpec = libmambapy.specs.MatchSpec
+
+    request = Request(
+        jobs=[Request.Install(MatchSpec.parse("foo"))],
+        flags=Request.Flags(keep_dependencies=False),
+    )
+
+    # Getters
+    assert len(request.jobs) == 1
+    assert not request.flags.keep_dependencies
+
+    # Setters
+    request.jobs.append(Request.Remove(MatchSpec.parse("bar<2.0")))
+    assert len(request.jobs) == 2
+    request.flags.keep_dependencies = True
+    assert request.flags.keep_dependencies
+
+    # Copy
+    other = copy.deepcopy(request)
+    assert other is not request
+    assert len(other.jobs) == len(request.jobs)
 
 
 @pytest.mark.parametrize(
@@ -215,6 +240,7 @@ def test_ProblemsGraph():
 
     assert isinstance(outcome, libmambapy.solver.libsolv.UnSolvable)
     pbg = outcome.problems_graph(db)
+    assert isinstance(pbg.root_node(), int)
 
     # ProblemsGraph conflicts
     conflicts = pbg.conflicts()
@@ -239,3 +265,51 @@ def test_ProblemsGraph():
     nodes, edges = pbg.graph()
     assert len(nodes) > 0
     assert len(edges) > 0
+
+    # Simplify conflicts
+    pbg = pbg.simplify_conflicts(pbg)
+
+    # CompressedProblemsGraph
+    cp_pbg = libmambapy.solver.CompressedProblemsGraph.from_problems_graph(pbg)
+
+    assert isinstance(cp_pbg.root_node(), int)
+    assert len(cp_pbg.conflicts()) == 2
+    nodes, edges = cp_pbg.graph()
+    assert len(nodes) > 0
+    assert len(edges) > 0
+    assert "is not installable" in cp_pbg.tree_message()
+
+
+def test_CompressedProblemsGraph_NamedList():
+    ProblemsGraph = libmambapy.solver.ProblemsGraph
+    CompressedProblemsGraph = libmambapy.solver.CompressedProblemsGraph
+    PackageInfo = libmambapy.specs.PackageInfo
+
+    named_list = CompressedProblemsGraph.PackageListNode()
+    assert len(named_list) == 0
+    assert not named_list
+
+    # Add
+    for ver, bld in [("1.0", "bld1"), ("2.0", "bld2"), ("3.0", "bld3"), ("4.0", "bld4")]:
+        named_list.add(ProblemsGraph.PackageNode(PackageInfo("a", version=ver, build_string=bld)))
+
+    # Enumeration
+    assert len(named_list) == 4
+    assert named_list
+    assert len(list(named_list)) == len(named_list)
+
+    # Methods
+    assert named_list.name() == "a"
+    list_str, count = named_list.versions_trunc(sep=":", etc="*", threshold=2)
+    assert count == 4
+    assert list_str == "1.0:2.0:*:4.0"
+    list_str, count = named_list.build_strings_trunc(sep=":", etc="*", threshold=2)
+    assert count == 4
+    assert list_str == "bld1:bld2:*:bld4"
+    list_str, count = named_list.versions_and_build_strings_trunc(sep=":", etc="*", threshold=2)
+    assert count == 4
+    assert list_str == "1.0 bld1:2.0 bld2:*:4.0 bld4"
+
+    # Clear
+    named_list.clear()
+    assert len(named_list) == 0

@@ -1,7 +1,7 @@
 Describing Conda Objects
 ========================
 
-The ``libmambapy.specs`` submodule contains object to *describe* abstraction in the Conda ecosystem.
+The :any:`libmambapy.specs <mamba::specs>` submodule contains object to *describe* abstraction in the Conda ecosystem.
 They are purely functional and do not have any observable impact on the user system.
 For instance :cpp:type:`libmambapy.specs.Channel <mamba::specs::Channel>` is used to describe a
 channel but does not download any file.
@@ -124,6 +124,7 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
    assert uc.type == specs.UnresolvedChannel.Type.Name
 
 
+.. _libmamba_usage_channel:
 Channel
 -------
 The :cpp:type:`Channel <mamba::specs::Channel>` are represented by a

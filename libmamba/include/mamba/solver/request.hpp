@@ -79,17 +79,17 @@ namespace mamba::solver
             specs::MatchSpec spec;
         };
 
-        using Item = std::variant<Install, Remove, Update, UpdateAll, Keep, Freeze, Pin>;
-        using item_list = std::vector<Item>;
+        using Job = std::variant<Install, Remove, Update, UpdateAll, Keep, Freeze, Pin>;
+        using job_list = std::vector<Job>;
 
         Flags flags = {};
-        item_list items = {};
+        job_list jobs = {};
     };
 
     template <typename... Item, typename Func>
     void for_each_of(const Request& request, Func&& func)
     {
-        for (const auto& unknown_itm : request.items)
+        for (const auto& unknown_job : request.jobs)
         {
             const auto control = std::visit(
                 [&](const auto& itm) -> util::LoopControl
@@ -108,7 +108,7 @@ namespace mamba::solver
                     }
                     return util::LoopControl::Continue;
                 },
-                unknown_itm
+                unknown_job
             );
             if (control == util::LoopControl::Break)
             {

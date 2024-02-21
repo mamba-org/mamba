@@ -39,22 +39,22 @@ namespace mamba
                 if (prune_deps)
                 {
                     auto hist_map = prefix_data.history().get_requested_specs_map();
-                    request.items.reserve(hist_map.size() + 1);
+                    request.jobs.reserve(hist_map.size() + 1);
 
                     for (auto& [name, spec] : hist_map)
                     {
-                        request.items.emplace_back(Request::Keep{ std::move(spec) });
+                        request.jobs.emplace_back(Request::Keep{ std::move(spec) });
                     }
-                    request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ true });
+                    request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ true });
                 }
                 else
                 {
-                    request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+                    request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
                 }
             }
             else
             {
-                request.items.reserve(specs.size());
+                request.jobs.reserve(specs.size());
                 if (remove_not_specified)
                 {
                     auto hist_map = prefix_data.history().get_requested_specs_map();
@@ -63,7 +63,7 @@ namespace mamba
                         if (std::find(specs.begin(), specs.end(), it.second.name().str())
                             == specs.end())
                         {
-                            request.items.emplace_back(Request::Remove{
+                            request.jobs.emplace_back(Request::Remove{
                                 specs::MatchSpec::parse(it.second.name().str()),
                                 /* .clean_dependencies= */ true,
                             });
@@ -73,7 +73,7 @@ namespace mamba
 
                 for (const auto& raw_ms : specs)
                 {
-                    request.items.emplace_back(Request::Update{
+                    request.jobs.emplace_back(Request::Update{
                         specs::MatchSpec::parse(raw_ms),
                     });
                 }

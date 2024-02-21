@@ -4,7 +4,6 @@
       "build": "conda_forge",
       "build_number": 0,
       "build_string": "conda_forge",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": null,
       "fn": "_libgcc_mutex-0.1-conda_forge.tar.bz2",
@@ -23,7 +22,6 @@
       "build": "2_gnu",
       "build_number": 16,
       "build_string": "2_gnu",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "openmp_impl 9999"
       ],
@@ -47,7 +45,6 @@
       "build": "h7f98852_5",
       "build_number": 5,
       "build_string": "h7f98852_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=9.4.0"
@@ -68,7 +65,6 @@
       "build": "h166bdaf_0",
       "build_number": 0,
       "build_string": "h166bdaf_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12"
@@ -91,7 +87,6 @@
       "build": "hd590300_5",
       "build_number": 5,
       "build_string": "hd590300_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12"
@@ -112,7 +107,6 @@
       "build": "hbcca054_0",
       "build_number": 0,
       "build_string": "hbcca054_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": null,
       "fn": "ca-certificates-2024.2.2-hbcca054_0.conda",
@@ -131,7 +125,6 @@
       "build": "h41732ed_0",
       "build_number": 0,
       "build_string": "h41732ed_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "binutils_impl_linux-64 2.40"
       ],
@@ -152,7 +145,6 @@
       "build": "21_linux64_openblas",
       "build_number": 21,
       "build_string": "21_linux64_openblas",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "liblapacke 3.9.0 21_linux64_openblas",
         "blas * openblas",
@@ -179,7 +171,6 @@
       "build": "21_linux64_openblas",
       "build_number": 21,
       "build_string": "21_linux64_openblas",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "liblapacke 3.9.0 21_linux64_openblas",
         "blas * openblas",
@@ -204,7 +195,6 @@
       "build": "hcb278e6_1",
       "build_number": 1,
       "build_string": "hcb278e6_1",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "expat 2.5.0.*"
       ],
@@ -227,7 +217,6 @@
       "build": "h807b86a_5",
       "build_number": 5,
       "build_string": "h807b86a_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "libgomp 13.2.0 h807b86a_5"
       ],
@@ -251,7 +240,6 @@
       "build": "h69a702a_5",
       "build_number": 5,
       "build_string": "h69a702a_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgfortran5 13.2.0 ha4646dd_5"
@@ -272,7 +260,6 @@
       "build": "ha4646dd_5",
       "build_number": 5,
       "build_string": "ha4646dd_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "libgfortran-ng 13.2.0"
       ],
@@ -295,7 +282,6 @@
       "build": "h807b86a_5",
       "build_number": 5,
       "build_string": "h807b86a_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "_libgcc_mutex 0.1 conda_forge"
@@ -316,7 +302,6 @@
       "build": "21_linux64_openblas",
       "build_number": 21,
       "build_string": "21_linux64_openblas",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "liblapacke 3.9.0 21_linux64_openblas",
         "libcblas 3.9.0 21_linux64_openblas",
@@ -341,7 +326,6 @@
       "build": "hd590300_0",
       "build_number": 0,
       "build_string": "hd590300_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12"
@@ -362,7 +346,6 @@
       "build": "pthreads_h413a1c8_0",
       "build_number": 0,
       "build_string": "pthreads_h413a1c8_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "openblas >=0.3.26,<0.3.27.0a0"
       ],
@@ -387,7 +370,6 @@
       "build": "h2797004_0",
       "build_number": 0,
       "build_string": "h2797004_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12",
@@ -409,7 +391,6 @@
       "build": "h7e041cc_5",
       "build_number": 5,
       "build_string": "h7e041cc_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": null,
       "fn": "libstdcxx-ng-13.2.0-h7e041cc_5.conda",
@@ -428,7 +409,6 @@
       "build": "h0b41bf4_0",
       "build_number": 0,
       "build_string": "h0b41bf4_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12"
@@ -449,7 +429,6 @@
       "build": "hd590300_1",
       "build_number": 1,
       "build_string": "hd590300_1",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12"
@@ -470,7 +449,6 @@
       "build": "hd590300_5",
       "build_number": 5,
       "build_string": "hd590300_5",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "zlib 1.2.13 *_5"
       ],
@@ -493,7 +471,6 @@
       "build": "h59595ed_2",
       "build_number": 2,
       "build_string": "h59595ed_2",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12"
@@ -514,7 +491,6 @@
       "build": "py312heda63a1_0",
       "build_number": 0,
       "build_string": "py312heda63a1_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "numpy-base <0a0"
       ],
@@ -543,7 +519,6 @@
       "build": "hd590300_0",
       "build_number": 0,
       "build_string": "hd590300_0",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "pyopenssl >=22.1"
       ],
@@ -567,7 +542,6 @@
       "build": "pyhd8ed1ab_0",
       "build_number": 0,
       "build_string": "pyhd8ed1ab_0",
-      "channel": "https://conda.anaconda.org/conda-forge/noarch",
       "constrains": null,
       "depends": [
         "setuptools",
@@ -591,7 +565,6 @@
       "build": "hab00c5b_1_cpython",
       "build_number": 1,
       "build_string": "hab00c5b_1_cpython",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "python_abi 3.12.* *_cp312"
       ],
@@ -629,7 +602,6 @@
       "build": "4_cp312",
       "build_number": 4,
       "build_string": "4_cp312",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": [
         "python 3.12.* *_cpython"
       ],
@@ -650,7 +622,6 @@
       "build": "h8228510_1",
       "build_number": 1,
       "build_string": "h8228510_1",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12",
@@ -672,7 +643,6 @@
       "build": "pyhd8ed1ab_0",
       "build_number": 0,
       "build_string": "pyhd8ed1ab_0",
-      "channel": "https://conda.anaconda.org/conda-forge/noarch",
       "constrains": null,
       "depends": [
         "python >=3.7"
@@ -694,7 +664,6 @@
       "build": "noxft_h4845f30_101",
       "build_number": 101,
       "build_string": "noxft_h4845f30_101",
-      "channel": "https://conda.anaconda.org/conda-forge/linux-64",
       "constrains": null,
       "depends": [
         "libgcc-ng >=12",
@@ -716,7 +685,6 @@
       "build": "h0c530f3_0",
       "build_number": 0,
       "build_string": "h0c530f3_0",
-      "channel": "https://conda.anaconda.org/conda-forge/noarch",
       "constrains": null,
       "depends": null,
       "fn": "tzdata-2024a-h0c530f3_0.conda",

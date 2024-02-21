@@ -406,7 +406,7 @@ namespace mamba
         const auto& prefix_pkgs = prefix_data.records();
 
         auto request = Request();
-        request.items.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
+        request.jobs.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
 
         // Consider if a FreezeAll type in Request is relevant?
         if (freeze_installed && !prefix_pkgs.empty())
@@ -414,13 +414,13 @@ namespace mamba
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             for (const auto& [name, pkg] : prefix_pkgs)
             {
-                request.items.emplace_back(Request::Freeze{ specs::MatchSpec::parse(name) });
+                request.jobs.emplace_back(Request::Freeze{ specs::MatchSpec::parse(name) });
             }
         }
 
         for (const auto& s : specs)
         {
-            request.items.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });
+            request.jobs.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });
         }
         return request;
     }
@@ -436,18 +436,16 @@ namespace mamba
     {
         using Request = solver::Request;
 
-        request.items.reserve(
-            request.items.size() + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin
-        );
+        request.jobs.reserve(request.jobs.size() + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin);
         if (!no_pin)
         {
             for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
             {
-                request.items.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
+                request.jobs.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
             }
             for (const auto& pin : ctx.pinned_packages)
             {
-                request.items.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
+                request.jobs.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
             }
         }
 
@@ -456,14 +454,14 @@ namespace mamba
             auto py_pin = python_pin(prefix_data, specs);
             if (!py_pin.empty())
             {
-                request.items.emplace_back(Request::Pin{ specs::MatchSpec::parse(py_pin) });
+                request.jobs.emplace_back(Request::Pin{ specs::MatchSpec::parse(py_pin) });
             }
         }
     }
 
     void print_request_pins_to(const solver::Request& request, std::ostream& out)
     {
-        for (const auto& req : request.items)
+        for (const auto& req : request.jobs)
         {
             bool first = true;
             std::visit(

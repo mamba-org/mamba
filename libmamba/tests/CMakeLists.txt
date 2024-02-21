@@ -53,6 +53,7 @@ set(
     src/solver/test_problems_graph.cpp
     # Solver libsolv implementation tests
     src/solver/libsolv/test_database.cpp
+    src/solver/libsolv/test_solver.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp

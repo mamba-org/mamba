@@ -59,25 +59,40 @@ Changes inlcude:
 - The global ``Context``, previously available through ``Context()``, must now be accessed through
   ``Context.instance()``.
   What's more, it is required to be passed explicitly in a few more functions.
-  Future version of ``libmambapy`` will continue in this direction until there are no global context.In version 2, ``Context()`` will throw an exception to avoid hard to catch errors.
+  Future version of ``libmambapy`` will continue in this direction until there are no global context.
+  In version 2, ``Context()`` will throw an exception to avoid hard to catch errors.
 - ``ChannelContext`` is no longer an implicit global variable.
   It must be constructed with one of ``ChannelContext.make_simple`` or
   ``ChannelContext.make_conda_compatible`` (with ``Context.instance`` as argument in most cases)
   and passed explicitly to a few functions.
-- ``Channel`` has been redesigned an moved to a new ``libmambapy.specs``.
-  A featureful ``libmambapy.specs.CondaURL`` is used to describe channel URLs.
-  This module also includes ``UnresolvedChannel`` used to describe unresolved channel strings.
-- ``MatchSpec`` has been redesigned and moved to ``libmambapy.specs``.
-  The module also includes a platform enumeration, an implementation of ordered ``Version``, and a
-  ``VersionSpec`` to match versions.
-- ``PackageInfo`` has been moved to ``libmambapy.specs``.
-  Some attributes have been given a more explicit name ``fn`` > ``filename``,
-  ``url`` > ``package_url``.
-- ``Repo`` has been redesigned into a lightweight ``RepoInfo`` and moved to
-  ``libmambapy.solver.libsolv``.
-  The creation and modification of repos happens through the ``Pool``, with methods such as
-  ``Pool.add_repo_from_repodata_json`` and ``Pool.add_repo_from_packages``, but also high-level
-  free functions such as ``load_subdir_in_pool`` and ``load_installed_packages_in_pool``.
+- A new ``Context`` independent submodule ``libmambapy.specs`` has been introduced with:
+  - The redesign of the ``Channel`` and a new ``UnresolvedChannel`` used to describe unresolved
+    channel strings.
+    A featureful ``libmambapy.specs.CondaURL`` is used to describe channel URLs.
+  - The redesign``MatchSpec``.
+    The module also includes a platform enumeration, an implementation of ordered ``Version``,
+    and a ``VersionSpec`` to match versions.
+  - ``PackageInfo`` has been moved to this submodule.
+    Some attributes have been given a more explicit name ``fn`` > ``filename``,
+    ``url`` > ``package_url``.
+- A new ``Context`` independent submodule ``libmambapy.solver`` has been introduced with the
+  changes below.
+  A usage documentation page is available at
+  https://mamba.readthedocs.io/en/latest/usage/solver.html
+  - The redesign of the ``Pool``, which is now available as ``libmambapy.solver.libsolv.Database``.
+    The new interfaces makes it easier to create repositories without using other ``libmambapy``
+    objects.
+  - ``Repo`` has been redesigned into a lightweight ``RepoInfo`` and moved to
+    ``libmambapy.solver.libsolv``.
+    The creation and modification of repos happens through the ``Database``, with methods such as
+    ``Database.add_repo_from_repodata_json`` and ``Database.add_repo_from_packages``, but also
+    high-level free functions such as ``load_subdir_in_database`` and
+    ``load_installed_packages_in_database``.
+  - The ``Solver`` has been moved to ``libmambapy.solver.libsolv.Solver``.
+    - All jobs, pins, and flags must be passed as a single ``libmambapy.solver.Request``.
+    - The outcome of solving the request is either a ``libmambapy.solver.Solution`` or a
+      ``libmambapy.solver.libsolv.Unsolvable`` state from which rich error messages can be
+      extracted.
 
 .. TODO include final decision for Channels as URLs.
 
@@ -99,14 +114,19 @@ The main changes are:
 - A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the
   ``specs::Channel``.
 - A new ``repodata.json`` parser using `simdjson <https://simdjson.org/>`_.
-- [WIP] Creation of the ``solver::libsolv`` sub-namespace for full isolation of libsolv, and a
+- The ``MPool``, ``MRepo`` and ``MSolver`` API has been completely redesigned into a ``solver``
+  subnamespace and works independently of the ``Context``.
+  The ``solver::libsolv`` sub-namespace has also been added for full isolation of libsolv, and a
   solver API without ``Context``.
-  It currently contains:
+  The ``solver`` API redesign includes:
+    - A refactoring of the ``MPool`` as a ``DataBase``, fully isolates libsolv, and simplifies
+      repository creation.
     - A refactoring and thinning of ``MRepo`` as a new ``RepoInfo``.
-    - A refactoring of ``Solver``, whose outcome is split between a ``Solution`` and an
-      ``UnSolvable`` state.
-    - The ``ProblemsGraph`` reach SAT error state.
-
+    - A solver ``Request`` with all requirements to solve is the new way to specify jobs.
+    - A refactoring of ``Solver``.
+    - A solver outcome as either a ``Solution`` or an ``UnSolvable`` state.
+  A usage documentation (in Python) is available at
+  https://mamba.readthedocs.io/en/latest/usage/solver.html
 - Improved downloaders.
 
 .. TODO OCI registry

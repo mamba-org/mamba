@@ -39,33 +39,6 @@ namespace mamba::validation
 
     auto RepoChecker::operator=(RepoChecker&&) noexcept -> RepoChecker& = default;
 
-    auto RepoChecker::cache_path() -> const fs::u8path&
-    {
-        return m_cache_path;
-    }
-
-    void RepoChecker::generate_index_checker()
-    {
-        if (!p_index_checker)
-        {
-            // TUF spec 5.1 - Record fixed update start time
-            // Expiration computations will be done against
-            // this reference
-            // https://theupdateframework.github.io/specification/latest/#fix-time
-            const TimeRef time_reference;
-
-            auto root = get_root_role(time_reference);
-            p_index_checker = root->build_index_checker(
-                m_context,
-                time_reference,
-                m_base_url,
-                cache_path()
-            );
-
-            LOG_INFO << "Index checker successfully generated for '" << m_base_url << "'";
-        }
-    }
-
     void RepoChecker::verify_index(const nlohmann::json& j) const
     {
         if (p_index_checker)
@@ -118,17 +91,48 @@ namespace mamba::validation
         }
     }
 
-    auto RepoChecker::root_version() -> std::size_t
+    void RepoChecker::generate_index_checker()
+    {
+        if (!p_index_checker)
+        {
+            // TUF spec 5.1 - Record fixed update start time
+            // Expiration computations will be done against
+            // this reference
+            // https://theupdateframework.github.io/specification/latest/#fix-time
+            const TimeRef time_reference;
+
+            auto root = get_root_role(time_reference);
+            p_index_checker = root->build_index_checker(
+                m_context,
+                time_reference,
+                m_base_url,
+                cache_path()
+            );
+
+            LOG_INFO << "Index checker successfully generated for '" << m_base_url << "'";
+        }
+    }
+
+    auto RepoChecker::cache_path() const -> const fs::u8path&
+    {
+        return m_cache_path;
+    }
+
+    auto RepoChecker::root_version() const -> std::size_t
     {
         return m_root_version;
     }
 
-    auto RepoChecker::ref_root() -> fs::u8path
+    ////////////////////////////
+    ///// Private methods /////
+    //////////////////////////
+
+    auto RepoChecker::ref_root() const -> fs::u8path
     {
         return m_ref_path / "root.json";
     }
 
-    auto RepoChecker::cached_root() -> fs::u8path
+    auto RepoChecker::cached_root() const -> fs::u8path
     {
         if (cache_path().empty())
         {
@@ -140,19 +144,7 @@ namespace mamba::validation
         }
     }
 
-    void RepoChecker::persist_file(const fs::u8path& file_path)
-    {
-        if (fs::exists(cached_root()))
-        {
-            fs::remove(cached_root());
-        }
-        if (!cached_root().empty())
-        {
-            fs::copy(file_path, cached_root());
-        }
-    }
-
-    auto RepoChecker::initial_trusted_root() -> fs::u8path
+    auto RepoChecker::initial_trusted_root() const -> fs::u8path
     {
         if (fs::exists(cached_root()))
         {
@@ -169,6 +161,18 @@ namespace mamba::validation
         else
         {
             return ref_root();
+        }
+    }
+
+    void RepoChecker::persist_file(const fs::u8path& file_path)
+    {
+        if (fs::exists(cached_root()))
+        {
+            fs::remove(cached_root());
+        }
+        if (!cached_root().empty())
+        {
+            fs::copy(file_path, cached_root());
         }
     }
 
@@ -268,5 +272,5 @@ namespace mamba::validation
         }
 
         return updated_root;
-    };
+    }
 }

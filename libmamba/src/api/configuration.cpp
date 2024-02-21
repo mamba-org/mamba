@@ -1604,7 +1604,10 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Run verifications on packages signatures")
+                   .description(  //
+                       "Run verifications on packages signatures.\n"
+                       "This is still experimental and may not be stable yet.\n"
+                   )
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. It consists of running
                         cryptographic verifications on channels and packages metadata.)")));

@@ -62,9 +62,8 @@ namespace mamba::validation
 
         void generate_index_checker();
 
-        auto cache_path() -> const fs::u8path&;
-
-        auto root_version() -> std::size_t;
+        auto cache_path() const -> const fs::u8path&;
+        auto root_version() const -> std::size_t;
 
     private:
 
@@ -77,9 +76,10 @@ namespace mamba::validation
 
         std::size_t m_root_version;
 
-        auto initial_trusted_root() -> fs::u8path;
-        auto ref_root() -> fs::u8path;
-        auto cached_root() -> fs::u8path;
+        auto ref_root() const -> fs::u8path;
+        auto cached_root() const -> fs::u8path;
+
+        auto initial_trusted_root() const -> fs::u8path;
 
         void persist_file(const fs::u8path& file_path);
 

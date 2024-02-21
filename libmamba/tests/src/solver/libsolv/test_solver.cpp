@@ -75,6 +75,7 @@ TEST_SUITE("solver::libsolv::solver")
         const auto repo = db.add_repo_from_repodata_json(
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
+            "conda-forge",
             libsolv::PipAsPythonDependency::No
         );
         REQUIRE(repo.has_value());
@@ -193,7 +194,8 @@ TEST_SUITE("solver::libsolv::solver")
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo = db.add_repo_from_repodata_json(
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
-            "https://conda.anaconda.org/conda-forge/linux-64"
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "conda-forge"
         );
         REQUIRE(repo.has_value());
         db.set_installed_repo(repo.value());

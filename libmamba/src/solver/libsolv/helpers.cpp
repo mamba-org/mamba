@@ -1221,12 +1221,19 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](auto id)
                         {
+                            auto const clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
                             // TODO: ignoring update specs here for now
                             if (!job.spec.is_simple())
                             {
-                                raw_jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
+                                raw_jobs.push_back(
+                                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES | clean_deps,
+                                    id
+                                );
                             }
-                            raw_jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
+                            raw_jobs.push_back(
+                                SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES | clean_deps,
+                                id
+                            );
                         }
                     );
             }

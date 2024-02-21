@@ -302,10 +302,6 @@ namespace mamba::specs
         {
             return invoke_field_string(*this, &PackageInfo::timestamp);
         }
-        if (field_name == "signatures")
-        {
-            return invoke_field_string(*this, &PackageInfo::signatures);
-        }
         throw std::invalid_argument(fmt::format(R"(Invalid field "{}")", field_name));
     }
 

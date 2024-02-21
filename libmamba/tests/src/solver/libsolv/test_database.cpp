@@ -15,6 +15,8 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
+#include "mambatests.hpp"
+
 using namespace mamba;
 using namespace mamba::solver;
 
@@ -172,7 +174,7 @@ TEST_SUITE("solver::libsolv::database")
 
         SUBCASE("Add repo from repodata with no extra pip")
         {
-            const auto repodata = fs::u8path(MAMBA_TEST_DATA_DIR)
+            const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
             auto repo1 = db.add_repo_from_repodata_json(
                 repodata,
@@ -200,7 +202,7 @@ TEST_SUITE("solver::libsolv::database")
 
         SUBCASE("Add repo from repodata with extra pip")
         {
-            const auto repodata = fs::u8path(MAMBA_TEST_DATA_DIR)
+            const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
             auto repo1 = db.add_repo_from_repodata_json(
                 repodata,
@@ -230,7 +232,7 @@ TEST_SUITE("solver::libsolv::database")
 
         SUBCASE("Add repo from repodata only .tar.bz2")
         {
-            const auto repodata = fs::u8path(MAMBA_TEST_DATA_DIR)
+            const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
             auto repo1 = db.add_repo_from_repodata_json(
                 repodata,

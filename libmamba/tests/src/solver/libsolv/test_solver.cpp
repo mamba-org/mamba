@@ -17,6 +17,7 @@
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
 
@@ -699,6 +700,148 @@ TEST_SUITE("solver::libsolv::solver")
             REQUIRE_EQ(actions.size(), 1);
             CHECK(std::holds_alternative<Solution::Install>(actions.front()));
             CHECK_EQ(std::get<Solution::Install>(actions.front()).install.timestamp, 1);
+        }
+    }
+
+    TEST_CASE("Respect channel-specific MatchSpec")
+    {
+        auto db = libsolv::Database({
+            /* .platforms= */ { "linux-64", "noarch" },
+            /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/"),
+        });
+
+        SUBCASE("Different channels")
+        {
+            auto pkg1 = specs::PackageInfo("foo", "1.0.0", "conda", 0);
+            pkg1.package_url = "https://conda.anaconda.org/conda-forge/linux-64/foo-1.0.0-phony.conda";
+            db.add_repo_from_packages(std::array{ pkg1 });
+            auto pkg2 = specs::PackageInfo("foo", "1.0.0", "mamba", 0);
+            pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
+            db.add_repo_from_packages(std::array{ pkg2 });
+
+            SUBCASE("conda-forge")
+            {
+                auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "conda-forge::foo"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                const auto actions = find_actions_with_name(solution, "foo");
+                REQUIRE_EQ(actions.size(), 1);
+                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "conda");
+            }
+
+            SUBCASE("mamba-forge")
+            {
+                auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "mamba-forge::foo"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                const auto actions = find_actions_with_name(solution, "foo");
+                REQUIRE_EQ(actions.size(), 1);
+                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
+            }
+
+            SUBCASE("pixi-forge")
+            {
+                auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "pixi-forge::foo"_ms } },
+                };
+
+                // TODO should really be an unsolvable state
+                CHECK_THROWS(libsolv::Solver().solve(db, request));
+            }
+
+            SUBCASE("https://conda.anaconda.org/mamba-forge/")
+            {
+                auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "https://conda.anaconda.org/mamba-forge::foo"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                const auto actions = find_actions_with_name(solution, "foo");
+                REQUIRE_EQ(actions.size(), 1);
+                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
+            }
+        }
+
+        SUBCASE("Different subdirs")
+        {
+            const auto repo_linux = db.add_repo_from_repodata_json(
+                mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo_linux.has_value());
+
+            const auto repo_win = db.add_repo_from_repodata_json(
+                mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
+                "https://conda.anaconda.org/conda-forge/noarch",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo_win.has_value());
+
+            SUBCASE("conda-forge/noarch")
+            {
+                auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "conda-forge/noarch::numpy"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                const auto actions = find_actions_with_name(solution, "numpy");
+                REQUIRE_EQ(actions.size(), 1);
+                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                CHECK(util::contains(
+                    std::get<Solution::Install>(actions.front()).install.package_url,
+                    "noarch"
+                ));
+            }
+
+            SUBCASE("conda-forge[subdir=linux-64]")
+            {
+                auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "conda-forge::numpy[subdir=linux-64]"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                const auto actions = find_actions_with_name(solution, "numpy");
+                REQUIRE_EQ(actions.size(), 1);
+                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                CHECK(util::contains(
+                    std::get<Solution::Install>(actions.front()).install.package_url,
+                    "linux-64"
+                ));
+            }
         }
     }
 }

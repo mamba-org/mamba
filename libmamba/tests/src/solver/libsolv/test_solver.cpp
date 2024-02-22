@@ -168,6 +168,22 @@ TEST_SUITE("solver::libsolv::solver")
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
         }
+
+
+        SUBCASE("Fail to install conflicting dependencies")
+        {
+            const auto request = Request{
+                /* .flags= */ {
+                    /* .keep_dependencies */ true,
+                    /* .keep_user_specs */ false,
+                },
+                /* .jobs= */ { Request::Install{ "numpy"_ms }, Request::Install{ "python=2.7"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+        }
     }
 
     TEST_CASE("Remove packages")

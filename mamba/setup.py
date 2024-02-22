@@ -45,7 +45,7 @@ setup(
         "conda>=4.14.0",
         "libmambapy",
     ],
-    extras_require={"test": ["pytest", "pytest-lazy-fixture"]},
+    extras_require={"test": ["pytest"]},
     data_files=data_files,
     include_package_data=True,
     zip_safe=False,

@@ -50,6 +50,7 @@ def test_Request_Job_spec(Job):
     ["Job", "kwargs"],
     [
         (libmambapy.solver.Request.Remove, {"spec": libmambapy.specs.MatchSpec.parse("foo")}),
+        (libmambapy.solver.Request.Update, {"spec": libmambapy.specs.MatchSpec.parse("foo")}),
         (libmambapy.solver.Request.UpdateAll, {}),
     ],
 )

@@ -53,6 +53,7 @@ namespace mamba::solver
         struct Update
         {
             specs::MatchSpec spec;
+            bool clean_dependencies = true;
         };
 
         /** Instruct to update all installed packages. */

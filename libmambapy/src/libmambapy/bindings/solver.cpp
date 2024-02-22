@@ -69,10 +69,16 @@ namespace mambapy
 
         py::class_<Request::Update>(py_request, "Update")
             .def(
-                py::init([](specs::MatchSpec spec) -> Request::Update { return { std::move(spec) }; }),
-                py::arg("spec")
+                py::init(
+                    [](specs::MatchSpec spec, bool clean) -> Request::Update {
+                        return { std::move(spec), clean };
+                    }
+                ),
+                py::arg("spec"),
+                py::arg("clean_dependencies") = true
             )
             .def_readwrite("spec", &Request::Update::spec)
+            .def_readwrite("clean_dependencies", &Request::Update::clean_dependencies)
             .def("__copy__", &copy<Request::Update>)
             .def("__deepcopy__", &deepcopy<Request::Update>, py::arg("memo"));
 

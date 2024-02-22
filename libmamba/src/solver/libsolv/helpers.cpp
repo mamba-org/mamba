@@ -151,9 +151,19 @@ namespace mamba::solver::libsolv
         ) -> bool
         {
             // Not available from RepoDataPackage
-            solv.set_file_name(filename);
             solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
             solv.set_channel(repo_url_str);
+
+            solv.set_file_name(filename);
+            if (auto fn = pkg["fn"].get_string(); !fn.error())
+            {
+                solv.set_name(fn.value_unsafe());
+            }
+            else
+            {
+                // Fallback from key entry
+                solv.set_file_name(filename);
+            }
 
             if (auto name = pkg["name"].get_string(); !name.error())
             {
@@ -767,14 +777,21 @@ namespace mamba::solver::libsolv
                 mamba_error_code::incorrect_usage
             );
         }
-        auto installed = pool.installed_repo();
-        if (!installed.has_value())
+        auto installed = [&]() -> solv::ObjRepoView
         {
-            return make_unexpected(
-                fmt::format(R"("Cannot add pin "{}" without a repo of installed packages")", pin.str()),
-                mamba_error_code::incorrect_usage
-            );
-        }
+            if (auto repo = pool.installed_repo())
+            {
+                return *repo;
+            }
+            // If the installed repo does not exists, we can safely create it because this is
+            // called right before the solve function.
+            // If it gets modified latter on the pin should not interfere with user packages.
+            // If it gets overriden this it is not a problem for the solve because pins are added
+            // on each solve.
+            auto [id, repo] = pool.add_repo("installed");
+            pool.set_installed_repo(id);
+            return repo;
+        }();
 
         return pool_add_matchspec(pool, pin, params)
             .transform(
@@ -782,7 +799,7 @@ namespace mamba::solver::libsolv
                 {
                     // Add dummy solvable with a constraint on the pin (not installed if not
                     // present)
-                    auto [cons_solv_id, cons_solv] = installed->add_solvable();
+                    auto [cons_solv_id, cons_solv] = installed.add_solvable();
                     const std::string cons_solv_name = fmt::format(
                         "pin-{}",
                         util::generate_random_alphanumeric_string(10)
@@ -802,7 +819,7 @@ namespace mamba::solver::libsolv
 
                     // Necessary for attributes to be properly stored
                     // TODO move this at the end of all job requests
-                    installed->internalize();
+                    installed.internalize();
 
                     return cons_solv;
                 }
@@ -1221,12 +1238,19 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](auto id)
                         {
+                            auto const clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
                             // TODO: ignoring update specs here for now
                             if (!job.spec.is_simple())
                             {
-                                raw_jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
+                                raw_jobs.push_back(
+                                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES | clean_deps,
+                                    id
+                                );
                             }
-                            raw_jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
+                            raw_jobs.push_back(
+                                SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES | clean_deps,
+                                id
+                            );
                         }
                     );
             }

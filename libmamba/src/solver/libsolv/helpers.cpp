@@ -151,9 +151,19 @@ namespace mamba::solver::libsolv
         ) -> bool
         {
             // Not available from RepoDataPackage
-            solv.set_file_name(filename);
             solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
             solv.set_channel(repo_url_str);
+
+            solv.set_file_name(filename);
+            if (auto fn = pkg["fn"].get_string(); !fn.error())
+            {
+                solv.set_name(fn.value_unsafe());
+            }
+            else
+            {
+                // Fallback from key entry
+                solv.set_file_name(filename);
+            }
 
             if (auto name = pkg["name"].get_string(); !name.error())
             {

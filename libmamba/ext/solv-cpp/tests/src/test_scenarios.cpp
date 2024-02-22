@@ -160,7 +160,7 @@ TEST_SUITE("solv::scenariso")
             [&pool,
              name_id = dep_name_id,
              ver_id = dep_ver_id,
-             solv_id = solv_id](::Pool*, StringId name, StringId ver) noexcept -> OffsetId
+             solv_id = solv_id](ObjPoolView, StringId name, StringId ver) noexcept -> OffsetId
             {
                 CHECK_EQ(name, name_id);
                 CHECK_EQ(ver, ver_id);

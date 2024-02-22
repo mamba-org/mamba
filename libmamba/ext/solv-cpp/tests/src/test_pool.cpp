@@ -315,7 +315,7 @@ TEST_SUITE("solv::ObjPool")
             std::string_view message = "";
             int type = 0;
             pool.set_debug_callback(
-                [&](auto* /* pool */, auto t, auto msg) noexcept
+                [&](ObjPoolView /* pool */, auto t, auto msg) noexcept
                 {
                     message = msg;
                     type = t;
@@ -329,8 +329,9 @@ TEST_SUITE("solv::ObjPool")
         SUBCASE("Add a namespace callback")
         {
             pool.set_namespace_callback(
-                [&](auto* /* pool */, StringId /* name */, StringId /* version */) noexcept -> OffsetId
-                { return 0; }
+                [&](ObjPoolView /* pool */,
+                    StringId /* name */,
+                    StringId /* version */) noexcept -> OffsetId { return 0; }
             );
         }
     }

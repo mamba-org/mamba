@@ -483,7 +483,7 @@ namespace solv
     void ObjPool::set_debug_callback(Func&& callback)
     {
         static_assert(
-            std::is_nothrow_invocable_v<Func, Pool*, int, std::string_view>,
+            std::is_nothrow_invocable_v<Func, ObjPoolView, int, std::string_view>,
             "User callback must be marked noexcept."
         );
 
@@ -494,7 +494,7 @@ namespace solv
         auto debug_callback = [](Pool* pool, void* user_data, int type, const char* msg) noexcept
         {
             auto* user_debug_callback = reinterpret_cast<Func*>(user_data);
-            (*user_debug_callback)(pool, type, std::string_view(msg));  // noexcept
+            (*user_debug_callback)(ObjPoolView(pool), type, std::string_view(msg));  // noexcept
         };
 
         ::pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());
@@ -504,7 +504,7 @@ namespace solv
     void ObjPool::set_namespace_callback(Func&& callback)
     {
         static_assert(
-            std::is_nothrow_invocable_v<Func, Pool*, StringId, StringId>,
+            std::is_nothrow_invocable_v<Func, ObjPoolView, StringId, StringId>,
             "User callback must be marked noexcept."
         );
 
@@ -517,7 +517,7 @@ namespace solv
                                   ) noexcept -> OffsetId
         {
             auto* user_namespace_callback = reinterpret_cast<Func*>(user_data);
-            return (*user_namespace_callback)(pool, name, ver);  // noexcept
+            return (*user_namespace_callback)(ObjPoolView(pool), name, ver);  // noexcept
         };
 
         ::pool_setnamespacecallback(raw(), namespace_callback, m_user_namespace_callback.get());

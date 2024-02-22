@@ -102,7 +102,7 @@ namespace mamba::solver::libsolv
     {
         ::pool_setdebuglevel(pool().raw(), std::numeric_limits<int>::max());  // All
         pool().set_debug_callback(
-            [logger = std::move(callback)](::Pool*, int type, std::string_view msg) noexcept
+            [logger = std::move(callback)](const solv::ObjPoolView&, int type, std::string_view msg) noexcept
             {
                 try
                 {

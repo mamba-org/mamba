@@ -19,41 +19,36 @@
 
 namespace solv
 {
-    void ObjPool::PoolDeleter::operator()(::Pool* ptr)
-    {
-        ::pool_free(ptr);
-    }
+    /***********************************
+     *  Implementation of ObjPoolView  *
+     ***********************************/
 
-    ObjPool::ObjPool()
-        : m_user_debug_callback(nullptr, [](void* /*ptr*/) {})
-        , m_user_namespace_callback(nullptr, [](void* /*ptr*/) {})
-        , m_pool(::pool_create())
+    ObjPoolView::ObjPoolView(raw_ptr ptr)
+        : m_pool(ptr)
     {
     }
 
-    ObjPool::~ObjPool() = default;
-
-    auto ObjPool::raw() -> ::Pool*
+    auto ObjPoolView::raw() -> raw_ptr
     {
-        return m_pool.get();
+        return m_pool;
     }
 
-    auto ObjPool::raw() const -> const ::Pool*
+    auto ObjPoolView::raw() const -> const_raw_ptr
     {
-        return m_pool.get();
+        return m_pool;
     }
 
-    auto ObjPool::disttype() const -> DistType
+    auto ObjPoolView::disttype() const -> DistType
     {
         return raw()->disttype;
     }
 
-    void ObjPool::set_disttype(DistType dt)
+    void ObjPoolView::set_disttype(DistType dt)
     {
         pool_setdisttype(raw(), dt);
     }
 
-    auto ObjPool::find_string(std::string_view str) const -> std::optional<StringId>
+    auto ObjPoolView::find_string(std::string_view str) const -> std::optional<StringId>
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());
         const ::Id id = ::pool_strn2id(
@@ -65,7 +60,7 @@ namespace solv
         return (id == 0) ? std::nullopt : std::optional(id);
     }
 
-    auto ObjPool::add_string(std::string_view str) -> StringId
+    auto ObjPoolView::add_string(std::string_view str) -> StringId
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());
         // Note: libsolv cannot report failure to allocate
@@ -87,13 +82,13 @@ namespace solv
         }
     }
 
-    auto ObjPool::get_string(StringId id) const -> std::string_view
+    auto ObjPoolView::get_string(StringId id) const -> std::string_view
     {
         assert(!is_reldep(id));
         return ::pool_id2str(raw(), id);
     }
 
-    auto ObjPool::find_dependency(StringId name_id, RelationFlag flag, StringId version_id) const
+    auto ObjPoolView::find_dependency(StringId name_id, RelationFlag flag, StringId version_id) const
         -> std::optional<DependencyId>
     {
         const ::Id id = ::pool_rel2id(
@@ -106,7 +101,7 @@ namespace solv
         return (id == 0) ? std::nullopt : std::optional(DependencyId{ id });
     }
 
-    auto ObjPool::add_dependency(StringId name_id, RelationFlag flag, StringId version_id)
+    auto ObjPoolView::add_dependency(StringId name_id, RelationFlag flag, StringId version_id)
         -> DependencyId
     {
         // Note: libsolv cannot report failure to allocate
@@ -122,32 +117,32 @@ namespace solv
         return id;
     }
 
-    auto ObjPool::add_conda_dependency(raw_str_view dep) -> DependencyId
+    auto ObjPoolView::add_conda_dependency(raw_str_view dep) -> DependencyId
     {
         return ::pool_conda_matchspec(raw(), dep);
     }
 
-    auto ObjPool::add_conda_dependency(const std::string& dep) -> DependencyId
+    auto ObjPoolView::add_conda_dependency(const std::string& dep) -> DependencyId
     {
         return add_conda_dependency(dep.c_str());
     }
 
-    auto ObjPool::get_dependency_name(DependencyId id) const -> std::string_view
+    auto ObjPoolView::get_dependency_name(DependencyId id) const -> std::string_view
     {
         return ::pool_id2str(raw(), id);
     }
 
-    auto ObjPool::get_dependency_version(DependencyId id) const -> std::string_view
+    auto ObjPoolView::get_dependency_version(DependencyId id) const -> std::string_view
     {
         return ::pool_id2evr(raw(), id);
     }
 
-    auto ObjPool::get_dependency_relation(DependencyId id) const -> std::string_view
+    auto ObjPoolView::get_dependency_relation(DependencyId id) const -> std::string_view
     {
         return ::pool_id2rel(raw(), id);
     }
 
-    auto ObjPool::dependency_to_string(DependencyId id) const -> std::string
+    auto ObjPoolView::dependency_to_string(DependencyId id) const -> std::string
     {
         return ::pool_dep2str(
             // Not const in because function may allocate in pool tmp alloc space
@@ -156,7 +151,7 @@ namespace solv
         );
     }
 
-    auto ObjPool::select_solvables(const ObjQueue& job) const -> ObjQueue
+    auto ObjPoolView::select_solvables(const ObjQueue& job) const -> ObjQueue
     {
         ObjQueue solvables = {};
         ::selection_solvables(
@@ -169,7 +164,7 @@ namespace solv
         return solvables;
     }
 
-    auto ObjPool::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const
+    auto ObjPoolView::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const
         -> ObjQueue
     {
         ObjQueue solvables = {};
@@ -177,12 +172,12 @@ namespace solv
         return solvables;
     }
 
-    void ObjPool::create_whatprovides()
+    void ObjPoolView::create_whatprovides()
     {
         ::pool_createwhatprovides(raw());
     }
 
-    void ObjPool::ensure_whatprovides()
+    void ObjPoolView::ensure_whatprovides()
     {
         if (!raw()->whatprovides)
         {
@@ -190,12 +185,12 @@ namespace solv
         }
     }
 
-    auto ObjPool::add_to_whatprovides_data(const ObjQueue& solvables) -> OffsetId
+    auto ObjPoolView::add_to_whatprovides_data(const ObjQueue& solvables) -> OffsetId
     {
         return add_to_whatprovdies_data(solvables.data(), solvables.size());
     }
 
-    auto ObjPool::add_to_whatprovdies_data(const SolvableId* ptr, std::size_t count) -> OffsetId
+    auto ObjPoolView::add_to_whatprovdies_data(const SolvableId* ptr, std::size_t count) -> OffsetId
     {
         assert(count <= std::numeric_limits<int>::max());
         if (raw()->whatprovidesdata == nullptr)
@@ -205,7 +200,7 @@ namespace solv
         return ::pool_ids2whatprovides(raw(), const_cast<::Id*>(ptr), static_cast<int>(count));
     }
 
-    void ObjPool::add_to_whatprovides(DependencyId dep, OffsetId solvables)
+    void ObjPoolView::add_to_whatprovides(DependencyId dep, OffsetId solvables)
     {
         if (raw()->whatprovides == nullptr)
         {
@@ -214,7 +209,7 @@ namespace solv
         ::pool_set_whatprovides(raw(), dep, solvables);
     }
 
-    auto ObjPool::add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>
+    auto ObjPoolView::add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>
     {
         auto* repo_ptr = ::repo_create(
             raw(),
@@ -226,12 +221,12 @@ namespace solv
         return { raw()->nrepos - 1, ObjRepoView{ *repo_ptr } };
     }
 
-    auto ObjPool::has_repo(RepoId id) const -> bool
+    auto ObjPoolView::has_repo(RepoId id) const -> bool
     {
         return (id > 0) && (id < raw()->nrepos) && (raw()->repos[id] != nullptr);
     }
 
-    auto ObjPool::get_repo(RepoId id) -> std::optional<ObjRepoView>
+    auto ObjPoolView::get_repo(RepoId id) -> std::optional<ObjRepoView>
     {
         if (!has_repo(id))
         {
@@ -242,7 +237,7 @@ namespace solv
         return { ObjRepoView{ *repo_ptr } };
     }
 
-    auto ObjPool::get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>
+    auto ObjPoolView::get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>
     {
         if (!has_repo(id))
         {
@@ -254,14 +249,14 @@ namespace solv
         return { ObjRepoViewConst{ *repo_ptr } };
     }
 
-    auto ObjPool::repo_count() const -> std::size_t
+    auto ObjPoolView::repo_count() const -> std::size_t
     {
         // Id 0 is special
         assert(raw()->urepos >= 0);
         return static_cast<std::size_t>(raw()->urepos);
     }
 
-    auto ObjPool::remove_repo(RepoId id, bool reuse_ids) -> bool
+    auto ObjPoolView::remove_repo(RepoId id, bool reuse_ids) -> bool
     {
         if (has_repo(id))
         {
@@ -271,7 +266,7 @@ namespace solv
         return false;
     }
 
-    auto ObjPool::installed_repo() const -> std::optional<ObjRepoViewConst>
+    auto ObjPoolView::installed_repo() const -> std::optional<ObjRepoViewConst>
     {
         if (const auto* const installed_ptr = raw()->installed)
         {
@@ -280,7 +275,7 @@ namespace solv
         return std::nullopt;
     }
 
-    auto ObjPool::installed_repo() -> std::optional<ObjRepoView>
+    auto ObjPoolView::installed_repo() -> std::optional<ObjRepoView>
     {
         if (auto* const installed_ptr = raw()->installed)
         {
@@ -289,7 +284,7 @@ namespace solv
         return std::nullopt;
     }
 
-    void ObjPool::set_installed_repo(RepoId id)
+    void ObjPoolView::set_installed_repo(RepoId id)
     {
         const auto must_repo = get_repo(id);
         assert(must_repo.has_value());
@@ -298,13 +293,13 @@ namespace solv
 
     inline static constexpr int solvable_id_start = 2;
 
-    auto ObjPool::solvable_count() const -> std::size_t
+    auto ObjPoolView::solvable_count() const -> std::size_t
     {
         assert(raw()->nsolvables >= solvable_id_start);
         return static_cast<std::size_t>(raw()->nsolvables - solvable_id_start);
     }
 
-    auto ObjPool::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
+    auto ObjPoolView::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
     {
         if ((solvable_id_start <= id) && (id < raw()->nsolvables))
         {
@@ -316,7 +311,7 @@ namespace solv
         return std::nullopt;
     }
 
-    auto ObjPool::get_solvable(SolvableId id) -> std::optional<ObjSolvableView>
+    auto ObjPoolView::get_solvable(SolvableId id) -> std::optional<ObjSolvableView>
     {
         if ((solvable_id_start <= id) && (id < raw()->nsolvables))
         {
@@ -327,4 +322,24 @@ namespace solv
         }
         return std::nullopt;
     }
+
+    /*******************************
+     *  Implementation of ObjPool  *
+     *******************************/
+
+    void ObjPool::PoolDeleter::operator()(::Pool* ptr)
+    {
+        ::pool_free(ptr);
+    }
+
+    ObjPool::ObjPool()
+        : ObjPoolView(nullptr)
+        , m_user_debug_callback(nullptr, [](void* /*ptr*/) {})
+        , m_user_namespace_callback(nullptr, [](void* /*ptr*/) {})
+        , m_pool(::pool_create())
+    {
+        ObjPoolView::m_pool = m_pool.get();
+    }
+
+    ObjPool::~ObjPool() = default;
 }

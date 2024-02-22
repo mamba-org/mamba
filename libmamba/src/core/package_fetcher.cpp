@@ -322,20 +322,33 @@ namespace mamba
         return m_package_info.filename;
     }
 
-    const std::string& PackageFetcher::channel() const
+    std::string PackageFetcher::channel() const
     {
-        return m_package_info.channel;
+        if (m_package_info.package_type == specs::PackageType::Conda)
+        {
+            return m_package_info.channel;
+        }
+        else
+        {
+            return "";
+        }
     }
 
     std::string PackageFetcher::url_path() const
     {
-        return m_package_info.subdir + "/" + m_package_info.filename;
+        if (m_package_info.package_type == specs::PackageType::Conda)
+        {
+            return m_package_info.subdir + "/" + m_package_info.filename;
+        }
+        else
+        {
+            return m_package_info.package_url;
+        }
     }
 
     const std::string& PackageFetcher::url() const
     {
         return m_downloaded_url;
-        // return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::sha256() const

@@ -102,7 +102,7 @@ namespace mamba
         struct CheckSumParams;
 
         const std::string& filename() const;
-        const std::string& channel() const;
+        std::string channel() const;
         std::string url_path() const;
         const std::string& url() const;
         const std::string& sha256() const;

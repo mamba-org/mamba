@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iostream>
 #include <tuple>
 #include <type_traits>
 
@@ -23,6 +24,15 @@ namespace mamba::specs
 {
     namespace
     {
+        auto parse_extension(std::string_view spec) -> PackageType
+        {
+            if (util::ends_with(spec, ".whl"))
+            {
+                return PackageType::Wheel;
+            }
+            return PackageType::Conda;
+        }
+
         auto parse_url(std::string_view spec) -> PackageInfo
         {
             auto fail_parse = [&]() {
@@ -42,13 +52,19 @@ namespace mamba::specs
             auto url = CondaURL::parse(out.package_url);
             out.filename = url.package();
             url.clear_package();
-            out.subdir = url.platform_name();
-            url.clear_platform();
-            out.channel = util::rstrip(url.str(), '/');
+
+            out.package_type = parse_extension(spec);
+            if (out.package_type == PackageType::Conda)
+            {
+                out.subdir = url.platform_name();
+                url.clear_platform();
+                out.channel = util::rstrip(url.str(), '/');
+            }
 
             // Build string
             auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
             out.build_string = tail;
+
             if (!head.has_value())
             {
                 fail_parse();

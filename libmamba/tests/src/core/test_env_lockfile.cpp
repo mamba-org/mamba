@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
 #include <doctest/doctest.h>
 #include <yaml-cpp/exceptions.h>
 

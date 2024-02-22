@@ -17,6 +17,13 @@
 
 namespace mamba::specs
 {
+    enum class PackageType
+    {
+        Unknown,
+        Conda,
+        Wheel,
+    };
+
     class PackageInfo
     {
     public:
@@ -45,6 +52,7 @@ namespace mamba::specs
         NoArchType noarch = NoArchType::No;
         std::size_t size = 0;
         std::size_t timestamp = 0;
+        PackageType package_type = PackageType::Unknown;
 
         [[nodiscard]] static auto from_url(std::string_view url) -> PackageInfo;
 

@@ -41,11 +41,6 @@ namespace solv
         using raw_ptr = ::Pool*;
         using const_raw_ptr = const ::Pool*;
 
-        ObjPoolView(const ObjPoolView&) = delete;
-        auto operator=(const ObjPoolView&) -> ObjPoolView& = delete;
-        ObjPoolView(ObjPoolView&&) = default;
-        auto operator=(ObjPoolView&&) -> ObjPoolView& = default;
-
         auto raw() -> raw_ptr;
         auto raw() const -> const_raw_ptr;
 
@@ -299,12 +294,49 @@ namespace solv
         friend class ObjPool;
     };
 
-    class ObjPool : public ObjPoolView
+    class ObjPool : private ObjPoolView
     {
     public:
 
         ObjPool();
         ~ObjPool();
+
+        using ObjPoolView::raw;
+        using ObjPoolView::disttype;
+        using ObjPoolView::set_disttype;
+        using ObjPoolView::find_string;
+        using ObjPoolView::add_string;
+        using ObjPoolView::get_string;
+        using ObjPoolView::find_dependency;
+        using ObjPoolView::add_dependency;
+        using ObjPoolView::add_conda_dependency;
+        using ObjPoolView::get_dependency_name;
+        using ObjPoolView::get_dependency_version;
+        using ObjPoolView::get_dependency_relation;
+        using ObjPoolView::dependency_to_string;
+        using ObjPoolView::create_whatprovides;
+        using ObjPoolView::ensure_whatprovides;
+        using ObjPoolView::add_to_whatprovides_data;
+        using ObjPoolView::add_to_whatprovides;
+        using ObjPoolView::for_each_whatprovides_id;
+        using ObjPoolView::for_each_whatprovides;
+        using ObjPoolView::select_solvables;
+        using ObjPoolView::what_matches_dep;
+        using ObjPoolView::add_repo;
+        using ObjPoolView::has_repo;
+        using ObjPoolView::get_repo;
+        using ObjPoolView::repo_count;
+        using ObjPoolView::remove_repo;
+        using ObjPoolView::for_each_repo_id;
+        using ObjPoolView::for_each_repo;
+        using ObjPoolView::installed_repo;
+        using ObjPoolView::set_installed_repo;
+        using ObjPoolView::solvable_count;
+        using ObjPoolView::get_solvable;
+        using ObjPoolView::for_each_solvable_id;
+        using ObjPoolView::for_each_solvable;
+        using ObjPoolView::for_each_installed_solvable_id;
+        using ObjPoolView::for_each_installed_solvable;
 
         /** Set the callback to handle libsolv messages.
          *

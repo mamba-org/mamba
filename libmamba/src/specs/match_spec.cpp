@@ -44,7 +44,9 @@ namespace mamba::specs
 
         // Version
         std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-        out.m_version = VersionSpec::parse(tail);
+        out.m_version = VersionSpec::parse(tail)
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value();
         if (!head.has_value())
         {
             fail_parse();
@@ -65,7 +67,9 @@ namespace mamba::specs
             if (pos == s.npos || pos == 0)
             {
                 return {
-                    VersionSpec::parse(s),
+                    VersionSpec::parse(s)
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value(),
                     MatchSpec::BuildStringSpec(),
                 };
             }
@@ -77,7 +81,9 @@ namespace mamba::specs
                 if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
                 {
                     return {
-                        VersionSpec::parse(s),
+                        VersionSpec::parse(s)
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value(),
                         MatchSpec::BuildStringSpec(),
                     };
                 }
@@ -85,7 +91,9 @@ namespace mamba::specs
             // c is either ' ' or pm1 is none of the forbidden chars
 
             return {
-                VersionSpec::parse(s.substr(0, pos)),
+                VersionSpec::parse(s.substr(0, pos))
+                    .or_else([](ParseError&& error) { throw std::move(error); })
+                    .value(),
                 MatchSpec::BuildStringSpec(std::string(s.substr(pos + 1))),
             };
         }
@@ -253,7 +261,10 @@ namespace mamba::specs
         }
         if (const auto& val = at_or(extra, "version", ""); !val.empty())
         {
-            out.set_version(VersionSpec::parse(val));
+            out.set_version(
+                VersionSpec::parse(val).or_else([](ParseError&& error) { throw std::move(error); }
+                ).value()
+            );
         }
         if (const auto& val = at_or(extra, "channel", ""); !val.empty())
         {

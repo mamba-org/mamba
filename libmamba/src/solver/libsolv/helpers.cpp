@@ -1183,7 +1183,16 @@ namespace mamba::solver::libsolv
 
             auto ms_modified = ms;
             ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
-            ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
+            auto version_spec = specs::VersionSpec::parse(solvable->version());
+            if (version_spec.has_value())
+            {
+                ms_modified.set_version(std::move(version_spec).value());
+            }
+            else
+            {
+                return make_unexpected(version_spec.error().what(), mamba_error_code::invalid_spec);
+            }
+
             ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
 
             LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "

@@ -52,13 +52,35 @@ TEST_SUITE("solv::ObjSolver")
             CHECK_EQ(solver.problem_count(), 0);
         }
 
-        SUBCASE("Solve unsuccessfully")
+        SUBCASE("Solve unsuccessfully with conflict")
         {
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("menu"),
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("icons=1.*"),
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("intl=5.*"),
+            };
+
+            CHECK_FALSE(solver.solve(pool, jobs));
+            CHECK_NE(solver.problem_count(), 0);
+
+            auto all_rules = ObjQueue{};
+            solver.for_each_problem_id(
+                [&](auto pb)
+                {
+                    auto pb_rules = solver.problem_rules(pb);
+                    all_rules.insert(all_rules.end(), pb_rules.cbegin(), pb_rules.cend());
+                }
+            );
+            CHECK_FALSE(all_rules.empty());
+        }
+
+        SUBCASE("Solve unsuccessfully with missing package")
+        {
+            // The job is matched with the ``provides`` field of the solvable
+            auto jobs = ObjQueue{
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                pool.add_conda_dependency("does-not-exists"),
             };
 
             CHECK_FALSE(solver.solve(pool, jobs));

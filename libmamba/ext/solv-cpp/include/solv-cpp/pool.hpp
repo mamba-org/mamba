@@ -24,6 +24,8 @@
 
 namespace solv
 {
+    class ObjPool;
+
     /**
      * Pool of solvable involved in resolving en environment.
      *
@@ -31,22 +33,21 @@ namespace solv
      * The pool can be reused by multiple solvers to solve differents requirements with the same
      * ecosystem.
      */
-    class ObjPool
+    class ObjPoolView
     {
     public:
 
         using raw_str_view = const char*;
+        using raw_ptr = ::Pool*;
+        using const_raw_ptr = const ::Pool*;
 
-        ObjPool();
-        ~ObjPool();
-
-        auto raw() -> ::Pool*;
-        auto raw() const -> const ::Pool*;
+        auto raw() -> raw_ptr;
+        auto raw() const -> const_raw_ptr;
 
         /**
          * Get the current distribution type of the pool.
          *
-         * @see ObjPool::set_disttype
+         * @see ObjPoolView::set_disttype
          */
         auto disttype() const -> DistType;
 
@@ -62,7 +63,7 @@ namespace solv
         /**
          * Find a string id in the pool if it exists.
          *
-         * @see ObjPool::add_string
+         * @see ObjPoolView::add_string
          */
         auto find_string(std::string_view str) const -> std::optional<StringId>;
 
@@ -77,14 +78,14 @@ namespace solv
         /**
          * Get the string associated with an id.
          *
-         * @see ObjPool::add_string
+         * @see ObjPoolView::add_string
          */
         auto get_string(StringId id) const -> std::string_view;
 
         /**
          * Find a dependency in the pool, if it exists.
          *
-         * @see ObjPool::add_dependency
+         * @see ObjPoolView::add_dependency
          */
         auto find_dependency(StringId name_id, RelationFlag flag, StringId version_id) const
             -> std::optional<DependencyId>;
@@ -157,7 +158,7 @@ namespace solv
         /**
          * Execute function for each solvable id that provides the given dependency.
          *
-         * @pre ObjPool::create_whatprovides must have been called before.
+         * @pre ObjPoolView::create_whatprovides must have been called before.
          */
         template <typename UnaryFunc>
         void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
@@ -165,7 +166,7 @@ namespace solv
         /**
          * Execute function for each solvable that provides the given dependency.
          *
-         * @pre ObjPool::create_whatprovides must have been called before.
+         * @pre ObjPoolView::create_whatprovides must have been called before.
          */
         template <typename UnaryFunc>
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const;
@@ -231,14 +232,14 @@ namespace solv
         /**
          * Get the repository of installed packages, if it exists.
          *
-         * @see ObjPool::set_installed_repository
+         * @see ObjPoolView::set_installed_repository
          */
         auto installed_repo() const -> std::optional<ObjRepoViewConst>;
 
         /**
          * Get the repository of installed packages, if it exists.
          *
-         * @see ObjPool::set_installed_repository
+         * @see ObjPoolView::set_installed_repository
          */
         auto installed_repo() -> std::optional<ObjRepoView>;
 
@@ -284,6 +285,59 @@ namespace solv
         template <typename UnaryFunc>
         void for_each_installed_solvable(UnaryFunc&& func);
 
+    private:
+
+        raw_ptr m_pool;
+
+        ObjPoolView(raw_ptr ptr);
+
+        friend class ObjPool;
+    };
+
+    class ObjPool : private ObjPoolView
+    {
+    public:
+
+        ObjPool();
+        ~ObjPool();
+
+        using ObjPoolView::raw;
+        using ObjPoolView::disttype;
+        using ObjPoolView::set_disttype;
+        using ObjPoolView::find_string;
+        using ObjPoolView::add_string;
+        using ObjPoolView::get_string;
+        using ObjPoolView::find_dependency;
+        using ObjPoolView::add_dependency;
+        using ObjPoolView::add_conda_dependency;
+        using ObjPoolView::get_dependency_name;
+        using ObjPoolView::get_dependency_version;
+        using ObjPoolView::get_dependency_relation;
+        using ObjPoolView::dependency_to_string;
+        using ObjPoolView::create_whatprovides;
+        using ObjPoolView::ensure_whatprovides;
+        using ObjPoolView::add_to_whatprovides_data;
+        using ObjPoolView::add_to_whatprovides;
+        using ObjPoolView::for_each_whatprovides_id;
+        using ObjPoolView::for_each_whatprovides;
+        using ObjPoolView::select_solvables;
+        using ObjPoolView::what_matches_dep;
+        using ObjPoolView::add_repo;
+        using ObjPoolView::has_repo;
+        using ObjPoolView::get_repo;
+        using ObjPoolView::repo_count;
+        using ObjPoolView::remove_repo;
+        using ObjPoolView::for_each_repo_id;
+        using ObjPoolView::for_each_repo;
+        using ObjPoolView::installed_repo;
+        using ObjPoolView::set_installed_repo;
+        using ObjPoolView::solvable_count;
+        using ObjPoolView::get_solvable;
+        using ObjPoolView::for_each_solvable_id;
+        using ObjPoolView::for_each_solvable;
+        using ObjPoolView::for_each_installed_solvable_id;
+        using ObjPoolView::for_each_installed_solvable;
+
         /** Set the callback to handle libsolv messages.
          *
          * The callback takes a ``Pool*``, the type of message as ``int``, and the message
@@ -310,11 +364,11 @@ namespace solv
     };
 
     /*******************************
-     *  Implementation of ObjPool  *
+     *  Implementation of ObjPoolView  *
      *******************************/
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_repo_id(UnaryFunc&& func) const
+    void ObjPoolView::for_each_repo_id(UnaryFunc&& func) const
     {
         const ::Pool* const pool = raw();
         const ::Repo* repo = nullptr;
@@ -336,21 +390,21 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_repo(UnaryFunc&& func) const
+    void ObjPoolView::for_each_repo(UnaryFunc&& func) const
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_repo_id([this, func](RepoId id) { func(get_repo(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_repo(UnaryFunc&& func)
+    void ObjPoolView::for_each_repo(UnaryFunc&& func)
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_repo_id([this, func](RepoId id) { func(get_repo(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const
+    void ObjPoolView::for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const
     {
         if (raw()->whatprovides == nullptr)
         {
@@ -376,7 +430,7 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const
+    void ObjPoolView::for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_whatprovides_id(
@@ -386,7 +440,7 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc&& func)
+    void ObjPoolView::for_each_whatprovides(DependencyId dep, UnaryFunc&& func)
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_whatprovides_id(
@@ -396,7 +450,7 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_solvable_id(UnaryFunc&& func) const
+    void ObjPoolView::for_each_solvable_id(UnaryFunc&& func) const
     {
         const ::Pool* const pool = raw();
         SolvableId id = 0;
@@ -417,21 +471,21 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_solvable(UnaryFunc&& func) const
+    void ObjPoolView::for_each_solvable(UnaryFunc&& func) const
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_solvable(UnaryFunc&& func)
+    void ObjPoolView::for_each_solvable(UnaryFunc&& func)
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_installed_solvable_id(UnaryFunc&& func) const
+    void ObjPoolView::for_each_installed_solvable_id(UnaryFunc&& func) const
     {
         if (auto installed = installed_repo(); installed.has_value())
         {
@@ -440,7 +494,7 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_installed_solvable(UnaryFunc&& func) const
+    void ObjPoolView::for_each_installed_solvable(UnaryFunc&& func) const
     {
         if (auto installed = installed_repo(); installed.has_value())
         {
@@ -449,7 +503,7 @@ namespace solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_installed_solvable(UnaryFunc&& func)
+    void ObjPoolView::for_each_installed_solvable(UnaryFunc&& func)
     {
         if (auto installed = installed_repo(); installed.has_value())
         {
@@ -461,7 +515,7 @@ namespace solv
     void ObjPool::set_debug_callback(Func&& callback)
     {
         static_assert(
-            std::is_nothrow_invocable_v<Func, Pool*, int, std::string_view>,
+            std::is_nothrow_invocable_v<Func, ObjPoolView, int, std::string_view>,
             "User callback must be marked noexcept."
         );
 
@@ -472,7 +526,7 @@ namespace solv
         auto debug_callback = [](Pool* pool, void* user_data, int type, const char* msg) noexcept
         {
             auto* user_debug_callback = reinterpret_cast<Func*>(user_data);
-            (*user_debug_callback)(pool, type, std::string_view(msg));  // noexcept
+            (*user_debug_callback)(ObjPoolView(pool), type, std::string_view(msg));  // noexcept
         };
 
         ::pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());
@@ -482,7 +536,7 @@ namespace solv
     void ObjPool::set_namespace_callback(Func&& callback)
     {
         static_assert(
-            std::is_nothrow_invocable_v<Func, Pool*, StringId, StringId>,
+            std::is_nothrow_invocable_v<Func, ObjPoolView, StringId, StringId>,
             "User callback must be marked noexcept."
         );
 
@@ -495,7 +549,7 @@ namespace solv
                                   ) noexcept -> OffsetId
         {
             auto* user_namespace_callback = reinterpret_cast<Func*>(user_data);
-            return (*user_namespace_callback)(pool, name, ver);  // noexcept
+            return (*user_namespace_callback)(ObjPoolView(pool), name, ver);  // noexcept
         };
 
         ::pool_setnamespacecallback(raw(), namespace_callback, m_user_namespace_callback.get());

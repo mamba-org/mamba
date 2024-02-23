@@ -1059,10 +1059,10 @@ namespace mamba::solver::libsolv
         {
             if (auto newer = find_new_python_in_solution(solution))
             {
-                return !python_binary_compatible(
-                    specs::Version::parse(installed->version()),
-                    specs::Version::parse(newer->get().version)
-                );
+                auto installed_ver = specs::Version::parse(installed->version());
+                auto newer_ver = specs::Version::parse(newer->get().version);
+                return !installed_ver.has_value() || !newer_ver.has_value()
+                       || !python_binary_compatible(installed_ver.value(), newer_ver.value());
             }
         }
         return false;

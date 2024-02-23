@@ -16,13 +16,16 @@ using namespace mamba::specs;
 
 TEST_SUITE("specs::version_spec")
 {
+    using namespace mamba::specs::version_literals;
+    using namespace mamba::specs::version_spec_literals;
+
     TEST_CASE("VersionPredicate")
     {
-        const auto v1 = Version::parse("1.0");
-        const auto v2 = Version::parse("2.0");
-        const auto v201 = Version::parse("2.0.1");
-        const auto v3 = Version::parse("3.0");
-        const auto v4 = Version::parse("4.0");
+        const auto v1 = "1.0"_v;
+        const auto v2 = "2.0"_v;
+        const auto v201 = "2.0.1"_v;
+        const auto v3 = "3.0"_v;
+        const auto v4 = "4.0"_v;
 
         const auto free = VersionPredicate::make_free();
         CHECK(free.contains(v1));
@@ -162,9 +165,6 @@ TEST_SUITE("specs::version_spec")
 
     TEST_CASE("VersionSpec::parse")
     {
-        using namespace mamba::specs::version_literals;
-        using namespace mamba::specs::version_spec_literals;
-
         SUBCASE("Successful")
         {
             CHECK(""_vs.contains("1.6"_v));

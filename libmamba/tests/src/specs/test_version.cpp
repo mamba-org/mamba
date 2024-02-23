@@ -418,51 +418,51 @@ TEST_SUITE("specs::version")
         ));
 
         // Default constructed
-        CHECK_EQ(Version::parse("0.0"), Version());
+        CHECK_EQ(Version::parse("0.0").value(), Version());
 
         // Lowercase and strip
-        CHECK_EQ(Version::parse("0.4.1.rc"), Version::parse("  0.4.1.RC  "));
-        CHECK_EQ(Version::parse("  0.4.1.RC  "), Version::parse("0.4.1.rc"));
+        CHECK_EQ(Version::parse("0.4.1.rc").value(), Version::parse("  0.4.1.RC  "));
+        CHECK_EQ(Version::parse("  0.4.1.RC  ").value(), Version::parse("0.4.1.rc"));
 
         // Functional assertions
-        CHECK_EQ(Version::parse("  0.4.rc  "), Version::parse("0.4.RC"));
-        CHECK_EQ(Version::parse("0.4"), Version::parse("0.4.0"));
-        CHECK_NE(Version::parse("0.4"), Version::parse("0.4.1"));
-        CHECK_EQ(Version::parse("0.4.a1"), Version::parse("0.4.0a1"));
-        CHECK_NE(Version::parse("0.4.a1"), Version::parse("0.4.1a1"));
+        CHECK_EQ(Version::parse("  0.4.rc  ").value(), Version::parse("0.4.RC"));
+        CHECK_EQ(Version::parse("0.4").value(), Version::parse("0.4.0"));
+        CHECK_NE(Version::parse("0.4").value(), Version::parse("0.4.1"));
+        CHECK_EQ(Version::parse("0.4.a1").value(), Version::parse("0.4.0a1"));
+        CHECK_NE(Version::parse("0.4.a1").value(), Version::parse("0.4.1a1"));
     }
 
     TEST_CASE("parse_invalid")
     {
         // Wrong epoch
-        CHECK_THROWS_AS(Version::parse("!1.1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("-1!1.1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("foo!1.1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("0post1!1.1"), std::invalid_argument);
+        CHECK_FALSE(Version::parse("!1.1").has_value());
+        CHECK_FALSE(Version::parse("-1!1.1").has_value());
+        CHECK_FALSE(Version::parse("foo!1.1").has_value());
+        CHECK_FALSE(Version::parse("0post1!1.1").has_value());
 
         // Empty parts
-        CHECK_THROWS_AS(Version::parse(""), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("  "), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("!2.2"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("0!"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("!"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1."), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1..1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("5.5..mw"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1.2post+"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1!+1.1"), std::invalid_argument);
+        CHECK_FALSE(Version::parse("").has_value());
+        CHECK_FALSE(Version::parse("  ").has_value());
+        CHECK_FALSE(Version::parse("!2.2").has_value());
+        CHECK_FALSE(Version::parse("0!").has_value());
+        CHECK_FALSE(Version::parse("!").has_value());
+        CHECK_FALSE(Version::parse("1.").has_value());
+        CHECK_FALSE(Version::parse("1..1").has_value());
+        CHECK_FALSE(Version::parse("5.5..mw").has_value());
+        CHECK_FALSE(Version::parse("1.2post+").has_value());
+        CHECK_FALSE(Version::parse("1!+1.1").has_value());
 
         // Repeated delimiters
-        CHECK_THROWS_AS(Version::parse("5.5++"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("5.5+1+0.0"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1!2!3.0"), std::invalid_argument);
+        CHECK_FALSE(Version::parse("5.5++").has_value());
+        CHECK_FALSE(Version::parse("5.5+1+0.0").has_value());
+        CHECK_FALSE(Version::parse("1!2!3.0").has_value());
 
         // '-' and '_' delimiters not allowed together.
-        CHECK_THROWS_AS(Version::parse("1-1_1"), std::invalid_argument);
+        CHECK_FALSE(Version::parse("1-1_1").has_value());
 
         // Forbidden characters
-        CHECK_THROWS_AS(Version::parse("3.5&1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("3.5|1"), std::invalid_argument);
+        CHECK_FALSE(Version::parse("3.5&1").has_value());
+        CHECK_FALSE(Version::parse("3.5|1").has_value());
     }
 
     /**
@@ -485,23 +485,23 @@ TEST_SUITE("specs::version")
     {
         // clang-format off
             auto versions = std::vector{
-                Version::parse("1.0.1dev"),
-                Version::parse("1.0.1_"),  // <- this
-                Version::parse("1.0.1a"),
-                Version::parse("1.0.1b"),
-                Version::parse("1.0.1c"),
-                Version::parse("1.0.1d"),
-                Version::parse("1.0.1r"),
-                Version::parse("1.0.1rc"),
-                Version::parse("1.0.1rc1"),
-                Version::parse("1.0.1rc2"),
-                Version::parse("1.0.1s"),
-                Version::parse("1.0.1"),  // <- compared to this
-                Version::parse("1.0.1post.a"),
-                Version::parse("1.0.1post.b"),
-                Version::parse("1.0.1post.z"),
-                Version::parse("1.0.1post.za"),
-                Version::parse("1.0.2"),
+                Version::parse("1.0.1dev").value(),
+                Version::parse("1.0.1_").value(),  // <- this
+                Version::parse("1.0.1a").value(),
+                Version::parse("1.0.1b").value(),
+                Version::parse("1.0.1c").value(),
+                Version::parse("1.0.1d").value(),
+                Version::parse("1.0.1r").value(),
+                Version::parse("1.0.1rc").value(),
+                Version::parse("1.0.1rc1").value(),
+                Version::parse("1.0.1rc2").value(),
+                Version::parse("1.0.1s").value(),
+                Version::parse("1.0.1").value(),  // <- compared to this
+                Version::parse("1.0.1post.a").value(),
+                Version::parse("1.0.1post.b").value(),
+                Version::parse("1.0.1post.z").value(),
+                Version::parse("1.0.1post.za").value(),
+                Version::parse("1.0.2").value(),
             };
         // clang-format on
 
@@ -521,59 +521,59 @@ TEST_SUITE("specs::version")
     {
         auto versions = std::vector{
             // Implicit epoch of 0
-            Version::parse("1.0a1"),
-            Version::parse("1.0a2.dev456"),
-            Version::parse("1.0a12.dev456"),
-            Version::parse("1.0a12"),
-            Version::parse("1.0b1.dev456"),
-            Version::parse("1.0b2"),
-            Version::parse("1.0b2.post345.dev456"),
-            Version::parse("1.0b2.post345"),
-            Version::parse("1.0c1.dev456"),
-            Version::parse("1.0c1"),
-            Version::parse("1.0c3"),
-            Version::parse("1.0rc2"),
-            Version::parse("1.0.dev456"),
-            Version::parse("1.0"),
-            Version::parse("1.0.post456.dev34"),
-            Version::parse("1.0.post456"),
-            Version::parse("1.1.dev1"),
-            Version::parse("1.2.r32+123456"),
-            Version::parse("1.2.rev33+123456"),
-            Version::parse("1.2+abc"),
-            Version::parse("1.2+abc123def"),
-            Version::parse("1.2+abc123"),
-            Version::parse("1.2+123abc"),
-            Version::parse("1.2+123abc456"),
-            Version::parse("1.2+1234.abc"),
-            Version::parse("1.2+123456"),
+            Version::parse("1.0a1").value(),
+            Version::parse("1.0a2.dev456").value(),
+            Version::parse("1.0a12.dev456").value(),
+            Version::parse("1.0a12").value(),
+            Version::parse("1.0b1.dev456").value(),
+            Version::parse("1.0b2").value(),
+            Version::parse("1.0b2.post345.dev456").value(),
+            Version::parse("1.0b2.post345").value(),
+            Version::parse("1.0c1.dev456").value(),
+            Version::parse("1.0c1").value(),
+            Version::parse("1.0c3").value(),
+            Version::parse("1.0rc2").value(),
+            Version::parse("1.0.dev456").value(),
+            Version::parse("1.0").value(),
+            Version::parse("1.0.post456.dev34").value(),
+            Version::parse("1.0.post456").value(),
+            Version::parse("1.1.dev1").value(),
+            Version::parse("1.2.r32+123456").value(),
+            Version::parse("1.2.rev33+123456").value(),
+            Version::parse("1.2+abc").value(),
+            Version::parse("1.2+abc123def").value(),
+            Version::parse("1.2+abc123").value(),
+            Version::parse("1.2+123abc").value(),
+            Version::parse("1.2+123abc456").value(),
+            Version::parse("1.2+1234.abc").value(),
+            Version::parse("1.2+123456").value(),
             // Explicit epoch of 1
-            Version::parse("1!1.0a1"),
-            Version::parse("1!1.0a2.dev456"),
-            Version::parse("1!1.0a12.dev456"),
-            Version::parse("1!1.0a12"),
-            Version::parse("1!1.0b1.dev456"),
-            Version::parse("1!1.0b2"),
-            Version::parse("1!1.0b2.post345.dev456"),
-            Version::parse("1!1.0b2.post345"),
-            Version::parse("1!1.0c1.dev456"),
-            Version::parse("1!1.0c1"),
-            Version::parse("1!1.0c3"),
-            Version::parse("1!1.0rc2"),
-            Version::parse("1!1.0.dev456"),
-            Version::parse("1!1.0"),
-            Version::parse("1!1.0.post456.dev34"),
-            Version::parse("1!1.0.post456"),
-            Version::parse("1!1.1.dev1"),
-            Version::parse("1!1.2.r32+123456"),
-            Version::parse("1!1.2.rev33+123456"),
-            Version::parse("1!1.2+abc"),
-            Version::parse("1!1.2+abc123def"),
-            Version::parse("1!1.2+abc123"),
-            Version::parse("1!1.2+123abc"),
-            Version::parse("1!1.2+123abc456"),
-            Version::parse("1!1.2+1234.abc"),
-            Version::parse("1!1.2+123456"),
+            Version::parse("1!1.0a1").value(),
+            Version::parse("1!1.0a2.dev456").value(),
+            Version::parse("1!1.0a12.dev456").value(),
+            Version::parse("1!1.0a12").value(),
+            Version::parse("1!1.0b1.dev456").value(),
+            Version::parse("1!1.0b2").value(),
+            Version::parse("1!1.0b2.post345.dev456").value(),
+            Version::parse("1!1.0b2.post345").value(),
+            Version::parse("1!1.0c1.dev456").value(),
+            Version::parse("1!1.0c1").value(),
+            Version::parse("1!1.0c3").value(),
+            Version::parse("1!1.0rc2").value(),
+            Version::parse("1!1.0.dev456").value(),
+            Version::parse("1!1.0").value(),
+            Version::parse("1!1.0.post456.dev34").value(),
+            Version::parse("1!1.0.post456").value(),
+            Version::parse("1!1.1.dev1").value(),
+            Version::parse("1!1.2.r32+123456").value(),
+            Version::parse("1!1.2.rev33+123456").value(),
+            Version::parse("1!1.2+abc").value(),
+            Version::parse("1!1.2+abc123def").value(),
+            Version::parse("1!1.2+abc123").value(),
+            Version::parse("1!1.2+123abc").value(),
+            Version::parse("1!1.2+123abc456").value(),
+            Version::parse("1!1.2+1234.abc").value(),
+            Version::parse("1!1.2+123456").value(),
         };
         // clang-format on
 

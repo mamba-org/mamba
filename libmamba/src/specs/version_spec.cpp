@@ -332,29 +332,39 @@ namespace mamba::specs
             {
                 return VersionPredicate::make_greater_equal(
                     Version::parse(str.substr(VersionSpec::greater_equal_str.size()))
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value()
                 );
             }
             if (util::starts_with(str, VersionSpec::greater_str))
             {
                 return VersionPredicate::make_greater(
                     Version::parse(str.substr(VersionSpec::greater_str.size()))
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value()
                 );
             }
             if (util::starts_with(str, VersionSpec::less_equal_str))
             {
                 return VersionPredicate::make_less_equal(
                     Version::parse(str.substr(VersionSpec::less_equal_str.size()))
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value()
                 );
             }
             if (util::starts_with(str, VersionSpec::less_str))
             {
                 return VersionPredicate::make_less(
                     Version::parse(str.substr(VersionSpec::less_str.size()))
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value()
                 );
             }
             if (util::starts_with(str, VersionSpec::compatible_str))
             {
-                auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
+                auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()))
+                               .or_else([](ParseError&& error) { throw std::move(error); })
+                               .value();
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
                 static constexpr auto one = std::size_t(1);  // MSVC
                 const std::size_t level = std::max(ver.version().size(), one) - one;
@@ -370,11 +380,16 @@ namespace mamba::specs
                 {
                     return VersionPredicate::make_starts_with(
                         Version::parse(str.substr(start, str.size() - glob_len - start))
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value()
                     );
                 }
                 else
                 {
-                    return VersionPredicate::make_equal_to(Version::parse(str.substr(start)));
+                    return VersionPredicate::make_equal_to(Version::parse(str.substr(start))
+                                                               .or_else([](ParseError&& error)
+                                                                        { throw std::move(error); })
+                                                               .value());
                 }
             }
             if (util::starts_with(str, VersionSpec::not_equal_str))
@@ -385,11 +400,17 @@ namespace mamba::specs
                 {
                     return VersionPredicate::make_not_starts_with(
                         Version::parse(str.substr(start, str.size() - glob_len - start))
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value()
                     );
                 }
                 else
                 {
-                    return VersionPredicate::make_not_equal_to(Version::parse(str.substr(start)));
+                    return VersionPredicate::make_not_equal_to(
+                        Version::parse(str.substr(start))
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value()
+                    );
                 }
             }
             if (util::starts_with(str, VersionSpec::starts_with_str))
@@ -398,6 +419,8 @@ namespace mamba::specs
                 // Glob suffix does not change meaning for =1.3.*
                 return VersionPredicate::make_starts_with(
                     Version::parse(str.substr(start, str.size() - glob_len - start))
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value()
                 );
             }
             if (util::is_digit(str.front()))  // All versions must start with a digit
@@ -408,11 +431,18 @@ namespace mamba::specs
                     // either ".*" or "*"
                     static constexpr auto one = std::size_t(1);  // MSVC
                     const std::size_t len = str.size() - std::max(glob_len, one);
-                    return VersionPredicate::make_starts_with(Version::parse(str.substr(0, len)));
+                    return VersionPredicate::make_starts_with(
+                        Version::parse(str.substr(0, len))
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value()
+                    );
                 }
                 else
                 {
-                    return VersionPredicate::make_equal_to(Version::parse(str));
+                    return VersionPredicate::make_equal_to(Version::parse(str)
+                                                               .or_else([](ParseError&& error)
+                                                                        { throw std::move(error); })
+                                                               .value());
                 }
             }
             throw std::invalid_argument(fmt::format(R"(Found invalid version predicate in "{}")", str)

@@ -66,7 +66,8 @@ namespace mamba
                 {
                     return std::tuple<decltype(pkg.name) const&, specs::Version>(
                         pkg.name,
-                        specs::Version::parse(pkg.version)
+                        // Failed parsing last
+                        specs::Version::parse(pkg.version).value_or(specs::Version())
                     );
                 };
                 return attrs(*lhs) < attrs(*rhs);

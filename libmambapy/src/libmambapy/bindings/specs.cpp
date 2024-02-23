@@ -20,6 +20,7 @@
 #include "mamba/specs/version_spec.hpp"
 
 #include "bindings.hpp"
+#include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
 #include "utils.hpp"
 #include "weakening_map_bind.hpp"

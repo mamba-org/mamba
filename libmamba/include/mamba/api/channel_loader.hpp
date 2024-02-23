@@ -33,5 +33,10 @@ namespace mamba
     // Creates channels and mirrors objects,
     // but does not load channels.
     void init_channels(Context& context, ChannelContext& channel_context);
+    void init_channels_from_specs(
+        Context& context,
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs
+    );
 }
 #endif

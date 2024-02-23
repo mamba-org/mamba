@@ -309,4 +309,20 @@ namespace mamba
         }
     }
 
+    void init_channels_from_specs(
+        Context& context,
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs
+    )
+    {
+        for (const auto& spec: specs)
+        {
+            auto pkg_info = specs::PackageInfo::from_url(spec);
+            for (auto channel: channel_context.make_channel(pkg_info.channel))
+            {
+                create_mirrors(channel, context.mirrors);
+            }
+        }
+    }
+
 }

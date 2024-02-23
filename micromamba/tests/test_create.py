@@ -657,7 +657,7 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
 
     for link in res["actions"]["LINK"]:
         if link["name"] == "bokeh":
-            assert link["channel"].startswith(f"{ca}/bokeh/")
+            assert link["channel"].startswith("bokeh")
             assert link["url"].startswith(f"{ca}/bokeh/")
 
     spec_file = tmp_path / "env.yaml"
@@ -677,11 +677,11 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
 
     for link in res["actions"]["LINK"]:
         if link["name"] == "bokeh":
-            assert link["channel"].startswith(f"{ca}/bokeh/")
+            assert link["channel"].startswith("bokeh")
             assert link["url"].startswith(f"{ca}/bokeh/")
 
         if link["name"] == "xtensor":
-            assert link["channel"].startswith(f"{ca}/conda-forge/")
+            assert link["channel"].startswith("conda-forge")
             assert link["url"].startswith(f"{ca}/conda-forge/")
             assert link["version"].startswith("0.22.")
 

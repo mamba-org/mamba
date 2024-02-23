@@ -417,14 +417,11 @@ class TestInstall:
     def test_channel_alias(self, alias, existing_cache):
         if alias:
             res = helpers.install("xtensor", "--json", "--channel-alias", alias)
-            ca = alias.rstrip("/")
         else:
             res = helpers.install("xtensor", "--json")
-            ca = "https://conda.anaconda.org"
 
         for to_link in res["actions"]["LINK"]:
-            assert to_link["channel"].startswith(f"{ca}/conda-forge/")
-            assert to_link["url"].startswith(f"{ca}/conda-forge/")
+            assert to_link["channel"] == "conda-forge"
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
@@ -502,7 +499,7 @@ class TestInstall:
         assert expected_packages.issubset(link_packages)
 
         for pkg in res["actions"]["LINK"]:
-            assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
+            assert pkg["channel"] == "conda-forge"
 
     def test_explicit_noarch(self, existing_cache):
         helpers.install("python", no_dry_run=True)

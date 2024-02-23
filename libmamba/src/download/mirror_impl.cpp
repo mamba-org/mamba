@@ -67,7 +67,7 @@ namespace mamba::download
         {
             return std::make_unique<PassThroughMirror>();
         }
-        else if (util::starts_with(url, "https://"))
+        else if (util::starts_with(url, "https://") || util::starts_with(url, "file://"))
         {
             return std::make_unique<HTTPMirror>(std::move(url));
         }

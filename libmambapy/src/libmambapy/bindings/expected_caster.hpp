@@ -4,15 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifndef MAMBA_PY_EXPECTED_CASTER
+#define MAMBA_PY_EXPECTED_CASTER
+
+#include <exception>
+#include <type_traits>
 #include <utility>
 
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <tl/expected.hpp>
-
-#ifndef MAMBA_PY_EXPECTED_CASTER
-#define MAMBA_PY_EXPECTED_CASTER
 
 namespace PYBIND11_NAMESPACE
 {
@@ -47,6 +49,10 @@ namespace PYBIND11_NAMESPACE
                 }
                 else
                 {
+                    // If we use ``expected`` without exception in our API, we need to convert them
+                    // to an exception before throwing it in PyBind11 code.
+                    // This could be done with partial specialization of this ``type_caster``.
+                    static_assert(std::is_base_of_v<std::exception, E>);
                     throw std::forward<Expected>(src).error();
                 }
             }

@@ -323,7 +323,7 @@ namespace mamba::download
         p_handle->add_header(user_agent);
 
         // get url host
-        const auto url_handler = util::URL::parse(p_request->url);
+        const auto url_handler = util::URL::parse(p_request->url).value();
         auto host = url_handler.host();
         const auto port = url_handler.port();
         if (port.size())

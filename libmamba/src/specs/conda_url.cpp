@@ -13,6 +13,7 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/error.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 
@@ -120,7 +121,14 @@ namespace mamba::specs
 
     auto CondaURL::parse(std::string_view url) -> CondaURL
     {
-        return CondaURL(URL::parse(url));
+        return CondaURL(
+            URL::parse(url)
+                .or_else(
+                    [&](const auto&)
+                    { throw specs::ParseError(fmt::format(R"(Failed to parse URL "{}")", url)); }
+                )
+                .value()
+        );
     }
 
     void CondaURL::set_path(std::string_view path, Encode::yes_type)

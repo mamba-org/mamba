@@ -360,7 +360,7 @@ namespace mamba::validation::v0_6
         auto tmp_dir = TemporaryDirectory();
         auto tmp_metadata_path = tmp_dir.path() / "pkg_mgr.json";
 
-        const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json");
+        const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json").value();
 
         if (download::check_resource_exists(url.pretty_str(), context))
         {

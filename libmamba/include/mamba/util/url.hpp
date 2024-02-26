@@ -12,6 +12,8 @@
 #include <string>
 #include <string_view>
 
+#include <tl/expected.hpp>
+
 namespace mamba::util
 {
     namespace detail
@@ -68,6 +70,11 @@ namespace mamba::util
         using Encode = detail::Encode;
         using Decode = detail::Decode;
 
+        struct ParseError
+        {
+            std::string what;
+        };
+
         inline static constexpr std::string_view https = "https";
         inline static constexpr std::string_view localhost = "localhost";
 
@@ -84,7 +91,7 @@ namespace mamba::util
          * @see Encode
          * @see mamba::util::url_encode
          */
-        [[nodiscard]] static auto parse(std::string_view url) -> URL;
+        [[nodiscard]] static auto parse(std::string_view url) -> tl::expected<URL, ParseError>;
 
         /** Create a local URL. */
         URL() = default;

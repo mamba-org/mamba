@@ -52,6 +52,8 @@ namespace mamba::specs
         NoArchType noarch = NoArchType::No;
         std::size_t size = 0;
         std::size_t timestamp = 0;
+        // FIXME this is a temporary hack to accommodate Python wheels but wheels and conda
+        // PackageInfo, should really be split in different types.
         PackageType package_type = PackageType::Unknown;
 
         [[nodiscard]] static auto from_url(std::string_view url) -> PackageInfo;

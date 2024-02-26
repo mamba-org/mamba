@@ -309,7 +309,7 @@ namespace mamba
         }
     }
 
-    void init_channels_from_specs(
+    void init_channels_from_package_urls(
         Context& context,
         ChannelContext& channel_context,
         const std::vector<std::string>& specs

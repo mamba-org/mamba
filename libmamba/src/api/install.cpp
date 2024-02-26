@@ -692,7 +692,7 @@ namespace mamba
             // Some use cases provide a list of explicit specs, but an empty
             // context. We need to create channels from the specs to be able
             // to download packages.
-            init_channels_from_specs(ctx, channel_context, specs);
+            init_channels_from_package_urls(ctx, channel_context, specs);
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {

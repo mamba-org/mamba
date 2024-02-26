@@ -338,7 +338,7 @@ namespace mamba
     {
         if (m_package_info.package_type == specs::PackageType::Conda)
         {
-            return m_package_info.subdir + "/" + m_package_info.filename;
+            return util::concat(m_package_info.subdir, '/', m_package_info.filename);
         }
         else
         {

@@ -253,7 +253,11 @@ namespace mamba::specs
 
         if (const auto& val = at_or(extra, "build_number", ""); !val.empty())
         {
-            out.set_build_number(BuildNumberSpec::parse(val));
+            out.set_build_number(BuildNumberSpec::parse(val)
+                                     .or_else([](ParseError&& error) { throw std::move(error); })
+                                     .value()
+
+            );
         }
         if (const auto& val = at_or(extra, "build", ""); !val.empty())
         {

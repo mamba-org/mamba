@@ -160,7 +160,7 @@ fmt::formatter<mamba::specs::BuildNumberPredicate>::format(
 
 namespace mamba::specs
 {
-    auto BuildNumberSpec::parse(std::string_view str) -> BuildNumberSpec
+    auto BuildNumberSpec::parse(std::string_view str) -> expected_parse_t<BuildNumberSpec>
     {
         str = util::strip(str);
         if (std::find(all_free_strs.cbegin(), all_free_strs.cend(), str) != all_free_strs.cend())
@@ -179,7 +179,7 @@ namespace mamba::specs
         );
         if ((ec != std::errc()) || (ptr != (num_str.data() + num_str.size())))
         {
-            throw std::invalid_argument(
+            return make_unexpected_parse(
                 fmt::format(R"(Expected number in build number spec "{}")", str)
             );
         }
@@ -213,7 +213,7 @@ namespace mamba::specs
             return BuildNumberSpec(BuildNumberPredicate::make_less_equal(build_number));
         }
 
-        throw std::invalid_argument(fmt::format(R"(Invalid build number operator in"{}")", str));
+        return make_unexpected_parse(fmt::format(R"(Invalid build number operator in"{}")", str));
     }
 
     BuildNumberSpec::BuildNumberSpec()
@@ -245,7 +245,9 @@ namespace mamba::specs
     {
         auto operator""_bs(const char* str, std::size_t len) -> BuildNumberSpec
         {
-            return BuildNumberSpec::parse({ str, len });
+            return BuildNumberSpec::parse({ str, len })
+                .or_else([](ParseError&& err) { throw std::move(err); })
+                .value();
         }
     }
 }

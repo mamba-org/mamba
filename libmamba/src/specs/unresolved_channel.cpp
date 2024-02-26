@@ -68,7 +68,7 @@ namespace mamba::specs
         }
 
         auto split_location_platform(std::string_view str)
-            -> std::pair<std::string, dynamic_platform_set>
+            -> expected_parse_t<std::pair<std::string, dynamic_platform_set>>
         {
             if (util::ends_with(str, ']'))
             {
@@ -76,10 +76,14 @@ namespace mamba::specs
                 const auto start_pos = str.find_last_of('[');
                 if ((start_pos != std::string_view::npos) && (start_pos != 0))
                 {
-                    return {
+                    return { {
                         std::string(util::rstrip(str.substr(0, start_pos))),
                         parse_platform_list(str.substr(start_pos + 1, str.size() - start_pos - 2)),
-                    };
+                    } };
+                }
+                else
+                {
+                    return make_unexpected_parse(R"(Unexpected closing backet "]")");
                 }
             }
 
@@ -92,16 +96,16 @@ namespace mamba::specs
                 if (!plat.empty())
                 {
                     rest = util::rstrip(rest, '/');
-                    return {
+                    return { {
                         std::move(rest),
                         { std::move(plat) },
-                    };
+                    } };
                 }
             }
 
             // For single archive channel specs, we don't need to compute platform filters
             // since they are not needed to compute URLs.
-            return { std::string(util::rstrip(str)), {} };
+            return { { std::string(util::rstrip(str)), {} } };
         }
 
         auto parse_path(std::string_view str) -> std::string
@@ -122,15 +126,27 @@ namespace mamba::specs
         }
     }
 
-    auto UnresolvedChannel::parse(std::string_view str) -> UnresolvedChannel
+    auto UnresolvedChannel::parse(std::string_view str) -> expected_parse_t<UnresolvedChannel>
     {
         str = util::strip(str);
         if (is_unknown_channel(str))
         {
-            return { std::string(unknown_channel), {}, Type::Unknown };
+            return { { std::string(unknown_channel), {}, Type::Unknown } };
         }
 
-        auto [location, filters] = split_location_platform(str);
+        auto location = std::string();
+        auto filters = dynamic_platform_set();
+        auto split_outcome = split_location_platform(str);
+        if (split_outcome)
+        {
+            std::tie(location, filters) = std::move(split_outcome).value();
+        }
+        else
+        {
+            return make_unexpected_parse(
+                fmt::format(R"(Error parsing channel "{}": {})", str, split_outcome.error().what())
+            );
+        }
 
         const std::string_view scheme = util::url_get_scheme(location);
         Type type = {};
@@ -152,7 +168,7 @@ namespace mamba::specs
             type = Type::Name;
         }
 
-        return { std::move(location), std::move(filters), type };
+        return { { std::move(location), std::move(filters), type } };
     }
 
     UnresolvedChannel::UnresolvedChannel(std::string location, dynamic_platform_set filters, Type type)

@@ -1182,7 +1182,18 @@ namespace mamba::solver::libsolv
             }
 
             auto ms_modified = ms;
-            ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
+            auto unresolved_chan = specs::UnresolvedChannel::parse(solvable->channel());
+            if (unresolved_chan.has_value())
+            {
+                ms_modified.set_channel(std::move(unresolved_chan).value());
+            }
+            else
+            {
+                return make_unexpected(
+                    std::move(unresolved_chan).error().what(),
+                    mamba_error_code::invalid_spec
+                );
+            }
             auto version_spec = specs::VersionSpec::parse(solvable->version());
             if (version_spec.has_value())
             {
@@ -1190,7 +1201,10 @@ namespace mamba::solver::libsolv
             }
             else
             {
-                return make_unexpected(version_spec.error().what(), mamba_error_code::invalid_spec);
+                return make_unexpected(
+                    std::move(version_spec).error().what(),
+                    mamba_error_code::invalid_spec
+                );
             }
 
             ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));

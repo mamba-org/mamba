@@ -29,7 +29,9 @@ namespace mamba::specs
         };
 
         auto out = MatchSpec();
-        out.m_channel = UnresolvedChannel::parse(spec);
+        out.m_channel = UnresolvedChannel::parse(spec)
+                            .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                            .value();
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
         out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
@@ -178,7 +180,9 @@ namespace mamba::specs
         std::string channel_str;
         if (m5_len == 3)
         {
-            out.m_channel = UnresolvedChannel::parse(m5[0]);
+            out.m_channel = UnresolvedChannel::parse(m5[0])
+                                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                                .value();
             out.m_name_space = m5[1];
             spec_str = m5[2];
         }
@@ -272,7 +276,9 @@ namespace mamba::specs
         }
         if (const auto& val = at_or(extra, "channel", ""); !val.empty())
         {
-            out.set_channel(UnresolvedChannel::parse(val));
+            out.set_channel(UnresolvedChannel::parse(val)
+                                .or_else([](ParseError&& error) { throw std::move(error); })
+                                .value());
         }
         if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
         {

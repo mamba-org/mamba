@@ -36,7 +36,9 @@ namespace mamba
         template <typename Param>
         auto make_unique_chan(std::string_view loc, const Param& params) -> specs::Channel
         {
-            auto uc = specs::UnresolvedChannel::parse(loc);
+            auto uc = specs::UnresolvedChannel::parse(loc)
+                          .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                          .value();
             auto channels = specs::Channel::resolve(std::move(uc), params);
             assert(channels.size() == 1);
             return std::move(channels.front());
@@ -178,7 +180,9 @@ namespace mamba
                 out.reserve(ctx.repodata_has_zst.size());
                 for (const auto& loc : ctx.repodata_has_zst)
                 {
-                    auto uc = specs::UnresolvedChannel::parse(loc);
+                    auto uc = specs::UnresolvedChannel::parse(loc)
+                                  .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                                  .value();
                     auto channels = specs::Channel::resolve(std::move(uc), params);
                     for (auto& chan : channels)
                     {
@@ -239,7 +243,12 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             name,
-            Channel::resolve(specs::UnresolvedChannel::parse(name), params())
+            Channel::resolve(
+                specs::UnresolvedChannel::parse(name)
+                    .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                    .value(),
+                params()
+            )
         );
         assert(inserted);
         return it->second;

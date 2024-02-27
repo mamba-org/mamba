@@ -81,17 +81,18 @@ namespace mamba::specs
         [[nodiscard]] auto filename() const -> std::string_view;
         void set_filename(std::string val);
 
+        [[nodiscard]] auto is_file() const -> bool;
+
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
+        // TODO as string_view conditional on channel type
         [[nodiscard]] auto url() const -> const std::string&;
 
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
 
         [[nodiscard]] auto is_simple() const -> bool;
-
-        [[nodiscard]] auto is_file() const -> bool;
 
     private:
 
@@ -118,6 +119,11 @@ namespace mamba::specs
         std::string m_url;
 
         auto extra() -> ExtraMembers&;
+        [[nodiscard]] auto channel_is_file() const -> bool;
+        [[nodiscard]] auto channel_filename() const -> std::string_view;
+        void set_channel_filename(std::string val);
+        [[nodiscard]] auto extra_filename() const -> std::string_view;
+        void set_extra_filename(std::string val);
     };
 
     namespace match_spec_literals

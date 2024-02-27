@@ -31,11 +31,11 @@ namespace mamba::specs
         };
 
         auto out = MatchSpec();
+        // Channel is also read for the filename so no need to set it.
         out.m_channel = UnresolvedChannel::parse(spec)
                             .or_else([](specs::ParseError&& error) { throw std::move(error); })
                             .value();
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
-        out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
 
         // Build string
@@ -410,7 +410,7 @@ namespace mamba::specs
         }
         if (const auto& val = at_or(extra, "fn", ""); !val.empty())
         {
-            out.m_filename = val;
+            out.set_filename(val);
         }
         if (const auto& val = at_or(extra, "md5", ""); !val.empty())
         {
@@ -440,6 +440,44 @@ namespace mamba::specs
         return out;
     }
 
+    auto MatchSpec::channel_is_file() const -> bool
+    {
+        if (const auto& chan = channel(); chan.has_value())
+        {
+            auto type = chan->type();
+            using Type = typename UnresolvedChannel::Type;
+            return (type == Type::PackageURL) || (type == Type::PackagePath);
+        }
+        return false;
+    }
+
+    auto MatchSpec::channel_filename() const -> std::string_view
+    {
+        if (channel_is_file())
+        {
+            assert(channel().has_value());
+            auto [_, pkg] = util::rsplit_once(channel()->location(), '/');
+            return pkg;
+        }
+        return {};
+    }
+
+    void MatchSpec::set_channel_filename(std::string val)
+    {
+        assert(channel().has_value());
+        assert(channel_is_file());
+        auto location = m_channel->clear_location();
+        auto [base, pkg] = util::rsplit_once(location, '/');
+        assert(base.has_value());
+        location = base.value_or("");
+        location += val;
+        set_channel({ UnresolvedChannel(
+            std::move(location),
+            m_channel->clear_platform_filters(),
+            m_channel->type()
+        ) });
+    }
+
     auto MatchSpec::channel() const -> const std::optional<UnresolvedChannel>&
     {
         return m_channel;
@@ -448,6 +486,54 @@ namespace mamba::specs
     void MatchSpec::set_channel(std::optional<UnresolvedChannel> chan)
     {
         m_channel = std::move(chan);
+        // Channel filename take precedence
+        if (channel_is_file() && !extra_filename().empty())
+        {
+            set_extra_filename({});
+        }
+    }
+
+    auto MatchSpec::extra_filename() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->filename;
+        }
+        return {};
+    }
+
+    void MatchSpec::set_extra_filename(std::string val)
+    {
+        if (val != filename())  // Avoid allocating extra to set the default value
+        {
+            extra().filename = std::move(val);
+        }
+    }
+
+    auto MatchSpec::filename() const -> std::string_view
+    {
+        if (channel_is_file())
+        {
+            return channel_filename();
+        }
+        return extra_filename();
+    }
+
+    void MatchSpec::set_filename(std::string val)
+    {
+        if (channel_is_file())
+        {
+            set_channel_filename(std::move(val));
+        }
+        else
+        {
+            set_extra_filename(std::move(val));
+        }
+    }
+
+    auto MatchSpec::is_file() const -> bool
+    {
+        return (!filename().empty()) || (!m_url.empty());
     }
 
     auto MatchSpec::name_space() const -> const std::string&
@@ -599,23 +685,6 @@ namespace mamba::specs
         if (val != track_features())  // Avoid allocating extra to set the default value
         {
             extra().track_features = std::move(val);
-        }
-    }
-
-    auto MatchSpec::filename() const -> std::string_view
-    {
-        if (m_extra.has_value())
-        {
-            return m_extra->filename;
-        }
-        return "";
-    }
-
-    void MatchSpec::set_filename(std::string val)
-    {
-        if (val != filename())  // Avoid allocating extra to set the default value
-        {
-            extra().filename = std::move(val);
         }
     }
 
@@ -790,11 +859,6 @@ namespace mamba::specs
     {
         return m_version.is_explicitly_free() && m_build_string.is_free()
                && m_build_number.is_explicitly_free();
-    }
-
-    auto MatchSpec::is_file() const -> bool
-    {
-        return (!m_filename.empty()) || (!m_url.empty());
     }
 
     auto MatchSpec::extra() -> ExtraMembers&

@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 
 #include <fmt/format.h>
@@ -129,7 +130,7 @@ namespace mamba::specs
             return std::all_of(text.cbegin(), text.cend(), is_hash_char);
         }
 
-        auto rfind_chan_ns_split(std::string_view str)
+        auto rfind_channel_namespace_split(std::string_view str)
         {
             return util::rfind_not_in_parentheses(
                        str,
@@ -147,6 +148,38 @@ namespace mamba::specs
                 )
                 .value();
             ;
+        }
+
+        auto split_channel_namespace_spec(std::string_view str)
+            -> std::tuple<std::string_view, std::string_view, std::string_view>
+        {
+            const auto spec_pos = rfind_channel_namespace_split(str);
+            if (spec_pos != std::string_view::npos)
+            {
+                const auto spec = str.substr(spec_pos + 1);
+                const auto ns_pos = rfind_channel_namespace_split(str.substr(0, spec_pos));
+                if (ns_pos != std::string_view::npos)
+                {
+                    return {
+                        /* channel= */ str.substr(0, ns_pos),
+                        /* namespace= */ str.substr(ns_pos + 1, spec_pos),
+                        /* spec= */ str.substr(spec_pos + 1),
+                    };
+                }
+                else
+                {
+                    return {
+                        /* channel= */ "",
+                        /* namespace= */ spec.substr(0, spec_pos),
+                        /* spec= */ str.substr(spec_pos + 1),
+                    };
+                }
+            }
+            return {
+                /* channel= */ "",
+                /* namespace= */ "",
+                /* spec= */ str,
+            };
         }
     }
 
@@ -182,31 +215,24 @@ namespace mamba::specs
             }
         }
 
-        auto spec_str = std::string(spec);
         auto out = MatchSpec();
 
-        const auto spec_pos = rfind_chan_ns_split(spec);
-        if (spec_pos != std::string_view::npos)
+        // Split full matchspec like
+        // ``https://channel[plat]:namespace:spec >=3 [attr="val", ...]``
+        // into:
+        //   - ``https://channel[plat]``
+        //   - ``namespace``
+        //   - ``spec >=3 [attr="val", ...]``
+        auto chan = std::string_view();
+        std::tie(chan, out.m_name_space, spec) = split_channel_namespace_spec(spec);
+        if (!chan.empty())
         {
-            spec_str = spec.substr(spec_pos + 1);
-            const auto ns_pos = rfind_chan_ns_split(spec.substr(0, spec_pos));
-            if (ns_pos != std::string_view::npos)
-            {
-                out.m_name_space = spec.substr(ns_pos + 1, spec_pos);
-                out.m_channel = UnresolvedChannel::parse(spec.substr(0, ns_pos))
-                                    .or_else([](specs::ParseError&& error)
-                                             { throw std::move(error); })
-                                    .value();
-            }
-            else
-            {
-                out.m_name_space = spec.substr(0, spec_pos);
-            }
+            out.m_channel = UnresolvedChannel::parse(chan)
+                                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                                .value();
         }
-        else
-        {
-            spec_str = spec;
-        }
+
+        auto spec_str = std::string(spec);
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
         {

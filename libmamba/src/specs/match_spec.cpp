@@ -14,6 +14,7 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -127,6 +128,26 @@ namespace mamba::specs
             };
             return std::all_of(text.cbegin(), text.cend(), is_hash_char);
         }
+
+        auto rfind_chan_ns_split(std::string_view str)
+        {
+            return util::rfind_not_in_parentheses(
+                       str,
+                       MatchSpec::channel_namespace_spec_sep,
+                       open_or_quote,
+                       close_or_quote
+            )
+                // FIXME temporary while MatchSpec::parse does not return ``exepted``.
+                .or_else(
+                    [&](const auto&) {
+                        throw std::invalid_argument(
+                            fmt::format(R"(Invalid parenthesis in MatchSpec "{}")", str)
+                        );
+                    }
+                )
+                .value();
+            ;
+        }
     }
 
     auto MatchSpec::parse(std::string_view spec) -> MatchSpec
@@ -163,6 +184,29 @@ namespace mamba::specs
 
         auto spec_str = std::string(spec);
         auto out = MatchSpec();
+
+        const auto spec_pos = rfind_chan_ns_split(spec);
+        if (spec_pos != std::string_view::npos)
+        {
+            spec_str = spec.substr(spec_pos + 1);
+            const auto ns_pos = rfind_chan_ns_split(spec.substr(0, spec_pos));
+            if (ns_pos != std::string_view::npos)
+            {
+                out.m_name_space = spec.substr(ns_pos + 1, spec_pos);
+                out.m_channel = UnresolvedChannel::parse(spec.substr(0, ns_pos))
+                                    .or_else([](specs::ParseError&& error)
+                                             { throw std::move(error); })
+                                    .value();
+            }
+            else
+            {
+                out.m_name_space = spec.substr(0, spec_pos);
+            }
+        }
+        else
+        {
+            spec_str = spec;
+        }
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
         {
@@ -216,31 +260,6 @@ namespace mamba::specs
                 static_cast<std::size_t>(match.position(1)),
                 static_cast<std::size_t>(match.length(1))
             );
-        }
-
-        auto m5 = util::rsplit(spec_str, ":", 2);
-        auto m5_len = m5.size();
-        std::string channel_str;
-        if (m5_len == 3)
-        {
-            out.m_channel = UnresolvedChannel::parse(m5[0])
-                                .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                                .value();
-            out.m_name_space = m5[1];
-            spec_str = m5[2];
-        }
-        else if (m5_len == 2)
-        {
-            out.m_name_space = m5[0];
-            spec_str = m5[1];
-        }
-        else if (m5_len == 1)
-        {
-            spec_str = m5[0];
-        }
-        else
-        {
-            throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is

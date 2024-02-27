@@ -33,6 +33,7 @@ namespace mamba::specs
         inline static constexpr char alt_list_close = ')';
         inline static constexpr char prefered_quote = '"';
         inline static constexpr char alt_quote = '\'';
+        inline static constexpr char channel_namespace_spec_sep = ':';
 
 
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;

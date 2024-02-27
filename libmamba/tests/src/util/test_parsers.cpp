@@ -132,6 +132,26 @@ TEST_SUITE("util::parsers")
             //
             CHECK_EQ(find_not_in_parentheses("(hello::world::", "::").error(), ParseError::InvalidInput);
             CHECK_EQ(find_not_in_parentheses("(hello", "::").error(), ParseError::InvalidInput);
+
+            static constexpr auto opens = std::array{ '[', '(' };
+            static constexpr auto closes = std::array{ ']', ')' };
+
+            CHECK_EQ(
+                find_not_in_parentheses("(some str)", "", opens, closes).error(),
+                ParseError::InvalidInput
+            );
+            CHECK_EQ(
+                find_not_in_parentheses(R"((hello , world), [welcome , here] ,elf)", " ,", opens, closes),
+                33
+            );
+            CHECK_EQ(
+                find_not_in_parentheses("([(hello)] , ([world])), [welcome , here] ,elf", " ,", opens, closes),
+                41
+            );
+            CHECK_EQ(
+                find_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens, closes).error(),
+                ParseError::InvalidInput
+            );
         }
 
         SUBCASE("Substring and similar open/close pair")
@@ -146,6 +166,32 @@ TEST_SUITE("util::parsers")
 
             CHECK_EQ(
                 find_not_in_parentheses(R"("some::csv)", "::", '"', '"').error(),
+                ParseError::InvalidInput
+            );
+
+            static constexpr auto opens = std::array{ '[', '(', '\'', '"' };
+            static constexpr auto closes = std::array{ ']', ')', '\'', '"' };
+
+            CHECK_EQ(
+                find_not_in_parentheses("(some str)", "", opens, closes).error(),
+                ParseError::InvalidInput
+            );
+            CHECK_EQ(
+                find_not_in_parentheses(R"('("hello" , world)', [welcome , here] ,elf)", " ,", opens, closes),
+                37
+            );
+            CHECK_EQ(
+                find_not_in_parentheses(
+                    "('[(hello)] , ([world])'), [welcome , here] ,elf",
+                    " ,",
+                    opens,
+                    closes
+                ),
+                43
+            );
+            CHECK_EQ(
+                find_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens, closes)
+                    .error(),
                 ParseError::InvalidInput
             );
         }

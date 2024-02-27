@@ -7,12 +7,16 @@
 #include <array>
 #include <cassert>
 
-#include "mamba/util/conditional.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba::util
 {
+
+    /*******************************
+     *  find_matching_parentheses  *
+     *******************************/
+
     auto find_matching_parentheses_idx(  //
         std::string_view text,
         ParseError& err,
@@ -100,6 +104,10 @@ namespace mamba::util
         return { (start == std::string_view::npos) ? "" : text.substr(start, end) };
     }
 
+    /*****************************
+     *  find_not_in_parentheses  *
+     *****************************/
+
     auto find_not_in_parentheses(  //
         std::string_view text,
         char c,
@@ -135,43 +143,13 @@ namespace mamba::util
         char close
     ) noexcept -> std::size_t
     {
-        static constexpr auto npos = std::string_view::npos;
-
-        if (val.empty())
-        {
-            err = ParseError::InvalidInput;
-            return npos;
-        }
-
-        const auto tokens = std::array{ val.front(), open, close };
-        const auto tokens_str = std::string_view(tokens.data(), tokens.size());
-
-        int depth = 0;
-        auto first_val_pos = npos;
-        auto pos = text.find_first_of(tokens_str);
-        while (pos != npos)
-        {
-            depth = if_else(
-                (open == close) && (text[pos] == open),
-                if_else(depth > 0, 0, 1),  // swap 0 and 1
-                depth + int(text[pos] == open) - int(text[pos] == close)
-            );
-            // Set error but sill try to find the value
-            err = if_else(depth < 0, ParseError::InvalidInput, err);
-            const bool match = starts_with(text.substr(pos), val);
-            first_val_pos = if_else(match && (pos == npos), pos, first_val_pos);
-            if ((depth == 0) && match)
-            {
-                return pos;
-            }
-            pos = text.find_first_of(tokens_str, pos + 1);
-        }
-        err = if_else(
-            err == ParseError::Ok,
-            if_else(depth == 0, ParseError::NotFound, ParseError::InvalidInput),
-            err
+        return detail_parsers::find_not_in_parentheses_impl(
+            text,
+            val,
+            err,
+            std::array{ open },
+            std::array{ close }
         );
-        return first_val_pos;
     }
 
     auto find_not_in_parentheses(  //
@@ -189,6 +167,10 @@ namespace mamba::util
         }
         return { pos };
     }
+
+    /**********
+     *  glob  *
+     **********/
 
     namespace
     {

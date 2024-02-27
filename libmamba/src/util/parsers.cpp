@@ -169,6 +169,71 @@ namespace mamba::util
         return { pos };
     }
 
+    /******************************
+     *  rfind_not_in_parentheses  *
+     ******************************/
+
+    auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::size_t
+    {
+        return rfind_not_in_parentheses(text, c, err, std::array{ open }, std::array{ close });
+    }
+
+    auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::size_t, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto pos = rfind_not_in_parentheses(text, c, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { pos };
+    }
+
+    auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::size_t
+    {
+        return detail_parsers::find_not_in_parentheses_impl(
+            text,
+            val,
+            err,
+            std::array{ close },  // swaped
+            std::array{ open },
+            detail_parsers::RFindParenthesesSearcher()
+        );
+    }
+
+    auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::size_t, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto pos = rfind_not_in_parentheses(text, val, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { pos };
+    }
+
     /**********
      *  glob  *
      **********/

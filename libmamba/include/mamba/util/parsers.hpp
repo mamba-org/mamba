@@ -73,6 +73,8 @@ namespace mamba::util
      * Open and closing pairs need not be differents.
      * If not found, ``std::string_view::npos`` is returned but no error is set as this is not
      * considered an error.
+     * Due to a greedy approach, the functin may not be able to detect all errors, but will be
+     * correct when parentheses are correctly matched.
      */
     auto find_not_in_parentheses(  //
         std::string_view text,
@@ -132,6 +134,81 @@ namespace mamba::util
 
     template <std::size_t P>
     [[nodiscard]] auto find_not_in_parentheses(
+        std::string_view text,
+        std::string_view val,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> tl::expected<std::size_t, ParseError>;
+
+    /**
+     * Find the last character or string, except in matching parentheses pairs.
+     *
+     * Find the last occurence of the given character, except if such character is inside a valid
+     * pair of parentheses.
+     * Open and closing pairs need not be differents.
+     * If not found, ``std::string_view::npos`` is returned but no error is set as this is not
+     * considered an error.
+     * Due to a greedy approach, the functin may not be able to detect all errors, but will be
+     * correct when parentheses are correctly matched.
+     */
+    auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        ParseError& err,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> std::size_t;
+
+    [[nodiscard]] auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> tl::expected<std::size_t, ParseError>;
+
+    template <std::size_t P>
+    auto rfind_not_in_parentheses(
+        std::string_view text,
+        char c,
+        ParseError& err,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> std::size_t;
+
+    template <std::size_t P>
+    [[nodiscard]] auto rfind_not_in_parentheses(
+        std::string_view text,
+        char c,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> tl::expected<std::size_t, ParseError>;
+
+    auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        ParseError& err,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> std::size_t;
+
+    [[nodiscard]] auto rfind_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> tl::expected<std::size_t, ParseError>;
+
+    template <std::size_t P>
+    auto rfind_not_in_parentheses(
+        std::string_view text,
+        std::string_view val,
+        ParseError& err,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> std::size_t;
+
+    template <std::size_t P>
+    [[nodiscard]] auto rfind_not_in_parentheses(
         std::string_view text,
         std::string_view val,
         const std::array<char, P>& open = { '(', '[' },
@@ -208,6 +285,19 @@ namespace mamba::util
             auto find_next(std::string_view text, std::string_view token_str, std::size_t pos)
             {
                 return text.find_first_of(token_str, pos + 1);
+            }
+        };
+
+        struct RFindParenthesesSearcher
+        {
+            auto find_first(std::string_view text, std::string_view token_str)
+            {
+                return text.find_last_of(token_str);
+            }
+
+            auto find_next(std::string_view text, std::string_view token_str, std::size_t pos)
+            {
+                return (pos == 0) ? text.npos : text.find_last_of(token_str, pos - 1);
             }
         };
 
@@ -341,6 +431,78 @@ namespace mamba::util
     {
         auto err = ParseError::Ok;
         const auto pos = find_not_in_parentheses(text, val, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { pos };
+    }
+
+    template <std::size_t P>
+    auto rfind_not_in_parentheses(
+        std::string_view text,
+        char c,
+        ParseError& err,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> std::size_t
+    {
+        return detail_parsers::find_not_in_parentheses_impl(
+            text,
+            c,
+            err,
+            close,  // swaped
+            open,
+            detail_parsers::RFindParenthesesSearcher()
+        );
+    }
+
+    template <std::size_t P>
+    auto rfind_not_in_parentheses(
+        std::string_view text,
+        char c,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> tl::expected<std::size_t, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto pos = rfind_not_in_parentheses(text, c, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { pos };
+    }
+
+    template <std::size_t P>
+    auto rfind_not_in_parentheses(
+        std::string_view text,
+        std::string_view val,
+        ParseError& err,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> std::size_t
+    {
+        return detail_parsers::find_not_in_parentheses_impl(
+            text,
+            val,
+            err,
+            close,  // swaped
+            open,
+            detail_parsers::RFindParenthesesSearcher()
+        );
+    }
+
+    template <std::size_t P>
+    [[nodiscard]] auto rfind_not_in_parentheses(
+        std::string_view text,
+        std::string_view val,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> tl::expected<std::size_t, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto pos = rfind_not_in_parentheses(text, val, err, open, close);
         if (err != ParseError::Ok)
         {
             return tl::make_unexpected(err);

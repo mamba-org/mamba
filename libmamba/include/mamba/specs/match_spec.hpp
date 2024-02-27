@@ -34,6 +34,8 @@ namespace mamba::specs
         inline static constexpr char prefered_quote = '"';
         inline static constexpr char alt_quote = '\'';
         inline static constexpr char channel_namespace_spec_sep = ':';
+        inline static constexpr char attribute_sep = ',';
+        inline static constexpr char attribute_assign = '=';
 
 
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
@@ -76,10 +78,11 @@ namespace mamba::specs
         [[nodiscard]] auto track_features() const -> std::string_view;
         void set_track_features(std::string val);
 
+        [[nodiscard]] auto filename() const -> std::string_view;
+        void set_filename(std::string val);
+
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
-
-        [[nodiscard]] auto filename() const -> const std::string&;
 
         [[nodiscard]] auto url() const -> const std::string&;
 
@@ -100,6 +103,7 @@ namespace mamba::specs
             std::string license_family = {};
             std::string features = {};
             std::string track_features = {};
+            std::string filename = {};
             bool optional = false;
         };
 
@@ -111,7 +115,6 @@ namespace mamba::specs
         BuildNumberSpec m_build_number;
         util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
         // TODO can put inside channel
-        std::string m_filename;
         std::string m_url;
 
         auto extra() -> ExtraMembers&;

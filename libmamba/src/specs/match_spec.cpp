@@ -181,6 +181,47 @@ namespace mamba::specs
                 /* spec= */ str,
             };
         }
+
+        auto find_attribute_split(std::string_view str)
+        {
+            return util::find_not_in_parentheses(str, MatchSpec::attribute_sep, open_or_quote, close_or_quote)
+                // FIXME temporary while MatchSpec::parse does not return ``exepted``.
+                .or_else(
+                    [&](const auto&) {
+                        throw std::invalid_argument(
+                            fmt::format(R"(Invalid parenthesis in MatchSpec "{}")", str)
+                        );
+                    }
+                )
+                .value();
+            ;
+        }
+
+        auto strip_whitespace_quotes(std::string_view str) -> std::string_view
+        {
+            return util::strip_if(
+                str,
+                [](char c) -> bool {
+                    return !util::is_graphic(c) || (c == MatchSpec::prefered_quote)
+                           || (c == MatchSpec::alt_quote);
+                }
+
+            );
+        }
+
+        template <typename Map>
+        void extract_kv(std::string_view str, Map& map)
+        {
+            const auto next_pos = find_attribute_split(str);
+
+            auto [key, value] = util::split_once(str.substr(0, next_pos), MatchSpec::attribute_assign);
+            map.emplace(util::strip(key), strip_whitespace_quotes(value.value_or("")));
+
+            if (next_pos != std::string_view::npos)
+            {
+                extract_kv(str.substr(next_pos + 1), map);
+            }
+        };
     }
 
     auto MatchSpec::parse(std::string_view spec) -> MatchSpec
@@ -233,27 +274,6 @@ namespace mamba::specs
         }
 
         auto spec_str = std::string(spec);
-
-        auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
-        {
-            static const std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
-            std::cmatch kv_match;
-            const char* text_iter = kv_string.c_str();
-
-            while (std::regex_search(text_iter, kv_match, kv_re))
-            {
-                auto key = kv_match[1].str();
-                auto value = kv_match[3].str();
-                if (key.size() == 0 || value.size() == 0)
-                {
-                    throw std::runtime_error(
-                        util::concat(R"(key-value mismatch in brackets ")", spec_str, '"')
-                    );
-                }
-                text_iter += kv_match.position() + kv_match.length();
-                map[key] = value;
-            }
-        };
 
         std::smatch match;
         std::unordered_map<std::string, std::string> extra;
@@ -475,6 +495,11 @@ namespace mamba::specs
         return m_build_string;
     }
 
+    void MatchSpec::set_build_string(BuildStringSpec bs)
+    {
+        m_build_string = std::move(bs);
+    }
+
     auto MatchSpec::md5() const -> std::string_view
     {
         if (m_extra.has_value())
@@ -486,7 +511,10 @@ namespace mamba::specs
 
     void MatchSpec::set_md5(std::string val)
     {
-        extra().md5 = std::move(val);
+        if (val != md5())  // Avoid allocating extra to set the default value
+        {
+            extra().md5 = std::move(val);
+        }
     }
 
     auto MatchSpec::sha256() const -> std::string_view
@@ -500,7 +528,10 @@ namespace mamba::specs
 
     void MatchSpec::set_sha256(std::string val)
     {
-        extra().sha256 = std::move(val);
+        if (val != sha256())  // Avoid allocating extra to set the default value
+        {
+            extra().sha256 = std::move(val);
+        }
     }
 
     auto MatchSpec::license() const -> std::string_view
@@ -514,7 +545,10 @@ namespace mamba::specs
 
     void MatchSpec::set_license(std::string val)
     {
-        extra().license = std::move(val);
+        if (val != license())  // Avoid allocating extra to set the default value
+        {
+            extra().license = std::move(val);
+        }
     }
 
     auto MatchSpec::license_family() const -> std::string_view
@@ -528,7 +562,10 @@ namespace mamba::specs
 
     void MatchSpec::set_license_family(std::string val)
     {
-        extra().license_family = std::move(val);
+        if (val != license_family())  // Avoid allocating extra to set the default value
+        {
+            extra().license_family = std::move(val);
+        }
     }
 
     auto MatchSpec::features() const -> std::string_view
@@ -542,7 +579,10 @@ namespace mamba::specs
 
     void MatchSpec::set_features(std::string val)
     {
-        extra().features = std::move(val);
+        if (val != features())  // Avoid allocating extra to set the default value
+        {
+            extra().features = std::move(val);
+        }
     }
 
     auto MatchSpec::track_features() const -> std::string_view
@@ -556,7 +596,27 @@ namespace mamba::specs
 
     void MatchSpec::set_track_features(std::string val)
     {
-        extra().track_features = std::move(val);
+        if (val != track_features())  // Avoid allocating extra to set the default value
+        {
+            extra().track_features = std::move(val);
+        }
+    }
+
+    auto MatchSpec::filename() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->filename;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_filename(std::string val)
+    {
+        if (val != filename())  // Avoid allocating extra to set the default value
+        {
+            extra().filename = std::move(val);
+        }
     }
 
     auto MatchSpec::optional() const -> bool
@@ -566,17 +626,10 @@ namespace mamba::specs
 
     void MatchSpec::set_optional(bool opt)
     {
-        extra().optional = opt;
-    }
-
-    void MatchSpec::set_build_string(BuildStringSpec bs)
-    {
-        m_build_string = std::move(bs);
-    }
-
-    auto MatchSpec::filename() const -> const std::string&
-    {
-        return m_filename;
+        if (opt != optional())  // Avoid allocating extra to set the default value
+        {
+            extra().optional = opt;
+        }
     }
 
     auto MatchSpec::url() const -> const std::string&

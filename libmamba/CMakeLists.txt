@@ -299,6 +299,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/build_number_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp

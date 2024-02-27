@@ -29,7 +29,9 @@ namespace mamba::specs
         };
 
         auto out = MatchSpec();
-        out.m_channel = UnresolvedChannel::parse(spec);
+        out.m_channel = UnresolvedChannel::parse(spec)
+                            .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                            .value();
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
         out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
@@ -44,7 +46,9 @@ namespace mamba::specs
 
         // Version
         std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-        out.m_version = VersionSpec::parse(tail);
+        out.m_version = VersionSpec::parse(tail)
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value();
         if (!head.has_value())
         {
             fail_parse();
@@ -65,7 +69,9 @@ namespace mamba::specs
             if (pos == s.npos || pos == 0)
             {
                 return {
-                    VersionSpec::parse(s),
+                    VersionSpec::parse(s)
+                        .or_else([](ParseError&& error) { throw std::move(error); })
+                        .value(),
                     MatchSpec::BuildStringSpec(),
                 };
             }
@@ -77,7 +83,9 @@ namespace mamba::specs
                 if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
                 {
                     return {
-                        VersionSpec::parse(s),
+                        VersionSpec::parse(s)
+                            .or_else([](ParseError&& error) { throw std::move(error); })
+                            .value(),
                         MatchSpec::BuildStringSpec(),
                     };
                 }
@@ -85,7 +93,9 @@ namespace mamba::specs
             // c is either ' ' or pm1 is none of the forbidden chars
 
             return {
-                VersionSpec::parse(s.substr(0, pos)),
+                VersionSpec::parse(s.substr(0, pos))
+                    .or_else([](ParseError&& error) { throw std::move(error); })
+                    .value(),
                 MatchSpec::BuildStringSpec(std::string(s.substr(pos + 1))),
             };
         }
@@ -170,7 +180,9 @@ namespace mamba::specs
         std::string channel_str;
         if (m5_len == 3)
         {
-            out.m_channel = UnresolvedChannel::parse(m5[0]);
+            out.m_channel = UnresolvedChannel::parse(m5[0])
+                                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                                .value();
             out.m_name_space = m5[1];
             spec_str = m5[2];
         }
@@ -245,7 +257,11 @@ namespace mamba::specs
 
         if (const auto& val = at_or(extra, "build_number", ""); !val.empty())
         {
-            out.set_build_number(BuildNumberSpec::parse(val));
+            out.set_build_number(BuildNumberSpec::parse(val)
+                                     .or_else([](ParseError&& error) { throw std::move(error); })
+                                     .value()
+
+            );
         }
         if (const auto& val = at_or(extra, "build", ""); !val.empty())
         {
@@ -253,11 +269,16 @@ namespace mamba::specs
         }
         if (const auto& val = at_or(extra, "version", ""); !val.empty())
         {
-            out.set_version(VersionSpec::parse(val));
+            out.set_version(
+                VersionSpec::parse(val).or_else([](ParseError&& error) { throw std::move(error); }
+                ).value()
+            );
         }
         if (const auto& val = at_or(extra, "channel", ""); !val.empty())
         {
-            out.set_channel(UnresolvedChannel::parse(val));
+            out.set_channel(UnresolvedChannel::parse(val)
+                                .or_else([](ParseError&& error) { throw std::move(error); })
+                                .value());
         }
         if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
         {

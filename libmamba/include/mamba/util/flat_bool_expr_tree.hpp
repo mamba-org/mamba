@@ -9,17 +9,12 @@
 
 #include <cassert>
 #include <functional>
-#include <stdexcept>
 #include <utility>
 #include <variant>
 #include <vector>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-
 #include "mamba/util/flat_binary_tree.hpp"
 #include "mamba/util/functional.hpp"
-#include "mamba/util/type_traits.hpp"
 
 namespace mamba::util
 {
@@ -40,11 +35,11 @@ namespace mamba::util
         using variable_type = Variable;
         using tree_type = flat_binary_tree<operator_type, variable_type>;
 
-        void push_variable(const variable_type& var);
-        void push_variable(variable_type&& var);
-        void push_operator(const operator_type& op);
-        void push_operator(operator_type&& op);
-        void finalize();
+        [[nodiscard]] auto push_variable(const variable_type& var) -> bool;
+        [[nodiscard]] auto push_variable(variable_type&& var) -> bool;
+        [[nodiscard]] auto push_operator(const operator_type& op) -> bool;
+        [[nodiscard]] auto push_operator(operator_type&& op) -> bool;
+        [[nodiscard]] auto finalize() -> bool;
 
         [[nodiscard]] auto tree() const& -> const tree_type&;
         [[nodiscard]] auto tree() && -> tree_type&&;
@@ -63,9 +58,9 @@ namespace mamba::util
         auto orphans_pop() -> idx_type;
 
         template <typename V>
-        void push_variable_impl(V&& var);
+        [[nodiscard]] auto push_variable_impl(V&& var) -> bool;
         template <typename O>
-        void push_operator_impl(O&& op);
+        [[nodiscard]] auto push_operator_impl(O&& op) -> bool;
     };
 
     /**
@@ -89,13 +84,13 @@ namespace mamba::util
         InfixParser(const operator_precedence_type& cmp);
         InfixParser(operator_precedence_type&& cmp = {});
 
-        void push_variable(const variable_type& var);
-        void push_variable(variable_type&& var);
-        void push_operator(const operator_type& op);
-        void push_operator(operator_type&& op);
-        void push_left_parenthesis();
-        void push_right_parenthesis();
-        void finalize();
+        [[nodiscard]] auto push_variable(const variable_type& var) -> bool;
+        [[nodiscard]] auto push_variable(variable_type&& var) -> bool;
+        [[nodiscard]] auto push_operator(const operator_type& op) -> bool;
+        [[nodiscard]] auto push_operator(operator_type&& op) -> bool;
+        [[nodiscard]] auto push_left_parenthesis() -> bool;
+        [[nodiscard]] auto push_right_parenthesis() -> bool;
+        [[nodiscard]] auto finalize() -> bool;
 
         [[nodiscard]] auto tree() const& -> const tree_type&;
         [[nodiscard]] auto tree() && -> tree_type&&;
@@ -120,15 +115,15 @@ namespace mamba::util
         template <typename T>
         void stack_push(T&& elem);
         auto stack_pop() -> operator_or_parenthesis_type;
-        auto stack_empty() const -> bool;
+        [[nodiscard]] auto stack_empty() const -> bool;
         auto stack_top() const -> const operator_or_parenthesis_type&;
-        auto stack_top_is_parenthesis() const -> bool;
+        [[nodiscard]] auto stack_top_is_parenthesis() const -> bool;
         auto stack_top_is_op_with_greater_precedence_than(const operator_type&) const -> bool;
 
         template <typename V>
-        void push_variable_impl(V&& var);
+        [[nodiscard]] auto push_variable_impl(V&& var) -> bool;
         template <typename O>
-        void push_operator_impl(O&& op);
+        [[nodiscard]] auto push_operator_impl(O&& op) -> bool;
     };
 
     enum struct BoolOperator
@@ -245,56 +240,58 @@ namespace mamba::util
 
     template <typename V, typename O>
     template <typename Var>
-    void PostfixParser<V, O>::push_variable_impl(Var&& var)
+    auto PostfixParser<V, O>::push_variable_impl(Var&& var) -> bool
     {
         orphans_push(m_tree.add_leaf(std::forward<Var>(var)));
+        return true;  //  Always valid
     }
 
     template <typename V, typename O>
-    void PostfixParser<V, O>::push_variable(const variable_type& var)
+    auto PostfixParser<V, O>::push_variable(const variable_type& var) -> bool
     {
         return push_variable_impl(var);
     }
 
     template <typename V, typename O>
-    void PostfixParser<V, O>::push_variable(variable_type&& var)
+    auto PostfixParser<V, O>::push_variable(variable_type&& var) -> bool
     {
         return push_variable_impl(std::move(var));
     }
 
     template <typename V, typename O>
     template <typename Op>
-    void PostfixParser<V, O>::push_operator_impl(Op&& op)
+    auto PostfixParser<V, O>::push_operator_impl(Op&& op) -> bool
     {
         if (m_orphans.size() < 2)
         {
-            throw std::invalid_argument("Invalid expression");
+            return false;
         }
         const auto right = orphans_pop();
         const auto left = orphans_pop();
         orphans_push(m_tree.add_branch(std::forward<Op>(op), left, right));
+        return true;
     }
 
     template <typename V, typename O>
-    void PostfixParser<V, O>::push_operator(const operator_type& op)
+    auto PostfixParser<V, O>::push_operator(const operator_type& op) -> bool
     {
         return push_operator_impl(op);
     }
 
     template <typename V, typename O>
-    void PostfixParser<V, O>::push_operator(operator_type&& op)
+    auto PostfixParser<V, O>::push_operator(operator_type&& op) -> bool
     {
         return push_operator_impl(std::move(op));
     }
 
     template <typename V, typename O>
-    void PostfixParser<V, O>::finalize()
+    auto PostfixParser<V, O>::finalize() -> bool
     {
         if (((m_orphans.size() == 1) && !m_tree.empty()) || (m_orphans.empty() && m_tree.empty()))
         {
-            return;
+            return true;
         }
-        throw std::invalid_argument("Incomplete expression");
+        return false;  // Incomplete expression
     }
 
     template <typename V, typename O>
@@ -377,138 +374,127 @@ namespace mamba::util
 
     template <typename V, typename O, typename C>
     template <typename Var>
-    void InfixParser<V, O, C>::push_variable_impl(Var&& var)
+    auto InfixParser<V, O, C>::push_variable_impl(Var&& var) -> bool
     {
         // Input check
         if (m_expects_op)
         {
-            std::string msg = {};
-            if constexpr (fmt::is_formattable<Var>::value)
-            {
-                msg = fmt::format("Unexpected variable: {}", var);
-            }
-            else if constexpr (is_ostreamable_v<Var>)
-            {
-                msg = fmt::format("Unexpected variable: {}", fmt::streamed(var));
-            }
-            else
-            {
-                msg = "Unexpected variable";
-            }
-            throw std::invalid_argument(std::move(msg));
+            return false;  // Unexpected variable
         }
         m_expects_op = true;
         // Parsing
-        m_postfix_parser.push_variable(std::forward<Var>(var));
+        return m_postfix_parser.push_variable(std::forward<Var>(var));
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::push_variable(const variable_type& var)
+    auto InfixParser<V, O, C>::push_variable(const variable_type& var) -> bool
     {
         return push_variable_impl(var);
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::push_variable(variable_type&& var)
+    auto InfixParser<V, O, C>::push_variable(variable_type&& var) -> bool
     {
         return push_variable_impl(std::move(var));
     }
 
     template <typename V, typename O, typename C>
     template <typename Op>
-    void InfixParser<V, O, C>::push_operator_impl(Op&& op)
+    auto InfixParser<V, O, C>::push_operator_impl(Op&& op) -> bool
     {
         // Input check
         if (!m_expects_op)
         {
-            std::string msg = {};
-            if constexpr (fmt::is_formattable<Op>::value)
-            {
-                msg = fmt::format("Unexpected operator: {}", op);
-            }
-            else if constexpr (is_ostreamable_v<Op>)
-            {
-                msg = fmt::format("Unexpected operator: {}", fmt::streamed(op));
-            }
-            else
-            {
-                msg = "Unexpected operator";
-            }
-            throw std::invalid_argument(std::move(msg));
+            return false;
         }
         m_expects_op = false;
         // Parsing
         while (stack_top_is_op_with_greater_precedence_than(op))
         {
-            m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+            bool pushed = m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+            if (!pushed)
+            {
+                return false;
+            }
         }
         stack_push(std::forward<Op>(op));
+        return true;
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::push_operator(const operator_type& op)
+    auto InfixParser<V, O, C>::push_operator(const operator_type& op) -> bool
     {
         return push_operator_impl(op);
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::push_operator(operator_type&& op)
+    auto InfixParser<V, O, C>::push_operator(operator_type&& op) -> bool
     {
         return push_operator_impl(std::move(op));
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::push_left_parenthesis()
+    auto InfixParser<V, O, C>::push_left_parenthesis() -> bool
     {
         // Input check
         if (m_expects_op)
         {
-            throw std::invalid_argument("Unexpected left parenthesis");
+            return false;  // Unexpected left parenthesis
         }
         ++m_parenthesis_level;
         // Parsing
         stack_push(LeftParenthesis{});
+        return true;
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::push_right_parenthesis()
+    auto InfixParser<V, O, C>::push_right_parenthesis() -> bool
     {
         // Input check
         if (!m_expects_op || (m_parenthesis_level == 0))
         {
-            throw std::invalid_argument("Unexpected right parenthesis");
+            return false;  // Unexpected right parenthesis
         }
         --m_parenthesis_level;
         // Parsing
         while (!stack_top_is_parenthesis())
         {
             assert(!stack_empty());
-            m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+            bool pushed = m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+            if (!pushed)
+            {
+                return false;
+            }
         }
         assert(stack_top_is_parenthesis());
         stack_pop();
+        return true;
     }
 
     template <typename V, typename O, typename C>
-    void InfixParser<V, O, C>::finalize()
+    auto InfixParser<V, O, C>::finalize() -> bool
     {
         // Empty expression case
         if (m_postfix_parser.tree().empty() && stack_empty())
         {
-            return;
+            return true;
         }
         // Input check
         if (!m_expects_op || (m_parenthesis_level != 0))
         {
-            throw std::invalid_argument("Invalid expression");
+            return false;  // Invalid expression
         }
         // Parsing
         while (!stack_empty())
         {
             assert(!stack_top_is_parenthesis());
-            m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+            bool pushed = m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+            if (!pushed)
+            {
+                return false;
+            }
         }
-        m_postfix_parser.finalize();
+        return m_postfix_parser.finalize();
     }
 
     template <typename V, typename O, typename C>

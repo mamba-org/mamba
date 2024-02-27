@@ -14,6 +14,7 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
 #include "mamba/util/flat_set.hpp"
 
 namespace mamba::specs
@@ -88,7 +89,7 @@ namespace mamba::specs
 
         using dynamic_platform_set = util::flat_set<std::string>;
 
-        [[nodiscard]] static auto parse(std::string_view str) -> UnresolvedChannel;
+        [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<UnresolvedChannel>;
 
         UnresolvedChannel() = default;
         UnresolvedChannel(std::string location, dynamic_platform_set filters, Type type);

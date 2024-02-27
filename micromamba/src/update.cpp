@@ -52,7 +52,8 @@ namespace
             [&](auto pkg)
             {
                 if (!out
-                    || (specs::Version::parse(pkg.version) > specs::Version::parse(out->version)))
+                    || (specs::Version::parse(pkg.version).value_or(specs::Version())
+                        > specs::Version::parse(out->version).value_or(specs::Version())))
                 {
                     out = std::move(pkg);
                 }

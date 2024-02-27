@@ -534,17 +534,18 @@ namespace mamba::specs
         }
 
         template <typename Int>
-        auto parse_leading_epoch(std::string_view str) -> std::pair<Int, std::string_view>
+        auto parse_leading_epoch(std::string_view str)
+            -> expected_parse_t<std::pair<Int, std::string_view>>
         {
             const auto delim_pos = str.find(Version::epoch_delim);
             // No epoch is specified
             if (delim_pos == std::string_view::npos)  // TODO(C++20) [[likely]]
             {
-                return { Int(0), str };
+                return { { Int(0), str } };
             }
             if (delim_pos == 0)
             {
-                throw std::invalid_argument(
+                return make_unexpected_parse(
                     fmt::format("Empty epoch delimited by '{}'.", Version::epoch_delim)
                 );
             }
@@ -554,12 +555,12 @@ namespace mamba::specs
             // Epoch is not a number (or empty)
             if (!maybe_int.has_value())
             {
-                throw std::invalid_argument(
+                return make_unexpected_parse(
                     fmt::format("Epoch should be a number, got '{}'.", epoch_str)
                 );
             }
             // Found an epoch
-            return { maybe_int.value(), str.substr(delim_pos + 1) };
+            return { { maybe_int.value(), str.substr(delim_pos + 1) } };
         }
 
         template <typename Int>
@@ -617,7 +618,7 @@ namespace mamba::specs
             return atoms;
         }
 
-        void check_common_version(std::string_view str)
+        auto check_common_version(std::string_view str) -> expected_parse_t<void>
         {
             // `_` and `-` delimiter cannot be used together.
             // Special meaning for `_` at the end of the string.
@@ -625,7 +626,7 @@ namespace mamba::specs
                 && (str.find(Version::part_delim_special) < str.size() - 1))  // TODO(C++20)
                                                                               // [[unlikely]]
             {
-                throw std::invalid_argument(fmt::format(
+                return make_unexpected_parse(fmt::format(
                     "Cannot use both '{}' and '{}' delimiters in {}'.",
                     Version::part_delim_alt,
                     Version::part_delim_special,
@@ -643,16 +644,20 @@ namespace mamba::specs
             };
             if (std::find_if_not(str.cbegin(), str.cend(), allowed_char) != str.cend())
             {
-                throw std::invalid_argument(
+                return make_unexpected_parse(
                     fmt::format("Version contains invalid characters in {}.", str)
                 );
             }
+            return {};
         }
 
-        auto parse_common_version(std::string_view str) -> CommonVersion
+        auto parse_common_version(std::string_view str) -> expected_parse_t<CommonVersion>
         {
             assert(!str.empty());
-            check_common_version(str);
+            if (auto outcome = check_common_version(str); !outcome)
+            {
+                return make_unexpected_parse(outcome.error());
+            }
 
             static constexpr auto delims_buf = std::array{
                 Version::part_delim,
@@ -678,7 +683,7 @@ namespace mamba::specs
                 if ((tail_delim_pos == 0) || (tail_delim_pos == tail.size() - 1))  // TODO(C++20)
                                                                                    // [[unlikely]]
                 {
-                    throw std::invalid_argument(fmt::format("Empty part in '{}'.", str));
+                    return make_unexpected_parse(fmt::format("Empty part in '{}'.", str));
                 }
                 parts.push_back(parse_part(tail.substr(0, tail_delim_pos)));
                 if (tail_delim_pos == std::string_view::npos)
@@ -687,63 +692,86 @@ namespace mamba::specs
                 }
                 tail = tail.substr(tail_delim_pos + 1);
             }
-            return parts;
+            return { std::move(parts) };
         }
 
         auto parse_trailing_local_version(std::string_view str)
-            -> std::pair<std::string_view, CommonVersion>
+            -> expected_parse_t<std::pair<std::string_view, CommonVersion>>
         {
             const auto delim_pos = str.rfind(Version::local_delim);
             // No local is specified
             if (delim_pos == std::string_view::npos)  // TODO(C++20) [[likely]]
             {
-                return { str, {} };
+                return { { str, {} } };
             }
             // local specified but empty
             if (delim_pos + 1 == str.size())
             {
-                throw std::invalid_argument(
+                return make_unexpected_parse(
                     fmt::format("Empty local version delimited by '{}'.", Version::local_delim)
                 );
             }
-            return { str.substr(0, delim_pos), parse_common_version(str.substr(delim_pos + 1)) };
+            return parse_common_version(str.substr(delim_pos + 1))
+                .transform(
+                    [&](CommonVersion&& version) {
+                        return std::pair{ str.substr(0, delim_pos), std::move(version) };
+                    }
+                );
         }
 
-        auto parse_version(std::string_view str) -> CommonVersion
+        auto parse_version(std::string_view str) -> expected_parse_t<CommonVersion>
         {
             if (str.empty())
             {
-                throw std::invalid_argument("Empty version.");
+                return make_unexpected_parse("Empty version.");
             }
             return parse_common_version(str);
         }
     }
 
-    auto Version::parse(std::string_view str) -> Version
+    auto Version::parse(std::string_view str) -> expected_parse_t<Version>
     {
         str = util::strip(str);
-        try
+
+        auto make_unexpected = [&str](const ParseError& error)
         {
-            auto [epoch, version_and_local_str] = parse_leading_epoch<std::size_t>(str);
-            auto [version_str, local] = parse_trailing_local_version(version_and_local_str);
-            auto version = parse_version(version_str);
-            return {
-                /* .epoch= */ epoch,
-                /* .version= */ std::move(version),
-                /* .local= */ std::move(local),
-            };
-        }
-        catch (const std::invalid_argument& ia)
+            return make_unexpected_parse(
+                fmt::format(R"(Error parsing version "{}". {})", str, error.what())
+            );
+        };
+
+        auto epoch_rest = parse_leading_epoch<std::size_t>(str);
+        if (!epoch_rest)
         {
-            throw std::invalid_argument(fmt::format("Error parsing version '{}'. {}", str, ia.what()));
+            return make_unexpected(epoch_rest.error());
         }
+
+        auto version_and_local = parse_trailing_local_version(epoch_rest->second);
+        if (!version_and_local)
+        {
+            return make_unexpected(version_and_local.error());
+        }
+
+        auto version = parse_version(version_and_local->first);
+        if (!version)
+        {
+            return make_unexpected(version.error());
+        }
+
+        return { {
+            /* .epoch= */ epoch_rest->first,
+            /* .version= */ std::move(version).value(),
+            /* .local= */ std::move(version_and_local)->second,
+        } };
     }
 
     namespace version_literals
     {
         auto operator""_v(const char* str, std::size_t len) -> Version
         {
-            return Version::parse(std::literals::string_view_literals::operator""sv(str, len));
+            return Version::parse(std::literals::string_view_literals::operator""sv(str, len))
+                .or_else([](ParseError&& error) { throw std::move(error); })
+                .value();
         }
     }
 }

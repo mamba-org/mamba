@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <stdexcept>
 #include <type_traits>
 
 #include <fmt/format.h>
@@ -320,7 +319,7 @@ namespace mamba::specs
             return std::find(range.cbegin(), range.cend(), val) != range.cend();
         }
 
-        auto parse_op_and_version(std::string_view str) -> VersionPredicate
+        auto parse_op_and_version(std::string_view str) -> expected_parse_t<VersionPredicate>
         {
             str = util::strip(str);
             // WARNING order is important since some operator are prefix of others.
@@ -330,35 +329,40 @@ namespace mamba::specs
             }
             if (util::starts_with(str, VersionSpec::greater_equal_str))
             {
-                return VersionPredicate::make_greater_equal(
-                    Version::parse(str.substr(VersionSpec::greater_equal_str.size()))
-                );
+                return Version::parse(str.substr(VersionSpec::greater_equal_str.size()))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_greater_equal(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::greater_str))
             {
-                return VersionPredicate::make_greater(
-                    Version::parse(str.substr(VersionSpec::greater_str.size()))
-                );
+                return Version::parse(str.substr(VersionSpec::greater_str.size()))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_greater(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::less_equal_str))
             {
-                return VersionPredicate::make_less_equal(
-                    Version::parse(str.substr(VersionSpec::less_equal_str.size()))
-                );
+                return Version::parse(str.substr(VersionSpec::less_equal_str.size()))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_less_equal(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::less_str))
             {
-                return VersionPredicate::make_less(
-                    Version::parse(str.substr(VersionSpec::less_str.size()))
-                );
+                return Version::parse(str.substr(VersionSpec::less_str.size()))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_less(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::compatible_str))
             {
-                auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
-                // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
-                static constexpr auto one = std::size_t(1);  // MSVC
-                const std::size_t level = std::max(ver.version().size(), one) - one;
-                return VersionPredicate::make_compatible_with(std::move(ver), level);
+                return Version::parse(str.substr(VersionSpec::compatible_str.size()))
+                    .transform(
+                        [](specs::Version&& ver)
+                        {
+                            // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
+                            static constexpr auto one = std::size_t(1);  // MSVC
+                            const std::size_t level = std::max(ver.version().size(), one) - one;
+                            return VersionPredicate::make_compatible_with(std::move(ver), level);
+                        }
+                    );
             }
             const bool has_glob_suffix = util::ends_with(str, VersionSpec::glob_suffix_str);
             const std::size_t glob_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
@@ -368,13 +372,15 @@ namespace mamba::specs
                 // Glob suffix changes meaning for ==1.3.*
                 if (has_glob_suffix)
                 {
-                    return VersionPredicate::make_starts_with(
-                        Version::parse(str.substr(start, str.size() - glob_len - start))
-                    );
+                    return Version::parse(str.substr(VersionSpec::less_equal_str.size()))
+                        .transform([](specs::Version&& ver)
+                                   { return VersionPredicate::make_starts_with(std::move(ver)); });
                 }
                 else
                 {
-                    return VersionPredicate::make_equal_to(Version::parse(str.substr(start)));
+                    return Version::parse(str.substr(start))
+                        .transform([](specs::Version&& ver)
+                                   { return VersionPredicate::make_equal_to(std::move(ver)); });
                 }
             }
             if (util::starts_with(str, VersionSpec::not_equal_str))
@@ -383,22 +389,25 @@ namespace mamba::specs
                 // Glob suffix changes meaning for !=1.3.*
                 if (has_glob_suffix)
                 {
-                    return VersionPredicate::make_not_starts_with(
-                        Version::parse(str.substr(start, str.size() - glob_len - start))
-                    );
+                    return Version::parse(str.substr(start, str.size() - glob_len - start))
+                        .transform([](specs::Version&& ver)
+                                   { return VersionPredicate::make_not_starts_with(std::move(ver)); }
+                        );
                 }
                 else
                 {
-                    return VersionPredicate::make_not_equal_to(Version::parse(str.substr(start)));
+                    return Version::parse(str.substr(start))
+                        .transform([](specs::Version&& ver)
+                                   { return VersionPredicate::make_not_equal_to(std::move(ver)); });
                 }
             }
             if (util::starts_with(str, VersionSpec::starts_with_str))
             {
                 const std::size_t start = VersionSpec::starts_with_str.size();
                 // Glob suffix does not change meaning for =1.3.*
-                return VersionPredicate::make_starts_with(
-                    Version::parse(str.substr(start, str.size() - glob_len - start))
-                );
+                return Version::parse(str.substr(start, str.size() - glob_len - start))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_starts_with(std::move(ver)); });
             }
             if (util::is_digit(str.front()))  // All versions must start with a digit
             {
@@ -408,19 +417,25 @@ namespace mamba::specs
                     // either ".*" or "*"
                     static constexpr auto one = std::size_t(1);  // MSVC
                     const std::size_t len = str.size() - std::max(glob_len, one);
-                    return VersionPredicate::make_starts_with(Version::parse(str.substr(0, len)));
+                    return Version::parse(str.substr(0, len))
+                        .transform([](specs::Version&& ver)
+                                   { return VersionPredicate::make_starts_with(std::move(ver)); });
                 }
                 else
                 {
-                    return VersionPredicate::make_equal_to(Version::parse(str));
+                    return Version::parse(str).transform(
+                        [](specs::Version&& ver)
+                        { return VersionPredicate::make_equal_to(std::move(ver)); }
+                    );
                 }
             }
-            throw std::invalid_argument(fmt::format(R"(Found invalid version predicate in "{}")", str)
+            return tl::make_unexpected(
+                ParseError(fmt::format(R"(Found invalid version predicate in "{}")", str))
             );
         }
     }
 
-    auto VersionSpec::parse(std::string_view str) -> VersionSpec
+    auto VersionSpec::parse(std::string_view str) -> expected_parse_t<VersionSpec>
     {
         static constexpr auto all_tokens = std::array{
             VersionSpec::and_token,
@@ -447,40 +462,95 @@ namespace mamba::specs
         {
             if (str.front() == VersionSpec::and_token)
             {
-                parser.push_operator(util::BoolOperator::logical_and);
+                const bool pushed = parser.push_operator(util::BoolOperator::logical_and);
+                if (!pushed)
+                {
+                    return tl::make_unexpected(ParseError(fmt::format(
+                        R"(Found unexpected token "{}" in version spec "{}")",
+                        VersionSpec::and_token,
+                        str
+                    )));
+                }
                 str = str.substr(1);
             }
             else if (str.front() == VersionSpec::or_token)
             {
-                parser.push_operator(util::BoolOperator::logical_or);
+                const bool pushed = parser.push_operator(util::BoolOperator::logical_or);
+                if (!pushed)
+                {
+                    return tl::make_unexpected(ParseError(fmt::format(
+                        R"(Found unexpected token "{}" in version spec "{}")",
+                        VersionSpec::or_token,
+                        str
+                    )));
+                }
                 str = str.substr(1);
             }
             else if (str.front() == VersionSpec::left_parenthesis_token)
             {
-                parser.push_left_parenthesis();
+                const bool pushed = parser.push_left_parenthesis();
+                if (!pushed)
+                {
+                    return tl::make_unexpected(ParseError(fmt::format(
+                        R"(Found unexpected token "{}" in version spec "{}")",
+                        VersionSpec::left_parenthesis_token,
+                        str
+                    )));
+                }
                 str = util::lstrip(str.substr(1));
             }
             else if (str.front() == VersionSpec::right_parenthesis_token)
             {
-                parser.push_right_parenthesis();
+                const bool pushed = parser.push_right_parenthesis();
+                if (!pushed)
+                {
+                    return tl::make_unexpected(ParseError(fmt::format(
+                        R"(Found unexpected token "{}" in version spec "{}")",
+                        VersionSpec::right_parenthesis_token,
+                        str
+                    )));
+                }
                 str = util::lstrip(str.substr(1));
             }
             else
             {
                 auto [op_ver, rest] = util::lstrip_if_parts(str, [&](auto c) { return !is_token(c); });
-                parser.push_variable(parse_op_and_version(op_ver));
+                auto pred = parse_op_and_version(op_ver);
+                if (!pred.has_value())
+                {
+                    return tl::make_unexpected(pred.error());
+                }
+                const bool pushed = parser.push_variable(std::move(pred).value());
+                if (!pushed)
+                {
+                    return tl::make_unexpected(ParseError(fmt::format(
+                        R"(Found unexpected version predicate "{}" in version spec "{}")",
+                        pred.value(),
+                        str
+                    )));
+                }
                 str = rest;
             }
         }
-        parser.finalize();
-        return VersionSpec{ std::move(parser).tree() };
+
+        const bool correct = parser.finalize();
+        if (!correct)
+        {
+            return tl::make_unexpected(
+                ParseError(fmt::format(R"(Version spec "{}" is an incorrect expression)", str))
+            );
+        }
+
+        return { VersionSpec{ std::move(parser).tree() } };
     }
 
     namespace version_spec_literals
     {
         auto operator""_vs(const char* str, std::size_t len) -> VersionSpec
         {
-            return VersionSpec::parse(std::literals::string_view_literals::operator""sv(str, len));
+            return VersionSpec::parse(std::literals::string_view_literals::operator""sv(str, len))
+                .or_else([](ParseError&& error) { throw std::move(error); })
+                .value();
         }
     }
 }

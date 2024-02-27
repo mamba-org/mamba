@@ -21,7 +21,7 @@ TEST_SUITE("specs::repo_data")
     {
         auto p = RepoDataPackage();
         p.name = "mamba";
-        p.version = Version::parse("1.0.0");
+        p.version = Version::parse("1.0.0").value();
         p.build_string = "bld";
         p.build_number = 3;
         p.subdir = "linux";

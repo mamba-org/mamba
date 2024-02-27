@@ -14,6 +14,7 @@
 
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/flat_bool_expr_tree.hpp"
 
@@ -149,7 +150,7 @@ namespace mamba::specs
         static constexpr std::string_view glob_suffix_str = ".*";
         static constexpr char glob_suffix_token = '*';
 
-        [[nodiscard]] static auto parse(std::string_view str) -> VersionSpec;
+        [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<VersionSpec>;
 
         /** Construct VersionSpec that match all versions. */
         VersionSpec() = default;

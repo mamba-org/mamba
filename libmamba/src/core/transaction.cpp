@@ -67,7 +67,10 @@ namespace mamba
             out.set_name(specs::MatchSpec::NameSpec(pkg.name));
             if (!pkg.version.empty())
             {
-                out.set_version(specs::VersionSpec::parse(fmt::format("=={}", pkg.version)));
+                out.set_version(specs::VersionSpec::parse(fmt::format("=={}", pkg.version))
+                                    .or_else([](specs::ParseError&& error)
+                                             { throw std::move(error); })
+                                    .value());
             }
             if (!pkg.build_string.empty())
             {

@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
-#include <stdexcept>
 #include <string_view>
 
 #include <doctest/doctest.h>
@@ -16,13 +15,16 @@ using namespace mamba::specs;
 
 TEST_SUITE("specs::version_spec")
 {
+    using namespace mamba::specs::version_literals;
+    using namespace mamba::specs::version_spec_literals;
+
     TEST_CASE("VersionPredicate")
     {
-        const auto v1 = Version::parse("1.0");
-        const auto v2 = Version::parse("2.0");
-        const auto v201 = Version::parse("2.0.1");
-        const auto v3 = Version::parse("3.0");
-        const auto v4 = Version::parse("4.0");
+        const auto v1 = "1.0"_v;
+        const auto v2 = "2.0"_v;
+        const auto v201 = "2.0.1"_v;
+        const auto v3 = "3.0"_v;
+        const auto v4 = "4.0"_v;
 
         const auto free = VersionPredicate::make_free();
         CHECK(free.contains(v1));
@@ -135,14 +137,14 @@ TEST_SUITE("specs::version_spec")
             const auto v28 = Version(0, { { { 2 } }, { { 8 } }, { { 0 } } });
 
             auto parser = InfixParser<VersionPredicate, BoolOperator>{};
-            parser.push_variable(VersionPredicate::make_less(v20));
-            parser.push_operator(BoolOperator::logical_or);
-            parser.push_left_parenthesis();
-            parser.push_variable(VersionPredicate::make_greater(v23));
-            parser.push_operator(BoolOperator::logical_and);
-            parser.push_variable(VersionPredicate::make_less_equal(v28));
-            parser.push_right_parenthesis();
-            parser.finalize();
+            REQUIRE(parser.push_variable(VersionPredicate::make_less(v20)));
+            REQUIRE(parser.push_operator(BoolOperator::logical_or));
+            REQUIRE(parser.push_left_parenthesis());
+            REQUIRE(parser.push_variable(VersionPredicate::make_greater(v23)));
+            REQUIRE(parser.push_operator(BoolOperator::logical_and));
+            REQUIRE(parser.push_variable(VersionPredicate::make_less_equal(v28)));
+            REQUIRE(parser.push_right_parenthesis());
+            REQUIRE(parser.finalize());
 
             auto spec = VersionSpec(std::move(parser).tree());
 
@@ -162,9 +164,6 @@ TEST_SUITE("specs::version_spec")
 
     TEST_CASE("VersionSpec::parse")
     {
-        using namespace mamba::specs::version_literals;
-        using namespace mamba::specs::version_spec_literals;
-
         SUBCASE("Successful")
         {
             CHECK(""_vs.contains("1.6"_v));
@@ -392,9 +391,7 @@ TEST_SUITE("specs::version_spec")
             for (const auto& spec : bad_specs)
             {
                 CAPTURE(spec);
-                // Silence [[nodiscard]] warning
-                auto parse = [](auto s) { return VersionSpec::parse(s); };
-                CHECK_THROWS_AS(parse(spec), std::invalid_argument);
+                CHECK_FALSE(VersionSpec::parse(spec).has_value());
             }
         }
     }
@@ -403,14 +400,14 @@ TEST_SUITE("specs::version_spec")
     {
         SUBCASE("2.3")
         {
-            auto vs = VersionSpec::parse("2.3");
+            auto vs = VersionSpec::parse("2.3").value();
             CHECK_EQ(vs.str(), "==2.3");
             CHECK_EQ(vs.str_conda_build(), "==2.3");
         }
 
         SUBCASE("=2.3,<3.0")
         {
-            auto vs = VersionSpec::parse("=2.3,<3.0");
+            auto vs = VersionSpec::parse("=2.3,<3.0").value();
             CHECK_EQ(vs.str(), "=2.3,<3.0");
             CHECK_EQ(vs.str_conda_build(), "2.3.*,<3.0");
         }
@@ -422,18 +419,18 @@ TEST_SUITE("specs::version_spec")
             using namespace mamba::util;
 
             auto parser = InfixParser<VersionPredicate, BoolOperator>{};
-            parser.push_variable(VersionPredicate::make_free());
-            parser.finalize();
+            REQUIRE(parser.push_variable(VersionPredicate::make_free()));
+            REQUIRE(parser.finalize());
             auto spec = VersionSpec(std::move(parser).tree());
 
             CHECK(spec.is_explicitly_free());
         }
 
         CHECK(VersionSpec().is_explicitly_free());
-        CHECK(VersionSpec::parse("*").is_explicitly_free());
-        CHECK(VersionSpec::parse("").is_explicitly_free());
+        CHECK(VersionSpec::parse("*").value().is_explicitly_free());
+        CHECK(VersionSpec::parse("").value().is_explicitly_free());
 
-        CHECK_FALSE(VersionSpec::parse("==2.3|!=2.3").is_explicitly_free());
-        CHECK_FALSE(VersionSpec::parse("=2.3,<3.0").is_explicitly_free());
+        CHECK_FALSE(VersionSpec::parse("==2.3|!=2.3").value().is_explicitly_free());
+        CHECK_FALSE(VersionSpec::parse("=2.3,<3.0").value().is_explicitly_free());
     }
 }

@@ -14,6 +14,8 @@
 
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
+
 namespace mamba::specs
 {
     /**
@@ -97,7 +99,7 @@ namespace mamba::specs
         static constexpr std::string_view less_str = "<";
         static constexpr std::string_view less_equal_str = "<=";
 
-        [[nodiscard]] static auto parse(std::string_view str) -> BuildNumberSpec;
+        [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<BuildNumberSpec>;
 
         /** Construct BuildNumberSpec that match all versions. */
         BuildNumberSpec();

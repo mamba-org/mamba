@@ -14,6 +14,8 @@
 
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
+
 namespace mamba::specs
 {
 
@@ -101,7 +103,7 @@ namespace mamba::specs
         static constexpr char part_delim_alt = '-';
         static constexpr char part_delim_special = '_';
 
-        static auto parse(std::string_view str) -> Version;
+        static auto parse(std::string_view str) -> expected_parse_t<Version>;
 
         /** Construct version ``0.0``. */
         Version() noexcept = default;

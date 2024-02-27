@@ -1059,10 +1059,10 @@ namespace mamba::solver::libsolv
         {
             if (auto newer = find_new_python_in_solution(solution))
             {
-                return !python_binary_compatible(
-                    specs::Version::parse(installed->version()),
-                    specs::Version::parse(newer->get().version)
-                );
+                auto installed_ver = specs::Version::parse(installed->version());
+                auto newer_ver = specs::Version::parse(newer->get().version);
+                return !installed_ver.has_value() || !newer_ver.has_value()
+                       || !python_binary_compatible(installed_ver.value(), newer_ver.value());
             }
         }
         return false;
@@ -1182,8 +1182,31 @@ namespace mamba::solver::libsolv
             }
 
             auto ms_modified = ms;
-            ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
-            ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
+            auto unresolved_chan = specs::UnresolvedChannel::parse(solvable->channel());
+            if (unresolved_chan.has_value())
+            {
+                ms_modified.set_channel(std::move(unresolved_chan).value());
+            }
+            else
+            {
+                return make_unexpected(
+                    std::move(unresolved_chan).error().what(),
+                    mamba_error_code::invalid_spec
+                );
+            }
+            auto version_spec = specs::VersionSpec::parse(solvable->version());
+            if (version_spec.has_value())
+            {
+                ms_modified.set_version(std::move(version_spec).value());
+            }
+            else
+            {
+                return make_unexpected(
+                    std::move(version_spec).error().what(),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
             ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
 
             LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "

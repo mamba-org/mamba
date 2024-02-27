@@ -234,7 +234,7 @@ TEST_SUITE("specs::channel")
         auto make_typical_params = []() -> ChannelResolveParams
         {
             auto make_channel = [](std::string_view loc, ChannelResolveParams const& params)
-            { return Channel::resolve(UnresolvedChannel::parse(loc), params).at(0); };
+            { return Channel::resolve(UnresolvedChannel::parse(loc).value(), params).at(0); };
 
             auto params = ChannelResolveParams{};
             params.platforms = { "linux-64", "noarch" };
@@ -325,7 +325,8 @@ TEST_SUITE("specs::channel")
                 };
                 params.custom_channels.emplace(
                     "mychan",
-                    Channel::resolve(UnresolvedChannel::parse("file:///home/conda-bld/"), params).at(0)
+                    Channel::resolve(UnresolvedChannel::parse("file:///home/conda-bld/").value(), params)
+                        .at(0)
                 );
                 CHECK_EQ(Channel::resolve(uc, params).at(0).display_name(), "mychan");
             }
@@ -711,7 +712,8 @@ TEST_SUITE("specs::channel")
                 auto params = make_typical_params();
                 params.custom_channels.emplace(
                     "conda-forge",
-                    Channel::resolve(UnresolvedChannel::parse("ftp://mydomain.net/conda"), params).at(0)
+                    Channel::resolve(UnresolvedChannel::parse("ftp://mydomain.net/conda").value(), params)
+                        .at(0)
                 );
 
                 auto channels = Channel::resolve(uc, params);
@@ -783,7 +785,7 @@ TEST_SUITE("specs::channel")
                 params.custom_channels.emplace(
                     "testchannel",
                     Channel::resolve(
-                        UnresolvedChannel::parse("https://server.com/private/testchannel"),
+                        UnresolvedChannel::parse("https://server.com/private/testchannel").value(),
                         params
                     )
                         .at(0)
@@ -812,7 +814,8 @@ TEST_SUITE("specs::channel")
             };
             params.custom_channels.emplace(
                 "prefix",
-                Channel::resolve(UnresolvedChannel::parse("https://server.com/prefix"), params).at(0)
+                Channel::resolve(UnresolvedChannel::parse("https://server.com/prefix").value(), params)
+                    .at(0)
             );
 
             auto channels = Channel::resolve(uc, params);

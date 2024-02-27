@@ -24,6 +24,7 @@ namespace mamba::specs
     public:
 
         inline static constexpr std::string_view free_pattern = "*";
+        inline static constexpr char glob_pattern = '*';
 
         GlobSpec() = default;
         explicit GlobSpec(std::string pattern);

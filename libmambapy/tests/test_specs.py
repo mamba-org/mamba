@@ -20,7 +20,7 @@ def test_import_recursive():
 
 
 def test_archive_extension():
-    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda"]
+    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda", ".whl"]
 
     assert libmambapy.specs.has_archive_extension("pkg.conda")
     assert not libmambapy.specs.has_archive_extension("conda.pkg")

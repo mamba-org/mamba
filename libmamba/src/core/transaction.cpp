@@ -620,10 +620,18 @@ namespace mamba
                     {
                         using Credentials = typename specs::CondaURL::Credentials;
                         auto l_pkg = pkg;
-                        auto channels = channel_context.make_channel(pkg.package_url);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
-                        );
+                        {
+                            auto channels = channel_context.make_channel(pkg.package_url);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            l_pkg.package_url = channels.front().platform_urls().at(0).str(
+                                Credentials::Show
+                            );
+                        }
+                        {
+                            auto channels = channel_context.make_channel(pkg.channel);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            l_pkg.channel = channels.front().id();
+                        }
                         fetchers.emplace_back(l_pkg, multi_cache);
                     }
                     else

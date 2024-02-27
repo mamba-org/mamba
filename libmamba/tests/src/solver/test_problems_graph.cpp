@@ -282,6 +282,24 @@ namespace
         return std::move(channels);
     }
 
+    /*
+     * Mock of channel_loader.cpp:create_mirrors
+     * TODO: factorize that code
+     */
+    void create_mirrors(Context& ctx, const specs::Channel& channel)
+    {
+        if (!ctx.mirrors.has_mirrors(channel.id()))
+        {
+            for (const specs::CondaURL& url : channel.mirror_urls())
+            {
+                ctx.mirrors.add_unique_mirror(
+                    channel.id(),
+                    download::make_mirror(url.str(specs::CondaURL::Credentials::Show))
+                );
+            }
+        }
+    }
+
     /**
      * Mock of channel_loader.hpp:load_channels that takes a list of channels.
      */
@@ -298,16 +316,10 @@ namespace
         {
             for (const auto& chan : channel_context.make_channel(location))
             {
+                create_mirrors(ctx, chan);
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = SubdirData::create(
-                                       ctx,
-                                       channel_context,
-                                       chan,
-                                       platform,
-                                       chan.platform_url(platform).str(),
-                                       cache
-                    )
+                    auto sub_dir = SubdirData::create(ctx, channel_context, chan, platform, cache)
                                        .value();
                     sub_dirs.push_back(std::move(sub_dir));
                 }

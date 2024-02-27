@@ -9,7 +9,7 @@
 
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -56,18 +56,12 @@ namespace mamba
             }
 
             package.info.package_url = package_node["url"].as<std::string>();
-            const auto spec = specs::MatchSpec::parse(package.info.package_url);
-            package.info.filename = spec.filename();
-            package.info.build_string = spec.build_string().str();
-            if (spec.channel().has_value())
             {
-                package.info.channel = spec.channel()->location();
-                if (!spec.channel()->platform_filters().empty())
-                {
-                    // There must be only one since we are expecting URLs
-                    assert(spec.channel()->platform_filters().size() == 1);
-                    package.info.subdir = spec.channel()->platform_filters().front();
-                }
+                const auto parsed_info = specs::PackageInfo::from_url(package.info.package_url);
+                package.info.filename = parsed_info.filename;
+                package.info.channel = parsed_info.channel;
+                package.info.build_string = parsed_info.build_string;
+                package.info.subdir = parsed_info.subdir;
             }
 
             for (const auto& dependency : package_node["dependencies"])

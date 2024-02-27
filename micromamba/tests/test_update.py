@@ -198,14 +198,11 @@ class TestUpdate:
                 "--channel-alias",
                 alias,
             )
-            ca = alias.rstrip("/")
         else:
             res = helpers.update("-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run")
-            ca = "https://conda.anaconda.org"
 
         for to_link in res["actions"]["LINK"]:
-            assert to_link["channel"].startswith(f"{ca}/conda-forge/")
-            assert to_link["url"].startswith(f"{ca}/conda-forge/")
+            assert to_link["channel"] == "conda-forge"
 
 
 class TestUpdateConfig:

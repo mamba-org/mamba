@@ -50,6 +50,7 @@ namespace mamba::solver::libsolv
         solv::ObjRepoView repo,
         const fs::u8path& filename,
         const std::string& repo_url,
+        const std::string& channel_id,
         bool only_tar_bz2
     ) -> expected_t<solv::ObjRepoView>;
 
@@ -67,7 +68,8 @@ namespace mamba::solver::libsolv
         const RepodataOrigin& metadata
     ) -> expected_t<solv::ObjRepoView>;
 
-    void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url);
+    void
+    set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url, const std::string& channel_id);
 
     void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo);
 

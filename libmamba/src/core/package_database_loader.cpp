@@ -73,10 +73,12 @@ namespace mamba
         if (!util::on_win)
         {
             auto maybe_repo = subdir.valid_solv_cache().and_then(
-                [&](fs::u8path&& solv_file) {
+                [&](fs::u8path&& solv_file)
+                {
                     return db.add_repo_from_native_serialization(
                         solv_file,
                         expected_cache_origin,
+                        subdir.channel_id(),
                         add_pip
                     );
                 }
@@ -95,6 +97,7 @@ namespace mamba
                     return db.add_repo_from_repodata_json(
                         repodata_json,
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                        subdir.channel_id(),
                         add_pip,
                         static_cast<solver::libsolv::UseOnlyTarBz2>(ctx.use_only_tar_bz2),
                         json_parser

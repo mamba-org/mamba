@@ -86,7 +86,8 @@ TEST_SUITE("solver::libsolv::database")
 
                 SUBCASE("Read serialized repo")
                 {
-                    auto repo2 = db.add_repo_from_native_serialization(solv_file, origin).value();
+                    auto repo2 = db.add_repo_from_native_serialization(solv_file, origin, "conda-forge")
+                                     .value();
                     CHECK_EQ(repo2.name(), origin.url);
                     CHECK_EQ(repo2.package_count(), repo1.package_count());
                     CHECK_NE(repo2, repo1);
@@ -103,7 +104,11 @@ TEST_SUITE("solver::libsolv::database")
                     {
                         auto expected = origin;
                         std::invoke(attr, expected) = "";
-                        auto maybe = db.add_repo_from_native_serialization(solv_file, expected);
+                        auto maybe = db.add_repo_from_native_serialization(
+                            solv_file,
+                            expected,
+                            "conda-forge"
+                        );
                         CHECK_FALSE(maybe.has_value());
                     }
                 }
@@ -179,6 +184,7 @@ TEST_SUITE("solver::libsolv::database")
             auto repo1 = db.add_repo_from_repodata_json(
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
                 libsolv::PipAsPythonDependency::No
             );
             REQUIRE(repo1.has_value());
@@ -207,6 +213,7 @@ TEST_SUITE("solver::libsolv::database")
             auto repo1 = db.add_repo_from_repodata_json(
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
                 libsolv::PipAsPythonDependency::Yes
             );
             REQUIRE(repo1.has_value());
@@ -237,6 +244,7 @@ TEST_SUITE("solver::libsolv::database")
             auto repo1 = db.add_repo_from_repodata_json(
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
                 libsolv::PipAsPythonDependency::No,
                 libsolv::UseOnlyTarBz2::Yes
             );

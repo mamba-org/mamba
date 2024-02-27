@@ -673,11 +673,13 @@ namespace mamba
 
     namespace
     {
+
         // TransactionFunc: (Database& pool, MultiPackageCache& package_caches) -> MTransaction
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             Context& ctx,
             ChannelContext& channel_context,
+            const std::vector<std::string>& specs,
             TransactionFunc create_transaction,
             bool create_env,
             bool remove_prefix_on_failure
@@ -686,6 +688,11 @@ namespace mamba
             solver::libsolv::Database db{ channel_context.params() };
             add_spdlog_logger_to_database(db);
 
+            init_channels(ctx, channel_context);
+            // Some use cases provide a list of explicit specs, but an empty
+            // context. We need to create channels from the specs to be able
+            // to download packages.
+            init_channels_from_package_urls(ctx, channel_context, specs);
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
@@ -753,6 +760,7 @@ namespace mamba
         install_explicit_with_transaction(
             ctx,
             channel_context,
+            specs,
             [&](auto& db, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(ctx, db, specs, pkg_caches, others); },
             create_env,
@@ -801,6 +809,7 @@ namespace mamba
         install_explicit_with_transaction(
             ctx,
             channel_context,
+            {},
             [&](auto& db, auto& pkg_caches, auto& others)
             {
                 return create_explicit_transaction_from_lockfile(

@@ -135,42 +135,4 @@ namespace mamba::download
             }
         }
     }
-
-    /************************************
-     * PassThroughMirror implementation *
-     ************************************/
-
-    namespace
-    {
-        const auto PASSTHROUGH_MIRROR_ID = MirrorID("");
-    }
-
-    PassThroughMirror::PassThroughMirror()
-        : Mirror(PassThroughMirror::make_id())
-    {
-    }
-
-    MirrorID PassThroughMirror::make_id()
-    {
-        return PASSTHROUGH_MIRROR_ID;
-    }
-
-    auto PassThroughMirror::get_request_generators_impl() const -> request_generator_list
-    {
-        return { [](const Request& dl_request, const Content*)
-                 { return MirrorRequest(dl_request, dl_request.url_path); } };
-    }
-
-    /******************************
-     * make_mirror implementation *
-     ******************************/
-
-    std::unique_ptr<Mirror> make_mirror(std::string_view url)
-    {
-        if (url.empty())
-        {
-            return std::make_unique<PassThroughMirror>();
-        }
-        return nullptr;
-    }
 }

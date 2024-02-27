@@ -71,6 +71,8 @@ namespace mamba::util
      * Find the first occurence of the given character, except if such character is inside a valid
      * pair of parentheses.
      * Open and closing pairs need not be differents.
+     * If not found, ``std::string_view::npos`` is returned but no error is set as this is not
+     * considered an error.
      */
     auto find_not_in_parentheses(  //
         std::string_view text,
@@ -264,12 +266,13 @@ namespace mamba::util
                 }
                 pos = searcher.find_next(text, tokens_str, pos);
             }
-            err = if_else(
-                err == ParseError::Ok,
-                if_else(depths == decltype(depths){}, ParseError::NotFound, ParseError::InvalidInput),
-                err
-            );
-            return first_val_pos;
+            // Check if all parentheses are properly closed
+            if (depths != decltype(depths){})
+            {
+                err = ParseError::InvalidInput;
+                return first_val_pos;
+            }
+            return npos;  // not found
         }
     }
 

@@ -12,6 +12,8 @@ using namespace mamba::util;
 
 TEST_SUITE("util::parsers")
 {
+    inline static constexpr auto npos = std::string_view::npos;
+
     TEST_CASE("find_matching_parentheses")
     {
         SUBCASE("Different open/close pair")
@@ -49,9 +51,9 @@ TEST_SUITE("util::parsers")
     {
         SUBCASE("Single char and different open/close pair")
         {
-            CHECK_EQ(find_not_in_parentheses("", ',').error(), ParseError::NotFound);
-            CHECK_EQ(find_not_in_parentheses("Nothing to see here", ',').error(), ParseError::NotFound);
-            CHECK_EQ(find_not_in_parentheses("(hello, world)", ',').error(), ParseError::NotFound);
+            CHECK_EQ(find_not_in_parentheses("", ','), npos);
+            CHECK_EQ(find_not_in_parentheses("Nothing to see here", ','), npos);
+            CHECK_EQ(find_not_in_parentheses("(hello, world)", ','), npos);
 
             CHECK_EQ(find_not_in_parentheses("hello, world", ','), 5);
             CHECK_EQ(find_not_in_parentheses("hello, world, welcome", ','), 5);
@@ -88,10 +90,7 @@ TEST_SUITE("util::parsers")
 
         SUBCASE("Single char and similar open/close pair")
         {
-            CHECK_EQ(
-                find_not_in_parentheses(R"("some, csv")", ',', '"', '"').error(),
-                ParseError::NotFound
-            );
+            CHECK_EQ(find_not_in_parentheses(R"("some, csv")", ',', '"', '"'), npos);
 
             CHECK_EQ(find_not_in_parentheses(R"("some, csv",value)", ',', '"', '"'), 11);
             CHECK_EQ(find_not_in_parentheses(R"("some, csv""value","here")", ',', '"', '"'), 18);
@@ -120,9 +119,9 @@ TEST_SUITE("util::parsers")
 
         SUBCASE("Substring and different open/close pair")
         {
-            CHECK_EQ(find_not_in_parentheses("", "::").error(), ParseError::NotFound);
-            CHECK_EQ(find_not_in_parentheses("Nothing to see here", "::").error(), ParseError::NotFound);
-            CHECK_EQ(find_not_in_parentheses("(hello::world)", "::").error(), ParseError::NotFound);
+            CHECK_EQ(find_not_in_parentheses("", "::"), npos);
+            CHECK_EQ(find_not_in_parentheses("Nothing to see here", "::"), npos);
+            CHECK_EQ(find_not_in_parentheses("(hello::world)", "::"), npos);
 
             CHECK_EQ(find_not_in_parentheses("hello::world", "::"), 5);
             CHECK_EQ(find_not_in_parentheses("hello::world::welcome", "::"), 5);
@@ -156,10 +155,7 @@ TEST_SUITE("util::parsers")
 
         SUBCASE("Substring and similar open/close pair")
         {
-            CHECK_EQ(
-                find_not_in_parentheses(R"("some::csv")", "::", '"', '"').error(),
-                ParseError::NotFound
-            );
+            CHECK_EQ(find_not_in_parentheses(R"("some::csv")", "::", '"', '"'), npos);
 
             CHECK_EQ(find_not_in_parentheses(R"("some::csv"::value)", "::", '"', '"'), 11);
             CHECK_EQ(find_not_in_parentheses(R"("some::csv""value"::"here")", "::", '"', '"'), 18);

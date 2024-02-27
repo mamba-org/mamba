@@ -148,7 +148,8 @@ namespace mamba::util
             val,
             err,
             std::array{ open },
-            std::array{ close }
+            std::array{ close },
+            detail_parsers::FindParenthesesSearcher()
         );
     }
 

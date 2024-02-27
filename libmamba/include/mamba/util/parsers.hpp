@@ -196,13 +196,27 @@ namespace mamba::util
             return str.empty();
         }
 
-        template <std::size_t P, typename Str>
+        struct FindParenthesesSearcher
+        {
+            auto find_first(std::string_view text, std::string_view token_str)
+            {
+                return text.find_first_of(token_str);
+            }
+
+            auto find_next(std::string_view text, std::string_view token_str, std::size_t pos)
+            {
+                return text.find_first_of(token_str, pos + 1);
+            }
+        };
+
+        template <std::size_t P, typename Str, typename Searcher>
         auto find_not_in_parentheses_impl(
             std::string_view text,
             const Str& val,
             ParseError& err,
             const std::array<char, P>& open,
-            const std::array<char, P>& close
+            const std::array<char, P>& close,
+            Searcher&& searcher
         ) noexcept -> std::size_t
         {
             // TODO(C++20): After allocating tokens and depths here, call an impl function using
@@ -224,7 +238,7 @@ namespace mamba::util
 
             auto depths = std::array<int, P + 1>{};  // last for easy branchless access
             auto first_val_pos = npos;
-            auto pos = text.find_first_of(tokens_str);
+            auto pos = searcher.find_first(text, tokens_str);
             while (pos != npos)
             {
                 const auto open_pos = detail_parsers::find(open, text[pos]);
@@ -248,7 +262,7 @@ namespace mamba::util
                 {
                     return pos;
                 }
-                pos = text.find_first_of(tokens_str, pos + 1);
+                pos = searcher.find_next(text, tokens_str, pos);
             }
             err = if_else(
                 err == ParseError::Ok,
@@ -268,7 +282,14 @@ namespace mamba::util
         const std::array<char, P>& close
     ) noexcept -> std::size_t
     {
-        return detail_parsers::find_not_in_parentheses_impl(text, c, err, open, close);
+        return detail_parsers::find_not_in_parentheses_impl(
+            text,
+            c,
+            err,
+            open,
+            close,
+            detail_parsers::FindParenthesesSearcher()
+        );
     }
 
     template <std::size_t P>
@@ -297,7 +318,14 @@ namespace mamba::util
         const std::array<char, P>& close
     ) noexcept -> std::size_t
     {
-        return detail_parsers::find_not_in_parentheses_impl(text, val, err, open, close);
+        return detail_parsers::find_not_in_parentheses_impl(
+            text,
+            val,
+            err,
+            open,
+            close,
+            detail_parsers::FindParenthesesSearcher()
+        );
     }
 
     template <std::size_t P>

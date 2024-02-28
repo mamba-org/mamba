@@ -1,3 +1,32 @@
+2024.02.28
+==========
+
+Releases: libmamba 2.0.0alpha3, libmambapy 2.0.0alpha3, micromamba 2.0.0alpha3
+
+Enhancements:
+
+- [all] Added HTTP Mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3178
+- [all] Use expected for specs parsing by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3201
+- [libmamba] Refactor ObjPool to use views in callbacks by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3199
+- [libmambapy, libmamba] Add more solver tests and other small features by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3198
+- [libmambapy, libmamba] Finalized Solver bindings and add solver doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3195
+- [libmambapy, libmamba] Add libsolv.Database Bindings and tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3186
+- [libmamba] Add (some) solver Database tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3185
+- [libmamba] Make libsolv wrappers into standalone library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3181
+- [all] Rename MPool into solver::libsolv::Database by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3180
+- [all] Automate releases (`CHANGELOG.md` updating) by @Hind-M in https://github.com/mamba-org/mamba/pull/3179
+- [all] Simplify MPool Interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3177
+- [all] Clean libsolv use in Transaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3171
+- [micromamba, libmamba] Rewrite Query with Pool functions (wrapping libsolv) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3168
+
+Bug fixes:
+
+- [micromamba] Remove unmaintained and broken pytest-lazy-fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3193
+- [libmamba] Simple logging fix by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3184
+
+CI fixes and doc:
+
+
 2024.02.02
 ==========
 

@@ -1,3 +1,28 @@
+libmamba 2.0.0alpha3 (February 28, 2024)
+========================================
+
+Enhancements:
+
+- Added HTTP Mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3178
+- Use expected for specs parsing by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3201
+- Refactor ObjPool to use views in callbacks by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3199
+- Add more solver tests and other small features by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3198
+- Finalized Solver bindings and add solver doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3195
+- Add libsolv.Database Bindings and tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3186
+- Add (some) solver Database tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3185
+- Make libsolv wrappers into standalone library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3181
+- Rename MPool into solver::libsolv::Database by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3180
+- Automate releases (`CHANGELOG.md` updating) by @Hind-M in https://github.com/mamba-org/mamba/pull/3179
+- Simplify MPool Interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3177
+- Clean libsolv use in Transaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3171
+- Rewrite Query with Pool functions (wrapping libsolv) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3168
+
+Bug fixes:
+
+- Simple logging fix by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3184
+
+CI fixes and doc:
+
 libmamba 2.0.0alpha2 (February 02, 2024)
 ========================================
 

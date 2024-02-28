@@ -1,3 +1,22 @@
+micromamba 2.0.0alpha3 (February 28, 2024)
+==========================================
+
+Enhancements:
+
+- Added HTTP Mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3178
+- Use expected for specs parsing by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3201
+- Rename MPool into solver::libsolv::Database by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3180
+- Automate releases (`CHANGELOG.md` updating) by @Hind-M in https://github.com/mamba-org/mamba/pull/3179
+- Simplify MPool Interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3177
+- Clean libsolv use in Transaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3171
+- Rewrite Query with Pool functions (wrapping libsolv) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3168
+
+Bug fixes:
+
+- Remove unmaintained and broken pytest-lazy-fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3193
+
+CI fixes and doc:
+
 micromamba 2.0.0alpha2 (February 02, 2024)
 ==========================================
 

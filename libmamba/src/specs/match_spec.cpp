@@ -87,14 +87,14 @@ namespace mamba::specs
 
     namespace
     {
-        inline constexpr auto open_or_quote = std::array{
+        inline constexpr auto open_or_quote_tokens = std::array{
             MatchSpec::prefered_list_open,
             MatchSpec::alt_list_open,
             MatchSpec::prefered_quote,
             MatchSpec::alt_quote,
         };
 
-        inline constexpr auto close_or_quote = std::array{
+        inline constexpr auto close_or_quote_tokens = std::array{
             MatchSpec::prefered_list_close,
             MatchSpec::alt_list_close,
             MatchSpec::prefered_quote,
@@ -118,9 +118,24 @@ namespace mamba::specs
             return util::rfind_not_in_parentheses(
                        str,
                        MatchSpec::channel_namespace_spec_sep,
-                       open_or_quote,
-                       close_or_quote
+                       open_or_quote_tokens,
+                       close_or_quote_tokens
             )
+                // FIXME temporary while MatchSpec::parse does not return ``exepted``.
+                .or_else(
+                    [&](const auto&) {
+                        throw std::invalid_argument(
+                            fmt::format(R"(Invalid parenthesis in MatchSpec "{}")", str)
+                        );
+                    }
+                )
+                .value();
+            ;
+        }
+
+        auto rfind_attribute_section(std::string_view str)
+        {
+            return util::rfind_matching_parentheses(str, open_or_quote_tokens, close_or_quote_tokens)
                 // FIXME temporary while MatchSpec::parse does not return ``exepted``.
                 .or_else(
                     [&](const auto&) {
@@ -167,7 +182,12 @@ namespace mamba::specs
 
         auto find_attribute_split(std::string_view str)
         {
-            return util::find_not_in_parentheses(str, MatchSpec::attribute_sep, open_or_quote, close_or_quote)
+            return util::find_not_in_parentheses(
+                       str,
+                       MatchSpec::attribute_sep,
+                       open_or_quote_tokens,
+                       close_or_quote_tokens
+            )
                 // FIXME temporary while MatchSpec::parse does not return ``exepted``.
                 .or_else(
                     [&](const auto&) {
@@ -332,39 +352,23 @@ namespace mamba::specs
                                 .value();
         }
 
+        // Parsing all attributes sections backwards, for instance in
+        // ``conda-forge::foo[build=3](target=blarg,optional)``
+        // this results in:
+        //   - ``target=blarg,optional``
+        //   - ``build=3``
+        spec = util::rstrip(spec);
+        while (util::ends_with(spec, prefered_list_close) || util::ends_with(spec, alt_list_close))
+        {
+            auto [start, end] = rfind_attribute_section(spec);
+            assert(start != npos);
+            assert(end != npos);
+            assert(start < end);
+            set_matchspec_attributes(out, spec.substr(start + 1, end - start - 1));
+            spec = util::rstrip(spec.substr(0, start));
+        }
+
         auto spec_str = std::string(spec);
-
-        std::smatch match;
-
-        // Step 3. strip off brackets portion
-        static std::regex brackets_re(".*(?:(\\[.*\\]))");
-        if (std::regex_search(spec_str, match, brackets_re))
-        {
-            auto brackets_str = match[1].str();
-            brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            set_matchspec_attributes(out, brackets_str);
-            spec_str.erase(
-                static_cast<std::size_t>(match.position(1)),
-                static_cast<std::size_t>(match.length(1))
-            );
-        }
-
-        // Step 4. strip off parens portion
-        static std::regex parens_re(".*(?:(\\(.*\\)))");
-        if (std::regex_search(spec_str, match, parens_re))
-        {
-            auto parens_str = match[1].str();
-            parens_str = parens_str.substr(1, parens_str.size() - 2);
-            set_matchspec_attributes(out, parens_str);
-            if (parens_str.find("optional") != parens_str.npos)
-            {
-                out.extra().optional = true;
-            }
-            spec_str.erase(
-                static_cast<std::size_t>(match.position(1)),
-                static_cast<std::size_t>(match.length(1))
-            );
-        }
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`

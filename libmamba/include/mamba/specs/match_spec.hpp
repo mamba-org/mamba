@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_MATCH_SPEC
 #define MAMBA_SPECS_MATCH_SPEC
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -25,6 +26,8 @@ namespace mamba::specs
 
         using NameSpec = GlobSpec;
         using BuildStringSpec = GlobSpec;
+        using subdir_list = typename UnresolvedChannel::dynamic_platform_set;
+        using subdir_list_const_ref = std::reference_wrapper<const subdir_list>;
 
         inline static constexpr char url_md5_sep = '#';
         inline static constexpr char prefered_list_open = '[';
@@ -44,6 +47,14 @@ namespace mamba::specs
 
         [[nodiscard]] auto channel() const -> const std::optional<UnresolvedChannel>&;
         void set_channel(std::optional<UnresolvedChannel> chan);
+
+        [[nodiscard]] auto filename() const -> std::string_view;
+        void set_filename(std::string val);
+
+        [[nodiscard]] auto is_file() const -> bool;
+
+        [[nodiscard]] auto subdirs() const -> std::optional<subdir_list_const_ref>;
+        void set_subdirs(subdir_list val);
 
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
@@ -78,11 +89,6 @@ namespace mamba::specs
         [[nodiscard]] auto track_features() const -> std::string_view;
         void set_track_features(std::string val);
 
-        [[nodiscard]] auto filename() const -> std::string_view;
-        void set_filename(std::string val);
-
-        [[nodiscard]] auto is_file() const -> bool;
-
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
@@ -95,13 +101,16 @@ namespace mamba::specs
 
         struct ExtraMembers
         {
+            // The filename is stored as part of the channel when it is a full Package URL
+            std::string filename = {};
+            // The filename is stored as part of the channel when it is available
+            subdir_list subdirs = {};
             std::string md5 = {};
             std::string sha256 = {};
             std::string license = {};
             std::string license_family = {};
             std::string features = {};
             std::string track_features = {};
-            std::string filename = {};
             bool optional = false;
         };
 
@@ -114,11 +123,16 @@ namespace mamba::specs
         util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
 
         auto extra() -> ExtraMembers&;
+
         [[nodiscard]] auto channel_is_file() const -> bool;
         [[nodiscard]] auto channel_filename() const -> std::string_view;
         void set_channel_filename(std::string val);
+
         [[nodiscard]] auto extra_filename() const -> std::string_view;
         void set_extra_filename(std::string val);
+
+        [[nodiscard]] auto extra_subdirs() const -> std::optional<subdir_list_const_ref>;
+        void set_extra_subdirs(subdir_list val);
     };
 
     namespace match_spec_literals

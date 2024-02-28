@@ -17,7 +17,6 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
 
 namespace mamba::specs
 {
@@ -395,18 +394,10 @@ namespace mamba::specs
         }
         if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
         {
-            if (!out.m_channel.has_value())
+            // Channel part of the matchspec have priority
+            if (auto chan = out.channel(); !chan.has_value() || chan->platform_filters().empty())
             {
-                out.m_channel = UnresolvedChannel("", { val }, UnresolvedChannel::Type::Unknown);
-            }
-            // Subdirs specified in the channel part have higher precedence
-            else if (out.m_channel->platform_filters().empty())
-            {
-                out.m_channel = UnresolvedChannel(
-                    out.m_channel->clear_location(),
-                    { val },
-                    out.m_channel->type()
-                );
+                out.set_subdirs({ UnresolvedChannel::parse_platform_list(val) });
             }
         }
         if (const auto& val = at_or(extra, "fn", ""); !val.empty())
@@ -505,7 +496,7 @@ namespace mamba::specs
 
     void MatchSpec::set_extra_filename(std::string val)
     {
-        if (val != filename())  // Avoid allocating extra to set the default value
+        if (val != extra_filename())  // Avoid allocating extra to set the default value
         {
             extra().filename = std::move(val);
         }
@@ -525,6 +516,7 @@ namespace mamba::specs
         if (channel_is_file())
         {
             set_channel_filename(std::move(val));
+            set_extra_filename("");
         }
         else
         {
@@ -535,6 +527,50 @@ namespace mamba::specs
     auto MatchSpec::is_file() const -> bool
     {
         return !filename().empty();
+    }
+
+    auto MatchSpec::extra_subdirs() const -> std::optional<subdir_list_const_ref>
+    {
+        if (m_extra.has_value() && !m_extra->subdirs.empty())
+        {
+            return { std::cref(m_extra->subdirs) };
+        }
+        return {};
+    }
+
+    void MatchSpec::set_extra_subdirs(subdir_list val)
+    {
+        // Avoid allocating extra to set the default value
+        if (m_extra.has_value() || !val.empty())
+        {
+            extra().subdirs = std::move(val);
+        }
+    }
+
+    auto MatchSpec::subdirs() const -> std::optional<subdir_list_const_ref>
+    {
+        if (m_channel.has_value() && !m_channel->platform_filters().empty())
+        {
+            return { std::cref(m_channel->platform_filters()) };
+        }
+        return extra_subdirs();
+    }
+
+    void MatchSpec::set_subdirs(subdir_list val)
+    {
+        if (m_channel.has_value())
+        {
+            m_channel = UnresolvedChannel(
+                m_channel->clear_location(),
+                std::move(val),
+                m_channel->type()
+            );
+            set_extra_subdirs({});
+        }
+        else
+        {
+            extra().subdirs = std::move(val);
+        }
     }
 
     auto MatchSpec::name_space() const -> const std::string&

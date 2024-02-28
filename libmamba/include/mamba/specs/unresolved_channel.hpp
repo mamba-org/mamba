@@ -89,6 +89,8 @@ namespace mamba::specs
 
         using dynamic_platform_set = util::flat_set<std::string>;
 
+        [[nodiscard]] static auto parse_platform_list(std::string_view plats) -> dynamic_platform_set;
+
         [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<UnresolvedChannel>;
 
         UnresolvedChannel() = default;

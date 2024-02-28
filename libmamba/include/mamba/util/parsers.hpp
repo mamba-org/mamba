@@ -45,6 +45,21 @@ namespace mamba::util
         char close = ')'
     ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>;
 
+    template <std::size_t P>
+    auto find_matching_parentheses(  //
+        std::string_view text,
+        ParseError& err,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> std::pair<std::size_t, std::size_t>;
+
+    template <std::size_t P>
+    [[nodiscard]] auto find_matching_parentheses(  //
+        std::string_view text,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>;
+
     /**
      * Find a character or string, except in matching parentheses pairs.
      *
@@ -281,6 +296,67 @@ namespace mamba::util
             }
         };
 
+        template <std::size_t P, typename Searcher>
+        auto find_matching_parentheses_impl(
+            std::string_view text,
+            ParseError& err,
+            const std::array<char, P>& open,
+            const std::array<char, P>& close,
+            Searcher&& searcher
+        ) noexcept -> std::pair<std::size_t, std::size_t>
+        {
+            // TODO(C++20): After allocating tokens and depths here, call an impl function using
+            // std::span defined in .cpp
+            static constexpr auto npos = std::string_view::npos;
+
+            const auto tokens = detail_parsers::concat_array<char>(open, close);
+            const auto tokens_str = std::string_view(tokens.data(), tokens.size());
+
+            auto depths = std::array<int, P + 1>{};  // Plus one for branchless depths code
+
+            const auto start = searcher.find_first(text, tokens_str);
+            if (start == npos)
+            {
+                return { npos, npos };
+            }
+
+            auto pos = start;
+            while (pos != npos)
+            {
+                // Change depth of corresponding open/close pair, writting in index P for
+                // the one not matching.
+                const auto open_depth_idx = detail_parsers::find(open, text[pos]);
+                const auto close_depth_idx = detail_parsers::find(close, text[pos]);
+                depths[open_depth_idx] += int(open_depth_idx < open.size());
+                depths[close_depth_idx] -= int(close_depth_idx < open.size());
+                // When open and close are the same character, depth did not change so we make
+                // a swap operation
+                depths[open_depth_idx] = if_else(
+                    open_depth_idx == close_depth_idx,
+                    if_else(depths[open_depth_idx] > 0, 0, 1),  // swap 0 and 1
+                    depths[open_depth_idx]
+                );
+                depths[P] = 0;
+
+                // All parentheses are properly closed, we found the matching one.
+                if (depths == decltype(depths){})
+                {
+                    return { start, pos };
+                }
+
+                // Any negative depth means mismatched parentheses
+                for (auto d : depths)
+                {
+                    err = if_else(d < 0, ParseError::InvalidInput, err);
+                }
+
+                pos = searcher.find_next(text, tokens_str, pos);
+            }
+
+            err = ParseError::InvalidInput;
+            return { start, npos };
+        }
+
         template <std::size_t P, typename Str, typename Searcher>
         auto find_not_in_parentheses_impl(
             std::string_view text,
@@ -345,6 +421,47 @@ namespace mamba::util
             return npos;  // not found
         }
     }
+
+    /*******************************
+     *  find_matching_parentheses  *
+     *******************************/
+
+    template <std::size_t P>
+    auto find_matching_parentheses(  //
+        std::string_view text,
+        ParseError& err,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> std::pair<std::size_t, std::size_t>
+    {
+        return detail_parsers::find_matching_parentheses_impl(
+            text,
+            err,
+            open,
+            close,
+            detail_parsers::FindParenthesesSearcher()
+        );
+    }
+
+    template <std::size_t P>
+    [[nodiscard]] auto find_matching_parentheses(  //
+        std::string_view text,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>
+    {
+        auto err = ParseError::Ok;
+        auto out = find_matching_parentheses(text, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { out };
+    }
+
+    /*****************************
+     *  find_not_in_parentheses  *
+     *****************************/
 
     template <std::size_t P>
     auto find_not_in_parentheses(
@@ -417,6 +534,10 @@ namespace mamba::util
         }
         return { pos };
     }
+
+    /******************************
+     *  rfind_not_in_parentheses  *
+     ******************************/
 
     template <std::size_t P>
     auto rfind_not_in_parentheses(

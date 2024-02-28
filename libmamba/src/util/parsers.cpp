@@ -24,41 +24,7 @@ namespace mamba::util
         char close
     ) noexcept -> std::pair<std::size_t, std::size_t>
     {
-        static constexpr auto npos = std::string_view::npos;
-
-        const auto open_or_close = std::array{ open, close };
-        const auto open_or_close_str = std::string_view(open_or_close.data(), open_or_close.size());
-
-        int depth = 0;
-
-        const auto start = text.find_first_of(open_or_close_str);
-        if (start == npos)
-        {
-            return { npos, npos };
-        }
-
-        auto pos = start;
-        while (pos != npos)
-        {
-            depth += if_else(
-                open == close,
-                if_else(depth > 0, -1, 1),  // Open or close same parentheses
-                int(text[pos] == open) - int(text[pos] == close)
-            );
-            if (depth == 0)
-            {
-                return { start, pos };
-            }
-            if (depth < 0)
-            {
-                err = ParseError::InvalidInput;
-                return {};
-            }
-            pos = text.find_first_of(open_or_close_str, pos + 1);
-        }
-
-        err = ParseError::InvalidInput;
-        return {};
+        return find_matching_parentheses(text, err, std::array{ open }, std::array{ close });
     }
 
     auto find_matching_parentheses(  //
@@ -67,13 +33,7 @@ namespace mamba::util
         char close
     ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>
     {
-        auto err = ParseError::Ok;
-        auto out = find_matching_parentheses(text, err, open, close);
-        if (err != ParseError::Ok)
-        {
-            return tl::make_unexpected(err);
-        }
-        return { out };
+        return find_matching_parentheses(text, std::array{ open }, std::array{ close });
     }
 
     /*****************************

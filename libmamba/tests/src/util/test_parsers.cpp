@@ -32,6 +32,11 @@ TEST_SUITE("util::parsers")
 
             CHECK_EQ(find_matching_parentheses(")(").error(), ParseError::InvalidInput);
             CHECK_EQ(find_matching_parentheses("((hello)").error(), ParseError::InvalidInput);
+
+            static constexpr auto opens = std::array{ '[', '(' };
+            static constexpr auto closes = std::array{ ']', ')' };
+            CHECK_EQ(find_matching_parentheses("([hello])", opens, closes), Slice(0, 8));
+            CHECK_EQ(find_matching_parentheses("(hello)[hello]", opens, closes), Slice(0, 6));
         }
 
         SUBCASE("Similar open/close pair")
@@ -43,6 +48,11 @@ TEST_SUITE("util::parsers")
                 find_matching_parentheses(R"(Here is "some)", '"', '"').error(),
                 ParseError::InvalidInput
             );
+
+            static constexpr auto opens = std::array{ '[', '(', '\'' };
+            static constexpr auto closes = std::array{ ']', ')', '\'' };
+            CHECK_EQ(find_matching_parentheses("'[hello]'", opens, closes), Slice(0, 8));
+            CHECK_EQ(find_matching_parentheses("hello['hello', 'world']", opens, closes), Slice(5, 22));
         }
     }
 

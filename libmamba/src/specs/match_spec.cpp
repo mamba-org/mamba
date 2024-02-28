@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <regex>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -100,6 +99,12 @@ namespace mamba::specs
             MatchSpec::prefered_quote,
             MatchSpec::alt_quote,
         };
+
+        template <typename Range, typename T>
+        [[nodiscard]] constexpr auto contains(const Range& range, T elem) -> bool
+        {
+            return std::find(range.cbegin(), range.cend(), elem) != range.cend();
+        }
 
         /** Return true if the string is a valid hash hex representation. */
         auto is_hash(std::string_view text) -> bool
@@ -368,42 +373,27 @@ namespace mamba::specs
             spec = util::rstrip(spec.substr(0, start));
         }
 
-        auto spec_str = std::string(spec);
+        // Split the package name and version in ``pkg 1.5`` or ``pkg>=1.3=bld``.
+        auto [pkg_name, version_and_build] = util::lstrip_if_parts(
+            util::lstrip(spec),
+            [](char c) -> bool { return !contains(MatchSpec::package_version_sep, c); }
+        );
 
-        // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
+        if (pkg_name.empty())
+        {
+            throw std::invalid_argument("Empty package name");
+        }
+        out.m_name = NameSpec(std::string(pkg_name));
+
+        // Support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`
-        if (spec_str.back() == '=')
-        {
-            spec_str.erase(spec_str.end() - 1);
-        }
-        // This is #6 of the spec parsing
-        // Look for version *and* build string and separator
-        auto version_and_build = std::string();
-        static std::regex version_build_re("([^ =<>!~]+)?([><!=~ ].+)?");
-        std::smatch vb_match;
-        if (std::regex_match(spec_str, vb_match, version_build_re))
-        {
-            out.m_name = NameSpec(vb_match[1].str());
-            version_and_build = util::strip(vb_match[2].str());
-        }
-        else
-        {
-            throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
-        }
+        version_and_build = util::strip(version_and_build);
+        version_and_build = util::rstrip(version_and_build, '=');
 
         // # Step 7. otherwise sort out version + build
         // spec_str = spec_str and spec_str.strip()
         if (!version_and_build.empty())
         {
-            if (version_and_build.find('[') != std::string::npos)
-            {
-                throw std::runtime_error(util::concat(
-                    R"(Invalid match spec: multiple bracket sections not allowed ")",
-                    spec,
-                    '"'
-                ));
-            }
-
             auto [version_str, build_string_str] = parse_version_and_build(version_and_build);
             if (!version_str.empty())
             {

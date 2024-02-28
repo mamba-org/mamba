@@ -39,6 +39,7 @@ namespace mamba::specs
         inline static constexpr char channel_namespace_spec_sep = ':';
         inline static constexpr char attribute_sep = ',';
         inline static constexpr char attribute_assign = '=';
+        inline static constexpr auto package_version_sep = std::array{ ' ', '=', '<', '>', '~', '!' };
 
 
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;

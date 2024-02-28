@@ -18,9 +18,9 @@ TEST_SUITE("util::parsers")
     {
         SUBCASE("Different open/close pair")
         {
-            CHECK_EQ(find_matching_parentheses_str("").error(), ParseError::NotFound);
-            CHECK_EQ(find_matching_parentheses_str("Nothing to see here").error(), ParseError::NotFound);
-            CHECK_EQ(find_matching_parentheses_str("(hello)", '[', ']').error(), ParseError::NotFound);
+            CHECK_EQ(find_matching_parentheses_str(""), "");
+            CHECK_EQ(find_matching_parentheses_str("Nothing to see here"), "");
+            CHECK_EQ(find_matching_parentheses_str("(hello)", '[', ']'), "");
 
             CHECK_EQ(find_matching_parentheses_str("()"), "()");
             CHECK_EQ(find_matching_parentheses_str("hello()"), "()");

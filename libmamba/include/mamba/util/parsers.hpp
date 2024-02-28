@@ -18,11 +18,10 @@
 namespace mamba::util
 {
 
-    enum struct ParseError
+    enum struct ParseError : bool
     {
-        Ok,
-        InvalidInput,
-        NotFound,
+        Ok = true,
+        InvalidInput = false,
     };
 
     /**

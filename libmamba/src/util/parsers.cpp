@@ -34,31 +34,29 @@ namespace mamba::util
         const auto start = text.find_first_of(open_or_close_str);
         if (start == npos)
         {
-            err = ParseError::NotFound;
             return { npos, npos };
         }
-        depth += int(text[start] == open) - int(text[start] == close);
-        if (depth < 0)
-        {
-            err = ParseError::InvalidInput;
-            return {};
-        }
 
-        auto end = text.find_first_of(open_or_close_str, start + 1);
-        while (end != npos)
+        auto pos = start;
+        while (pos != npos)
         {
-            depth += int(text[end] == open) - int(text[end] == close);
+            depth += if_else(
+                open == close,
+                if_else(depth > 0, -1, 1),  // Open or close same parentheses
+                int(text[pos] == open) - int(text[pos] == close)
+            );
             if (depth == 0)
             {
-                return { start, end + 1 };
+                return { start, pos + 1 };
             }
             if (depth < 0)
             {
                 err = ParseError::InvalidInput;
                 return {};
             }
-            end = text.find_first_of(open_or_close_str, end + 1);
+            pos = text.find_first_of(open_or_close_str, pos + 1);
         }
+
         err = ParseError::InvalidInput;
         return {};
     }

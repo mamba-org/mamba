@@ -36,6 +36,29 @@ namespace mamba::util
         return find_matching_parentheses(text, std::array{ open }, std::array{ close });
     }
 
+    /********************************
+     *  rfind_matching_parentheses  *
+     ********************************/
+
+    auto rfind_matching_parentheses(  //
+        std::string_view text,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::pair<std::size_t, std::size_t>
+    {
+        return rfind_matching_parentheses(text, err, std::array{ open }, std::array{ close });
+    }
+
+    auto rfind_matching_parentheses(  //
+        std::string_view text,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>
+    {
+        return rfind_matching_parentheses(text, std::array{ open }, std::array{ close });
+    }
+
     /*****************************
      *  find_not_in_parentheses  *
      *****************************/

@@ -25,7 +25,7 @@ namespace mamba::util
     };
 
     /**
-     * Find the next matching parenthesese pair.
+     * Find the first opening parenthesis and its matching pair.
      *
      * Correctly matches parenteses together so that inner parentheses pairs are skipped.
      * Open and closing pairs need not be differents.
@@ -55,6 +55,42 @@ namespace mamba::util
 
     template <std::size_t P>
     [[nodiscard]] auto find_matching_parentheses(  //
+        std::string_view text,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>;
+
+    /**
+     * Find the last closing parenthesese and its matching pair.
+     *
+     * Correctly matches parenteses together so that inner parentheses pairs are skipped.
+     * Open and closing pairs need not be differents.
+     * If an error is encountered, @p err is modified to contain the error, otherwise it is left
+     * as it is.
+     */
+    auto rfind_matching_parentheses(  //
+        std::string_view text,
+        ParseError& err,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> std::pair<std::size_t, std::size_t>;
+
+    [[nodiscard]] auto rfind_matching_parentheses(  //
+        std::string_view text,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>;
+
+    template <std::size_t P>
+    auto rfind_matching_parentheses(  //
+        std::string_view text,
+        ParseError& err,
+        const std::array<char, P>& open = { '(', '[' },
+        const std::array<char, P>& close = { ')', ']' }
+    ) noexcept -> std::pair<std::size_t, std::size_t>;
+
+    template <std::size_t P>
+    [[nodiscard]] auto rfind_matching_parentheses(  //
         std::string_view text,
         const std::array<char, P>& open = { '(', '[' },
         const std::array<char, P>& close = { ')', ']' }
@@ -452,6 +488,44 @@ namespace mamba::util
     {
         auto err = ParseError::Ok;
         auto out = find_matching_parentheses(text, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { out };
+    }
+
+    /********************************
+     *  rfind_matching_parentheses  *
+     ********************************/
+
+    template <std::size_t P>
+    auto rfind_matching_parentheses(  //
+        std::string_view text,
+        ParseError& err,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> std::pair<std::size_t, std::size_t>
+    {
+        auto [last, first] = detail_parsers::find_matching_parentheses_impl(
+            text,
+            err,
+            close,  // swaped
+            open,
+            detail_parsers::RFindParenthesesSearcher()
+        );
+        return { first, last };
+    }
+
+    template <std::size_t P>
+    [[nodiscard]] auto rfind_matching_parentheses(  //
+        std::string_view text,
+        const std::array<char, P>& open,
+        const std::array<char, P>& close
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>
+    {
+        auto err = ParseError::Ok;
+        auto out = rfind_matching_parentheses(text, err, open, close);
         if (err != ParseError::Ok)
         {
             return tl::make_unexpected(err);

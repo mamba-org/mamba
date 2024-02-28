@@ -56,6 +56,51 @@ TEST_SUITE("util::parsers")
         }
     }
 
+    TEST_CASE("rfind_matching_parentheses")
+    {
+        using Slice = std::pair<std::size_t, std::size_t>;
+
+        SUBCASE("Different open/close pair")
+        {
+            CHECK_EQ(rfind_matching_parentheses(""), Slice(npos, npos));
+            CHECK_EQ(rfind_matching_parentheses("Nothing to see here"), Slice(npos, npos));
+            CHECK_EQ(rfind_matching_parentheses("(hello)", '[', ']'), Slice(npos, npos));
+
+            CHECK_EQ(rfind_matching_parentheses("()"), Slice(0, 1));
+            CHECK_EQ(rfind_matching_parentheses("hello()"), Slice(5, 6));
+            CHECK_EQ(rfind_matching_parentheses("(hello)dear"), Slice(0, 6));
+            CHECK_EQ(
+                rfind_matching_parentheses("(hello (dear (sir))(!))(how(are(you)))"),
+                Slice(23, 37)
+            );
+            CHECK_EQ(rfind_matching_parentheses("[hello]", '[', ']'), Slice(0, 6));
+
+            CHECK_EQ(rfind_matching_parentheses(")(").error(), ParseError::InvalidInput);
+            CHECK_EQ(rfind_matching_parentheses("(hello))").error(), ParseError::InvalidInput);
+
+            static constexpr auto opens = std::array{ '[', '(' };
+            static constexpr auto closes = std::array{ ']', ')' };
+            CHECK_EQ(rfind_matching_parentheses("([hello])", opens, closes), Slice(0, 8));
+            CHECK_EQ(rfind_matching_parentheses("(hello)[hello]", opens, closes), Slice(7, 13));
+        }
+
+        SUBCASE("Similar open/close pair")
+        {
+            CHECK_EQ(rfind_matching_parentheses(R"("")", '"', '"'), Slice(0, 1));
+            CHECK_EQ(rfind_matching_parentheses(R"("hello")", '"', '"'), Slice(0, 6));
+            CHECK_EQ(rfind_matching_parentheses(R"("some","csv","value")", '"', '"'), Slice(13, 19));
+            CHECK_EQ(
+                rfind_matching_parentheses(R"(Here is "some)", '"', '"').error(),
+                ParseError::InvalidInput
+            );
+
+            static constexpr auto opens = std::array{ '[', '(', '\'' };
+            static constexpr auto closes = std::array{ ']', ')', '\'' };
+            CHECK_EQ(rfind_matching_parentheses("'[hello]'", opens, closes), Slice(0, 8));
+            CHECK_EQ(rfind_matching_parentheses("['hello', 'world']dear", opens, closes), Slice(0, 17));
+        }
+    }
+
     TEST_CASE("find_not_in_parentheses")
     {
         SUBCASE("Single char and different open/close pair")

@@ -98,13 +98,7 @@ namespace mamba::util
         char close
     ) noexcept -> tl::expected<std::size_t, ParseError>
     {
-        auto err = ParseError::Ok;
-        const auto pos = find_not_in_parentheses(text, c, err, open, close);
-        if (err != ParseError::Ok)
-        {
-            return tl::make_unexpected(err);
-        }
-        return { pos };
+        return find_not_in_parentheses(text, c, std::array{ open }, std::array{ close });
     }
 
     auto find_not_in_parentheses(  //
@@ -115,14 +109,7 @@ namespace mamba::util
         char close
     ) noexcept -> std::size_t
     {
-        return detail_parsers::find_not_in_parentheses_impl(
-            text,
-            val,
-            err,
-            std::array{ open },
-            std::array{ close },
-            detail_parsers::FindParenthesesSearcher()
-        );
+        return find_not_in_parentheses(text, val, err, std::array{ open }, std::array{ close });
     }
 
     auto find_not_in_parentheses(  //
@@ -132,13 +119,7 @@ namespace mamba::util
         char close
     ) noexcept -> tl::expected<std::size_t, ParseError>
     {
-        auto err = ParseError::Ok;
-        const auto pos = find_not_in_parentheses(text, val, err, open, close);
-        if (err != ParseError::Ok)
-        {
-            return tl::make_unexpected(err);
-        }
-        return { pos };
+        return find_not_in_parentheses(text, val, std::array{ open }, std::array{ close });
     }
 
     /******************************
@@ -163,13 +144,7 @@ namespace mamba::util
         char close
     ) noexcept -> tl::expected<std::size_t, ParseError>
     {
-        auto err = ParseError::Ok;
-        const auto pos = rfind_not_in_parentheses(text, c, err, open, close);
-        if (err != ParseError::Ok)
-        {
-            return tl::make_unexpected(err);
-        }
-        return { pos };
+        return rfind_not_in_parentheses(text, c, std::array{ open }, std::array{ close });
     }
 
     auto rfind_not_in_parentheses(  //
@@ -180,14 +155,7 @@ namespace mamba::util
         char close
     ) noexcept -> std::size_t
     {
-        return detail_parsers::find_not_in_parentheses_impl(
-            text,
-            val,
-            err,
-            std::array{ close },  // swaped
-            std::array{ open },
-            detail_parsers::RFindParenthesesSearcher()
-        );
+        return rfind_not_in_parentheses(text, val, err, std::array{ open }, std::array{ close });
     }
 
     auto rfind_not_in_parentheses(  //
@@ -197,13 +165,7 @@ namespace mamba::util
         char close
     ) noexcept -> tl::expected<std::size_t, ParseError>
     {
-        auto err = ParseError::Ok;
-        const auto pos = rfind_not_in_parentheses(text, val, err, open, close);
-        if (err != ParseError::Ok)
-        {
-            return tl::make_unexpected(err);
-        }
-        return { pos };
+        return rfind_not_in_parentheses(text, val, std::array{ open }, std::array{ close });
     }
 
     /**********

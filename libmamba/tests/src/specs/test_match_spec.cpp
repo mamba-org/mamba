@@ -90,7 +90,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.version().str(), "==6.4");
             CHECK_EQ(ms.build_string().str(), "h59595ed_2");
             CHECK_EQ(
-                ms.url(),
+                ms.channel().value().str(),
                 "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda"
             );
             CHECK_EQ(ms.filename(), "ncurses-6.4-h59595ed_2.conda");
@@ -104,7 +104,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.version().str(), "==0.1");
             CHECK_EQ(ms.build_string().str(), "conda_forge");
             CHECK_EQ(
-                ms.url(),
+                ms.channel().value().str(),
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
@@ -117,7 +117,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.version().str(), "==11.2.0");
             CHECK_EQ(ms.build_string().str(), "h1d223b6_13");
             CHECK_EQ(
-                ms.url(),
+                ms.channel().value().str(),
                 "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
             );
             CHECK_EQ(ms.filename(), "libgcc-ng-11.2.0-h1d223b6_13.tar.bz2");
@@ -129,26 +129,10 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.name().str(), "_libgcc_mutex");
             CHECK_EQ(ms.version().str(), "==0.1");
             CHECK_EQ(ms.build_string().str(), "conda_forge");
-            if (util::on_win)
-            {
-                std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
-                CHECK_EQ(
-                    ms.url(),
-                    util::concat(
-                        "file://",
-                        driveletter,
-                        ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
-                    )
-                );
-            }
-            else
-            {
-                CHECK_EQ(
-                    ms.url(),
-                    "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
-                );
-            }
-
+            CHECK_EQ(
+                ms.channel().value().str(),
+                "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            );
             CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {
@@ -156,7 +140,10 @@ TEST_SUITE("specs::match_spec")
                 "xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]"
             );
             CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.url(), "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            CHECK_EQ(
+                ms.channel().value().str(),
+                "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
+            );
         }
         {
             auto ms = MatchSpec::parse("foo=1.0=2");
@@ -173,8 +160,12 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse(
                 "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
             );
+            CHECK_EQ(ms.channel().value().str(), "abcdef");
             CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
-            CHECK_EQ(ms.str(), R"ms(foo=1.0=2[url=abcdef,md5=123123123,license=BSD-3])ms");
+            CHECK_EQ(
+                ms.str(),
+                R"ms(abcdef::foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms"
+            );
         }
         {
             auto ms = MatchSpec::parse("libblas=*=*mkl");

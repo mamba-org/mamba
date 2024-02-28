@@ -36,7 +36,6 @@ namespace mamba::specs
                             .or_else([](specs::ParseError&& error) { throw std::move(error); })
                             .value();
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
-        out.m_url = util::path_or_url_to_url(spec);
 
         // Build string
         auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
@@ -388,6 +387,12 @@ namespace mamba::specs
                                 .or_else([](ParseError&& error) { throw std::move(error); })
                                 .value());
         }
+        if (const auto& val = at_or(extra, "url", ""); !val.empty())
+        {
+            out.set_channel(UnresolvedChannel::parse(val)
+                                .or_else([](ParseError&& error) { throw std::move(error); })
+                                .value());
+        }
         if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
         {
             if (!out.m_channel.has_value())
@@ -403,10 +408,6 @@ namespace mamba::specs
                     out.m_channel->type()
                 );
             }
-        }
-        if (const auto& val = at_or(extra, "url", ""); !val.empty())
-        {
-            out.m_url = val;
         }
         if (const auto& val = at_or(extra, "fn", ""); !val.empty())
         {
@@ -533,7 +534,7 @@ namespace mamba::specs
 
     auto MatchSpec::is_file() const -> bool
     {
-        return (!filename().empty()) || (!m_url.empty());
+        return !filename().empty();
     }
 
     auto MatchSpec::name_space() const -> const std::string&
@@ -701,11 +702,6 @@ namespace mamba::specs
         }
     }
 
-    auto MatchSpec::url() const -> const std::string&
-    {
-        return m_url;
-    }
-
     auto MatchSpec::conda_build_form() const -> std::string
     {
         const bool has_version = !m_version.is_explicitly_free();
@@ -747,6 +743,7 @@ namespace mamba::specs
         //     else:
         //         brackets.append("subdir=%s" % subdir_matcher)
 
+        // TODO change as attribute if complex URL, and has "url" if PackageUrl
         if (m_channel.has_value())
         {
             res << fmt::format("{}::", *m_channel);
@@ -816,12 +813,7 @@ namespace mamba::specs
             const auto& q = maybe_quote(feats);
             formatted_brackets.push_back(util::concat("features=", q, feats, q));
         }
-        if (const auto& u = url(); !u.empty())
-        {
-            const auto& q = maybe_quote(u);
-            formatted_brackets.push_back(util::concat("url=", q, u, q));
-        }
-        else if (const auto& fn = filename(); !fn.empty())
+        else if (const auto& fn = filename(); !fn.empty() && !channel_is_file())
         {
             // No "fn" when we have a URL
             const auto& q = maybe_quote(fn);

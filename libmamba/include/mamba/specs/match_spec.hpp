@@ -86,9 +86,6 @@ namespace mamba::specs
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
-        // TODO as string_view conditional on channel type
-        [[nodiscard]] auto url() const -> const std::string&;
-
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
 
@@ -115,8 +112,6 @@ namespace mamba::specs
         std::string m_name_space;
         BuildNumberSpec m_build_number;
         util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
-        // TODO can put inside channel
-        std::string m_url;
 
         auto extra() -> ExtraMembers&;
         [[nodiscard]] auto channel_is_file() const -> bool;

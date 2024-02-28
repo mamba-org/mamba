@@ -207,17 +207,94 @@ namespace mamba::specs
             );
         }
 
+        auto is_true_string(std::string_view str) -> bool
+        {
+            return util::starts_with_any(str, std::array{ 'y', 'Y', 't', 'T', '1' });
+        }
+
+        // TODO remove subdir condition oif called first
+        void set_matchspec_attribute(MatchSpec& out, std::string_view attr, std::string_view val)
+        {
+            if (attr == "build_number")
+            {
+                out.set_build_number(BuildNumberSpec::parse(val)
+                                         .or_else([](ParseError&& error) { throw std::move(error); })
+                                         .value()
+
+                );
+            }
+            else if ((attr == "build") || (attr == "build_strig"))
+            {
+                out.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
+            }
+            else if (attr == "version")
+            {
+                out.set_version(VersionSpec::parse(val)
+                                    .or_else([](ParseError&& error) { throw std::move(error); })
+                                    .value());
+            }
+            else if ((attr == "channel") || (attr == "url"))
+            {
+                out.set_channel(UnresolvedChannel::parse(val)
+                                    .or_else([](ParseError&& error) { throw std::move(error); })
+                                    .value());
+            }
+            else if (attr == "subdir")
+            {
+                // Channel part of the matchspec have priority
+                if (auto chan = out.channel(); !chan.has_value() || chan->platform_filters().empty())
+                {
+                    out.set_subdirs({ UnresolvedChannel::parse_platform_list(val) });
+                }
+            }
+            else if ((attr == "fn") || (attr == "filename"))
+            {
+                out.set_filename(std::string(val));
+            }
+            else if (attr == "md5")
+            {
+                out.set_md5(std::string(val));
+            }
+            else if (attr == "sha256")
+            {
+                out.set_sha256(std::string(val));
+            }
+            else if (attr == "license")
+            {
+                out.set_license(std::string(val));
+            }
+            else if (attr == "license_family")
+            {
+                out.set_license_family(std::string(val));
+            }
+            else if (attr == "features")
+            {
+                out.set_features(std::string(val));
+            }
+            else if (attr == "track_features")
+            {
+                out.set_track_features(std::string(val));
+            }
+            else if (attr == "optional")
+            {
+                out.set_optional(is_true_string(val));
+            }
+        }
+
         template <typename Map>
-        void extract_kv(std::string_view str, Map& map)
+        void extract_attributes(std::string_view str, Map& map)
         {
             const auto next_pos = find_attribute_split(str);
 
             auto [key, value] = util::split_once(str.substr(0, next_pos), MatchSpec::attribute_assign);
-            map.emplace(util::strip(key), strip_whitespace_quotes(value.value_or("")));
+            map.emplace(
+                util::to_lower(util::strip(key)),
+                strip_whitespace_quotes(value.value_or("true"))
+            );
 
             if (next_pos != std::string_view::npos)
             {
-                extract_kv(str.substr(next_pos + 1), map);
+                extract_attributes(str.substr(next_pos + 1), map);
             }
         };
     }
@@ -282,7 +359,7 @@ namespace mamba::specs
         {
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            extract_kv(brackets_str, extra);
+            extract_attributes(brackets_str, extra);
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
                 static_cast<std::size_t>(match.length(1))
@@ -295,7 +372,7 @@ namespace mamba::specs
         {
             auto parens_str = match[1].str();
             parens_str = parens_str.substr(1, parens_str.size() - 2);
-            extract_kv(parens_str, extra);
+            extract_attributes(parens_str, extra);
             if (parens_str.find("optional") != parens_str.npos)
             {
                 out.extra().optional = true;
@@ -348,87 +425,10 @@ namespace mamba::specs
             out.m_build_string = {};
         }
 
-        // TODO think about using a hash function here, (and elsewhere), like:
-        // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
-
-        auto at_or = [](const auto& map, const auto& key, const auto& def)
+        for (const auto& [key, val] : extra)
         {
-            using Val = typename std::decay_t<decltype(map)>::mapped_type;
-            if (auto it = map.find(key); it != map.cend())
-            {
-                return Val(it->second);
-            }
-            return Val(def);
-        };
-
-        if (const auto& val = at_or(extra, "build_number", ""); !val.empty())
-        {
-            out.set_build_number(BuildNumberSpec::parse(val)
-                                     .or_else([](ParseError&& error) { throw std::move(error); })
-                                     .value()
-
-            );
+            set_matchspec_attribute(out, key, val);
         }
-        if (const auto& val = at_or(extra, "build", ""); !val.empty())
-        {
-            out.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
-        }
-        if (const auto& val = at_or(extra, "version", ""); !val.empty())
-        {
-            out.set_version(
-                VersionSpec::parse(val).or_else([](ParseError&& error) { throw std::move(error); }
-                ).value()
-            );
-        }
-        if (const auto& val = at_or(extra, "channel", ""); !val.empty())
-        {
-            out.set_channel(UnresolvedChannel::parse(val)
-                                .or_else([](ParseError&& error) { throw std::move(error); })
-                                .value());
-        }
-        if (const auto& val = at_or(extra, "url", ""); !val.empty())
-        {
-            out.set_channel(UnresolvedChannel::parse(val)
-                                .or_else([](ParseError&& error) { throw std::move(error); })
-                                .value());
-        }
-        if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
-        {
-            // Channel part of the matchspec have priority
-            if (auto chan = out.channel(); !chan.has_value() || chan->platform_filters().empty())
-            {
-                out.set_subdirs({ UnresolvedChannel::parse_platform_list(val) });
-            }
-        }
-        if (const auto& val = at_or(extra, "fn", ""); !val.empty())
-        {
-            out.set_filename(val);
-        }
-        if (const auto& val = at_or(extra, "md5", ""); !val.empty())
-        {
-            out.set_md5(val);
-        }
-        if (const auto& val = at_or(extra, "sha256", ""); !val.empty())
-        {
-            out.set_sha256(val);
-        }
-        if (const auto& val = at_or(extra, "license", ""); !val.empty())
-        {
-            out.set_license(val);
-        }
-        if (const auto& val = at_or(extra, "license_family", ""); !val.empty())
-        {
-            out.set_license_family(val);
-        }
-        if (const auto& val = at_or(extra, "features", ""); !val.empty())
-        {
-            out.set_features(val);
-        }
-        if (const auto& val = at_or(extra, "track_features", ""); !val.empty())
-        {
-            out.set_track_features(val);
-        }
-
         return out;
     }
 

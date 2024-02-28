@@ -17,7 +17,7 @@ namespace mamba::util
      *  find_matching_parentheses  *
      *******************************/
 
-    auto find_matching_parentheses_idx(  //
+    auto find_matching_parentheses(  //
         std::string_view text,
         ParseError& err,
         char open,
@@ -47,7 +47,7 @@ namespace mamba::util
             );
             if (depth == 0)
             {
-                return { start, pos + 1 };
+                return { start, pos };
             }
             if (depth < 0)
             {
@@ -61,45 +61,19 @@ namespace mamba::util
         return {};
     }
 
-    auto find_matching_parentheses_idx(  //
+    auto find_matching_parentheses(  //
         std::string_view text,
         char open,
         char close
     ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>
     {
         auto err = ParseError::Ok;
-        auto out = find_matching_parentheses_idx(text, err, open, close);
+        auto out = find_matching_parentheses(text, err, open, close);
         if (err != ParseError::Ok)
         {
             return tl::make_unexpected(err);
         }
         return { out };
-    }
-
-    auto find_matching_parentheses_str(  //
-        std::string_view text,
-        ParseError& err,
-        char open,
-        char close
-    ) noexcept -> std::string_view
-    {
-        const auto [start, end] = find_matching_parentheses_idx(text, err, open, close);
-        return (start == std::string_view::npos) ? "" : text.substr(start, end);
-    }
-
-    auto find_matching_parentheses_str(  //
-        std::string_view text,
-        char open,
-        char close
-    ) noexcept -> tl::expected<std::string_view, ParseError>
-    {
-        auto err = ParseError::Ok;
-        const auto [start, end] = find_matching_parentheses_idx(text, err, open, close);
-        if (err != ParseError::Ok)
-        {
-            return tl::make_unexpected(err);
-        }
-        return { (start == std::string_view::npos) ? "" : text.substr(start, end) };
     }
 
     /*****************************

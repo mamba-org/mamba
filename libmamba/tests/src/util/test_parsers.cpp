@@ -16,32 +16,31 @@ TEST_SUITE("util::parsers")
 
     TEST_CASE("find_matching_parentheses")
     {
+        using Slice = std::pair<std::size_t, std::size_t>;
+
         SUBCASE("Different open/close pair")
         {
-            CHECK_EQ(find_matching_parentheses_str(""), "");
-            CHECK_EQ(find_matching_parentheses_str("Nothing to see here"), "");
-            CHECK_EQ(find_matching_parentheses_str("(hello)", '[', ']'), "");
+            CHECK_EQ(find_matching_parentheses(""), Slice(npos, npos));
+            CHECK_EQ(find_matching_parentheses("Nothing to see here"), Slice(npos, npos));
+            CHECK_EQ(find_matching_parentheses("(hello)", '[', ']'), Slice(npos, npos));
 
-            CHECK_EQ(find_matching_parentheses_str("()"), "()");
-            CHECK_EQ(find_matching_parentheses_str("hello()"), "()");
-            CHECK_EQ(find_matching_parentheses_str("(hello)"), "(hello)");
-            CHECK_EQ(
-                find_matching_parentheses_str("(hello (dear (sir))(!))(how(are(you)))"),
-                "(hello (dear (sir))(!))"
-            );
-            CHECK_EQ(find_matching_parentheses_str("[hello]", '[', ']'), "[hello]");
+            CHECK_EQ(find_matching_parentheses("()"), Slice(0, 1));
+            CHECK_EQ(find_matching_parentheses("hello()"), Slice(5, 6));
+            CHECK_EQ(find_matching_parentheses("(hello)"), Slice(0, 6));
+            CHECK_EQ(find_matching_parentheses("(hello (dear (sir))(!))(how(are(you)))"), Slice(0, 22));
+            CHECK_EQ(find_matching_parentheses("[hello]", '[', ']'), Slice(0, 6));
 
-            CHECK_EQ(find_matching_parentheses_str(")(").error(), ParseError::InvalidInput);
-            CHECK_EQ(find_matching_parentheses_str("((hello)").error(), ParseError::InvalidInput);
+            CHECK_EQ(find_matching_parentheses(")(").error(), ParseError::InvalidInput);
+            CHECK_EQ(find_matching_parentheses("((hello)").error(), ParseError::InvalidInput);
         }
 
         SUBCASE("Similar open/close pair")
         {
-            CHECK_EQ(find_matching_parentheses_str(R"("")", '"', '"'), R"("")");
-            CHECK_EQ(find_matching_parentheses_str(R"("hello")", '"', '"'), R"("hello")");
-            CHECK_EQ(find_matching_parentheses_str(R"("some","csv","value")", '"', '"'), R"("some")");
+            CHECK_EQ(find_matching_parentheses(R"("")", '"', '"'), Slice(0, 1));
+            CHECK_EQ(find_matching_parentheses(R"("hello")", '"', '"'), Slice(0, 6));
+            CHECK_EQ(find_matching_parentheses(R"("some","csv","value")", '"', '"'), Slice(0, 5));
             CHECK_EQ(
-                find_matching_parentheses_str(R"(Here is "some)", '"', '"').error(),
+                find_matching_parentheses(R"(Here is "some)", '"', '"').error(),
                 ParseError::InvalidInput
             );
         }

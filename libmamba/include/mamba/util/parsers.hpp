@@ -32,37 +32,18 @@ namespace mamba::util
      * If an error is encountered, @p err is modified to contain the error, otherwise it is left
      * as it is.
      */
-    auto find_matching_parentheses_idx(  //
+    auto find_matching_parentheses(  //
         std::string_view text,
         ParseError& err,
         char open = '(',
         char close = ')'
     ) noexcept -> std::pair<std::size_t, std::size_t>;
 
-    /**
-     * Find the next matching parenthesese pair.
-     *
-     * Correctly matches parentheses together so that inner parentheses pairs are skipped.
-     * Open and closing pairs need not be differents.
-     */
-    [[nodiscard]] auto find_matching_parentheses_idx(  //
+    [[nodiscard]] auto find_matching_parentheses(  //
         std::string_view text,
         char open = '(',
         char close = ')'
     ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>;
-
-    auto find_matching_parentheses_str(  //
-        std::string_view text,
-        ParseError& err,
-        char open = '(',
-        char close = ')'
-    ) noexcept -> std::string_view;
-
-    [[nodiscard]] auto find_matching_parentheses_str(  //
-        std::string_view text,
-        char open = '(',
-        char close = ')'
-    ) noexcept -> tl::expected<std::string_view, ParseError>;
 
     /**
      * Find a character or string, except in matching parentheses pairs.

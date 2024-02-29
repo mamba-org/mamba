@@ -28,28 +28,28 @@ namespace mamba::specs
     [[nodiscard]] auto find_slash_and_platform(std::string_view path)
         -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>;
 
+    auto UnresolvedChannel::parse_platform_list(std::string_view plats) -> dynamic_platform_set
+    {
+        static constexpr auto is_not_sep = [](char c) -> bool
+        { return !util::contains(UnresolvedChannel::platform_separators, c); };
+
+        auto out = dynamic_platform_set{};
+        auto head_rest = util::lstrip_if_parts(plats, is_not_sep);
+        while (!head_rest.front().empty())
+        {
+            // Accepting all strings, so that user can dynamically register new platforms
+            out.insert(util::to_lower(util::strip(head_rest.front())));
+            head_rest = util::lstrip_if_parts(
+                util::lstrip(head_rest.back(), UnresolvedChannel::platform_separators),
+                is_not_sep
+            );
+        }
+        return out;
+    }
+
     namespace
     {
         using dynamic_platform_set = UnresolvedChannel::dynamic_platform_set;
-
-        auto parse_platform_list(std::string_view plats) -> dynamic_platform_set
-        {
-            static constexpr auto is_not_sep = [](char c) -> bool
-            { return !util::contains(UnresolvedChannel::platform_separators, c); };
-
-            auto out = dynamic_platform_set{};
-            auto head_rest = util::lstrip_if_parts(plats, is_not_sep);
-            while (!head_rest.front().empty())
-            {
-                // Accepting all strings, so that user can dynamically register new platforms
-                out.insert(util::to_lower(util::strip(head_rest.front())));
-                head_rest = util::lstrip_if_parts(
-                    util::lstrip(head_rest.back(), UnresolvedChannel::platform_separators),
-                    is_not_sep
-                );
-            }
-            return out;
-        }
 
         auto parse_platform_path(std::string_view str) -> std::pair<std::string, std::string>
         {
@@ -78,7 +78,9 @@ namespace mamba::specs
                 {
                     return { {
                         std::string(util::rstrip(str.substr(0, start_pos))),
-                        parse_platform_list(str.substr(start_pos + 1, str.size() - start_pos - 2)),
+                        UnresolvedChannel::parse_platform_list(
+                            str.substr(start_pos + 1, str.size() - start_pos - 2)
+                        ),
                     } };
                 }
                 else

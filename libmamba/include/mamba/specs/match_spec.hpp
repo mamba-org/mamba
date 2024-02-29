@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_MATCH_SPEC
 #define MAMBA_SPECS_MATCH_SPEC
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -25,6 +26,21 @@ namespace mamba::specs
 
         using NameSpec = GlobSpec;
         using BuildStringSpec = GlobSpec;
+        using subdir_list = typename UnresolvedChannel::dynamic_platform_set;
+        using subdir_list_const_ref = std::reference_wrapper<const subdir_list>;
+
+        inline static constexpr char url_md5_sep = '#';
+        inline static constexpr char prefered_list_open = '[';
+        inline static constexpr char prefered_list_close = ']';
+        inline static constexpr char alt_list_open = '(';
+        inline static constexpr char alt_list_close = ')';
+        inline static constexpr char prefered_quote = '"';
+        inline static constexpr char alt_quote = '\'';
+        inline static constexpr char channel_namespace_spec_sep = ':';
+        inline static constexpr char attribute_sep = ',';
+        inline static constexpr char attribute_assign = '=';
+        inline static constexpr auto package_version_sep = std::array{ ' ', '=', '<', '>', '~', '!' };
+
 
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
 
@@ -32,6 +48,14 @@ namespace mamba::specs
 
         [[nodiscard]] auto channel() const -> const std::optional<UnresolvedChannel>&;
         void set_channel(std::optional<UnresolvedChannel> chan);
+
+        [[nodiscard]] auto filename() const -> std::string_view;
+        void set_filename(std::string val);
+
+        [[nodiscard]] auto is_file() const -> bool;
+
+        [[nodiscard]] auto subdirs() const -> std::optional<subdir_list_const_ref>;
+        void set_subdirs(subdir_list val);
 
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
@@ -69,21 +93,19 @@ namespace mamba::specs
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
-        [[nodiscard]] auto filename() const -> const std::string&;
-
-        [[nodiscard]] auto url() const -> const std::string&;
-
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
 
         [[nodiscard]] auto is_simple() const -> bool;
 
-        [[nodiscard]] auto is_file() const -> bool;
-
     private:
 
         struct ExtraMembers
         {
+            // The filename is stored as part of the channel when it is a full Package URL
+            std::string filename = {};
+            // The filename is stored as part of the channel when it is available
+            subdir_list subdirs = {};
             std::string md5 = {};
             std::string sha256 = {};
             std::string license = {};
@@ -100,11 +122,18 @@ namespace mamba::specs
         std::string m_name_space;
         BuildNumberSpec m_build_number;
         util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
-        // TODO can put inside channel
-        std::string m_filename;
-        std::string m_url;
 
         auto extra() -> ExtraMembers&;
+
+        [[nodiscard]] auto channel_is_file() const -> bool;
+        [[nodiscard]] auto channel_filename() const -> std::string_view;
+        void set_channel_filename(std::string val);
+
+        [[nodiscard]] auto extra_filename() const -> std::string_view;
+        void set_extra_filename(std::string val);
+
+        [[nodiscard]] auto extra_subdirs() const -> std::optional<subdir_list_const_ref>;
+        void set_extra_subdirs(subdir_list val);
     };
 
     namespace match_spec_literals

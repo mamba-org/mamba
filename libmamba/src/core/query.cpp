@@ -150,7 +150,10 @@ namespace mamba
                 // as taking any package matching a dependency recursively.
                 // Package dependencies can appear mulitple time, further reducing its valid set.
                 // To do this properly, we should instanciate a solver and resolve the spec.
-                if (auto child = database_latest_package(m_database, specs::MatchSpec::parse(dep)))
+                const auto ms = specs::MatchSpec::parse(dep)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value();
+                if (auto child = database_latest_package(m_database, ms))
                 {
                     if (auto it = m_visited.find(&(*child)); it != m_visited.cend())
                     {
@@ -187,8 +190,11 @@ namespace mamba
 
         void PoolWalker::reverse_walk_impl(node_id id)
         {
+            const auto ms = specs::MatchSpec::parse(m_graph.node(id).name)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
             m_database.for_each_package_depending_on(
-                specs::MatchSpec::parse(m_graph.node(id).name),
+                ms,
                 [&](specs::PackageInfo pkg)
                 {
                     if (auto it = m_visited.find(&pkg); it != m_visited.cend())
@@ -217,8 +223,11 @@ namespace mamba
         QueryResult::dependency_graph g;
         for (const auto& query : queries)
         {
+            const auto ms = specs::MatchSpec::parse(query)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
             db.for_each_package_matching(
-                specs::MatchSpec::parse(query),
+                ms,
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
         }
@@ -232,9 +241,12 @@ namespace mamba
 
     auto Query::whoneeds(Database& db, std::string query, bool tree) -> QueryResult
     {
+        const auto ms = specs::MatchSpec::parse(query)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value();
         if (tree)
         {
-            if (auto pkg = database_latest_package(db, specs::MatchSpec::parse(query)))
+            if (auto pkg = database_latest_package(db, ms))
             {
                 auto walker = PoolWalker(db);
                 walker.reverse_walk(std::move(pkg).value());
@@ -245,7 +257,7 @@ namespace mamba
         {
             QueryResult::dependency_graph g;
             db.for_each_package_depending_on(
-                specs::MatchSpec::parse(query),
+                ms,
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
             return { QueryType::WhoNeeds, std::move(query), std::move(g) };
@@ -255,7 +267,10 @@ namespace mamba
 
     auto Query::depends(Database& db, std::string query, bool tree) -> QueryResult
     {
-        if (auto pkg = database_latest_package(db, specs::MatchSpec::parse(query)))
+        const auto ms = specs::MatchSpec::parse(query)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value();
+        if (auto pkg = database_latest_package(db, ms))
         {
             auto walker = PoolWalker(db);
             if (tree)

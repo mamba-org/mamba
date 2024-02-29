@@ -31,7 +31,7 @@ namespace mamba
 
         for (const auto& spec : specs)
         {
-            if (specs::MatchSpec::parse(spec).name().contains("python"))
+            if (auto ms = specs::MatchSpec::parse(spec); ms && ms->name().contains("python"))
             {
                 return "";
             }

@@ -101,7 +101,9 @@ namespace mamba
                 for (const auto& dep : record->depends)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
-                    auto ms = specs::MatchSpec::parse(dep);
+                    auto ms = specs::MatchSpec::parse(dep)
+                                  .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                  .value();
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
                     const auto from_iter = name_to_node_id.find(ms.name().str());

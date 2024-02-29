@@ -295,8 +295,10 @@ namespace mamba
             [](const auto& pkg)
             {
                 return specs::MatchSpec::parse(
-                    fmt::format("{}=={}={}", pkg.name, pkg.version, pkg.build_string)
-                );
+                           fmt::format("{}=={}={}", pkg.name, pkg.version, pkg.build_string)
+                )
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
             }
         );
 

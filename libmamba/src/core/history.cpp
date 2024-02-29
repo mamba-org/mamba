@@ -201,7 +201,9 @@ namespace mamba
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(specs::MatchSpec::parse(el));
+                v.emplace_back(specs::MatchSpec::parse(el)
+                                   .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                   .value());
             }
             return v;
         };

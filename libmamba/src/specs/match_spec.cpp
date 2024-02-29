@@ -349,7 +349,7 @@ namespace mamba::specs
         }
     }
 
-    auto MatchSpec::parse(std::string_view str) -> MatchSpec
+    auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
         static constexpr auto npos = std::string_view::npos;
         str = util::strip(str);
@@ -890,7 +890,9 @@ namespace mamba::specs
     {
         auto operator""_ms(const char* str, std::size_t len) -> MatchSpec
         {
-            return MatchSpec::parse({ str, len });
+            return MatchSpec::parse({ str, len })
+                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                .value();
         }
     }
 }

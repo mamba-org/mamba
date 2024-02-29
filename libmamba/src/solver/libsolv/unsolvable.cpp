@@ -285,6 +285,14 @@ namespace mamba::solver::libsolv
 
         void ProblemsGraphCreator::parse_problems()
         {
+            // TODO Throwing error for now but we should use expected in UnSolvable API
+            constexpr auto make_match_spec = [](std::string_view str) -> specs::MatchSpec
+            {
+                return specs::MatchSpec::parse(str)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
+            };
+
             for (auto& problem : all_problems_structured(m_pool, m_solver))
             {
                 std::optional<specs::PackageInfo>& source = problem.source;
@@ -315,9 +323,9 @@ namespace mamba::solver::libsolv
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{ specs::MatchSpec::parse(dep.value()) }
+                            ConstraintNode{ make_match_spec(dep.value()) }
                         );
-                        auto edge = specs::MatchSpec::parse(dep.value());
+                        auto edge = make_match_spec(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -337,7 +345,7 @@ namespace mamba::solver::libsolv
                             problem.source_id,
                             PackageNode{ std::move(source).value() }
                         );
-                        auto edge = specs::MatchSpec::parse(dep.value());
+                        auto edge = make_match_spec(dep.value());
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -356,7 +364,7 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = specs::MatchSpec::parse(dep.value());
+                        auto edge = make_match_spec(dep.value());
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -375,10 +383,10 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = specs::MatchSpec::parse(dep.value());
+                        auto edge = make_match_spec(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ specs::MatchSpec::parse(dep.value()) }
+                            UnresolvedDependencyNode{ make_match_spec(dep.value()) }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -394,14 +402,14 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = specs::MatchSpec::parse(dep.value());
+                        auto edge = make_match_spec(dep.value());
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ std::move(source).value() }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ specs::MatchSpec::parse(dep.value()) }
+                            UnresolvedDependencyNode{ make_match_spec(dep.value()) }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -444,7 +452,7 @@ namespace mamba::solver::libsolv
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.
-                        auto edge = specs::MatchSpec::parse(source.value().name);
+                        auto edge = make_match_spec(source.value().name);
                         // The package cannot exist without its name in the pool
                         assert(m_pool.find_string(edge.name().str()).has_value());
                         const auto dep_id = m_pool.find_string(edge.name().str()).value();

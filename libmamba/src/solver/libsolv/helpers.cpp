@@ -399,7 +399,9 @@ namespace mamba::solver::libsolv
             default_subdir = std::string(subdir.value_unsafe());
         }
 
-        const auto parsed_url = specs::CondaURL::parse(repo_url);
+        const auto parsed_url = specs::CondaURL::parse(repo_url)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value();
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
@@ -571,7 +573,9 @@ namespace mamba::solver::libsolv
         // WARNING cannot call ``url()`` at this point because it has not been internalized.
         // Setting the channel url on where the solvable so that we can retrace
         // where it came from
-        const auto url = specs::CondaURL::parse(repo_url);
+        const auto url = specs::CondaURL::parse(repo_url)
+                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                             .value();
         repo.for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
@@ -674,22 +678,25 @@ namespace mamba::solver::libsolv
                     }
 
                     assert(ms.channel().has_value());
-                    const auto match = channel_match(ms_channels, specs::CondaURL::parse(s.url()));
-                    switch (match)
+                    if (auto pkg_url = specs::CondaURL::parse(s.url()))
                     {
-                        case (specs::Channel::Match::Full):
+                        const auto match = channel_match(ms_channels, *pkg_url);
+                        switch (match)
                         {
-                            selected_pkgs.push_back(s.id());
-                            break;
-                        }
-                        case (specs::Channel::Match::InOtherPlatform):
-                        {
-                            other_subdir_match = s.subdir();
-                            break;
-                        }
-                        case (specs::Channel::Match::No):
-                        {
-                            break;
+                            case (specs::Channel::Match::Full):
+                            {
+                                selected_pkgs.push_back(s.id());
+                                break;
+                            }
+                            case (specs::Channel::Match::InOtherPlatform):
+                            {
+                                other_subdir_match = s.subdir();
+                                break;
+                            }
+                            case (specs::Channel::Match::No):
+                            {
+                                break;
+                            }
                         }
                     }
                 }

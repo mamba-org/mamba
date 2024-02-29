@@ -49,7 +49,9 @@ namespace mamba::specs
             auto out = PackageInfo();
             // TODO decide on the bet way to group filename/channel/subdir/package_url all at once
             out.package_url = util::path_or_url_to_url(spec);
-            auto url = CondaURL::parse(out.package_url);
+            auto url = CondaURL::parse(out.package_url)
+                           .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                           .value();
             out.filename = url.package();
             url.clear_package();
 

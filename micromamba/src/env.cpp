@@ -141,8 +141,21 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 for (const auto& record : records)
                 {
-                    using Credentials = typename specs::CondaURL::Credentials;
-                    std::cout << specs::CondaURL::parse(record.package_url).str(Credentials::Remove);
+                    std::cout <<  //
+                        specs::CondaURL::parse(record.package_url)
+                            .transform(
+                                [](specs::CondaURL&& url)
+                                {
+                                    using Credentials = typename specs::CondaURL::Credentials;
+                                    return url.str(Credentials::Remove);
+                                }
+                            )
+                            .or_else(
+                                [&](auto const&) -> specs::expected_parse_t<std::string>
+                                { return record.package_url; }
+                            )
+                            .value();
+
                     if (no_md5 != 1)
                     {
                         std::cout << "#" << record.md5;

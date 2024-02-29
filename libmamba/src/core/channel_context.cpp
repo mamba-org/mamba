@@ -48,7 +48,10 @@ namespace mamba
         {
             return specs::ChannelResolveParams{
                 /* .platform= */ create_platforms(ctx.platforms()),
-                /* .channel_alias= */ specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias)),
+                /* .channel_alias= */
+                specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias))
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value(),
                 /* .custom_channels= */ {},
                 /* .custom_multichannels= */ {},
                 /* .authentication_db= */ ctx.authentication_info(),
@@ -266,7 +269,11 @@ namespace mamba
         mirror_urls.reserve(mirrors.size());
         for (const auto& mirror : mirrors)
         {
-            mirror_urls.push_back(specs::CondaURL::parse(mirror));
+            mirror_urls.push_back(  //
+                specs::CondaURL::parse(mirror)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value()
+            );
         }
         auto [it, inserted] = m_channel_cache.emplace(
             name,

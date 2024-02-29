@@ -726,7 +726,7 @@ TEST_SUITE("solver::libsolv::solver")
     {
         auto db = libsolv::Database({
             /* .platforms= */ { "linux-64", "noarch" },
-            /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/"),
+            /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
         });
 
         SUBCASE("Different channels")

@@ -292,7 +292,9 @@ namespace mamba
             fmt::print(out, fmtstring, "File Name", pkg.filename);
 
             using CondaURL = typename specs::CondaURL;
-            auto url = CondaURL::parse(pkg.package_url);
+            auto url = CondaURL::parse(pkg.package_url)
+                           .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                           .value();
             fmt::print(
                 out,
                 " {:<15} {}\n",

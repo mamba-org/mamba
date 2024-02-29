@@ -347,7 +347,9 @@ namespace mamba::specs
 
         auto resolve_path(UnresolvedChannel&& uc, ChannelResolveParamsView params) -> Channel
         {
-            auto uri = CondaURL::parse(resolve_path_location(uc.clear_location(), params));
+            auto uri = CondaURL::parse(resolve_path_location(uc.clear_location(), params))
+                           .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                           .value();
             auto display_name = resolve_path_name(uri, params);
             auto platforms = ChannelResolveParams::platform_list{};
             if (uc.type() == UnresolvedChannel::Type::Path)
@@ -387,7 +389,9 @@ namespace mamba::specs
             assert(util::url_has_scheme(uc.location()));
             assert(util::url_get_scheme(uc.location()) != "file");
 
-            auto url = CondaURL::parse(uc.location());
+            auto url = CondaURL::parse(uc.location())
+                           .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                           .value();
             auto display_name = resolve_url_name(url, params);
             set_fallback_credential_from_db(url, params.authentication_db);
             auto platforms = ChannelResolveParams::platform_list{};

@@ -10,6 +10,7 @@
 #include <functional>
 #include <string_view>
 
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/url.hpp"
 
@@ -28,7 +29,7 @@ namespace mamba::specs
 
         inline static constexpr std::string_view token_prefix = "/t/";
 
-        [[nodiscard]] static auto parse(std::string_view url) -> CondaURL;
+        [[nodiscard]] static auto parse(std::string_view url) -> expected_parse_t<CondaURL>;
 
         /** Create a local URL. */
         CondaURL() = default;

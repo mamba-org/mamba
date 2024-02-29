@@ -19,20 +19,6 @@
 
 namespace mamba
 {
-    namespace
-    {
-        bool compare_cleaned_url(std::string_view url_str1, std::string_view url_str2)
-        {
-            using Credentials = specs::CondaURL::Credentials;
-            auto url1 = specs::CondaURL::parse(url_str1);
-            url1.set_scheme("https");
-            auto url2 = specs::CondaURL::parse(url_str2);
-            url2.set_scheme("https");
-            return util::rstrip(url1.str(Credentials::Remove), '/')
-                   == util::rstrip(url2.str(Credentials::Remove), '/');
-        }
-    }
-
     PackageCacheData::PackageCacheData(const fs::u8path& path)
         : m_path(path)
     {
@@ -189,6 +175,29 @@ namespace mamba
 
         LOG_DEBUG << "'" << pkg_name << "' tarball cache is " << (valid ? "valid" : "invalid");
         return valid;
+    }
+
+    namespace
+    {
+        bool compare_cleaned_url(std::string_view url_str1, std::string_view url_str2)
+        {
+            using Credentials = specs::CondaURL::Credentials;
+
+            auto url1 = specs::CondaURL::parse(url_str1);
+            if (!url1)
+            {
+                return false;
+            }
+            auto url2 = specs::CondaURL::parse(url_str2);
+            if (!url2)
+            {
+                return false;
+            }
+            url1->set_scheme("https");
+            url2->set_scheme("https");
+            return util::rstrip(url1->str(Credentials::Remove), '/')
+                   == util::rstrip(url2->str(Credentials::Remove), '/');
+        }
     }
 
     bool

@@ -36,12 +36,20 @@ namespace mamba
         template <typename Param>
         auto make_unique_chan(std::string_view loc, const Param& params) -> specs::Channel
         {
-            auto uc = specs::UnresolvedChannel::parse(loc)
-                          .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                          .value();
-            auto channels = specs::Channel::resolve(std::move(uc), params);
-            assert(channels.size() == 1);
-            return std::move(channels.front());
+            return specs::UnresolvedChannel::parse(loc)
+                .and_then(  //
+                    [&](specs::UnresolvedChannel&& uc)
+                    { return specs::Channel::resolve(std::move(uc), params); }
+                )
+                .transform(
+                    [](specs::Channel::channel_list&& channels) -> specs::Channel
+                    {
+                        assert(channels.size() == 1);
+                        return std::move(channels.front());
+                    }
+                )
+                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                .value();
         };
 
         auto make_simple_params_base(const Context& ctx) -> specs::ChannelResolveParams
@@ -183,10 +191,15 @@ namespace mamba
                 out.reserve(ctx.repodata_has_zst.size());
                 for (const auto& loc : ctx.repodata_has_zst)
                 {
-                    auto uc = specs::UnresolvedChannel::parse(loc)
-                                  .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                                  .value();
-                    auto channels = specs::Channel::resolve(std::move(uc), params);
+                    auto channels = specs::UnresolvedChannel::parse(loc)
+                                        .and_then(  //
+                                            [&](specs::UnresolvedChannel&& uc) {
+                                                return specs::Channel::resolve(std::move(uc), params);
+                                            }
+                                        )
+                                        .or_else([](specs::ParseError&& error)
+                                                 { throw std::move(error); })
+                                        .value();
                     for (auto& chan : channels)
                     {
                         out.push_back(std::move(chan));
@@ -232,6 +245,8 @@ namespace mamba
         auto [it, inserted] = m_channel_cache.emplace(
             std::move(str),
             Channel::resolve(std::move(uc), params())
+                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                .value()
         );
         assert(inserted);
         return it->second;
@@ -246,12 +261,13 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             name,
-            Channel::resolve(
-                specs::UnresolvedChannel::parse(name)
-                    .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                    .value(),
-                params()
-            )
+            specs::UnresolvedChannel::parse(name)
+                .and_then(  //
+                    [&](specs::UnresolvedChannel&& uc)
+                    { return specs::Channel::resolve(std::move(uc), params()); }
+                )
+                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                .value()
         );
         assert(inserted);
         return it->second;

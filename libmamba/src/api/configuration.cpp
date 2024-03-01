@@ -1612,6 +1612,15 @@ namespace mamba
                         Spend extra time validating package contents. It consists of running
                         cryptographic verifications on channels and packages metadata.)")));
 
+        insert(Configurable("trusted_channels", &m_context.validation_params.trusted_channels)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(  //
+                       "The list of trusted channels allowing artifacts verification.\n"
+                       "See `verify-artifacts` for more details.\n"
+                   ));
+
         insert(Configurable("lock_timeout", &m_context.lock_timeout)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()

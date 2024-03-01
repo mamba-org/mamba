@@ -820,9 +820,9 @@ namespace mamba
         return true;
     }
 
-    bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options)
+    bool validate(const fs::u8path& pkg_folder, const ValidationParams& params)
     {
-        auto safety_checks = options.safety_checks;
+        auto safety_checks = params.safety_checks;
         if (safety_checks == VerificationLevel::Disabled)
         {
             return true;
@@ -830,7 +830,7 @@ namespace mamba
 
         bool is_warn = safety_checks == VerificationLevel::Warn;
         bool is_fail = safety_checks == VerificationLevel::Enabled;
-        bool full_validation = options.extra_safety_checks;
+        bool full_validation = params.extra_safety_checks;
 
         try
         {

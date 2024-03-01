@@ -33,21 +33,20 @@ namespace mamba
         Enabled
     };
 
-    struct ValidationOptions
+    struct ValidationParams
     {
         VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
         bool verify_artifacts = false;
-        // Leave this empty?
-        // Need to populate from server? from config?.... to think about it (TODO)
-        // if we just specify "channel0" it becomes "https://conda.anaconda.org/channel0" ...
-        // TODO test with multiple channels in there and check behavior: like uncommenting
-        // conda-forge as first channel
+
+        // TODO test with multiple channels in there and check behavior
+        // i.e uncommenting `conda-forge` when possible
+        // and removing "http://127.0.0.1:8000/get/channel0" (should only be in integration tests)
+        // Should we consider removing this and use `channels` instead?
         std::vector<std::string> trusted_channels = {
             /*"conda-forge", */ "http://127.0.0.1:8000/get/channel0"
         };
     };
-
 
     enum class ChannelPriority
     {
@@ -177,8 +176,6 @@ namespace mamba
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 
-        ValidationOptions validation_params;
-
         // debug helpers
         bool keep_temp_files = false;
         bool keep_temp_directories = false;
@@ -196,6 +193,7 @@ namespace mamba
         CommandParams command_params;
         ThreadsParams threads_params;
         PrefixParams prefix_params;
+        ValidationParams validation_params;
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;

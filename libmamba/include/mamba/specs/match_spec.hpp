@@ -45,7 +45,7 @@ namespace mamba::specs
 
         [[nodiscard]] static auto parse(std::string_view spec) -> expected_parse_t<MatchSpec>;
 
-        [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
+        [[nodiscard]] static auto parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>;
 
         [[nodiscard]] auto channel() const -> const std::optional<UnresolvedChannel>&;
         void set_channel(std::optional<UnresolvedChannel> chan);

@@ -18,44 +18,55 @@
 
 namespace mamba::specs
 {
-    auto MatchSpec::parse_url(std::string_view spec) -> MatchSpec
+    auto MatchSpec::parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>
     {
-        auto fail_parse = [&]()
-        {
-            throw std::invalid_argument(
-                util::concat(R"(Fail to parse MatchSpec ditribution ")", spec, '"')
-            );
-        };
-
         auto out = MatchSpec();
+
         // Channel is also read for the filename so no need to set it.
-        out.m_channel = UnresolvedChannel::parse(spec)
-                            .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                            .value();
+        auto maybe_channel = UnresolvedChannel::parse(spec);
+        if (maybe_channel.has_value())
+        {
+            out.m_channel = std::move(maybe_channel).value();
+        }
+        else
+        {
+            return make_unexpected_parse(std::move(maybe_channel).error());
+        }
+
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
 
         // Build string
         auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
         out.m_build_string = BuildStringSpec(std::string(tail));
+
         if (!head.has_value())
         {
-            fail_parse();
+            return make_unexpected_parse(
+                fmt::format(R"(Missing name and version in filename "{}".)", pkg)
+            );
         }
 
         // Version
         std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-        out.m_version = VersionSpec::parse(tail)
-                            .or_else([](ParseError&& error) { throw std::move(error); })
-                            .value();
+        auto maybe_version = VersionSpec::parse(tail);
+        if (maybe_version.has_value())
+        {
+            out.m_version = std::move(maybe_version).value();
+        }
+        else
+        {
+            return make_unexpected_parse(std::move(maybe_channel).error());
+        }
+
         if (!head.has_value())
         {
-            fail_parse();
+            return make_unexpected_parse(fmt::format(R"(Missing name in filename "{}".)", pkg));
         }
 
         // Name
         out.m_name = NameSpec(std::string(head.value()));  // There may be '-' in the name
 
-        return out;
+        return { std::move(out) };
     }
 
     namespace
@@ -372,12 +383,16 @@ namespace mamba::specs
             auto hash = str.substr(idx + 1);
             if (has_archive_extension(url))
             {
-                auto out = MatchSpec::parse_url(url);
-                if (is_hash(hash))
-                {
-                    out.set_md5(std::string(hash));
-                }
-                return out;
+                return MatchSpec::parse_url(url).transform(
+                    [&](MatchSpec&& ms) -> MatchSpec
+                    {
+                        if (is_hash(hash))
+                        {
+                            ms.set_md5(std::string(hash));
+                        }
+                        return ms;
+                    }
+                );
             }
         }
 

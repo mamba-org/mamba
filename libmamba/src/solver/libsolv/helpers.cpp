@@ -35,6 +35,10 @@
 
 namespace mamba::solver::libsolv
 {
+    // Beyond this value, the timestamp would be in milliseconds and therefore should be converted
+    // to seconds.
+    const auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
+
     void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
     {
         solv.set_name(pkg.name);
@@ -55,7 +59,9 @@ namespace mamba::solver::libsolv
         // TODO conda timestamp are not Unix timestamp.
         // Libsolv normalize them this way, we need to do the same here otherwise the current
         // package may get arbitrary priority.
-        solv.set_timestamp((pkg.timestamp > 253402300799ULL) ? (pkg.timestamp / 1000) : pkg.timestamp);
+        solv.set_timestamp(
+            (pkg.timestamp > MAX_CONDA_TIMESTAMP) ? (pkg.timestamp / 1000) : pkg.timestamp
+        );
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
 
@@ -264,7 +270,7 @@ namespace mamba::solver::libsolv
             if (auto timestamp = pkg["timestamp"].get_uint64(); !timestamp.error())
             {
                 const auto time = timestamp.value_unsafe();
-                solv.set_timestamp((time > 253402300799ULL) ? (time / 1000) : time);
+                solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
 
             if (auto depends = pkg["depends"].get_array(); !depends.error())

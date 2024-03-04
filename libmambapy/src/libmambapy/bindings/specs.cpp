@@ -12,6 +12,7 @@
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -35,6 +36,8 @@ namespace mambapy
     {
         namespace py = pybind11;
         using namespace mamba::specs;
+
+        py::register_local_exception<ParseError>(m, "ParseError", PyExc_ValueError);
 
         m.def("archive_extensions", []() { return ARCHIVE_EXTENSIONS; });
 

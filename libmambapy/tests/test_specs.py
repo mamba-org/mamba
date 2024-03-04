@@ -19,6 +19,10 @@ def test_import_recursive():
     _p = mamba.specs.Platform.noarch
 
 
+def test_ParseError():
+    assert issubclass(libmambapy.specs.ParseError, ValueError)
+
+
 def test_archive_extension():
     assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda", ".whl"]
 
@@ -173,6 +177,10 @@ def test_CondaURL_setters():
 def test_CondaURL_parse():
     CondaURL = libmambapy.specs.CondaURL
 
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        CondaURL.parse("py>#")
+
     url = CondaURL.parse(
         "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
     )
@@ -271,6 +279,10 @@ def test_UnresolvedChannel():
     assert uc.location == "conda-forge"
     assert uc.platform_filters == {"linux-64"}
     assert uc.type == UnresolvedChannel.Type.Name
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        UnresolvedChannel.parse("conda-forge]")
 
     #  Copy
     other = copy.deepcopy(uc)
@@ -616,6 +628,10 @@ def test_Version():
     # Parse
     v = Version.parse("3!1.3ab2.4+42.0alpha")
 
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        Version.parse("#!33")
+
     # Getters
     assert v.epoch == 3
     assert v.version == CommonVersion(
@@ -681,6 +697,10 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.glob_suffix_token, str)
 
     vs = VersionSpec.parse(">2.0,<3.0")
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        VersionSpec.parse("=2,")
 
     assert not vs.contains(Version.parse("1.1"))
     assert vs.contains(Version.parse("2.1"))
@@ -805,10 +825,18 @@ def test_GlobSpec():
 def test_MatchSpec():
     MatchSpec = libmambapy.specs.MatchSpec
 
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        MatchSpec.parse_url("httos:/")
+
     ms = MatchSpec.parse_url("https://conda.com/pkg-2-bld.conda")
     assert ms.is_file()
     assert str(ms.name) == "pkg"
     assert ms.filename == "pkg-2-bld.conda"
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        MatchSpec.parse("py>#")
 
     ms = MatchSpec.parse(
         "conda-forge[plat]:ns:python=3.7=*pypy"

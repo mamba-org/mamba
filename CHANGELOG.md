@@ -1,3 +1,16 @@
+2024.03.04
+==========
+
+Releases:  libmamba 1.5.7, libmambapy 1.5.7, mamba 1.5.7, micromamba 1.5.7
+
+Bug fixes:
+
+- [mamba] Fix repoquery subcommand for Python 3.11/3.12 by @mbargull in https://github.com/mamba-org/mamba/pull/3170
+
+CI
+
+- [mamba] Run tests for conda=24.1 by @mbargull in https://github.com/mamba-org/mamba/pull/3191
+
 2023.12.21
 ==========
 

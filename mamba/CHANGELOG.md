@@ -1,3 +1,14 @@
+mamba 1.5.7 (March 04, 2024)
+============================
+
+Bug fixes:
+
+- Fix repoquery subcommand for Python 3.11/3.12 by @mbargull in https://github.com/mamba-org/mamba/pull/3170
+
+CI
+
+- Run tests for conda=24.1 by @mbargull in https://github.com/mamba-org/mamba/pull/3191
+
 mamba 1.5.6 (December 21, 2023)
 ===============================
 

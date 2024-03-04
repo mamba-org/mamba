@@ -45,6 +45,12 @@ namespace mambapy
             .def(py::init([](bool val) { return static_cast<UseOnlyTarBz2>(val); }));
         py::implicitly_convertible<py::bool_, UseOnlyTarBz2>();
 
+        py::enum_<VerifyPackages>(m, "VerifyPackages")
+            .value("No", VerifyPackages::No)
+            .value("Yes", VerifyPackages::Yes)
+            .def(py::init([](bool val) { return static_cast<VerifyPackages>(val); }));
+        py::implicitly_convertible<py::bool_, VerifyPackages>();
+
         py::enum_<LogLevel>(m, "LogLevel")
             .value("Debug", LogLevel::Debug)
             .value("Warning", LogLevel::Warning)
@@ -119,7 +125,7 @@ namespace mambapy
                 py::arg("channel_id"),
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
                 py::arg("use_only_tar_bz2") = UseOnlyTarBz2::No,
-                py::arg("verify_packages") = false,
+                py::arg("verify_packages") = VerifyPackages::No,
                 py::arg("repodata_parser") = RepodataParser::Mamba
             )
             .def(

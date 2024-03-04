@@ -46,6 +46,13 @@ def test_UseOnlyTarBz2():
     assert libsolv.UseOnlyTarBz2(True) == libsolv.UseOnlyTarBz2.Yes
 
 
+def test_VerifyPackages():
+    assert libsolv.VerifyPackages.No.name == "No"
+    assert libsolv.VerifyPackages.Yes.name == "Yes"
+
+    assert libsolv.VerifyPackages(True) == libsolv.VerifyPackages.Yes
+
+
 def test_Platform():
     assert libsolv.LogLevel.Debug.name == "Debug"
     assert libsolv.LogLevel.Warning.name == "Warning"

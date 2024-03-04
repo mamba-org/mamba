@@ -74,7 +74,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             PipAsPythonDependency add = PipAsPythonDependency::No,
             UseOnlyTarBz2 only_tar = UseOnlyTarBz2::No,
-            bool verify_packages = false,
+            VerifyPackages verify_packages = VerifyPackages::No,
             RepodataParser parser = RepodataParser::Mamba
         ) -> expected_t<RepoInfo>;
 

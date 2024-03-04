@@ -37,7 +37,7 @@ namespace mamba::solver::libsolv
 {
     // Beyond this value, the timestamp would be in milliseconds and therefore should be converted
     // to seconds.
-    const auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
+    inline constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
 
     void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
     {
@@ -154,6 +154,38 @@ namespace mamba::solver::libsolv
             // A valid empty simdjson::dom::object is not handled in simdjson
             const auto fake_signatures_json = R"(  { "fake_signatures": "val" }  )"_padded;
             fake_signatures = fake_parser.parse(fake_signatures_json).get_object().value();
+        }
+
+        void set_solv_signatures(
+            solv::ObjSolvableView solv,
+            const std::string& filename,
+            const simdjson::dom::object& signatures
+        )
+        {
+            // NOTE We need to use an intermediate nlohmann::json object to store signatures
+            // as simdjson objects are not conceived to be modified smoothly
+            // and we need an equivalent structure to how libsolv is storing the signatures
+            nlohmann::json glob_sigs, nested_sigs;
+            if (auto sigs = signatures[filename].get_object(); !sigs.error())
+            {
+                for (auto dict : sigs)
+                {
+                    for (auto nested_dict : dict.value.get_object())
+                    {
+                        nested_sigs[dict.key]["signature"] = nested_dict.value;
+                    }
+                    glob_sigs["signatures"] = nested_sigs;
+
+                    solv.set_signatures(glob_sigs.dump());
+                    LOG_INFO << "Signatures for '" << filename
+                             << "' are set in corresponding solvable.";
+                }
+            }
+            else
+            {
+                LOG_DEBUG << "No signatures available for '" << filename
+                          << "'. Downloading without verifying artifacts.";
+            }
         }
 
         [[nodiscard]] auto set_solvable(
@@ -325,30 +357,8 @@ namespace mamba::solver::libsolv
             }
 
             // Setting signatures in solvable if they are available and `verify-artifacts` flag is
-            // enabled NOTE We need to use an intermediate nlohmann::json object to store signatures
-            // as simdjson objects are not conceived to be modified smoothly
-            // and we need an equivalent structure to how libsolv is storing the signatures
-            nlohmann::json glob_sigs, nested_sigs;
-            if (auto sigs = signatures[filename].get_object(); !sigs.error())
-            {
-                for (auto dict : sigs)
-                {
-                    for (auto nested_dict : dict.value.get_object())
-                    {
-                        nested_sigs[dict.key]["signature"] = nested_dict.value;
-                    }
-                    glob_sigs["signatures"] = nested_sigs;
-
-                    solv.set_signatures(glob_sigs.dump());
-                    LOG_INFO << "Signatures for '" << filename
-                             << "' are set in corresponding solvable.";
-                }
-            }
-            else
-            {
-                LOG_DEBUG << "No signatures available for '" << filename
-                          << "'. Downloading without verifying artifacts.";
-            }
+            // enabled
+            set_solv_signatures(solv, filename, signatures);
 
             solv.add_self_provide();
             return true;

@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <tuple>
 #include <type_traits>
 
@@ -33,25 +32,28 @@ namespace mamba::specs
             return PackageType::Conda;
         }
 
-        auto parse_url(std::string_view spec) -> PackageInfo
+        auto parse_url(std::string_view spec) -> expected_parse_t<PackageInfo>
         {
-            auto fail_parse = [&]() {
-                throw std::invalid_argument(
-                    util::concat(R"(Fail to parse PackageInfo URL ")", spec, '"')
-                );
-            };
-
             if (!has_archive_extension(spec))
             {
-                fail_parse();
+                return make_unexpected_parse("Missing filename extension.");
             }
+
 
             auto out = PackageInfo();
             // TODO decide on the bet way to group filename/channel/subdir/package_url all at once
             out.package_url = util::path_or_url_to_url(spec);
-            auto url = CondaURL::parse(out.package_url)
-                           .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                           .value();
+
+            auto url = CondaURL();
+            {
+                auto maybe_url = CondaURL::parse(out.package_url);
+                if (!maybe_url)
+                {
+                    return make_unexpected_parse(maybe_url.error());
+                }
+                url = std::move(maybe_url).value();
+            }
+
             out.filename = url.package();
             url.clear_package();
 
@@ -69,7 +71,9 @@ namespace mamba::specs
 
             if (!head.has_value())
             {
-                fail_parse();
+                return make_unexpected_parse(
+                    fmt::format(R"(Missing name and version in filename "{}".)", out.filename)
+                );
             }
 
             // Version
@@ -77,7 +81,9 @@ namespace mamba::specs
             out.version = tail;
             if (!head.has_value())
             {
-                fail_parse();
+                return make_unexpected_parse(
+                    fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                );
             }
 
             // Name
@@ -98,7 +104,7 @@ namespace mamba::specs
         }
     }
 
-    auto PackageInfo::from_url(std::string_view str) -> PackageInfo
+    auto PackageInfo::from_url(std::string_view str) -> expected_parse_t<PackageInfo>
     {
         str = util::strip(str);
         if (str.empty())
@@ -120,15 +126,20 @@ namespace mamba::specs
             auto hash = str.substr(idx + 1);
             if (has_archive_extension(url))
             {
-                auto out = parse_url(url);
-                if (is_hash(hash))
-                {
-                    out.md5 = hash;
-                }
-                return out;
+                return parse_url(url).transform(
+                    [&](PackageInfo&& pkg) -> PackageInfo
+                    {
+                        if (is_hash(hash))
+                        {
+                            pkg.md5 = hash;
+                        }
+                        return pkg;
+                    }
+                );
             }
         }
-        throw std::invalid_argument(util::concat(R"(Fail to parse PackageInfo URL ")", str, '"'));
+
+        return make_unexpected_parse(fmt::format(R"(Fail to parse PackageInfo URL "{}")", str));
     }
 
     PackageInfo::PackageInfo(std::string n)

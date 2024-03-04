@@ -102,7 +102,9 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
         for (const auto& raw_url : read_lines(urls_file))
         {
-            auto pkg_info = specs::PackageInfo::from_url(raw_url);
+            auto pkg_info = specs::PackageInfo::from_url(raw_url)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
 
             fs::u8path entry = pkgs_dir / pkg_info.filename;
             LOG_TRACE << "Extracting " << pkg_info.filename << std::endl;

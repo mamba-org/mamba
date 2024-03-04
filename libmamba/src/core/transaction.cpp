@@ -1135,7 +1135,12 @@ namespace mamba
             urls.cbegin(),
             urls.cend(),
             std::back_insert_iterator(specs_to_install),
-            [&](const auto& u) { return specs::PackageInfo::from_url(u); }
+            [&](const auto& u)
+            {
+                return specs::PackageInfo::from_url(u)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
+            }
         );
         return MTransaction(ctx, db, {}, specs_to_install, package_caches);
     }

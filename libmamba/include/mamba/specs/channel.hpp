@@ -12,6 +12,7 @@
 
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/weakening_map.hpp"
@@ -80,12 +81,12 @@ namespace mamba::specs
         [[nodiscard]] static auto resolve(  //
             UnresolvedChannel uc,
             const ChannelResolveParams& params
-        ) -> channel_list;
+        ) -> expected_parse_t<channel_list>;
 
         [[nodiscard]] static auto resolve(  //
             UnresolvedChannel uc,
             ChannelResolveParamsView params
-        ) -> channel_list;
+        ) -> expected_parse_t<channel_list>;
 
         Channel(CondaURL url, std::string display_name, platform_list platforms = {});
         Channel(std::vector<CondaURL> mirror_urls, std::string display_name, platform_list platforms = {});

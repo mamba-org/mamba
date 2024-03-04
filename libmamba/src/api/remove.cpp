@@ -94,7 +94,9 @@ namespace mamba
             for (const auto& s : raw_specs)
             {
                 request.jobs.emplace_back(Request::Remove{
-                    specs::MatchSpec::parse(s),
+                    specs::MatchSpec::parse(s)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value(),
                     /* .clean_dependencies= */ prune,
                 });
             }
@@ -153,7 +155,9 @@ namespace mamba
                 pkgs_to_remove.reserve(raw_specs.size());
                 for (const auto& str : raw_specs)
                 {
-                    auto spec = specs::MatchSpec::parse(str);
+                    auto spec = specs::MatchSpec::parse(str)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value();
                     const auto& installed = prefix_data.records();
                     // TODO should itreate over all packages and use MatchSpec.contains
                     // TODO should move such method over Pool for consitent use

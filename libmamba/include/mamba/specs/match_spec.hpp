@@ -13,6 +13,7 @@
 #include <string_view>
 
 #include "mamba/specs/build_number_spec.hpp"
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version_spec.hpp"
@@ -42,9 +43,9 @@ namespace mamba::specs
         inline static constexpr auto package_version_sep = std::array{ ' ', '=', '<', '>', '~', '!' };
 
 
-        [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
+        [[nodiscard]] static auto parse(std::string_view spec) -> expected_parse_t<MatchSpec>;
 
-        [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
+        [[nodiscard]] static auto parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>;
 
         [[nodiscard]] auto channel() const -> const std::optional<UnresolvedChannel>&;
         void set_channel(std::optional<UnresolvedChannel> chan);

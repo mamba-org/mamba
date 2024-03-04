@@ -25,7 +25,7 @@ TEST_SUITE("specs::package_info")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda";
 
-            auto pkg = PackageInfo::from_url(url);
+            auto pkg = PackageInfo::from_url(url).value();
 
             CHECK_EQ(pkg.name, "pkg");
             CHECK_EQ(pkg.version, "6.4");
@@ -42,7 +42,7 @@ TEST_SUITE("specs::package_info")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0";
 
-            auto pkg = PackageInfo::from_url(url);
+            auto pkg = PackageInfo::from_url(url).value();
 
             CHECK_EQ(pkg.name, "pkg");
             CHECK_EQ(pkg.version, "6.4");
@@ -52,6 +52,12 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.md5, url.substr(url.rfind('#') + 1));
             CHECK_EQ(pkg.subdir, "linux-64");
             CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
+        }
+
+        SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/pkg.conda")
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg.conda";
+            CHECK_FALSE(PackageInfo::from_url(url).has_value());
         }
     }
 

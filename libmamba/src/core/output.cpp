@@ -35,17 +35,27 @@ namespace mamba
 {
     std::string cut_repo_name(std::string_view url_str)
     {
-        auto url = specs::CondaURL::parse(url_str);
-        url.clear_token();
-        if ((url.host() == "conda.anaconda.org") || (url.host() == "repo.anaconda.com"))
-        {
-            std::string out = url.clear_path();
-            out = util::strip(out, '/');
-            return out;
-        }
-        url.clear_user();
-        url.clear_password();
-        return url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
+        return specs::CondaURL::parse(url_str)
+            .transform(
+                [](specs::CondaURL&& url)
+                {
+                    url.clear_token();
+                    if ((url.host() == "conda.anaconda.org") || (url.host() == "repo.anaconda.com"))
+                    {
+                        std::string out = url.clear_path();
+                        out = util::strip(out, '/');
+                        return out;
+                    }
+                    url.clear_user();
+                    url.clear_password();
+                    return url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
+                }
+            )
+            .or_else(
+                [&](const auto&) -> specs::expected_parse_t<std::string>
+                { return { std::string(url_str) }; }
+            )
+            .value();
     }
 
     /***********

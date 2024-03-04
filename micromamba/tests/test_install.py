@@ -530,7 +530,9 @@ class TestInstall:
         try:
             helpers.install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
-            assert " Fail to parse MatchSpec" in e.stderr.decode("utf-8")
+            assert 'Missing name and version in filename "mypackage.tar.bz2"' in e.stderr.decode(
+                "utf-8"
+            )
 
     def test_no_reinstall(self, existing_cache):
         """Reinstalling is a no op."""

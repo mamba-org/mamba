@@ -87,15 +87,17 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     }
 
     auto matchspec = specs::MatchSpec::parse(
-        version ? fmt::format("micromamba={}", version.value())
-                : fmt::format("micromamba>{}", umamba::version())
-    );
+                         version ? fmt::format("micromamba={}", version.value())
+                                 : fmt::format("micromamba>{}", umamba::version())
+    )
+                         .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                         .value();
 
     auto latest_micromamba = database_latest_package(db, matchspec);
 
     if (!latest_micromamba.has_value())
     {
-        if (database_has_package(db, specs::MatchSpec::parse("micromamba")))
+        if (database_has_package(db, specs::MatchSpec::parse("micromamba").value()))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())

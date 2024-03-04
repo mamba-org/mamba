@@ -64,7 +64,9 @@ namespace mamba
                             == specs.end())
                         {
                             request.jobs.emplace_back(Request::Remove{
-                                specs::MatchSpec::parse(it.second.name().str()),
+                                specs::MatchSpec::parse(it.second.name().str())
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
                                 /* .clean_dependencies= */ true,
                             });
                         }
@@ -74,7 +76,9 @@ namespace mamba
                 for (const auto& raw_ms : specs)
                 {
                     request.jobs.emplace_back(Request::Update{
-                        specs::MatchSpec::parse(raw_ms),
+                        specs::MatchSpec::parse(raw_ms)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
                     });
                 }
             }
@@ -102,9 +106,9 @@ namespace mamba
         // add channels from specs
         for (const auto& s : raw_update_specs)
         {
-            if (auto m = specs::MatchSpec::parse(s); m.channel().has_value())
+            if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
             {
-                ctx.channels.push_back(m.channel()->str());
+                ctx.channels.push_back(ms->channel()->str());
             }
         }
 

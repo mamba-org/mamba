@@ -399,7 +399,9 @@ namespace mamba::solver::libsolv
             default_subdir = std::string(subdir.value_unsafe());
         }
 
-        const auto parsed_url = specs::CondaURL::parse(repo_url);
+        const auto parsed_url = specs::CondaURL::parse(repo_url)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value();
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
@@ -571,7 +573,9 @@ namespace mamba::solver::libsolv
         // WARNING cannot call ``url()`` at this point because it has not been internalized.
         // Setting the channel url on where the solvable so that we can retrace
         // where it came from
-        const auto url = specs::CondaURL::parse(repo_url);
+        const auto url = specs::CondaURL::parse(repo_url)
+                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                             .value();
         repo.for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
@@ -639,7 +643,7 @@ namespace mamba::solver::libsolv
             solv::ObjPool& pool,
             const specs::MatchSpec& ms,
             const specs::ChannelResolveParams& params
-        ) -> solv::DependencyId
+        ) -> expected_t<solv::DependencyId>
         {
             assert(ms.channel().has_value());
             const std::string repr = ms.str();
@@ -656,7 +660,15 @@ namespace mamba::solver::libsolv
                 ms.conda_build_form().c_str()
             );
 
-            auto ms_channels = specs::Channel::resolve(*ms.channel(), params);
+            auto maybe_ms_channels = specs::Channel::resolve(*ms.channel(), params);
+            if (!maybe_ms_channels)
+            {
+                return make_unexpected(
+                    fmt::format(R"(Failed to resolve channels in "{}")", ms.channel().value()),
+                    mamba_error_code::invalid_spec
+                );
+            }
+            const auto& ms_channels = maybe_ms_channels.value();
 
             solv::ObjQueue selected_pkgs = {};
             auto other_subdir_match = std::string();
@@ -674,22 +686,25 @@ namespace mamba::solver::libsolv
                     }
 
                     assert(ms.channel().has_value());
-                    const auto match = channel_match(ms_channels, specs::CondaURL::parse(s.url()));
-                    switch (match)
+                    if (auto pkg_url = specs::CondaURL::parse(s.url()))
                     {
-                        case (specs::Channel::Match::Full):
+                        const auto match = channel_match(ms_channels, *pkg_url);
+                        switch (match)
                         {
-                            selected_pkgs.push_back(s.id());
-                            break;
-                        }
-                        case (specs::Channel::Match::InOtherPlatform):
-                        {
-                            other_subdir_match = s.subdir();
-                            break;
-                        }
-                        case (specs::Channel::Match::No):
-                        {
-                            break;
+                            case (specs::Channel::Match::Full):
+                            {
+                                selected_pkgs.push_back(s.id());
+                                break;
+                            }
+                            case (specs::Channel::Match::InOtherPlatform):
+                            {
+                                other_subdir_match = s.subdir();
+                                break;
+                            }
+                            case (specs::Channel::Match::No):
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -734,26 +749,27 @@ namespace mamba::solver::libsolv
         const specs::ChannelResolveParams& params
     ) -> expected_t<solv::DependencyId>
     {
-        solv::DependencyId id = 0;
+        auto check_not_zero = [&](solv::DependencyId id) -> expected_t<solv::DependencyId>
+        {
+            if (id == 0)
+            {
+                return make_unexpected(
+                    fmt::format(R"(Invalid MatchSpec "{}")", ms.str()),
+                    mamba_error_code::invalid_spec
+                );
+            }
+            return id;
+        };
+
         if (!ms.channel().has_value())
         {
-            id = pool.add_conda_dependency(ms.conda_build_form());
+            return check_not_zero(pool.add_conda_dependency(ms.conda_build_form()));
         }
-        else
-        {
-            // Working around shortcomings of ``pool_conda_matchspec``
-            // The channels are not processed.
-            // TODO Fragile! Installing this matchspec will always trigger a reinstall
-            id = add_channel_specific_matchspec(pool, ms, params);
-        }
-        if (id == 0)
-        {
-            make_unexpected(
-                fmt::format(R"(Invalid MatchSpec "{}")", ms.str()),
-                mamba_error_code::invalid_spec
-            );
-        }
-        return id;
+
+        // Working around shortcomings of ``pool_conda_matchspec``
+        // The channels are not processed.
+        // TODO Fragile! Installing this matchspec will always trigger a reinstall
+        return add_channel_specific_matchspec(pool, ms, params).and_then(check_not_zero);
     }
 
     auto pool_add_pin(  //

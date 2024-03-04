@@ -295,8 +295,10 @@ namespace mamba
             [](const auto& pkg)
             {
                 return specs::MatchSpec::parse(
-                    fmt::format("{}=={}={}", pkg.name, pkg.version, pkg.build_string)
-                );
+                           fmt::format("{}=={}={}", pkg.name, pkg.version, pkg.build_string)
+                )
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
             }
         );
 
@@ -1133,7 +1135,12 @@ namespace mamba
             urls.cbegin(),
             urls.cend(),
             std::back_insert_iterator(specs_to_install),
-            [&](const auto& u) { return specs::PackageInfo::from_url(u); }
+            [&](const auto& u)
+            {
+                return specs::PackageInfo::from_url(u)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
+            }
         );
         return MTransaction(ctx, db, {}, specs_to_install, package_caches);
     }

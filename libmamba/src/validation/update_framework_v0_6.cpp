@@ -199,7 +199,10 @@ namespace mamba::validation::v0_6
         auto tmp_dir = TemporaryDirectory();
         auto tmp_metadata_path = tmp_dir.path() / "key_mgr.json";
 
-        const auto url = specs::CondaURL::parse(base_url) / "key_mgr.json";
+        const auto url = specs::CondaURL::parse(base_url)
+                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                             .value()
+                         / "key_mgr.json";
 
         if (download::check_resource_exists(url.pretty_str(), context))
         {

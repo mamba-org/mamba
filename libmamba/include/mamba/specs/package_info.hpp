@@ -13,6 +13,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
 
 namespace mamba::specs
@@ -56,7 +57,7 @@ namespace mamba::specs
         // PackageInfo, should really be split in different types.
         PackageType package_type = PackageType::Unknown;
 
-        [[nodiscard]] static auto from_url(std::string_view url) -> PackageInfo;
+        [[nodiscard]] static auto from_url(std::string_view url) -> expected_parse_t<PackageInfo>;
 
         PackageInfo() = default;
         explicit PackageInfo(std::string name);

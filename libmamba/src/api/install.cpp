@@ -414,13 +414,21 @@ namespace mamba
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             for (const auto& [name, pkg] : prefix_pkgs)
             {
-                request.jobs.emplace_back(Request::Freeze{ specs::MatchSpec::parse(name) });
+                request.jobs.emplace_back(Request::Freeze{
+                    specs::MatchSpec::parse(name)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value(),
+                });
             }
         }
 
         for (const auto& s : specs)
         {
-            request.jobs.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });
+            request.jobs.emplace_back(Request::Install{
+                specs::MatchSpec::parse(s)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value(),
+            });
         }
         return request;
     }
@@ -441,11 +449,19 @@ namespace mamba
         {
             for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
             {
-                request.jobs.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
+                request.jobs.emplace_back(Request::Pin{
+                    specs::MatchSpec::parse(pin)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value(),
+                });
             }
             for (const auto& pin : ctx.pinned_packages)
             {
-                request.jobs.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
+                request.jobs.emplace_back(Request::Pin{
+                    specs::MatchSpec::parse(pin)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value(),
+                });
             }
         }
 
@@ -454,7 +470,11 @@ namespace mamba
             auto py_pin = python_pin(prefix_data, specs);
             if (!py_pin.empty())
             {
-                request.jobs.emplace_back(Request::Pin{ specs::MatchSpec::parse(py_pin) });
+                request.jobs.emplace_back(Request::Pin{
+                    specs::MatchSpec::parse(py_pin)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value(),
+                });
             }
         }
     }
@@ -518,9 +538,9 @@ namespace mamba
             // add channels from specs
             for (const auto& s : specs)
             {
-                if (auto ms = specs::MatchSpec::parse(s); ms.channel().has_value())
+                if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
                 {
-                    ctx.channels.push_back(ms.channel()->str());
+                    ctx.channels.push_back(ms->channel()->str());
                 }
             }
 

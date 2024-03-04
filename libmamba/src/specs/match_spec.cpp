@@ -18,44 +18,55 @@
 
 namespace mamba::specs
 {
-    auto MatchSpec::parse_url(std::string_view spec) -> MatchSpec
+    auto MatchSpec::parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>
     {
-        auto fail_parse = [&]()
-        {
-            throw std::invalid_argument(
-                util::concat(R"(Fail to parse MatchSpec ditribution ")", spec, '"')
-            );
-        };
-
         auto out = MatchSpec();
+
         // Channel is also read for the filename so no need to set it.
-        out.m_channel = UnresolvedChannel::parse(spec)
-                            .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                            .value();
+        auto maybe_channel = UnresolvedChannel::parse(spec);
+        if (maybe_channel.has_value())
+        {
+            out.m_channel = std::move(maybe_channel).value();
+        }
+        else
+        {
+            return make_unexpected_parse(std::move(maybe_channel).error());
+        }
+
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
 
         // Build string
         auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
         out.m_build_string = BuildStringSpec(std::string(tail));
+
         if (!head.has_value())
         {
-            fail_parse();
+            return make_unexpected_parse(
+                fmt::format(R"(Missing name and version in filename "{}".)", pkg)
+            );
         }
 
         // Version
         std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-        out.m_version = VersionSpec::parse(tail)
-                            .or_else([](ParseError&& error) { throw std::move(error); })
-                            .value();
+        auto maybe_version = VersionSpec::parse(tail);
+        if (maybe_version.has_value())
+        {
+            out.m_version = std::move(maybe_version).value();
+        }
+        else
+        {
+            return make_unexpected_parse(std::move(maybe_channel).error());
+        }
+
         if (!head.has_value())
         {
-            fail_parse();
+            return make_unexpected_parse(fmt::format(R"(Missing name in filename "{}".)", pkg));
         }
 
         // Name
         out.m_name = NameSpec(std::string(head.value()));  // There may be '-' in the name
 
-        return out;
+        return { std::move(out) };
     }
 
     namespace
@@ -92,7 +103,7 @@ namespace mamba::specs
             return std::all_of(text.cbegin(), text.cend(), is_hash_char);
         }
 
-        auto rfind_channel_namespace_split(std::string_view str)
+        auto rfind_channel_namespace_split(std::string_view str) -> expected_parse_t<std::size_t>
         {
             return util::rfind_not_in_parentheses(
                        str,
@@ -100,66 +111,48 @@ namespace mamba::specs
                        open_or_quote_tokens,
                        close_or_quote_tokens
             )
-                // FIXME temporary while MatchSpec::parse does not return ``exepted``.
-                .or_else(
-                    [&](const auto&) {
-                        throw std::invalid_argument(
-                            fmt::format(R"(Invalid parenthesis in MatchSpec "{}")", str)
-                        );
-                    }
-                )
-                .value();
-            ;
+                .map_error(
+                    [&](const auto&)
+                    { return ParseError(fmt::format(R"(Parentheses mismatch in "{}".)", str)); }
+                );
         }
 
-        auto rfind_attribute_section(std::string_view str)
+        using ChanNsSpecSplit = std::tuple<std::string_view, std::string_view, std::string_view>;
+
+        auto split_channel_namespace_spec(std::string_view str) -> expected_parse_t<ChanNsSpecSplit>
         {
-            return util::rfind_matching_parentheses(str, open_or_quote_tokens, close_or_quote_tokens)
-                // FIXME temporary while MatchSpec::parse does not return ``exepted``.
-                .or_else(
-                    [&](const auto&) {
-                        throw std::invalid_argument(
-                            fmt::format(R"(Invalid parenthesis in MatchSpec "{}")", str)
-                        );
+            return rfind_channel_namespace_split(str).and_then(
+                [&](std::size_t spec_pos) -> expected_parse_t<ChanNsSpecSplit>
+                {
+                    if (spec_pos == std::string_view::npos)
+                    {
+                        return { { /* channel= */ "", /* namespace= */ "", /* spec= */ str } };
                     }
-                )
-                .value();
-            ;
+
+                    return rfind_channel_namespace_split(str.substr(0, spec_pos))
+                        .transform(
+                            [&](std::size_t ns_pos) -> ChanNsSpecSplit
+                            {
+                                if (ns_pos == std::string_view::npos)
+                                {
+                                    return {
+                                        /* channel= */ "",
+                                        /* namespace= */ str.substr(0, spec_pos),
+                                        /* spec= */ str.substr(spec_pos + 1),
+                                    };
+                                }
+                                return {
+                                    /* channel= */ str.substr(0, ns_pos),
+                                    /* namespace= */ str.substr(ns_pos + 1, spec_pos),
+                                    /* spec= */ str.substr(spec_pos + 1),
+                                };
+                            }
+                        );
+                }
+            );
         }
 
-        auto split_channel_namespace_spec(std::string_view str)
-            -> std::tuple<std::string_view, std::string_view, std::string_view>
-        {
-            const auto spec_pos = rfind_channel_namespace_split(str);
-            if (spec_pos != std::string_view::npos)
-            {
-                const auto spec = str.substr(spec_pos + 1);
-                const auto ns_pos = rfind_channel_namespace_split(str.substr(0, spec_pos));
-                if (ns_pos != std::string_view::npos)
-                {
-                    return {
-                        /* channel= */ str.substr(0, ns_pos),
-                        /* namespace= */ str.substr(ns_pos + 1, spec_pos),
-                        /* spec= */ str.substr(spec_pos + 1),
-                    };
-                }
-                else
-                {
-                    return {
-                        /* channel= */ "",
-                        /* namespace= */ spec.substr(0, spec_pos),
-                        /* spec= */ str.substr(spec_pos + 1),
-                    };
-                }
-            }
-            return {
-                /* channel= */ "",
-                /* namespace= */ "",
-                /* spec= */ str,
-            };
-        }
-
-        auto find_attribute_split(std::string_view str)
+        auto find_attribute_split(std::string_view str) -> expected_parse_t<std::size_t>
         {
             return util::find_not_in_parentheses(
                        str,
@@ -167,16 +160,10 @@ namespace mamba::specs
                        open_or_quote_tokens,
                        close_or_quote_tokens
             )
-                // FIXME temporary while MatchSpec::parse does not return ``exepted``.
-                .or_else(
-                    [&](const auto&) {
-                        throw std::invalid_argument(
-                            fmt::format(R"(Invalid parenthesis in MatchSpec "{}")", str)
-                        );
-                    }
-                )
-                .value();
-            ;
+                .map_error(
+                    [&](const auto&)
+                    { return ParseError(fmt::format(R"(Parentheses mismatch in "{}".)", str)); }
+                );
         }
 
         auto strip_whitespace_quotes(std::string_view str) -> std::string_view
@@ -196,111 +183,185 @@ namespace mamba::specs
             return util::starts_with_any(str, std::array{ 'y', 'Y', 't', 'T', '1' });
         }
 
-        void
-        set_single_matchspec_attribute(MatchSpec& spec, std::string_view attr, std::string_view val)
+        [[nodiscard]] auto set_single_matchspec_attribute_impl(  //
+            MatchSpec& spec,
+            std::string_view attr,
+            std::string_view val
+        ) -> expected_parse_t<void>
         {
             if (attr == "build_number")
             {
-                spec.set_build_number(BuildNumberSpec::parse(val)
-                                          .or_else([](ParseError&& error) { throw std::move(error); })
-                                          .value()
-
+                return BuildNumberSpec::parse(val).transform(
+                    [&](BuildNumberSpec&& bn) { spec.set_build_number(std::move(bn)); }
                 );
             }
-            else if ((attr == "build") || (attr == "build_strig"))
+            if ((attr == "build") || (attr == "build_string"))
             {
                 spec.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
+                return {};
             }
-            else if (attr == "version")
+            if (attr == "version")
             {
-                spec.set_version(VersionSpec::parse(val)
-                                     .or_else([](ParseError&& error) { throw std::move(error); })
-                                     .value());
+                return VersionSpec::parse(val).transform([&](VersionSpec&& vs)
+                                                         { spec.set_version(std::move(vs)); });
             }
-            else if ((attr == "channel") || (attr == "url"))
+            if ((attr == "channel") || (attr == "url"))
             {
-                spec.set_channel(UnresolvedChannel::parse(val)
-                                     .or_else([](ParseError&& error) { throw std::move(error); })
-                                     .value());
+                return UnresolvedChannel::parse(val).transform(  //
+                    [&](UnresolvedChannel&& uc) { spec.set_channel(std::move(uc)); }
+                );
             }
-            else if (attr == "subdir")
+            if (attr == "subdir")
             {
                 if (auto chan = spec.channel(); !chan.has_value() || chan->platform_filters().empty())
                 {
                     spec.set_subdirs({ UnresolvedChannel::parse_platform_list(val) });
                 }
+                return {};
             }
-            else if ((attr == "fn") || (attr == "filename"))
+            if ((attr == "fn") || (attr == "filename"))
             {
                 spec.set_filename(std::string(val));
+                return {};
             }
-            else if (attr == "md5")
+            if (attr == "md5")
             {
                 spec.set_md5(std::string(val));
+                return {};
             }
-            else if (attr == "sha256")
+            if (attr == "sha256")
             {
                 spec.set_sha256(std::string(val));
+                return {};
             }
-            else if (attr == "license")
+            if (attr == "license")
             {
                 spec.set_license(std::string(val));
+                return {};
             }
-            else if (attr == "license_family")
+            if (attr == "license_family")
             {
                 spec.set_license_family(std::string(val));
+                return {};
             }
-            else if (attr == "features")
+            if (attr == "features")
             {
                 spec.set_features(std::string(val));
+                return {};
             }
-            else if (attr == "track_features")
+            if (attr == "track_features")
             {
                 spec.set_track_features(std::string(val));
+                return {};
             }
-            else if (attr == "optional")
+            if (attr == "optional")
             {
                 spec.set_optional(is_true_string(val));
+                return {};
             }
+            // Don't fail to parse extra name to avoid failure on non-supported attributes
+            return {};
         }
 
-        void set_matchspec_attributes(MatchSpec& spec, std::string_view attrs)
+        [[nodiscard]] auto set_single_matchspec_attribute(  //
+            MatchSpec& spec,
+            std::string_view attr,
+            std::string_view val
+        ) -> expected_parse_t<void>
         {
-            const auto next_pos = find_attribute_split(attrs);
+            return set_single_matchspec_attribute_impl(spec, attr, val)
+                .transform_error(
+                    [&](ParseError&& err)
+                    {
+                        return ParseError(fmt::format(
+                            R"(Error setting attribute "{}" to value "{}": {})",
+                            attr,
+                            val,
+                            err.what()
+                        ));
+                    }
+                );
+        }
 
-            auto [key, value] = util::split_once(attrs.substr(0, next_pos), MatchSpec::attribute_assign);
-            set_single_matchspec_attribute(
-                spec,
-                util::to_lower(util::strip(key)),
-                strip_whitespace_quotes(value.value_or("true"))
-            );
+        [[nodiscard]] auto set_matchspec_attributes(  //
+            MatchSpec& spec,
+            std::string_view attrs
+        ) -> expected_parse_t<void>
+        {
+            return find_attribute_split(attrs)
+                .and_then(
+                    [&](std::size_t next_pos)
+                    {
+                        auto [key, value] = util::split_once(
+                            attrs.substr(0, next_pos),
+                            MatchSpec::attribute_assign
+                        );
 
-            if (next_pos != std::string_view::npos)
-            {
-                set_matchspec_attributes(spec, attrs.substr(next_pos + 1));
-            }
+                        return set_single_matchspec_attribute(
+                                   spec,
+                                   util::to_lower(util::strip(key)),
+                                   strip_whitespace_quotes(value.value_or("true"))
+                        )
+                            .transform([&]() { return next_pos; });
+                    }
+                )
+                .and_then(
+                    [&](std::size_t next_pos) -> expected_parse_t<void>
+                    {
+                        if (next_pos != std::string_view::npos)
+                        {
+                            return set_matchspec_attributes(spec, attrs.substr(next_pos + 1));
+                        }
+                        return {};
+                    }
+                );
+        }
+
+        auto rfind_attribute_section(  //
+            std::string_view str
+        ) -> expected_parse_t<std::pair<std::size_t, std::size_t>>
+        {
+            return util::rfind_matching_parentheses(str, open_or_quote_tokens, close_or_quote_tokens)
+                .map_error(
+                    [&](const auto&)
+                    { return ParseError(fmt::format(R"(Parentheses mismatch in "{}".)", str)); }
+                );
         }
 
         auto rparse_and_set_matchspec_attributes(MatchSpec& spec, std::string_view str)
-            -> std::string_view
+            -> expected_parse_t<std::string_view>
         {
             // Parsing all attributes sections backwards, for instance in
             // ``conda-forge::foo[build=3](target=blarg,optional)``
             // this results in:
             //   - ``target=blarg,optional``
             //   - ``build=3``
-            str = util::rstrip(str);
-            while (util::ends_with(str, MatchSpec::prefered_list_close)
-                   || util::ends_with(str, MatchSpec::alt_list_close))
+
+            if (!util::ends_with(str, MatchSpec::prefered_list_close)
+                && !util::ends_with(str, MatchSpec::alt_list_close))
             {
-                auto [start, end] = rfind_attribute_section(str);
-                assert(start != std::string::npos);
-                assert(end != std::string::npos);
-                assert(start < end);
-                set_matchspec_attributes(spec, str.substr(start + 1, end - start - 1));
-                str = util::rstrip(str.substr(0, start));
+                return str;
             }
-            return util::lstrip(str);
+
+            return rfind_attribute_section(util::rstrip(str))
+                .and_then(
+                    [&](auto start_end)
+                    {
+                        auto [start, end] = start_end;
+                        assert(start != std::string::npos);
+                        assert(end != std::string::npos);
+                        assert(start < end);
+                        return set_matchspec_attributes(spec, str.substr(start + 1, end - start - 1))
+                            .and_then(  //
+                                [&]() {
+                                    return rparse_and_set_matchspec_attributes(
+                                        spec,
+                                        str.substr(0, start_end.first)
+                                    );
+                                }
+                            );
+                    }
+                );
         }
 
         auto split_version_and_build(std::string_view str)
@@ -339,18 +400,20 @@ namespace mamba::specs
                 [](char c) -> bool { return !contains(MatchSpec::package_version_sep, c); }
             );
 
-            if (pkg_name.empty())
-            {
-                throw std::invalid_argument("Empty package name");
-            }
-
             auto [version_str, build_string_str] = split_version_and_build(version_and_build);
             return std::tuple(pkg_name, version_str, build_string_str);
         }
     }
 
-    auto MatchSpec::parse(std::string_view str) -> MatchSpec
+    auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
+        auto parse_error = [&str](std::string_view err) -> tl::unexpected<ParseError>
+        {
+            return tl::make_unexpected(
+                ParseError(fmt::format(R"(Error parsing MatchSpec "{}": {}")", str, err))
+            );
+        };
+
         static constexpr auto npos = std::string_view::npos;
         str = util::strip(str);
         if (str.empty())
@@ -372,12 +435,16 @@ namespace mamba::specs
             auto hash = str.substr(idx + 1);
             if (has_archive_extension(url))
             {
-                auto out = MatchSpec::parse_url(url);
-                if (is_hash(hash))
-                {
-                    out.set_md5(std::string(hash));
-                }
-                return out;
+                return MatchSpec::parse_url(url).transform(
+                    [&](MatchSpec&& ms) -> MatchSpec
+                    {
+                        if (is_hash(hash))
+                        {
+                            ms.set_md5(std::string(hash));
+                        }
+                        return ms;
+                    }
+                );
             }
         }
 
@@ -389,32 +456,69 @@ namespace mamba::specs
         //   - ``https://channel[plat]``
         //   - ``namespace``
         //   - ``spec >=3 [attr="val", ...]``
-        auto chan = std::string_view();
-        std::tie(chan, out.m_name_space, str) = split_channel_namespace_spec(str);
-        if (!chan.empty())
         {
-            out.m_channel = UnresolvedChannel::parse(chan)
-                                .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                                .value();
+            auto maybe_chan_ns_spec = split_channel_namespace_spec(str);
+            if (!maybe_chan_ns_spec)
+            {
+                return parse_error(maybe_chan_ns_spec.error().what());
+            }
+
+            auto [chan_str, ns_str, spec_str] = maybe_chan_ns_spec.value();
+
+            out.set_name_space(std::string(ns_str));
+
+            if (!chan_str.empty())
+            {
+                auto maybe_chan = UnresolvedChannel::parse(chan_str);
+                if (!maybe_chan)
+                {
+                    return parse_error(maybe_chan.error().what());
+                }
+                out.m_channel = std::move(maybe_chan).value();
+            }
+
+            str = spec_str;
         }
 
-        auto pkg_ver_bld = rparse_and_set_matchspec_attributes(out, str);
+        // Parse and apply bracket attributes ``attr="val"`` in ``pkg >=3 =mkl [attr="val", ...]``.
+        // Split name "pkg", version ">=3" and build string "=mkl" left in string ``pkg >=3 =mkl``.
+        auto name_str = std::string_view();
+        auto ver_str = std::string_view();
+        auto bld_str = std::string_view();
+        {
+            auto maybe_pkg_ver_bld = rparse_and_set_matchspec_attributes(out, str);
+            if (!maybe_pkg_ver_bld)
+            {
+                return parse_error(maybe_pkg_ver_bld.error().what());
+            }
 
-        auto [name, ver, bld] = split_name_version_and_build(pkg_ver_bld);
+            std::tie(name_str, ver_str, bld_str) = split_name_version_and_build(
+                util::lstrip(std::move(maybe_pkg_ver_bld).value())
+            );
+        }
 
-        out.m_name = NameSpec(std::string(name));
+        // Set non-empty package name
+        if (name_str.empty())
+        {
+            return parse_error("Empty package name.");
+        }
+        out.m_name = NameSpec(std::string(name_str));
 
         // Set the version and build string, but avoid overriding in case nothing is specified
         // as it may already be set in attribute as in ``numpy[version=1.12]``.
-        if (!ver.empty())
+        if (!ver_str.empty())
         {
-            out.m_version = VersionSpec::parse(ver)
-                                .or_else([](ParseError&& error) { throw std::move(error); })
-                                .value();
+            auto maybe_ver = VersionSpec::parse(ver_str);
+            if (!maybe_ver)
+            {
+                return parse_error(maybe_ver.error().what());
+            }
+            out.m_version = std::move(maybe_ver).value();
         }
-        if (!bld.empty())
+
+        if (!bld_str.empty())
         {
-            out.m_build_string = MatchSpec::BuildStringSpec(std::string(bld));
+            out.m_build_string = MatchSpec::BuildStringSpec(std::string(bld_str));
         }
 
         return out;
@@ -890,7 +994,9 @@ namespace mamba::specs
     {
         auto operator""_ms(const char* str, std::size_t len) -> MatchSpec
         {
-            return MatchSpec::parse({ str, len });
+            return MatchSpec::parse({ str, len })
+                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                .value();
         }
     }
 }

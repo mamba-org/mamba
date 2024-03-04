@@ -33,7 +33,7 @@ TEST_SUITE("specs::channel")
                  })
             {
                 CAPTURE(url);
-                auto chan = Channel(CondaURL::parse(url), "somename");
+                auto chan = Channel(CondaURL::parse(url).value(), "somename");
                 CHECK_NE(chan.url().str(), mamba::util::rstrip(url, '/'));
             }
 
@@ -45,7 +45,7 @@ TEST_SUITE("specs::channel")
                  })
             {
                 CAPTURE(url);
-                auto chan = Channel(CondaURL::parse(url), "somename");
+                auto chan = Channel(CondaURL::parse(url).value(), "somename");
                 CHECK_EQ(chan.url().str(), mamba::util::rstrip(url, '/'));
             }
         }
@@ -62,7 +62,7 @@ TEST_SUITE("specs::channel")
             {
                 CAPTURE(raw_url);
 
-                auto chan_a = Channel(CondaURL::parse(raw_url), "somename", { "linux-64" });
+                auto chan_a = Channel(CondaURL::parse(raw_url).value(), "somename", { "linux-64" });
                 CHECK_EQ(chan_a, chan_a);
 
                 auto chan_b = chan_a;
@@ -91,7 +91,7 @@ TEST_SUITE("specs::channel")
                 {
                     CAPTURE(raw_url);
 
-                    auto url_a = CondaURL::parse(raw_url);
+                    auto url_a = CondaURL::parse(raw_url).value();
                     auto url_b = url_a;
                     url_b.clear_user();
                     url_b.clear_password();
@@ -125,7 +125,7 @@ TEST_SUITE("specs::channel")
                 {
                     CAPTURE(raw_url);
 
-                    auto url_a = CondaURL::parse(raw_url);
+                    auto url_a = CondaURL::parse(raw_url).value();
                     auto url_b = url_a;
                     url_a.clear_user();
                     url_a.clear_password();
@@ -151,7 +151,7 @@ TEST_SUITE("specs::channel")
                 {
                     CAPTURE(raw_url);
 
-                    auto url_a = CondaURL::parse(raw_url);
+                    auto url_a = CondaURL::parse(raw_url).value();
                     auto url_b = url_a;
                     auto chan_a = Channel(url_a, "somename", { "noarch", "linux-64" });
                     auto chan_b = Channel(url_b, "somename", { "osx-64" });
@@ -233,14 +233,15 @@ TEST_SUITE("specs::channel")
     {
         auto make_typical_params = []() -> ChannelResolveParams
         {
-            auto make_channel = [](std::string_view loc, ChannelResolveParams const& params)
-            { return Channel::resolve(UnresolvedChannel::parse(loc).value(), params).at(0); };
+            auto make_channel = [](std::string_view loc, ChannelResolveParams const& params) {
+                return Channel::resolve(UnresolvedChannel::parse(loc).value(), params).value().at(0);
+            };
 
             auto params = ChannelResolveParams{};
             params.platforms = { "linux-64", "noarch" };
             params.home_dir = "/home";
             params.current_working_dir = "/cwd";
-            params.channel_alias = CondaURL::parse("https://conda.anaconda.org/");
+            params.channel_alias = CondaURL::parse("https://conda.anaconda.org/").value();
             params.custom_channels = {
                 {
                     { "pkgs/main", make_channel("https://repo.anaconda.com/pkgs/main", params) },
@@ -270,11 +271,11 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///path/to/libmamba-1.4.2-hcea66bb_0.conda"sv;
-                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.url(), CondaURL::parse(url).value());
                 CHECK_EQ(chan.platforms(), platform_list());  // Empty because package
                 CHECK_EQ(chan.display_name(), url);
             }
@@ -288,11 +289,11 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///home/conda-bld/win-64/libmamba-1.4.2-hcea66bb_0.conda"sv;
-                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.url(), CondaURL::parse(url).value());
                 CHECK_EQ(chan.platforms(), platform_list());  // Empty because package
                 CHECK_EQ(chan.display_name(), url);
             }
@@ -301,14 +302,14 @@ TEST_SUITE("specs::channel")
             {
                 auto params = ChannelResolveParams{
                     /* .platform= */ {},
-                    /* .channel_alias= */ CondaURL::parse("file:///home/conda-bld"),
+                    /* .channel_alias= */ CondaURL::parse("file:///home/conda-bld").value(),
                     /* .custom_channels= */ {},
                     /* .custom_multichannels= */ {},
                     /* .authentication_db= */ {},
                     /* .home_dir= */ "/home",
                 };
                 CHECK_EQ(
-                    Channel::resolve(uc, params).at(0).display_name(),
+                    Channel::resolve(uc, params).value().at(0).display_name(),
                     "win-64/libmamba-1.4.2-hcea66bb_0.conda"
                 );
             }
@@ -317,7 +318,7 @@ TEST_SUITE("specs::channel")
             {
                 auto params = ChannelResolveParams{
                     /* .platform= */ {},
-                    /* .channel_alias= */ CondaURL::parse("file:///home/conda-bld"),
+                    /* .channel_alias= */ CondaURL::parse("file:///home/conda-bld").value(),
                     /* .custom_channels= */ {},
                     /* .custom_multichannels= */ {},
                     /* .authentication_db= */ {},
@@ -326,9 +327,10 @@ TEST_SUITE("specs::channel")
                 params.custom_channels.emplace(
                     "mychan",
                     Channel::resolve(UnresolvedChannel::parse("file:///home/conda-bld/").value(), params)
+                        .value()
                         .at(0)
                 );
-                CHECK_EQ(Channel::resolve(uc, params).at(0).display_name(), "mychan");
+                CHECK_EQ(Channel::resolve(uc, params).value().at(0).display_name(), "mychan");
             }
         }
 
@@ -340,11 +342,11 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///cwd/path/to/libmamba-1.4.2-hcea66bb_0.conda"sv;
-                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.url(), CondaURL::parse(url).value());
                 CHECK_EQ(chan.platforms(), platform_list());  // Empty because package
                 CHECK_EQ(chan.display_name(), url);
             }
@@ -358,11 +360,11 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///some/folder"sv;
-                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.url(), CondaURL::parse(url).value());
                 CHECK_EQ(chan.platforms(), params.platforms);
                 CHECK_EQ(chan.display_name(), url);
             }
@@ -375,7 +377,7 @@ TEST_SUITE("specs::channel")
                     UnresolvedChannel::Type::Path
                 );
                 CHECK_EQ(
-                    Channel::resolve(other_specs, ChannelResolveParams{}).at(0).platforms(),
+                    Channel::resolve(other_specs, ChannelResolveParams{}).value().at(0).platforms(),
                     other_specs.platform_filters()
                 );
             }
@@ -389,11 +391,11 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///home/folder"sv;
-                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.url(), CondaURL::parse(url).value());
                 CHECK_EQ(chan.platforms(), params.platforms);
                 CHECK_EQ(chan.display_name(), url);
             }
@@ -407,7 +409,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///cwd/other/folder"sv;
@@ -425,7 +427,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -445,7 +447,7 @@ TEST_SUITE("specs::channel")
 
             SUBCASE("Empty params")
             {
-                auto channels = Channel::resolve(uc, ChannelResolveParams{});
+                auto channels = Channel::resolve(uc, ChannelResolveParams{}).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -456,7 +458,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -476,7 +478,7 @@ TEST_SUITE("specs::channel")
 
             SUBCASE("Empty params")
             {
-                auto channels = Channel::resolve(uc, ChannelResolveParams{});
+                auto channels = Channel::resolve(uc, ChannelResolveParams{}).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -487,7 +489,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -498,10 +500,10 @@ TEST_SUITE("specs::channel")
             SUBCASE("Default platforms")
             {
                 auto params = ChannelResolveParams{ /* .platform= */ { "rainbow-37", "noarch" } };
-                CHECK_EQ(Channel::resolve(uc, params).at(0).platforms(), uc.platform_filters());
+                CHECK_EQ(Channel::resolve(uc, params).value().at(0).platforms(), uc.platform_filters());
 
                 uc.clear_platform_filters();
-                CHECK_EQ(Channel::resolve(uc, params).at(0).platforms(), params.platforms);
+                CHECK_EQ(Channel::resolve(uc, params).value().at(0).platforms(), params.platforms);
             }
 
             SUBCASE("Matching channel alias")
@@ -515,9 +517,9 @@ TEST_SUITE("specs::channel")
                     CAPTURE(alias);
                     auto params = ChannelResolveParams{
                         /* .platform= */ {},
-                        /* .channel_alias= */ CondaURL::parse(alias),
+                        /* .channel_alias= */ CondaURL::parse(alias).value(),
                     };
-                    CHECK_EQ(Channel::resolve(uc, params).at(0).display_name(), "conda-forge");
+                    CHECK_EQ(Channel::resolve(uc, params).value().at(0).display_name(), "conda-forge");
                 }
             }
 
@@ -530,9 +532,9 @@ TEST_SUITE("specs::channel")
                 {
                     auto params = ChannelResolveParams{
                         /* .platform= */ {},
-                        /* .channel_alias= */ CondaURL::parse(alias),
+                        /* .channel_alias= */ CondaURL::parse(alias).value(),
                     };
-                    CHECK_EQ(Channel::resolve(uc, params).at(0).display_name(), url);
+                    CHECK_EQ(Channel::resolve(uc, params).value().at(0).display_name(), url);
                 }
             }
 
@@ -540,14 +542,14 @@ TEST_SUITE("specs::channel")
             {
                 auto params = ChannelResolveParams{
                     /* .platform= */ {},
-                    /* .channel_alias= */ CondaURL::parse("https://repo.mamba.pm/"),
+                    /* .channel_alias= */ CondaURL::parse("https://repo.mamba.pm/").value(),
                     /* .custom_channels= */
-                    { { "mychan", Channel::resolve(uc, ChannelResolveParams{}).at(0) } }
+                    { { "mychan", Channel::resolve(uc, ChannelResolveParams{}).value().at(0) } }
                 };
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.url(), CondaURL::parse(url).value());
                 CHECK_EQ(chan.display_name(), "mychan");
             }
 
@@ -561,10 +563,13 @@ TEST_SUITE("specs::channel")
                     /* .authentication_db= */ { { "repo.mamba.pm", CondaToken{ "mytoken" } } },
                 };
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(chan.url(), CondaURL::parse("https://repo.mamba.pm/t/mytoken/conda-forge"));
+                CHECK_EQ(
+                    chan.url(),
+                    CondaURL::parse("https://repo.mamba.pm/t/mytoken/conda-forge").value()
+                );
                 CHECK_EQ(chan.display_name(), "https://repo.mamba.pm/conda-forge");
             }
 
@@ -582,10 +587,13 @@ TEST_SUITE("specs::channel")
                     },
                 };
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(chan.url(), CondaURL::parse("https://repo.mamba.pm/t/forge-token/conda-forge"));
+                CHECK_EQ(
+                    chan.url(),
+                    CondaURL::parse("https://repo.mamba.pm/t/forge-token/conda-forge").value()
+                );
                 CHECK_EQ(chan.display_name(), "https://repo.mamba.pm/conda-forge");
             }
         }
@@ -605,7 +613,7 @@ TEST_SUITE("specs::channel")
                     /* .authentication_db= */ { { "repo.mamba.pm", CondaToken{ "mytoken" } } },
                 };
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(
@@ -626,7 +634,7 @@ TEST_SUITE("specs::channel")
                     { { "repo.mamba.pm", BasicHTTPAuthentication{ "foo", "weak" } } },
                 };
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 // Higher precedence
@@ -643,7 +651,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -655,10 +663,10 @@ TEST_SUITE("specs::channel")
             {
                 auto params = ChannelResolveParams{
                     /* .platform= */ {},
-                    /* .channel_alias= */ CondaURL::parse("https://repo.anaconda.com"),
+                    /* .channel_alias= */ CondaURL::parse("https://repo.anaconda.com").value(),
                 };
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));
@@ -674,12 +682,12 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(
                     chan.url(),
-                    CondaURL::parse(util::path_concat(params.channel_alias.str(), name))
+                    CondaURL::parse(util::path_concat(params.channel_alias.str(), name)).value()
                 );
                 CHECK_EQ(chan.platforms(), params.platforms);
                 CHECK_EQ(chan.display_name(), name);
@@ -689,14 +697,14 @@ TEST_SUITE("specs::channel")
             {
                 auto params = ChannelResolveParams{
                     /* .platform= */ {},
-                    /* .channel_alias= */ CondaURL::parse("mydomain.com/private"),
+                    /* .channel_alias= */ CondaURL::parse("mydomain.com/private").value(),
                     /* .custom_channels= */ {},
                     /* .custom_multichannels= */ {},
                     /* .authentication_db= */
                     { { "mydomain.com", BasicHTTPAuthentication{ "user", "pass" } } },
                 };
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(
@@ -713,10 +721,11 @@ TEST_SUITE("specs::channel")
                 params.custom_channels.emplace(
                     "conda-forge",
                     Channel::resolve(UnresolvedChannel::parse("ftp://mydomain.net/conda").value(), params)
+                        .value()
                         .at(0)
                 );
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 // Higher precedence.
@@ -734,7 +743,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
@@ -751,7 +760,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(specs, params);
+                auto channels = Channel::resolve(specs, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main/label/dev"));
@@ -768,7 +777,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(
@@ -788,10 +797,11 @@ TEST_SUITE("specs::channel")
                         UnresolvedChannel::parse("https://server.com/private/testchannel").value(),
                         params
                     )
+                        .value()
                         .at(0)
                 );
 
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(
@@ -810,15 +820,16 @@ TEST_SUITE("specs::channel")
 
             auto params = ChannelResolveParams{
                 /* .platform= */ {},
-                /* .channel_alias= */ CondaURL::parse("https://ali.as/"),
+                /* .channel_alias= */ CondaURL::parse("https://ali.as/").value(),
             };
             params.custom_channels.emplace(
                 "prefix",
                 Channel::resolve(UnresolvedChannel::parse("https://server.com/prefix").value(), params)
+                    .value()
                     .at(0)
             );
 
-            auto channels = Channel::resolve(uc, params);
+            auto channels = Channel::resolve(uc, params).value();
             REQUIRE_EQ(channels.size(), 1);
             const auto& chan = channels.front();
             CHECK_EQ(chan.url(), CondaURL::parse("https://ali.as/prefix-and-more"));
@@ -834,7 +845,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 3);
 
                 auto found_names = util::flat_set<std::string>();
@@ -850,7 +861,7 @@ TEST_SUITE("specs::channel")
         SUBCASE("<unknown>")
         {
             auto uc = UnresolvedChannel({}, { "linux-64" }, UnresolvedChannel::Type::Unknown);
-            auto channels = Channel::resolve(uc, ChannelResolveParams{});
+            auto channels = Channel::resolve(uc, ChannelResolveParams{}).value();
             REQUIRE_EQ(channels.size(), 1);
             const auto& chan = channels.front();
             CHECK_EQ(chan.url(), CondaURL());
@@ -867,7 +878,7 @@ TEST_SUITE("specs::channel")
             SUBCASE("Typical parameters")
             {
                 auto params = make_typical_params();
-                auto channels = Channel::resolve(uc, params);
+                auto channels = Channel::resolve(uc, params).value();
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
                 CHECK_EQ(chan.url(), CondaURL::parse(url));

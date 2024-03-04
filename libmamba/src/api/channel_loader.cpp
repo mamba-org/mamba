@@ -157,7 +157,10 @@ namespace mamba
                     {
                         if (channel.is_package())
                         {
-                            auto pkg_info = specs::PackageInfo::from_url(channel.url().str());
+                            auto pkg_info = specs::PackageInfo::from_url(channel.url().str())
+                                                .or_else([](specs::ParseError&& err)
+                                                         { throw std::move(err); })
+                                                .value();
                             packages.push_back(pkg_info);
                             continue;
                         }
@@ -317,7 +320,9 @@ namespace mamba
     {
         for (const auto& spec : specs)
         {
-            auto pkg_info = specs::PackageInfo::from_url(spec);
+            auto pkg_info = specs::PackageInfo::from_url(spec)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
             for (auto channel : channel_context.make_channel(pkg_info.channel))
             {
                 create_mirrors(channel, context.mirrors);

@@ -137,7 +137,7 @@ TEST_SUITE("solver::libsolv::database")
                 {
                     std::size_t count = 0;
                     db.for_each_package_matching(
-                        specs::MatchSpec::parse("z"),
+                        specs::MatchSpec::parse("z").value(),
                         [&](const auto& p)
                         {
                             count++;
@@ -151,7 +151,7 @@ TEST_SUITE("solver::libsolv::database")
                 {
                     std::size_t count = 0;
                     db.for_each_package_matching(
-                        specs::MatchSpec::parse("z>1.0"),
+                        specs::MatchSpec::parse("z>1.0").value(),
                         [&](const auto& p)
                         {
                             count++;
@@ -165,7 +165,7 @@ TEST_SUITE("solver::libsolv::database")
                 {
                     std::size_t count = 0;
                     db.for_each_package_depending_on(
-                        specs::MatchSpec::parse("x"),
+                        specs::MatchSpec::parse("x").value(),
                         [&](const auto& p)
                         {
                             count++;
@@ -193,7 +193,7 @@ TEST_SUITE("solver::libsolv::database")
 
             auto found_python = false;
             db.for_each_package_matching(
-                specs::MatchSpec::parse("python"),
+                specs::MatchSpec::parse("python").value(),
                 [&](const specs::PackageInfo& pkg)
                 {
                     found_python = true;
@@ -222,7 +222,7 @@ TEST_SUITE("solver::libsolv::database")
 
             auto found_python = false;
             db.for_each_package_matching(
-                specs::MatchSpec::parse("python"),
+                specs::MatchSpec::parse("python").value(),
                 [&](const specs::PackageInfo& pkg)
                 {
                     found_python = true;

@@ -55,13 +55,20 @@ namespace mamba
                 ));
             }
 
-            package.info.package_url = package_node["url"].as<std::string>();
+            package.info.package_url = package_node["url"].as<std::string_view>();
             {
-                const auto parsed_info = specs::PackageInfo::from_url(package.info.package_url);
-                package.info.filename = parsed_info.filename;
-                package.info.channel = parsed_info.channel;
-                package.info.build_string = parsed_info.build_string;
-                package.info.subdir = parsed_info.subdir;
+                auto maybe_parsed_info = specs::PackageInfo::from_url(package.info.package_url);
+                if (!maybe_parsed_info)
+                {
+                    return make_unexpected(
+                        maybe_parsed_info.error().what(),
+                        mamba_error_code::invalid_spec
+                    );
+                }
+                package.info.filename = maybe_parsed_info->filename;
+                package.info.channel = maybe_parsed_info->channel;
+                package.info.build_string = maybe_parsed_info->build_string;
+                package.info.subdir = maybe_parsed_info->subdir;
             }
 
             for (const auto& dependency : package_node["dependencies"])

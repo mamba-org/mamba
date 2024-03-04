@@ -129,7 +129,7 @@ TEST_SUITE("specs::CondaURL")
 
         SUBCASE("Parse")
         {
-            url = CondaURL::parse("mamba.org/t/xy-12345678-1234-1234-1234-123456789012");
+            url = CondaURL::parse("mamba.org/t/xy-12345678-1234-1234-1234-123456789012").value();
             CHECK(url.has_token());
             CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
             CHECK_EQ(url.path_without_token(), "/");

@@ -119,16 +119,13 @@ namespace mamba::specs
         return static_cast<const util::URL&>(*this);
     }
 
-    auto CondaURL::parse(std::string_view url) -> CondaURL
+    auto CondaURL::parse(std::string_view url) -> expected_parse_t<CondaURL>
     {
-        return CondaURL(
-            URL::parse(url)
-                .or_else(
-                    [&](const auto&)
-                    { throw specs::ParseError(fmt::format(R"(Failed to parse URL "{}")", url)); }
-                )
-                .value()
-        );
+        return URL::parse(url)
+            .transform([](URL&& u) { return CondaURL(u); })
+            .transform_error(  //
+                [](URL::ParseError&& err) { return specs::ParseError(std::move(err).what); }
+            );
     }
 
     void CondaURL::set_path(std::string_view path, Encode::yes_type)
@@ -537,7 +534,9 @@ namespace mamba::specs
     {
         auto operator""_cu(const char* str, std::size_t len) -> CondaURL
         {
-            return CondaURL::parse({ str, len });
+            return CondaURL::parse({ str, len })
+                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                .value();
         }
     }
 }

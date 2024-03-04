@@ -262,6 +262,10 @@ def test_UnresolvedChannel():
     uc = UnresolvedChannel(location="conda-forge", platform_filters=set(), type="Name")
     assert uc.type == UnresolvedChannel.Type.Name
 
+    # str
+    uc = UnresolvedChannel(location="conda-forge", platform_filters=set(), type="Name")
+    assert str(uc) == "conda-forge"
+
     #  Parser
     uc = UnresolvedChannel.parse("conda-forge[linux-64]")
     assert uc.location == "conda-forge"
@@ -778,13 +782,64 @@ def test_PackageInfo_V2Migrator():
         pkg.url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
 
 
+def test_GlobSpec():
+    GlobSpec = libmambapy.specs.GlobSpec
+    spec = libmambapy.specs.GlobSpec("py*")
+
+    assert GlobSpec().is_free()
+    assert not spec.is_free()
+
+    assert GlobSpec("python").is_exact()
+    assert not spec.is_exact()
+
+    assert spec.contains("python")
+
+    assert str(spec) == "py*"
+
+    # Copy
+    other = copy.deepcopy(spec)
+    assert str(other) == str(spec)
+    assert other is not spec
+
+
 def test_MatchSpec():
     MatchSpec = libmambapy.specs.MatchSpec
 
-    ms = MatchSpec.parse("conda-forge::python=3.7=*pypy")
+    ms = MatchSpec.parse_url("https://conda.com/pkg-2-bld.conda")
+    assert ms.is_file()
+    assert str(ms.name) == "pkg"
+    assert ms.filename == "pkg-2-bld.conda"
+
+    ms = MatchSpec.parse(
+        "conda-forge[plat]:ns:python=3.7=*pypy"
+        "[md5=m,sha256=s,license=l, license_family=lf,track_features=ft,optional]"
+    )
+
+    assert str(ms.channel) == "conda-forge[plat]"
+    assert ms.subdirs == {"plat"}
+    assert ms.name_space == "ns"
+    assert str(ms.name) == "python"
+    assert str(ms.version) == "=3.7"
+    assert str(ms.build_string) == "*pypy"
+    assert ms.md5 == "m"
+    assert ms.sha256 == "s"
+    assert ms.license == "l"
+    assert ms.license_family == "lf"
+    assert ms.track_features == "ft"
+    assert ms.optional
+    assert not ms.is_file()
+    assert not ms.is_simple()
 
     # str
-    assert str(ms) == "conda-forge::python=3.7[build='*pypy']"
+    assert str(ms) == (
+        "conda-forge[plat]::python=3.7"
+        "[build='*pypy',track_features=ft,md5=m,sha256=s,license=l,license_family=lf,optional]"
+    )
+
+    # Copy
+    other = copy.deepcopy(ms)
+    assert str(other) == str(ms)
+    assert other is not ms
 
 
 def test_MatchSpec_V2Migrator():

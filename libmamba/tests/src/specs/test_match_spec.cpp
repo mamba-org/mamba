@@ -54,6 +54,14 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "numpy=1.7");
         }
 
+        SUBCASE("conda-forge:pypi:xtensor==0.12.3")
+        {
+            auto ms = MatchSpec::parse("conda-forge:pypi:xtensor==0.12.3").value();
+            CHECK_EQ(ms.name().str(), "xtensor");
+            CHECK_EQ(ms.channel().value().str(), "conda-forge");
+            CHECK_EQ(ms.name_space(), "pypi");
+        }
+
         SUBCASE("conda-forge/linux-64::xtensor==0.12.3")
         {
             auto ms = MatchSpec::parse("numpy[version='1.7|1.8']").value();

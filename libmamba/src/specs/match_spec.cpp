@@ -141,9 +141,10 @@ namespace mamba::specs
                                         /* spec= */ str.substr(spec_pos + 1),
                                     };
                                 }
+                                assert(spec_pos >= ns_pos + 1);
                                 return {
                                     /* channel= */ str.substr(0, ns_pos),
-                                    /* namespace= */ str.substr(ns_pos + 1, spec_pos),
+                                    /* namespace= */ str.substr(ns_pos + 1, spec_pos - ns_pos - 1),
                                     /* spec= */ str.substr(spec_pos + 1),
                                 };
                             }

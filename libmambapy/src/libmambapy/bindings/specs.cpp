@@ -12,6 +12,8 @@
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/error.hpp"
+#include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/platform.hpp"
@@ -34,6 +36,8 @@ namespace mambapy
     {
         namespace py = pybind11;
         using namespace mamba::specs;
+
+        py::register_local_exception<ParseError>(m, "ParseError", PyExc_ValueError);
 
         m.def("archive_extensions", []() { return ARCHIVE_EXTENSIONS; });
 
@@ -323,6 +327,7 @@ namespace mambapy
                 py::arg("platform_filters"),
                 py::arg("type") = UnresolvedChannel::Type::Unknown
             )
+            .def("__str__", &UnresolvedChannel::str)
             .def("__copy__", &copy<UnresolvedChannel>)
             .def("__deepcopy__", &deepcopy<UnresolvedChannel>, py::arg("memo"))
             .def_property_readonly("type", &UnresolvedChannel::type)
@@ -694,11 +699,36 @@ namespace mambapy
             .def("__copy__", &copy<PackageInfo>)
             .def("__deepcopy__", &deepcopy<PackageInfo>, py::arg("memo"));
 
-        // WIP MatchSpec class
+        py::class_<GlobSpec>(m, "GlobSpec")
+            .def_readonly_static("free_pattern", &GlobSpec::free_pattern)
+            .def_readonly_static("glob_pattern", &GlobSpec::glob_pattern)
+            .def(py::init<>())
+            .def(py::init<std::string>(), py::arg("spec"))
+            .def("contains", &GlobSpec::contains)
+            .def("is_free", &GlobSpec::is_free)
+            .def("is_exact", &GlobSpec::is_exact)
+            .def("__str__", &GlobSpec::str)
+            .def("__copy__", &copy<GlobSpec>)
+            .def("__deepcopy__", &deepcopy<GlobSpec>, py::arg("memo"));
+
         py::class_<MatchSpec>(m, "MatchSpec")
+            .def_property_readonly_static("NameSpec", &py::type::of<GlobSpec>)
+            .def_property_readonly_static("BuildStringSpec", &py::type::of<GlobSpec>)
+            .def_readonly_static("url_md5_sep", &MatchSpec::url_md5_sep)
+            .def_readonly_static("prefered_list_open", &MatchSpec::prefered_list_open)
+            .def_readonly_static("prefered_list_close", &MatchSpec::prefered_list_close)
+            .def_readonly_static("alt_list_open", &MatchSpec::alt_list_open)
+            .def_readonly_static("alt_list_close", &MatchSpec::alt_list_close)
+            .def_readonly_static("prefered_quote", &MatchSpec::prefered_quote)
+            .def_readonly_static("alt_quote", &MatchSpec::alt_quote)
+            .def_readonly_static("channel_namespace_spec_sep", &MatchSpec::channel_namespace_spec_sep)
+            .def_readonly_static("attribute_sep", &MatchSpec::attribute_sep)
+            .def_readonly_static("attribute_assign", &MatchSpec::attribute_assign)
+            .def_readonly_static("package_version_sep", &MatchSpec::package_version_sep)
             .def_static("parse", &MatchSpec::parse)
+            .def_static("parse_url", &MatchSpec::parse_url)
             .def(
-                // Hard deperecation since errors would be hard to track.
+                // V2 Migation: Hard deperecation since errors would be hard to track.
                 py::init(
                     [](std::string_view) -> MatchSpec {
                         throw std::invalid_argument(
@@ -708,6 +738,23 @@ namespace mambapy
                 ),
                 py::arg("spec")
             )
+            .def_property("channel", &MatchSpec::channel, &MatchSpec::set_channel)
+            .def_property("filename", &MatchSpec::filename, &MatchSpec::set_filename)
+            .def_property("subdirs", &MatchSpec::subdirs, &MatchSpec::set_subdirs)
+            .def_property("name_space", &MatchSpec::name_space, &MatchSpec::set_name_space)
+            .def_property("name", &MatchSpec::name, &MatchSpec::set_name)
+            .def_property("version", &MatchSpec::version, &MatchSpec::set_version)
+            .def_property("build_number", &MatchSpec::build_number, &MatchSpec::set_build_number)
+            .def_property("build_string", &MatchSpec::build_string, &MatchSpec::set_build_string)
+            .def_property("md5", &MatchSpec::md5, &MatchSpec::set_md5)
+            .def_property("sha256", &MatchSpec::sha256, &MatchSpec::set_sha256)
+            .def_property("license", &MatchSpec::license, &MatchSpec::set_license)
+            .def_property("license_family", &MatchSpec::license_family, &MatchSpec::set_license_family)
+            .def_property("features", &MatchSpec::features, &MatchSpec::set_features)
+            .def_property("track_features", &MatchSpec::track_features, &MatchSpec::set_track_features)
+            .def_property("optional", &MatchSpec::optional, &MatchSpec::set_optional)
+            .def("is_file", &MatchSpec::is_file)
+            .def("is_simple", &MatchSpec::is_simple)
             .def("conda_build_form", &MatchSpec::conda_build_form)
             .def("__str__", &MatchSpec::str)
             .def("__copy__", &copy<MatchSpec>)

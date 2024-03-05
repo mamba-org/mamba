@@ -740,7 +740,7 @@ namespace mambapy
             )
             .def_property("channel", &MatchSpec::channel, &MatchSpec::set_channel)
             .def_property("filename", &MatchSpec::filename, &MatchSpec::set_filename)
-            .def_property("subdirs", &MatchSpec::subdirs, &MatchSpec::set_subdirs)
+            .def_property("platforms", &MatchSpec::platforms, &MatchSpec::set_platforms)
             .def_property("name_space", &MatchSpec::name_space, &MatchSpec::set_name_space)
             .def_property("name", &MatchSpec::name, &MatchSpec::set_name)
             .def_property("version", &MatchSpec::version, &MatchSpec::set_version)

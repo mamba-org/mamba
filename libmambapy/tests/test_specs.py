@@ -844,7 +844,7 @@ def test_MatchSpec():
     )
 
     assert str(ms.channel) == "conda-forge[plat]"
-    assert ms.subdirs == {"plat"}
+    assert ms.platforms == {"plat"}
     assert ms.name_space == "ns"
     assert str(ms.name) == "python"
     assert str(ms.version) == "=3.7"

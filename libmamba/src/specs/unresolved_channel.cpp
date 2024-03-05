@@ -26,7 +26,7 @@ namespace mamba::specs
 {
     // Defined in  conda_url.cpp
     [[nodiscard]] auto find_slash_and_platform(std::string_view path)
-        -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>;
+        -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>;
 
     auto UnresolvedChannel::parse_platform_list(std::string_view plats) -> dynamic_platform_set
     {

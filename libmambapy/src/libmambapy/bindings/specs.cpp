@@ -59,29 +59,29 @@ namespace mambapy
             [](const mamba::fs::u8path& p) { return strip_archive_extension(p); }
         );
 
-        py::enum_<Platform>(m, "Platform")
-            .value("noarch", Platform::noarch)
-            .value("linux_32", Platform::linux_32)
-            .value("linux_64", Platform::linux_64)
-            .value("linux_armv6l", Platform::linux_armv6l)
-            .value("linux_armv7l", Platform::linux_armv7l)
-            .value("linux_aarch64", Platform::linux_aarch64)
-            .value("linux_ppc64le", Platform::linux_ppc64le)
-            .value("linux_ppc64", Platform::linux_ppc64)
-            .value("linux_s390x", Platform::linux_s390x)
-            .value("linux_riscv32", Platform::linux_riscv32)
-            .value("linux_riscv64", Platform::linux_riscv64)
-            .value("osx_64", Platform::osx_64)
-            .value("osx_arm64", Platform::osx_arm64)
-            .value("win_32", Platform::win_32)
-            .value("win_64", Platform::win_64)
-            .value("win_arm64", Platform::win_arm64)
-            .value("zos_z", Platform::zos_z)
-            .def(py::init(&enum_from_str<Platform>))
+        py::enum_<KnownPlatform>(m, "KnownPlatform")
+            .value("noarch", KnownPlatform::noarch)
+            .value("linux_32", KnownPlatform::linux_32)
+            .value("linux_64", KnownPlatform::linux_64)
+            .value("linux_armv6l", KnownPlatform::linux_armv6l)
+            .value("linux_armv7l", KnownPlatform::linux_armv7l)
+            .value("linux_aarch64", KnownPlatform::linux_aarch64)
+            .value("linux_ppc64le", KnownPlatform::linux_ppc64le)
+            .value("linux_ppc64", KnownPlatform::linux_ppc64)
+            .value("linux_s390x", KnownPlatform::linux_s390x)
+            .value("linux_riscv32", KnownPlatform::linux_riscv32)
+            .value("linux_riscv64", KnownPlatform::linux_riscv64)
+            .value("osx_64", KnownPlatform::osx_64)
+            .value("osx_arm64", KnownPlatform::osx_arm64)
+            .value("win_32", KnownPlatform::win_32)
+            .value("win_64", KnownPlatform::win_64)
+            .value("win_arm64", KnownPlatform::win_arm64)
+            .value("zos_z", KnownPlatform::zos_z)
+            .def(py::init(&enum_from_str<KnownPlatform>))
             .def_static("parse", &platform_parse)
             .def_static("count", &known_platforms_count)
             .def_static("build_platform", &build_platform);
-        py::implicitly_convertible<py::str, Platform>();
+        py::implicitly_convertible<py::str, KnownPlatform>();
 
         py::enum_<NoArchType>(m, "NoArchType")
             .value("No", NoArchType::No)
@@ -259,7 +259,7 @@ namespace mambapy
             )
             .def("clear_path_without_token", &CondaURL::clear_path_without_token)
             .def("platform", &CondaURL::platform)
-            .def("set_platform", [](CondaURL& self, Platform plat) { self.set_platform(plat); })
+            .def("set_platform", [](CondaURL& self, KnownPlatform plat) { self.set_platform(plat); })
             .def("clear_platform", &CondaURL::clear_platform)
             .def(
                 "package",

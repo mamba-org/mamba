@@ -146,7 +146,7 @@ namespace mamba::specs
         auto clear_path_without_token() -> bool;
 
         /** Return the platform if part of the URL path. */
-        [[nodiscard]] auto platform() const -> std::optional<Platform>;
+        [[nodiscard]] auto platform() const -> std::optional<KnownPlatform>;
 
         /**
          * Return the platform if part of the URL path, or empty.
@@ -157,7 +157,7 @@ namespace mamba::specs
         [[nodiscard]] auto platform_name() const -> std::string_view;
 
         /** Set the platform if the URL already contains one, or throw an error. */
-        void set_platform(Platform platform);
+        void set_platform(KnownPlatform platform);
 
         /**
          * Set the platform if the URL already contains one, or throw an error.

@@ -88,7 +88,7 @@ TEST_SUITE("specs::repo_data")
     {
         auto data = RepoData();
         data.version = 1;
-        data.info = ChannelInfo{ /* .subdir= */ Platform::linux_64 };
+        data.info = ChannelInfo{ /* .subdir= */ KnownPlatform::linux_64 };
         data.packages = {
             { "mamba-1.0-h12345.tar.bz2", RepoDataPackage{ "mamba" } },
             { "conda-1.0-h54321.tar.bz2", RepoDataPackage{ "conda" } },

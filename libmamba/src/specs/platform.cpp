@@ -14,7 +14,7 @@
 
 namespace mamba::specs
 {
-    auto platform_parse(std::string_view str) -> std::optional<Platform>
+    auto platform_parse(std::string_view str) -> std::optional<KnownPlatform>
     {
         const std::string str_clean = util::to_lower(util::strip(str));
         for (const auto p : known_platforms())
@@ -30,11 +30,11 @@ namespace mamba::specs
     /**
      * Detect the platform on which mamba was built.
      */
-    auto build_platform() -> Platform
+    auto build_platform() -> KnownPlatform
     {
 #if defined(__linux__)
 #if __x86_64__
-        return Platform::linux_64;
+        return KnownPlatform::linux_64;
 #elif defined(i386)
         return Platform::linux_32;
 #elif defined(__arm__) || defined(__thumb__)
@@ -97,12 +97,12 @@ namespace mamba::specs
         return platform_name(build_platform());
     }
 
-    void to_json(nlohmann::json& j, const Platform& p)
+    void to_json(nlohmann::json& j, const KnownPlatform& p)
     {
         j = platform_name(p);
     }
 
-    void from_json(const nlohmann::json& j, Platform& p)
+    void from_json(const nlohmann::json& j, KnownPlatform& p)
     {
         const auto j_str = j.get<std::string_view>();
         if (const auto maybe = platform_parse(j_str))

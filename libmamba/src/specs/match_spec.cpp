@@ -184,6 +184,24 @@ namespace mamba::specs
             return util::starts_with_any(str, std::array{ 'y', 'Y', 't', 'T', '1' });
         }
 
+        auto split_features(std::string_view str) -> MatchSpec::string_set
+        {
+            auto out = MatchSpec::string_set();
+
+            auto feat = std::string_view();
+            auto rest = std::optional<std::string_view>(str);
+            while (rest.has_value())
+            {
+                std::tie(feat, rest) = util::split_once_on_any(rest.value(), MatchSpec::feature_sep);
+                feat = util::strip(feat);
+                if (!feat.empty())
+                {
+                    out.insert(std::string(feat));
+                }
+            }
+            return out;
+        }
+
         [[nodiscard]] auto set_single_matchspec_attribute_impl(  //
             MatchSpec& spec,
             std::string_view attr,
@@ -252,7 +270,7 @@ namespace mamba::specs
             }
             if (attr == "track_features")
             {
-                spec.set_track_features(std::string(val));
+                spec.set_track_features(split_features(val));
                 return {};
             }
             if (attr == "optional")
@@ -801,18 +819,18 @@ namespace mamba::specs
         }
     }
 
-    auto MatchSpec::track_features() const -> std::string_view
+    auto MatchSpec::track_features() const -> std::optional<string_set_const_ref>
     {
         if (m_extra.has_value())
         {
             return m_extra->track_features;
         }
-        return "";
+        return std::nullopt;
     }
 
-    void MatchSpec::set_track_features(std::string val)
+    void MatchSpec::set_track_features(string_set val)
     {
-        if (val != track_features())  // Avoid allocating extra to set the default value
+        if (!val.empty())  // Avoid allocating extra if empty
         {
             extra().track_features = std::move(val);
         }
@@ -851,6 +869,26 @@ namespace mamba::specs
             return fmt::format("{} * {}", m_name, m_build_string);
         }
         return fmt::format("{}", m_name);
+    }
+
+    namespace
+    {
+        /**
+         * Find if the string needs a quote, and if so return it.
+         * Otherwise return the empty string.
+         */
+        auto find_needed_quote(std::string_view data) -> std::string_view
+        {
+            if (auto pos = data.find_first_of(R"( =")"); pos != std::string_view::npos)
+            {
+                if (util::contains(data.substr(pos), '"'))
+                {
+                    return "'";
+                }
+                return R"(")";
+            }
+            return "";
+        };
     }
 
     auto MatchSpec::str() const -> std::string
@@ -915,37 +953,25 @@ namespace mamba::specs
             }
         }
 
-        auto maybe_quote = [](std::string_view data) -> std::string_view
-        {
-            if (auto pos = data.find_first_of(R"( =")"); pos != std::string_view::npos)
-            {
-                if (util::contains(data.substr(pos), '"'))
-                {
-                    return "'";
-                }
-                return R"(")";
-            }
-            return "";
-        };
-
         if (const auto& num = build_number(); !num.is_explicitly_free())
         {
             formatted_brackets.push_back(util::concat("build_number=", num.str()));
         }
-        if (const auto& tf = track_features(); !tf.empty())
+        if (const auto& tf = track_features(); tf.has_value() && !tf->get().empty())
         {
-            const auto& q = maybe_quote(tf);
-            formatted_brackets.push_back(util::concat("track_features=", q, tf, q));
+            formatted_brackets.push_back(
+                fmt::format(R"(track_features="{}")", fmt::join(tf->get(), " "))
+            );
         }
         if (const auto& feats = features(); !feats.empty())
         {
-            const auto& q = maybe_quote(feats);
+            const auto& q = find_needed_quote(feats);
             formatted_brackets.push_back(util::concat("features=", q, feats, q));
         }
         else if (const auto& fn = filename(); !fn.empty() && !channel_is_file())
         {
             // No "fn" when we have a URL
-            const auto& q = maybe_quote(fn);
+            const auto& q = find_needed_quote(fn);
             formatted_brackets.push_back(util::concat("fn=", q, fn, q));
         }
         if (const auto& hash = md5(); !hash.empty())

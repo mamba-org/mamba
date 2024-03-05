@@ -99,6 +99,13 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.build_number().str(), "=3");
         }
 
+        SUBCASE(R"(blas[track_features="mkl avx"])")
+        {
+            auto ms = MatchSpec::parse(R"(blas[track_features="mkl avx"])").value();
+            CHECK_EQ(ms.name().str(), "blas");
+            CHECK_EQ(ms.track_features().value().get(), MatchSpec::string_set{ "avx", "mkl" });
+        }
+
         SUBCASE("python[build_number='<=3']")
         {
             auto ms = MatchSpec::parse("python[build_number='<=3']").value();

@@ -98,7 +98,7 @@ namespace mamba
             // version are matched properly and that only names must be checked.
             for (const auto& [to_id, record] : dep_graph.nodes())
             {
-                for (const auto& dep : record->depends)
+                for (const auto& dep : record->dependencies)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
                     auto ms = specs::MatchSpec::parse(dep)

@@ -359,7 +359,7 @@ TEST_SUITE("solver::libsolv::solver")
         SUBCASE("numpy 1.0 is installed with python 2.0 and foo")
         {
             auto pkg_numpy = specs::PackageInfo("numpy", "1.0.0", "phony", 0);
-            pkg_numpy.depends = { "python=2.0", "foo" };
+            pkg_numpy.dependencies = { "python=2.0", "foo" };
             const auto installed = db.add_repo_from_packages(std::array{
                 pkg_numpy,
                 specs::PackageInfo("python", "2.0.0", "phony", 0),
@@ -482,7 +482,7 @@ TEST_SUITE("solver::libsolv::solver")
         SUBCASE("numpy 1.0 is installed with python 4.0 and constrained foo")
         {
             auto pkg_numpy = specs::PackageInfo("numpy", "1.0.0", "phony", 0);
-            pkg_numpy.depends = { "python=4.0", "foo" };
+            pkg_numpy.dependencies = { "python=4.0", "foo" };
             auto pkg_foo = specs::PackageInfo("foo", "1.0.0", "phony", 0);
             pkg_foo.constrains = { "numpy=1.0.0", "foo" };
             const auto installed = db.add_repo_from_packages(std::array{

@@ -59,7 +59,7 @@ namespace mamba::solver::libsolv
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
 
-        for (const auto& dep : pkg.depends)
+        for (const auto& dep : pkg.dependencies)
         {
             // TODO pool's matchspec2id
             const solv::DependencyId dep_id = pool.add_conda_dependency(dep);
@@ -104,8 +104,8 @@ namespace mamba::solver::libsolv
         { return pool.dependency_to_string(id); };
         {
             const auto deps = s.dependencies();
-            out.depends.reserve(deps.size());
-            std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
+            out.dependencies.reserve(deps.size());
+            std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.dependencies), dep_to_str);
         }
         {
             const auto cons = s.constraints();

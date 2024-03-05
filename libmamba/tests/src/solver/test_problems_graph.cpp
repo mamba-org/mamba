@@ -92,7 +92,7 @@ namespace
     {
         auto pkg = specs::PackageInfo(std::move(name));
         pkg.version = std::move(version);
-        pkg.depends = std::move(dependencies);
+        pkg.dependencies = std::move(dependencies);
         pkg.build_string = "bld";
         return pkg;
     }

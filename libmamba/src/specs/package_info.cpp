@@ -185,7 +185,7 @@ namespace mamba::specs
         j["sha256"] = sha256;
 
         // Defaulted keys to empty arrays
-        if (depends.empty())
+        if (dependencies.empty())
         {
             if (!contains(defaulted_keys, "depends"))
             {
@@ -194,7 +194,7 @@ namespace mamba::specs
         }
         else
         {
-            j["depends"] = depends;
+            j["depends"] = dependencies;
         }
         if (constrains.empty())
         {
@@ -331,7 +331,7 @@ namespace mamba::specs
                 p.md5,
                 p.sha256,
                 p.track_features,
-                p.depends,
+                p.dependencies,
                 p.constrains,
                 p.signatures,
                 p.defaulted_keys
@@ -376,13 +376,13 @@ namespace mamba::specs
         {
             j["sha256"] = pkg.sha256;
         }
-        if (pkg.depends.empty())
+        if (pkg.dependencies.empty())
         {
             j["depends"] = nlohmann::json::array();
         }
         else
         {
-            j["depends"] = pkg.depends;
+            j["depends"] = pkg.dependencies;
         }
 
         if (pkg.constrains.empty())
@@ -440,7 +440,7 @@ namespace mamba::specs
             pkg.noarch = *it;
         }
 
-        pkg.depends = j.value("depends", std::vector<std::string>());
+        pkg.dependencies = j.value("depends", std::vector<std::string>());
         pkg.constrains = j.value("constrains", std::vector<std::string>());
     }
 }

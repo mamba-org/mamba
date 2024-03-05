@@ -610,7 +610,7 @@ namespace mambapy
                        decltype(PackageInfo::sha256) sha256,
                        decltype(PackageInfo::signatures) signatures,
                        decltype(PackageInfo::track_features) track_features,
-                       decltype(PackageInfo::depends) depends,
+                       decltype(PackageInfo::dependencies) depends,
                        decltype(PackageInfo::constrains) constrains,
                        decltype(PackageInfo::defaulted_keys) defaulted_keys,
                        decltype(PackageInfo::noarch) noarch,
@@ -631,7 +631,7 @@ namespace mambapy
                         pkg.sha256 = sha256;
                         pkg.signatures = signatures;
                         pkg.track_features = track_features;
-                        pkg.depends = depends;
+                        pkg.dependencies = depends;
                         pkg.constrains = constrains;
                         pkg.defaulted_keys = defaulted_keys;
                         pkg.noarch = noarch;
@@ -653,7 +653,7 @@ namespace mambapy
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
                 py::arg("signatures") = decltype(PackageInfo::signatures)(),
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
-                py::arg("depends") = decltype(PackageInfo::depends)(),
+                py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
                 py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys)(),
                 py::arg("noarch") = decltype(PackageInfo::noarch)(),
@@ -689,7 +689,7 @@ namespace mambapy
             .def_readwrite("md5", &PackageInfo::md5)
             .def_readwrite("sha256", &PackageInfo::sha256)
             .def_readwrite("track_features", &PackageInfo::track_features)
-            .def_readwrite("depends", &PackageInfo::depends)
+            .def_readwrite("dependencies", &PackageInfo::dependencies)
             .def_readwrite("constrains", &PackageInfo::constrains)
             .def_readwrite("signatures", &PackageInfo::signatures)
             .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys)

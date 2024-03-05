@@ -81,7 +81,7 @@ TEST_SUITE("specs::package_info")
         pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
         pkg.md5 = "68b329da9893e34099c7d8ad5cb9c940";
         pkg.track_features = { "mkl", "blas" };
-        pkg.depends = { "python>=3.7", "requests" };
+        pkg.dependencies = { "python>=3.7", "requests" };
         pkg.constrains = { "pip>=2.1" };
 
         SUBCASE("field")

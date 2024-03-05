@@ -143,7 +143,7 @@ namespace mamba
             {
                 return;
             }
-            for (const auto& dep : m_graph.node(id).depends)
+            for (const auto& dep : m_graph.node(id).dependencies)
             {
                 // This is an approximation.
                 // Resolving all depenndencies, even of a single Matchspec isnot as simple
@@ -336,10 +336,10 @@ namespace mamba
                 }
             }
 
-            if (!pkg.depends.empty())
+            if (!pkg.dependencies.empty())
             {
                 fmt::print(out, "\n Dependencies:\n");
-                for (auto& d : pkg.depends)
+                for (auto& d : pkg.dependencies)
                 {
                     fmt::print(out, "  - {}\n", d);
                 }
@@ -674,7 +674,7 @@ namespace mamba
                 else if (cmd == "Depends")
                 {
                     std::string depends_qualifier;
-                    for (const auto& dep : pkg.depends)
+                    for (const auto& dep : pkg.dependencies)
                     {
                         if (util::starts_with(dep, args[i]))
                         {

@@ -75,7 +75,7 @@ namespace mamba
             {
                 const auto dependency_name = dependency.first.as<std::string>();
                 const auto dependency_constraint = dependency.second.as<std::string>();
-                package.info.depends.push_back(
+                package.info.dependencies.push_back(
                     fmt::format("{} {}", dependency_name, dependency_constraint)
                 );
             }

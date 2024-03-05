@@ -137,7 +137,7 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency):
     pkgs = db.packages_in_repo(repo)
     assert len(pkgs) == 1
     assert pkgs[0].name == "python"
-    assert pkgs[0].depends == [] if add_pip_as_python_dependency else ["pip"]
+    assert pkgs[0].dependencies == [] if add_pip_as_python_dependency else ["pip"]
 
     db.remove_repo(repo)
     assert db.repo_count() == 0
@@ -202,7 +202,7 @@ def test_Database_RepoInfo_from_repodata(
     pkgs = db.packages_in_repo(repo)
     assert len(pkgs) == repo.package_count()
     assert pkgs[0].name == "python"
-    assert pkgs[0].depends == [] if add_pip_as_python_dependency else ["pip"]
+    assert pkgs[0].dependencies == [] if add_pip_as_python_dependency else ["pip"]
 
     # Native serialize repo
     solv_file = tmp_path / "repodata.solv"

@@ -766,8 +766,8 @@ def test_PackageInfo():
     assert pkg.md5 == "68b329da9893e34099c7d8ad5cb9c940"
     pkg.track_features = ["mkl"]
     assert pkg.track_features == ["mkl"]
-    pkg.depends = ["python>=3.7"]
-    assert pkg.depends == ["python>=3.7"]
+    pkg.dependencies = ["python>=3.7"]
+    assert pkg.dependencies == ["python>=3.7"]
     pkg.constrains = ["pip>=2.1"]
     assert pkg.constrains == ["pip>=2.1"]
 

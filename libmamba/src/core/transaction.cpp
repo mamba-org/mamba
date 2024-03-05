@@ -244,7 +244,7 @@ namespace mamba
                 m_solution.actions,
                 [&](const specs::PackageInfo& pkg)
                 {
-                    for (const auto& dep : pkg.depends)
+                    for (const auto& dep : pkg.dependencies)
                     {
                         m_history_entry.update.push_back(dep);
                     }

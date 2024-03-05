@@ -321,8 +321,7 @@ namespace mambapy
         py_channel_spec  //
             .def_static("parse", UnresolvedChannel::parse)
             .def(
-                py::init<std::string, UnresolvedChannel::dynamic_platform_set, UnresolvedChannel::Type>(
-                ),
+                py::init<std::string, UnresolvedChannel::platform_set, UnresolvedChannel::Type>(),
                 py::arg("location"),
                 py::arg("platform_filters"),
                 py::arg("type") = UnresolvedChannel::Type::Unknown

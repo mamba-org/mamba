@@ -46,6 +46,8 @@ namespace mamba::specs
         count_,
     };
 
+    using DynamicPlatform = std::string;
+
     constexpr auto known_platforms_count() -> std::size_t
     {
         return static_cast<std::size_t>(KnownPlatform::count_);

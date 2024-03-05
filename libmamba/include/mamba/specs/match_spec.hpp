@@ -27,8 +27,8 @@ namespace mamba::specs
 
         using NameSpec = GlobSpec;
         using BuildStringSpec = GlobSpec;
-        using platform_list = typename UnresolvedChannel::dynamic_platform_set;
-        using platform_list_const_ref = std::reference_wrapper<const platform_list>;
+        using platform_set = typename UnresolvedChannel::platform_set;
+        using platform_set_const_ref = std::reference_wrapper<const platform_set>;
 
         inline static constexpr char url_md5_sep = '#';
         inline static constexpr char prefered_list_open = '[';
@@ -55,8 +55,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto is_file() const -> bool;
 
-        [[nodiscard]] auto platforms() const -> std::optional<platform_list_const_ref>;
-        void set_platforms(platform_list val);
+        [[nodiscard]] auto platforms() const -> std::optional<platform_set_const_ref>;
+        void set_platforms(platform_set val);
 
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
@@ -106,7 +106,7 @@ namespace mamba::specs
             // The filename is stored as part of the channel when it is a full Package URL
             std::string filename = {};
             // The filename is stored as part of the channel when it is available
-            platform_list subdirs = {};
+            platform_set subdirs = {};
             std::string md5 = {};
             std::string sha256 = {};
             std::string license = {};
@@ -133,8 +133,8 @@ namespace mamba::specs
         [[nodiscard]] auto extra_filename() const -> std::string_view;
         void set_extra_filename(std::string val);
 
-        [[nodiscard]] auto extra_subdirs() const -> std::optional<platform_list_const_ref>;
-        void set_extra_subdirs(platform_list val);
+        [[nodiscard]] auto extra_subdirs() const -> std::optional<platform_set_const_ref>;
+        void set_extra_subdirs(platform_set val);
     };
 
     namespace match_spec_literals

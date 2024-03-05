@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/flat_set.hpp"
 
 namespace mamba::specs
@@ -87,14 +88,14 @@ namespace mamba::specs
             ":///<unknown>",
         };
 
-        using dynamic_platform_set = util::flat_set<std::string>;
+        using platform_set = util::flat_set<DynamicPlatform>;
 
-        [[nodiscard]] static auto parse_platform_list(std::string_view plats) -> dynamic_platform_set;
+        [[nodiscard]] static auto parse_platform_list(std::string_view plats) -> platform_set;
 
         [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<UnresolvedChannel>;
 
         UnresolvedChannel() = default;
-        UnresolvedChannel(std::string location, dynamic_platform_set filters, Type type);
+        UnresolvedChannel(std::string location, platform_set filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
 
@@ -102,16 +103,16 @@ namespace mamba::specs
         [[nodiscard]] auto location() && -> std::string;
         auto clear_location() -> std::string;
 
-        [[nodiscard]] auto platform_filters() const& -> const dynamic_platform_set&;
-        [[nodiscard]] auto platform_filters() && -> dynamic_platform_set;
-        auto clear_platform_filters() -> dynamic_platform_set;
+        [[nodiscard]] auto platform_filters() const& -> const platform_set&;
+        [[nodiscard]] auto platform_filters() && -> platform_set;
+        auto clear_platform_filters() -> platform_set;
 
         [[nodiscard]] auto str() const -> std::string;
 
     private:
 
         std::string m_location = std::string(unknown_channel);
-        dynamic_platform_set m_platform_filters = {};
+        platform_set m_platform_filters = {};
         Type m_type = Type::Unknown;
     };
 }

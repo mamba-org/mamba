@@ -39,53 +39,53 @@ namespace mamba::specs
         return Platform::linux_32;
 #elif defined(__arm__) || defined(__thumb__)
 #ifdef ___ARM_ARCH_6__
-        return Platform::linux_armv6l;
+        return KnownPlatform::linux_armv6l;
 #elif __ARM_ARCH_7__
-        return Platform::linux_armv7l;
+        return KnownPlatform::linux_armv7l;
 #else
 #error "Unknown Linux arm platform"
 #endif
 #elif _M_ARM == 6
-        return Platform::linux_armv6l;
+        return KnownPlatform::linux_armv6l;
 #elif _M_ARM == 7
-        return Platform::linux_armv7l;
+        return KnownPlatform::linux_armv7l;
 #elif defined(__aarch64__)
-        return Platform::linux_aarch64;
+        return KnownPlatform::linux_aarch64;
 #elif defined(__ppc64__) || defined(__powerpc64__)
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        return Platform::linux_ppc64;
+        return KnownPlatform::linux_ppc64;
 #else
-        return Platform::linux_ppc64le;
+        return KnownPlatform::linux_ppc64le;
 #endif
 #elif defined(__s390x__)
-        return Platform::linux_s390x;
+        return KnownPlatform::linux_s390x;
 #elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 32)
-        return Platform::linux_riscv32;
+        return KnownPlatform::linux_riscv32;
 #elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)
-        return Platform::linux_riscv64;
+        return KnownPlatform::linux_riscv64;
 #else
 #error "Unknown Linux platform"
 #endif
 
 #elif defined(__APPLE__) || defined(__MACH__)
 #if __x86_64__
-        return Platform::osx_64;
+        return KnownPlatform::osx_64;
 #elif __arm64__
-        return Platform::osx_arm64;
+        return KnownPlatform::osx_arm64;
 #else
 #error "Unknown OSX platform"
 #endif
 
 #elif defined(_WIN64)
 #if defined(_M_AMD64)
-        return Platform::win_64;
+        return KnownPlatform::win_64;
 #elif defined(_M_ARM64)
-        return Platform::win_arm64;
+        return KnownPlatform::win_arm64;
 #else
 #error "Unknown Windows platform"
 #endif
 #elif defined(_WIN32)
-        return Platform::win_32;
+        return KnownPlatform::win_32;
 
 #else
 #error "Unknown platform"

@@ -744,7 +744,7 @@ namespace mamba
             }
 
 #if defined(__APPLE__)
-            if (binary_changed && m_pkg_info.subdir == "osx-arm64")
+            if (binary_changed && m_pkg_info.platform == "osx-arm64")
             {
                 codesign(dst, m_context->context().output_params.verbosity > 1);
             }

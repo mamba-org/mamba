@@ -40,7 +40,7 @@ namespace mamba::specs
          */
         std::string channel = {};
         std::string package_url = {};
-        std::string subdir = {};
+        DynamicPlatform platform = {};
         std::string filename = {};
         std::string license = {};
         std::string md5 = {};

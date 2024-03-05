@@ -303,7 +303,7 @@ namespace mamba
             fmt::print(out, fmtstring, "Build", pkg.build_string);
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
-            fmt::print(out, fmtstring, "Subdir", pkg.subdir);
+            fmt::print(out, fmtstring, "Subdir", pkg.platform);
             fmt::print(out, fmtstring, "File Name", pkg.filename);
 
             using CondaURL = typename specs::CondaURL;

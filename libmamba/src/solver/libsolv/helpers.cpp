@@ -48,7 +48,7 @@ namespace mamba::solver::libsolv
         solv.set_build_number(pkg.build_number);
         solv.set_channel(pkg.channel);
         solv.set_url(pkg.package_url);
-        solv.set_subdir(pkg.subdir);
+        solv.set_subdir(pkg.platform);
         solv.set_file_name(pkg.filename);
         solv.set_license(pkg.license);
         solv.set_size(pkg.size);
@@ -92,7 +92,7 @@ namespace mamba::solver::libsolv
         out.build_number = s.build_number();
         out.channel = s.channel();
         out.package_url = s.url();
-        out.subdir = s.subdir();
+        out.platform = s.subdir();
         out.filename = s.file_name();
         out.license = s.license();
         out.size = s.size();

@@ -602,7 +602,7 @@ namespace mambapy
                        decltype(PackageInfo::build_number) build_number,
                        decltype(PackageInfo::channel) channel,
                        decltype(PackageInfo::package_url) package_url,
-                       decltype(PackageInfo::subdir) subdir,
+                       decltype(PackageInfo::platform) platform,
                        decltype(PackageInfo::filename) filename,
                        decltype(PackageInfo::license) license,
                        decltype(PackageInfo::md5) md5,
@@ -623,7 +623,7 @@ namespace mambapy
                         pkg.build_number = std::move(build_number);
                         pkg.channel = channel;
                         pkg.package_url = package_url;
-                        pkg.subdir = subdir;
+                        pkg.platform = platform;
                         pkg.filename = filename;
                         pkg.license = license;
                         pkg.md5 = md5;
@@ -645,7 +645,7 @@ namespace mambapy
                 py::arg("build_number") = decltype(PackageInfo::build_number)(),
                 py::arg("channel") = decltype(PackageInfo::channel)(),
                 py::arg("package_url") = decltype(PackageInfo::package_url)(),
-                py::arg("subdir") = decltype(PackageInfo::subdir)(),
+                py::arg("platform") = decltype(PackageInfo::platform)(),
                 py::arg("filename") = decltype(PackageInfo::filename)(),
                 py::arg("license") = decltype(PackageInfo::license)(),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
@@ -673,7 +673,7 @@ namespace mambapy
                 [](py::handle, py::handle)
                 { throw std::runtime_error("'url' has been renamed 'package_url'"); }
             )
-            .def_readwrite("subdir", &PackageInfo::subdir)
+            .def_readwrite("platform", &PackageInfo::platform)
             .def_readwrite("filename", &PackageInfo::filename)
             .def_property(
                 // V2 migration helper

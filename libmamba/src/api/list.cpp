@@ -80,7 +80,7 @@ namespace mamba
                         obj["channel"] = channels.front().display_name();
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
-                        obj["platform"] = pkg_info.subdir;
+                        obj["platform"] = pkg_info.platform;
                         obj["version"] = pkg_info.version;
                         jout.push_back(obj);
                     }

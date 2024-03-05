@@ -174,7 +174,7 @@ namespace mamba
         // correct URL. This is must never happen!
         assert(channels.size() == 1);
         using Credentials = specs::CondaURL::Credentials;
-        prec.channel = channels.front().platform_url(prec.subdir).str(Credentials::Remove);
+        prec.channel = channels.front().platform_url(prec.platform).str(Credentials::Remove);
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 }  // namespace mamba

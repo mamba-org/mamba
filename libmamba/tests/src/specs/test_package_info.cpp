@@ -33,7 +33,7 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
             CHECK_EQ(pkg.package_url, url);
             CHECK_EQ(pkg.md5, "");
-            CHECK_EQ(pkg.subdir, "linux-64");
+            CHECK_EQ(pkg.platform, "linux-64");
             CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
         }
 
@@ -50,7 +50,7 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
             CHECK_EQ(pkg.package_url, url.substr(0, url.rfind('#')));
             CHECK_EQ(pkg.md5, url.substr(url.rfind('#') + 1));
-            CHECK_EQ(pkg.subdir, "linux-64");
+            CHECK_EQ(pkg.platform, "linux-64");
             CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
         }
 
@@ -73,7 +73,7 @@ TEST_SUITE("specs::package_info")
         pkg.noarch = NoArchType::Generic;
         pkg.channel = "conda-forge";
         pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda";
-        pkg.subdir = "linux-64";
+        pkg.platform = "linux-64";
         pkg.filename = "foo-4.0-mybld.conda";
         pkg.license = "MIT";
         pkg.size = 3200;

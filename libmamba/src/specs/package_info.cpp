@@ -60,7 +60,7 @@ namespace mamba::specs
             out.package_type = parse_extension(spec);
             if (out.package_type == PackageType::Conda)
             {
-                out.subdir = url.platform_name();
+                out.platform = url.platform_name();
                 url.clear_platform();
                 out.channel = util::rstrip(url.str(), '/');
             }
@@ -171,7 +171,7 @@ namespace mamba::specs
         // Mandatory keys
         j["name"] = name;
         j["version"] = version;
-        j["subdir"] = subdir;
+        j["subdir"] = platform;
         j["size"] = size;
         j["timestamp"] = timestamp;
         j["build"] = build_string;
@@ -290,7 +290,7 @@ namespace mamba::specs
         }
         if (field_name == "subdir")
         {
-            return invoke_field_string(*this, &PackageInfo::subdir);
+            return invoke_field_string(*this, &PackageInfo::platform);
         }
         if (field_name == "fn" || field_name == "filename")
         {
@@ -323,7 +323,7 @@ namespace mamba::specs
                 p.build_number,
                 p.channel,
                 p.package_url,
-                p.subdir,
+                p.platform,
                 p.filename,
                 p.license,
                 p.size,
@@ -355,7 +355,7 @@ namespace mamba::specs
         j["version"] = pkg.version;
         j["channel"] = pkg.channel;
         j["url"] = pkg.package_url;  // The conda key name
-        j["subdir"] = pkg.subdir;
+        j["subdir"] = pkg.platform;
         j["fn"] = pkg.filename;  // The conda key name
         j["size"] = pkg.size;
         j["timestamp"] = pkg.timestamp;
@@ -401,7 +401,7 @@ namespace mamba::specs
         pkg.version = j.value("version", "");
         pkg.channel = j.value("channel", "");
         pkg.package_url = j.value("url", "");
-        pkg.subdir = j.value("subdir", "");
+        pkg.platform = j.value("subdir", "");
         pkg.filename = j.value("fn", "");
         pkg.size = j.value("size", std::size_t(0));
         pkg.timestamp = j.value("timestamp", std::size_t(0));

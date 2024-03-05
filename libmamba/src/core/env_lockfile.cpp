@@ -68,7 +68,7 @@ namespace mamba
                 package.info.filename = maybe_parsed_info->filename;
                 package.info.channel = maybe_parsed_info->channel;
                 package.info.build_string = maybe_parsed_info->build_string;
-                package.info.subdir = maybe_parsed_info->subdir;
+                package.info.platform = maybe_parsed_info->platform;
             }
 
             for (const auto& dependency : package_node["dependencies"])

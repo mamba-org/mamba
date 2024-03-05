@@ -167,7 +167,7 @@ TEST_SUITE("specs::CondaURL")
             CHECK_FALSE(url.platform().has_value());
             CHECK_EQ(url.platform_name(), "");
 
-            CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
             CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/");
 
@@ -182,7 +182,7 @@ TEST_SUITE("specs::CondaURL")
             CHECK_FALSE(url.platform().has_value());
             CHECK_EQ(url.platform_name(), "");
 
-            CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
             CHECK_EQ(url.path(), "/conda-forge");
 
             CHECK_FALSE(url.clear_platform());
@@ -196,7 +196,7 @@ TEST_SUITE("specs::CondaURL")
             CHECK_FALSE(url.platform().has_value());
             CHECK_EQ(url.platform_name(), "");
 
-            CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
             CHECK_EQ(url.path(), "/conda-forge/");
 
             CHECK_FALSE(url.clear_platform());
@@ -207,11 +207,11 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("conda-forge/win-64");
 
-            CHECK_EQ(url.platform(), Platform::win_64);
+            CHECK_EQ(url.platform(), KnownPlatform::win_64);
             CHECK_EQ(url.platform_name(), "win-64");
 
-            url.set_platform(Platform::linux_64);
-            CHECK_EQ(url.platform(), Platform::linux_64);
+            url.set_platform(KnownPlatform::linux_64);
+            CHECK_EQ(url.platform(), KnownPlatform::linux_64);
             CHECK_EQ(url.path(), "/conda-forge/linux-64");
 
             CHECK(url.clear_platform());
@@ -222,11 +222,11 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("conda-forge/OSX-64");
 
-            CHECK_EQ(url.platform(), Platform::osx_64);
+            CHECK_EQ(url.platform(), KnownPlatform::osx_64);
             CHECK_EQ(url.platform_name(), "OSX-64");  // Captialization not changed
 
             url.set_platform("Win-64");
-            CHECK_EQ(url.platform(), Platform::win_64);
+            CHECK_EQ(url.platform(), KnownPlatform::win_64);
             CHECK_EQ(url.path(), "/conda-forge/Win-64");  // Captialization not changed
 
             CHECK(url.clear_platform());
@@ -237,11 +237,11 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2");
 
-            CHECK_EQ(url.platform(), Platform::linux_64);
+            CHECK_EQ(url.platform(), KnownPlatform::linux_64);
             CHECK_EQ(url.platform_name(), "linux-64");
 
             url.set_platform("osx-64");
-            CHECK_EQ(url.platform(), Platform::osx_64);
+            CHECK_EQ(url.platform(), KnownPlatform::osx_64);
             CHECK_EQ(url.path(), "/conda-forge/osx-64/micromamba-1.5.1-0.tar.bz2");
 
             CHECK(url.clear_platform());

@@ -216,7 +216,7 @@ namespace mamba::specs
             {
                 if (auto chan = spec.channel(); !chan.has_value() || chan->platform_filters().empty())
                 {
-                    spec.set_subdirs({ UnresolvedChannel::parse_platform_list(val) });
+                    spec.set_platforms({ UnresolvedChannel::parse_platform_list(val) });
                 }
                 return {};
             }
@@ -622,7 +622,7 @@ namespace mamba::specs
         return !filename().empty();
     }
 
-    auto MatchSpec::extra_subdirs() const -> std::optional<subdir_list_const_ref>
+    auto MatchSpec::extra_subdirs() const -> std::optional<platform_set_const_ref>
     {
         if (m_extra.has_value() && !m_extra->subdirs.empty())
         {
@@ -631,7 +631,7 @@ namespace mamba::specs
         return {};
     }
 
-    void MatchSpec::set_extra_subdirs(subdir_list val)
+    void MatchSpec::set_extra_subdirs(platform_set val)
     {
         // Avoid allocating extra to set the default value
         if (m_extra.has_value() || !val.empty())
@@ -640,7 +640,7 @@ namespace mamba::specs
         }
     }
 
-    auto MatchSpec::subdirs() const -> std::optional<subdir_list_const_ref>
+    auto MatchSpec::platforms() const -> std::optional<platform_set_const_ref>
     {
         if (m_channel.has_value() && !m_channel->platform_filters().empty())
         {
@@ -649,7 +649,7 @@ namespace mamba::specs
         return extra_subdirs();
     }
 
-    void MatchSpec::set_subdirs(subdir_list val)
+    void MatchSpec::set_platforms(platform_set val)
     {
         if (m_channel.has_value())
         {

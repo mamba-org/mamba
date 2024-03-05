@@ -25,7 +25,7 @@ namespace mamba::specs
     {
     public:
 
-        using BuildNumber = int;
+        using BuildNumber = std::size_t;
 
         [[nodiscard]] static auto make_free() -> BuildNumberPredicate;
         [[nodiscard]] static auto make_equal_to(BuildNumber ver) -> BuildNumberPredicate;

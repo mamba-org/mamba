@@ -157,7 +157,7 @@ namespace mamba
             res.build_string = build_string.size() ? build_string : "0";
             res.build_number = 0;
             res.channel = "@";
-            res.subdir = subdir;
+            res.platform = subdir;
             res.md5 = "12345678901234567890123456789012";
             res.filename = name;
             return res;

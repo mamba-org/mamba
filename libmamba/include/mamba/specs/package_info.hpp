@@ -40,14 +40,14 @@ namespace mamba::specs
          */
         std::string channel = {};
         std::string package_url = {};
-        std::string subdir = {};
+        DynamicPlatform platform = {};
         std::string filename = {};
         std::string license = {};
         std::string md5 = {};
         std::string sha256 = {};
         std::string signatures = {};
         std::vector<std::string> track_features = {};
-        std::vector<std::string> depends = {};
+        std::vector<std::string> dependencies = {};
         std::vector<std::string> constrains = {};
         std::vector<std::string> defaulted_keys = {};
         NoArchType noarch = NoArchType::No;

@@ -9,14 +9,14 @@ def test_import_submodule():
     import libmambapy.specs as specs
 
     # Dummy execution
-    _p = specs.Platform.noarch
+    _p = specs.KnownPlatform.noarch
 
 
 def test_import_recursive():
     import libmambapy as mamba
 
     # Dummy execution
-    _p = mamba.specs.Platform.noarch
+    _p = mamba.specs.KnownPlatform.noarch
 
 
 def test_ParseError():
@@ -33,35 +33,35 @@ def test_archive_extension():
     assert libmambapy.specs.strip_archive_extension("conda.pkg") == "conda.pkg"
 
 
-def test_Platform():
-    Platform = libmambapy.specs.Platform
+def test_KnownPlatform():
+    KnownPlatform = libmambapy.specs.KnownPlatform
 
-    assert Platform.noarch.name == "noarch"
-    assert Platform.linux_32.name == "linux_32"
-    assert Platform.linux_64.name == "linux_64"
-    assert Platform.linux_armv6l.name == "linux_armv6l"
-    assert Platform.linux_armv7l.name == "linux_armv7l"
-    assert Platform.linux_aarch64.name == "linux_aarch64"
-    assert Platform.linux_ppc64le.name == "linux_ppc64le"
-    assert Platform.linux_ppc64.name == "linux_ppc64"
-    assert Platform.linux_s390x.name == "linux_s390x"
-    assert Platform.linux_riscv32.name == "linux_riscv32"
-    assert Platform.linux_riscv64.name == "linux_riscv64"
-    assert Platform.osx_64.name == "osx_64"
-    assert Platform.osx_arm64.name == "osx_arm64"
-    assert Platform.win_32.name == "win_32"
-    assert Platform.win_64.name == "win_64"
-    assert Platform.win_arm64.name == "win_arm64"
-    assert Platform.zos_z.name == "zos_z"
+    assert KnownPlatform.noarch.name == "noarch"
+    assert KnownPlatform.linux_32.name == "linux_32"
+    assert KnownPlatform.linux_64.name == "linux_64"
+    assert KnownPlatform.linux_armv6l.name == "linux_armv6l"
+    assert KnownPlatform.linux_armv7l.name == "linux_armv7l"
+    assert KnownPlatform.linux_aarch64.name == "linux_aarch64"
+    assert KnownPlatform.linux_ppc64le.name == "linux_ppc64le"
+    assert KnownPlatform.linux_ppc64.name == "linux_ppc64"
+    assert KnownPlatform.linux_s390x.name == "linux_s390x"
+    assert KnownPlatform.linux_riscv32.name == "linux_riscv32"
+    assert KnownPlatform.linux_riscv64.name == "linux_riscv64"
+    assert KnownPlatform.osx_64.name == "osx_64"
+    assert KnownPlatform.osx_arm64.name == "osx_arm64"
+    assert KnownPlatform.win_32.name == "win_32"
+    assert KnownPlatform.win_64.name == "win_64"
+    assert KnownPlatform.win_arm64.name == "win_arm64"
+    assert KnownPlatform.zos_z.name == "zos_z"
 
-    assert len(Platform.__members__) == Platform.count()
-    assert Platform.build_platform() in Platform.__members__.values()
-    assert Platform.parse("linux-64") == Platform.linux_64
-    assert Platform("linux_64") == Platform.linux_64
+    assert len(KnownPlatform.__members__) == KnownPlatform.count()
+    assert KnownPlatform.build_platform() in KnownPlatform.__members__.values()
+    assert KnownPlatform.parse("linux-64") == KnownPlatform.linux_64
+    assert KnownPlatform("linux_64") == KnownPlatform.linux_64
 
     with pytest.raises(KeyError):
         # No parsing, explicit name
-        Platform("linux-64")
+        KnownPlatform("linux-64")
 
 
 def test_NoArchType():
@@ -161,7 +161,7 @@ def test_CondaURL_setters():
     url.set_path_without_token("bar%20", encode=False)
     assert url.path_without_token() == "/bar "
     assert url.clear_path_without_token()
-    # Platform
+    # KnownPlatform
     url.set_path_without_token("conda-forge/win-64", encode=False)
     assert url.platform().name == "win_64"
     url.set_platform("linux_64")
@@ -750,8 +750,8 @@ def test_PackageInfo():
     assert pkg.channel == "conda-forge"
     pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
     assert pkg.package_url == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
-    pkg.subdir = "linux-64"
-    assert pkg.subdir == "linux-64"
+    pkg.platform = "linux-64"
+    assert pkg.platform == "linux-64"
     pkg.filename = "foo-4.0-mybld.conda"
     assert pkg.filename == "foo-4.0-mybld.conda"
     pkg.license = "MIT"
@@ -766,8 +766,8 @@ def test_PackageInfo():
     assert pkg.md5 == "68b329da9893e34099c7d8ad5cb9c940"
     pkg.track_features = ["mkl"]
     assert pkg.track_features == ["mkl"]
-    pkg.depends = ["python>=3.7"]
-    assert pkg.depends == ["python>=3.7"]
+    pkg.dependencies = ["python>=3.7"]
+    assert pkg.dependencies == ["python>=3.7"]
     pkg.constrains = ["pip>=2.1"]
     assert pkg.constrains == ["pip>=2.1"]
 
@@ -844,7 +844,7 @@ def test_MatchSpec():
     )
 
     assert str(ms.channel) == "conda-forge[plat]"
-    assert ms.subdirs == {"plat"}
+    assert ms.platforms == {"plat"}
     assert ms.name_space == "ns"
     assert str(ms.name) == "python"
     assert str(ms.version) == "=3.7"

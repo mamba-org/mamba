@@ -197,7 +197,7 @@ set_env_command(CLI::App* com, Configuration& config)
                             dependencies
                                 // If the size is not one, it's a custom mutli channel
                                 << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.subdir << "::";
+                                << "/" << v.platform << "::";
                         }
                         dependencies << v.name << "=" << v.version;
                         if (!no_build)

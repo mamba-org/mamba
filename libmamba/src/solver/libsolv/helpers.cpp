@@ -48,7 +48,7 @@ namespace mamba::solver::libsolv
         solv.set_build_number(pkg.build_number);
         solv.set_channel(pkg.channel);
         solv.set_url(pkg.package_url);
-        solv.set_subdir(pkg.subdir);
+        solv.set_subdir(pkg.platform);
         solv.set_file_name(pkg.filename);
         solv.set_license(pkg.license);
         solv.set_size(pkg.size);
@@ -59,7 +59,7 @@ namespace mamba::solver::libsolv
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
 
-        for (const auto& dep : pkg.depends)
+        for (const auto& dep : pkg.dependencies)
         {
             // TODO pool's matchspec2id
             const solv::DependencyId dep_id = pool.add_conda_dependency(dep);
@@ -92,7 +92,7 @@ namespace mamba::solver::libsolv
         out.build_number = s.build_number();
         out.channel = s.channel();
         out.package_url = s.url();
-        out.subdir = s.subdir();
+        out.platform = s.subdir();
         out.filename = s.file_name();
         out.license = s.license();
         out.size = s.size();
@@ -104,8 +104,8 @@ namespace mamba::solver::libsolv
         { return pool.dependency_to_string(id); };
         {
             const auto deps = s.dependencies();
-            out.depends.reserve(deps.size());
-            std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
+            out.dependencies.reserve(deps.size());
+            std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.dependencies), dep_to_str);
         }
         {
             const auto cons = s.constraints();

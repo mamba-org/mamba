@@ -12,20 +12,20 @@ using namespace mamba::specs;
 
 TEST_SUITE("specs::platform")
 {
-    TEST_CASE("Platform")
+    TEST_CASE("KnownPlatform")
     {
         SUBCASE("name")
         {
-            CHECK_EQ(platform_name(Platform::linux_riscv32), "linux-riscv32");
-            CHECK_EQ(platform_name(Platform::osx_arm64), "osx-arm64");
-            CHECK_EQ(platform_name(Platform::win_64), "win-64");
+            CHECK_EQ(platform_name(KnownPlatform::linux_riscv32), "linux-riscv32");
+            CHECK_EQ(platform_name(KnownPlatform::osx_arm64), "osx-arm64");
+            CHECK_EQ(platform_name(KnownPlatform::win_64), "win-64");
         }
 
         SUBCASE("parse")
         {
-            CHECK_EQ(platform_parse("linux-armv6l"), Platform::linux_armv6l);
-            CHECK_EQ(platform_parse(" win-32 "), Platform::win_32);
-            CHECK_EQ(platform_parse(" OSX-64"), Platform::osx_64);
+            CHECK_EQ(platform_parse("linux-armv6l"), KnownPlatform::linux_armv6l);
+            CHECK_EQ(platform_parse(" win-32 "), KnownPlatform::win_32);
+            CHECK_EQ(platform_parse(" OSX-64"), KnownPlatform::osx_64);
             CHECK_EQ(platform_parse("linus-46"), std::nullopt);
         }
 

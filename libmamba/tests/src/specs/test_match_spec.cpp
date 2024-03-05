@@ -371,7 +371,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("conda-forge[noarch]::tzdata[subdir=linux64]").value();
             CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
             CHECK_EQ(ms.channel().value().str(), "conda-forge[noarch]");
-            CHECK_EQ(ms.subdirs().value().get(), MatchSpec::subdir_list{ "noarch" });
+            CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "noarch" });
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
             CHECK(ms.build_string().is_free());
@@ -382,7 +382,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("conda-forge::tzdata[subdir=mamba-37]").value();
             CHECK_EQ(ms.str(), "conda-forge[mamba-37]::tzdata");
             CHECK_EQ(ms.channel().value().str(), "conda-forge[mamba-37]");
-            CHECK_EQ(ms.subdirs().value().get(), MatchSpec::subdir_list{ "mamba-37" });
+            CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "mamba-37" });
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
             CHECK(ms.build_string().is_free());
@@ -395,7 +395,7 @@ TEST_SUITE("specs::match_spec")
             )
                           .value();
             CHECK_EQ(ms.channel().value().str(), "conda-canary[linux-64]");
-            CHECK_EQ(ms.subdirs().value().get(), MatchSpec::subdir_list{ "linux-64" });
+            CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "linux-64" });
             CHECK_EQ(ms.name().str(), "conda");
             CHECK_EQ(ms.version().str(), "==4.3.21.0post699+1dab973");  // Not ``.0post`` diff
             CHECK_EQ(ms.build_string().str(), "py36h4a561cd_0");

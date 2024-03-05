@@ -59,29 +59,29 @@ namespace mambapy
             [](const mamba::fs::u8path& p) { return strip_archive_extension(p); }
         );
 
-        py::enum_<Platform>(m, "Platform")
-            .value("noarch", Platform::noarch)
-            .value("linux_32", Platform::linux_32)
-            .value("linux_64", Platform::linux_64)
-            .value("linux_armv6l", Platform::linux_armv6l)
-            .value("linux_armv7l", Platform::linux_armv7l)
-            .value("linux_aarch64", Platform::linux_aarch64)
-            .value("linux_ppc64le", Platform::linux_ppc64le)
-            .value("linux_ppc64", Platform::linux_ppc64)
-            .value("linux_s390x", Platform::linux_s390x)
-            .value("linux_riscv32", Platform::linux_riscv32)
-            .value("linux_riscv64", Platform::linux_riscv64)
-            .value("osx_64", Platform::osx_64)
-            .value("osx_arm64", Platform::osx_arm64)
-            .value("win_32", Platform::win_32)
-            .value("win_64", Platform::win_64)
-            .value("win_arm64", Platform::win_arm64)
-            .value("zos_z", Platform::zos_z)
-            .def(py::init(&enum_from_str<Platform>))
+        py::enum_<KnownPlatform>(m, "KnownPlatform")
+            .value("noarch", KnownPlatform::noarch)
+            .value("linux_32", KnownPlatform::linux_32)
+            .value("linux_64", KnownPlatform::linux_64)
+            .value("linux_armv6l", KnownPlatform::linux_armv6l)
+            .value("linux_armv7l", KnownPlatform::linux_armv7l)
+            .value("linux_aarch64", KnownPlatform::linux_aarch64)
+            .value("linux_ppc64le", KnownPlatform::linux_ppc64le)
+            .value("linux_ppc64", KnownPlatform::linux_ppc64)
+            .value("linux_s390x", KnownPlatform::linux_s390x)
+            .value("linux_riscv32", KnownPlatform::linux_riscv32)
+            .value("linux_riscv64", KnownPlatform::linux_riscv64)
+            .value("osx_64", KnownPlatform::osx_64)
+            .value("osx_arm64", KnownPlatform::osx_arm64)
+            .value("win_32", KnownPlatform::win_32)
+            .value("win_64", KnownPlatform::win_64)
+            .value("win_arm64", KnownPlatform::win_arm64)
+            .value("zos_z", KnownPlatform::zos_z)
+            .def(py::init(&enum_from_str<KnownPlatform>))
             .def_static("parse", &platform_parse)
             .def_static("count", &known_platforms_count)
             .def_static("build_platform", &build_platform);
-        py::implicitly_convertible<py::str, Platform>();
+        py::implicitly_convertible<py::str, KnownPlatform>();
 
         py::enum_<NoArchType>(m, "NoArchType")
             .value("No", NoArchType::No)
@@ -259,7 +259,7 @@ namespace mambapy
             )
             .def("clear_path_without_token", &CondaURL::clear_path_without_token)
             .def("platform", &CondaURL::platform)
-            .def("set_platform", [](CondaURL& self, Platform plat) { self.set_platform(plat); })
+            .def("set_platform", [](CondaURL& self, KnownPlatform plat) { self.set_platform(plat); })
             .def("clear_platform", &CondaURL::clear_platform)
             .def(
                 "package",
@@ -321,8 +321,7 @@ namespace mambapy
         py_channel_spec  //
             .def_static("parse", UnresolvedChannel::parse)
             .def(
-                py::init<std::string, UnresolvedChannel::dynamic_platform_set, UnresolvedChannel::Type>(
-                ),
+                py::init<std::string, UnresolvedChannel::platform_set, UnresolvedChannel::Type>(),
                 py::arg("location"),
                 py::arg("platform_filters"),
                 py::arg("type") = UnresolvedChannel::Type::Unknown
@@ -603,14 +602,14 @@ namespace mambapy
                        decltype(PackageInfo::build_number) build_number,
                        decltype(PackageInfo::channel) channel,
                        decltype(PackageInfo::package_url) package_url,
-                       decltype(PackageInfo::subdir) subdir,
+                       decltype(PackageInfo::platform) platform,
                        decltype(PackageInfo::filename) filename,
                        decltype(PackageInfo::license) license,
                        decltype(PackageInfo::md5) md5,
                        decltype(PackageInfo::sha256) sha256,
                        decltype(PackageInfo::signatures) signatures,
                        decltype(PackageInfo::track_features) track_features,
-                       decltype(PackageInfo::depends) depends,
+                       decltype(PackageInfo::dependencies) depends,
                        decltype(PackageInfo::constrains) constrains,
                        decltype(PackageInfo::defaulted_keys) defaulted_keys,
                        decltype(PackageInfo::noarch) noarch,
@@ -624,14 +623,14 @@ namespace mambapy
                         pkg.build_number = std::move(build_number);
                         pkg.channel = channel;
                         pkg.package_url = package_url;
-                        pkg.subdir = subdir;
+                        pkg.platform = platform;
                         pkg.filename = filename;
                         pkg.license = license;
                         pkg.md5 = md5;
                         pkg.sha256 = sha256;
                         pkg.signatures = signatures;
                         pkg.track_features = track_features;
-                        pkg.depends = depends;
+                        pkg.dependencies = depends;
                         pkg.constrains = constrains;
                         pkg.defaulted_keys = defaulted_keys;
                         pkg.noarch = noarch;
@@ -646,14 +645,14 @@ namespace mambapy
                 py::arg("build_number") = decltype(PackageInfo::build_number)(),
                 py::arg("channel") = decltype(PackageInfo::channel)(),
                 py::arg("package_url") = decltype(PackageInfo::package_url)(),
-                py::arg("subdir") = decltype(PackageInfo::subdir)(),
+                py::arg("platform") = decltype(PackageInfo::platform)(),
                 py::arg("filename") = decltype(PackageInfo::filename)(),
                 py::arg("license") = decltype(PackageInfo::license)(),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
                 py::arg("signatures") = decltype(PackageInfo::signatures)(),
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
-                py::arg("depends") = decltype(PackageInfo::depends)(),
+                py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
                 py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys)(),
                 py::arg("noarch") = decltype(PackageInfo::noarch)(),
@@ -674,7 +673,7 @@ namespace mambapy
                 [](py::handle, py::handle)
                 { throw std::runtime_error("'url' has been renamed 'package_url'"); }
             )
-            .def_readwrite("subdir", &PackageInfo::subdir)
+            .def_readwrite("platform", &PackageInfo::platform)
             .def_readwrite("filename", &PackageInfo::filename)
             .def_property(
                 // V2 migration helper
@@ -689,7 +688,7 @@ namespace mambapy
             .def_readwrite("md5", &PackageInfo::md5)
             .def_readwrite("sha256", &PackageInfo::sha256)
             .def_readwrite("track_features", &PackageInfo::track_features)
-            .def_readwrite("depends", &PackageInfo::depends)
+            .def_readwrite("dependencies", &PackageInfo::dependencies)
             .def_readwrite("constrains", &PackageInfo::constrains)
             .def_readwrite("signatures", &PackageInfo::signatures)
             .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys)
@@ -740,7 +739,7 @@ namespace mambapy
             )
             .def_property("channel", &MatchSpec::channel, &MatchSpec::set_channel)
             .def_property("filename", &MatchSpec::filename, &MatchSpec::set_filename)
-            .def_property("subdirs", &MatchSpec::subdirs, &MatchSpec::set_subdirs)
+            .def_property("platforms", &MatchSpec::platforms, &MatchSpec::set_platforms)
             .def_property("name_space", &MatchSpec::name_space, &MatchSpec::set_name_space)
             .def_property("name", &MatchSpec::name, &MatchSpec::set_name)
             .def_property("version", &MatchSpec::version, &MatchSpec::set_version)

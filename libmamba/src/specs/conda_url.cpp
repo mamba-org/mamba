@@ -25,7 +25,7 @@ namespace mamba::specs
      * Not a static function, it is needed in "channel_spec.cpp".
      */
     auto find_slash_and_platform(std::string_view path)
-        -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>
+        -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>
     {
         static constexpr auto npos = std::string_view::npos;
 
@@ -272,7 +272,7 @@ namespace mamba::specs
         return path(Decode::no).size() != old_len;
     }
 
-    auto CondaURL::platform() const -> std::optional<Platform>
+    auto CondaURL::platform() const -> std::optional<KnownPlatform>
     {
         const auto& l_path = path(Decode::no);
         assert(!l_path.empty() && (l_path.front() == '/'));
@@ -324,7 +324,7 @@ namespace mamba::specs
         return set_platform_no_check_input(platform);
     }
 
-    void CondaURL::set_platform(Platform platform)
+    void CondaURL::set_platform(KnownPlatform platform)
     {
         return set_platform_no_check_input(specs::platform_name(platform));
     }

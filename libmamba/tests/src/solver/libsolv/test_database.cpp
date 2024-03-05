@@ -28,7 +28,7 @@ namespace
         auto out = specs::PackageInfo();
         out.name = std::move(name);
         out.version = std::move(version);
-        out.depends = std::move(deps);
+        out.dependencies = std::move(deps);
         return out;
     }
 }
@@ -169,7 +169,7 @@ TEST_SUITE("solver::libsolv::database")
                         [&](const auto& p)
                         {
                             count++;
-                            CHECK(util::any_starts_with(p.depends, "x"));
+                            CHECK(util::any_starts_with(p.dependencies, "x"));
                         }
                     );
                     CHECK_EQ(count, 1);
@@ -197,7 +197,7 @@ TEST_SUITE("solver::libsolv::database")
                 [&](const specs::PackageInfo& pkg)
                 {
                     found_python = true;
-                    for (auto const& dep : pkg.depends)
+                    for (auto const& dep : pkg.dependencies)
                     {
                         CHECK_FALSE(util::contains(dep, "pip"));
                     }
@@ -227,7 +227,7 @@ TEST_SUITE("solver::libsolv::database")
                 {
                     found_python = true;
                     auto found_pip = false;
-                    for (auto const& dep : pkg.depends)
+                    for (auto const& dep : pkg.dependencies)
                     {
                         found_pip |= util::contains(dep, "pip");
                     }

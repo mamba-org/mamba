@@ -146,7 +146,7 @@ namespace mamba::specs
     struct ChannelInfo
     {
         /** The channel's subdirectory. */
-        Platform subdir = {};
+        KnownPlatform subdir = {};
     };
 
     /** Serialize to JSON. */

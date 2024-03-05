@@ -547,9 +547,7 @@ namespace mamba::specs
     {
         if (const auto& chan = channel(); chan.has_value())
         {
-            auto type = chan->type();
-            using Type = typename UnresolvedChannel::Type;
-            return (type == Type::PackageURL) || (type == Type::PackagePath);
+            return chan->is_package();
         }
         return false;
     }

@@ -227,6 +227,11 @@ namespace mamba::specs
         return std::exchange(m_platform_filters, {});
     }
 
+    auto UnresolvedChannel::is_package() const -> bool
+    {
+        return (type() == Type::PackageURL) || (type() == Type::PackagePath);
+    }
+
     auto UnresolvedChannel::str() const -> std::string
     {
         return fmt::format("{}", *this);

@@ -311,6 +311,11 @@ namespace mamba::specs
         return fmt::format("{:b}", *this);
     }
 
+    auto VersionSpec::expression_size() const -> std::size_t
+    {
+        return m_tree.size();
+    }
+
     namespace
     {
         template <typename Val, typename Range>

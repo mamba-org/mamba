@@ -301,6 +301,31 @@ namespace mamba::specs
                 );
         }
 
+        [[nodiscard]] auto split_attribute_val(std::string_view key_val)
+            -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
+        {
+            // Forbid known ambiguity
+            if (util::starts_with(key_val, "version"))
+            {
+                const auto op_val = util::lstrip(key_val, "version");
+                if ( //
+                                util::starts_with(op_val, "==") //
+                                || util::starts_with(op_val, "!=")
+                                || util::starts_with(op_val, "~=")  //
+                                || util::starts_with(op_val, '>') //
+                                || util::starts_with(op_val, '<'))
+                {
+                    return make_unexpected_parse(fmt::format(
+                        R"(Implicit format "{}" is not allowed, use "version='{}'" instead.)",
+                        key_val,
+                        op_val
+                    ));
+                }
+            }
+
+            return { util::split_once(key_val, MatchSpec::attribute_assign) };
+        }
+
         [[nodiscard]] auto set_matchspec_attributes(  //
             MatchSpec& spec,
             std::string_view attrs
@@ -308,19 +333,39 @@ namespace mamba::specs
         {
             return find_attribute_split(attrs)
                 .and_then(
-                    [&](std::size_t next_pos)
+                    [&](std::size_t next_pos) -> expected_parse_t<std::size_t>
                     {
-                        auto [key, value] = util::split_once(
-                            attrs.substr(0, next_pos),
-                            MatchSpec::attribute_assign
-                        );
-
-                        return set_single_matchspec_attribute(
-                                   spec,
-                                   util::to_lower(util::strip(key)),
-                                   strip_whitespace_quotes(value.value_or("true"))
-                        )
+                        return split_attribute_val(attrs.substr(0, next_pos))
+                            .and_then(
+                                [&](auto&& key_val)
+                                {
+                                    auto [key, value] = std::forward<decltype(key_val)>(key_val);
+                                    return set_single_matchspec_attribute(
+                                        spec,
+                                        util::to_lower(util::strip(key)),
+                                        strip_whitespace_quotes(value.value_or("true"))
+                                    );
+                                }
+                            )
                             .transform([&]() { return next_pos; });
+                    }
+                )
+                .and_then(
+                    [&](std::size_t next_pos) -> expected_parse_t<std::size_t>
+                    {
+                        return split_attribute_val(attrs.substr(0, next_pos))
+                            .and_then(
+                                [&](auto&& key_val)
+                                {
+                                    auto [key, value] = std::forward<decltype(key_val)>(key_val);
+                                    return set_single_matchspec_attribute(
+                                               spec,
+                                               util::to_lower(util::strip(key)),
+                                               strip_whitespace_quotes(value.value_or("true"))
+                                    )
+                                        .transform([&]() { return next_pos; });
+                                }
+                            );
                     }
                 )
                 .and_then(
@@ -940,7 +985,6 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
 
     auto out = ctx.out();
 
-    bool channel_is_package = false;
     if (const auto& chan = spec.channel(); chan.has_value() && chan->is_package())
     {
         out = fmt::format_to(out, "{}", chan.value());

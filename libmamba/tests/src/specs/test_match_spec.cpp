@@ -7,6 +7,7 @@
 #include <doctest/doctest.h>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/string.hpp"
 
 using namespace mamba;
 using namespace mamba::specs;
@@ -432,6 +433,24 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.version().str(), "==4.3.21.0post699+1dab973");  // Not ``.0post`` diff
             CHECK_EQ(ms.build_string().str(), "py36h4a561cd_0");
             CHECK_EQ(ms.str(), "conda-canary[linux-64]::conda==4.3.21.0post699+1dab973=py36h4a561cd_0");
+        }
+    }
+
+    TEST_CASE("Conda discrepencies")
+    {
+        SUBCASE("python[version>3]")
+        {
+            // Supported by conda but we consider to be already served by `version=">3"`
+            auto error = MatchSpec::parse("python[version>3]").error();
+            CHECK(util::contains(error.what(), R"(use "version='>3'" instead)"));
+        }
+
+        SUBCASE("python[version=3.7]")
+        {
+            // Ambiguous, `version=` parsed as attribute assignment, which leads to
+            // `3.7` (similar to `==3.7`) being parsed as VersionSpec
+            auto ms = MatchSpec::parse("python[version=3.7]").value();
+            CHECK_EQ(ms.version().str(), "==3.7");
         }
     }
 

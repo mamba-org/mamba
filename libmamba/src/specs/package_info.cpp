@@ -370,7 +370,7 @@ namespace mamba::specs
         {
             j["sha256"] = pkg.sha256;
         }
-	if (!pkg.signatures.empty())
+        if (!pkg.signatures.empty())
         {
             j["signatures"] = pkg.signatures;
         }

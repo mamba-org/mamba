@@ -147,38 +147,32 @@ namespace mamba::solver::libsolv
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
-        void
-        get_fake_signatures(simdjson::dom::parser& fake_parser, simdjson::dom::object& fake_signatures)
-        {
-            // Getting a fake simdjson::dom::object to simulate empty signatures
-            // A valid empty simdjson::dom::object is not handled in simdjson
-            const auto fake_signatures_json = R"(  { "fake_signatures": "val" }  )"_padded;
-            fake_signatures = fake_parser.parse(fake_signatures_json).get_object().value();
-        }
-
         void set_solv_signatures(
             solv::ObjSolvableView solv,
             const std::string& filename,
-            const simdjson::dom::object& signatures
+            const std::optional<simdjson::dom::object>& signatures
         )
         {
             // NOTE We need to use an intermediate nlohmann::json object to store signatures
             // as simdjson objects are not conceived to be modified smoothly
             // and we need an equivalent structure to how libsolv is storing the signatures
             nlohmann::json glob_sigs, nested_sigs;
-            if (auto sigs = signatures[filename].get_object(); !sigs.error())
+            if (signatures)
             {
-                for (auto dict : sigs)
+                if (auto sigs = signatures.value()[filename].get_object(); !sigs.error())
                 {
-                    for (auto nested_dict : dict.value.get_object())
+                    for (auto dict : sigs)
                     {
-                        nested_sigs[dict.key]["signature"] = nested_dict.value;
-                    }
-                    glob_sigs["signatures"] = nested_sigs;
+                        for (auto nested_dict : dict.value.get_object())
+                        {
+                            nested_sigs[dict.key]["signature"] = nested_dict.value;
+                        }
+                        glob_sigs["signatures"] = nested_sigs;
 
-                    solv.set_signatures(glob_sigs.dump());
-                    LOG_INFO << "Signatures for '" << filename
-                             << "' are set in corresponding solvable.";
+                        solv.set_signatures(glob_sigs.dump());
+                        LOG_INFO << "Signatures for '" << filename
+                                 << "' are set in corresponding solvable.";
+                    }
                 }
             }
             else
@@ -196,7 +190,7 @@ namespace mamba::solver::libsolv
             solv::ObjSolvableView solv,
             const std::string& filename,
             const simdjson::dom::element& pkg,
-            const simdjson::dom::object& signatures,
+            const std::optional<simdjson::dom::object>& signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -372,7 +366,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             const simdjson::dom::object& packages,
-            const simdjson::dom::object& signatures
+            const std::optional<simdjson::dom::object>& signatures
         )
         {
             std::string filename = {};
@@ -429,21 +423,7 @@ namespace mamba::solver::libsolv
             }
             else
             {
-                // NOTE We need to create a fake signatures json doc to get a valid
-                // simdjson::dom::object (otherwise we get a segfault because constructor yields to
-                // an invalid simdjson::dom::object)
-                simdjson::dom::parser fake_parser;
-                simdjson::dom::object fake_signatures;
-                get_fake_signatures(fake_parser, fake_signatures);
-                set_repo_solvables(
-                    pool,
-                    repo,
-                    parsed_url,
-                    channel_id,
-                    default_subdir,
-                    packages,
-                    fake_signatures
-                );
+                set_repo_solvables(pool, repo, parsed_url, channel_id, default_subdir, packages, std::nullopt);
             }
         }
     }

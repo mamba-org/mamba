@@ -12,6 +12,8 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/core.h>
+
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
@@ -146,4 +148,12 @@ namespace mamba::specs
         auto operator""_ms(const char* str, std::size_t len) -> MatchSpec;
     }
 }
+
+template <>
+struct fmt::formatter<::mamba::specs::MatchSpec>
+{
+    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+    auto format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) -> decltype(ctx.out());
+};
 #endif

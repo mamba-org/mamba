@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -891,113 +890,7 @@ namespace mamba::specs
 
     auto MatchSpec::str() const -> std::string
     {
-        std::stringstream res;
-        // builder = []
-        // brackets = []
-
-        // channel_matcher = self._match_components.get('channel')
-        // if channel_matcher and channel_matcher.exact_value:
-        //     builder.append(text_type(channel_matcher))
-        // elif channel_matcher and not channel_matcher.matches_all:
-        //     brackets.append("channel=%s" % text_type(channel_matcher))
-
-        // subdir_matcher = self._match_components.get('subdir')
-        // if subdir_matcher:
-        //     if channel_matcher and channel_matcher.exact_value:
-        //         builder.append('/%s' % subdir_matcher)
-        //     else:
-        //         brackets.append("subdir=%s" % subdir_matcher)
-
-        // TODO change as attribute if complex URL, and has "url" if PackageUrl
-        if (m_channel.has_value())
-        {
-            res << fmt::format("{}::", *m_channel);
-        }
-        // TODO when namespaces are implemented!
-        // if (!ns.empty())
-        // {
-        //     res << ns;
-        //     res << ":";
-        // }
-        res << m_name.str();
-        std::vector<std::string> formatted_brackets;
-
-        auto is_complex_relation = [](const std::string& s)
-        { return s.find_first_of("><$^|,") != s.npos; };
-
-        if (!m_version.is_explicitly_free())
-        {
-            auto ver = m_version.str();
-            if (is_complex_relation(ver))  // TODO do on VersionSpec
-            {
-                formatted_brackets.push_back(util::concat("version='", ver, "'"));
-            }
-            else
-            {
-                res << ver;
-                // version_exact = true;
-            }
-        }
-
-        if (!m_build_string.is_free())
-        {
-            if (m_build_string.is_exact())
-            {
-                res << "=" << m_build_string.str();
-            }
-            else
-            {
-                formatted_brackets.push_back(util::concat("build='", m_build_string.str(), '\''));
-            }
-        }
-
-        if (const auto& num = build_number(); !num.is_explicitly_free())
-        {
-            formatted_brackets.push_back(util::concat("build_number=", num.str()));
-        }
-        if (const auto& tf = track_features(); tf.has_value() && !tf->get().empty())
-        {
-            formatted_brackets.push_back(
-                fmt::format(R"(track_features="{}")", fmt::join(tf->get(), " "))
-            );
-        }
-        if (const auto& feats = features(); !feats.empty())
-        {
-            const auto& q = find_needed_quote(feats);
-            formatted_brackets.push_back(util::concat("features=", q, feats, q));
-        }
-        else if (const auto& fn = filename(); !fn.empty() && !channel_is_file())
-        {
-            // No "fn" when we have a URL
-            const auto& q = find_needed_quote(fn);
-            formatted_brackets.push_back(util::concat("fn=", q, fn, q));
-        }
-        if (const auto& hash = md5(); !hash.empty())
-        {
-            formatted_brackets.push_back(util::concat("md5=", hash));
-        }
-        if (const auto& hash = sha256(); !hash.empty())
-        {
-            formatted_brackets.push_back(util::concat("sha256=", hash));
-        }
-        if (const auto& l = license(); !l.empty())
-        {
-            formatted_brackets.push_back(util::concat("license=", l));
-        }
-        if (const auto& lf = license_family(); !lf.empty())
-        {
-            formatted_brackets.push_back(util::concat("license_family=", lf));
-        }
-        if (optional())
-        {
-            formatted_brackets.emplace_back("optional");
-        }
-
-        if (!formatted_brackets.empty())
-        {
-            res << "[" << util::join(",", formatted_brackets) << "]";
-        }
-        return res.str();
+        return fmt::format("{}", *this);
     }
 
     auto MatchSpec::is_simple() const -> bool
@@ -1024,4 +917,161 @@ namespace mamba::specs
                 .value();
         }
     }
+}
+
+auto
+fmt::formatter<::mamba::specs::MatchSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
+{
+    // make sure that range is empty
+    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+    {
+        throw fmt::format_error("Invalid format");
+    }
+    return ctx.begin();
+}
+
+auto
+fmt::formatter<::mamba::specs::MatchSpec>::format(
+    const ::mamba::specs::MatchSpec& spec,
+    format_context& ctx
+) -> decltype(ctx.out())
+{
+    using MatchSpec = ::mamba::specs::MatchSpec;
+
+    auto out = ctx.out();
+
+    bool channel_is_package = false;
+    if (const auto& chan = spec.channel(); chan.has_value() && chan->is_package())
+    {
+        out = fmt::format_to(out, "{}", chan.value());
+        if (const auto& md5 = spec.md5(); !md5.empty())
+        {
+            out = fmt::format_to(out, "{}{}", MatchSpec::url_md5_sep, md5);
+        }
+        return out;
+    }
+
+    if (const auto& chan = spec.channel())
+    {
+        out = fmt::format_to(
+            out,
+            "{}{}{}{}",
+            chan.value(),
+            MatchSpec::channel_namespace_spec_sep,
+            spec.name_space(),
+            MatchSpec::channel_namespace_spec_sep
+        );
+    }
+    else if (auto ns = spec.name_space(); !ns.empty())
+    {
+        out = fmt::format_to(out, "{}{}", ns, MatchSpec::channel_namespace_spec_sep);
+    }
+    out = fmt::format_to(out, "{}", spec.name());
+
+    const bool is_complex_version = spec.version().expression_size() > 1;
+    const bool is_complex_build_string = !(
+        spec.build_string().is_exact() || spec.build_string().is_free()
+    );
+
+    // Any relation is complex, we'll write them all inside the attribute section.
+    // For package filename, we avoid writing the version and build string again as they are part
+    // of the url.
+    if (!is_complex_version && !is_complex_build_string)
+    {
+        if (!spec.build_string().is_free())
+        {
+            out = fmt::format_to(out, "{}={}", spec.version(), spec.build_string());
+        }
+        else if (!spec.version().is_explicitly_free())
+        {
+            out = fmt::format_to(out, "{}", spec.version());
+        }
+    }
+
+    bool bracket_written = false;
+    auto ensure_bracket_open_or_comma = [&]()
+    {
+        out = fmt::format_to(
+            out,
+            "{}",
+            bracket_written ? MatchSpec::attribute_sep : MatchSpec::prefered_list_open
+        );
+        bracket_written = true;
+    };
+    auto ensure_bracket_close = [&]()
+    {
+        if (bracket_written)
+        {
+            out = fmt::format_to(out, "{}", MatchSpec::prefered_list_close);
+        }
+    };
+
+    if (is_complex_version || is_complex_build_string)
+    {
+        if (const auto& ver = spec.version(); !ver.is_explicitly_free())
+        {
+            ensure_bracket_open_or_comma();
+            out = fmt::format_to(out, "version={0}{1}{0}", MatchSpec::prefered_quote, ver);
+        }
+        if (const auto& bs = spec.build_string(); !bs.is_free())
+        {
+            ensure_bracket_open_or_comma();
+            out = fmt::format_to(out, "build={0}{1}{0}", MatchSpec::prefered_quote, bs);
+        }
+    }
+    if (const auto& num = spec.build_number(); !num.is_explicitly_free())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(out, "build_number={0}{1}{0}", MatchSpec::prefered_quote, num);
+    }
+    if (const auto& tf = spec.track_features(); tf.has_value() && !tf->get().empty())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(
+            out,
+            "track_features={0}{1}{0}",
+            MatchSpec::prefered_quote,
+            fmt::join(tf->get(), std::string_view(&MatchSpec::feature_sep.front(), 1))
+        );
+    }
+    if (const auto& feats = spec.features(); !feats.empty())
+    {
+        ensure_bracket_open_or_comma();
+        const auto& q = mamba::specs::find_needed_quote(feats);
+        out = fmt::format_to(out, "features={0}{1}{0}", q, feats);
+    }
+    if (const auto& fn = spec.filename(); !fn.empty())
+    {
+        ensure_bracket_open_or_comma();
+        const auto& q = mamba::specs::find_needed_quote(fn);
+        out = fmt::format_to(out, "fn={0}{1}{0}", q, fn);
+    }
+    if (const auto& hash = spec.md5(); !hash.empty())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(out, "md5={}", hash);
+    }
+    if (const auto& hash = spec.sha256(); !hash.empty())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(out, "sha256={}", hash);
+    }
+    if (const auto& license = spec.license(); !license.empty())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(out, "license={}", license);
+    }
+    if (const auto& lf = spec.license_family(); !lf.empty())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(out, "license_family={}", lf);
+    }
+    if (spec.optional())
+    {
+        ensure_bracket_open_or_comma();
+        out = fmt::format_to(out, "optional");
+    }
+    ensure_bracket_close();
+
+    return out;
 }

@@ -860,8 +860,9 @@ def test_MatchSpec():
 
     # str
     assert str(ms) == (
-        "conda-forge[plat]::python=3.7"
-        """[build='*pypy',track_features="ft",md5=m,sha256=s,license=l,license_family=lf,optional]"""
+        "conda-forge[plat]:ns:python"
+        """[version="=3.7",build="*pypy",track_features="ft",md5=m,sha256=s,"""
+        """license=l,license_family=lf,optional]"""
     )
 
     # Copy

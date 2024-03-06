@@ -438,6 +438,16 @@ TEST_SUITE("specs::match_spec")
 
     TEST_CASE("Conda discrepencies")
     {
+        SUBCASE("python=3.7=bld")
+        {
+            // For some reason, conda parses version differently in `python=3.7` and
+            // `python=3.7=bld`.
+            // It is `=3.7` and `==3.7` in the later.
+            auto ms = MatchSpec::parse("python=3.7=bld").value();
+            CHECK_EQ(ms.version().str(), "=3.7");
+            CHECK_EQ(ms.build_string().str(), "bld");
+        }
+
         SUBCASE("python[version>3]")
         {
             // Supported by conda but we consider to be already served by `version=">3"`

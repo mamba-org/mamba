@@ -125,6 +125,7 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
 
 
 .. _libmamba_usage_channel:
+
 Channel
 -------
 The :cpp:type:`Channel <mamba::specs::Channel>` are represented by a
@@ -268,16 +269,16 @@ A version spec is a way to describe a set of versions.
 We have the following primitives:
 
 - ``*`` matches all versions (unrestricted).
-- ``==`` for **equal** states matches versions equal to the given one (a singleton).
+- ``==`` for **equal** matches versions equal to the given one (a singleton).
   For instance ``==1.2.4`` matches ``1.2.4`` only, and not ``1.2.4.1`` or ``1.2``.
   Note that since ``1.2.4.0`` is the same as ``1.2.4``, this is also matched.
-- ``!=`` for ``not equal`` is the opposite, it matches all but the given version.
+- ``!=`` for **not equal** is the opposite, it matches all but the given version.
   For instance ``=!1.2.4`` matches ``1.2.5`` and ``1!1.2.4`` but not ``1.2.4``.
 - ``>`` for **greater** matches versions stricly greater than the current one, for instance
   ``>1.2.4`` matches ``2.0.0``, ``1!1.0.0``, but not ``1.1.0`` or ``1.2.4``.
 - ``>=`` for **greater or equal**.
 - ``<`` for **less**.
-- ``<-`` for **less or equal**.
+- ``<=`` for **less or equal**.
 - ``=`` for **starts with** matches versions that start with the same non zero parts of the version.
   For instance ``=1.7`` matches ``1.7.8``, and ``1.7.0alpha1`` (beware since this is smaller
   than ``1.7.0``).
@@ -300,9 +301,9 @@ For instance, ``(>2.1.0,<3.0)|==2.0.1`` means:
      - and less than ``3.0``.
 
 To create a :cpp:type:`VersionSpec <mamba::specs::VersionSpec>` from a string, we parse it with
-:cpp:type:`VersionSpec.parse <mamba::specs::VersionSpec::parse>`.
+:cpp:func:`VersionSpec.parse <mamba::specs::VersionSpec::parse>`.
 To check if a given version matches a version spec, we use
-:cpp:type:`VersionSpec.contains <mamba::specs::VersionSpec::contains>`.
+:cpp:func:`VersionSpec.contains <mamba::specs::VersionSpec::contains>`.
 
 .. code:: python
 
@@ -313,3 +314,116 @@ To check if a given version matches a version spec, we use
    assert vs.contains(specs.Version.parse("2.4.0"))
    assert vs.contains(specs.Version.parse("2.0.1"))
    assert not vs.contains(specs.Version.parse("3.0.1"))
+
+.. warning::
+
+   Single versions such as ``3.7`` are parsed by Conda and Mamba as ``==3.7``, which can seem
+   unintuitive.
+   As such, it is recommended to always specify an operator.
+   This mistake is especially likely when writing a match spec such as ``python 3.7``.
+
+BuildNumberSpec
+---------------
+Similarily, a build number spec is a way to describe a set of build numbers.
+It's much simpler than the :cpp:type:`VersionSpec <mamba::specs::VersionSpec>` in that it does
+not contain any boolean grammar (the ``,`` and ``|`` operators).
+:cpp:type:`BuildNumberSpec <mamba::specs::BuildNumberSpec>` only contain primitives similar to
+that used in :cpp:type:`VersionSpec <mamba::specs::VersionSpec>`:
+
+- ``*`` or ``=*`` matches all build numbers (unrestricted).
+- ``=`` for **equal** matches build numbers equal to the given one (a singleton).
+- ``!=`` for **not equal**.
+- ``>`` for **greater** matches versions stricly greater than the current one.
+- ``>=`` for **greater or equal**.
+- ``<`` for **less**.
+- ``<=`` for **less or equal**.
+
+To create a :cpp:type:`BuildNumberSpec <mamba::specs::BuildNumberSpec>` from a string, we parse it
+with :cpp:func:`BuildNumberSpec.parse <mamba::specs::BuildNumberSpec::parse>`.
+To check if a given build number matches a build number spec, we use
+:cpp:func:`BuildNumberSpec.contains <mamba::specs::BuildNumberSpec::contains>`.
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   bs = specs.BuildNumberSpec.parse(">2")
+
+   assert bs.contains(3)
+   assert not bs.contains(2)
+
+Other Specs
+-----------
+The :cpp:type:`GlobSpec <mamba::specs::GlobSpec>` is used to match glob expressions on
+strings.
+The only wildcard currently supported is ``*`` which stands for any string (0 or more characters).
+The glob spec is used as the basis for the :cpp:type:`MatchSpec <mamba::specs::MatchSpec>`
+package name and build string.
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   glob = specs.GlobSpec.parse("py*")
+
+   assert glob.contains("python")
+   assert glob.contains("pypy")
+   assert not vs.contains("rust-python")
+
+MatchSpec
+---------
+Ultimately, the :cpp:type:`MatchSpec <mamba::specs::MatchSpec>` is the way to match on conda
+packages, that is a way to describe a set of packages.
+This is what is passed in a command line argument such as ``mamba install <match_spec>``.
+
+Match specs have a complex string representation, which we can informally write as
+``[[<channel>:]<namespace>:]<name>[<version>[=<build_string>]][[<attribute>=<value>, [...]]]``, or
+with an example
+``conda-forge:ns:python>=3.7=*cypthon[subdir="linux-64",fn=pkg.conda]``.
+
+- ``<channel>``, here ``conda-forge`` describes an
+  :cpp:type:`UnresolvedChannel <mamba::specs::UnresolvedChannel>` of where the channel the package
+  should come from.
+  It accepts all values from an unresolved channel, such as ``conda-forge/label/micromamba_dev``,
+  URLs, local file path, and platforms filters in between brackets.
+- ``<namespace>``, here ``ns`` is a future, not implemented, feature.
+  It is nonetheless parsed, and retrievable.
+- ``<name>``, here ``python`` is the package name or glob expression and is the only mandatory
+  field.
+- Following is the :cpp:type:`VersionSpec <mamba::specs::VersionSpec>` ``<version>`` or ``>=3.7``
+  here.
+- When the version specification is written (but it could also be set to ``=*``), it can be
+  followed by a ``<build_string>`` glob specification, here ``*cpython``.
+- Last, a bracket section of comma separated ``<attribute>`` = ``<value>``.
+  In the example, we have two attributes, ``subdir`` and ``fn``.
+  Attribute values support quaoting with ``"`` or ``'``.
+  As such, they can be useful to set previously mentioned field without ambiguity.
+  Valid attribute names are:
+
+  - ``channel``, similar to ``<channel>``.
+  - ``name``, similar to ``<name>``.
+  - ``version``, similar to ``<version>`` (can be useful to set version expression containing
+    parentheses and ``,`` and ``|`` operators).
+  - ``build``, similar to ``<build_string>``.
+  - ``build_number`` to set the :cpp:type:`BuildNumberSpec <mamba::specs::BuildNumberSpec>`
+  - ``subdir`` to select the channel subdirectory platform from which the package must come from.
+  - ``fn`` to select the filename the package must match.
+  - ``md5`` to specify the MD5 hash the package archive must have.
+  - ``sha256`` to specify the SHA256 hash the package archive must have.
+  - ``license`` to specify the license the package must have.
+  - ``track_features`` to specify a list of ``track_features`` specified at the package build time.
+  - ``optional`` to add the package as a constraint rather than a strict dependency.
+
+.. warning::
+
+   Specifying some value mulitple time, such as in ``python>=3.7[version="(=3.9|>3.11)"]``, or
+   ``python[build="foo"][build="bar"]`` is undefined and subject to change in the future.
+
+.. warning::
+
+   When specifying a version in the attribute section, the first ``=`` is parsed as the attribute
+   assignment.
+   That is ``python[version=3.7]`` is equivalent to ``python 3.7``, which is equivalent to
+   ``python==3.7`` (strong equality).
+   This is intuitively different from how we write ``python=3.7``, which we must write with
+   attributes as ``python[version="=3.7"]``.

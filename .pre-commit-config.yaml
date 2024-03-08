@@ -16,6 +16,12 @@ repos:
         args: [--autofix]
       - id: debug-statements
         language_version: python3
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.9.0
+    hooks:
+    - id: rst-backticks
+    - id: rst-directive-colons
+    - id: rst-inline-touching-normal
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:

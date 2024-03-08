@@ -19,24 +19,81 @@
 
 namespace mamba::validation
 {
-    RepoChecker::RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path)
-        : m_base_url(std::move(base_url))
+    RepoChecker::RepoChecker(
+        const Context& context,
+        std::string base_url,
+        fs::u8path ref_path,
+        fs::u8path cache_path
+    )
+        : m_context(context)
+        , m_base_url(std::move(base_url))
         , m_ref_path(std::move(ref_path))
         , m_cache_path(std::move(cache_path))
-        , m_context(context)
     {
+        m_root_version = 0;
     }
+
+    RepoChecker::RepoChecker(RepoChecker&&) noexcept = default;
 
     RepoChecker::~RepoChecker() = default;
 
-    auto RepoChecker::cache_path() -> const fs::u8path&
+    auto RepoChecker::operator=(RepoChecker&&) noexcept -> RepoChecker& = default;
+
+    void RepoChecker::verify_index(const nlohmann::json& j) const
     {
-        return m_cache_path;
+        if (p_index_checker)
+        {
+            p_index_checker->verify_index(j);
+        }
+        else
+        {
+            LOG_ERROR << "Index checker not valid.";
+        }
+    }
+
+    void RepoChecker::verify_index(const fs::u8path& p) const
+    {
+        if (p_index_checker)
+        {
+            p_index_checker->verify_index(p);
+        }
+        else
+        {
+            LOG_ERROR << "Index checker not valid.";
+        }
+    }
+
+    void
+    RepoChecker::verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const
+    {
+        if (p_index_checker)
+        {
+            p_index_checker->verify_package(signed_data, signatures);
+        }
+        else
+        {
+            LOG_ERROR << "Index checker not valid.";
+        }
+    }
+
+    void
+    RepoChecker::verify_package(const nlohmann::json& signed_data, std::string_view signatures) const
+    {
+        if (signatures.empty())
+        {
+            LOG_ERROR << "The given package signatures are empty";
+            throw signatures_error();
+        }
+        else
+        {
+            LOG_INFO << "Verifying package...";
+            verify_package(signed_data, nlohmann::json::parse(signatures));
+        }
     }
 
     void RepoChecker::generate_index_checker()
     {
-        if (p_index_checker == nullptr)
+        if (!p_index_checker)
         {
             // TUF spec 5.1 - Record fixed update start time
             // Expiration computations will be done against
@@ -56,33 +113,26 @@ namespace mamba::validation
         }
     }
 
-    void RepoChecker::verify_index(const nlohmann::json& j) const
+    auto RepoChecker::cache_path() const -> const fs::u8path&
     {
-        p_index_checker->verify_index(j);
+        return m_cache_path;
     }
 
-    void RepoChecker::verify_index(const fs::u8path& p) const
-    {
-        p_index_checker->verify_index(p);
-    }
-
-    void
-    RepoChecker::verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const
-    {
-        p_index_checker->verify_package(signed_data, signatures);
-    }
-
-    auto RepoChecker::root_version() -> std::size_t
+    auto RepoChecker::root_version() const -> std::size_t
     {
         return m_root_version;
     }
 
-    auto RepoChecker::ref_root() -> fs::u8path
+    ////////////////////////////
+    ///// Private methods /////
+    //////////////////////////
+
+    auto RepoChecker::ref_root() const -> fs::u8path
     {
         return m_ref_path / "root.json";
     }
 
-    auto RepoChecker::cached_root() -> fs::u8path
+    auto RepoChecker::cached_root() const -> fs::u8path
     {
         if (cache_path().empty())
         {
@@ -94,19 +144,7 @@ namespace mamba::validation
         }
     }
 
-    void RepoChecker::persist_file(const fs::u8path& file_path)
-    {
-        if (fs::exists(cached_root()))
-        {
-            fs::remove(cached_root());
-        }
-        if (!cached_root().empty())
-        {
-            fs::copy(file_path, cached_root());
-        }
-    }
-
-    auto RepoChecker::initial_trusted_root() -> fs::u8path
+    auto RepoChecker::initial_trusted_root() const -> fs::u8path
     {
         if (fs::exists(cached_root()))
         {
@@ -126,6 +164,18 @@ namespace mamba::validation
         }
     }
 
+    void RepoChecker::persist_file(const fs::u8path& file_path)
+    {
+        if (fs::exists(cached_root()))
+        {
+            fs::remove(cached_root());
+        }
+        if (!cached_root().empty())
+        {
+            fs::copy(file_path, cached_root());
+        }
+    }
+
     auto RepoChecker::get_root_role(const TimeRef& time_reference) -> std::unique_ptr<RootRole>
     {
         // TUF spec 5.3 - Update the root role
@@ -138,10 +188,12 @@ namespace mamba::validation
 
         if (v0_6::SpecImpl().is_compatible(trusted_root))
         {
+            LOG_INFO << "Getting 'root' role, using v0.6";
             updated_root = std::make_unique<v0_6::RootImpl>(trusted_root);
         }
         else if (v1::SpecImpl().is_compatible(trusted_root))
         {
+            LOG_INFO << "Getting 'root' role, using v1";
             updated_root = std::make_unique<v1::RootImpl>(trusted_root);
         }
         else
@@ -178,7 +230,7 @@ namespace mamba::validation
                         request(f.string(), download::MirrorName(""), url, tmp_file_path.string());
                     download::Result res = download::download(
                         std::move(request),
-                        m_context.mirrors,
+                        m_context.get().mirrors,
                         m_context
                     );
 
@@ -220,5 +272,5 @@ namespace mamba::validation
         }
 
         return updated_root;
-    };
+    }
 }

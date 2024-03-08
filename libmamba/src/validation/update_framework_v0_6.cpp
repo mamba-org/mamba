@@ -188,7 +188,7 @@ namespace mamba::validation::v0_6
     }
 
     auto RootImpl::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -352,7 +352,7 @@ namespace mamba::validation::v0_6
     }
 
     auto KeyMgrRole::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -675,7 +675,15 @@ namespace mamba::validation::v0_6
     {
         try
         {
-            check_pkg_signatures(signed_data, signatures);
+            // Libsolv's `repodata.json` parsing returns the signatures alongside other package info
+            // i.e: {"info":{},"signatures":{"public_key":{"signature":"metadata_signature"}}}
+            // But, we are here only interested in the signatures
+            // In the case of parsing using mamba/simdjson, the solvable signatures are set to have
+            // the same format
+            check_pkg_signatures(
+                signed_data,
+                signatures.at("signatures").get<nlohmann::json::object_t>()
+            );
         }
         catch (const threshold_error& e)
         {

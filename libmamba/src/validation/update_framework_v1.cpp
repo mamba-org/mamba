@@ -115,7 +115,7 @@ namespace mamba::validation::v1
     }
 
     auto RootImpl::build_index_checker(
-        Context&,
+        const Context&,
         const TimeRef& /*time_reference*/,
         const std::string& /*url*/,
         const fs::u8path& /*cache_path*/

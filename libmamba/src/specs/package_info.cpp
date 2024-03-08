@@ -176,10 +176,6 @@ namespace mamba::specs
         j["timestamp"] = timestamp;
         j["build"] = build_string;
         j["build_number"] = build_number;
-        if (noarch != NoArchType::No)
-        {
-            j["noarch"] = noarch;
-        }
         j["license"] = license;
         j["md5"] = md5;
         j["sha256"] = sha256;
@@ -196,14 +192,12 @@ namespace mamba::specs
         {
             j["depends"] = dependencies;
         }
-        if (constrains.empty())
-        {
-            if (!contains(defaulted_keys, "constrains"))
-            {
-                j["constrains"] = nlohmann::json::array();
-            }
-        }
-        else
+
+        // NOTE `constrains` is not included in server side (i.e Quetz)
+        // If it is later (or is included within signed metadata even as
+        // an empty array on conda side for example)
+        // => do the same as "depends" above
+        if (!constrains.empty())
         {
             j["constrains"] = constrains;
         }
@@ -376,6 +370,10 @@ namespace mamba::specs
         {
             j["sha256"] = pkg.sha256;
         }
+        if (!pkg.signatures.empty())
+        {
+            j["signatures"] = pkg.signatures;
+        }
         if (pkg.dependencies.empty())
         {
             j["depends"] = nlohmann::json::array();
@@ -417,6 +415,7 @@ namespace mamba::specs
         pkg.license = j.value("license", "");
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
+        pkg.signatures = j.value("signatures", "");
         if (auto it = j.find("track_features"); it != j.end())
         {
             if (it->is_string() && !it->get<std::string_view>().empty())

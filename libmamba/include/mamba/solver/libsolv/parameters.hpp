@@ -31,6 +31,12 @@ namespace mamba::solver::libsolv
         Yes = true,
     };
 
+    enum class VerifyPackages
+    {
+        No = false,
+        Yes = true,
+    };
+
     enum class LogLevel
     {
         Debug,

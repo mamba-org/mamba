@@ -68,4 +68,9 @@ namespace mamba::validation
         : trust_error("Invalid package index metadata")
     {
     }
+
+    signatures_error::signatures_error()
+        : trust_error("Invalid package signatures")
+    {
+    }
 }

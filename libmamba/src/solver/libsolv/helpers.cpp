@@ -35,6 +35,10 @@
 
 namespace mamba::solver::libsolv
 {
+    // Beyond this value, the timestamp would be in milliseconds and therefore should be converted
+    // to seconds.
+    inline constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
+
     void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
     {
         solv.set_name(pkg.name);
@@ -55,7 +59,9 @@ namespace mamba::solver::libsolv
         // TODO conda timestamp are not Unix timestamp.
         // Libsolv normalize them this way, we need to do the same here otherwise the current
         // package may get arbitrary priority.
-        solv.set_timestamp((pkg.timestamp > 253402300799ULL) ? (pkg.timestamp / 1000) : pkg.timestamp);
+        solv.set_timestamp(
+            (pkg.timestamp > MAX_CONDA_TIMESTAMP) ? (pkg.timestamp / 1000) : pkg.timestamp
+        );
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
 
@@ -99,6 +105,7 @@ namespace mamba::solver::libsolv
         out.timestamp = s.timestamp();
         out.md5 = s.md5();
         out.sha256 = s.sha256();
+        out.signatures = s.signatures();
 
         const auto dep_to_str = [&pool](solv::DependencyId id)
         { return pool.dependency_to_string(id); };
@@ -140,6 +147,41 @@ namespace mamba::solver::libsolv
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
+        void set_solv_signatures(
+            solv::ObjSolvableView solv,
+            const std::string& filename,
+            const std::optional<simdjson::dom::object>& signatures
+        )
+        {
+            // NOTE We need to use an intermediate nlohmann::json object to store signatures
+            // as simdjson objects are not conceived to be modified smoothly
+            // and we need an equivalent structure to how libsolv is storing the signatures
+            nlohmann::json glob_sigs, nested_sigs;
+            if (signatures)
+            {
+                if (auto sigs = signatures.value()[filename].get_object(); !sigs.error())
+                {
+                    for (auto dict : sigs)
+                    {
+                        for (auto nested_dict : dict.value.get_object())
+                        {
+                            nested_sigs[dict.key]["signature"] = nested_dict.value;
+                        }
+                        glob_sigs["signatures"] = nested_sigs;
+
+                        solv.set_signatures(glob_sigs.dump());
+                        LOG_INFO << "Signatures for '" << filename
+                                 << "' are set in corresponding solvable.";
+                    }
+                }
+            }
+            else
+            {
+                LOG_DEBUG << "No signatures available for '" << filename
+                          << "'. Downloading without verifying artifacts.";
+            }
+        }
+
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
             // const std::string& repo_url_str,
@@ -148,6 +190,7 @@ namespace mamba::solver::libsolv
             solv::ObjSolvableView solv,
             const std::string& filename,
             const simdjson::dom::element& pkg,
+            const std::optional<simdjson::dom::object>& signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -253,7 +296,7 @@ namespace mamba::solver::libsolv
             if (auto timestamp = pkg["timestamp"].get_uint64(); !timestamp.error())
             {
                 const auto time = timestamp.value_unsafe();
-                solv.set_timestamp((time > 253402300799ULL) ? (time / 1000) : time);
+                solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
 
             if (auto depends = pkg["depends"].get_array(); !depends.error())
@@ -307,6 +350,10 @@ namespace mamba::solver::libsolv
                 }
             }
 
+            // Setting signatures in solvable if they are available and `verify-artifacts` flag is
+            // enabled
+            set_solv_signatures(solv, filename, signatures);
+
             solv.add_self_provide();
             return true;
         }
@@ -318,7 +365,8 @@ namespace mamba::solver::libsolv
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages
+            const simdjson::dom::object& packages,
+            const std::optional<simdjson::dom::object>& signatures
         )
         {
             std::string filename = {};
@@ -334,6 +382,7 @@ namespace mamba::solver::libsolv
                     solv,
                     filename,
                     pkg,
+                    signatures,
                     default_subdir
                 );
                 if (parsed)
@@ -347,14 +396,56 @@ namespace mamba::solver::libsolv
                 }
             }
         }
+
+        void set_repo_solvables_with_sigs(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const specs::CondaURL& parsed_url,
+            const std::string& channel_id,
+            const std::string& default_subdir,
+            const simdjson::dom::object& packages,
+            const simdjson::dom::object& repodata,
+            bool verify_artifacts
+        )
+        {
+            if (auto signatures = repodata["signatures"].get_object();
+                !signatures.error() && verify_artifacts)
+            {
+                set_repo_solvables(
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    packages,
+                    signatures.value()
+                );
+            }
+            else
+            {
+                set_repo_solvables(pool, repo, parsed_url, channel_id, default_subdir, packages, std::nullopt);
+            }
+        }
     }
 
-    auto libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
-        -> expected_t<solv::ObjRepoView>
+    auto libsolv_read_json(
+        solv::ObjRepoView repo,
+        const fs::u8path& filename,
+        bool only_tar_bz2,
+        bool verify_artifacts
+    ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using libsolv";
-        const int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+
+        int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        if (verify_artifacts)
+        {
+            // cf.
+            // https://github.com/openSUSE/libsolv/commit/cc2da2e789f651b2d0d55fe31c258426bf9e984d
+            flags |= CONDA_ADD_WITH_SIGNATUREDATA;
+        }
+
         const auto lock = LockFile(filename);
 
         return util::CFile::try_open(filename, "rb")
@@ -382,7 +473,8 @@ namespace mamba::solver::libsolv
         const fs::u8path& filename,
         const std::string& repo_url,
         const std::string& channel_id,
-        bool only_tar_bz2
+        bool only_tar_bz2,
+        bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
@@ -405,25 +497,29 @@ namespace mamba::solver::libsolv
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
-            set_repo_solvables(
+            set_repo_solvables_with_sigs(
                 pool,
                 repo,
                 /*repo_url,*/ parsed_url,
                 channel_id,
                 default_subdir,
-                pkgs.value()
+                pkgs.value(),
+                repodata,
+                verify_artifacts
             );
         }
 
         if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error() && !only_tar_bz2)
         {
-            set_repo_solvables(
+            set_repo_solvables_with_sigs(
                 pool,
                 repo,
                 /*repo_url,*/ parsed_url,
                 channel_id,
                 default_subdir,
-                pkgs.value()
+                pkgs.value(),
+                repodata,
+                verify_artifacts
             );
         }
 

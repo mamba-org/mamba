@@ -594,6 +594,11 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Strict", ChannelPriority::Strict)
         .value("Disabled", ChannelPriority::Disabled);
 
+    py::enum_<VerificationLevel>(m, "VerificationLevel")
+        .value("Disabled", VerificationLevel::Disabled)
+        .value("Warn", VerificationLevel::Warn)
+        .value("Enabled", VerificationLevel::Enabled);
+
     py::enum_<mamba::log_level>(m, "LogLevel")
         .value("TRACE", mamba::log_level::trace)
         .value("DEBUG", mamba::log_level::debug)
@@ -656,6 +661,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
+        .def_readwrite("experimental_repodata_parsing", &Context::experimental_repodata_parsing)
         .def_readwrite("solver_flags", &Context::solver_flags)
         .def_property(
             "experimental_sat_error_message",
@@ -714,18 +720,18 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("conda_prefix", &Context::PrefixParams::conda_prefix)
         .def_readwrite("root_prefix", &Context::PrefixParams::root_prefix);
 
+    py::class_<ValidationParams>(ctx, "ValidationParams")
+        .def(py::init<>())
+        .def_readwrite("safety_checks", &ValidationParams::safety_checks)
+        .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks)
+        .def_readwrite("verify_artifacts", &ValidationParams::verify_artifacts)
+        .def_readwrite("trusted_channels", &ValidationParams::trusted_channels);
+
     ctx.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
         .def_readwrite("output_params", &Context::output_params)
         .def_readwrite("threads_params", &Context::threads_params)
-        .def_readwrite("prefix_params", &Context::prefix_params);
-
-    // TODO: uncomment these parameters once they are made available to Python api.
-    // py::class_<ValidationOptions>(ctx, "ValidationOptions")
-    //     .def_readwrite("safety_checks", &ValidationOptions::safety_checks)
-    //     .def_readwrite("extra_safety_checks", &ValidationOptions::extra_safety_checks)
-    //     .def_readwrite("verify_artifacts", &ValidationOptions::verify_artifacts);
-
-    // ctx.def_readwrite("validation_params", &Context::validation_params);
+        .def_readwrite("prefix_params", &Context::prefix_params)
+        .def_readwrite("validation_params", &Context::validation_params);
 
     ////////////////////////////////////////////
     //    Support the old deprecated API     ///
@@ -930,6 +936,60 @@ bind_submodule_impl(pybind11::module_ m)
             {
                 deprecated("Use `prefix_params.root_prefix` instead.");
                 self.prefix_params.root_prefix = rp;
+            }
+        );
+
+    // ValidationParams
+    ctx.def_property(
+           "safety_checks",
+           [](const Context& self)
+           {
+               deprecated("Use `validation_params.safety_checks` instead.");
+               return self.validation_params.safety_checks;
+           },
+           [](Context& self, VerificationLevel sc)
+           {
+               deprecated("Use `validation_params.safety_checks` instead.");
+               self.validation_params.safety_checks = sc;
+           }
+    )
+        .def_property(
+            "extra_safety_checks",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.extra_safety_checks` instead.");
+                return self.validation_params.extra_safety_checks;
+            },
+            [](Context& self, bool esc)
+            {
+                deprecated("Use `validation_params.extra_safety_checks` instead.");
+                self.validation_params.extra_safety_checks = esc;
+            }
+        )
+        .def_property(
+            "verify_artifacts",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.verify_artifacts` instead.");
+                return self.validation_params.verify_artifacts;
+            },
+            [](Context& self, bool va)
+            {
+                deprecated("Use `validation_params.verify_artifacts` instead.");
+                self.validation_params.verify_artifacts = va;
+            }
+        )
+        .def_property(
+            "trusted_channels",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.trusted_channels` instead.");
+                return self.validation_params.trusted_channels;
+            },
+            [](Context& self, std::vector<std::string> tc)
+            {
+                deprecated("Use `validation_params.trusted_channels` instead.");
+                self.validation_params.trusted_channels = tc;
             }
         );
 

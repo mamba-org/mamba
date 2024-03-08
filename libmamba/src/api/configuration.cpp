@@ -1224,7 +1224,10 @@ namespace mamba
 
         insert(Configurable("experimental_repodata_parsing", &m_context.experimental_repodata_parsing)
                    .group("Basic")
-                   .description("Enable experimental parsing of repodata.json using nl::json")
+                   .description(  //
+                       "Enable experimental parsing of `repodata.json` using simdjson.\n"
+                       "Default is `true`. `false` means libsolv is used.\n"
+                   )
                    .set_rc_configurable()
                    .set_env_var_names());
 
@@ -1601,10 +1604,22 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Run verifications on packages signatures")
+                   .description(  //
+                       "Run verifications on packages signatures.\n"
+                       "This is still experimental and may not be stable yet.\n"
+                   )
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. It consists of running
                         cryptographic verifications on channels and packages metadata.)")));
+
+        insert(Configurable("trusted_channels", &m_context.validation_params.trusted_channels)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(  //
+                       "The list of trusted channels allowing artifacts verification.\n"
+                       "See `verify-artifacts` for more details.\n"
+                   ));
 
         insert(Configurable("lock_timeout", &m_context.lock_timeout)
                    .group("Extract, Link & Install")

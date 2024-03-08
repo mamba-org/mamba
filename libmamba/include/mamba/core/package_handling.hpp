@@ -15,7 +15,7 @@
 
 namespace mamba
 {
-    struct ValidationOptions;
+    struct ValidationParams;
     class Context;
 
     // Determine the kind of command line to run to extract subprocesses.
@@ -79,7 +79,7 @@ namespace mamba
         const ExtractOptions& options
     );
 
-    bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options);
+    bool validate(const fs::u8path& pkg_folder, const ValidationParams& params);
 
 }  // namespace mamba
 

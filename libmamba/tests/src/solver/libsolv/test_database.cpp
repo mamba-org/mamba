@@ -251,5 +251,139 @@ TEST_SUITE("solver::libsolv::database")
             REQUIRE(repo1.has_value());
             CHECK_EQ(repo1->package_count(), 4);
         }
+
+        SUBCASE("Add repo from repodata with verifying packages signatures")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            SUBCASE("Using mamba parser")
+            {
+                auto repo1 = db.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No,
+                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::VerifyPackages::Yes,
+                    libsolv::RepodataParser::Mamba
+                );
+                REQUIRE(repo1.has_value());
+                CHECK_EQ(repo1->package_count(), 33);
+
+                db.for_each_package_in_repo(
+                    repo1.value(),
+                    [&](const auto& p)
+                    {
+                        if (p.name == "_libgcc_mutex")
+                        {
+                            CHECK_EQ(
+                                p.signatures,
+                                R"({"signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}}})"
+                            );
+                        }
+                        else if (p.name == "bzip2")
+                        {
+                            CHECK_EQ(
+                                p.signatures,
+                                R"({"signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}}})"
+                            );
+                        }
+                        else
+                        {
+                            CHECK_EQ(p.signatures, "");
+                        }
+                    }
+                );
+            }
+
+            SUBCASE("Using libsolv parser")
+            {
+                auto repo1 = db.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No,
+                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::VerifyPackages::Yes,
+                    libsolv::RepodataParser::Libsolv
+                );
+                REQUIRE(repo1.has_value());
+                CHECK_EQ(repo1->package_count(), 33);
+
+                db.for_each_package_in_repo(
+                    repo1.value(),
+                    [&](const auto& p)
+                    {
+                        if (p.name == "_libgcc_mutex")
+                        {
+                            CHECK(
+                                p.signatures.c_str()
+                                == doctest::Contains(
+                                    R"("signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}})"
+                                )
+                            );
+                        }
+                        else if (p.name == "bzip2")
+                        {
+                            CHECK(
+                                p.signatures.c_str()
+                                == doctest::Contains(
+                                    R"("signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}})"
+                                )
+                            );
+                        }
+                        else
+                        {
+                            CHECK_EQ(p.signatures, "");
+                        }
+                    }
+                );
+            }
+        }
+
+        SUBCASE("Add repo from repodata without verifying packages signatures")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            SUBCASE("Using mamba parser")
+            {
+                auto repo1 = db.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No,
+                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::VerifyPackages::No,
+                    libsolv::RepodataParser::Mamba
+                );
+                REQUIRE(repo1.has_value());
+                CHECK_EQ(repo1->package_count(), 33);
+
+                db.for_each_package_in_repo(
+                    repo1.value(),
+                    [&](const auto& p) { CHECK_EQ(p.signatures, ""); }
+                );
+            }
+
+            SUBCASE("Using libsolv parser")
+            {
+                auto repo1 = db.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No,
+                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::VerifyPackages::No,
+                    libsolv::RepodataParser::Libsolv
+                );
+                REQUIRE(repo1.has_value());
+                CHECK_EQ(repo1->package_count(), 33);
+
+                db.for_each_package_in_repo(
+                    repo1.value(),
+                    [&](const auto& p) { CHECK_EQ(p.signatures, ""); }
+                );
+            }
+        }
     }
 }

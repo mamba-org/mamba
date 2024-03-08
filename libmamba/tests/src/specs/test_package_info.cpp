@@ -79,6 +79,7 @@ TEST_SUITE("specs::package_info")
         pkg.size = 3200;
         pkg.timestamp = 4532;
         pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
+        pkg.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
         pkg.md5 = "68b329da9893e34099c7d8ad5cb9c940";
         pkg.track_features = { "mkl", "blas" };
         pkg.dependencies = { "python>=3.7", "requests" };
@@ -119,6 +120,10 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(j.at("size"), 3200);
             CHECK_EQ(j.at("timestamp"), 4532);
             CHECK_EQ(j.at("sha256"), "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b");
+            CHECK_EQ(
+                j.at("signatures"),
+                R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
+            );
             CHECK_EQ(j.at("md5"), "68b329da9893e34099c7d8ad5cb9c940");
             CHECK_EQ(j.at("track_features"), "mkl,blas");
             CHECK_EQ(j.at("depends"), StrVec{ "python>=3.7", "requests" });
@@ -141,6 +146,7 @@ TEST_SUITE("specs::package_info")
             j["size"] = 3200;
             j["timestamp"] = 4532;
             j["sha256"] = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
+            j["signatures"] = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
             j["md5"] = "68b329da9893e34099c7d8ad5cb9c940";
             j["track_features"] = "mkl,blas";
             j["depends"] = StrVec{ "python>=3.7", "requests" };
@@ -172,6 +178,16 @@ TEST_SUITE("specs::package_info")
                 CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{});
                 j["track_features"] = nl::json::array({ "py", "malloc" });
                 CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{ "py", "malloc" });
+            }
+
+            SUBCASE("equality_operator")
+            {
+                CHECK(j.get<PackageInfo>() == pkg);
+            }
+
+            SUBCASE("inequality_operator")
+            {
+                CHECK_FALSE(j.get<PackageInfo>() != pkg);
             }
         }
     }

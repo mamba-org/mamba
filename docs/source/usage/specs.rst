@@ -297,7 +297,7 @@ We have the following primitives:
   For instance ``!=1.7.*`` matches ``1.8.3`` but not ``1.7.2``.
 - ``~=`` for **compatible with** matches versions that are greater or equal and starting with the
   all but the last parts specified, including zeros.
-  For instance `~=2.0` matches ``2.0.0``, ``2.1.3``, but not ``3.0.1`` or ``2.0.0alpha``.
+  For instance ``~=2.0`` matches ``2.0.0``, ``2.1.3``, but not ``3.0.1`` or ``2.0.0alpha``.
 
 All version spec can be combine using a boolean grammar where ``|`` means **or** and ``,`` means
 **and**.

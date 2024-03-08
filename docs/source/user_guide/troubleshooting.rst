@@ -99,8 +99,8 @@ While we make our best effort to keep backward compatibility, it is not impossib
 breaks the current installation.
 The following actions can be tried:
 
-- Reinitializing your shell with `micromamba shell reinit`.
-- Deleting the package cache (`"package cache"` entries in `micromamba info`)
+- Reinitializing your shell with ``micromamba shell reinit``.
+- Deleting the package cache (``"package cache"`` entries in ``micromamba info``)
 
 libmamba.so.2: undefined symbol ...
 -----------------------------------

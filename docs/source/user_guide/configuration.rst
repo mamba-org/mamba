@@ -14,7 +14,7 @@ rely on a pure C++ implementation.
 
 The configuration is parsed/read from multiple sources types:
 
-- **rc file**: a file using `YAML` syntax
+- **rc file**: a file using ``YAML`` syntax
 - **environment variable**: a key/value pair set prior to mamba execution
 - **CLI**: a parsed argument/option from a CLI interface
 - **API**: a value set programmatically by a program relying on mamba
@@ -26,7 +26,8 @@ The precedence order between those sources is:
   :align: center
 
 .. note::
-  `rc` file stands historically for `run commands` which could also translate to `runtime configuration`.
+  ``rc`` file stands historically for ``run commands`` which could also translate to
+  ``runtime configuration``.
   It's a convenient way to persist configuration on the filesystem and use it as default.
 
 
@@ -44,9 +45,9 @@ Example:
 
 Running ``micromamba install xtensor -c my-channel`` with 3 sources of configuration:
 
-- ``channels`` and ``always_yes`` set from rc file located at `~/.mambarc`
-- ``channels`` set from CLI using `-c` option
-- ``always_yes`` set from environment variable using `MAMBA_ALWAYS_YES` env var
+- ``channels`` and ``always_yes`` set from rc file located at ``~/.mambarc``.
+- ``channels`` set from CLI using ``-c`` option.
+- ``always_yes`` set from environment variable using ``MAMBA_ALWAYS_YES`` env var
 
 .. code::
 
@@ -60,7 +61,7 @@ Running ``micromamba install xtensor -c my-channel`` with 3 sources of configura
   $ echo $MAMBA_ALWAYS_YES
   true
 
-The resulting configuration written using `YAML` syntax is:
+The resulting configuration written using ``YAML`` syntax is:
 
 .. code::
 

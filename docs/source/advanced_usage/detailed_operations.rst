@@ -55,7 +55,7 @@ When a package gets installed, several steps are executed:
 
 - the package is downloaded and placed into the ``$ROOT_PREFIX/pkgs`` folder
 - the package is extracted
-- the package is "linked" from the `pkgs` folder into the final destination
+- the package is "linked" from the ``pkgs`` folder into the final destination
 
 When the package is linked to the final destination (for example, some newly created environment), most files are "hard"-linked. That means, there is no copy of the file created. This saves a considerable amount of disk-space when re-using the same package in multiple environments.
 

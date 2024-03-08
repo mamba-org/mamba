@@ -28,7 +28,8 @@ Develop using Taskfile
 ======================
 
 Many development operations can be automated and chained using `Taskfile <https://taskfile.dev/>`_.
-You can follow the installation instructions there, or install it via `conda-forge`.
+You can follow the installation instructions there, or install it via ``conda-forge``.
+
 
 .. code:: bash
 
@@ -63,15 +64,15 @@ At the time of writing, the following tasks are available:
    * create-dev-env:        Create a local development mamba environment with all needed dependencies
    * create-test-env:       Create a local test environment with as a copy of the dev environment.
    * install-cpp:           Install C++ targets into the test environment.
-   * install-py:            Install the `libmambapy` Python package inside the test environment.
-   * micromamba:            Run the development `micromamba`.
+   * install-py:            Install the ``libmambapy`` Python package inside the test environment.
+   * micromamba:            Run the development ``micromamba``.
    * pre-commit:            Run linters and code formatters.
    * reconfigure:           Erase all CMake cache entries and run confiiguration again.
    * stubgen:               Regenerate libmambapy typing stubs.
    * test-docs:             Test the documentation, for instance for dead links.
-   * test-libmamba:         Run `libmamba` C++ based tests.
-   * test-libmambapy:       Run `libmambapy` Python based unit tests.
-   * test-micromamba:       Run `micromamba` integration tests.
+   * test-libmamba:         Run ``libmamba`` C++ based tests.
+   * test-libmambapy:       Run ``libmambapy`` Python based unit tests.
+   * test-micromamba:       Run ``micromamba`` integration tests.
 
 For instance to run ``libmamba`` tests, execute:
 

@@ -107,6 +107,8 @@ namespace mamba::specs
         [[nodiscard]] auto platform_filters() && -> platform_set;
         auto clear_platform_filters() -> platform_set;
 
+        [[nodiscard]] auto is_package() const -> bool;
+
         [[nodiscard]] auto str() const -> std::string;
 
     private:

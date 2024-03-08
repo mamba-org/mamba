@@ -185,6 +185,11 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
+        /**
+         * Return the size of the boolean expression tree.
+         */
+        [[nodiscard]] auto expression_size() const -> std::size_t;
+
     private:
 
         tree_type m_tree;

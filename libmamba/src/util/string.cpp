@@ -628,6 +628,32 @@ namespace mamba::util
         return rsplit_once_impl(str, sep);
     }
 
+    /***************************************************
+     *  Implementation of split_once_on_any functions  *
+     ***************************************************/
+
+    auto split_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        static constexpr auto npos = std::string_view::npos;
+        if (const auto pos = str.find_first_of(many_seps); pos != npos)
+        {
+            return { str.substr(0, pos), str.substr(pos + 1) };
+        }
+        return { str, std::nullopt };
+    }
+
+    auto rsplit_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        static constexpr auto npos = std::string_view::npos;
+        if (const auto pos = str.find_last_of(many_seps); pos != npos)
+        {
+            return { str.substr(0, pos), str.substr(pos + 1) };
+        }
+        return { std::nullopt, str };
+    }
+
     /***************************************
      *  Implementation of split functions  *
      ***************************************/

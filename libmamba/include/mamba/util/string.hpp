@@ -228,6 +228,18 @@ namespace mamba::util
     [[nodiscard]] auto rsplit_once(std::string_view str, std::string_view sep)
         -> std::tuple<std::optional<std::string_view>, std::string_view>;
 
+    [[nodiscard]] auto split_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+    template <std::size_t N>
+    [[nodiscard]] auto split_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+
+    [[nodiscard]] auto rsplit_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+    template <std::size_t N>
+    [[nodiscard]] auto rsplit_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+
     [[nodiscard]] auto
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX)
         -> std::vector<std::string>;
@@ -541,6 +553,20 @@ namespace mamba::util
         -> std::array<std::wstring_view, 3>
     {
         return detail::strip_if_parts_impl(input, std::move(should_strip));
+    }
+
+    template <std::size_t N>
+    auto split_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        return split_once_on_any(str, std::string_view{ many_seps.data(), many_seps.size() });
+    }
+
+    template <std::size_t N>
+    auto rsplit_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        return rsplit_once_on_any(str, std::string_view{ many_seps.data(), many_seps.size() });
     }
 
     /**************************************

@@ -853,15 +853,16 @@ def test_MatchSpec():
     assert ms.sha256 == "s"
     assert ms.license == "l"
     assert ms.license_family == "lf"
-    assert ms.track_features == "ft"
+    assert ms.track_features == {"ft"}
     assert ms.optional
     assert not ms.is_file()
     assert not ms.is_simple()
 
     # str
     assert str(ms) == (
-        "conda-forge[plat]::python=3.7"
-        "[build='*pypy',track_features=ft,md5=m,sha256=s,license=l,license_family=lf,optional]"
+        "conda-forge[plat]:ns:python"
+        """[version="=3.7",build="*pypy",track_features="ft",md5=m,sha256=s,"""
+        """license=l,license_family=lf,optional]"""
     )
 
     # Copy

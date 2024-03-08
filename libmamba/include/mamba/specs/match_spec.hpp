@@ -12,11 +12,14 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/core.h>
+
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version_spec.hpp"
+#include "mamba/util/flat_set.hpp"
 #include "mamba/util/heap_optional.hpp"
 
 namespace mamba::specs
@@ -29,6 +32,8 @@ namespace mamba::specs
         using BuildStringSpec = GlobSpec;
         using platform_set = typename UnresolvedChannel::platform_set;
         using platform_set_const_ref = std::reference_wrapper<const platform_set>;
+        using string_set = typename util::flat_set<std::string>;
+        using string_set_const_ref = typename std::reference_wrapper<const string_set>;
 
         inline static constexpr char url_md5_sep = '#';
         inline static constexpr char prefered_list_open = '[';
@@ -41,6 +46,7 @@ namespace mamba::specs
         inline static constexpr char attribute_sep = ',';
         inline static constexpr char attribute_assign = '=';
         inline static constexpr auto package_version_sep = std::array{ ' ', '=', '<', '>', '~', '!' };
+        inline static constexpr auto feature_sep = std::array{ ' ', ',' };
 
 
         [[nodiscard]] static auto parse(std::string_view spec) -> expected_parse_t<MatchSpec>;
@@ -88,8 +94,8 @@ namespace mamba::specs
         [[nodiscard]] auto features() const -> std::string_view;
         void set_features(std::string val);
 
-        [[nodiscard]] auto track_features() const -> std::string_view;
-        void set_track_features(std::string val);
+        [[nodiscard]] auto track_features() const -> std::optional<string_set_const_ref>;
+        void set_track_features(string_set val);
 
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
@@ -112,7 +118,7 @@ namespace mamba::specs
             std::string license = {};
             std::string license_family = {};
             std::string features = {};
-            std::string track_features = {};
+            string_set track_features = {};
             bool optional = false;
         };
 
@@ -142,4 +148,12 @@ namespace mamba::specs
         auto operator""_ms(const char* str, std::size_t len) -> MatchSpec;
     }
 }
+
+template <>
+struct fmt::formatter<::mamba::specs::MatchSpec>
+{
+    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+    auto format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) -> decltype(ctx.out());
+};
 #endif

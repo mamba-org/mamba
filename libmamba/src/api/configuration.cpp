@@ -613,6 +613,86 @@ namespace mamba
             }
         }
 
+        auto validate_existing_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
+        {
+            auto prefix = fs::u8path(util::expand_home(candidate.string()));
+
+            if (prefix.empty())
+            {
+                return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
+            }
+
+            if (!fs::exists(prefix / "pkgs")           //
+                || !fs::exists(prefix / "conda-meta")  //
+                || !fs::exists(prefix / "envs"))
+            {
+                return make_unexpected(
+                    fmt::format(R"(Path "{}" is not an existing root prefix.)", prefix.string()),
+                    mamba_error_code::incorrect_usage
+                );
+            }
+
+            return { fs::weakly_canonical(std::move(prefix)) };
+        }
+
+        auto validate_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
+        {
+            auto prefix = fs::u8path(util::expand_home(candidate.string()));
+
+            if (prefix.empty())
+            {
+                return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
+            }
+
+            if (fs::exists(prefix))
+            {
+                if (fs::is_directory(prefix))
+                {
+                    if (auto maybe_prefix = validate_existing_root_prefix(prefix);
+                        maybe_prefix.has_value())
+                    {
+                        return maybe_prefix;
+                    }
+
+                    return make_unexpected(
+                        fmt::format(
+                            R"(Could not use default root_prefix "{}":)"
+                            R"( Directory exists, is not empty and not a conda prefix.)",
+                            prefix.string()
+                        ),
+                        mamba_error_code::incorrect_usage
+                    );
+                }
+                return make_unexpected(
+                    fmt::format(
+                        R"(Could not use default root_prefix "{}": Not a directory.)",
+                        prefix.string()
+                    ),
+                    mamba_error_code::incorrect_usage
+                );
+            }
+
+            return { fs::weakly_canonical(std::move(prefix)) };
+        }
+
+        /**
+         * In mamba 1.0, only micromamba was using this location.
+         */
+        auto default_root_prefix_v1() -> fs::u8path
+        {
+            return fs::u8path(util::user_home_dir()) / "micromamba";
+        }
+
+        /**
+         * In mamba 2.0, we change the default location.
+         * We unconditionally name the subfolder "mamba" for compatibility between ``mamba``
+         * and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
+         */
+        auto default_root_prefix_v2() -> fs::u8path
+        {
+            return fs::u8path(util::user_data_dir()) / "mamba";
+        }
+
         void root_prefix_hook(Configuration& config, fs::u8path& prefix)
         {
             auto& env_name = config.at("env_name");
@@ -628,48 +708,23 @@ namespace mamba
                 }
                 else
                 {
-                    prefix = fs::u8path(util::user_home_dir()) / "micromamba";
+                    validate_existing_root_prefix(default_root_prefix_v1())
+                        .or_else([](const auto& /* error */)
+                                 { return validate_root_prefix(default_root_prefix_v2()); })
+                        .transform([&](fs::u8path&& p) { prefix = std::move(p); })
+                        .or_else([](mamba_error&& error) { throw std::move(error); });
                 }
 
                 if (env_name.configured())
                 {
-                    LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
-                }
-
-                if (fs::exists(prefix))
-                {
-                    if (fs::is_directory(prefix))
-                    {
-                        if (!fs::is_empty(prefix)
-                            && (!(
-                                fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
-                                || fs::exists(prefix / "envs")
-                            )))
-                        {
-                            throw std::runtime_error(fmt::format(
-                                "Could not use default 'root_prefix': {}: Directory exists, is not empty and not a conda prefix.",
-                                prefix.string()
-                            ));
-                        }
-                    }
-                    else
-                    {
-                        throw std::runtime_error(fmt::format(
-                            "Could not use default 'root_prefix': {}: File is not a directory.",
-                            prefix.string()
-                        ));
-                    }
-                }
-
-                if (env_name.configured())
-                {
-                    LOG_INFO << unindent(R"(
-                            You have not set the 'root_prefix' environment variable.
-                            To permanently modify the root prefix location, either:
-                            - set the 'MAMBA_ROOT_PREFIX' environment variable
-                            - use the '-r,--root-prefix' CLI option
-                            - use 'micromamba shell init ...' to initialize your shell
-                                (then restart or source the contents of the shell init script))");
+                    LOG_WARNING << "You have not set the root prefix environment variable.\n"
+                                   "To permanently modify the root prefix location, either:\n"
+                                   "  - set the 'MAMBA_ROOT_PREFIX' environment variable\n"
+                                   "  - use the '-r,--root-prefix' CLI option\n"
+                                   "  - use 'micromamba shell init ...' to initialize your shell\n"
+                                   "    (then restart or source the contents of the shell init script)\n"
+                                   "Continuing with default value: "
+                                << '"' << prefix.string() << '"';
                 }
             }
 

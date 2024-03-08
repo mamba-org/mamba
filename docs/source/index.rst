@@ -75,3 +75,4 @@ You can try Mamba now by visiting the installation for
    developer_zone/contributing
    developer_zone/dev_environment
    developer_zone/internals
+   developer_zone/changes-2.0

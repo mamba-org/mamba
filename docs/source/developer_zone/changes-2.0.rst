@@ -1,4 +1,3 @@
-=================
 Mamba 2.0 Changes
 =================
 .. ...................... ..
@@ -9,11 +8,10 @@ Mamba 2.0 Changes
 .. - OCI registries
 .. - Mirrors
 .. - Own implementation repodata.json
-.. - Fully feature implementation of MatchSpec
 
 
 Command Line Executables
-========================
+------------------------
 Mamba (executable)
 ******************
 ``mamba``, previously a Python executable mixing ``libmambapy``, ``conda``, and code to bridge both
@@ -37,14 +35,14 @@ Breaking changes include:
 - ``micromamba shell init`` root prefix parameter ``--prefix`` (``-p``) was renamed
   ``--root-prefix`` (``-r``).
   Both options were supported in version ``1.5``.
-- A new config `order_solver_request` (default true) can be used to order the dependencies passed
+- A new config ``order_solver_request`` (default true) can be used to order the dependencies passed
   to the solver, getting order independent solutions.
 
-.. TODO is micromamba executable renamed mamba?
+.. TODO OCI and mirrors
 
 
 Libraries
-=========
+---------
 Mamba (Python package)
 **********************
 In version 2.0, all tools are fully written in C++.
@@ -66,19 +64,21 @@ Changes inlcude:
   ``ChannelContext.make_conda_compatible`` (with ``Context.instance`` as argument in most cases)
   and passed explicitly to a few functions.
 - A new ``Context`` independent submodule ``libmambapy.specs`` has been introduced with:
+
   - The redesign of the ``Channel`` and a new ``UnresolvedChannel`` used to describe unresolved
     channel strings.
     A featureful ``libmambapy.specs.CondaURL`` is used to describe channel URLs.
-  - The redesign``MatchSpec``.
+  - The redesign of ``MatchSpec``.
     The module also includes a platform enumeration, an implementation of ordered ``Version``,
     and a ``VersionSpec`` to match versions.
   - ``PackageInfo`` has been moved to this submodule.
     Some attributes have been given a more explicit name ``fn`` > ``filename``,
     ``url`` > ``package_url``.
+
 - A new ``Context`` independent submodule ``libmambapy.solver`` has been introduced with the
   changes below.
-  A usage documentation page is available at
-  https://mamba.readthedocs.io/en/latest/usage/solver.html
+  A usage documentation page is available at :ref:`mamba_usage_solver`.
+
   - The redesign of the ``Pool``, which is now available as ``libmambapy.solver.libsolv.Database``.
     The new interfaces makes it easier to create repositories without using other ``libmambapy``
     objects.
@@ -89,12 +89,11 @@ Changes inlcude:
     high-level free functions such as ``load_subdir_in_database`` and
     ``load_installed_packages_in_database``.
   - The ``Solver`` has been moved to ``libmambapy.solver.libsolv.Solver``.
+
     - All jobs, pins, and flags must be passed as a single ``libmambapy.solver.Request``.
     - The outcome of solving the request is either a ``libmambapy.solver.Solution`` or a
       ``libmambapy.solver.libsolv.Unsolvable`` state from which rich error messages can be
       extracted.
-
-.. TODO include final decision for Channels as URLs.
 
 For many changes, an exception throwing placeholder has ben kept to advise developpers on the new
 direction to take.
@@ -106,11 +105,14 @@ Due to the low usage of the C++ interface, all changes are not listed here.
 The main changes are:
 
 - Refactoring and testing of a large number of utilities into a ``util::`` namespace,
-- Creation of the ``specs::`` with:
-    - Implementations of ``Version`` and ``VersionSpec`` for matching versions,
-    - A refactoring of a purely funcitonal ``Channel`` class,
-    - Implementaiton of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
-    - A refactored implementation of ``MatchSpec`` using the components above.
+- Creation of the ``specs::`` the items below.
+  A usage documentation (in Python) is available at :ref:`mamba_usage_specs`.
+
+  - Implementations of ``Version`` and ``VersionSpec`` for matching versions,
+  - A refactoring of a purely funcitonal ``Channel`` class,
+  - Implementaiton of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
+  - A refactored implementation of ``MatchSpec`` using the components above.
+
 - A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the
   ``specs::Channel``.
 - A new ``repodata.json`` parser using `simdjson <https://simdjson.org/>`_.
@@ -118,15 +120,15 @@ The main changes are:
   subnamespace and works independently of the ``Context``.
   The ``solver::libsolv`` sub-namespace has also been added for full isolation of libsolv, and a
   solver API without ``Context``.
-  The ``solver`` API redesign includes:
-    - A refactoring of the ``MPool`` as a ``DataBase``, fully isolates libsolv, and simplifies
-      repository creation.
-    - A refactoring and thinning of ``MRepo`` as a new ``RepoInfo``.
-    - A solver ``Request`` with all requirements to solve is the new way to specify jobs.
-    - A refactoring of ``Solver``.
-    - A solver outcome as either a ``Solution`` or an ``UnSolvable`` state.
-  A usage documentation (in Python) is available at
-  https://mamba.readthedocs.io/en/latest/usage/solver.html
+  The ``solver`` API redesign includes the items below.
+  A usage documentation (in Python) is available at :ref:`mamba_usage_solver`.
+
+  - A refactoring of the ``MPool`` as a ``DataBase``, fully isolates libsolv, and simplifies
+    repository creation.
+  - A refactoring and thinning of ``MRepo`` as a new ``RepoInfo``.
+  - A solver ``Request`` with all requirements to solve is the new way to specify jobs.
+  - A refactoring of ``Solver``.
+  - A solver outcome as either a ``Solution`` or an ``UnSolvable`` state.
 - Improved downloaders.
 
 .. TODO OCI registry

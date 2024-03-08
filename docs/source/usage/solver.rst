@@ -1,3 +1,5 @@
+.. _mamba_usage_solver:
+
 Solving Package Environments
 ============================
 

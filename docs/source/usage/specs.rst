@@ -1,3 +1,5 @@
+.. _mamba_usage_specs:
+
 Describing Conda Objects
 ========================
 

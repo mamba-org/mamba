@@ -1,3 +1,5 @@
+.. _mamba_usage_solver:
+
 Solving Package Environments
 ============================
 
@@ -30,7 +32,7 @@ This serves to resolve explicit channel requirements or channel priority.
 As such, the database constructor takes a set of
 :cpp:type:`ChannelResolveParams <mamba::specs::ChannelResolveParams>`
 to work with :cpp:type:`Channel <mamba::specs::Channel>` work with Channel data
-internaly (see `the usage section on Channels <libmamba_usage_channel>`_ for more
+internaly (see :ref:`the usage section on Channels <libmamba_usage_channel>` for more
 information).
 
 The first way to add a repository is from a list of |PackageInfo| using

@@ -1481,7 +1481,8 @@ namespace mamba
         }
         else
         {
-            out << "micromamba activate " << std::quoted(prefix.string()) << "\n";
+            out << get_self_exe_path().stem().string() << " activate "
+                << std::quoted(prefix.string()) << "\n";
         }
 
 

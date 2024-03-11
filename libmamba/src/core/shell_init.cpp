@@ -304,7 +304,7 @@ namespace mamba
             "unset __mamba_setup\n"
             "# <<< mamba initialize <<<\n",
             fmt::arg("mamba_exe_path", mamba_exe),
-            fmt::arg("mamba_exe_name", mamba_exe.stem()),
+            fmt::arg("mamba_exe_name", mamba_exe.stem().string()),
             fmt::arg("root_prefix", env_prefix),
             fmt::arg("shell", shell)
         );
@@ -325,7 +325,7 @@ namespace mamba
             "\n"
             "# <<< mamba initialize <<<\n",
             fmt::arg("mamba_exe_path", native_path_to_unix(mamba_exe.string())),
-            fmt::arg("mamba_exe_name", mamba_exe.stem()),
+            fmt::arg("mamba_exe_name", mamba_exe.stem().string()),
             fmt::arg("root_prefix", native_path_to_unix(env_prefix.string())),
             fmt::arg("shell", shell)
         );
@@ -354,7 +354,7 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
-        const auto exe_name = mamba_exe.stem();
+        const auto exe_name = mamba_exe.stem().string();
 
         std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
@@ -388,7 +388,7 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
-        const auto exe_name = mamba_exe.stem();
+        const auto exe_name = mamba_exe.stem().string();
 
         std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
@@ -414,7 +414,7 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
-        const auto exe_name = mamba_exe.stem();
+        const auto exe_name = mamba_exe.stem().string();
 
         std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
@@ -488,7 +488,7 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
-        const auto exe_name = mamba_exe.stem();
+        const auto exe_name = mamba_exe.stem().string();
 
         std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";

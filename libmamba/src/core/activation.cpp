@@ -9,6 +9,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
@@ -713,7 +714,7 @@ namespace mamba
         auto has_prefix = util::get_env("CONDA_PREFIX");
         if (m_context.auto_activate_base && !has_prefix.has_value())
         {
-            builder << "micromamba activate base\n";
+            builder << get_self_exe_path().stem() << " activate base\n";
         }
         builder << hook_postamble() << "\n";
         return builder.str();

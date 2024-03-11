@@ -631,9 +631,9 @@ namespace mamba
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
-            std::string contents = data_micromamba_sh;
+            std::string contents = data_mamba_sh;
             // Using /unix/like/paths on Unix shell (even on Windows)
-            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()));
+            util::replace_all(contents, "${MAMBA_EXE}", util::path_to_posix(exe.string()));
             return contents;
         }
         else if (shell == "csh")
@@ -817,7 +817,7 @@ namespace mamba
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
             std::ofstream sh_file = open_ofstream(sh_source_path);
-            sh_file << data_micromamba_sh;
+            sh_file << data_mamba_sh;
         }
         else if (shell == "csh")
         {

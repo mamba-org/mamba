@@ -13,7 +13,7 @@
 
 #include "mamba/fs/filesystem.hpp"
 
-extern const char data_micromamba_sh[];
+extern const char data_mamba_sh[];
 extern const char data_micromamba_csh[];
 extern const char data_micromamba_bat[];
 extern const char data_activate_bat[];

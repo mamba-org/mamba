@@ -835,7 +835,7 @@ namespace mamba
 
     fs::u8path PosixActivator::hook_source_path()
     {
-        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.sh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "mamba.sh";
     }
 
     /*********************************

@@ -116,7 +116,7 @@ find_package(Python3 COMPONENTS Interpreter)
 
 set(
     SHELL_SCRIPTS
-    micromamba.sh
+    mamba.sh
     micromamba.csh
     micromamba.bat
     activate.bat

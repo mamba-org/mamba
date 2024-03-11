@@ -284,31 +284,13 @@ namespace mamba
     }
 
     std::string
-    rcfile_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe)
+    rcfile_content_unix(const fs::u8path& env_prefix, std::string_view shell, const fs::u8path& mamba_exe)
     {
-        // todo use get bin dir here!
-#ifdef _WIN32
-        std::stringstream content;
-        std::string cyg_mamba_exe = native_path_to_unix(mamba_exe.string());
-        std::string cyg_env_prefix = native_path_to_unix(env_prefix.string());
-        content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
-        content << "export MAMBA_EXE=" << std::quoted(cyg_mamba_exe, '\'') << ";\n";
-        content << "export MAMBA_ROOT_PREFIX=" << std::quoted(cyg_env_prefix, '\'') << ";\n";
-        content << "eval \"$(\"$MAMBA_EXE\" shell hook --shell " << shell
-                << " --root-prefix \"$MAMBA_ROOT_PREFIX\")\"\n";
-        content << "# <<< mamba initialize <<<\n";
-        return content.str();
-
-#else
-
-        fs::u8path env_bin = env_prefix / "bin";
-
         // Note that fs::path are already quoted by fmt.
         return fmt::format(
             "\n"
             "# >>> mamba initialize >>>\n"
-            "# !! Contents within this block are managed by 'micromamba shell init' !!\n"
+            "# !! Contents within this block are managed by '{mamba_exe_name} shell init' !!\n"
             "export MAMBA_EXE={mamba_exe_path};\n"
             "export MAMBA_ROOT_PREFIX={root_prefix};\n"
             R"sh(__mamba_setup="$("$MAMBA_EXE" shell hook --shell {shell} --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)")sh"
@@ -316,18 +298,47 @@ namespace mamba
             "if [ $? -eq 0 ]; then\n"
             "    eval \"$__mamba_setup\"\n"
             "else\n"
-            R"sh(    alias {mamba_exe_name}="$MAMBA_EXE"  # Fallback on help from micromamba activate)sh"
+            R"sh(    alias {mamba_exe_name}="$MAMBA_EXE"  # Fallback on help from {mamba_exe_name} activate)sh"
             "\n"
             "fi\n"
             "unset __mamba_setup\n"
             "# <<< mamba initialize <<<\n",
             fmt::arg("mamba_exe_path", mamba_exe),
-            fmt::arg("mamba_exe_name", mamba_exe.filename().string()),
+            fmt::arg("mamba_exe_name", mamba_exe.stem()),
             fmt::arg("root_prefix", env_prefix),
             fmt::arg("shell", shell)
         );
+    }
 
-#endif
+    std::string
+    rcfile_content_win(const fs::u8path& env_prefix, std::string_view shell, const fs::u8path& mamba_exe)
+    {
+        return fmt::format(
+            "\n"
+            "# >>> mamba initialize >>>\n"
+            "# !! Contents within this block are managed by '{mamba_exe_name} shell init' !!\n"
+            R"(export MAMBA_EXE="{mamba_exe_path}";)"
+            "\n"
+            R"(export MAMBA_ROOT_PREFIX="{root_prefix}";)"
+            "\n"
+            R"sh(eval "$("$MAMBA_EXE" shell hook --shell {shell} --root-prefix "$MAMBA_ROOT_PREFIX")")sh"
+            "\n"
+            "# <<< mamba initialize <<<\n",
+            fmt::arg("mamba_exe_path", native_path_to_unix(mamba_exe.string())),
+            fmt::arg("mamba_exe_name", mamba_exe.stem()),
+            fmt::arg("root_prefix", native_path_to_unix(env_prefix.string())),
+            fmt::arg("shell", shell)
+        );
+    }
+
+    std::string
+    rcfile_content(const fs::u8path& env_prefix, std::string_view shell, const fs::u8path& mamba_exe)
+    {
+        if (util::on_win)
+        {
+            return rcfile_content_win(env_prefix, shell, mamba_exe);
+        }
+        return rcfile_content_unix(env_prefix, shell, mamba_exe);
     }
 
     std::string

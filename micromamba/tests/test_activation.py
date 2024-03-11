@@ -409,7 +409,7 @@ def test_shell_init_deinit_root_prefix_files(
     umamba = helpers.get_umamba()
 
     if interpreter == "bash" or interpreter == "zsh":
-        files = [tmp_root_prefix / "etc" / "profile.d" / "micromamba.sh"]
+        files = [tmp_root_prefix / "etc" / "profile.d" / "mamba.sh"]
     elif interpreter == "cmd.exe":
         files = [
             tmp_root_prefix / "condabin" / "mamba_hook.bat",
@@ -538,6 +538,7 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
+    mamba_name = Path(umamba).stem
 
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
@@ -558,7 +559,7 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         s = [f"{umamba} --help"]
         stdout, stderr = call(s)
 
-        s = ["micromamba activate"] + evars
+        s = [f"{mamba_name} activate"] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
 
@@ -570,15 +571,15 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         # throw with non-existent
         if plat != "win":
             with pytest.raises(subprocess.CalledProcessError):
-                stdout, stderr = call(["micromamba activate nonexistent"])
+                stdout, stderr = call([f"{mamba_name} activate nonexistent"])
 
-        call(["micromamba create -n abc -y"])
-        call(["micromamba create -n xyz -y"])
+        call([f"{mamba_name} create -n abc -y"])
+        call([f"{mamba_name} create -n xyz -y"])
 
         s = [
-            "micromamba activate",
-            "micromamba activate abc",
-            "micromamba activate xyz",
+            f"{mamba_name} activate",
+            f"{mamba_name} activate abc",
+            f"{mamba_name} activate xyz",
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
@@ -588,9 +589,9 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         assert not find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
 
         s = [
-            "micromamba activate",
-            "micromamba activate abc",
-            "micromamba activate --stack xyz",
+            f"{mamba_name} activate",
+            f"{mamba_name} activate abc",
+            f"{mamba_name} activate --stack xyz",
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
@@ -600,9 +601,9 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
 
         s = [
-            "micromamba activate",
-            "micromamba activate abc",
-            "micromamba activate xyz --stack",
+            f"{mamba_name} activate",
+            f"{mamba_name} activate abc",
+            f"{mamba_name} activate xyz --stack",
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
@@ -615,7 +616,7 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         res = env_to_dict(stdout)
         assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
 
-        stdout, stderr = call(["micromamba deactivate"] + evars)
+        stdout, stderr = call([f"{mamba_name} deactivate"] + evars)
         res = env_to_dict(stdout)
         assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
@@ -636,6 +637,7 @@ def test_activation_envvars(
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
+    mamba_name = Path(umamba).stem
 
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
@@ -651,9 +653,9 @@ def test_activation_envvars(
         assert fp.exists()
 
     if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
-        call(["micromamba create -n def -y"])
+        call([f"{mamba_name} create -n def -y"])
 
-        stdout, stderr = call(["micromamba activate def"] + evars)
+        stdout, stderr = call([f"{mamba_name} activate def"] + evars)
         res = env_to_dict(stdout)
         abc_prefix = pathlib.Path(res["CONDA_PREFIX"])
 
@@ -675,13 +677,13 @@ def test_activation_envvars(
         )
 
         stdout, stderr = call(
-            ["micromamba activate def"]
+            [f"{mamba_name} activate def"]
             + evars
             + extract_vars(["TEST", "HELLO", "WORKING", "AAA"], interpreter)
         )
 
         # assert that env vars are in the same order
-        activation_script, stderr = call(["micromamba shell activate -s bash -n def"])
+        activation_script, stderr = call([f"{mamba_name} shell activate -s bash -n def"])
         idxs = []
         for el in ["TEST", "HELLO", "WORKING", "AAA"]:
             for idx, line in enumerate(activation_script.splitlines()):
@@ -713,9 +715,9 @@ def test_activation_envvars(
         (pkg_env_vars_d / "001-pkg-one.json").write_text(helpers.json.dumps(j1))
         (pkg_env_vars_d / "002-pkg-two.json").write_text(helpers.json.dumps(j2))
 
-        activation_script, stderr = call(["micromamba shell activate -s bash -n def"])
+        activation_script, stderr = call([f"{mamba_name} shell activate -s bash -n def"])
         stdout, stderr = call(
-            ["micromamba activate def"]
+            [f"{mamba_name} activate def"]
             + evars
             + extract_vars(
                 [
@@ -754,6 +756,7 @@ def test_unicode_activation(
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
+    mamba_name = Path(umamba).stem
 
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
@@ -774,7 +777,7 @@ def test_unicode_activation(
         s = [f"{umamba} --help"]
         stdout, stderr = call(s)
 
-        s = ["micromamba activate"] + evars
+        s = [f"{mamba_name} activate"] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
 
@@ -784,7 +787,7 @@ def test_unicode_activation(
         assert "CONDA_SHLVL=1" in stdout.splitlines()
 
         # throw with non-existent
-        s = ["micromamba activate nonexistent"]
+        s = [f"{mamba_name} activate nonexistent"]
         if plat != "win":
             with pytest.raises(subprocess.CalledProcessError):
                 stdout, stderr = call(s)
@@ -792,12 +795,12 @@ def test_unicode_activation(
         u1 = "μυρτιὲς"
         u2 = "终过鬼门关"
         u3 = "some ™∞¢3 spaces §∞©ƒ√≈ç"
-        s1 = [f"micromamba create -n {u1} xtensor -y -c conda-forge"]
-        s2 = [f"micromamba create -n {u2} xtensor -y -c conda-forge"]
+        s1 = [f"{mamba_name} create -n {u1} xtensor -y -c conda-forge"]
+        s2 = [f"{mamba_name} create -n {u2} xtensor -y -c conda-forge"]
         if interpreter == "cmd.exe":
             s3 = [f'micromamba create -n "{u3}" xtensor -y -c conda-forge']
         else:
-            s3 = [f"micromamba create -n '{u3}' xtensor -y -c conda-forge"]
+            s3 = [f"{mamba_name} create -n '{u3}' xtensor -y -c conda-forge"]
         call(s1)
         call(s2)
         call(s3)
@@ -818,8 +821,8 @@ def test_unicode_activation(
 
         s = [
             "micromamba activate",
-            f"micromamba activate {u1}",
-            f"micromamba activate {u2}",
+            f"{mamba_name} activate {u1}",
+            f"{mamba_name} activate {u2}",
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
@@ -830,9 +833,9 @@ def test_unicode_activation(
         assert not find_path_in_str(str(tmp_root_prefix / "envs" / u1), res["PATH"])
 
         s = [
-            "micromamba activate",
-            f"micromamba activate {u1}",
-            f"micromamba activate {u2} --stack",
+            f"{mamba_name} activate",
+            f"{mamba_name} activate {u1}",
+            f"{mamba_name} activate {u2} --stack",
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
@@ -842,8 +845,8 @@ def test_unicode_activation(
         assert find_path_in_str(str(tmp_root_prefix / "envs" / u2), res["PATH"])
 
         s = [
-            "micromamba activate",
-            f"micromamba activate '{u3}'",
+            f"{mamba_name} activate",
+            f"{mamba_name} activate '{u3}'",
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
@@ -908,6 +911,7 @@ def test_self_update(
     interpreter,
 ):
     mamba_exe = tmp_umamba
+    mamba_name = Path(mamba_exe).stem
 
     shell_init = [
         f"{format_path(mamba_exe, interpreter)} shell init -s {interpreter} -r {format_path(tmp_root_prefix, interpreter)}"
@@ -915,7 +919,7 @@ def test_self_update(
     call_interpreter(shell_init, tmp_path, interpreter)
 
     if interpreter == "bash":
-        assert (Path(tmp_root_prefix) / "etc" / "profile.d" / "micromamba.sh").exists()
+        assert (Path(tmp_root_prefix) / "etc" / "profile.d" / "mamba.sh").exists()
 
     extra_start_code = []
     if interpreter == "powershell":
@@ -932,7 +936,7 @@ def test_self_update(
             print(mamba_exe)
             extra_start_code = [
                 f"source {PurePosixPath(tmp_home)}/.bash_profile",  # HOME from os.environ not acknowledged
-                "micromamba info",
+                f"{mamba_name} info",
                 "echo $MAMBA_ROOT_PREFIX",
                 "echo $HOME",
                 "ls ~",
@@ -942,7 +946,7 @@ def test_self_update(
         extra_start_code = ["source ~/.zshrc"]
 
     call_interpreter(
-        extra_start_code + ["micromamba self-update --version 0.25.1 -c conda-forge"],
+        extra_start_code + [f"{mamba_name} self-update --version 0.25.1 -c conda-forge"],
         tmp_path,
         interpreter,
         interactive=False,

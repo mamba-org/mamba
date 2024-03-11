@@ -41,7 +41,7 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert not any(li.startswith("## EXPORTS ##") for li in lines)
         assert lines[2].startswith("## AFTER PARAM ####")
     elif shell_type in ("zsh", "bash", "posix"):
-        assert res.count(mamba_exe_posix) == 3
+        assert res.count(mamba_exe_posix) == 5
     elif shell_type == "xonsh":
         assert res.count(mamba_exe_posix) == 8
     elif shell_type == "fish":
@@ -49,7 +49,7 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
     elif shell_type == "cmd.exe":
         assert res == ""
     elif shell_type == "tcsh":
-        assert res.count(mamba_exe_posix) == 3
+        assert res.count(mamba_exe_posix) == 5
     elif shell_type == "nu":
         # insert dummy test, as the nu scripts contains
         # no mention of mamba_exe; path is added in config.nu

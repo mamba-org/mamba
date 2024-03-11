@@ -344,9 +344,7 @@ namespace mamba
     std::string
     xonsh_content(const fs::u8path& env_prefix, const std::string& /*shell*/, const fs::u8path& mamba_exe)
     {
-        std::stringstream content;
         std::string s_mamba_exe;
-
         if (util::on_win)
         {
             s_mamba_exe = native_path_to_unix(mamba_exe.string());
@@ -356,8 +354,12 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
+        const auto exe_name = mamba_exe.stem();
+
+        std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
+        content << "# !! Contents within this block are managed by '" << exe_name
+                << " shell init' !!\n";
         content << "$MAMBA_EXE = " << mamba_exe << "\n";
         content << "$MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "import sys as _sys\n";
@@ -376,9 +378,7 @@ namespace mamba
     std::string
     fish_content(const fs::u8path& env_prefix, const std::string& /*shell*/, const fs::u8path& mamba_exe)
     {
-        std::stringstream content;
         std::string s_mamba_exe;
-
         if (util::on_win)
         {
             s_mamba_exe = native_path_to_unix(mamba_exe.string());
@@ -388,8 +388,12 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
+        const auto exe_name = mamba_exe.stem();
+
+        std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
+        content << "# !! Contents within this block are managed by '" << exe_name
+                << " shell init' !!\n";
         content << "set -gx MAMBA_EXE " << mamba_exe << "\n";
         content << "set -gx MAMBA_ROOT_PREFIX " << env_prefix << "\n";
         content << "$MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source\n";
@@ -400,7 +404,6 @@ namespace mamba
     std::string
     nu_content(const fs::u8path& env_prefix, const std::string& /*shell*/, const fs::u8path& mamba_exe)
     {
-        std::stringstream content;
         std::string s_mamba_exe;
         if (util::on_win)
         {
@@ -411,15 +414,21 @@ namespace mamba
             s_mamba_exe = mamba_exe.string();
         }
 
+        const auto exe_name = mamba_exe.stem();
+
+        std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
+        content << "# !! Contents within this block are managed by '" << exe_name
+                << " shell init' !!\n";
         content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
         content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "$env.PATH = ($env.PATH | append ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
         content << "$env.PROMPT_COMMAND_BK = $env.PROMPT_COMMAND"
                 << "\n";
-        content << R"###(def --env "micromamba activate"  [name: string] {
-    #add condabin when root
+        // TODO the following shouldn't live here but in a shell hook
+        content << R"nu(def --env ")nu" << exe_name << R"nu( activate"  [name: string] {)nu";
+        content << R"###(
+    #add condabin when base env
     if $env.MAMBA_SHLVL? == null {
         $env.MAMBA_SHLVL = 0
         $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
@@ -437,9 +446,12 @@ namespace mamba
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
     }
-}
-def --env "micromamba deactivate" [] {
-    #remove active environment except micromamba root
+})###"
+                << "\n";
+
+        content << R"nu(def --env ")nu" << exe_name << R"nu( deactivate"  [] {)nu";
+        content << R"###(
+    #remove active environment except base env
     if $env.CONDA_PROMPT_MODIFIER? != null {
       # unset set variables
       for x in (^$env.MAMBA_EXE shell deactivate --shell nu
@@ -466,9 +478,7 @@ def --env "micromamba deactivate" [] {
     std::string
     csh_content(const fs::u8path& env_prefix, const std::string& /*shell*/, const fs::u8path& mamba_exe)
     {
-        std::stringstream content;
         std::string s_mamba_exe;
-
         if (util::on_win)
         {
             s_mamba_exe = native_path_to_unix(mamba_exe.string());
@@ -478,8 +488,12 @@ def --env "micromamba deactivate" [] {
             s_mamba_exe = mamba_exe.string();
         }
 
+        const auto exe_name = mamba_exe.stem();
+
+        std::stringstream content;
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
+        content << "# !! Contents within this block are managed by '" << exe_name
+                << " shell init' !!\n";
         content << "setenv MAMBA_EXE " << mamba_exe << ";\n";
         content << "setenv MAMBA_ROOT_PREFIX " << env_prefix << ";\n";
         content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/micromamba.csh;\n";

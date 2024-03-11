@@ -459,7 +459,7 @@ namespace mamba
         m_transaction_context.wait_for_pyc_compilation();
 
         // Get the name of the executable used directly from the command.
-        const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
+        const auto executable = ctx.command_params.is_mamba_exe ? "micromamba" : "mamba";
 
         // Get the name of the environment
         const auto environment = env_name(ctx);
@@ -605,7 +605,7 @@ namespace mamba
                     }
 
                     // FIXME: only do this for micromamba for now
-                    if (ctx.command_params.is_micromamba)
+                    if (ctx.command_params.is_mamba_exe)
                     {
                         using Credentials = typename specs::CondaURL::Credentials;
                         auto l_pkg = pkg;

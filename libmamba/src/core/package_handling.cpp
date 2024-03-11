@@ -27,7 +27,7 @@ namespace mamba
     {
         return {
             /* .sparse = */ context.extract_sparse,
-            /* .subproc_mode = */ context.command_params.is_micromamba
+            /* .subproc_mode = */ context.command_params.is_mamba_exe
                 ? extract_subproc_mode::mamba_exe
                 : extract_subproc_mode::mamba_package,
         };

@@ -95,7 +95,7 @@ namespace mamba
 
             items.push_back({ "libmamba version", version() });
 
-            if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
+            if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
             {
                 items.push_back({ "micromamba version", ctx.command_params.caller_version });
             }

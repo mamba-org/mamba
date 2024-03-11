@@ -123,7 +123,8 @@ namespace mamba
             std::string caller_version{ "" };
             std::string conda_version{ "3.8.0" };
             std::string current_command{ "mamba" };
-            bool is_micromamba{ false };
+            /** Is the Context used in a mamba or mamba executable (instead of a lib). */
+            bool is_mamba_exe{ false };
         };
 
         struct ThreadsParams

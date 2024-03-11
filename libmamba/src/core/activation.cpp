@@ -933,7 +933,7 @@ namespace mamba
 
     fs::u8path CshActivator::hook_source_path()
     {
-        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.csh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "mamba.csh";
     }
 
     std::string CmdExeActivator::shell_extension()

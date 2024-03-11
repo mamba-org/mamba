@@ -14,7 +14,7 @@ alias __mamba_xctivate '\\
      __mamba_hashr\\
 '
 
-alias micromamba '\\
+alias __mamba_wrap '\\
     switch ("${1}")\\
         case activate | reactivate | deactivate:\\
             __mamba_xctivate "\!*"\\
@@ -40,6 +40,16 @@ alias micromamba '\\
             breaksw\\
     endsw\\
 '
+
+set __exe_name=(`basename $MAMBA_EXE`)
+set __exe_name = (${__exe_name}:q.)
+if ("$__exe_name" == "micromamba") then
+    alias mamba __mamba_wrap
+else if ("$__exe_name" == "mamba") then
+    alias micromamba __mamba_wrap
+else
+    echo "Error unknow MAMBA_EXE: \"$MAMBA_EXE\", filename must be mamba or micromamba" >&2
+endif
 
 if (! $?CONDA_SHLVL) then
     setenv CONDA_SHLVL 0

@@ -496,7 +496,7 @@ namespace mamba
                 << " shell init' !!\n";
         content << "setenv MAMBA_EXE " << mamba_exe << ";\n";
         content << "setenv MAMBA_ROOT_PREFIX " << env_prefix << ";\n";
-        content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/micromamba.csh;\n";
+        content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.csh;\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }
@@ -638,7 +638,7 @@ namespace mamba
         }
         else if (shell == "csh")
         {
-            std::string contents = data_micromamba_csh;
+            std::string contents = data_mamba_csh;
             // Using /unix/like/paths on Unix shell (even on Windows)
             util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()));
             return contents;
@@ -832,7 +832,7 @@ namespace mamba
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
             std::ofstream sh_file = open_ofstream(sh_source_path);
-            sh_file << data_micromamba_csh;
+            sh_file << data_mamba_csh;
         }
         else if (shell == "xonsh")
         {

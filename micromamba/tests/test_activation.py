@@ -427,7 +427,7 @@ def test_shell_init_deinit_root_prefix_files(
     elif interpreter == "xonsh":
         files = [tmp_root_prefix / "etc" / "profile.d" / "mamba.xsh"]
     elif interpreter in ["csh", "tcsh"]:
-        files = [tmp_root_prefix / "etc" / "profile.d" / "micromamba.csh"]
+        files = [tmp_root_prefix / "etc" / "profile.d" / "mamba.csh"]
     elif interpreter == "nu":
         files = []  # moved to ~/.config/nushell.nu controlled by micromamba activation
     else:
@@ -820,7 +820,7 @@ def test_unicode_activation(
             return
 
         s = [
-            "micromamba activate",
+            f"{mamba_name} activate",
             f"{mamba_name} activate {u1}",
             f"{mamba_name} activate {u2}",
         ] + evars

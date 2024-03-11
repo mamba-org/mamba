@@ -21,8 +21,10 @@ namespace mamba
     // Determine the kind of command line to run to extract subprocesses.
     enum class extract_subproc_mode
     {
+        /** An external binary packaged with `libmamba` to launch as a subprocess. */
         mamba_package,
-        micromamba,
+        /** The mamba or micromamba executable calling itself. */
+        mamba_exe,
     };
 
     struct ExtractOptions

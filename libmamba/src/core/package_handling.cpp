@@ -28,7 +28,7 @@ namespace mamba
         return {
             /* .sparse = */ context.extract_sparse,
             /* .subproc_mode = */ context.command_params.is_micromamba
-                ? extract_subproc_mode::micromamba
+                ? extract_subproc_mode::mamba_exe
                 : extract_subproc_mode::mamba_package,
         };
     }
@@ -766,7 +766,7 @@ namespace mamba
     extract_subproc(const fs::u8path& file, const fs::u8path& dest, const ExtractOptions& options)
     {
         std::vector<std::string> args;
-        if (options.subproc_mode == extract_subproc_mode::micromamba)
+        if (options.subproc_mode == extract_subproc_mode::mamba_exe)
         {
             args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }

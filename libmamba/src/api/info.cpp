@@ -8,6 +8,7 @@
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -97,7 +98,10 @@ namespace mamba
 
             if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
             {
-                items.push_back({ "micromamba version", ctx.command_params.caller_version });
+                items.push_back({
+                    fmt::format("{} version", get_self_exe_path().stem().string()),
+                    ctx.command_params.caller_version,
+                });
             }
 
             items.push_back({ "curl version", curl_version() });

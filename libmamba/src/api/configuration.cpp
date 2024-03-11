@@ -19,6 +19,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -717,11 +718,14 @@ namespace mamba
 
                 if (env_name.configured())
                 {
+                    const auto exe_name = get_self_exe_path().stem().string();
                     LOG_WARNING << "You have not set the root prefix environment variable.\n"
                                    "To permanently modify the root prefix location, either:\n"
                                    "  - set the 'MAMBA_ROOT_PREFIX' environment variable\n"
                                    "  - use the '-r,--root-prefix' CLI option\n"
-                                   "  - use 'micromamba shell init ...' to initialize your shell\n"
+                                   "  - use '"
+                                << exe_name
+                                << " shell init ...' to initialize your shell\n"
                                    "    (then restart or source the contents of the shell init script)\n"
                                    "Continuing with default value: "
                                 << '"' << prefix.string() << '"';
@@ -832,8 +836,10 @@ namespace mamba
             }
             else if (expect_existing)
             {
+                const auto exe_name = get_self_exe_path().stem().string();
                 LOG_ERROR << "No prefix found at: " << prefix.string();
-                LOG_ERROR << "Environment must first be created with \"micromamba create -n {env_name} ...\"";
+                LOG_ERROR << "Environment must first be created with \"" << exe_name
+                          << " create -n {env_name} ...\"";
                 throw std::runtime_error("Aborting.");
             }
         }

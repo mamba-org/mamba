@@ -1361,7 +1361,7 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = options.is_mamba_exe ? "micromamba.bat" : "conda.bat";
+        std::string bat_name = get_self_exe_path().stem().string();
 
         if (options.dev_mode)
         {

@@ -12,7 +12,7 @@ on:
 
 defaults:
   run:
-    # micromamba activation
+    # conda activation
     shell: cmd /C call {0}
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v4
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
@@ -49,7 +49,7 @@ jobs:
       - name: Show build cache statistics
         run: sccache --show-stats
       - name: Lock environment
-        run: micromamba env export --explicit > build/environment.lock
+        run: conda env export --explicit > build/environment.lock
       - name: Remove extra files before saving workspace
         shell: bash -eo pipefail {0}
         run: find build/ -type f -name '*.obj' -exec rm {} +
@@ -74,7 +74,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -103,7 +103,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -131,7 +131,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env

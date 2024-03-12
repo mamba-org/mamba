@@ -700,8 +700,8 @@ namespace mamba
             // Maybe the prefix isn't writable. No big deal, just keep going.
         }
 
-        std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "micromamba.bat");
-        std::string mamba_bat_contents(data_micromamba_bat);
+        std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "mamba.bat");
+        std::string mamba_bat_contents(data_mamba_bat);
         util::replace_all(
             mamba_bat_contents,
             std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
@@ -759,13 +759,13 @@ namespace mamba
             return;
         }
 
-        auto micromamba_bat = root_prefix / "condabin" / "micromamba.bat";
+        auto mamba_bat = root_prefix / "condabin" / "mamba.bat";
         auto _mamba_activate_bat = root_prefix / "condabin" / "_mamba_activate.bat";
         auto condabin_activate_bat = root_prefix / "condabin" / "activate.bat";
         auto scripts_activate_bat = root_prefix / "Scripts" / "activate.bat";
         auto mamba_hook_bat = root_prefix / "condabin" / "mamba_hook.bat";
 
-        for (auto& f : { micromamba_bat,
+        for (auto& f : { mamba_bat,
                          _mamba_activate_bat,
                          condabin_activate_bat,
                          scripts_activate_bat,

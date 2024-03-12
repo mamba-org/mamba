@@ -156,8 +156,10 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
 
     if interpreter == "cmd.exe":
         mods = ["@chcp 65001>nul"]
+        umamba = helpers.get_umamba()
+        mamba_name = Path(umamba).stem
         for x in s:
-            if x.startswith("micromamba activate") or x.startswith("micromamba deactivate"):
+            if x.startswith(f"{mamba_name} activate") or x.startswith(f"{mamba_name} deactivate"):
                 mods.append("call " + x)
             else:
                 mods.append(x)
@@ -413,7 +415,7 @@ def test_shell_init_deinit_root_prefix_files(
     elif interpreter == "cmd.exe":
         files = [
             tmp_root_prefix / "condabin" / "mamba_hook.bat",
-            tmp_root_prefix / "condabin" / "micromamba.bat",
+            tmp_root_prefix / "condabin" / "mamba.bat",
             tmp_root_prefix / "condabin" / "_mamba_activate.bat",
             tmp_root_prefix / "condabin" / "activate.bat",
         ]
@@ -429,7 +431,7 @@ def test_shell_init_deinit_root_prefix_files(
     elif interpreter in ["csh", "tcsh"]:
         files = [tmp_root_prefix / "etc" / "profile.d" / "mamba.csh"]
     elif interpreter == "nu":
-        files = []  # moved to ~/.config/nushell.nu controlled by micromamba activation
+        files = []  # moved to ~/.config/nushell.nu controlled by mamba activation
     else:
         raise ValueError(f"Unknown shell {interpreter}")
 
@@ -798,7 +800,7 @@ def test_unicode_activation(
         s1 = [f"{mamba_name} create -n {u1} xtensor -y -c conda-forge"]
         s2 = [f"{mamba_name} create -n {u2} xtensor -y -c conda-forge"]
         if interpreter == "cmd.exe":
-            s3 = [f'micromamba create -n "{u3}" xtensor -y -c conda-forge']
+            s3 = [f'{mamba_name} create -n "{u3}" xtensor -y -c conda-forge']
         else:
             s3 = [f"{mamba_name} create -n '{u3}' xtensor -y -c conda-forge"]
         call(s1)

@@ -15,7 +15,7 @@
 
 extern const char data_mamba_sh[];
 extern const char data_mamba_csh[];
-extern const char data_micromamba_bat[];
+extern const char data_mamba_bat[];
 extern const char data_activate_bat[];
 extern const char data__mamba_activate_bat[];
 extern const char data_mamba_hook_bat[];

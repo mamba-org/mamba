@@ -118,7 +118,7 @@ set(
     SHELL_SCRIPTS
     mamba.sh
     mamba.csh
-    micromamba.bat
+    mamba.bat
     activate.bat
     _mamba_activate.bat
     mamba_hook.bat

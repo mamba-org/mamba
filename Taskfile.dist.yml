@@ -1,6 +1,8 @@
 version: '3'
 
 vars:
+  # Windows doesn't set the PWD environment variable automatically, but we can
+  # assign it using a dynamic variable since pwd does work in PowerShell
   PWD:
     sh: pwd
   BUILD_DIR: 'build'

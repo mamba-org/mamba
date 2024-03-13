@@ -229,10 +229,10 @@ namespace mamba
                     // anaconda client writes out a token for https://api.anaconda.org...
                     // but we need the token for https://conda.anaconda.org
                     // conda does the same
-                    std::size_t api_pos = token_url.find("://api.");
+                    std::size_t api_pos = token_url.find("https://api.");
                     if (api_pos != std::string::npos)
                     {
-                        token_url.replace(api_pos, 7, "://conda.");
+                        token_url.replace(api_pos, 12, "conda.");
                     }
 
                     // cut ".token" ending

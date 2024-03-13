@@ -12,6 +12,7 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
 
@@ -942,6 +943,39 @@ namespace mamba::specs
     {
         return m_version.is_explicitly_free() && m_build_string.is_free()
                && m_build_number.is_explicitly_free();
+    }
+
+    auto MatchSpec::contains_except_channel(const PackageInfo& pkg) const -> bool
+    {
+        struct Pkg
+        {
+            std::string_view name;
+            Version version;  // Converted
+            std::string_view build_string;
+            std::size_t build_number;
+            std::string_view md5;
+            std::string_view sha256;
+            std::string_view license;
+            std::reference_wrapper<const std::string> platform;
+            string_set track_features;  // Converted
+        };
+
+        auto maybe_ver = Version::parse(pkg.version.empty() ? "0" : pkg.version);
+        if (!maybe_ver)
+        {
+            return false;
+        }
+        return contains_except_channel(Pkg{
+            /* .name= */ pkg.name,
+            /* .version= */ std::move(maybe_ver).value(),
+            /* .build_string= */ pkg.build_string,
+            /* .build_number= */ pkg.build_number,
+            /* .md5= */ pkg.md5,
+            /* .sha256= */ pkg.sha256,
+            /* .license= */ pkg.license,
+            /* .platform= */ pkg.platform,
+            /* .track_features= */ string_set(pkg.track_features.cbegin(), pkg.track_features.cend()),
+        });
     }
 
     auto MatchSpec::extra() -> ExtraMembers&

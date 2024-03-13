@@ -24,6 +24,8 @@
 
 namespace mamba::specs
 {
+    class PackageInfo;
+
     class MatchSpec
     {
     public:
@@ -118,6 +120,11 @@ namespace mamba::specs
          */
         template <typename Pkg>
         [[nodiscard]] auto contains_except_channel(const Pkg& pkg) const -> bool;
+
+        /**
+         * Convenience wrapper making necessary convertions.
+         */
+        [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
 
     private:
 

@@ -7,6 +7,7 @@
 #include <doctest/doctest.h>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
@@ -524,6 +525,9 @@ TEST_SUITE("specs::match_spec")
             const auto ms = "python"_ms;
             CHECK(ms.contains_except_channel(Pkg{ "python" }));
             CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy" }));
+
+            CHECK(ms.contains_except_channel(PackageInfo{ "python" }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "pypy" }));
         }
 
         SUBCASE("py*")
@@ -532,6 +536,10 @@ TEST_SUITE("specs::match_spec")
             CHECK(ms.contains_except_channel(Pkg{ "python" }));
             CHECK(ms.contains_except_channel(Pkg{ "pypy" }));
             CHECK_FALSE(ms.contains_except_channel(Pkg{ "rust" }));
+
+            CHECK(ms.contains_except_channel(PackageInfo{ "python" }));
+            CHECK(ms.contains_except_channel(PackageInfo{ "pypy" }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "rust" }));
         }
 
         SUBCASE("py*>=3.7")
@@ -540,6 +548,10 @@ TEST_SUITE("specs::match_spec")
             CHECK(ms.contains_except_channel(Pkg{ "python", "3.7"_v }));
             CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy", "3.6"_v }));
             CHECK_FALSE(ms.contains_except_channel(Pkg{ "rust", "3.7"_v }));
+
+            CHECK(ms.contains_except_channel(PackageInfo{ "python", "3.7", "bld", 0 }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "pypy", "3.6", "bld", 0 }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "rust", "3.7", "bld", 0 }));
         }
 
         SUBCASE("py*>=3.7=*cpython")

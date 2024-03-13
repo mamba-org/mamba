@@ -38,6 +38,21 @@ namespace solv
         return m_pool;
     }
 
+    auto ObjPoolView::current_error() const -> std::string_view
+    {
+        return ::pool_errstr(m_pool);
+    }
+
+    void ObjPoolView::set_current_error(raw_str_view msg)
+    {
+        ::pool_error(m_pool, -1, "%s", msg);
+    }
+
+    void ObjPoolView::set_current_error(const std::string& msg)
+    {
+        return set_current_error(msg.c_str());
+    }
+
     auto ObjPoolView::disttype() const -> DistType
     {
         return raw()->disttype;

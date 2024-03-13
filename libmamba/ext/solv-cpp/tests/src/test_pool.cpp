@@ -30,6 +30,12 @@ TEST_SUITE("solv::ObjPool")
             CHECK_EQ(pool.disttype(), DISTTYPE_CONDA);
         }
 
+        SUBCASE("Error")
+        {
+            pool.set_current_error("Some failure");
+            CHECK_EQ(pool.current_error(), "Some failure");
+        }
+
         SUBCASE("Add strings")
         {
             const auto id_hello = pool.add_string("Hello");

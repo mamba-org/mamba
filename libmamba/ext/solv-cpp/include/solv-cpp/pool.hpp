@@ -44,6 +44,11 @@ namespace solv
         auto raw() -> raw_ptr;
         auto raw() const -> const_raw_ptr;
 
+        auto current_error() const -> std::string_view;
+
+        void set_current_error(raw_str_view msg);
+        void set_current_error(const std::string& msg);
+
         /**
          * Get the current distribution type of the pool.
          *
@@ -302,6 +307,8 @@ namespace solv
         ~ObjPool();
 
         using ObjPoolView::raw;
+        using ObjPoolView::current_error;
+        using ObjPoolView::set_current_error;
         using ObjPoolView::disttype;
         using ObjPoolView::set_disttype;
         using ObjPoolView::find_string;

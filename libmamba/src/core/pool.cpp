@@ -211,10 +211,7 @@ namespace mamba
                 bool already_added = false;
                 pool.for_each_whatprovides(
                     maybe_id.value(),
-                    [&](solv::ObjSolvableViewConst s)
-                    {
-                        already_added = true;
-                    }
+                    [&](solv::ObjSolvableViewConst s) { already_added = true; }
                 );
                 if (already_added)
                 {

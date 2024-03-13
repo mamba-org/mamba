@@ -621,21 +621,21 @@ namespace mambapy
                         pkg.version = std::move(version);
                         pkg.build_string = std::move(build_string);
                         pkg.build_number = std::move(build_number);
-                        pkg.channel = channel;
-                        pkg.package_url = package_url;
-                        pkg.platform = platform;
-                        pkg.filename = filename;
-                        pkg.license = license;
-                        pkg.md5 = md5;
-                        pkg.sha256 = sha256;
-                        pkg.signatures = signatures;
-                        pkg.track_features = track_features;
-                        pkg.dependencies = depends;
-                        pkg.constrains = constrains;
-                        pkg.defaulted_keys = defaulted_keys;
-                        pkg.noarch = noarch;
-                        pkg.size = size;
-                        pkg.timestamp = timestamp;
+                        pkg.channel = std::move(channel);
+                        pkg.package_url = std::move(package_url);
+                        pkg.platform = std::move(platform);
+                        pkg.filename = std::move(filename);
+                        pkg.license = std::move(license);
+                        pkg.md5 = std::move(md5);
+                        pkg.sha256 = std::move(sha256);
+                        pkg.signatures = std::move(signatures);
+                        pkg.track_features = std::move(track_features);
+                        pkg.dependencies = std::move(depends);
+                        pkg.constrains = std::move(constrains);
+                        pkg.defaulted_keys = std::move(defaulted_keys);
+                        pkg.noarch = std::move(noarch);
+                        pkg.size = std::move(size);
+                        pkg.timestamp = std::move(timestamp);
                         return pkg;
                     }
                 ),
@@ -752,6 +752,59 @@ namespace mambapy
             .def_property("features", &MatchSpec::features, &MatchSpec::set_features)
             .def_property("track_features", &MatchSpec::track_features, &MatchSpec::set_track_features)
             .def_property("optional", &MatchSpec::optional, &MatchSpec::set_optional)
+            .def(
+                "contains_except_channel",
+                [](const MatchSpec& ms, const PackageInfo& pkg)
+                { return ms.contains_except_channel(pkg); }
+            )
+            .def(
+                "contains_except_channel",
+                [](const MatchSpec& ms,
+                   std::string_view name,
+                   const Version& version,
+                   std::string_view build_string,
+                   std::size_t build_number,
+                   std::string_view md5,
+                   std::string_view sha256,
+                   std::string_view license,
+                   std::string& platform,
+                   MatchSpec::string_set track_features)
+                {
+                    struct Pkg
+                    {
+                        std::string_view name;
+                        std::reference_wrapper<const Version> version;
+                        std::string_view build_string;
+                        std::size_t build_number;
+                        std::string_view md5;
+                        std::string_view sha256;
+                        std::string_view license;
+                        std::reference_wrapper<const std::string> platform;
+                        const MatchSpec::string_set track_features;
+                    };
+
+                    return ms.contains_except_channel(Pkg{
+                        /* .name= */ name,
+                        /* .version= */ version,
+                        /* .build_string= */ build_string,
+                        /* .build_number= */ build_number,
+                        /* .md5= */ md5,
+                        /* .sha256= */ sha256,
+                        /* .license= */ license,
+                        /* .platform= */ platform,
+                        /* .track_features= */ std::move(track_features),
+                    });
+                },
+                py::arg("name") = "",
+                py::arg("version") = Version(),
+                py::arg("build_string") = "",
+                py::arg("build_number") = 0,
+                py::arg("md5") = "",
+                py::arg("sha256") = "",
+                py::arg("license") = "",
+                py::arg("platform") = "",
+                py::arg("track_features") = MatchSpec::string_set{}
+            )
             .def("is_file", &MatchSpec::is_file)
             .def("is_simple", &MatchSpec::is_simple)
             .def("conda_build_form", &MatchSpec::conda_build_form)

@@ -871,6 +871,20 @@ def test_MatchSpec():
     assert other is not ms
 
 
+def test_MatchSpec_contains():
+    MatchSpec = libmambapy.specs.MatchSpec
+    PackageInfo = libmambapy.specs.PackageInfo
+
+    ms = MatchSpec.parse("conda-forge::py*[build_number='>4']")
+
+    assert ms.contains_except_channel(name="python", build_number=5, build_string="bld")
+    assert not ms.contains_except_channel(name="python", build_number=2)
+    assert not ms.contains_except_channel(name="rust", build_number=4)
+
+    assert ms.contains_except_channel(PackageInfo(name="python", build_number=5))
+    assert not ms.contains_except_channel(PackageInfo(name="python"))
+
+
 def test_MatchSpec_V2Migrator():
     """Explicit migration help added from v1 to v2."""
     import libmambapy

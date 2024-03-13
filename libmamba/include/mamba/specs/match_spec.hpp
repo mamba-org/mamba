@@ -24,6 +24,8 @@
 
 namespace mamba::specs
 {
+    class PackageInfo;
+
     class MatchSpec
     {
     public:
@@ -105,6 +107,25 @@ namespace mamba::specs
 
         [[nodiscard]] auto is_simple() const -> bool;
 
+        /**
+         * Check if the MatchSpec matches the given package.
+         *
+         * The check exclude anything related to the channel, du to the difficulties in
+         * comparing unresolved channels and the fact that this check can be also be done once
+         * at a repository level when the user knows how packages are organised.
+         *
+         * This function is written as a generic template, to acomodate various uses: the fact
+         * that the attributes may not always be in the correct format in the package, and that
+         * their parsing may be cached.
+         */
+        template <typename Pkg>
+        [[nodiscard]] auto contains_except_channel(const Pkg& pkg) const -> bool;
+
+        /**
+         * Convenience wrapper making necessary convertions.
+         */
+        [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
+
     private:
 
         struct ExtraMembers
@@ -156,4 +177,43 @@ struct fmt::formatter<::mamba::specs::MatchSpec>
 
     auto format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) -> decltype(ctx.out());
 };
+
+/*********************************
+ *  Implementation of MatchSpec  *
+ *********************************/
+
+namespace mamba::specs
+{
+    template <typename Pkg>
+    auto MatchSpec::contains_except_channel(const Pkg& pkg) const -> bool
+    {
+        if (                                                                           //
+            !name().contains(std::invoke(&Pkg::name, pkg))                             //
+            || !version().contains(std::invoke(&Pkg::version, pkg))                    //
+            || !build_string().contains(std::invoke(&Pkg::build_string, pkg))          //
+            || !build_number().contains(std::invoke(&Pkg::build_number, pkg))          //
+            || (!md5().empty() && (md5() != std::invoke(&Pkg::md5, pkg)))              //
+            || (!sha256().empty() && (sha256() != std::invoke(&Pkg::sha256, pkg)))     //
+            || (!license().empty() && (license() != std::invoke(&Pkg::license, pkg)))  //
+        )
+        {
+            return false;
+        }
+
+        if (const auto& plats = platforms();
+            plats.has_value() && !plats->get().contains(std::invoke(&Pkg::platform, pkg)))
+        {
+            return false;
+        }
+
+        if (const auto& tfeats = track_features();
+            tfeats.has_value()
+            && !util::set_is_subset_of(tfeats->get(), std::invoke(&Pkg::track_features, pkg)))
+        {
+            return false;
+        }
+
+        return true;
+    }
+}
 #endif

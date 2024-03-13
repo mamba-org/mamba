@@ -7,6 +7,7 @@
 #include <doctest/doctest.h>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
@@ -494,6 +495,231 @@ TEST_SUITE("specs::match_spec")
         {
             auto ms = MatchSpec::parse("xtensor =0.15*").value();
             CHECK_FALSE(ms.is_simple());
+        }
+    }
+
+    TEST_CASE("MatchSpec::contains")
+    {
+        // Note that tests for individual ``contains`` functions (``VersionSpec::contains``,
+        // ``BuildNumber::contains``, ``GlobSpec::contains``...) are tested in their respective
+        // test files.
+
+        using namespace specs::match_spec_literals;
+        using namespace specs::version_literals;
+
+        struct Pkg
+        {
+            std::string name = {};
+            specs::Version version = {};
+            std::string build_string = {};
+            std::size_t build_number = {};
+            std::string md5 = {};
+            std::string sha256 = {};
+            std::string license = {};
+            DynamicPlatform platform = {};
+            MatchSpec::string_set track_features = {};
+        };
+
+        SUBCASE("python")
+        {
+            const auto ms = "python"_ms;
+            CHECK(ms.contains_except_channel(Pkg{ "python" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy" }));
+
+            CHECK(ms.contains_except_channel(PackageInfo{ "python" }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "pypy" }));
+        }
+
+        SUBCASE("py*")
+        {
+            const auto ms = "py*"_ms;
+            CHECK(ms.contains_except_channel(Pkg{ "python" }));
+            CHECK(ms.contains_except_channel(Pkg{ "pypy" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "rust" }));
+
+            CHECK(ms.contains_except_channel(PackageInfo{ "python" }));
+            CHECK(ms.contains_except_channel(PackageInfo{ "pypy" }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "rust" }));
+        }
+
+        SUBCASE("py*>=3.7")
+        {
+            const auto ms = "py*>=3.7"_ms;
+            CHECK(ms.contains_except_channel(Pkg{ "python", "3.7"_v }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy", "3.6"_v }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "rust", "3.7"_v }));
+
+            CHECK(ms.contains_except_channel(PackageInfo{ "python", "3.7", "bld", 0 }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "pypy", "3.6", "bld", 0 }));
+            CHECK_FALSE(ms.contains_except_channel(PackageInfo{ "rust", "3.7", "bld", 0 }));
+        }
+
+        SUBCASE("py*>=3.7=*cpython")
+        {
+            const auto ms = "py*>=3.7=*cpython"_ms;
+            CHECK(ms.contains_except_channel(Pkg{ "python", "3.7"_v, "37_cpython" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy", "3.6"_v, "cpython" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy", "3.8"_v, "pypy" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "rust", "3.7"_v, "cpyhton" }));
+        }
+
+        SUBCASE("py*[version='>=3.7', build=*cpython]")
+        {
+            const auto ms = "py*[version='>=3.7', build=*cpython]"_ms;
+            CHECK(ms.contains_except_channel(Pkg{ "python", "3.7"_v, "37_cpython" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy", "3.6"_v, "cpython" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "pypy", "3.8"_v, "pypy" }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{ "rust", "3.7"_v, "cpyhton" }));
+        }
+
+        SUBCASE("pkg[build_number='>3']")
+        {
+            const auto ms = "pkg[build_number='>3']"_ms;
+            auto pkg = Pkg{ "pkg" };
+            pkg.build_number = 4;
+            CHECK(ms.contains_except_channel(pkg));
+            pkg.build_number = 2;
+            CHECK_FALSE(ms.contains_except_channel(pkg));
+        }
+
+        SUBCASE("pkg[md5=helloiamnotreallymd5haha]")
+        {
+            const auto ms = "pkg[md5=helloiamnotreallymd5haha]"_ms;
+
+            auto pkg = Pkg{ "pkg" };
+            pkg.md5 = "helloiamnotreallymd5haha";
+            CHECK(ms.contains_except_channel(pkg));
+
+            for (auto md5 : { "helloiamnotreallymd5hahaevillaugh", "hello", "" })
+            {
+                CAPTURE(std::string_view(md5));
+                pkg.md5 = md5;
+                CHECK_FALSE(ms.contains_except_channel(pkg));
+            }
+        }
+
+        SUBCASE("pkg[sha256=helloiamnotreallysha256hihi]")
+        {
+            const auto ms = "pkg[sha256=helloiamnotreallysha256hihi]"_ms;
+
+            auto pkg = Pkg{ "pkg" };
+            pkg.sha256 = "helloiamnotreallysha256hihi";
+            CHECK(ms.contains_except_channel(pkg));
+
+            for (auto sha256 : { "helloiamnotreallysha256hihicutelaugh", "hello", "" })
+            {
+                CAPTURE(std::string_view(sha256));
+                pkg.sha256 = sha256;
+                CHECK_FALSE(ms.contains_except_channel(pkg));
+            }
+        }
+
+        SUBCASE("pkg[license=helloiamnotreallylicensehoho]")
+        {
+            const auto ms = "pkg[license=helloiamnotreallylicensehoho]"_ms;
+
+            auto pkg = Pkg{ "pkg" };
+            pkg.license = "helloiamnotreallylicensehoho";
+            CHECK(ms.contains_except_channel(pkg));
+
+            for (auto license : { "helloiamnotreallylicensehohodadlaugh", "hello", "" })
+            {
+                CAPTURE(std::string_view(license));
+                pkg.license = license;
+                CHECK_FALSE(ms.contains_except_channel(pkg));
+            }
+        }
+
+        SUBCASE("pkg[subdir='linux-64,linux-64-512']")
+        {
+            const auto ms = "pkg[subdir='linux-64,linux-64-512']"_ms;
+
+            auto pkg = Pkg{ "pkg" };
+
+            for (auto plat : { "linux-64", "linux-64-512" })
+            {
+                CAPTURE(std::string_view(plat));
+                pkg.platform = plat;
+                CHECK(ms.contains_except_channel(pkg));
+            }
+
+            for (auto plat : { "linux", "linux-512", "", "linux-64,linux-64-512" })
+            {
+                CAPTURE(std::string_view(plat));
+                pkg.platform = plat;
+                CHECK_FALSE(ms.contains_except_channel(pkg));
+            }
+        }
+
+        SUBCASE("pkg[track_features='mkl,openssl']")
+        {
+            using string_set = typename MatchSpec::string_set;
+
+            const auto ms = "pkg[track_features='mkl,openssl']"_ms;
+
+            auto pkg = Pkg{ "pkg" };
+
+            for (auto tfeats : { string_set{ "openssl", "mkl" } })
+            {
+                pkg.track_features = tfeats;
+                CHECK(ms.contains_except_channel(pkg));
+            }
+
+            for (auto tfeats : { string_set{ "openssl" }, string_set{ "mkl" }, string_set{} })
+            {
+                pkg.track_features = tfeats;
+                CHECK_FALSE(ms.contains_except_channel(pkg));
+            }
+        }
+
+        SUBCASE("Complex")
+        {
+            const auto ms = "py*>=3.7=bld[build_number='<=2', md5=lemd5, track_features='mkl,openssl']"_ms;
+
+            CHECK(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.8.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 2,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "MIT",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{ "openssl", "mkl" },
+            }));
+            CHECK(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{ "openssl", "mkl" },
+            }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.3.0"_v,  // Not matching
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{ "openssl", "mkl" },
+            }));
+            CHECK_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "wrong",  // Not matching
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{ "openssl", "mkl" },
+            }));
         }
     }
 }

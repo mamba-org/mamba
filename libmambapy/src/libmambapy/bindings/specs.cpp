@@ -306,9 +306,9 @@ namespace mambapy
                 py::arg("credentials") = CondaURL::Credentials::Hide
             );
 
-        auto py_channel_spec = py::class_<UnresolvedChannel>(m, "UnresolvedChannel");
+        auto py_unresolved_channel = py::class_<UnresolvedChannel>(m, "UnresolvedChannel");
 
-        py::enum_<UnresolvedChannel::Type>(py_channel_spec, "Type")
+        py::enum_<UnresolvedChannel::Type>(py_unresolved_channel, "Type")
             .value("URL", UnresolvedChannel::Type::URL)
             .value("PackageURL", UnresolvedChannel::Type::PackageURL)
             .value("Path", UnresolvedChannel::Type::Path)
@@ -318,7 +318,7 @@ namespace mambapy
             .def(py::init(&enum_from_str<UnresolvedChannel::Type>));
         py::implicitly_convertible<py::str, UnresolvedChannel::Type>();
 
-        py_channel_spec  //
+        py_unresolved_channel  //
             .def_static("parse", UnresolvedChannel::parse)
             .def(
                 py::init<std::string, UnresolvedChannel::platform_set, UnresolvedChannel::Type>(),

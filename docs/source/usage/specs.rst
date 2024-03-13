@@ -431,3 +431,24 @@ with an example
    ``python==3.7`` (strong equality).
    This is intuitively different from how we write ``python=3.7``, which we must write with
    attributes as ``python[version="=3.7"]``.
+
+The method
+:cpp:func:`MatchSpec.contains_except_channel <mamba::specs::MatchSpec::contains_except_channel>`
+can be used to check if a package is contained (matched) by the current |MatchSpec|.
+The somewhat verbose name serve to indicate that the channel is ignored in this function.
+As mentionned in the :ref:`Channel section<libmamba_usage_channel>` resolving and matching channels
+is a delicate operation.
+In addition, the channel is a part that describe the **provenance** of a package and not is content
+so various application ay want to handle it in different ways.
+The :cpp:func:`MatchSpec.channel <mamba::specs::MatchSpec::channel>` attribute can be used to
+reason about the possible channel contained in the |MatchSpec|.
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   ms = specs.MatchSpec.parse("conda-forge::py*[build_number='>4']")
+
+   assert ms.contains(name="python", build_number=5)
+   assert not ms.contains(name="numpy", build_number=8)
+   assert ms.channel.location == "conda-forge"

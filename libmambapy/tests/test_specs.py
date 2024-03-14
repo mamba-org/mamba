@@ -857,6 +857,7 @@ def test_MatchSpec():
     assert ms.optional
     assert not ms.is_file()
     assert not ms.is_simple()
+    assert not ms.is_only_package_name()
 
     # str
     assert str(ms) == (

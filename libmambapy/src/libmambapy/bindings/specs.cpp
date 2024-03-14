@@ -807,6 +807,7 @@ namespace mambapy
             )
             .def("is_file", &MatchSpec::is_file)
             .def("is_simple", &MatchSpec::is_simple)
+            .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
             .def("__str__", &MatchSpec::str)
             .def("__copy__", &copy<MatchSpec>)

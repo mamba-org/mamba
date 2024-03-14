@@ -1393,8 +1393,11 @@ namespace mamba::solver::libsolv
                         [&](auto id)
                         {
                             auto const clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
-                            // TODO: ignoring update specs here for now
-                            if (!job.spec.is_simple())
+                            // FIXME keeping unknown legacy behaviour for now.
+                            // This is the old ``if(!job.spec.is_simple())``.
+                            if (!(job.spec.version().is_explicitly_free()
+                                  && job.spec.build_string().is_free()
+                                  && job.spec.build_number().is_explicitly_free()))
                             {
                                 raw_jobs.push_back(
                                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES | clean_deps,

@@ -467,34 +467,39 @@ TEST_SUITE("specs::match_spec")
 
     TEST_CASE("is_simple")
     {
-        SUBCASE("libblas")
+        SUBCASE("Positive")
         {
-            auto ms = MatchSpec::parse("libblas").value();
-            CHECK(ms.is_simple());
+            for (std::string_view str : {
+                     "libblas",
+                     "libblas=12.9=abcdef",
+                     "libblas=0.15*",
+                     "libblas[version=12.2]",
+                     "xtensor =0.15*",
+                 })
+            {
+                CAPTURE(str);
+                const auto ms = MatchSpec::parse(str).value();
+                CHECK(ms.is_simple());
+            }
         }
 
-        SUBCASE("libblas=12.9=abcdef")
+        SUBCASE("Negative")
         {
-            auto ms = MatchSpec::parse("libblas=12.9=abcdef").value();
-            CHECK_FALSE(ms.is_simple());
-        }
-
-        SUBCASE("libblas=0.15*")
-        {
-            auto ms = MatchSpec::parse("libblas=0.15*").value();
-            CHECK_FALSE(ms.is_simple());
-        }
-
-        SUBCASE("libblas[version=12.2]")
-        {
-            auto ms = MatchSpec::parse("libblas[version=12.2]").value();
-            CHECK_FALSE(ms.is_simple());
-        }
-
-        SUBCASE("xtensor =0.15*")
-        {
-            auto ms = MatchSpec::parse("xtensor =0.15*").value();
-            CHECK_FALSE(ms.is_simple());
+            for (std::string_view str : {
+                     "pkg[build_number=3]",
+                     "pkg[md5=85094328554u9543215123]",
+                     "pkg[sha256=0320104934325453]",
+                     "pkg[license=MIT]",
+                     "pkg[track_features=mkl]",
+                     "pkg[version='(>2,<3)|=4']",
+                     "conda-forge::pkg",
+                     "pypi:pkg",
+                 })
+            {
+                CAPTURE(str);
+                const auto ms = MatchSpec::parse(str).value();
+                CHECK_FALSE(ms.is_simple());
+            }
         }
     }
 

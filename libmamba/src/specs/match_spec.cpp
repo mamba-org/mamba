@@ -941,8 +941,28 @@ namespace mamba::specs
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return m_version.is_explicitly_free() && m_build_string.is_free()
-               && m_build_number.is_explicitly_free();
+        // Based on what libsolv and conda_build_form can handle.
+        // Glob in names and build_string are fine
+        return (version().expression_size() <= 2)      //
+               && build_number().is_explicitly_free()  //
+               && !channel().has_value()               //
+               && filename().empty()                   //
+               && !platforms().has_value()             //
+               && name_space().empty()                 //
+               && md5().empty()                        //
+               && sha256().empty()                     //
+               && license().empty()                    //
+               && license_family().empty()             //
+               && features().empty()                   //
+               && !track_features().has_value();
+    }
+
+    [[nodiscard]] auto MatchSpec::is_only_package_name() const -> bool
+    {
+        return name().is_exact()                  //
+               && version().is_explicitly_free()  //
+               && build_string().is_free()        //
+               && is_simple();
     }
 
     auto MatchSpec::contains_except_channel(const PackageInfo& pkg) const -> bool

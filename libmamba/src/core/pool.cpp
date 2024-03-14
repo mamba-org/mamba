@@ -204,10 +204,20 @@ namespace mamba
             // Poor man's ms repr to match waht the user provided
             std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
 
-            // Already added, return that id
-            if (const auto maybe_id = pool.find_string(repr))
+            const auto maybe_id = pool.find_string(repr);
+            if (maybe_id)
             {
-                return maybe_id.value();
+                // Channel specific matchspec already added to libsolv string cache
+                bool already_added = false;
+                pool.for_each_whatprovides(
+                    maybe_id.value(),
+                    [&](solv::ObjSolvableViewConst s) { already_added = true; }
+                );
+                if (already_added)
+                {
+                    // whatprovides already added and still present in pool
+                    return maybe_id.value();
+                }
             }
 
             // conda_build_form does **NOT** contain the channel info
@@ -253,7 +263,7 @@ namespace mamba
                 }
             );
 
-            solv::StringId const repr_id = pool.add_string(repr);
+            solv::StringId const repr_id = maybe_id ? maybe_id.value() : pool.add_string(repr);
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
             // must be taken to do it before
             // TODO investigate namespace providers

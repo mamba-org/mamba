@@ -1,6 +1,8 @@
 @REM Copyright (C) 2012 Anaconda, Inc
 @REM SPDX-License-Identifier: BSD-3-Clause
 
+@REM Replaced by mamba executable with the MAMBA_EXE and MAMBA_ROOT_PREFIX variable pointing
+@REM to the correct locations.
 __MAMBA_INSERT_MAMBA_EXE__
 __MAMBA_INSERT_ROOT_PREFIX__
 

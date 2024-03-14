@@ -361,7 +361,7 @@ namespace mamba
 
     struct WrappedCallOptions
     {
-        bool is_micromamba = false;
+        bool is_mamba_exe = false;
         bool dev_mode = false;
         bool debug_wrapper_scripts = false;
 

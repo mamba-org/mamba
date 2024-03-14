@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __mamba_exe() (
-    "$MAMBA_EXE" "${@}"
+    "${MAMBA_EXE}" "${@}"
 )
 
 __mamba_hashr() {
@@ -16,13 +16,13 @@ __mamba_hashr() {
 }
 
 __mamba_xctivate() {
-    \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell "${@}" --shell bash)" || \return
-    \eval "${ask_conda}"
+    \local ask_mamba
+    ask_mamba="$(PS1="${PS1:-}" __mamba_exe shell "${@}" --shell bash)" || \return
+    \eval "${ask_mamba}"
     __mamba_hashr
 }
 
-micromamba() {
+__mamba_wrap() {
     \local cmd="${1-__missing__}"
     case "${cmd}" in
         activate|reactivate|deactivate)
@@ -36,8 +36,8 @@ micromamba() {
             __mamba_exe "${@}" || \return
 
             # remove leftover backup file on Windows
-            if [ -f "$MAMBA_EXE.bkup" ]; then
-                rm -f "$MAMBA_EXE.bkup"
+            if [ -f "${MAMBA_EXE}.bkup" ]; then
+                rm -f "${MAMBA_EXE}.bkup"
             fi
             ;;
         *)
@@ -46,16 +46,23 @@ micromamba() {
     esac
 }
 
+
+# We need to define a function with the same name as the executable to be called by the user.
+# There is no way to register it dynamically without relying on hacks or eval.
+__exe_name="$(basename "${MAMBA_EXE}")"
+__exe_name="${__exe_name%.*}"
+if [[ "${__exe_name}" == "micromamba" ]]; then
+    micromamba() { __mamba_wrap "${@}"; }
+elif [[ "${__exe_name}" == "mamba" ]]; then
+    mamba() { __mamba_wrap "${@}"; }
+else
+    echo "Error unknow MAMBA_EXE: \"${MAMBA_EXE}\", filename must be mamba or micromamba" 1>&2
+fi
+
+
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
-    # In dev-mode MAMBA_EXE is python.exe and on Windows
-    # it is in a different relative location to condabin.
-    if [ -n "${_CE_CONDA+x}" ] && [ -n "${WINDIR+x}" ]; then
-        PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
-    else
-        PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
-    fi
-    \export PATH
+    \export PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
 
     # We're not allowing PS1 to be unbound. It must at least be set.
     # However, we're not exporting it, which can cause problems when starting a second shell

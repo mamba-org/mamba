@@ -42,7 +42,7 @@ main(int argc, char** argv)
 
     init_console();
 
-    ctx.command_params.is_micromamba = true;
+    ctx.command_params.is_mamba_exe = true;
 
     CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app, config);

@@ -8,13 +8,14 @@
 #define MAMBA_CORE_SHELL_INIT
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "mamba/fs/filesystem.hpp"
 
-extern const char data_micromamba_sh[];
-extern const char data_micromamba_csh[];
-extern const char data_micromamba_bat[];
+extern const char data_mamba_sh[];
+extern const char data_mamba_csh[];
+extern const char data_mamba_bat[];
 extern const char data_activate_bat[];
 extern const char data__mamba_activate_bat[];
 extern const char data_mamba_hook_bat[];
@@ -38,14 +39,13 @@ namespace mamba
     );
 #endif
 
-    fs::u8path get_self_exe_path();
     std::string get_hook_contents(const Context& context, const std::string& shell);
 
     // this function calls cygpath to convert win path to unix
     std::string native_path_to_unix(const std::string& path, bool is_a_path_env = false);
 
     std::string
-    rcfile_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe);
+    rcfile_content(const fs::u8path& env_prefix, std::string_view shell, const fs::u8path& mamba_exe);
 
     std::string
     xonsh_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe);

@@ -184,31 +184,61 @@ struct fmt::formatter<::mamba::specs::MatchSpec>
 
 namespace mamba::specs
 {
+    namespace detail
+    {
+        template <typename Return>
+        struct Deref
+        {
+            template <typename T>
+            static auto deref(T&& x) -> decltype(auto)
+            {
+                return x;
+            }
+        };
+
+        template <typename Inner>
+        struct Deref<std::reference_wrapper<Inner>>
+        {
+            template <typename T>
+            static auto deref(T&& x) -> decltype(auto)
+            {
+                return std::forward<T>(x).get();
+            }
+        };
+
+        template <typename Attr, typename Pkg>
+        auto invoke_pkg(Attr&& attr, Pkg&& pkg) -> decltype(auto)
+        {
+            using Return = std::decay_t<std::invoke_result_t<Attr&&, Pkg&&>>;
+            return Deref<Return>::deref(std::invoke(std::forward<Attr>(attr), std::forward<Pkg>(pkg)));
+        }
+    }
+
     template <typename Pkg>
     auto MatchSpec::contains_except_channel(const Pkg& pkg) const -> bool
     {
-        if (                                                                           //
-            !name().contains(std::invoke(&Pkg::name, pkg))                             //
-            || !version().contains(std::invoke(&Pkg::version, pkg))                    //
-            || !build_string().contains(std::invoke(&Pkg::build_string, pkg))          //
-            || !build_number().contains(std::invoke(&Pkg::build_number, pkg))          //
-            || (!md5().empty() && (md5() != std::invoke(&Pkg::md5, pkg)))              //
-            || (!sha256().empty() && (sha256() != std::invoke(&Pkg::sha256, pkg)))     //
-            || (!license().empty() && (license() != std::invoke(&Pkg::license, pkg)))  //
+        if (                                                                                  //
+            !name().contains(detail::invoke_pkg(&Pkg::name, pkg))                             //
+            || !version().contains(detail::invoke_pkg(&Pkg::version, pkg))                    //
+            || !build_string().contains(detail::invoke_pkg(&Pkg::build_string, pkg))          //
+            || !build_number().contains(detail::invoke_pkg(&Pkg::build_number, pkg))          //
+            || (!md5().empty() && (md5() != detail::invoke_pkg(&Pkg::md5, pkg)))              //
+            || (!sha256().empty() && (sha256() != detail::invoke_pkg(&Pkg::sha256, pkg)))     //
+            || (!license().empty() && (license() != detail::invoke_pkg(&Pkg::license, pkg)))  //
         )
         {
             return false;
         }
 
         if (const auto& plats = platforms();
-            plats.has_value() && !plats->get().contains(std::invoke(&Pkg::platform, pkg)))
+            plats.has_value() && !plats->get().contains(detail::invoke_pkg(&Pkg::platform, pkg)))
         {
             return false;
         }
 
         if (const auto& tfeats = track_features();
             tfeats.has_value()
-            && !util::set_is_subset_of(tfeats->get(), std::invoke(&Pkg::track_features, pkg)))
+            && !util::set_is_subset_of(tfeats->get(), detail::invoke_pkg(&Pkg::track_features, pkg)))
         {
             return false;
         }

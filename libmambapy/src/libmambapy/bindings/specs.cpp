@@ -768,7 +768,7 @@ namespace mambapy
                    std::string_view sha256,
                    std::string_view license,
                    std::string& platform,
-                   MatchSpec::string_set track_features)
+                   const MatchSpec::string_set& track_features)
                 {
                     struct Pkg
                     {
@@ -780,7 +780,7 @@ namespace mambapy
                         std::string_view sha256;
                         std::string_view license;
                         std::reference_wrapper<const std::string> platform;
-                        const MatchSpec::string_set track_features;
+                        std::reference_wrapper<const MatchSpec::string_set> track_features;
                     };
 
                     return ms.contains_except_channel(Pkg{
@@ -792,7 +792,7 @@ namespace mambapy
                         /* .sha256= */ sha256,
                         /* .license= */ license,
                         /* .platform= */ platform,
-                        /* .track_features= */ std::move(track_features),
+                        /* .track_features= */ track_features,
                     });
                 },
                 py::arg("name") = "",

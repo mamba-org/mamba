@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_SOLVER_LIBSOLV_HERLPERS
-#define MAMBA_SOLVER_LIBSOLV_HERLPERS
+#ifndef MAMBA_SOLVER_LIBSOLV_HELPERS
+#define MAMBA_SOLVER_LIBSOLV_HELPERS
 
 #include <optional>
 #include <string>

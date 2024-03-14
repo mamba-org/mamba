@@ -352,20 +352,20 @@ namespace solv
         return set_channel(str.c_str());
     }
 
-    auto ObjSolvableViewConst::subdir() const -> std::string_view
+    auto ObjSolvableViewConst::platform() const -> std::string_view
     {
         return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIADIR)
         );
     }
 
-    void ObjSolvableView::set_subdir(raw_str_view str) const
+    void ObjSolvableView::set_platform(raw_str_view str) const
     {
         ::solvable_set_str(raw(), SOLVABLE_MEDIADIR, str);
     }
 
-    void ObjSolvableView::set_subdir(const std::string& str) const
+    void ObjSolvableView::set_platform(const std::string& str) const
     {
-        return set_subdir(str.c_str());
+        return set_platform(str.c_str());
     }
 
     auto ObjSolvableViewConst::dependencies(DependencyMarker marker) const -> ObjQueue

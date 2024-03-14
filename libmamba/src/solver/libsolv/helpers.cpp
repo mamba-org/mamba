@@ -52,7 +52,7 @@ namespace mamba::solver::libsolv
         solv.set_build_number(pkg.build_number);
         solv.set_channel(pkg.channel);
         solv.set_url(pkg.package_url);
-        solv.set_subdir(pkg.platform);
+        solv.set_platform(pkg.platform);
         solv.set_file_name(pkg.filename);
         solv.set_license(pkg.license);
         solv.set_size(pkg.size);
@@ -98,7 +98,7 @@ namespace mamba::solver::libsolv
         out.build_number = s.build_number();
         out.channel = s.channel();
         out.package_url = s.url();
-        out.platform = s.subdir();
+        out.platform = s.platform();
         out.filename = s.file_name();
         out.license = s.license();
         out.size = s.size();
@@ -251,11 +251,11 @@ namespace mamba::solver::libsolv
 
             if (auto subdir = pkg["subdir"].get_c_str(); !subdir.error())
             {
-                solv.set_subdir(subdir.value_unsafe());
+                solv.set_platform(subdir.value_unsafe());
             }
             else
             {
-                solv.set_subdir(default_subdir);
+                solv.set_platform(default_subdir);
             }
 
             if (auto size = pkg["size"].get_uint64(); !size.error())
@@ -794,7 +794,7 @@ namespace mamba::solver::libsolv
                             }
                             case (specs::Channel::Match::InOtherPlatform):
                             {
-                                other_subdir_match = s.subdir();
+                                other_subdir_match = s.platform();
                                 break;
                             }
                             case (specs::Channel::Match::No):

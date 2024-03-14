@@ -843,7 +843,7 @@ TEST_SUITE("solver::libsolv::solver")
                 ));
             }
 
-            SUBCASE("conda-forge[subdir=linux-64]")
+            SUBCASE("conda-forge::numpy[subdir=linux-64]")
             {
                 auto request = Request{
                     /* .flags= */ {},

@@ -24,6 +24,7 @@
 #include "solv-cpp/queue.hpp"
 
 #include "solver/libsolv/helpers.hpp"
+#include "solver/libsolv/matcher.hpp"
 
 namespace mamba::solver::libsolv
 {
@@ -36,6 +37,8 @@ namespace mamba::solver::libsolv
 
         specs::ChannelResolveParams channel_params;
         solv::ObjPool pool = {};
+        Matcher matcher = {};
+        std::exception_ptr error = nullptr;
     };
 
     Database::Database(specs::ChannelResolveParams channel_params)
@@ -45,6 +48,23 @@ namespace mamba::solver::libsolv
         // Ensure that debug logging never goes to stdout as to not interfere json output
         pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
         ::pool_setdebuglevel(pool().raw(), -1);  // Off
+        pool().set_namespace_callback(
+            [&data = (*m_data
+             )](solv::ObjPoolView pool,
+                solv::StringId name,
+                solv::StringId /* version */) noexcept -> solv::OffsetId
+            {
+                try
+                {
+                    return data.matcher.get_matching_packages(pool, name);
+                }
+                catch (...)
+                {
+                    data.error = std::current_exception();
+                }
+                return 0;
+            }
+        );
     }
 
     Database::~Database() = default;
@@ -55,6 +75,11 @@ namespace mamba::solver::libsolv
 
     auto Database::pool() -> solv::ObjPool&
     {
+        if (auto error = m_data->error; error != nullptr)
+        {
+            m_data->error = nullptr;
+            std::rethrow_exception(error);
+        }
         return m_data->pool;
     }
 

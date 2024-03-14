@@ -32,11 +32,11 @@ namespace mamba
 
         explicit RepoCheckerStore(repo_checker_list checkers);
 
-        [[nodiscard]] auto find_checker(const Channel& chan) const -> const RepoChecker*;
+        [[nodiscard]] auto find_checker(const Channel& chan) -> RepoChecker*;
 
-        [[nodiscard]] auto contains_checker(const Channel& chan) const -> bool;
+        [[nodiscard]] auto contains_checker(const Channel& chan) -> bool;
 
-        [[nodiscard]] auto at_checker(const Channel& chan) const -> const RepoChecker&;
+        [[nodiscard]] auto at_checker(const Channel& chan) -> RepoChecker&;
 
     private:
 

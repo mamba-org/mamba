@@ -592,6 +592,7 @@ namespace mamba
                             if (repo_checker)
                             {
                                 LOG_INFO << "RepoChecker successfully created.";
+                                repo_checker->generate_index_checker();
                                 repo_checker->verify_package(
                                     pkg.json_signable(),
                                     std::string_view(pkg.signatures)
@@ -600,6 +601,10 @@ namespace mamba
                             else
                             {
                                 LOG_ERROR << "Could not create a valid RepoChecker.";
+                                throw std::runtime_error(fmt::format(
+                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
+                                    pkg.name
+                                ));
                             }
                         }
                         LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";

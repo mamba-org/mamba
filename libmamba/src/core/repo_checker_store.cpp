@@ -42,7 +42,6 @@ namespace mamba
 
                 // Initialization
                 fs::create_directories(checker.cache_path());
-                checker.generate_index_checker();
 
                 repo_checkers.emplace_back(std::move(chan), std::move(checker));
             }
@@ -55,7 +54,7 @@ namespace mamba
     {
     }
 
-    auto RepoCheckerStore::find_checker(const Channel& chan) const -> const RepoChecker*
+    auto RepoCheckerStore::find_checker(const Channel& chan) -> RepoChecker*
     {
         for (auto& [candidate_chan, checker] : m_repo_checkers)
         {
@@ -67,12 +66,12 @@ namespace mamba
         return nullptr;
     }
 
-    auto RepoCheckerStore::contains_checker(const Channel& chan) const -> bool
+    auto RepoCheckerStore::contains_checker(const Channel& chan) -> bool
     {
         return find_checker(chan) != nullptr;
     }
 
-    auto RepoCheckerStore::at_checker(const Channel& chan) const -> const RepoChecker&
+    auto RepoCheckerStore::at_checker(const Channel& chan) -> RepoChecker&
     {
         if (auto ptr = find_checker(chan))
         {

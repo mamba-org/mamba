@@ -8,14 +8,12 @@
       "build_number": 0,
       "depends": [],
       "license": "BSD",
-      "license_family": "BSD",
-      "md5": "2a8595f37faa2950e1b433acbe91d481",
+      "md5": "719449904d9d4ac9853437a9504f87c5",
       "name": "test-package",
-      "noarch": "generic",
-      "sha256": "b908ffce2d26d94c58c968abf286568d4bcf87d1cfe6c994958351724a6f6988",
-      "size": 5719,
+      "sha256": "1c8942fd0ad0dd3f780bff1a159a6ff8b82968965a630b3e1bff27b7168f68b5",
+      "size": 5747,
       "subdir": "noarch",
-      "timestamp": 1613117294885,
+      "timestamp": 1613117294,
       "version": "0.1"
     }
   },

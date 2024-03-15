@@ -1,5 +1,5 @@
 =======================
-Development Envrionment
+Development Environment
 =======================
 
 .. warning::
@@ -12,8 +12,8 @@ Get the code and Mamba
 Clone the repo
 **************
 
-Fork and clone the repository in your prefered manner.
-Refer to Github documentation for how to do so.
+Fork and clone the repository in your preferred manner.
+Refer to GitHub documentation for how to do so.
 
 Install micromamba
 ******************
@@ -122,7 +122,7 @@ Running commands manually
    useful commands.
    The CI files in ``.github/workflow`` provide an alternative way of developing Mamba.
 
-Install develoment dependencies
+Install development dependencies
 *******************************
 
 .. code:: bash
@@ -130,7 +130,7 @@ Install develoment dependencies
     micromamba create -n mamba -c conda-forge -f dev/environment.yml
     micromamba activate -n mamba
 
-Compile ``libmmaba`` and other artifacts
+Compile ``libmamba`` and other artifacts
 ****************************************
 
 ``libmamba`` is built using CMake.
@@ -157,7 +157,7 @@ Compilation can then be launched with:
 ``libmamba`` tests
 ******************
 
-The tests for libamba are written in C++.
+The tests for libmamba are written in C++.
 
 .. code:: bash
 
@@ -166,7 +166,7 @@ The tests for libamba are written in C++.
 ``micromamba`` integration tests
 ********************************
 
-Many ``micromamba`` integration tests are written through a Pytest Python wrapper.
+Many ``micromamba`` integration tests are written through a pytest Python wrapper.
 The environment variable ``TEST_MAMBA_EXE`` controls which executable is being tested.
 
 .. code:: bash
@@ -181,7 +181,7 @@ To run the ``libmambapy`` tests, the Python package needs to be properly install
 
 .. warning::
 
-   This needs to be done every time ``libamamba`` changes.
+   This needs to be done every time ``libmamba`` changes.
 
 .. code:: bash
 
@@ -202,9 +202,9 @@ Finally the tests can be run:
 Code Formatting
 ===============
 
-Code formatting is done using Pre Commit hooks.
+Code formatting is done using Pre-Commit hooks.
 Whichever way you decided to install development dependencies, we recommend installing
-Pre Commit hooks with
+Pre-Commit hooks with
 
 .. code:: bash
 

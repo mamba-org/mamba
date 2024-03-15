@@ -50,13 +50,13 @@ namespace mamba::solver::libsolv
         ::pool_setdebuglevel(pool().raw(), -1);  // Off
         pool().set_namespace_callback(
             [&data = (*m_data
-             )](solv::ObjPoolView pool,
-                solv::StringId name,
-                solv::StringId /* version */) noexcept -> solv::OffsetId
+             )](solv::ObjPoolView pool, solv::StringId first, solv::StringId second
+            ) noexcept -> solv::OffsetId
             {
                 try
                 {
-                    return data.matcher.get_matching_packages(pool, name);
+                    auto [dep, flags] = get_abused_namespace_callback_args(pool, first, second);
+                    return data.matcher.get_matching_packages(pool, dep, flags);
                 }
                 catch (...)
                 {

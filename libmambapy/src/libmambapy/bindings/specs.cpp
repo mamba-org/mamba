@@ -590,6 +590,9 @@ namespace mambapy
             .def_static("from_predicate", &VersionSpec::from_predicate, py::arg("pred"))
             .def(py::init<>())
             .def("contains", &VersionSpec::contains, py::arg("point"))
+            .def("is_explicitly_free", &VersionSpec::is_explicitly_free)
+            .def("expression_size", &VersionSpec::expression_size)
+            .def("str_conda_build", &VersionSpec::str_conda_build)
             .def("__str__", &VersionSpec::str)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));

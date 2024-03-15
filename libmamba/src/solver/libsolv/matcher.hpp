@@ -47,7 +47,7 @@ namespace mamba::solver::libsolv
 
         auto get_matching_packages(  //
             solv::ObjPoolView pool,
-            solv::StringId dep,
+            std::string_view dep,
             const MatchFlags& flags = {}
         ) -> solv::OffsetId;
 

@@ -23,6 +23,8 @@
 #include "solv-cpp/solvable.hpp"
 #include "solv-cpp/transaction.hpp"
 
+#include "solver/libsolv/matcher.hpp"
+
 /**
  * Solver, repo, and solvable helpers dependent on specifi libsolv logic and objects.
  */
@@ -74,6 +76,30 @@ namespace mamba::solver::libsolv
     set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url, const std::string& channel_id);
 
     void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo);
+
+    /**
+     * Make parameters to use as a namespace dependency.
+     *
+     * We use these proxy function since we are abusing the two string parameters of namespace
+     * callback to pass our own information.
+     */
+    [[nodiscard]] auto make_abused_namespace_dep_args(
+        solv::ObjPool& pool,
+        std::string_view dependency,
+        const MatchFlags& flags = {}
+    ) -> std::pair<solv::StringId, solv::StringId>;
+
+    /**
+     * Retrieved parameters used in a namespace callback.
+     *
+     * We use these proxy function since we are abusing the two string parameters of namespace
+     * callback to pass our own information.
+     */
+    [[nodiscard]] auto get_abused_namespace_callback_args(  //
+        solv::ObjPoolView& pool,
+        solv::StringId first,
+        solv::StringId second
+    ) -> std::pair<std::string_view, MatchFlags>;
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,

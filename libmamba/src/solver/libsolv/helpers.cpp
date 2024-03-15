@@ -28,6 +28,7 @@
 
 #include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
+#include "solver/libsolv/matcher.hpp"
 
 #define MAMBA_TOOL_VERSION "2.0"
 
@@ -706,6 +707,28 @@ namespace mamba::solver::libsolv
         repo.set_pip_added(true);
     }
 
+    auto
+    make_abused_namespace_dep_args(solv::ObjPool& pool, std::string_view dependency, const MatchFlags& flags)
+        -> std::pair<solv::StringId, solv::StringId>
+    {
+        return {
+            pool.add_string(dependency),
+            pool.add_string(flags.internal_serialize()),
+        };
+    }
+
+    auto get_abused_namespace_callback_args(  //
+        solv::ObjPoolView& pool,
+        solv::StringId name,
+        solv::StringId ver
+    ) -> std::pair<std::string_view, MatchFlags>
+    {
+        return {
+            pool.get_string(name),
+            MatchFlags::internal_deserialize(pool.get_string(ver)),
+        };
+    }
+
     namespace
     {
         auto
@@ -1270,6 +1293,30 @@ namespace mamba::solver::libsolv
 
     namespace
     {
+        [[nodiscard]] auto match_as_closely(solv::ObjSolvableViewConst s) -> specs::MatchSpec
+        {
+            auto ms = specs::MatchSpec();
+            ms.set_name(specs::MatchSpec::NameSpec(std::string(s.name())));
+            // Ignoring version error, the point is to find a close match
+            specs::Version::parse(s.version())
+                .transform(
+                    [&](specs::Version&& ver)
+                    {
+                        ms.set_version(specs::VersionSpec::from_predicate(
+                            specs::VersionPredicate::make_equal_to(std::move(ver))
+                        ));
+                    }
+                );
+            ms.set_build_string(specs::MatchSpec::BuildStringSpec(std::string(s.build_string())));
+            ms.set_build_number(
+                specs::BuildNumberSpec(specs::BuildNumberPredicate::make_equal_to(s.build_number()))
+            );
+            ms.set_md5(std::string(s.md5()));
+            ms.set_sha256(std::string(s.sha256()));
+
+            return ms;
+        }
+
         [[nodiscard]] auto add_reinstall_job(
             solv::ObjQueue& jobs,
             solv::ObjPool& pool,
@@ -1294,57 +1341,23 @@ namespace mamba::solver::libsolv
                 }
             );
 
-            if (!solvable.has_value() || solvable->channel().empty())
+            if (solvable.has_value())
             {
-                // We are not reinstalling but simply installing.
-                // Right now, using `--force-reinstall` will send all specs (whether they have
-                // been previously installed or not) down this path, so we need to handle specs
-                // that are not installed.
-                return pool_add_matchspec(pool, ms, params)
-                    .transform([&](auto id) { jobs.push_back(install_flag, id); });
-            }
-
-            if (ms.channel().has_value() || !ms.version().is_explicitly_free()
-                || !ms.build_string().is_free())
-            {
-                Console::stream() << ms.conda_build_form()
-                                  << ": overriding channel, version and build from "
-                                     "installed packages due to --force-reinstall.";
-            }
-
-            auto ms_modified = ms;
-            auto unresolved_chan = specs::UnresolvedChannel::parse(solvable->channel());
-            if (unresolved_chan.has_value())
-            {
-                ms_modified.set_channel(std::move(unresolved_chan).value());
-            }
-            else
-            {
-                return make_unexpected(
-                    std::move(unresolved_chan).error().what(),
-                    mamba_error_code::invalid_spec
+                // To Reinstall, we add a install job with our custom namespace matcher,
+                // passing a flag to exclude matching installed packages.
+                // This has the effect of reinstalling in libsolv.
+                const auto [first, second] = make_abused_namespace_dep_args(
+                    pool,
+                    match_as_closely(solvable.value()).str(),
+                    { /* .skip_installed= */ true }
                 );
-            }
-            auto version_spec = specs::VersionSpec::parse(solvable->version());
-            if (version_spec.has_value())
-            {
-                ms_modified.set_version(std::move(version_spec).value());
-            }
-            else
-            {
-                return make_unexpected(
-                    std::move(version_spec).error().what(),
-                    mamba_error_code::invalid_spec
-                );
+                const auto job_id = pool.add_dependency(first, REL_NAMESPACE, second);
+                jobs.push_back(install_flag, job_id);
+                return {};
             }
 
-            ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
-
-            LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
-                     << ms_modified.channel()->str();
-            // TODO Fragile! The only reason why this works is that with a channel specific
-            // matchspec the job will always be reinstalled.
-            return pool_add_matchspec(pool, ms_modified, params)
+            // We are not reinstalling but simply installing.
+            return pool_add_matchspec(pool, ms, params)
                 .transform([&](auto id) { jobs.push_back(install_flag, id); });
         }
 

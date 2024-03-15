@@ -103,6 +103,31 @@ TEST_SUITE("solver::libsolv::solver")
             CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
         }
 
+        SUBCASE("Force reinstall not installed numpy")
+        {
+            auto flags = Request::Flags();
+            flags.force_reinstall = true;
+            const auto request = Request{
+                /* .flags= */ std::move(flags),
+                /* .jobs= */ { Request::Install{ "numpy"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_FALSE(solution.actions.empty());
+            // Numpy is last because of topological sort
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.back()));
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
+            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+
+            const auto python_actions = find_actions_with_name(solution, "python");
+            REQUIRE_EQ(python_actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
+        }
+
         SUBCASE("Install numpy without dependencies")
         {
             const auto request = Request{
@@ -278,6 +303,45 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             CHECK(solution.actions.empty());
+        }
+    }
+
+    TEST_CASE("Reinstall packages")
+    {
+        auto db = libsolv::Database({});
+
+        // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
+        const auto repo_installed = db.add_repo_from_repodata_json(
+            mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
+            "installed",
+            "installed"
+        );
+        REQUIRE(repo_installed.has_value());
+        db.set_installed_repo(repo_installed.value());
+        const auto repo = db.add_repo_from_repodata_json(
+            mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "conda-forge"
+        );
+        REQUIRE(repo.has_value());
+
+        SUBCASE("Force reinstall numpy resinstalls it")
+        {
+            auto flags = Request::Flags();
+            flags.force_reinstall = true;
+            const auto request = Request{
+                /* .flags= */ std::move(flags),
+                /* .jobs= */ { Request::Install{ "numpy"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Reinstall>(solution.actions.front()));
+            CHECK_EQ(std::get<Solution::Reinstall>(solution.actions.front()).what.name, "numpy");
         }
     }
 

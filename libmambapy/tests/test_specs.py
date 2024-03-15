@@ -699,9 +699,12 @@ def test_VersionSpec():
     # Constructor
     vs = VersionSpec()
     assert vs.is_explicitly_free()
+    assert vs.expression_size() == 0
 
     # Parse
     vs = VersionSpec.parse(">2.0,<3.0")
+    assert not vs.is_explicitly_free()
+    assert vs.expression_size() == 3  # including operator
 
     # Errors
     with pytest.raises(libmambapy.specs.ParseError):

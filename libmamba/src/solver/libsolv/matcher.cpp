@@ -72,11 +72,11 @@ namespace mamba::solver::libsolv
 
     auto Matcher::get_matching_packages(  //
         solv::ObjPoolView pool,
-        solv::StringId dep,
+        std::string_view dep,
         const MatchFlags& flags
     ) -> solv::OffsetId
     {
-        return specs::MatchSpec::parse(pool.get_string(dep))
+        return specs::MatchSpec::parse(dep)
             .transform([&](const specs::MatchSpec& ms)
                        { return get_matching_packages(pool, ms, flags); })
             .or_else(

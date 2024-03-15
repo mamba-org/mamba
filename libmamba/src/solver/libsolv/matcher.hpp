@@ -10,6 +10,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -56,7 +57,7 @@ namespace mamba::solver::libsolv
         struct Pkg
         {
             std::string_view name;
-            specs::Version version;
+            std::reference_wrapper<const specs::Version> version;
             std::string_view build_string;
             std::size_t build_number;
             std::string_view md5;
@@ -78,9 +79,9 @@ namespace mamba::solver::libsolv
         ) -> bool;
 
         solv::ObjQueue m_packages = {};
-        // TODO use matchspec cache? Or not since they would have the same string in libdolv...
-        // TODO use version cache
-        // TODO handle channels
+        // No need for matchspec cache since they have the same string id they should be handled
+        // by libsolv.
+        std::unordered_map<std::string, specs::Version> m_version_cache = {};
     };
 }
 #endif

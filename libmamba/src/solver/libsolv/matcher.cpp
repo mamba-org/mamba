@@ -10,6 +10,9 @@
 
 namespace mamba::solver::libsolv
 {
+    /**********************************
+     *  Implementation of MatchFlags  *
+     **********************************/
 
     auto MatchFlags::internal_deserialize(std::string_view in) -> MatchFlags
     {
@@ -33,6 +36,10 @@ namespace mamba::solver::libsolv
         internal_serialize_to(out);
         return out;
     }
+
+    /*******************************
+     *  Implementation of Matcher  *
+     *******************************/
 
     auto Matcher::get_matching_packages(  //
         solv::ObjPoolView pool,
@@ -89,38 +96,62 @@ namespace mamba::solver::libsolv
             .value();
     }
 
+    namespace
+    {
+        template <typename Map>
+        [[nodiscard]] auto make_cached_version(Map& cache, std::string version)
+            -> specs::expected_parse_t<std::reference_wrapper<const specs::Version>>
+        {
+            if (auto it = cache.find(version); it != cache.cend())
+            {
+                return { std::cref(it->second) };
+            }
+            if (version.empty())
+            {
+                auto [it, inserted] = cache.emplace(std::move(version), specs::Version());
+                return { std::cref(it->second) };
+            }
+            return specs::Version::parse(version).transform(
+                [&](specs::Version&& ver) -> std::reference_wrapper<const specs::Version>
+                {
+                    auto [it, inserted] = cache.emplace(std::move(version), std::move(ver));
+                    return { std::cref(it->second) };
+                }
+            );
+        }
+    }
+
     auto Matcher::get_pkg_attributes(solv::ObjPoolView pool, solv::ObjSolvableViewConst solv)
         -> expected_t<Pkg>
     {
-        // Handling empty verison and version parse errors.
-        auto version = specs::Version();
-        if (auto ver_str = solv.version(); !ver_str.empty())
-        {
-            auto maybe_version = specs::Version::parse(solv.version());
-            if (!maybe_version.has_value())
-            {
-                return make_unexpected(maybe_version.error().what(), mamba_error_code::invalid_spec);
-            }
-            version = std::move(maybe_version).value();
-        }
-
         auto track_features = specs::MatchSpec::string_set();
         for (solv::StringId id : solv.track_features())
         {
             track_features.insert(std::string(pool.get_string(id)));
         }
 
-        return { Pkg{
-            /* .name= */ solv.name(),
-            /* .version= */ std::move(version),
-            /* .build_string= */ solv.build_string(),
-            /* .build_number= */ solv.build_number(),
-            /* .md5= */ solv.md5(),
-            /* .sha256= */ solv.sha256(),
-            /* .license= */ solv.license(),
-            /* .platform= */ std::string(solv.platform()),
-            /* .track_features= */ std::move(track_features),
-        } };
+        return make_cached_version(m_version_cache, std::string(solv.version()))
+            .transform(
+                [&](auto ver_ref)
+                {
+                    return Pkg{
+                        /* .name= */ solv.name(),
+                        /* .version= */ ver_ref,
+                        /* .build_string= */ solv.build_string(),
+                        /* .build_number= */ solv.build_number(),
+                        /* .md5= */ solv.md5(),
+                        /* .sha256= */ solv.sha256(),
+                        /* .license= */ solv.license(),
+                        /* .platform= */ std::string(solv.platform()),
+                        /* .track_features= */ std::move(track_features),
+                    };
+                }
+            )
+            .transform_error(  //
+                [](specs::ParseError&& err)
+                { return mamba_error(err.what(), mamba_error_code::invalid_spec); }
+
+            );
     }
 
     auto Matcher::pkg_match(  //

@@ -284,6 +284,13 @@ namespace mamba::specs
      *  VersionSpec Implementation  *
      ********************************/
 
+    auto VersionSpec::from_predicate(VersionPredicate pred) -> VersionSpec
+    {
+        auto inner_tree = tree_type::tree_type();
+        inner_tree.add_leaf(std::move(pred));
+        return VersionSpec{ tree_type(std::move(inner_tree)) };
+    }
+
     VersionSpec::VersionSpec(tree_type&& tree) noexcept
         : m_tree(std::move(tree))
     {

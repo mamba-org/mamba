@@ -696,6 +696,11 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.glob_suffix_str, str)
     assert isinstance(VersionSpec.glob_suffix_token, str)
 
+    # Constructor
+    vs = VersionSpec()
+    assert vs.is_explicitly_free()
+
+    # Parse
     vs = VersionSpec.parse(">2.0,<3.0")
 
     # Errors

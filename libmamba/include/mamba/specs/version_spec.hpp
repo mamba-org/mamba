@@ -152,6 +152,11 @@ namespace mamba::specs
 
         [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<VersionSpec>;
 
+        /**
+         * Create a Version spec with a single predicate in the expression.
+         */
+        [[nodiscard]] static auto from_predicate(VersionPredicate pred) -> VersionSpec;
+
         /** Construct VersionSpec that match all versions. */
         VersionSpec() = default;
         explicit VersionSpec(tree_type&& tree) noexcept;

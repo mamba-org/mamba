@@ -587,6 +587,8 @@ namespace mambapy
             .def_readonly_static("glob_suffix_str", &VersionSpec::glob_suffix_str)
             .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
             .def_static("parse", &VersionSpec::parse, py::arg("str"))
+            .def_static("from_predicate", &VersionSpec::from_predicate, py::arg("pred"))
+            .def(py::init<>())
             .def("contains", &VersionSpec::contains, py::arg("point"))
             .def("__str__", &VersionSpec::str)
             .def("__copy__", &copy<VersionSpec>)

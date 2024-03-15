@@ -11,15 +11,45 @@
 namespace mamba::solver::libsolv
 {
 
+    auto MatchFlags::internal_deserialize(std::string_view in) -> MatchFlags
+    {
+        auto out = MatchFlags{};
+        if (in.size() >= 1)
+        {
+            out.skip_installed = in[0] == '1';
+        }
+        return out;
+    }
+
+    void MatchFlags::internal_serialize_to(std::string& out) const
+    {
+        // We simply write a bitset for flags
+        out.push_back(skip_installed ? '1' : '0');
+    }
+
+    [[nodiscard]] auto MatchFlags::internal_serialize() const -> std::string
+    {
+        auto out = std::string();
+        internal_serialize_to(out);
+        return out;
+    }
+
     auto Matcher::get_matching_packages(  //
         solv::ObjPoolView pool,
-        const specs::MatchSpec& ms
+        const specs::MatchSpec& ms,
+        const MatchFlags& flags
+
     ) -> solv::OffsetId
     {
         m_packages.clear();  // Reuse the buffer
 
         auto add_pkg_if_matching = [&](solv::ObjSolvableViewConst s)
         {
+            if (flags.skip_installed && s.installed())
+            {
+                return;
+            }
+
             if (pkg_match(pool, s, ms))
             {
                 m_packages.push_back(s.id());
@@ -42,11 +72,13 @@ namespace mamba::solver::libsolv
 
     auto Matcher::get_matching_packages(  //
         solv::ObjPoolView pool,
-        solv::StringId dep
+        solv::StringId dep,
+        const MatchFlags& flags
     ) -> solv::OffsetId
     {
         return specs::MatchSpec::parse(pool.get_string(dep))
-            .transform([&](const specs::MatchSpec& ms) { return get_matching_packages(pool, ms); })
+            .transform([&](const specs::MatchSpec& ms)
+                       { return get_matching_packages(pool, ms, flags); })
             .or_else(
                 [&](const auto& error) -> specs::expected_parse_t<solv::OffsetId>
                 {

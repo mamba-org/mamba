@@ -19,18 +19,36 @@
 
 namespace mamba::solver::libsolv
 {
+    struct MatchFlags
+    {
+        bool skip_installed = false;
+
+        /**
+         * Deserialization for internal use mamba use, should not be loaded from disk.
+         */
+        static auto internal_deserialize(std::string_view) -> MatchFlags;
+
+        /**
+         * Serialization for internal use mamba use, should not be saved to disk.
+         */
+        void internal_serialize_to(std::string& out) const;
+        [[nodiscard]] auto internal_serialize() const -> std::string;
+    };
+
     class Matcher
     {
     public:
 
         auto get_matching_packages(  //
             solv::ObjPoolView pool,
-            const specs::MatchSpec& ms
+            const specs::MatchSpec& ms,
+            const MatchFlags& flags = {}
         ) -> solv::OffsetId;
 
         auto get_matching_packages(  //
             solv::ObjPoolView pool,
-            solv::StringId dep
+            solv::StringId dep,
+            const MatchFlags& flags = {}
         ) -> solv::OffsetId;
 
     private:

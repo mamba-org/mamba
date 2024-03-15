@@ -880,9 +880,14 @@ namespace mamba::solver::libsolv
             return id;
         };
 
-        if (!ms.channel().has_value())
+        if (ms.is_simple())
         {
             return check_not_zero(pool.add_conda_dependency(ms.conda_build_form()));
+        }
+        else if (!ms.channel().has_value())
+        {
+            const auto [first, second] = make_abused_namespace_dep_args(pool, ms.str());
+            return check_not_zero(pool.add_dependency(first, REL_NAMESPACE, second));
         }
 
         // Working around shortcomings of ``pool_conda_matchspec``

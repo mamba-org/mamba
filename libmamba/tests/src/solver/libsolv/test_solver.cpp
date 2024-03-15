@@ -929,4 +929,92 @@ TEST_SUITE("solver::libsolv::solver")
             }
         }
     }
+
+    TEST_CASE("Handle complex matchspecs")
+    {
+        using PackageInfo = specs::PackageInfo;
+
+        auto db = libsolv::Database({});
+
+        SUBCASE("*[md5=0bab699354cbd66959550eb9b9866620]")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
+            auto pkg2 = PackageInfo("foo");
+            pkg2.md5 = "bad";
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "*[md5=0bab699354cbd66959550eb9b9866620]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            CHECK_EQ(
+                std::get<Solution::Install>(solution.actions.front()).install.md5,
+                "0bab699354cbd66959550eb9b9866620"
+            );
+        }
+
+        SUBCASE("foo[build_string=bld]")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.build_string = "bad";
+            auto pkg2 = PackageInfo("foo");
+            pkg2.build_string = "bld";
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[build=bld]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
+        }
+
+        SUBCASE("foo[build_string=bld, build_number='>2']")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.build_string = "bad";
+            pkg1.build_number = 3;
+            auto pkg2 = PackageInfo("foo");
+            pkg2.build_string = "bld";
+            pkg2.build_number = 2;
+            auto pkg3 = PackageInfo("foo");
+            pkg3.build_string = "bld";
+            pkg3.build_number = 4;
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[build=bld]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_number, 4);
+        }
+    }
 }

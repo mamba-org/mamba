@@ -92,10 +92,16 @@ namespace mamba::solver::libsolv
     auto Matcher::get_pkg_attributes(solv::ObjPoolView pool, solv::ObjSolvableViewConst solv)
         -> expected_t<Pkg>
     {
-        auto version = specs::Version::parse(solv.version());
-        if (!version.has_value())
+        // Handling empty verison and version parse errors.
+        auto version = specs::Version();
+        if (auto ver_str = solv.version(); !ver_str.empty())
         {
-            return make_unexpected(version.error().what(), mamba_error_code::invalid_spec);
+            auto maybe_version = specs::Version::parse(solv.version());
+            if (!maybe_version.has_value())
+            {
+                return make_unexpected(maybe_version.error().what(), mamba_error_code::invalid_spec);
+            }
+            version = std::move(maybe_version).value();
         }
 
         auto track_features = specs::MatchSpec::string_set();
@@ -106,7 +112,7 @@ namespace mamba::solver::libsolv
 
         return { Pkg{
             /* .name= */ solv.name(),
-            /* .version= */ std::move(version).value(),
+            /* .version= */ std::move(version),
             /* .build_string= */ solv.build_string(),
             /* .build_number= */ solv.build_number(),
             /* .md5= */ solv.md5(),

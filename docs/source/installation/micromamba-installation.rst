@@ -7,7 +7,7 @@ Micromamba Installation
 
 ``micromamba`` is a fully statically-linked, self-contained, executable.
 This means that the ``base`` environment is completely empty.
-The configuration for ``micromamba`` is slighly different, namely all environments and cache will be
+The configuration for ``micromamba`` is slightly different, namely all environments and cache will be
 created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
 There is also no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba
 (they are however still read if present).

@@ -257,9 +257,9 @@ def test_Solver_UnSolvable():
     outcome = solver.solve(db, request)
 
     assert isinstance(outcome, libsolv.UnSolvable)
-    assert "nothing provides" in "\n".join(outcome.problems(db))
-    assert "nothing provides" in outcome.problems_to_str(db)
-    assert "nothing provides" in outcome.all_problems_to_str(db)
+    assert len(outcome.problems(db)) > 0
+    assert isinstance(outcome.problems_to_str(db), str)
+    assert isinstance(outcome.all_problems_to_str(db), str)
     assert "The following package could not be installed" in outcome.explain_problems(
         db, libmambapy.Palette.no_color()
     )

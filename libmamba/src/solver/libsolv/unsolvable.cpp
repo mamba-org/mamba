@@ -375,6 +375,7 @@ namespace mamba::solver::libsolv
                     }
                     case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
                     case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
+                    case SOLVER_RULE_JOB_UNSUPPORTED:
                     {
                         // A top level dependency does not exist.
                         // Could be a wrong name or missing channel.

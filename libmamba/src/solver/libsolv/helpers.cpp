@@ -1329,8 +1329,6 @@ namespace mamba::solver::libsolv
             const specs::ChannelResolveParams& params
         ) -> expected_t<void>
         {
-            static constexpr int install_flag = SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES;
-
             auto solvable = std::optional<solv::ObjSolvableViewConst>{};
 
             // the data about the channel is only in the prefix_data unfortunately
@@ -1357,13 +1355,13 @@ namespace mamba::solver::libsolv
                     { /* .skip_installed= */ true }
                 );
                 const auto job_id = pool.add_dependency(first, REL_NAMESPACE, second);
-                jobs.push_back(install_flag, job_id);
+                jobs.push_back(SOLVER_INSTALL, job_id);
                 return {};
             }
 
             // We are not reinstalling but simply installing.
             return pool_add_matchspec(pool, ms, params)
-                .transform([&](auto id) { jobs.push_back(install_flag, id); });
+                .transform([&](auto id) { jobs.push_back(SOLVER_INSTALL, id); });
         }
 
         template <typename Job>
@@ -1384,21 +1382,16 @@ namespace mamba::solver::libsolv
                 else
                 {
                     return pool_add_matchspec(pool, job.spec, params)
-                        .transform(
-                            [&](auto id)
-                            { raw_jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id); }
-                        );
+                        .transform([&](auto id) { raw_jobs.push_back(SOLVER_INSTALL, id); });
                 }
             }
             if constexpr (std::is_same_v<Job, Request::Remove>)
             {
                 return pool_add_matchspec(pool, job.spec, params)
                     .transform(
-                        [&](auto id)
-                        {
+                        [&](auto id) {
                             raw_jobs.push_back(
-                                SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
-                                    | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                                SOLVER_ERASE | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
                                 id
                             );
                         }
@@ -1417,15 +1410,9 @@ namespace mamba::solver::libsolv
                                   && job.spec.build_string().is_free()
                                   && job.spec.build_number().is_explicitly_free()))
                             {
-                                raw_jobs.push_back(
-                                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES | clean_deps,
-                                    id
-                                );
+                                raw_jobs.push_back(SOLVER_INSTALL | clean_deps, id);
                             }
-                            raw_jobs.push_back(
-                                SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES | clean_deps,
-                                id
-                            );
+                            raw_jobs.push_back(SOLVER_UPDATE | clean_deps, id);
                         }
                     );
             }

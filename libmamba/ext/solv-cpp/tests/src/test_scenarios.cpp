@@ -191,6 +191,22 @@ TEST_SUITE("solv::scenariso")
                 CHECK(called);
                 CHECK_FALSE(solved);
             }
+
+            SUBCASE("Callback throws")
+            {
+                pool.set_namespace_callback(
+                    [](ObjPoolView, StringId, StringId) -> OffsetId
+                    { throw std::runtime_error("Error!"); }
+                );
+
+                auto solver = ObjSolver(pool);
+                CHECK_THROWS_AS(
+                    [&] {
+                        return solver.solve(pool, { SOLVER_INSTALL, dep_id });
+                    }(),
+                    std::runtime_error
+                );
+            }
         }
 
         SUBCASE("transitive job dependency")
@@ -242,6 +258,22 @@ TEST_SUITE("solv::scenariso")
                 auto solved = solver.solve(pool, { SOLVER_INSTALL, job_id });
                 CHECK(called);
                 CHECK_FALSE(solved);
+            }
+
+            SUBCASE("Callback throws")
+            {
+                pool.set_namespace_callback(
+                    [](ObjPoolView, StringId, StringId) -> OffsetId
+                    { throw std::runtime_error("Error!"); }
+                );
+
+                auto solver = ObjSolver(pool);
+                CHECK_THROWS_AS(
+                    [&] {
+                        return solver.solve(pool, { SOLVER_INSTALL, job_id });
+                    }(),
+                    std::runtime_error
+                );
             }
         }
     }

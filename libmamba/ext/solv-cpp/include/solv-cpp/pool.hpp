@@ -7,6 +7,7 @@
 #ifndef MAMBA_SOLV_POOL_HPP
 #define MAMBA_SOLV_POOL_HPP
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -290,6 +291,22 @@ namespace solv
         template <typename UnaryFunc>
         void for_each_installed_solvable(UnaryFunc&& func);
 
+        /** Rethrow exception thrown in callback. */
+        void rethrow_potential_callback_exception() const;
+
+    protected:
+
+        using UserCallback = std::function<OffsetId(ObjPoolView, StringId, StringId)>;
+
+        /**
+         * A wrapper around user callback to handle exceptions.
+         *
+         * This cannot be set in this class since this is only a view type but can be checked
+         * for errors.
+         */
+        struct NamespaceCallbackWrapper;
+
+
     private:
 
         raw_ptr m_pool;
@@ -344,6 +361,7 @@ namespace solv
         using ObjPoolView::for_each_solvable;
         using ObjPoolView::for_each_installed_solvable_id;
         using ObjPoolView::for_each_installed_solvable;
+        using ObjPoolView::rethrow_potential_callback_exception;
 
         /** Set the callback to handle libsolv messages.
          *
@@ -354,8 +372,9 @@ namespace solv
         template <typename Func>
         void set_debug_callback(Func&& callback);
 
-        template <typename Func>
-        void set_namespace_callback(Func&& callback);
+        using UserCallback = ObjPoolView::UserCallback;
+
+        void set_namespace_callback(UserCallback&& callback);
 
     private:
 
@@ -365,7 +384,7 @@ namespace solv
         };
 
         std::unique_ptr<void, void (*)(void*)> m_user_debug_callback;
-        std::unique_ptr<void, void (*)(void*)> m_user_namespace_callback;
+        std::unique_ptr<NamespaceCallbackWrapper> m_user_namespace_callback;
         // Must be deleted before the debug callback
         std::unique_ptr<::Pool, ObjPool::PoolDeleter> m_pool = nullptr;
     };
@@ -537,29 +556,6 @@ namespace solv
         };
 
         ::pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());
-    }
-
-    template <typename Func>
-    void ObjPool::set_namespace_callback(Func&& callback)
-    {
-        static_assert(
-            std::is_nothrow_invocable_v<Func, ObjPoolView, StringId, StringId>,
-            "User callback must be marked noexcept."
-        );
-
-        m_user_namespace_callback.reset(new Func(std::forward<Func>(callback)));
-        m_user_namespace_callback.get_deleter() = [](void* ptr)
-        { delete reinterpret_cast<Func*>(ptr); };
-
-        // Wrap the user callback in the libsolv function type that must cast the callback ptr
-        auto namespace_callback = [](::Pool* pool, void* user_data, StringId name, StringId ver
-                                  ) noexcept -> OffsetId
-        {
-            auto* user_namespace_callback = reinterpret_cast<Func*>(user_data);
-            return (*user_namespace_callback)(ObjPoolView(pool), name, ver);  // noexcept
-        };
-
-        ::pool_setnamespacecallback(raw(), namespace_callback, m_user_namespace_callback.get());
     }
 }
 #endif

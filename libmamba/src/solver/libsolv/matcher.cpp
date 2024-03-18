@@ -74,6 +74,10 @@ namespace mamba::solver::libsolv
             // Name is a Glob (e.g. ``py*``) so we have to loop through all packages.
             pool.for_each_solvable(add_pkg_if_matching);
         }
+        if (m_packages.empty())
+        {
+            return 0;  // Means not found
+        }
         return pool.add_to_whatprovides_data(m_packages);
     }
 

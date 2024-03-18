@@ -963,6 +963,23 @@ TEST_SUITE("solver::libsolv::solver")
             );
         }
 
+        SUBCASE("foo[md5=notreallymd5]")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
+
+            db.add_repo_from_packages(std::array{ pkg1 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[md5=notreallymd5]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+        }
+
         SUBCASE("foo[build_string=bld]")
         {
             auto pkg1 = PackageInfo("foo");

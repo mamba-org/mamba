@@ -18,6 +18,7 @@ vars:
   DOCS_DOXYGEN_XML_DIR: '{{.PWD}}/{{.DOCS_DIR}}/doxygen-xml'
   MAMBA_NAME: 'mamba'  # Depend on preset...
   TEST_MAMBA_EXE: '{{.PWD}}/{{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
+  MAMBA_ROOT_PREFIX: '${HOME}/micromamba'
   CPU_PERCENTAGE: 75
   CPU_TOTAL:
     sh: >-
@@ -222,6 +223,7 @@ tasks:
     deps: [{task: '_build', vars: {target: '{{.MAMBA_NAME'}}]
     env:
       TEST_MAMBA_EXE: '{{.TEST_MAMBA_EXE}}'
+      MAMBA_ROOT_PREFIX: '{{.MAMBA_ROOT_PREFIX}}'
     # Explicitly using this as var since env does not override shell environment
     vars:
       GNUPGHOME: '{{.BUILD_DIR}}/gnupg'

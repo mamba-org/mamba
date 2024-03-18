@@ -37,8 +37,7 @@ namespace mamba::solver::libsolv
 
         specs::ChannelResolveParams channel_params;
         solv::ObjPool pool = {};
-        Matcher matcher = {};
-        std::exception_ptr error = nullptr;
+        Matcher matcher;
     };
 
     Database::Database(specs::ChannelResolveParams channel_params)
@@ -50,19 +49,10 @@ namespace mamba::solver::libsolv
         ::pool_setdebuglevel(pool().raw(), -1);  // Off
         pool().set_namespace_callback(
             [&data = (*m_data
-             )](solv::ObjPoolView pool, solv::StringId first, solv::StringId second
-            ) noexcept -> solv::OffsetId
+             )](solv::ObjPoolView pool, solv::StringId first, solv::StringId second) -> solv::OffsetId
             {
-                try
-                {
-                    auto [dep, flags] = get_abused_namespace_callback_args(pool, first, second);
-                    return data.matcher.get_matching_packages(pool, dep, flags);
-                }
-                catch (...)
-                {
-                    data.error = std::current_exception();
-                }
-                return 0;
+                auto [dep, flags] = get_abused_namespace_callback_args(pool, first, second);
+                return data.matcher.get_matching_packages(pool, dep, flags);
             }
         );
     }
@@ -75,11 +65,6 @@ namespace mamba::solver::libsolv
 
     auto Database::pool() -> solv::ObjPool&
     {
-        if (auto error = m_data->error; error != nullptr)
-        {
-            m_data->error = nullptr;
-            std::rethrow_exception(error);
-        }
         return m_data->pool;
     }
 

@@ -549,8 +549,8 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            solver::libsolv::Database pool{ channel_context.params() };
-            add_spdlog_logger_to_database(pool);
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
             // functions implied in 'and_then' coding-styles must return the same type
             // which limits this syntax
             /*auto exp_prefix_data = load_channels(pool, package_caches)
@@ -558,7 +558,7 @@ namespace mamba
                PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const
                mamba_error& err) { throw std::runtime_error(err.what());
                                     });*/
-            auto exp_load = load_channels(ctx, channel_context, pool, package_caches);
+            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
             if (!exp_load)
             {
                 throw std::runtime_error(exp_load.error().what());
@@ -571,7 +571,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            load_installed_packages_in_database(ctx, pool, prefix_data);
+            load_installed_packages_in_database(ctx, db, prefix_data);
 
 
             auto request = create_install_request(prefix_data, specs, freeze_installed);
@@ -584,11 +584,11 @@ namespace mamba
                 // Console stream prints on destrucion
             }
 
-            auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+            auto outcome = solver::libsolv::Solver().solve(db, request).value();
 
             if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
-                unsolvable->explain_problems_to(pool, LOG_ERROR, ctx.graphics_params.palette);
+                unsolvable->explain_problems_to(db, LOG_ERROR, ctx.graphics_params.palette);
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;
@@ -611,7 +611,7 @@ namespace mamba
                 if (ctx.output_params.json)
                 {
                     Console::instance().json_write(
-                        { { "success", false }, { "solver_problems", unsolvable->problems(pool) } }
+                        { { "success", false }, { "solver_problems", unsolvable->problems(db) } }
                     );
                 }
                 throw mamba_error(
@@ -628,13 +628,23 @@ namespace mamba
             }
 
             Console::instance().json_write({ { "success", true } });
-            auto trans = MTransaction(
-                ctx,
-                pool,
-                request,
-                std::get<solver::Solution>(outcome),
-                package_caches
-            );
+
+            // The point here is to delete the database before executing the transaction.
+            // The database can have high memrory impact, and so can installing pacakges as it
+            // requires downloading, extracgint, and launching Python interpreters for
+            // creating ``.pyc`` files.
+            // Ideally this whole function should be properly refactored and the transction itself
+            // should not need the database.
+            auto trans = [&](auto db)
+            {
+                return MTransaction(  //
+                    ctx,
+                    db,
+                    request,
+                    std::get<solver::Solution>(outcome),
+                    package_caches
+                );
+            }(std::move(db));
 
             if (ctx.output_params.json)
             {

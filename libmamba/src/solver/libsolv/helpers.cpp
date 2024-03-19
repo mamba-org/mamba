@@ -1220,6 +1220,26 @@ namespace mamba::solver::libsolv
                                                           { jobs.push_back(SOLVER_INSTALL, id); });
         }
 
+        [[nodiscard]] auto has_installed_package(  //
+            const solv::ObjPool& pool,
+            const specs::MatchSpec::NameSpec& name_spec
+        ) -> bool
+        {
+            bool found = false;
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (name_spec.contains(s.name()))
+                    {
+                        found = true;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
+                }
+            );
+            return found;
+        }
+
         template <typename Job>
         [[nodiscard]] auto
         add_job(const Job& job, solv::ObjQueue& raw_jobs, solv::ObjPool& pool, bool force_reinstall)
@@ -1255,16 +1275,39 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](auto id)
                         {
+                            // In libsolv update specs apply to installed packages, not available
+                            // ones, as opposed to mamba.
+                            // With ``numpy=0.5`` installed, update ``numpy>=1.0`` means update
+                            // numpy if a ``numpy>=1.0`` is installed, which would be false.
+                            // In Mamba, it means update any installed numpy to a new
+                            // ``numpy>=1.0``, leading to an update.
+                            // This is especially tricky with channel-specific MatchSpec.
+
                             auto const clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
-                            // FIXME keeping unknown legacy behaviour for now.
-                            // This is the old ``if(!job.spec.is_simple())``.
-                            if (!(job.spec.version().is_explicitly_free()
-                                  && job.spec.build_string().is_free()
-                                  && job.spec.build_number().is_explicitly_free()))
+
+                            // In this case, libsolv and mamba meanings are the same.
+                            if (job.spec.is_only_package_name())
                             {
-                                raw_jobs.push_back(SOLVER_INSTALL | clean_deps, id);
+                                raw_jobs.push_back(SOLVER_UPDATE | clean_deps, id);
                             }
-                            raw_jobs.push_back(SOLVER_UPDATE | clean_deps, id);
+                            // Otherwise, we try our ad-hoc solution
+                            else if (has_installed_package(pool, job.spec.name()))
+                            {
+                                // We still need to issue an update command to libsolv, otherwise
+                                // the package won't be changed, but we apply it only to the
+                                // package name, not the full spec.
+                                if (job.spec.name().is_exact())
+                                {
+                                    auto name_id = pool.add_string(job.spec.name().str());
+                                    raw_jobs.push_back(SOLVER_UPDATE | clean_deps, name_id);
+                                }
+                                // And we add an install statement to be sure the full spec is
+                                // respected.
+                                // Unfortunately this breaks ``clean_deps``.
+                                raw_jobs.push_back(SOLVER_INSTALL, id);
+                            }
+                            // Finally there is no such package installed so we simply don't do
+                            // anything.
                         }
                     );
             }
@@ -1335,9 +1378,8 @@ namespace mamba::solver::libsolv
                 return forward_error(std::move(xpt));
             }
         }
-        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
-        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
-        // afterwards.
+        // Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // For some reason we need to add them first.
         pool.create_whatprovides();
         for (const auto& unkown_job : request.jobs)
         {

@@ -103,6 +103,31 @@ TEST_SUITE("solver::libsolv::solver")
             CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
         }
 
+        SUBCASE("Force reinstall not installed numpy")
+        {
+            auto flags = Request::Flags();
+            flags.force_reinstall = true;
+            const auto request = Request{
+                /* .flags= */ std::move(flags),
+                /* .jobs= */ { Request::Install{ "numpy"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_FALSE(solution.actions.empty());
+            // Numpy is last because of topological sort
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.back()));
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
+            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+
+            const auto python_actions = find_actions_with_name(solution, "python");
+            REQUIRE_EQ(python_actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
+        }
+
         SUBCASE("Install numpy without dependencies")
         {
             const auto request = Request{
@@ -278,6 +303,45 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             CHECK(solution.actions.empty());
+        }
+    }
+
+    TEST_CASE("Reinstall packages")
+    {
+        auto db = libsolv::Database({});
+
+        // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
+        const auto repo_installed = db.add_repo_from_repodata_json(
+            mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
+            "installed",
+            "installed"
+        );
+        REQUIRE(repo_installed.has_value());
+        db.set_installed_repo(repo_installed.value());
+        const auto repo = db.add_repo_from_repodata_json(
+            mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "conda-forge"
+        );
+        REQUIRE(repo.has_value());
+
+        SUBCASE("Force reinstall numpy resinstalls it")
+        {
+            auto flags = Request::Flags();
+            flags.force_reinstall = true;
+            const auto request = Request{
+                /* .flags= */ std::move(flags),
+                /* .jobs= */ { Request::Install{ "numpy"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Reinstall>(solution.actions.front()));
+            CHECK_EQ(std::get<Solution::Reinstall>(solution.actions.front()).what.name, "numpy");
         }
     }
 
@@ -738,7 +802,7 @@ TEST_SUITE("solver::libsolv::solver")
             pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
             db.add_repo_from_packages(std::array{ pkg2 });
 
-            SUBCASE("conda-forge")
+            SUBCASE("conda-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -756,7 +820,7 @@ TEST_SUITE("solver::libsolv::solver")
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "conda");
             }
 
-            SUBCASE("mamba-forge")
+            SUBCASE("mamba-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -774,18 +838,20 @@ TEST_SUITE("solver::libsolv::solver")
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
             }
 
-            SUBCASE("pixi-forge")
+            SUBCASE("pixi-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "pixi-forge::foo"_ms } },
                 };
 
-                // TODO should really be an unsolvable state
-                CHECK_THROWS(libsolv::Solver().solve(db, request));
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                CHECK(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
             }
 
-            SUBCASE("https://conda.anaconda.org/mamba-forge/")
+            SUBCASE("https://conda.anaconda.org/mamba-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -814,36 +880,30 @@ TEST_SUITE("solver::libsolv::solver")
             );
             REQUIRE(repo_linux.has_value());
 
-            const auto repo_win = db.add_repo_from_repodata_json(
+            // FIXME the subdir is not overriden here so it is still linux-64 because that's what
+            // is in the json file.
+            // We'de want to pass option to the database to override channel and subsir.
+            const auto repo_noarch = db.add_repo_from_repodata_json(
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
                 "https://conda.anaconda.org/conda-forge/noarch",
                 "conda-forge",
                 libsolv::PipAsPythonDependency::No
             );
-            REQUIRE(repo_win.has_value());
+            REQUIRE(repo_noarch.has_value());
 
-            SUBCASE("conda-forge/noarch")
+            SUBCASE("conda-forge/win-64::numpy")
             {
                 auto request = Request{
                     /* .flags= */ {},
-                    /* .jobs= */ { Request::Install{ "conda-forge/noarch::numpy"_ms } },
+                    /* .jobs= */ { Request::Install{ "conda-forge/win-64::numpy"_ms } },
                 };
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-                const auto& solution = std::get<Solution>(outcome.value());
-
-                const auto actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
-                CHECK(util::contains(
-                    std::get<Solution::Install>(actions.front()).install.package_url,
-                    "noarch"
-                ));
+                REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
             }
 
-            SUBCASE("conda-forge[subdir=linux-64]")
+            SUBCASE("conda-forge::numpy[subdir=linux-64]")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -863,6 +923,111 @@ TEST_SUITE("solver::libsolv::solver")
                     "linux-64"
                 ));
             }
+        }
+    }
+
+    TEST_CASE("Handle complex matchspecs")
+    {
+        using PackageInfo = specs::PackageInfo;
+
+        auto db = libsolv::Database({});
+
+        SUBCASE("*[md5=0bab699354cbd66959550eb9b9866620]")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
+            auto pkg2 = PackageInfo("foo");
+            pkg2.md5 = "bad";
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "*[md5=0bab699354cbd66959550eb9b9866620]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            CHECK_EQ(
+                std::get<Solution::Install>(solution.actions.front()).install.md5,
+                "0bab699354cbd66959550eb9b9866620"
+            );
+        }
+
+        SUBCASE("foo[md5=notreallymd5]")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
+
+            db.add_repo_from_packages(std::array{ pkg1 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[md5=notreallymd5]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+        }
+
+        SUBCASE("foo[build_string=bld]")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.build_string = "bad";
+            auto pkg2 = PackageInfo("foo");
+            pkg2.build_string = "bld";
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[build=bld]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
+        }
+
+        SUBCASE("foo[build_string=bld, build_number='>2']")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.build_string = "bad";
+            pkg1.build_number = 3;
+            auto pkg2 = PackageInfo("foo");
+            pkg2.build_string = "bld";
+            pkg2.build_number = 2;
+            auto pkg3 = PackageInfo("foo");
+            pkg3.build_string = "bld";
+            pkg3.build_number = 4;
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[build=bld]"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            REQUIRE_EQ(solution.actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
+            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_number, 4);
         }
     }
 }

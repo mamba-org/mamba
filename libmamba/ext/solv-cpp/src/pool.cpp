@@ -5,7 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cassert>
+#include <exception>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 
 #include <solv/conda.h>
@@ -36,6 +38,21 @@ namespace solv
     auto ObjPoolView::raw() const -> const_raw_ptr
     {
         return m_pool;
+    }
+
+    auto ObjPoolView::current_error() const -> std::string_view
+    {
+        return ::pool_errstr(m_pool);
+    }
+
+    void ObjPoolView::set_current_error(raw_str_view msg)
+    {
+        ::pool_error(m_pool, -1, "%s", msg);
+    }
+
+    void ObjPoolView::set_current_error(const std::string& msg)
+    {
+        return set_current_error(msg.c_str());
     }
 
     auto ObjPoolView::disttype() const -> DistType
@@ -323,6 +340,24 @@ namespace solv
         return std::nullopt;
     }
 
+    struct ObjPoolView::NamespaceCallbackWrapper
+    {
+        UserCallback callback;
+        std::exception_ptr error = nullptr;
+    };
+
+    void ObjPoolView::rethrow_potential_callback_exception() const
+    {
+        if (auto callback = reinterpret_cast<NamespaceCallbackWrapper*>(raw()->nscallbackdata))
+        {
+            if (auto error = callback->error)
+            {
+                callback->error = nullptr;
+                std::rethrow_exception(error);
+            }
+        }
+    }
+
     /*******************************
      *  Implementation of ObjPool  *
      *******************************/
@@ -335,11 +370,45 @@ namespace solv
     ObjPool::ObjPool()
         : ObjPoolView(nullptr)
         , m_user_debug_callback(nullptr, [](void* /*ptr*/) {})
-        , m_user_namespace_callback(nullptr, [](void* /*ptr*/) {})
+        , m_user_namespace_callback(nullptr)
         , m_pool(::pool_create())
     {
         ObjPoolView::m_pool = m_pool.get();
     }
 
     ObjPool::~ObjPool() = default;
+
+    void ObjPool::set_namespace_callback(UserCallback&& callback)
+    {
+        m_user_namespace_callback = std::make_unique<NamespaceCallbackWrapper>();
+
+        // Set the callback
+        m_user_namespace_callback->callback = [wrapper = m_user_namespace_callback.get(),
+                                               callback = std::move(callback
+                                               )](ObjPoolView pool, StringId name, StringId ver
+                                              ) mutable noexcept -> OffsetId
+        {
+            auto error = std::exception_ptr(nullptr);
+            try
+            {
+                std::swap(error, wrapper->error);
+                return callback(pool, name, ver);
+            }
+            catch (...)
+            {
+                wrapper->error = std::current_exception();
+                return 0;
+            }
+        };
+
+        // Wrap the user callback in the libsolv function type that must cast the callback ptr
+        auto libsolv_callback = +[](::Pool* pool, void* user_data, StringId name, StringId ver
+                                 ) noexcept -> OffsetId
+        {
+            auto* user_namespace_callback = reinterpret_cast<NamespaceCallbackWrapper*>(user_data);
+            return user_namespace_callback->callback(ObjPoolView(pool), name, ver);  // noexcept
+        };
+
+        ::pool_setnamespacecallback(raw(), libsolv_callback, m_user_namespace_callback.get());
+    }
 }

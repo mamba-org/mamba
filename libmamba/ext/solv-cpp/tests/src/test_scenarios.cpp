@@ -151,26 +151,130 @@ TEST_SUITE("solv::scenariso")
         const auto dep_id = pool.add_dependency(dep_name_id, REL_NAMESPACE, dep_ver_id);
 
         auto [repo_id, repo] = pool.add_repo("forge");
-        auto [solv_id, solv] = repo.add_solvable();
-        solv.set_name("a");
-        solv.set_version("1.0");
+        const auto a_solv_id = add_simple_package(pool, repo, SimplePkg{ "a", "1.0" });
         repo.internalize();
 
-        pool.set_namespace_callback(
-            [&pool,
-             name_id = dep_name_id,
-             ver_id = dep_ver_id,
-             solv_id = solv_id](ObjPoolView, StringId name, StringId ver) noexcept -> OffsetId
+        SUBCASE("Direct job namespace dependency")
+        {
+            SUBCASE("Which resolves to some packages")
             {
-                CHECK_EQ(name, name_id);
-                CHECK_EQ(ver, ver_id);
-                return pool.add_to_whatprovides_data({ solv_id });
-            }
-        );
+                bool called = false;
+                pool.set_namespace_callback(
+                    [&, a_solv_id = a_solv_id](ObjPoolView, StringId name, StringId ver) noexcept -> OffsetId
+                    {
+                        called = true;
+                        CHECK_EQ(name, dep_name_id);
+                        CHECK_EQ(ver, dep_ver_id);
+                        return pool.add_to_whatprovides_data({ a_solv_id });
+                    }
+                );
 
-        auto solver = ObjSolver(pool);
-        auto jobs = ObjQueue{ SOLVER_INSTALL, dep_id };
-        auto solved = solver.solve(pool, jobs);
-        CHECK(solved);
+                auto solver = ObjSolver(pool);
+                auto solved = solver.solve(pool, { SOLVER_INSTALL, dep_id });
+                CHECK(solved);
+                CHECK(called);
+            }
+
+            SUBCASE("Which is unsatisfyable")
+            {
+                bool called = false;
+                pool.set_namespace_callback(
+                    [&](ObjPoolView, StringId, StringId) noexcept -> OffsetId
+                    {
+                        called = true;
+                        return 0;  // 0 means "not-found"
+                    }
+                );
+
+                auto solver = ObjSolver(pool);
+                auto solved = solver.solve(pool, { SOLVER_INSTALL, dep_id });
+                CHECK(called);
+                CHECK_FALSE(solved);
+            }
+
+            SUBCASE("Callback throws")
+            {
+                pool.set_namespace_callback(
+                    [](ObjPoolView, StringId, StringId) -> OffsetId
+                    { throw std::runtime_error("Error!"); }
+                );
+
+                auto solver = ObjSolver(pool);
+                CHECK_THROWS_AS(
+                    [&] {
+                        return solver.solve(pool, { SOLVER_INSTALL, dep_id });
+                    }(),
+                    std::runtime_error
+                );
+            }
+        }
+
+        SUBCASE("transitive job dependency")
+        {
+            // Add a dependency ``job==3.0``
+            const auto job_name_id = pool.add_string("job");
+            const auto job_ver_id = pool.add_string("3.0");
+            const auto job_id = pool.add_dependency(job_name_id, REL_EQ, job_ver_id);
+
+            // Add a package ``{name=job, version=3.0}`` with dependency in namespace dep.
+            auto [job_solv_id, job_solv] = repo.add_solvable();
+            job_solv.set_name(job_name_id);
+            job_solv.set_version(job_ver_id);
+            job_solv.set_dependencies({ dep_id });
+            job_solv.add_self_provide();
+            repo.internalize();
+
+            SUBCASE("Which resolves to some packages")
+            {
+                bool called = false;
+                pool.set_namespace_callback(
+                    [&, a_solv_id = a_solv_id](ObjPoolView, StringId name, StringId ver) noexcept -> OffsetId
+                    {
+                        called = true;
+                        CHECK_EQ(name, dep_name_id);
+                        CHECK_EQ(ver, dep_ver_id);
+                        return pool.add_to_whatprovides_data({ a_solv_id });
+                    }
+                );
+
+                auto solver = ObjSolver(pool);
+                auto solved = solver.solve(pool, { SOLVER_INSTALL, job_id });
+                CHECK(called);
+                CHECK(solved);
+            }
+
+            SUBCASE("Which is unsatisfyable")
+            {
+                bool called = false;
+                pool.set_namespace_callback(
+                    [&](ObjPoolView, StringId, StringId) noexcept -> OffsetId
+                    {
+                        called = true;
+                        return 0;  // 0 means "not-found"
+                    }
+                );
+
+                auto solver = ObjSolver(pool);
+                auto solved = solver.solve(pool, { SOLVER_INSTALL, job_id });
+                CHECK(called);
+                CHECK_FALSE(solved);
+            }
+
+            SUBCASE("Callback throws")
+            {
+                pool.set_namespace_callback(
+                    [](ObjPoolView, StringId, StringId) -> OffsetId
+                    { throw std::runtime_error("Error!"); }
+                );
+
+                auto solver = ObjSolver(pool);
+                CHECK_THROWS_AS(
+                    [&] {
+                        return solver.solve(pool, { SOLVER_INSTALL, job_id });
+                    }(),
+                    std::runtime_error
+                );
+            }
+        }
     }
 }

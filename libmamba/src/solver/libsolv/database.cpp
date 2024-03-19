@@ -24,18 +24,19 @@
 #include "solv-cpp/queue.hpp"
 
 #include "solver/libsolv/helpers.hpp"
+#include "solver/libsolv/matcher.hpp"
 
 namespace mamba::solver::libsolv
 {
     struct Database::DatabaseImpl
     {
-        DatabaseImpl(specs::ChannelResolveParams p_channel_params)
-            : channel_params(std::move(p_channel_params))
+        explicit DatabaseImpl(specs::ChannelResolveParams p_channel_params)
+            : matcher(std::move(p_channel_params))
         {
         }
 
-        specs::ChannelResolveParams channel_params;
         solv::ObjPool pool = {};
+        Matcher matcher;
     };
 
     Database::Database(specs::ChannelResolveParams channel_params)
@@ -45,6 +46,14 @@ namespace mamba::solver::libsolv
         // Ensure that debug logging never goes to stdout as to not interfere json output
         pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
         ::pool_setdebuglevel(pool().raw(), -1);  // Off
+        pool().set_namespace_callback(
+            [&data = (*m_data
+             )](solv::ObjPoolView pool, solv::StringId first, solv::StringId second) -> solv::OffsetId
+            {
+                auto [dep, flags] = get_abused_namespace_callback_args(pool, first, second);
+                return data.matcher.get_matching_packages(pool, dep, flags);
+            }
+        );
     }
 
     Database::~Database() = default;
@@ -75,7 +84,7 @@ namespace mamba::solver::libsolv
 
     auto Database::channel_params() const -> const specs::ChannelResolveParams&
     {
-        return m_data->channel_params;
+        return m_data->matcher.channel_params();
     }
 
     namespace
@@ -305,13 +314,9 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        auto matchspec2id(
-            solv::ObjPool& pool,
-            const specs::ChannelResolveParams& channel_params,
-            const specs::MatchSpec& ms
-        ) -> solv::DependencyId
+        auto matchspec2id(solv::ObjPool& pool, const specs::MatchSpec& ms) -> solv::DependencyId
         {
-            return pool_add_matchspec(pool, ms, channel_params)
+            return pool_add_matchspec(pool, ms)
                 .or_else([](mamba_error&& error) { throw std::move(error); })
                 .value_or(0);
         }
@@ -322,7 +327,7 @@ namespace mamba::solver::libsolv
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
+        const auto ms_id = matchspec2id(pool(), ms);
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(
@@ -339,7 +344,7 @@ namespace mamba::solver::libsolv
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), channel_params(), ms);
+        const auto ms_id = matchspec2id(pool(), ms);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(

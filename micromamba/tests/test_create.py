@@ -691,10 +691,11 @@ def test_spec_with_channel_and_subdir():
     try:
         helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")
     except subprocess.CalledProcessError as e:
-        assert (
-            'critical libmamba The package "conda-forge[noarch]::xtensor" is '
-            "not available for the specified platform (noarch) but is available on"
-        ) in e.stderr.decode()
+        # The error message we are getting today is not the most informative but
+        # was needed to unify the solver interface.
+        msg = e.stderr.decode()
+        assert "The following package could not be installed" in msg
+        assert "xtensor" in msg
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -708,10 +709,11 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create("-n", "env1", "pkgs/main/noarch::python", "--dry-run")
 
-    assert info.value.stderr.decode() == (
-        'critical libmamba The package "pkgs/main[noarch]::python" is '
-        "not found in any loaded channels. Try adding more channels or subdirs.\n"
-    )
+        # The error message we are getting today is not the most informative but
+        # was needed to unify the solver interface.
+        msg = info.value.stderr.decode()
+        assert "The following package could not be installed" in msg
+        assert "python" in msg
 
     os.environ["CONDA_SUBDIR"] = "linux-64"
     helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")

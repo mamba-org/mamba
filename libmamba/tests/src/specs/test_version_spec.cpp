@@ -128,6 +128,16 @@ TEST_SUITE("specs::version_spec")
             CHECK_EQ(spec.str(), "=*");
         }
 
+        SUBCASE("from_predicate")
+        {
+            const auto v1 = "1.0"_v;
+            const auto v2 = "2.0"_v;
+            auto spec = VersionSpec::from_predicate(VersionPredicate::make_equal_to(v1));
+            CHECK(spec.contains(v1));
+            CHECK_FALSE(spec.contains(v2));
+            CHECK_EQ(spec.str(), "==1.0");
+        }
+
         SUBCASE("<2.0|(>2.3,<=2.8.0)")
         {
             using namespace mamba::util;

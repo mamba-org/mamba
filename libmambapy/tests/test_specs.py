@@ -696,7 +696,15 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.glob_suffix_str, str)
     assert isinstance(VersionSpec.glob_suffix_token, str)
 
+    # Constructor
+    vs = VersionSpec()
+    assert vs.is_explicitly_free()
+    assert vs.expression_size() == 0
+
+    # Parse
     vs = VersionSpec.parse(">2.0,<3.0")
+    assert not vs.is_explicitly_free()
+    assert vs.expression_size() == 3  # including operator
 
     # Errors
     with pytest.raises(libmambapy.specs.ParseError):
@@ -857,6 +865,7 @@ def test_MatchSpec():
     assert ms.optional
     assert not ms.is_file()
     assert not ms.is_simple()
+    assert not ms.is_only_package_name()
 
     # str
     assert str(ms) == (

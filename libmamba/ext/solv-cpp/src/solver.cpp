@@ -180,10 +180,11 @@ namespace solv
         return val != 0;
     }
 
-    auto ObjSolver::solve(const ObjPool& /* pool */, const ObjQueue& jobs) -> bool
+    auto ObjSolver::solve(const ObjPool& pool, const ObjQueue& jobs) -> bool
     {
         // pool is captured inside solver so we take it as a parameter to be explicit.
         const auto n_pbs = ::solver_solve(raw(), const_cast<::Queue*>(jobs.raw()));
+        pool.rethrow_potential_callback_exception();
         return n_pbs == 0;
     }
 

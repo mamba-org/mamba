@@ -181,6 +181,7 @@ set(
     # Solver libsolv implementation
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/database.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/matcher.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp

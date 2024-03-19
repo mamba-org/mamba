@@ -587,7 +587,12 @@ namespace mambapy
             .def_readonly_static("glob_suffix_str", &VersionSpec::glob_suffix_str)
             .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
             .def_static("parse", &VersionSpec::parse, py::arg("str"))
+            .def_static("from_predicate", &VersionSpec::from_predicate, py::arg("pred"))
+            .def(py::init<>())
             .def("contains", &VersionSpec::contains, py::arg("point"))
+            .def("is_explicitly_free", &VersionSpec::is_explicitly_free)
+            .def("expression_size", &VersionSpec::expression_size)
+            .def("str_conda_build", &VersionSpec::str_conda_build)
             .def("__str__", &VersionSpec::str)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
@@ -768,7 +773,7 @@ namespace mambapy
                    std::string_view sha256,
                    std::string_view license,
                    std::string& platform,
-                   MatchSpec::string_set track_features)
+                   const MatchSpec::string_set& track_features)
                 {
                     struct Pkg
                     {
@@ -780,7 +785,7 @@ namespace mambapy
                         std::string_view sha256;
                         std::string_view license;
                         std::reference_wrapper<const std::string> platform;
-                        const MatchSpec::string_set track_features;
+                        std::reference_wrapper<const MatchSpec::string_set> track_features;
                     };
 
                     return ms.contains_except_channel(Pkg{
@@ -792,7 +797,7 @@ namespace mambapy
                         /* .sha256= */ sha256,
                         /* .license= */ license,
                         /* .platform= */ platform,
-                        /* .track_features= */ std::move(track_features),
+                        /* .track_features= */ track_features,
                     });
                 },
                 py::arg("name") = "",
@@ -807,6 +812,7 @@ namespace mambapy
             )
             .def("is_file", &MatchSpec::is_file)
             .def("is_simple", &MatchSpec::is_simple)
+            .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
             .def("__str__", &MatchSpec::str)
             .def("__copy__", &copy<MatchSpec>)

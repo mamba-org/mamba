@@ -28,6 +28,7 @@
 
 #include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
+#include "solver/libsolv/matcher.hpp"
 
 #define MAMBA_TOOL_VERSION "2.0"
 
@@ -51,8 +52,11 @@ namespace mamba::solver::libsolv
         }
         solv.set_build_number(pkg.build_number);
         solv.set_channel(pkg.channel);
+        // TODO In the case of a repo with all similar subdir (which is not the case in the
+        // install repo) we could also not set this (to save the strings stored in libsolv)
+        // and recreate it by concatenating filename and repo URL.
         solv.set_url(pkg.package_url);
-        solv.set_subdir(pkg.platform);
+        solv.set_platform(pkg.platform);
         solv.set_file_name(pkg.filename);
         solv.set_license(pkg.license);
         solv.set_size(pkg.size);
@@ -98,7 +102,7 @@ namespace mamba::solver::libsolv
         out.build_number = s.build_number();
         out.channel = s.channel();
         out.package_url = s.url();
-        out.platform = s.subdir();
+        out.platform = s.platform();
         out.filename = s.file_name();
         out.license = s.license();
         out.size = s.size();
@@ -251,11 +255,11 @@ namespace mamba::solver::libsolv
 
             if (auto subdir = pkg["subdir"].get_c_str(); !subdir.error())
             {
-                solv.set_subdir(subdir.value_unsafe());
+                solv.set_platform(subdir.value_unsafe());
             }
             else
             {
-                solv.set_subdir(default_subdir);
+                solv.set_platform(default_subdir);
             }
 
             if (auto size = pkg["size"].get_uint64(); !size.error())
@@ -706,143 +710,31 @@ namespace mamba::solver::libsolv
         repo.set_pip_added(true);
     }
 
-    namespace
+    auto
+    make_abused_namespace_dep_args(solv::ObjPool& pool, std::string_view dependency, const MatchFlags& flags)
+        -> std::pair<solv::StringId, solv::StringId>
     {
-        auto
-        channel_match(const std::vector<specs::Channel>& ms_channels, const specs::CondaURL& pkg_url)
-            -> specs::Channel::Match
-        {
-            auto match = specs::Channel::Match::No;
-            // More than one element means the channel spec was a custom_multi_channel
-            for (const auto& chan : ms_channels)
-            {
-                switch (chan.contains_package(pkg_url))
-                {
-                    case specs::Channel::Match::Full:
-                        return specs::Channel::Match::Full;
-                    case specs::Channel::Match::InOtherPlatform:
-                        // Keep looking for full matches
-                        match = specs::Channel::Match::InOtherPlatform;
-                        break;
-                    case specs::Channel::Match::No:
-                        // No overriding potential InOtherPlatform match
-                        break;
-                }
-            }
-            return match;
-        }
+        return {
+            pool.add_string(dependency),
+            pool.add_string(flags.internal_serialize()),
+        };
+    }
 
-        /**
-         * Add function to handle matchspec while parsing is done by libsolv.
-         */
-        auto add_channel_specific_matchspec(
-            solv::ObjPool& pool,
-            const specs::MatchSpec& ms,
-            const specs::ChannelResolveParams& params
-        ) -> expected_t<solv::DependencyId>
-        {
-            assert(ms.channel().has_value());
-            const std::string repr = ms.str();
-
-            // Already added, return that id
-            if (const auto maybe_id = pool.find_string(repr))
-            {
-                return maybe_id.value();
-            }
-
-            // conda_build_form does **NOT** contain the channel info
-            const solv::DependencyId match_id = pool_conda_matchspec(
-                pool.raw(),
-                ms.conda_build_form().c_str()
-            );
-
-            auto maybe_ms_channels = specs::Channel::resolve(*ms.channel(), params);
-            if (!maybe_ms_channels)
-            {
-                return make_unexpected(
-                    fmt::format(R"(Failed to resolve channels in "{}")", ms.channel().value()),
-                    mamba_error_code::invalid_spec
-                );
-            }
-            const auto& ms_channels = maybe_ms_channels.value();
-
-            solv::ObjQueue selected_pkgs = {};
-            auto other_subdir_match = std::string();
-            pool.for_each_whatprovides(
-                match_id,
-                [&](solv::ObjSolvableViewConst s)
-                {
-                    if (s.installed())
-                    {
-                        // This will have the effect that channel-specific MatchSpec will always be
-                        // reinstalled.
-                        // This is not the intended behaviour but an historical artifact on which
-                        // ``--force-reinstall`` currently rely.
-                        return;
-                    }
-
-                    assert(ms.channel().has_value());
-                    if (auto pkg_url = specs::CondaURL::parse(s.url()))
-                    {
-                        const auto match = channel_match(ms_channels, *pkg_url);
-                        switch (match)
-                        {
-                            case (specs::Channel::Match::Full):
-                            {
-                                selected_pkgs.push_back(s.id());
-                                break;
-                            }
-                            case (specs::Channel::Match::InOtherPlatform):
-                            {
-                                other_subdir_match = s.subdir();
-                                break;
-                            }
-                            case (specs::Channel::Match::No):
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-            );
-
-            if (selected_pkgs.empty())
-            {
-                if (!other_subdir_match.empty())
-                {
-                    const auto& filters = ms.channel()->platform_filters();
-                    throw std::runtime_error(fmt::format(
-                        R"(The package "{}" is not available for the specified platform{} ({}))"
-                        R"( but is available on {}.)",
-                        ms.str(),
-                        filters.size() > 1 ? "s" : "",
-                        fmt::join(filters, ", "),
-                        other_subdir_match
-                    ));
-                }
-                else
-                {
-                    throw std::runtime_error(fmt::format(
-                        R"(The package "{}" is not found in any loaded channels.)"
-                        R"( Try adding more channels or subdirs.)",
-                        ms.str()
-                    ));
-                }
-            }
-
-            const solv::StringId repr_id = pool.add_string(repr);
-            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
-            // must be taken to do it before
-            // TODO investigate namespace providers
-            pool.add_to_whatprovides(repr_id, pool.add_to_whatprovides_data(selected_pkgs));
-            return repr_id;
-        }
+    auto get_abused_namespace_callback_args(  //
+        solv::ObjPoolView& pool,
+        solv::StringId name,
+        solv::StringId ver
+    ) -> std::pair<std::string_view, MatchFlags>
+    {
+        return {
+            pool.get_string(name),
+            MatchFlags::internal_deserialize(pool.get_string(ver)),
+        };
     }
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& ms,
-        const specs::ChannelResolveParams& params
+        const specs::MatchSpec& ms
     ) -> expected_t<solv::DependencyId>
     {
         auto check_not_zero = [&](solv::DependencyId id) -> expected_t<solv::DependencyId>
@@ -857,21 +749,17 @@ namespace mamba::solver::libsolv
             return id;
         };
 
-        if (!ms.channel().has_value())
+        if (ms.is_simple())
         {
             return check_not_zero(pool.add_conda_dependency(ms.conda_build_form()));
         }
-
-        // Working around shortcomings of ``pool_conda_matchspec``
-        // The channels are not processed.
-        // TODO Fragile! Installing this matchspec will always trigger a reinstall
-        return add_channel_specific_matchspec(pool, ms, params).and_then(check_not_zero);
+        const auto [first, second] = make_abused_namespace_dep_args(pool, ms.str());
+        return check_not_zero(pool.add_dependency(first, REL_NAMESPACE, second));
     }
 
     auto pool_add_pin(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& pin,
-        const specs::ChannelResolveParams& params
+        const specs::MatchSpec& pin
     ) -> expected_t<solv::ObjSolvableView>
     {
         // In libsolv, locking means that a package keeps the same state: if it is installed,
@@ -924,37 +812,36 @@ namespace mamba::solver::libsolv
             return repo;
         }();
 
-        return pool_add_matchspec(pool, pin, params)
-            .transform(
-                [&](solv::DependencyId cons)
-                {
-                    // Add dummy solvable with a constraint on the pin (not installed if not
-                    // present)
-                    auto [cons_solv_id, cons_solv] = installed.add_solvable();
-                    const std::string cons_solv_name = fmt::format(
-                        "pin-{}",
-                        util::generate_random_alphanumeric_string(10)
-                    );
-                    cons_solv.set_name(cons_solv_name);
-                    cons_solv.set_version("1");
+        return pool_add_matchspec(pool, pin).transform(
+            [&](solv::DependencyId cons)
+            {
+                // Add dummy solvable with a constraint on the pin (not installed if not
+                // present)
+                auto [cons_solv_id, cons_solv] = installed.add_solvable();
+                const std::string cons_solv_name = fmt::format(
+                    "pin-{}",
+                    util::generate_random_alphanumeric_string(10)
+                );
+                cons_solv.set_name(cons_solv_name);
+                cons_solv.set_version("1");
 
-                    cons_solv.add_constraint(cons);
+                cons_solv.add_constraint(cons);
 
-                    // Solvable need to provide itself
-                    cons_solv.add_self_provide();
+                // Solvable need to provide itself
+                cons_solv.add_self_provide();
 
-                    // Even if we lock it, libsolv may still try to remove it with
-                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
-                    // it out in the transaction
-                    cons_solv.set_type(solv::SolvableType::Pin);
+                // Even if we lock it, libsolv may still try to remove it with
+                // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
+                // it out in the transaction
+                cons_solv.set_type(solv::SolvableType::Pin);
 
-                    // Necessary for attributes to be properly stored
-                    // TODO move this at the end of all job requests
-                    installed.internalize();
+                // Necessary for attributes to be properly stored
+                // TODO move this at the end of all job requests
+                installed.internalize();
 
-                    return cons_solv;
-                }
-            );
+                return cons_solv;
+            }
+        );
     }
 
     namespace
@@ -1270,15 +1157,34 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        [[nodiscard]] auto add_reinstall_job(
-            solv::ObjQueue& jobs,
-            solv::ObjPool& pool,
-            const specs::MatchSpec& ms,
-            const specs::ChannelResolveParams& params
-        ) -> expected_t<void>
+        [[nodiscard]] auto match_as_closely(solv::ObjSolvableViewConst s) -> specs::MatchSpec
         {
-            static constexpr int install_flag = SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES;
+            auto ms = specs::MatchSpec();
+            ms.set_name(specs::MatchSpec::NameSpec(std::string(s.name())));
+            // Ignoring version error, the point is to find a close match
+            specs::Version::parse(s.version())
+                .transform(
+                    [&](specs::Version&& ver)
+                    {
+                        ms.set_version(specs::VersionSpec::from_predicate(
+                            specs::VersionPredicate::make_equal_to(std::move(ver))
+                        ));
+                    }
+                );
+            ms.set_build_string(specs::MatchSpec::BuildStringSpec(std::string(s.build_string())));
+            ms.set_build_number(
+                specs::BuildNumberSpec(specs::BuildNumberPredicate::make_equal_to(s.build_number()))
+            );
+            ms.set_md5(std::string(s.md5()));
+            ms.set_sha256(std::string(s.sha256()));
 
+            return ms;
+        }
+
+        [[nodiscard]] auto
+        add_reinstall_job(solv::ObjQueue& jobs, solv::ObjPool& pool, const specs::MatchSpec& ms)
+            -> expected_t<void>
+        {
             auto solvable = std::optional<solv::ObjSolvableViewConst>{};
 
             // the data about the channel is only in the prefix_data unfortunately
@@ -1294,93 +1200,70 @@ namespace mamba::solver::libsolv
                 }
             );
 
-            if (!solvable.has_value() || solvable->channel().empty())
+            if (solvable.has_value())
             {
-                // We are not reinstalling but simply installing.
-                // Right now, using `--force-reinstall` will send all specs (whether they have
-                // been previously installed or not) down this path, so we need to handle specs
-                // that are not installed.
-                return pool_add_matchspec(pool, ms, params)
-                    .transform([&](auto id) { jobs.push_back(install_flag, id); });
-            }
-
-            if (ms.channel().has_value() || !ms.version().is_explicitly_free()
-                || !ms.build_string().is_free())
-            {
-                Console::stream() << ms.conda_build_form()
-                                  << ": overriding channel, version and build from "
-                                     "installed packages due to --force-reinstall.";
-            }
-
-            auto ms_modified = ms;
-            auto unresolved_chan = specs::UnresolvedChannel::parse(solvable->channel());
-            if (unresolved_chan.has_value())
-            {
-                ms_modified.set_channel(std::move(unresolved_chan).value());
-            }
-            else
-            {
-                return make_unexpected(
-                    std::move(unresolved_chan).error().what(),
-                    mamba_error_code::invalid_spec
+                // To Reinstall, we add a install job with our custom namespace matcher,
+                // passing a flag to exclude matching installed packages.
+                // This has the effect of reinstalling in libsolv.
+                const auto [first, second] = make_abused_namespace_dep_args(
+                    pool,
+                    match_as_closely(solvable.value()).str(),
+                    { /* .skip_installed= */ true }
                 );
-            }
-            auto version_spec = specs::VersionSpec::parse(solvable->version());
-            if (version_spec.has_value())
-            {
-                ms_modified.set_version(std::move(version_spec).value());
-            }
-            else
-            {
-                return make_unexpected(
-                    std::move(version_spec).error().what(),
-                    mamba_error_code::invalid_spec
-                );
+                const auto job_id = pool.add_dependency(first, REL_NAMESPACE, second);
+                jobs.push_back(SOLVER_INSTALL, job_id);
+                return {};
             }
 
-            ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
+            // We are not reinstalling but simply installing.
+            return pool_add_matchspec(pool, ms).transform([&](auto id)
+                                                          { jobs.push_back(SOLVER_INSTALL, id); });
+        }
 
-            LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
-                     << ms_modified.channel()->str();
-            // TODO Fragile! The only reason why this works is that with a channel specific
-            // matchspec the job will always be reinstalled.
-            return pool_add_matchspec(pool, ms_modified, params)
-                .transform([&](auto id) { jobs.push_back(install_flag, id); });
+        [[nodiscard]] auto has_installed_package(  //
+            const solv::ObjPool& pool,
+            const specs::MatchSpec::NameSpec& name_spec
+        ) -> bool
+        {
+            bool found = false;
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (name_spec.contains(s.name()))
+                    {
+                        found = true;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
+                }
+            );
+            return found;
         }
 
         template <typename Job>
-        [[nodiscard]] auto add_job(
-            const Job& job,
-            solv::ObjQueue& raw_jobs,
-            solv::ObjPool& pool,
-            const specs::ChannelResolveParams& params,
-            bool force_reinstall
-        ) -> expected_t<void>
+        [[nodiscard]] auto
+        add_job(const Job& job, solv::ObjQueue& raw_jobs, solv::ObjPool& pool, bool force_reinstall)
+            -> expected_t<void>
         {
             if constexpr (std::is_same_v<Job, Request::Install>)
             {
                 if (force_reinstall)
                 {
-                    return add_reinstall_job(raw_jobs, pool, job.spec, params);
+                    return add_reinstall_job(raw_jobs, pool, job.spec);
                 }
                 else
                 {
-                    return pool_add_matchspec(pool, job.spec, params)
-                        .transform(
-                            [&](auto id)
-                            { raw_jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id); }
-                        );
+                    return pool_add_matchspec(pool, job.spec)
+                        .transform([&](auto id) { raw_jobs.push_back(SOLVER_INSTALL, id); });
                 }
             }
             if constexpr (std::is_same_v<Job, Request::Remove>)
             {
-                return pool_add_matchspec(pool, job.spec, params)
+                return pool_add_matchspec(pool, job.spec)
                     .transform(
-                        [&](auto id)
-                        {
+                        [&](auto id) {
                             raw_jobs.push_back(
-                                SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
-                                    | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                                SOLVER_ERASE | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
                                 id
                             );
                         }
@@ -1388,23 +1271,43 @@ namespace mamba::solver::libsolv
             }
             if constexpr (std::is_same_v<Job, Request::Update>)
             {
-                return pool_add_matchspec(pool, job.spec, params)
+                return pool_add_matchspec(pool, job.spec)
                     .transform(
                         [&](auto id)
                         {
+                            // In libsolv update specs apply to installed packages, not available
+                            // ones, as opposed to mamba.
+                            // With ``numpy=0.5`` installed, update ``numpy>=1.0`` means update
+                            // numpy if a ``numpy>=1.0`` is installed, which would be false.
+                            // In Mamba, it means update any installed numpy to a new
+                            // ``numpy>=1.0``, leading to an update.
+                            // This is especially tricky with channel-specific MatchSpec.
+
                             auto const clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
-                            // TODO: ignoring update specs here for now
-                            if (!job.spec.is_simple())
+
+                            // In this case, libsolv and mamba meanings are the same.
+                            if (job.spec.is_only_package_name())
                             {
-                                raw_jobs.push_back(
-                                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES | clean_deps,
-                                    id
-                                );
+                                raw_jobs.push_back(SOLVER_UPDATE | clean_deps, id);
                             }
-                            raw_jobs.push_back(
-                                SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES | clean_deps,
-                                id
-                            );
+                            // Otherwise, we try our ad-hoc solution
+                            else if (has_installed_package(pool, job.spec.name()))
+                            {
+                                // We still need to issue an update command to libsolv, otherwise
+                                // the package won't be changed, but we apply it only to the
+                                // package name, not the full spec.
+                                if (job.spec.name().is_exact())
+                                {
+                                    auto name_id = pool.add_string(job.spec.name().str());
+                                    raw_jobs.push_back(SOLVER_UPDATE | clean_deps, name_id);
+                                }
+                                // And we add an install statement to be sure the full spec is
+                                // respected.
+                                // Unfortunately this breaks ``clean_deps``.
+                                raw_jobs.push_back(SOLVER_INSTALL, id);
+                            }
+                            // Finally there is no such package installed so we simply don't do
+                            // anything.
                         }
                     );
             }
@@ -1419,20 +1322,17 @@ namespace mamba::solver::libsolv
             }
             if constexpr (std::is_same_v<Job, Request::Freeze>)
             {
-                return pool_add_matchspec(pool, job.spec, params)
+                return pool_add_matchspec(pool, job.spec)
                     .transform([&](auto id) { raw_jobs.push_back(SOLVER_LOCK, id); });
             }
             if constexpr (std::is_same_v<Job, Request::Keep>)
             {
-                raw_jobs.push_back(
-                    SOLVER_USERINSTALLED,
-                    pool_add_matchspec(pool, job.spec, params).value()
-                );
+                raw_jobs.push_back(SOLVER_USERINSTALLED, pool_add_matchspec(pool, job.spec).value());
                 return {};
             }
             if constexpr (std::is_same_v<Job, Request::Pin>)
             {
-                return pool_add_pin(pool, job.spec, params)
+                return pool_add_pin(pool, job.spec)
                     .transform(
                         [&](solv::ObjSolvableView pin_solv)
                         {
@@ -1451,10 +1351,9 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto request_to_decision_queue(
+    auto request_to_decision_queue(  //
         const Request& request,
         solv::ObjPool& pool,
-        const specs::ChannelResolveParams& chan_params,
         bool force_reinstall
     ) -> expected_t<solv::ObjQueue>
     {
@@ -1468,7 +1367,7 @@ namespace mamba::solver::libsolv
                 {
                     if constexpr (std::is_same_v<std::decay_t<decltype(job)>, Request::Pin>)
                     {
-                        return add_job(job, solv_jobs, pool, chan_params, force_reinstall);
+                        return add_job(job, solv_jobs, pool, force_reinstall);
                     }
                     return {};
                 },
@@ -1479,9 +1378,8 @@ namespace mamba::solver::libsolv
                 return forward_error(std::move(xpt));
             }
         }
-        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
-        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
-        // afterwards.
+        // Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // For some reason we need to add them first.
         pool.create_whatprovides();
         for (const auto& unkown_job : request.jobs)
         {
@@ -1490,7 +1388,7 @@ namespace mamba::solver::libsolv
                 {
                     if constexpr (!std::is_same_v<std::decay_t<decltype(job)>, Request::Pin>)
                     {
-                        return add_job(job, solv_jobs, pool, chan_params, force_reinstall);
+                        return add_job(job, solv_jobs, pool, force_reinstall);
                     }
                     return {};
                 },

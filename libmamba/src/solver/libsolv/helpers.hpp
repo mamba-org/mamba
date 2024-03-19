@@ -103,14 +103,12 @@ namespace mamba::solver::libsolv
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& ms,
-        const specs::ChannelResolveParams& params
+        const specs::MatchSpec& ms
     ) -> expected_t<solv::DependencyId>;
 
     [[nodiscard]] auto pool_add_pin(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& pin_ms,
-        const specs::ChannelResolveParams& params
+        const specs::MatchSpec& pin_ms
     ) -> expected_t<solv::ObjSolvableView>;
 
     [[nodiscard]] auto transaction_to_solution_all(  //
@@ -151,11 +149,8 @@ namespace mamba::solver::libsolv
         std::string_view noarch_type
     ) -> Solution;
 
-    [[nodiscard]] auto request_to_decision_queue(
-        const Request& request,
-        solv::ObjPool& pool,
-        const specs::ChannelResolveParams& chan_params,
-        bool force_reinstall
-    ) -> expected_t<solv::ObjQueue>;
+    [[nodiscard]] auto
+    request_to_decision_queue(const Request& request, solv::ObjPool& pool, bool force_reinstall)
+        -> expected_t<solv::ObjQueue>;
 }
 #endif

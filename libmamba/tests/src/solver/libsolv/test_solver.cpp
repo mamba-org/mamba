@@ -802,7 +802,7 @@ TEST_SUITE("solver::libsolv::solver")
             pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
             db.add_repo_from_packages(std::array{ pkg2 });
 
-            SUBCASE("conda-forge")
+            SUBCASE("conda-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -820,7 +820,7 @@ TEST_SUITE("solver::libsolv::solver")
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "conda");
             }
 
-            SUBCASE("mamba-forge")
+            SUBCASE("mamba-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -838,18 +838,20 @@ TEST_SUITE("solver::libsolv::solver")
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
             }
 
-            SUBCASE("pixi-forge")
+            SUBCASE("pixi-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "pixi-forge::foo"_ms } },
                 };
 
-                // TODO should really be an unsolvable state
-                CHECK_THROWS(libsolv::Solver().solve(db, request));
+                const auto outcome = libsolv::Solver().solve(db, request);
+
+                REQUIRE(outcome.has_value());
+                CHECK(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
             }
 
-            SUBCASE("https://conda.anaconda.org/mamba-forge/")
+            SUBCASE("https://conda.anaconda.org/mamba-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -878,33 +880,27 @@ TEST_SUITE("solver::libsolv::solver")
             );
             REQUIRE(repo_linux.has_value());
 
-            const auto repo_win = db.add_repo_from_repodata_json(
+            // FIXME the subdir is not overriden here so it is still linux-64 because that's what
+            // is in the json file.
+            // We'de want to pass option to the database to override channel and subsir.
+            const auto repo_noarch = db.add_repo_from_repodata_json(
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
                 "https://conda.anaconda.org/conda-forge/noarch",
                 "conda-forge",
                 libsolv::PipAsPythonDependency::No
             );
-            REQUIRE(repo_win.has_value());
+            REQUIRE(repo_noarch.has_value());
 
-            SUBCASE("conda-forge/noarch")
+            SUBCASE("conda-forge/win-64::numpy")
             {
                 auto request = Request{
                     /* .flags= */ {},
-                    /* .jobs= */ { Request::Install{ "conda-forge/noarch::numpy"_ms } },
+                    /* .jobs= */ { Request::Install{ "conda-forge/win-64::numpy"_ms } },
                 };
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-                const auto& solution = std::get<Solution>(outcome.value());
-
-                const auto actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
-                CHECK(util::contains(
-                    std::get<Solution::Install>(actions.front()).install.package_url,
-                    "noarch"
-                ));
+                REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
             }
 
             SUBCASE("conda-forge::numpy[subdir=linux-64]")

@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/version.hpp"
 #include "solv-cpp/pool.hpp"
@@ -40,6 +41,10 @@ namespace mamba::solver::libsolv
     {
     public:
 
+        explicit Matcher(specs::ChannelResolveParams channel_params);
+
+        [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
+
         auto get_matching_packages(  //
             solv::ObjPoolView pool,
             const specs::MatchSpec& ms,
@@ -53,6 +58,9 @@ namespace mamba::solver::libsolv
         ) -> solv::OffsetId;
 
     private:
+
+        using channel_list = specs::ChannelResolveParams::channel_list;
+        using channel_list_const_ref = std::reference_wrapper<const channel_list>;
 
         struct Pkg
         {
@@ -72,16 +80,31 @@ namespace mamba::solver::libsolv
             solv::ObjSolvableViewConst solv
         ) -> expected_t<Pkg>;
 
-        auto pkg_match(  //
+        auto pkg_match_except_channel(  //
             solv::ObjPoolView pool,
             solv::ObjSolvableViewConst solv,
             const specs::MatchSpec& ms
         ) -> bool;
 
-        solv::ObjQueue m_packages = {};
+        auto get_channels(const specs::UnresolvedChannel& uc) -> expected_t<channel_list_const_ref>;
+        auto get_channels(std::string_view chan) -> expected_t<channel_list_const_ref>;
+
+        auto pkg_match_channels(  //
+            solv::ObjSolvableViewConst solv,
+            const channel_list& channels
+        ) -> bool;
+
+        auto pkg_match_channels(  //
+            solv::ObjSolvableViewConst solv,
+            const specs::MatchSpec& ms
+        ) -> bool;
+
+        specs::ChannelResolveParams m_channel_params;
+        solv::ObjQueue m_packages_buffer = {};
         // No need for matchspec cache since they have the same string id they should be handled
         // by libsolv.
         std::unordered_map<std::string, specs::Version> m_version_cache = {};
+        std::unordered_map<std::string, channel_list> m_channel_cache = {};
     };
 }
 #endif

@@ -53,10 +53,9 @@ namespace mamba::solver::libsolv
     auto Solver::solve_impl(Database& mpool, const Request& request) -> expected_t<Outcome>
     {
         auto& pool = Database::Impl::get(mpool);
-        const auto& chan_params = mpool.channel_params();
         const auto& flags = request.flags;
 
-        return solver::libsolv::request_to_decision_queue(request, pool, chan_params, flags.force_reinstall)
+        return solver::libsolv::request_to_decision_queue(request, pool, flags.force_reinstall)
             .transform(
                 [&](auto&& jobs) -> Outcome
                 {

@@ -41,6 +41,16 @@ namespace mamba::solver::libsolv
      *  Implementation of Matcher  *
      *******************************/
 
+    Matcher::Matcher(specs::ChannelResolveParams channel_params)
+        : m_channel_params(std::move(channel_params))
+    {
+    }
+
+    auto Matcher::channel_params() const -> const specs::ChannelResolveParams&
+    {
+        return m_channel_params;
+    }
+
     auto Matcher::get_matching_packages(  //
         solv::ObjPoolView pool,
         const specs::MatchSpec& ms,
@@ -48,7 +58,7 @@ namespace mamba::solver::libsolv
 
     ) -> solv::OffsetId
     {
-        m_packages.clear();  // Reuse the buffer
+        m_packages_buffer.clear();  // Reuse the buffer
 
         auto add_pkg_if_matching = [&](solv::ObjSolvableViewConst s)
         {
@@ -57,9 +67,9 @@ namespace mamba::solver::libsolv
                 return;
             }
 
-            if (pkg_match(pool, s, ms))
+            if (pkg_match_except_channel(pool, s, ms) && pkg_match_channels(s, ms))
             {
-                m_packages.push_back(s.id());
+                m_packages_buffer.push_back(s.id());
             }
         };
 
@@ -74,11 +84,11 @@ namespace mamba::solver::libsolv
             // Name is a Glob (e.g. ``py*``) so we have to loop through all packages.
             pool.for_each_solvable(add_pkg_if_matching);
         }
-        if (m_packages.empty())
+        if (m_packages_buffer.empty())
         {
             return 0;  // Means not found
         }
-        return pool.add_to_whatprovides_data(m_packages);
+        return pool.add_to_whatprovides_data(m_packages_buffer);
     }
 
     auto Matcher::get_matching_packages(  //
@@ -113,12 +123,14 @@ namespace mamba::solver::libsolv
             if (version.empty())
             {
                 auto [it, inserted] = cache.emplace(std::move(version), specs::Version());
+                assert(inserted);
                 return { std::cref(it->second) };
             }
             return specs::Version::parse(version).transform(
                 [&](specs::Version&& ver) -> std::reference_wrapper<const specs::Version>
                 {
                     auto [it, inserted] = cache.emplace(std::move(version), std::move(ver));
+                    assert(inserted);
                     return { std::cref(it->second) };
                 }
             );
@@ -158,7 +170,7 @@ namespace mamba::solver::libsolv
             );
     }
 
-    auto Matcher::pkg_match(  //
+    auto Matcher::pkg_match_except_channel(  //
         solv::ObjPoolView pool,
         solv::ObjSolvableViewConst solv,
         const specs::MatchSpec& ms
@@ -168,5 +180,98 @@ namespace mamba::solver::libsolv
             .transform([&](const Pkg& pkg) -> bool { return ms.contains_except_channel(pkg); })
             .or_else([](const auto&) -> expected_t<bool> { return false; })
             .value();
+    }
+
+    auto Matcher::get_channels(const specs::UnresolvedChannel& uc)
+        -> expected_t<channel_list_const_ref>
+    {
+        // Channel maps require converting channel to string because unresolved channels are
+        // akward to compare.
+        auto str = uc.str();
+        if (const auto it = m_channel_cache.find(str); it != m_channel_cache.end())
+        {
+            return { std::cref(it->second) };
+        }
+
+        return specs::Channel::resolve(std::move(uc), channel_params())
+            .transform(
+                [&](channel_list&& chan)
+                {
+                    auto [it, inserted] = m_channel_cache.emplace(std::move(str), std::move(chan));
+                    assert(inserted);
+                    return std::cref(it->second);
+                }
+            )
+            .transform_error(  //
+                [](specs::ParseError&& err)
+                { return mamba_error(err.what(), mamba_error_code::invalid_spec); }
+
+            );
+    }
+
+    auto Matcher::get_channels(std::string_view chan) -> expected_t<channel_list_const_ref>
+    {
+        if (const auto it = m_channel_cache.find(std::string(chan)); it != m_channel_cache.end())
+        {
+            return { std::cref(it->second) };
+        }
+
+        return specs::UnresolvedChannel::parse(chan)
+            .transform_error(  //
+                [](specs::ParseError&& err)
+                { return mamba_error(err.what(), mamba_error_code::invalid_spec); }
+
+            )
+            .and_then([&](specs::UnresolvedChannel&& uc) { return get_channels(uc); });
+    }
+
+    auto Matcher::pkg_match_channels(  //
+        solv::ObjSolvableViewConst solv,
+        const channel_list& channels
+    ) -> bool
+    {
+        // First check the package url
+        if (auto pkg_url = specs::CondaURL::parse(solv.url()))
+        {
+            for (const auto& chan : channels)
+            {
+                if (chan.contains_package(pkg_url.value()) == specs::Channel::Match::Full)
+                {
+                    return true;
+                }
+            }
+        }
+        // Fallback to package channel attribute
+        else if (auto pkg_channels = get_channels(solv.channel()))
+        {
+            for (const auto& ms_chan : channels)
+            {
+                // There should really be only one here.
+                for (const auto& pkg_chan : pkg_channels.value().get())
+                {
+                    if (ms_chan.contains_equivalent(pkg_chan))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    auto Matcher::pkg_match_channels(  //
+        solv::ObjSolvableViewConst solv,
+        const specs::MatchSpec& ms
+    ) -> bool
+    {
+        if (auto uc = ms.channel())
+        {
+            if (auto channels = get_channels(uc.value()))
+            {
+                return pkg_match_channels(solv, channels.value());
+            }
+            return false;
+        }
+        return true;
     }
 }

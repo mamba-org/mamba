@@ -15,6 +15,7 @@
 #include <fmt/core.h>
 
 #include "mamba/specs/build_number_spec.hpp"
+#include "mamba/specs/chimera_string_spec.hpp"
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
@@ -31,7 +32,7 @@ namespace mamba::specs
     public:
 
         using NameSpec = GlobSpec;
-        using BuildStringSpec = GlobSpec;
+        using BuildStringSpec = ChimeraStringSpec;
         using platform_set = typename UnresolvedChannel::platform_set;
         using platform_set_const_ref = std::reference_wrapper<const platform_set>;
         using string_set = typename util::flat_set<std::string>;

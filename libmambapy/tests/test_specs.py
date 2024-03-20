@@ -812,7 +812,7 @@ def test_PackageInfo_V2Migrator():
 
 def test_GlobSpec():
     GlobSpec = libmambapy.specs.GlobSpec
-    spec = libmambapy.specs.GlobSpec("py*")
+    spec = GlobSpec("py*")
 
     assert GlobSpec().is_free()
     assert not spec.is_free()
@@ -823,6 +823,49 @@ def test_GlobSpec():
     assert spec.contains("python")
 
     assert str(spec) == "py*"
+
+    # Copy
+    other = copy.deepcopy(spec)
+    assert str(other) == str(spec)
+    assert other is not spec
+
+
+def test_RegexSpec():
+    RegexSpec = libmambapy.specs.RegexSpec
+    spec = RegexSpec.parse("^py.*$")
+
+    assert RegexSpec().is_explicitly_free()
+    assert not spec.is_explicitly_free()
+
+    assert RegexSpec.parse("python").is_exact()
+    assert not spec.is_exact()
+
+    assert spec.contains("python")
+
+    assert str(spec) == "^py.*$"
+
+    # Copy
+    other = copy.deepcopy(spec)
+    assert str(other) == str(spec)
+    assert other is not spec
+
+
+def test_ChimeraStringSpec():
+    ChimeraStringSpec = libmambapy.specs.ChimeraStringSpec
+    spec = ChimeraStringSpec.parse("^py.*$")
+
+    assert ChimeraStringSpec().is_explicitly_free()
+    assert not spec.is_explicitly_free()
+
+    assert ChimeraStringSpec().is_glob()
+    assert not spec.is_glob()
+
+    assert ChimeraStringSpec.parse("python").is_exact()
+    assert not spec.is_exact()
+
+    assert spec.contains("python")
+
+    assert str(spec) == "^py.*$"
 
     # Copy
     other = copy.deepcopy(spec)

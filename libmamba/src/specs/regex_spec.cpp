@@ -29,7 +29,8 @@ namespace mamba::specs
         // to be handled by ``tl::expected`` to be managed down the road.
         try
         {
-            return { { std::regex(pattern), std::move(pattern) } };
+            auto regex = std::regex(pattern);
+            return { { std::move(regex), std::move(pattern) } };
         }
         catch (const std::regex_error& e)
         {
@@ -51,7 +52,7 @@ namespace mamba::specs
         // not a glob when serializing it.
         if (!util::starts_with(m_raw_pattern, pattern_start))
         {
-            m_raw_pattern.insert(m_raw_pattern.cbegin(), pattern_start);
+            m_raw_pattern.insert(m_raw_pattern.begin(), pattern_start);
         }
         if (!util::ends_with(m_raw_pattern, pattern_end))
         {

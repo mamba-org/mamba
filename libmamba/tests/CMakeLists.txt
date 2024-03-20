@@ -38,6 +38,7 @@ set(
     src/specs/test_authentication_info.cpp
     src/specs/test_build_number_spec.cpp
     src/specs/test_channel.cpp
+    src/specs/test_chimera_string_spec.cpp
     src/specs/test_conda_url.cpp
     src/specs/test_glob_spec.cpp
     src/specs/test_match_spec.cpp

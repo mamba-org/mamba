@@ -166,6 +166,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/build_number_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/chimera_string_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/glob_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp

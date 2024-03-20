@@ -46,6 +46,9 @@ namespace mamba::specs
         : m_pattern(std::move(pattern))
         , m_raw_pattern(std::move(raw_pattern))
     {
+        // We force regex to start with `^` and end with `$` to simplify the multiple
+        // possible representations, and because this is the safest way we can make sure it is
+        // not a glob when serializing it.
         if (!util::starts_with(m_raw_pattern, pattern_start))
         {
             m_raw_pattern.insert(m_raw_pattern.cbegin(), pattern_start);

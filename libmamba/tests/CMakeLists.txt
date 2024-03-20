@@ -43,6 +43,7 @@ set(
     src/specs/test_match_spec.cpp
     src/specs/test_package_info.cpp
     src/specs/test_platform.cpp
+    src/specs/test_regex_spec.cpp
     src/specs/test_repo_data.cpp
     src/specs/test_unresolved_channel.cpp
     src/specs/test_version.cpp

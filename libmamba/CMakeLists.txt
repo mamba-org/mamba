@@ -171,6 +171,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/regex_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp

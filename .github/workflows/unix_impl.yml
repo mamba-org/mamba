@@ -163,3 +163,34 @@ jobs:
           unset CONDARC  # Interferes with tests
           python -m pytest micromamba/tests/ \
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}
+
+  verify_pkg_tests:
+    name: mamba-content-trust tests
+    needs: ["build_shared_unix"]
+    runs-on: ${{ inputs.os }}
+    if: startsWith(inputs.os, 'ubuntu')
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+      - name: Run tests using conda-content-trust (server side)
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+          export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
+          unset CONDARC  # Interferes with tests
+          # FIXME this is apparently a bug to be fixed (pip specs are not installed from env yml file)
+          python -m pip install securesystemslib --no-input --no-deps
+          cd micromamba/test-server
+          ./generate_gpg_keys.sh
+          ./testserver_pkg_signing.sh

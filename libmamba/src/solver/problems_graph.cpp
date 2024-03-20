@@ -303,7 +303,7 @@ namespace mamba::solver
             using TT = std::remove_cv_t<std::remove_reference_t<T>>;
             using Build = decltype(std::invoke(&TT::build_string, std::forward<T>(e)));
             Build bld = std::invoke(&TT::build_string, std::forward<T>(e));
-            if constexpr (std::is_same_v<std::decay_t<decltype(bld)>, specs::GlobSpec>)
+            if constexpr (std::is_same_v<std::decay_t<decltype(bld)>, specs::ChimeraStringSpec>)
             {
                 return std::forward<Build>(bld).str();
             }

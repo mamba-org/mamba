@@ -24,7 +24,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("").value();
             CHECK(ms.name().is_free());
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK(ms.build_number().is_explicitly_free());
             CHECK_EQ(ms.str(), "*");
         }
@@ -325,7 +325,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("libblas=0.15*").value();
             CHECK_EQ(ms.name().str(), "libblas");
             CHECK_EQ(ms.version().str(), "=0.15*");
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "libblas=0.15*");
             CHECK_EQ(ms.conda_build_form(), "libblas 0.15*.*");
         }
@@ -336,7 +336,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("xtensor =0.15*").value();
             CHECK_EQ(ms.name().str(), "xtensor");
             CHECK_EQ(ms.version().str(), "=0.15*");
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "xtensor=0.15*");
             CHECK_EQ(ms.conda_build_form(), "xtensor 0.15*.*");
         }
@@ -346,7 +346,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("numpy=1.20").value();
             CHECK_EQ(ms.name().str(), "numpy");
             CHECK_EQ(ms.version().str(), "=1.20");
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "numpy=1.20");
         }
 
@@ -356,7 +356,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.channel().value().str(), "conda-forge");
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "conda-forge::tzdata");
         }
 
@@ -366,7 +366,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.channel().value().str(), "conda-forge[noarch]");
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
         }
 
@@ -376,7 +376,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.channel().value().str(), "conda-forge[noarch]");
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
         }
 
@@ -386,7 +386,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.channel().value().str(), "pkgs/main");
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "pkgs/main::tzdata");
         }
 
@@ -396,7 +396,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.channel().value().str(), "pkgs/main[noarch]");
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "pkgs/main[noarch]::tzdata");
         }
 
@@ -407,7 +407,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "noarch" });
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
         }
 
@@ -418,7 +418,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "mamba-37" });
             CHECK_EQ(ms.name().str(), "tzdata");
             CHECK(ms.version().is_explicitly_free());
-            CHECK(ms.build_string().is_free());
+            CHECK(ms.build_string().is_explicitly_free());
             CHECK_EQ(ms.str(), "conda-forge[mamba-37]::tzdata");
         }
 
@@ -434,6 +434,14 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.version().str(), "==4.3.21.0post699+1dab973");  // Not ``.0post`` diff
             CHECK_EQ(ms.build_string().str(), "py36h4a561cd_0");
             CHECK_EQ(ms.str(), "conda-canary[linux-64]::conda==4.3.21.0post699+1dab973=py36h4a561cd_0");
+        }
+
+        SUBCASE("libblas[build=^.*(accelerate|mkl)$]")
+        {
+            auto ms = MatchSpec::parse("libblas[build=^.*(accelerate|mkl)$]").value();
+            CHECK_EQ(ms.name().str(), "libblas");
+            CHECK_EQ(ms.build_string().str(), "^.*(accelerate|mkl)$");
+            CHECK_FALSE(ms.build_string().is_glob());
         }
     }
 

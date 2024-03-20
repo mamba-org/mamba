@@ -37,7 +37,15 @@ namespace mamba::specs
 
         // Build string
         auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
-        out.m_build_string = BuildStringSpec(std::string(tail));
+        auto maybe_build_string = BuildStringSpec::parse(std::string(tail));
+        if (maybe_build_string.has_value())
+        {
+            out.m_build_string = std::move(maybe_build_string).value();
+        }
+        else
+        {
+            return make_unexpected_parse(std::move(maybe_build_string).error());
+        }
 
         if (!head.has_value())
         {
@@ -216,8 +224,9 @@ namespace mamba::specs
             }
             if ((attr == "build") || (attr == "build_string"))
             {
-                spec.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
-                return {};
+                return MatchSpec::BuildStringSpec::parse(std::string(val))
+                    .transform([&](MatchSpec::BuildStringSpec&& bs)
+                               { spec.set_build_string(std::move(bs)); });
             }
             if (attr == "version")
             {
@@ -575,14 +584,19 @@ namespace mamba::specs
             auto maybe_ver = VersionSpec::parse(ver_str);
             if (!maybe_ver)
             {
-                return parse_error(maybe_ver.error().what());
+                return make_unexpected_parse(std::move(maybe_ver).error());
             }
             out.m_version = std::move(maybe_ver).value();
         }
 
         if (!bld_str.empty())
         {
-            out.m_build_string = MatchSpec::BuildStringSpec(std::string(bld_str));
+            auto maybe_build_string = BuildStringSpec::parse(std::string(bld_str));
+            if (!maybe_build_string)
+            {
+                return make_unexpected_parse(std::move(maybe_build_string).error());
+            }
+            out.m_build_string = std::move(maybe_build_string).value();
         }
 
         return out;
@@ -895,7 +909,7 @@ namespace mamba::specs
     auto MatchSpec::conda_build_form() const -> std::string
     {
         const bool has_version = !m_version.is_explicitly_free();
-        const bool has_build_str = !m_build_string.is_free();
+        const bool has_build_str = !m_build_string.is_explicitly_free();
         if (has_version)
         {
             if (has_build_str)
@@ -945,6 +959,7 @@ namespace mamba::specs
         // Glob in names and build_string are fine
         return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
                && build_number().is_explicitly_free()  //
+               && build_string().is_glob()             //
                && !channel().has_value()               //
                && filename().empty()                   //
                && !platforms().has_value()             //
@@ -959,9 +974,9 @@ namespace mamba::specs
 
     [[nodiscard]] auto MatchSpec::is_only_package_name() const -> bool
     {
-        return name().is_exact()                  //
-               && version().is_explicitly_free()  //
-               && build_string().is_free()        //
+        return name().is_exact()                       //
+               && version().is_explicitly_free()       //
+               && build_string().is_explicitly_free()  //
                && is_simple();
     }
 
@@ -1068,7 +1083,7 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
 
     const bool is_complex_version = spec.version().expression_size() > 1;
     const bool is_complex_build_string = !(
-        spec.build_string().is_exact() || spec.build_string().is_free()
+        spec.build_string().is_exact() || spec.build_string().is_explicitly_free()
     );
 
     // Any relation is complex, we'll write them all inside the attribute section.
@@ -1076,7 +1091,7 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
     // of the url.
     if (!is_complex_version && !is_complex_build_string)
     {
-        if (!spec.build_string().is_free())
+        if (!spec.build_string().is_explicitly_free())
         {
             out = fmt::format_to(out, "{}={}", spec.version(), spec.build_string());
         }
@@ -1111,7 +1126,7 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
             ensure_bracket_open_or_comma();
             out = fmt::format_to(out, "version={0}{1}{0}", MatchSpec::prefered_quote, ver);
         }
-        if (const auto& bs = spec.build_string(); !bs.is_free())
+        if (const auto& bs = spec.build_string(); !bs.is_explicitly_free())
         {
             ensure_bracket_open_or_comma();
             out = fmt::format_to(out, "build={0}{1}{0}", MatchSpec::prefered_quote, bs);

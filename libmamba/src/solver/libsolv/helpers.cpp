@@ -1171,7 +1171,9 @@ namespace mamba::solver::libsolv
                         ));
                     }
                 );
-            ms.set_build_string(specs::MatchSpec::BuildStringSpec(std::string(s.build_string())));
+            ms.set_build_string(
+                specs::MatchSpec::BuildStringSpec(specs::GlobSpec(std::string(s.build_string())))
+            );
             ms.set_build_number(
                 specs::BuildNumberSpec(specs::BuildNumberPredicate::make_equal_to(s.build_number()))
             );

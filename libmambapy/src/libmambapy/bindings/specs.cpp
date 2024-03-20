@@ -715,9 +715,33 @@ namespace mambapy
             .def("__copy__", &copy<GlobSpec>)
             .def("__deepcopy__", &deepcopy<GlobSpec>, py::arg("memo"));
 
+        py::class_<RegexSpec>(m, "RegexSpec")
+            .def_readonly_static("free_pattern", &RegexSpec::free_pattern)
+            .def_readonly_static("pattern_start", &RegexSpec::pattern_start)
+            .def_readonly_static("pattern_end", &RegexSpec::pattern_end)
+            .def_static("parse", &RegexSpec::parse)
+            .def(py::init<>())
+            .def("contains", &RegexSpec::contains)
+            .def("is_explicitly_free", &RegexSpec::is_explicitly_free)
+            .def("is_exact", &RegexSpec::is_exact)
+            .def("__str__", &RegexSpec::str)
+            .def("__copy__", &copy<RegexSpec>)
+            .def("__deepcopy__", &deepcopy<RegexSpec>, py::arg("memo"));
+
+        py::class_<ChimeraStringSpec>(m, "ChimeraStringSpec")
+            .def_static("parse", &ChimeraStringSpec::parse)
+            .def(py::init<>())
+            .def("contains", &ChimeraStringSpec::contains)
+            .def("is_explicitly_free", &ChimeraStringSpec::is_explicitly_free)
+            .def("is_exact", &ChimeraStringSpec::is_exact)
+            .def("is_glob", &ChimeraStringSpec::is_glob)
+            .def("__str__", &ChimeraStringSpec::str)
+            .def("__copy__", &copy<ChimeraStringSpec>)
+            .def("__deepcopy__", &deepcopy<ChimeraStringSpec>, py::arg("memo"));
+
         py::class_<MatchSpec>(m, "MatchSpec")
-            .def_property_readonly_static("NameSpec", &py::type::of<GlobSpec>)
-            .def_property_readonly_static("BuildStringSpec", &py::type::of<GlobSpec>)
+            .def_property_readonly_static("NameSpec", &py::type::of<MatchSpec::NameSpec>)
+            .def_property_readonly_static("BuildStringSpec", &py::type::of<MatchSpec::BuildStringSpec>)
             .def_readonly_static("url_md5_sep", &MatchSpec::url_md5_sep)
             .def_readonly_static("prefered_list_open", &MatchSpec::prefered_list_open)
             .def_readonly_static("prefered_list_close", &MatchSpec::prefered_list_close)

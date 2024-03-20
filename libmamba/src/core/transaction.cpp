@@ -76,7 +76,9 @@ namespace mamba
             }
             if (!pkg.build_string.empty())
             {
-                out.set_build_string(specs::MatchSpec::BuildStringSpec(pkg.build_string));
+                out.set_build_string(
+                    specs::MatchSpec::BuildStringSpec(specs::GlobSpec(pkg.build_string))
+                );
             }
             return out;
         }

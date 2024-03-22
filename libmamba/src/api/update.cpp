@@ -55,14 +55,21 @@ namespace mamba
             else
             {
                 request.jobs.reserve(specs.size());
+
+                bool found;
+                auto hist_map = prefix_data.history().get_requested_specs_map();
                 if (remove_not_specified)
                 {
-                    auto hist_map = prefix_data.history().get_requested_specs_map();
                     for (auto& it : hist_map)
                     {
-                        if (std::find(specs.begin(), specs.end(), it.second.name().str())
-                            == specs.end())
-                        {
+                        found = false;
+                        for (const auto& sp : specs){
+                            if(mamba::specs::MatchSpec::parse(sp)->name().contains(it.second.name().str())){
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found){
                             request.jobs.emplace_back(Request::Remove{
                                 specs::MatchSpec::parse(it.second.name().str())
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
@@ -73,13 +80,32 @@ namespace mamba
                     }
                 }
 
+
                 for (const auto& raw_ms : specs)
                 {
-                    request.jobs.emplace_back(Request::Update{
-                        specs::MatchSpec::parse(raw_ms)
-                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                            .value(),
-                    });
+                    found = false;
+                        // if (std::find(specs.begin(), specs.end(), mamba::specs::MatchSpec::parse(raw_ms)->name().str())
+                        //     != specs.end()) continue;
+                    for (auto& it : hist_map){
+                        if(mamba::specs::MatchSpec::parse(raw_ms)->name().contains(it.second.name().str())){
+
+                            request.jobs.emplace_back(Request::Update{
+                                specs::MatchSpec::parse(raw_ms)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
+                            });
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found){
+
+                            request.jobs.emplace_back(Request::Install{
+                                specs::MatchSpec::parse(raw_ms)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
+                            });
+                    }
                 }
             }
 

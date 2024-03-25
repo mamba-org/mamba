@@ -145,21 +145,21 @@ namespace mamba
             return "";
         }
 
-        specs::PackageInfo make_virtual_package(
-            const std::string& name,
-            const std::string& subdir,
-            const std::string& version,
-            const std::string& build_string
-        )
+        auto make_virtual_package(  //
+            std::string name,
+            std::string subdir,
+            std::string version,
+            std::string build_string
+        ) -> specs::PackageInfo
         {
-            specs::PackageInfo res(name);
-            res.version = version.size() ? version : "0";
-            res.build_string = build_string.size() ? build_string : "0";
+            specs::PackageInfo res(std::move(name));
+            res.version = version.empty() ? "0" : std::move(version);
+            res.build_string = build_string.empty() ? "0" : std::move(build_string);
             res.build_number = 0;
             res.channel = "@";
-            res.platform = subdir;
+            res.platform = std::move(subdir);
             res.md5 = "12345678901234567890123456789012";
-            res.filename = name;
+            res.filename = res.name;
             return res;
         }
 

@@ -113,8 +113,8 @@ This environment can be activated to get development tools such as
 `LSP <https://microsoft.github.io/language-server-protocol/>`_ code completion and lint.
 
 
-Running commands manually
-=========================
+Build using CMake
+=================
 
 .. note::
 
@@ -122,33 +122,45 @@ Running commands manually
    useful commands.
    The CI files in ``.github/workflow`` provide an alternative way of developing Mamba.
 
+.. warning::
+
+   Please use a freshly downloaded source code, to avoid mixing up configuration when building.
+
+
 Install development dependencies
 *******************************
 
+First create an environment with necessary dependencies using ``micromamba``:
 .. code:: bash
 
-    micromamba create -n mamba -c conda-forge -f dev/environment.yml
+    micromamba create -n mamba -c conda-forge -f dev/environment-dev.yml
+
+Then activate the freshly created environment using the following:
+.. code:: bash
+
     micromamba activate -n mamba
 
-Compile ``libmamba`` and other artifacts
+
+Compile ``libmmaba`` and other artifacts
+
 ****************************************
 
 ``libmamba`` is built using CMake.
-Typically during development, we build everything dynamically using dependencies
-from Conda-Forge.
+Typically during development, we build everything dynamically using dependencies from Conda-Forge.
 
 The first step is to configure the build options.
-A recommended set is already provided as CMake Preset, but feel free to use any variations.
 
 .. note::
     All ``cmake`` commands listed below use ``bash`` multi-line syntax.
     On Windows, replace ``\`` trailing character with ``^``.
 
+A recommended set is already provided as CMake Preset, so feel free to use any variations.
+
 .. code:: bash
 
     cmake -B build/ -G Ninja --preset mamba-unix-shared-debug-dev
 
-Compilation can then be launched with:
+Compilation can then be launched as follows:
 
 .. code:: bash
 
@@ -157,11 +169,13 @@ Compilation can then be launched with:
 ``libmamba`` tests
 ******************
 
-The tests for libmamba are written in C++.
+The tests for libamba are written in C++ and their corresponding executables should be located at the following path once the compilation finishes:
+
 
 .. code:: bash
 
     ./build/libmamba/tests/test_libmamba
+
 
 ``micromamba`` integration tests
 ********************************
@@ -169,10 +183,20 @@ The tests for libmamba are written in C++.
 Many ``micromamba`` integration tests are written through a pytest Python wrapper.
 The environment variable ``TEST_MAMBA_EXE`` controls which executable is being tested.
 
+The compiled executable will be placed at ``build/micromamba/`` so we point the environment variable ``TEST_MAMBA_EXE`` to this location to set the executable under test
+
+Then set the environment variable ``TEST_MAMBA_EXE`` as follows:
+
 .. code:: bash
 
-   export TEST_MAMBA_EXE="${PWD}/build/micromamba/micromamba"
+   export TEST_MAMBA_EXE="${PWD}/build/micromamba/mamba"
+
+We can now run all ``micromamba`` integration tests like following:
+
+.. code:: bash
+
    python -m pytest micromamba/tests
+
 
 ``libmambapy`` tests
 ********************
@@ -183,17 +207,19 @@ To run the ``libmambapy`` tests, the Python package needs to be properly install
 
    This needs to be done every time ``libmamba`` changes.
 
+First build python bindings like follows:
+
 .. code:: bash
 
     cmake --install build/ --prefix "${CONDA_PREFIX}"
 
-Then the Python bindings can be installed
+Then the Python bindings can be installed as follows:
 
 .. code:: bash
 
     python -m pip install --no-deps --no-build-isolation libmambapy/
 
-Finally the tests can be run:
+Finally the tests can be invoked as follows:
 
 .. code:: bash
 

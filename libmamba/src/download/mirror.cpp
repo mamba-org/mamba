@@ -37,6 +37,12 @@ namespace mamba::download
     /*****************
      * MirrorRequest *
      *****************/
+    MirrorRequest::MirrorRequest(std::string_view lname, std::string_view lurl, header_list lheaders)
+        : RequestBase(lname, std::nullopt, false, false)
+        , url(lurl)
+        , headers(std::move(lheaders))
+    {
+    }
 
     MirrorRequest::MirrorRequest(const RequestBase& base, std::string_view lurl, header_list lheaders)
         : RequestBase(base)

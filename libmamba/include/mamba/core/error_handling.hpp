@@ -32,7 +32,8 @@ namespace mamba
         satisfiablitity_error,
         user_interrupted,
         incorrect_usage,
-        invalid_spec
+        invalid_spec,
+        download_content
     };
 
     class mamba_error : public std::runtime_error

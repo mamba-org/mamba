@@ -280,6 +280,16 @@ namespace mamba::download
             context.remote_fetch_params.ssl_verify
         );
 
+        if (!p_request->username.empty())
+        {
+            p_handle->set_opt(CURLOPT_USERNAME, p_request->username);
+        }
+
+        if (!p_request->password.empty())
+        {
+            p_handle->set_opt(CURLOPT_PASSWORD, p_request->password);
+        }
+
         p_handle->set_opt(CURLOPT_NOBODY, p_request->check_only);
 
         p_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadAttempt::Impl::curl_header_callback);

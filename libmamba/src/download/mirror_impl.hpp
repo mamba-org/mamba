@@ -25,7 +25,7 @@ namespace mamba::download
     private:
 
         using request_generator_list = Mirror::request_generator_list;
-        request_generator_list get_request_generators_impl() const override;
+        request_generator_list get_request_generators_impl(const std::string&) const override;
     };
 
     class HTTPMirror : public Mirror
@@ -39,7 +39,7 @@ namespace mamba::download
     private:
 
         using request_generator_list = Mirror::request_generator_list;
-        request_generator_list get_request_generators_impl() const override;
+        request_generator_list get_request_generators_impl(const std::string&) const override;
 
         std::string m_url;
     };

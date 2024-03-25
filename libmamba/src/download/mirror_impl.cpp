@@ -30,7 +30,8 @@ namespace mamba::download
         return PASSTHROUGH_MIRROR_ID;
     }
 
-    auto PassThroughMirror::get_request_generators_impl() const -> request_generator_list
+    auto PassThroughMirror::get_request_generators_impl(const std::string&) const
+        -> request_generator_list
     {
         return { [](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, dl_request.url_path); } };
@@ -51,7 +52,7 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto HTTPMirror::get_request_generators_impl() const -> request_generator_list
+    auto HTTPMirror::get_request_generators_impl(const std::string&) const -> request_generator_list
     {
         return { [url = m_url](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, util::url_concat(url, dl_request.url_path)); } };

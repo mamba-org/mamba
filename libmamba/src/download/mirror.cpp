@@ -60,9 +60,9 @@ namespace mamba::download
         return m_id;
     }
 
-    auto Mirror::get_request_generators() const -> request_generator_list
+    auto Mirror::get_request_generators(const std::string& url_path) const -> request_generator_list
     {
-        return get_request_generators_impl();
+        return get_request_generators_impl(url_path);
     }
 
     std::size_t Mirror::max_retries() const

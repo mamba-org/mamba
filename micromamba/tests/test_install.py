@@ -109,6 +109,25 @@ class TestInstall:
         assert res["env_name"] == ""
         assert res["specs"] == specs
 
+    def test_spec_pip_nodeps(self, existing_cache):
+        spec_file = os.path.join(TestInstall.root_prefix, "spec.yml")
+
+        file_content = [
+            "dependencies:",
+            "  - xtensor >0.20",
+            "  - pip --no-deps:",
+            "    - pandas",
+        ]
+
+        with open(spec_file, "w") as f:
+            f.write("\n".join(file_content))
+
+        res = helpers.install("-f", spec_file, "--print-config-only")
+
+        TestInstall.config_tests(res)
+        assert res["env_name"] == ""
+        assert "pip" in res["specs"]
+
     @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
     @pytest.mark.parametrize("target_is_root", (False, True))
     @pytest.mark.parametrize("cli_prefix", (False, True))

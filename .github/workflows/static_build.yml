@@ -36,9 +36,7 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          # Running a fork until we can merge the changes in micromamba-feedstock
-          # https://github.com/conda-forge/micromamba-feedstock/pull/154
-          repository: AntoinePrv/micromamba-feedstock
+          repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Checkout mamba branch
         uses: actions/checkout@v3

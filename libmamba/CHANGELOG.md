@@ -1,3 +1,10 @@
+libmamba 1.5.8 (March 25, 2024)
+===============================
+
+Bug fixes:
+
+- retain add_channel_specific_matchspec between create_whatprovides calls by @tl-hbk in https://github.com/mamba-org/mamba/pull/3232
+
 libmamba 1.5.7 (March 04, 2024)
 ===============================
 

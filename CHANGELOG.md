@@ -1,3 +1,12 @@
+2024.03.25
+==========
+
+Releases:  libmamba 1.5.8, libmambapy 1.5.8, mamba 1.5.8, micromamba 1.5.8
+
+Bug fixes:
+
+- [libmamba] retain add_channel_specific_matchspec between create_whatprovides calls by @tl-hbk in https://github.com/mamba-org/mamba/pull/3232
+
 2024.03.04
 ==========
 

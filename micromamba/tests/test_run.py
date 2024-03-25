@@ -1,13 +1,15 @@
 import os
 import random
 import shutil
+import signal
 import string
 import subprocess
 from sys import platform
+import time
 
 import pytest
 
-from .helpers import create, random_string, subprocess_run, umamba_run
+from .helpers import create, random_string, subprocess_run, umamba_run, get_umamba
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -90,6 +92,27 @@ class TestRun:
             umamba_run("-n", env_name, "python")
         except subprocess.CalledProcessError as e:
             assert "critical libmamba The given prefix does not exist:" in e.stderr.decode()
+
+    @pytest.mark.skipif(platform == "win32", reason="not supported for windows yet")
+    def test_signal_forwarding(self):
+        test_script_file_name = "signal_forwarding.py"
+        test_script_path = os.path.join(os.path.dirname(__file__), test_script_file_name)
+        res = umamba_run("python", test_script_path)
+        assert res.strip() == "Signal forwarding ok"
+
+    @pytest.mark.skipif(platform == "win32", reason="not supported for windows yet")
+    def test_suspension(self):
+        umamba = get_umamba()
+        proc = subprocess.Popen([umamba, "run", "sleep", "60"])
+        pid = proc.pid
+        os.kill(pid, signal.SIGTSTP)
+        time.sleep(0.1)
+        _, status = os.waitpid(pid, os.WNOHANG | os.WUNTRACED)
+        assert os.WIFSTOPPED(status), "umamba should be stopped"
+        os.kill(pid, signal.SIGCONT)
+        time.sleep(0.1)
+        proc.terminate()
+        proc.wait()
 
 
 @pytest.fixture()

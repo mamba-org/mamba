@@ -21,6 +21,7 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/os_osx.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -213,6 +214,15 @@ namespace mamba
             }
         }
 
+        [[nodiscard]] auto overridable_osx_version() -> tl::expected<std::string, util::OSError>
+        {
+            if (auto override_version = util::get_env("CONDA_OVERRIDE_OSX"))
+            {
+                return { std::move(override_version).value() };
+            }
+            return util::osx_version();
+        }
+
         std::vector<specs::PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -259,15 +269,22 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix", platform));
 
-                std::string osx_ver = macos_version();
-                if (!osx_ver.empty())
-                {
-                    res.push_back(make_virtual_package("__osx", platform, osx_ver));
-                }
-                else
-                {
-                    LOG_WARNING << "osx version not found (virtual package skipped)";
-                }
+                overridable_osx_version()
+                    .transform(
+                        [&](std::string&& version) {
+                            res.push_back(make_virtual_package("__osx", platform, std::move(version)));
+                        }
+                    )
+                    .or_else(
+                        [&](util::OSError err)
+                        {
+                            LOG_WARNING
+                                << "OSX version not found (virtual package skipped)."
+                                   " Try setting CONDA_OVERRIDE_OSX environment variable to the"
+                                   " desired version.";
+                            LOG_DEBUG << err.message;
+                        }
+                    );
             }
 
             res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));

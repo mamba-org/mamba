@@ -23,6 +23,7 @@ set(
     src/util/test_graph.cpp
     src/util/test_heap_optional.cpp
     src/util/test_iterator.cpp
+    src/util/test_os_osx.cpp
     src/util/test_os_win.cpp
     src/util/test_path_manip.cpp
     src/util/test_parsers.cpp

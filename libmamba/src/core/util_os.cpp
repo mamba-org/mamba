@@ -263,45 +263,6 @@ namespace mamba
         return norm_version;
     }
 
-    std::string macos_version()
-    {
-        LOG_DEBUG << "Loading macos virtual package";
-        auto override_version = util::get_env("CONDA_OVERRIDE_OSX");
-        if (override_version)
-        {
-            return override_version.value();
-        }
-
-        if (!util::on_mac)
-        {
-            return "";
-        }
-
-        std::string out, err;
-        // Note: we could also inspect /System/Library/CoreServices/SystemVersion.plist which is
-        // an XML file
-        //       that contains the same information. However, then we'd either need an xml
-        //       parser or some other crude method to read the data
-        std::vector<std::string> args = { "sw_vers", "-productVersion" };
-        auto [status, ec] = reproc::run(
-            args,
-            reproc::options{},
-            reproc::sink::string(out),
-            reproc::sink::string(err)
-        );
-
-        if (ec)
-        {
-            LOG_WARNING << "Could not find macOS version by calling 'sw_vers -productVersion'\nPlease file a bug report.\nError: "
-                        << ec.message();
-            return "";
-        }
-
-        auto version = std::string(util::strip(out));
-        LOG_DEBUG << "macos version found: " << version;
-        return version;
-    }
-
     std::string linux_version()
     {
         LOG_DEBUG << "Loading linux virtual package";

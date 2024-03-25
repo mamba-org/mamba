@@ -154,6 +154,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/cryptography.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/encoding.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/os_osx.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/parsers.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
@@ -288,6 +289,8 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/loop_control.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_osx.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp

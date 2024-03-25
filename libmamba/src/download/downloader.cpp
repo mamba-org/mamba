@@ -563,9 +563,9 @@ namespace mamba::download
      * LAST_REQUEST_FAILED:
      *     - m_retries == p_mirror->max_retries ? => SEQUENCE_FAILED
      */
-    MirrorAttempt::MirrorAttempt(Mirror& mirror)
+    MirrorAttempt::MirrorAttempt(Mirror& mirror, const std::string& url_path)
         : p_mirror(&mirror)
-        , m_request_generators(p_mirror->get_request_generators())
+        , m_request_generators(p_mirror->get_request_generators(url_path))
     {
     }
 
@@ -862,7 +862,7 @@ namespace mamba::download
         if (mirror != nullptr)
         {
             m_tried_mirrors.insert(mirror->id());
-            m_mirror_attempt = MirrorAttempt(*mirror);
+            m_mirror_attempt = MirrorAttempt(*mirror, p_initial_request->url_path);
         }
         else
         {

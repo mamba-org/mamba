@@ -4,10 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <spdlog/spdlog.h>
+
+#include "mamba/core/output.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
+#include "nlohmann/json.hpp"
+
 #include "mirror_impl.hpp"
+
+namespace nl = nlohmann;
 
 namespace mamba::download
 {
@@ -56,6 +63,251 @@ namespace mamba::download
     {
         return { [url = m_url](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, util::url_concat(url, dl_request.url_path)); } };
+    }
+
+    /****************************
+     * OCIMirror implementation *
+     ****************************/
+
+    namespace
+    {
+        std::pair<std::string, std::string> split_path_tag(const std::string& path)
+        {
+            // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
+            // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
+            if (util::ends_with(path, ".json"))
+            {
+                return { path, "latest" };
+            }
+
+            std::pair<std::string, std::string> result;
+            auto parts = util::rsplit(path, "-", 2);
+
+            if (parts.size() < 2)
+            {
+                LOG_ERROR << "Could not split filename into enough parts";
+                throw std::runtime_error("Could not split filename into enough parts");
+            }
+
+            result.first = parts[0];
+
+            std::string tag;
+            if (parts.size() > 2)
+            {
+                std::string last_part = parts[2].substr(0, parts[2].find_first_of("."));
+                tag = fmt::format("{}-{}", parts[1], last_part);
+            }
+            else
+            {
+                tag = parts[1];
+            }
+
+            util::replace_all(tag, "_", "-");
+            result.second = tag;
+
+            LOG_INFO << "Splitting " << path << " to name: " << result.first
+                     << " tag: " << result.second;
+            return result;
+        }
+
+        nl::json parse_json_nothrow(const std::string& value)
+        {
+            try
+            {
+                auto j = nl::json::parse(value);
+                return j;
+            }
+            catch (const nlohmann::detail::parse_error& e)
+            {
+                spdlog::error("Could not parse JSON\n{}", value);
+                spdlog::error("Error message: {}", e.what());
+                return nl::json::object();
+            }
+        }
+    }
+
+    OCIMirror::OCIMirror(
+        std::string url,
+        std::string repo_prefix,
+        std::string scope,
+        std::string username,
+        std::string password
+    )
+        : Mirror(OCIMirror::make_id(url))
+        , m_url(std::move(url))
+        , m_repo_prefix(std::move(repo_prefix))
+        , m_scope(std::move(scope))
+        , m_username(std::move(username))
+        , m_password(std::move(password))
+        , m_path_map()
+    {
+    }
+
+    MirrorID OCIMirror::make_id(std::string url)
+    {
+        return MirrorID(std::move(url));
+    }
+
+    auto OCIMirror::get_request_generators_impl(const std::string& url_path) const
+        -> request_generator_list
+    {
+        // NB: This method can be executed by many threads in parallel. Therefore,
+        // data should not be captured in lambda used for building the request, as
+        // inserting a new AuthenticationData object may relocate preexisting ones.
+        auto [split_path, split_tag] = split_path_tag(url_path);
+        auto* data = get_authentication_data(split_path);
+        if (!data)
+        {
+            m_path_map[split_path].reset(new AuthenticationData);
+            data = m_path_map[split_path].get();
+        }
+
+        request_generator_list req_gen;
+
+        if (data->token.empty() && need_authentication())
+        {
+            req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
+                              { return build_authentication_request(dl_request, split_path); });
+        }
+
+        if (data->sha256sum.empty())
+        {
+            req_gen.push_back([this, split_path, split_tag](const Request& dl_request, const Content*)
+                              { return build_manifest_request(dl_request, split_path, split_tag); });
+        }
+
+        req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
+                          { return build_blob_request(dl_request, split_path); });
+
+        return req_gen;
+    }
+
+    MirrorRequest OCIMirror::build_authentication_request(
+        const Request& initial_request,
+        const std::string& split_path
+    ) const
+    {
+        AuthenticationData* data = get_authentication_data(split_path);
+        std::string auth_url = get_authentication_url(split_path);
+        MirrorRequest req(initial_request.name, auth_url);
+
+        req.username = m_username;
+        req.password = m_password;
+
+        req.on_success = [data](const Success& success) -> expected_t<void>
+        {
+            const Buffer& buf = std::get<Buffer>(success.content);
+            auto j = parse_json_nothrow(buf.value);
+            if (j.contains("token"))
+            {
+                data->token = j["token"].get<std::string>();
+                return expected_t<void>();
+            }
+            else
+            {
+                return make_unexpected(
+                    "Could not retrieve authentication token",
+                    mamba_error_code::download_content
+                );
+            }
+        };
+        return req;
+    }
+
+    MirrorRequest OCIMirror::build_manifest_request(
+        const Request& initial_request,
+        const std::string& split_path,
+        const std::string& split_tag
+    ) const
+    {
+        AuthenticationData* data = get_authentication_data(split_path);
+        std::string manifest_url = get_manifest_url(split_path, split_tag);
+        std::vector<std::string> headers = { get_authentication_header(data->token),
+                                             "Accept: application/vnd.oci.image.manifest.v1+json" };
+        MirrorRequest req(initial_request.name, manifest_url, std::move(headers));
+
+        req.on_success = [data](const Success& success) -> expected_t<void>
+        {
+            const Buffer& buf = std::get<Buffer>(success.content);
+            auto j = parse_json_nothrow(buf.value);
+            if (j.contains("layers"))
+            {
+                std::string digest = j["layers"][0]["digest"];
+                assert(util::starts_with(digest, "sha256:"));
+                data->sha256sum = digest.substr(sizeof("sha256:") - 1);
+                return expected_t<void>();
+            }
+            else
+            {
+                return make_unexpected("Could not retrieve sha256", mamba_error_code::download_content);
+            }
+        };
+        return req;
+    }
+
+    MirrorRequest
+    OCIMirror::build_blob_request(const Request& initial_request, const std::string& split_path) const
+    {
+        const AuthenticationData* data = get_authentication_data(split_path);
+        std::string url = get_blob_url(split_path, data->sha256sum);
+        return MirrorRequest(initial_request, url);
+    }
+
+    bool OCIMirror::need_authentication() const
+    {
+        return !m_username.empty() && !m_password.empty();
+    }
+
+    std::string OCIMirror::get_repo(const std::string& repo) const
+    {
+        if (!m_repo_prefix.empty())
+        {
+            return fmt::format("{}/{}", m_repo_prefix, repo);
+        }
+        else
+        {
+            return repo;
+        }
+    }
+
+    std::string OCIMirror::get_authentication_url(const std::string& repo) const
+    {
+        return fmt::format("{}/token?scope=repository:{}:{}", m_url, get_repo(repo), m_scope);
+    }
+
+    std::string OCIMirror::get_authentication_header(const std::string& token) const
+    {
+        if (!need_authentication() || token.empty())
+        {
+            return {};
+        }
+        else
+        {
+            return fmt::format("Authorization: Bearer {}", token);
+        }
+    }
+
+    std::string OCIMirror::get_manifest_url(const std::string& repo, const std::string& reference) const
+    {
+        return fmt::format("{}/v2/{}/manifests/{}", m_url, get_repo(repo), reference);
+    }
+
+    std::string OCIMirror::get_blob_url(const std::string& repo, const std::string& sha256sum) const
+    {
+        // Should be this format:
+        // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
+        return fmt::format("{}/v2/{}/blobs/sha256:{}", m_url, get_repo(repo), sha256sum);
+    }
+
+    auto OCIMirror::get_authentication_data(const std::string& split_path) const
+        -> AuthenticationData*
+    {
+        auto it = m_path_map.find(split_path);
+        if (it != m_path_map.end())
+        {
+            return it->second.get();
+        }
+        return nullptr;
     }
 
     /******************************

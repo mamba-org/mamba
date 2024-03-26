@@ -41,7 +41,10 @@ namespace mamba::download
 
         std::string url;
         header_list headers;
+        std::string username = {};
+        std::string password = {};
 
+        MirrorRequest(std::string_view name, std::string_view url, header_list headers = {});
         MirrorRequest(const RequestBase& base, std::string_view url, header_list headers = {});
 
         ~MirrorRequest() = default;

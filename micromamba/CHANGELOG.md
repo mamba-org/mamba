@@ -1,3 +1,25 @@
+micromamba 2.0.0alpha4 (March 26, 2024)
+=======================================
+
+Enhancements:
+
+- Add integration test by @Hind-M in https://github.com/mamba-org/mamba/pull/3234
+- Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+
+Bug fixes:
+
+- Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+
+CI fixes and doc:
+
+- Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
 micromamba 2.0.0alpha3 (February 28, 2024)
 ==========================================
 

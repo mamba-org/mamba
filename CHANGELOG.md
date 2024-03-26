@@ -1,3 +1,38 @@
+2024.03.26
+==========
+
+Releases: libmamba 2.0.0alpha4, libmambapy 2.0.0alpha4, micromamba 2.0.0alpha4
+
+Enhancements:
+
+- [libmamba] Implemented OCI mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3246
+- [libmamba] Passed url_path to request_generators by @JohanMabille in https://github.com/mamba-org/mamba/pull/3245
+- [libmambapy, libmamba] Handle regex in build string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3239
+- [micromamba, libmamba] [mamba-content-trust] Add integration test by @Hind-M in https://github.com/mamba-org/mamba/pull/3234
+- [libmamba] Release libsolv memory before installation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3238
+- [all] Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- [libmambapy, libmamba] Add MatchSpec::contains_except_channel" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3231
+- [all] [mamba content trust] Enable verifying packages signatures by @Hind-M in https://github.com/mamba-org/mamba/pull/3192
+- [libmambapy, libmamba] Refactor MatchSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3215
+- [all] Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- [libmambapy, libmamba] Fully bind MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3213
+- [libmamba] Add more MatchSpec tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3211
+- [micromamba, libmamba] Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+- [libmamba] Refactor MatchSpec::parse by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3205
+
+Bug fixes:
+
+- [all] Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- [micromamba, libmamba] Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- [all] Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+- [libmamba] fix(micromamba): anaconda private channels not working by @s22chan in https://github.com/mamba-org/mamba/pull/3220
+
+CI fixes and doc:
+
+- [all] Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- [all] Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- [all] Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
 2024.02.28
 ==========
 

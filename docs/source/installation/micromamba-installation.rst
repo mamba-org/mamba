@@ -200,13 +200,28 @@ Build from source
 To build from source, install the development dependencies, using a Conda compatible installer
 (``conda``/``mamba``/``micromamba``/``rattler``/``pixi``).
 
+
+
+First create a virtual environment with necessary dependencies using  ``micromamba`` like follows:
+
 .. code-block:: bash
 
   micromamba create -n mamba --file dev/environment-micromamba-static.yml
-  micromamba activate -n mamba
+
+Then activate the created environment:
+
+.. code:: bash
+
+    micromamba activate mamba
+
+
+.. warning::
+
+   Please use a freshly downloaded source code, to avoid mixing up configuration when building.
 
 Use CMake from this environment to drive the build:
 
+First generate the CMake build system for the given build configuration:
 .. code-block:: bash
 
    cmake -B build/ \
@@ -216,7 +231,12 @@ Use CMake from this environment to drive the build:
        -D BUILD_LIBMAMBA=ON \
        -D BUILD_STATIC=ON \
        -D BUILD_MICROMAMBA=ON
+
+Then build:
+.. code-block:: bash
+
    cmake --build build/ --parallel
+
 
 You will find the executable under "build/micromamba/micromamba".
 The executable can be striped to remove its size:

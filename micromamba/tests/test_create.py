@@ -814,7 +814,7 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     helpers.create("-n", env_name, "--platform", "win-32")
     res = helpers.info("-n", env_name, "--json")
     assert "__archspec=1=x86" in res["virtual packages"]
-    assert "__win=0=0" in res["virtual packages"]
+    assert any(pkg.startswith("__win") for pkg in res["virtual packages"])
     assert res["platform"] == "win-32"
 
 

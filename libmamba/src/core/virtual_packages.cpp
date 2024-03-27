@@ -223,6 +223,15 @@ namespace mamba
             return util::osx_version();
         }
 
+        [[nodiscard]] auto overridable_windows_version() -> tl::expected<std::string, util::OSError>
+        {
+            if (auto override_version = util::get_env("CONDA_OVERRIDE_WIN"))
+            {
+                return { std::move(override_version).value() };
+            }
+            return windows_version();
+        }
+
         std::vector<specs::PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -241,7 +250,23 @@ namespace mamba
 
             if (os == "win")
             {
-                res.push_back(make_virtual_package("__win", platform));
+                overridable_windows_version()
+                    .transform(
+                        [&](std::string&& version) {
+                            res.push_back(make_virtual_package("__win", platform, std::move(version)));
+                        }
+                    )
+                    .or_else(
+                        [&](util::OSError err)
+                        {
+                            res.push_back(make_virtual_package("__win", platform, "0"));
+                            LOG_WARNING
+                                << "Windows version not found, defaulting virtual package version to 0."
+                                   " Try setting CONDA_OVERRIDE_WIN environment variable to the"
+                                   " desired version.";
+                            LOG_DEBUG << err.message;
+                        }
+                    );
             }
             if (os == "linux")
             {
@@ -278,8 +303,9 @@ namespace mamba
                     .or_else(
                         [&](util::OSError err)
                         {
+                            res.push_back(make_virtual_package("__osx", platform, "0"));
                             LOG_WARNING
-                                << "OSX version not found (virtual package skipped)."
+                                << "OSX version not found, defaulting virtual package version to 0."
                                    " Try setting CONDA_OVERRIDE_OSX environment variable to the"
                                    " desired version.";
                             LOG_DEBUG << err.message;

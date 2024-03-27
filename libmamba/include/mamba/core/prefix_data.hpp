@@ -44,6 +44,7 @@ namespace mamba
 
         PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context);
         void load();
+        void load_site_packages();
 
         History m_history;
         package_map m_package_records;

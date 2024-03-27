@@ -155,6 +155,14 @@ namespace mamba::specs
     {
     }
 
+    PackageInfo::PackageInfo(std::string n, std::string v, std::string b, std::string channel)
+        : name(std::move(n))
+        , version(std::move(v))
+        , build_string(std::move(b))
+        , channel(std::move(channel))
+    {
+    }
+
     namespace
     {
         template <typename T, typename U>

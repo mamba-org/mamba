@@ -77,7 +77,14 @@ namespace mamba
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = channels.front().display_name();
+                        if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
+                        {
+                            obj["channel"] = pkg_info.channel;
+                        }
+                        else
+                        {
+                            obj["channel"] = channels.front().display_name();
+                        }
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;
@@ -111,9 +118,16 @@ namespace mamba
                     }
                     else
                     {
-                        auto channels = channel_context.make_channel(package.second.package_url);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = channels.front().display_name();
+                        if (package.second.package_url.empty() && (package.second.channel == "pypi"))
+                        {
+                            formatted_pkgs.channel = package.second.channel;
+                        }
+                        else
+                        {
+                            auto channels = channel_context.make_channel(package.second.package_url);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            formatted_pkgs.channel = channels.front().display_name();
+                        }
                     }
                     packages.push_back(formatted_pkgs);
                 }

@@ -38,7 +38,6 @@ namespace mamba
 
     void run_as_admin(const std::string& args);
     bool enable_long_paths_support(bool force, Palette palette = Palette::no_color());
-    std::string linux_version();
 
     void init_console();
     void reset_console();

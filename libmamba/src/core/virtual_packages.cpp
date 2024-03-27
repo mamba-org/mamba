@@ -21,6 +21,7 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/os_linux.hpp"
 #include "mamba/util/os_osx.hpp"
 #include "mamba/util/os_win.hpp"
 #include "mamba/util/string.hpp"
@@ -215,6 +216,15 @@ namespace mamba
             }
         }
 
+        [[nodiscard]] auto overridable_linux_version() -> tl::expected<std::string, util::OSError>
+        {
+            if (auto override_version = util::get_env("CONDA_OVERRIDE_LINUX"))
+            {
+                return { std::move(override_version).value() };
+            }
+            return util::linux_version();
+        }
+
         [[nodiscard]] auto overridable_osx_version() -> tl::expected<std::string, util::OSError>
         {
             if (auto override_version = util::get_env("CONDA_OVERRIDE_OSX"))
@@ -273,13 +283,25 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix", platform));
 
-                std::string linux_ver = linux_version();
-                if (linux_ver.empty())
-                {
-                    LOG_WARNING << "linux version not found, defaulting to '0'";
-                    linux_ver = "0";
-                }
-                res.push_back(make_virtual_package("__linux", platform, linux_ver));
+                overridable_linux_version()
+                    .transform(
+                        [&](std::string&& version) {
+                            res.push_back(
+                                make_virtual_package("__linux", platform, std::move(version))
+                            );
+                        }
+                    )
+                    .or_else(
+                        [&](util::OSError err)
+                        {
+                            res.push_back(make_virtual_package("__linux", platform, "0"));
+                            LOG_WARNING
+                                << "Linux version not found, defaulting virtual package version to 0."
+                                   " Try setting CONDA_OVERRIDE_LINUX environment variable to the"
+                                   " desired version.";
+                            LOG_DEBUG << err.message;
+                        }
+                    );
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())

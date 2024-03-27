@@ -217,50 +217,7 @@ namespace mamba
         LOG_WARNING << "Changing registry value did not succeed.";
         return false;
     }
-#endif
 
-    std::string linux_version()
-    {
-        LOG_DEBUG << "Loading linux virtual package";
-        auto override_version = util::get_env("CONDA_OVERRIDE_LINUX");
-        if (override_version)
-        {
-            return override_version.value();
-        }
-        if (!util::on_linux)
-        {
-            return "";
-        }
-
-#ifndef _WIN32
-        struct utsname uname_result = {};
-        const auto ret = ::uname(&uname_result);
-        if (ret != 0)
-        {
-            LOG_DEBUG << "Error calling uname (skipping): "
-                      << std::system_error(errno, std::generic_category()).what();
-        }
-
-        static const std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
-        std::smatch m;
-        const std::string version = uname_result.release;
-        if (std::regex_search(version, m, re))
-        {
-            if (m.size() == 2)
-            {
-                std::ssub_match linux_version = m[1];
-                LOG_DEBUG << "linux version found: " << linux_version;
-                return linux_version.str();
-            }
-        }
-
-        LOG_DEBUG << "Could not parse linux version";
-#endif
-
-        return "";
-    }
-
-#ifdef _WIN32
     DWORD getppid()
     {
         HANDLE hSnapshot;

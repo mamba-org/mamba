@@ -22,6 +22,7 @@
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/os_osx.hpp"
+#include "mamba/util/os_win.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -229,7 +230,7 @@ namespace mamba
             {
                 return { std::move(override_version).value() };
             }
-            return windows_version();
+            return util::windows_version();
         }
 
         std::vector<specs::PackageInfo> dist_packages(const Context& context)

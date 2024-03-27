@@ -36,6 +36,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/os_win.hpp"
 #include "mamba/util/string.hpp"
 
 #ifdef _WIN32
@@ -138,8 +139,15 @@ namespace mamba
     bool enable_long_paths_support(bool force, Palette palette)
     {
         // Needs to be set system-wide & can only be run as admin ...
-        std::string win_ver = windows_version();
-        auto splitted = util::split(win_ver, ".");
+
+        auto win_ver = util::windows_version();
+        if (!win_ver.has_value())
+        {
+            LOG_WARNING << "Not setting long path registry key; Windows version must be at least 10 "
+                           "with the fall 2016 \"Anniversary update\" or newer.";
+            return false;
+        }
+        auto splitted = util::split(win_ver.value(), ".");
         if (!(splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
               && std::stoull(splitted[2]) >= 14352))
         {
@@ -211,58 +219,6 @@ namespace mamba
     }
 #endif
 
-    std::string windows_version()
-    {
-        LOG_DEBUG << "Loading Windows virtual package";
-        auto override_version = util::get_env("CONDA_OVERRIDE_WIN");
-        if (override_version)
-        {
-            return override_version.value();
-        }
-
-        if (!util::on_win)
-        {
-            return "";
-        }
-
-        std::string out, err;
-        std::vector<std::string> args = { util::get_env("COMSPEC").value_or(""), "/c", "ver" };
-        auto [status, ec] = reproc::run(
-            args,
-            reproc::options{},
-            reproc::sink::string(out),
-            reproc::sink::string(err)
-        );
-
-        if (ec)
-        {
-            LOG_WARNING << "Could not find Windows version by calling 'ver'\n"
-                        << "Please file a bug report.\nError: " << ec.message();
-            return "";
-        }
-        std::string xout(util::strip(out));
-
-        // from python
-        std::regex ver_output_regex("(?:([\\w ]+) ([\\w.]+) .*\\[.* ([\\d.]+)\\])");
-
-        std::smatch rmatch;
-
-        std::string full_version, norm_version;
-        if (std::regex_match(xout, rmatch, ver_output_regex))
-        {
-            full_version = rmatch[3];
-            auto version_els = util::split(full_version, ".");
-            norm_version = util::concat(version_els[0], ".", version_els[1], ".", version_els[2]);
-            LOG_DEBUG << "Windows version found: " << norm_version;
-        }
-        else
-        {
-            LOG_DEBUG << "Windows version not found";
-            norm_version = "0.0.0";
-        }
-        return norm_version;
-    }
-
     std::string linux_version()
     {
         LOG_DEBUG << "Loading linux virtual package";
@@ -287,7 +243,7 @@ namespace mamba
 
         static const std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
         std::smatch m;
-        std::string const version = uname_result.release;
+        const std::string version = uname_result.release;
         if (std::regex_search(version, m, re))
         {
             if (m.size() == 2)
@@ -499,12 +455,14 @@ namespace mamba
                                                && console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
         features.true_colors = false;
 
-        std::string win_ver = windows_version();
-        auto splitted = util::split(win_ver, ".");
-        if (splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
-            && std::stoull(splitted[2]) >= 15063)
+        if (auto version = util::windows_version())
         {
-            features.true_colors = true;
+            auto splitted = util::split(version.value(), '.');
+            if (splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
+                && std::stoull(splitted[2]) >= 15063)
+            {
+                features.true_colors = true;
+            }
         }
 #endif
         return features;

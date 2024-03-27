@@ -4,19 +4,29 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifdef _WIN32
-
-#include <cassert>
-#include <limits>
+#include <array>
+#include <regex>
 #include <stdexcept>
+#include <string>
 
 #include <fmt/format.h>
-#include <Shlobj.h>
+#include <reproc++/run.hpp>
 
+#include "mamba/util/environment.hpp"
 #include "mamba/util/os_win.hpp"
+#include "mamba/util/string.hpp"
+
+#ifdef _WIN32
+#include <cassert>
+#include <limits>
+
+#include <Shlobj.h>
+#endif
 
 namespace mamba::util
 {
+
+#ifdef _WIN32
 
     namespace
     {
@@ -142,18 +152,9 @@ namespace mamba::util
 
         return output;
     }
-}
 
 #else  // #ifdef _WIN32
 
-#include <stdexcept>
-
-#include <fmt/format.h>
-
-#include "mamba/util/os_win.hpp"
-
-namespace mamba::util
-{
     namespace
     {
         [[noreturn]] void throw_not_implemented(std::string_view name)
@@ -177,6 +178,56 @@ namespace mamba::util
     {
         throw_not_implemented("windows_encoding_to_utf8");
     }
-}
 
-#endif  // #ifdef _WIN32
+#endif
+
+    auto windows_version() -> tl::expected<std::string, OSError>
+    {
+        auto comspec = util::get_env("COMSPEC");
+        if (!comspec.has_value() || comspec->empty())
+        {
+            return tl::make_unexpected(OSError{ fmt::format(
+                "Cannot find command line interpreter, environment variable COMSPEC not defined."
+            ) });
+        }
+
+        const auto args = std::array<std::string, 3>{ std::move(comspec).value(), "/c", "ver" };
+
+        auto out = std::string();
+        auto err = std::string();
+
+        auto [status, ec] = reproc::run(
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
+
+        if (ec)
+        {
+            return tl::make_unexpected(OSError{ fmt::format(
+                R"(Could not find Windows version by calling "{}": {})",
+                fmt::join(args, " "),
+                ec.message()
+            ) });
+        }
+
+        out = util::strip(out);
+
+        // from python
+        static const auto ver_output_regex = std::regex(R"((?:([\w ]+) ([\w.]+) .*\[.* ([\d.]+)\]))");
+
+        if (auto rmatch = std::smatch(); std::regex_match(out, rmatch, ver_output_regex))
+        {
+            std::string full_version = rmatch[3];
+            auto version_elems = util::split(full_version, ".");
+            return { util::concat(version_elems[0], ".", version_elems[1], ".", version_elems[2]) };
+        }
+
+        return tl::make_unexpected(OSError{ fmt::format(
+            R"(Could not parse Windows version in command "{}" output "{}")",
+            fmt::join(args, " "),
+            out
+        ) });
+    }
+}

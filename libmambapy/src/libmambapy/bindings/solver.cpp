@@ -55,9 +55,8 @@ namespace mambapy
         py::class_<Request::Remove>(py_request, "Remove")
             .def(
                 py::init(
-                    [](specs::MatchSpec spec, bool clean) -> Request::Remove {
-                        return { std::move(spec), clean };
-                    }
+                    [](specs::MatchSpec spec, bool clean) -> Request::Remove
+                    { return { std::move(spec), clean }; }
                 ),
                 py::arg("spec"),
                 py::arg("clean_dependencies") = true
@@ -70,9 +69,8 @@ namespace mambapy
         py::class_<Request::Update>(py_request, "Update")
             .def(
                 py::init(
-                    [](specs::MatchSpec spec, bool clean) -> Request::Update {
-                        return { std::move(spec), clean };
-                    }
+                    [](specs::MatchSpec spec, bool clean) -> Request::Update
+                    { return { std::move(spec), clean }; }
                 ),
                 py::arg("spec"),
                 py::arg("clean_dependencies") = true
@@ -165,9 +163,8 @@ namespace mambapy
             .def(
                 // Big copy unfortunately
                 py::init(
-                    [](Request::job_list jobs, Request::Flags flags) -> Request {
-                        return { std::move(flags), std::move(jobs) };
-                    }
+                    [](Request::job_list jobs, Request::Flags flags) -> Request
+                    { return { std::move(flags), std::move(jobs) }; }
                 ),
                 py::arg("jobs"),
                 py::arg("flags") = Request::Flags()
@@ -207,9 +204,8 @@ namespace mambapy
         py::class_<Solution::Upgrade>(py_solution, "Upgrade")
             .def(
                 py::init(
-                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Upgrade {
-                        return { std::move(remove), std::move(install) };
-                    }
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Upgrade
+                    { return { std::move(remove), std::move(install) }; }
                 ),
                 py::arg("remove"),
                 py::arg("install")
@@ -222,9 +218,8 @@ namespace mambapy
         py::class_<Solution::Downgrade>(py_solution, "Downgrade")
             .def(
                 py::init(
-                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Downgrade {
-                        return { std::move(remove), std::move(install) };
-                    }
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Downgrade
+                    { return { std::move(remove), std::move(install) }; }
                 ),
                 py::arg("remove"),
                 py::arg("install")
@@ -237,9 +232,8 @@ namespace mambapy
         py::class_<Solution::Change>(py_solution, "Change")
             .def(
                 py::init(
-                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Change {
-                        return { std::move(remove), std::move(install) };
-                    }
+                    [](specs::PackageInfo remove, specs::PackageInfo install) -> Solution::Change
+                    { return { std::move(remove), std::move(install) }; }
                 ),
                 py::arg("remove"),
                 py::arg("install")
@@ -315,7 +309,7 @@ namespace mambapy
                     out.reserve(solution.actions.size());  // Upper bound
                     for_each_to_install(
                         solution.actions,
-                        [&](auto const& pkg) { out.push_back(pkg); }
+                        [&](const auto& pkg) { out.push_back(pkg); }
                     );
                     return out;
                 }
@@ -326,7 +320,7 @@ namespace mambapy
                 {
                     auto out = std::vector<specs::PackageInfo>{};
                     out.reserve(solution.actions.size());  // Upper bound
-                    for_each_to_remove(solution.actions, [&](auto const& pkg) { out.push_back(pkg); });
+                    for_each_to_remove(solution.actions, [&](const auto& pkg) { out.push_back(pkg); });
                     return out;
                 }
             )
@@ -336,7 +330,7 @@ namespace mambapy
                 {
                     auto out = std::vector<specs::PackageInfo>{};
                     out.reserve(solution.actions.size());  // Upper bound
-                    for_each_to_omit(solution.actions, [&](auto const& pkg) { out.push_back(pkg); });
+                    for_each_to_omit(solution.actions, [&](const auto& pkg) { out.push_back(pkg); });
                     return out;
                 }
             )
@@ -388,7 +382,7 @@ namespace mambapy
                 "graph",
                 [](const ProblemsGraph& self)
                 {
-                    auto const& g = self.graph();
+                    const auto& g = self.graph();
                     return std::pair(g.nodes(), g.edges());
                 }
             )
@@ -483,7 +477,7 @@ namespace mambapy
                 "graph",
                 [](const CompressedProblemsGraph& self)
                 {
-                    auto const& g = self.graph();
+                    const auto& g = self.graph();
                     return std::pair(g.nodes(), g.edges());
                 }
             )

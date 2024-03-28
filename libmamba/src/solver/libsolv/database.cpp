@@ -117,7 +117,7 @@ namespace mamba::solver::libsolv
                 {
                     logger(libsolv_to_log_level(type), msg);
                 }
-                catch (std::exception const& e)
+                catch (const std::exception& e)
                 {
                     std::cerr << "Developer error: error in libsolv logging function: \n"
                               << e.what();

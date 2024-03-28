@@ -182,8 +182,8 @@ namespace mamba::solver::libsolv
             .value();
     }
 
-    auto Matcher::get_channels(const specs::UnresolvedChannel& uc)
-        -> expected_t<channel_list_const_ref>
+    auto
+    Matcher::get_channels(const specs::UnresolvedChannel& uc) -> expected_t<channel_list_const_ref>
     {
         // Channel maps require converting channel to string because unresolved channels are
         // akward to compare.

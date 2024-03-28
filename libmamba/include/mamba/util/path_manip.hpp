@@ -80,8 +80,8 @@ namespace mamba::util
     /**
      * Concatenate paths with the given separator.
      */
-    [[nodiscard]] auto path_concat(std::string_view parent, std::string_view child, char sep)
-        -> std::string;
+    [[nodiscard]] auto
+    path_concat(std::string_view parent, std::string_view child, char sep) -> std::string;
 
     /**
      * Concatenate paths with '/' on Unix and detected separator on Windows.
@@ -91,8 +91,8 @@ namespace mamba::util
     /**
      * Expand a leading '~' with the given home directory, assuming the given separator.
      */
-    [[nodiscard]] auto expand_home(std::string_view path, std::string_view home, char sep)
-        -> std::string;
+    [[nodiscard]] auto
+    expand_home(std::string_view path, std::string_view home, char sep) -> std::string;
 
     /**
      * Expand a leading '~' with the given home directory.
@@ -109,8 +109,8 @@ namespace mamba::util
      *
      * This assumes the given separator is used separate paths.
      */
-    [[nodiscard]] auto shrink_home(std::string_view path, std::string_view home, char sep)
-        -> std::string;
+    [[nodiscard]] auto
+    shrink_home(std::string_view path, std::string_view home, char sep) -> std::string;
 
     /**
      * If the path starts with the given home directory, replace it with a leading '~'.

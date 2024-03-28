@@ -37,8 +37,8 @@ namespace mamba::download
         return PASSTHROUGH_MIRROR_ID;
     }
 
-    auto PassThroughMirror::get_request_generators_impl(const std::string&) const
-        -> request_generator_list
+    auto
+    PassThroughMirror::get_request_generators_impl(const std::string&) const -> request_generator_list
     {
         return { [](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, dl_request.url_path); } };
@@ -148,8 +148,8 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto OCIMirror::get_request_generators_impl(const std::string& url_path) const
-        -> request_generator_list
+    auto OCIMirror::get_request_generators_impl(const std::string& url_path
+    ) const -> request_generator_list
     {
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as
@@ -299,8 +299,8 @@ namespace mamba::download
         return fmt::format("{}/v2/{}/blobs/sha256:{}", m_url, get_repo(repo), sha256sum);
     }
 
-    auto OCIMirror::get_authentication_data(const std::string& split_path) const
-        -> AuthenticationData*
+    auto
+    OCIMirror::get_authentication_data(const std::string& split_path) const -> AuthenticationData*
     {
         auto it = m_path_map.find(split_path);
         if (it != m_path_map.end())
@@ -320,7 +320,8 @@ namespace mamba::download
         {
             return std::make_unique<PassThroughMirror>();
         }
-        else if (util::starts_with(url, "https://") || util::starts_with(url, "http://") || util::starts_with(url, "file://"))
+        else if (util::starts_with(url, "https://") || util::starts_with(url, "http://")
+                 || util::starts_with(url, "file://"))
         {
             return std::make_unique<HTTPMirror>(std::move(url));
         }

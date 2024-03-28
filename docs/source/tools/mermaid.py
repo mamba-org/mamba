@@ -1,16 +1,16 @@
 """
-    sphinx-mermaid
-    ~~~~~~~~~~~~~~~
+sphinx-mermaid
+~~~~~~~~~~~~~~~
 
-    https://github.com/mgaitan/sphinxcontrib-mermaid
-    Modified for the purpose of CoSApp by the CoSApp team
-    https://gitlab.com/cosapp/cosapp
+https://github.com/mgaitan/sphinxcontrib-mermaid
+Modified for the purpose of CoSApp by the CoSApp team
+https://gitlab.com/cosapp/cosapp
 
-    Allow mermaid diagramas to be included in Sphinx-generated
-    documents inline.
+Allow mermaid diagramas to be included in Sphinx-generated
+documents inline.
 
-    :copyright: Copyright 2016 by Martín Gaitán and others, see AUTHORS.
-    :license: BSD, see LICENSE for details.
+:copyright: Copyright 2016 by Martín Gaitán and others, see AUTHORS.
+:license: BSD, see LICENSE for details.
 """
 
 import codecs

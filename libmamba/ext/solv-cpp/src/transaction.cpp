@@ -41,8 +41,8 @@ namespace solv
         return *this;
     }
 
-    auto ObjTransaction::from_solvables(const ObjPool& pool, const ObjQueue& solvables)
-        -> ObjTransaction
+    auto
+    ObjTransaction::from_solvables(const ObjPool& pool, const ObjQueue& solvables) -> ObjTransaction
     {
         return ObjTransaction{ ::transaction_create_decisionq(
             const_cast<::Pool*>(pool.raw()),
@@ -103,8 +103,8 @@ namespace solv
         return ::transaction_type(const_cast<::Transaction*>(raw()), step, mode);
     }
 
-    auto ObjTransaction::step_newer(const ObjPool& pool, SolvableId step) const
-        -> std::optional<SolvableId>
+    auto
+    ObjTransaction::step_newer(const ObjPool& pool, SolvableId step) const -> std::optional<SolvableId>
     {
         assert_same_pool(pool, *this);
         if (const auto solvable = pool.get_solvable(step); solvable && solvable->installed())

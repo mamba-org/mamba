@@ -39,8 +39,8 @@ namespace mamba::specs
             /**
              * Remove the last element of the '/'-separated name.
              */
-            [[nodiscard]] auto weaken_key(std::string_view key) const
-                -> std::optional<std::string_view>;
+            [[nodiscard]] auto
+            weaken_key(std::string_view key) const -> std::optional<std::string_view>;
         };
 
         template <typename Key, typename Value>
@@ -95,8 +95,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto mirror_urls() const -> const std::vector<CondaURL>&;
         [[nodiscard]] auto platform_mirror_urls() const -> std::vector<CondaURL>;
-        [[nodiscard]] auto platform_mirror_urls(const std::string_view platform) const
-            -> std::vector<CondaURL>;
+        [[nodiscard]] auto
+        platform_mirror_urls(const std::string_view platform) const -> std::vector<CondaURL>;
 
         [[nodiscard]] auto url() const -> const CondaURL&;
         auto clear_url() -> const CondaURL;

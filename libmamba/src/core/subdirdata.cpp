@@ -285,8 +285,7 @@ namespace mamba
         return m;
     }
 
-    auto SubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
-        -> expected_subdir_metadata
+    auto SubdirMetadata::from_repodata_file(const fs::u8path& repodata_file) -> expected_subdir_metadata
     {
         const std::string json = [](const fs::u8path& file) -> std::string
         {

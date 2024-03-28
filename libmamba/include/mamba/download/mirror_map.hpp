@@ -63,8 +63,8 @@ namespace mamba::download
     };
 
     template <class MirrorType, class... Args>
-    auto mirror_map::create_unique_mirror(const std::string& mirror_name, Args&&... args)
-        -> MirrorType&
+    auto
+    mirror_map::create_unique_mirror(const std::string& mirror_name, Args&&... args) -> MirrorType&
     {
         static_assert(std::is_base_of_v<Mirror, MirrorType>);
 

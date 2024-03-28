@@ -90,8 +90,8 @@ namespace mamba::solver::libsolv
         solv.add_self_provide();
     }
 
-    auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
-        -> specs::PackageInfo
+    auto
+    make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s) -> specs::PackageInfo
     {
         specs::PackageInfo out = {};
 
@@ -458,7 +458,7 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.legacy_read_conda_repodata(file_ptr.raw(), flags);
-                    file_ptr.try_close().or_else([&](auto const& err) {  //
+                    file_ptr.try_close().or_else([&](const auto& err) {  //
                         LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
                     });
                     return out;
@@ -565,7 +565,7 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.read(file_ptr.raw());
-                    file_ptr.try_close().or_else([&](auto const& err) {  //
+                    file_ptr.try_close().or_else([&](const auto& err) {  //
                         LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
                     });
                     return out;
@@ -654,7 +654,7 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.write(file_ptr.raw());
-                    file_ptr.try_close().or_else([&](auto const& err) {  //
+                    file_ptr.try_close().or_else([&](const auto& err) {  //
                         LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
                     });
                     return out;
@@ -710,9 +710,11 @@ namespace mamba::solver::libsolv
         repo.set_pip_added(true);
     }
 
-    auto
-    make_abused_namespace_dep_args(solv::ObjPool& pool, std::string_view dependency, const MatchFlags& flags)
-        -> std::pair<solv::StringId, solv::StringId>
+    auto make_abused_namespace_dep_args(
+        solv::ObjPool& pool,
+        std::string_view dependency,
+        const MatchFlags& flags
+    ) -> std::pair<solv::StringId, solv::StringId>
     {
         return {
             pool.add_string(dependency),
@@ -907,7 +909,7 @@ namespace mamba::solver::libsolv
                         return;
                     }
 
-                    auto const type = trans.step_type(
+                    const auto type = trans.step_type(
                         pool,
                         id,
                         SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
@@ -977,8 +979,8 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto transaction_to_solution_all(const solv::ObjPool& pool, const solv::ObjTransaction& trans)
-        -> Solution
+    auto
+    transaction_to_solution_all(const solv::ObjPool& pool, const solv::ObjTransaction& trans) -> Solution
     {
         return transaction_to_solution_impl(pool, trans, [](const auto&) { return true; });
     }
@@ -1088,8 +1090,7 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name)
-            -> bool
+        auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name) -> bool
         {
             return std::visit(
                 [&](const auto& action)
@@ -1109,7 +1110,8 @@ namespace mamba::solver::libsolv
                             return true;
                         }
                     }
-                    if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
+                    if constexpr (std::is_same_v<Action, Solution::Reinstall>
+                                  || std::is_same_v<Action, Solution::Omit>)
                     {
                         if (action.what.name == pkg_name)
                         {
@@ -1137,7 +1139,7 @@ namespace mamba::solver::libsolv
                     auto s_in_sol = std::find_if(
                         solution.actions.begin(),
                         solution.actions.end(),
-                        [&](auto const& action) { return action_refers_to(action, s.name()); }
+                        [&](const auto& action) { return action_refers_to(action, s.name()); }
                     );
 
                     if (s_in_sol == solution.actions.end())
@@ -1285,7 +1287,7 @@ namespace mamba::solver::libsolv
                             // ``numpy>=1.0``, leading to an update.
                             // This is especially tricky with channel-specific MatchSpec.
 
-                            auto const clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
+                            const auto clean_deps = job.clean_dependencies ? SOLVER_CLEANDEPS : 0;
 
                             // In this case, libsolv and mamba meanings are the same.
                             if (job.spec.is_only_package_name())
@@ -1338,7 +1340,7 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](solv::ObjSolvableView pin_solv)
                         {
-                            auto const name_id = pool.add_string(pin_solv.name());
+                            const auto name_id = pool.add_string(pin_solv.name());
                             // WARNING keep separate or libsolv does not understand
                             // Force verify the dummy solvable dependencies, as this is not the
                             // default for installed packages.

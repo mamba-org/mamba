@@ -117,7 +117,7 @@ namespace mamba
 
             TEST_CASE_FIXTURE(LockDirTest, "different_pid")
             {
-                std::string const lock_exe = mambatests::testing_libmamba_lock_exe.string();
+                const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
                 std::string out, err;
                 std::vector<std::string> args;
 
@@ -241,7 +241,7 @@ namespace mamba
 
             TEST_CASE_FIXTURE(LockFileTest, "different_pid")
             {
-                std::string const lock_exe = mambatests::testing_libmamba_lock_exe.string();
+                const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
                 std::string out, err;
                 std::vector<std::string> args;
                 {

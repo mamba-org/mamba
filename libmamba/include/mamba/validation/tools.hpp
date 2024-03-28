@@ -35,8 +35,8 @@ namespace mamba::validation
 
     auto generate_ed25519_keypair(std::byte* pk, std::byte* sk) -> int;
     auto generate_ed25519_keypair() -> std::pair<
-        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>,
-        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>;
+                                        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>,
+                                        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>;
     auto generate_ed25519_keypair_hex() -> std::pair<std::string, std::string>;
 
     auto sign(const std::string& data, const std::byte* sk, std::byte* signature) -> int;
@@ -52,8 +52,8 @@ namespace mamba::validation
     verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature)
         -> int;
     auto verify(const std::string& data, const std::byte* pk, const std::byte* signature) -> int;
-    auto verify(const std::string& data, const std::string& pk_hex, const std::string& signature_hex)
-        -> int;
+    auto
+    verify(const std::string& data, const std::string& pk_hex, const std::string& signature_hex) -> int;
 
     /**
      * Verify a GPG/PGP signature against the hash of the binary data and
@@ -61,8 +61,8 @@ namespace mamba::validation
      * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
      * This method assumes hash function to be SHA-256
      */
-    auto verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature)
-        -> int;
+    auto
+    verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature) -> int;
     auto
     verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature)
         -> int;

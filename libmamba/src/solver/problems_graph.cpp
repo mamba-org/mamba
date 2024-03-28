@@ -65,7 +65,7 @@ namespace mamba::solver
         {
             if (old_graph.out_degree(n) == 1)
             {
-                node_id const s = old_graph.successors(n).front();
+                const node_id s = old_graph.successors(n).front();
                 // If s is of constraint type, it has conflicts
                 assert(!is_constraint(old_graph.node(s)) || old_conflicts.has_conflict(s));
                 return is_constraint(old_graph.node(s));
@@ -214,9 +214,10 @@ namespace mamba::solver
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
-        auto
-        merge_node_indices(const node_type_list<old_node_id_list>& nodes_by_type, CompFunc&& merge_criteria)
-            -> node_type_list<std::vector<old_node_id_list>>
+        auto merge_node_indices(
+            const node_type_list<old_node_id_list>& nodes_by_type,
+            CompFunc&& merge_criteria
+        ) -> node_type_list<std::vector<old_node_id_list>>
         {
             auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
             {
@@ -515,8 +516,8 @@ namespace mamba::solver
         {
             auto add_new_edge = [&](ProblemsGraph::node_id old_from, ProblemsGraph::node_id old_to)
             {
-                auto const new_from = old_to_new.at(old_from);
-                auto const new_to = old_to_new.at(old_to);
+                const auto new_from = old_to_new.at(old_from);
+                const auto new_to = old_to_new.at(old_to);
                 if (!new_graph.has_edge(new_from, new_to))
                 {
                     new_graph.add_edge(new_from, new_to, CompressedProblemsGraph::edge_t());
@@ -532,9 +533,10 @@ namespace mamba::solver
          * If two groups contain a node that are respectively in conflicts, then they are in
          * conflicts.
          */
-        auto
-        merge_conflicts(const ProblemsGraph::conflicts_t& old_conflicts, const node_id_mapping& old_to_new)
-            -> CompressedProblemsGraph::conflicts_t
+        auto merge_conflicts(
+            const ProblemsGraph::conflicts_t& old_conflicts,
+            const node_id_mapping& old_to_new
+        ) -> CompressedProblemsGraph::conflicts_t
         {
             auto new_conflicts = CompressedProblemsGraph::conflicts_t();
             for (const auto& [old_from, old_with] : old_conflicts)
@@ -1108,7 +1110,7 @@ namespace mamba::solver
                 {
                     return true;
                 }
-                auto same = [&first](TreeNode const& tn)
+                auto same = [&first](const TreeNode& tn)
                 { return (tn.type == first->type) && (tn.status == first->status); };
                 return std::all_of(first, last, same);
             };
@@ -1253,8 +1255,8 @@ namespace mamba::solver
             template <typename Node>
             auto concat_nodes_impl(const std::vector<node_id>& ids) -> Node;
             auto concat_nodes(const std::vector<node_id>& ids) -> node_t;
-            auto concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to)
-                -> edge_t;
+            auto
+            concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to) -> edge_t;
         };
 
         /*************************************
@@ -1299,7 +1301,7 @@ namespace mamba::solver
                 using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
-                    auto const style = tn.status ? m_format.available : m_format.unavailable;
+                    const auto style = tn.status ? m_format.available : m_format.unavailable;
                     auto [versions_trunc, size] = node.versions_trunc();
                     write(fmt::format(style, (size == 1 ? "{} {}" : "{} [{}]"), node.name(), versions_trunc)
                     );
@@ -1418,7 +1420,8 @@ namespace mamba::solver
                 {
                     assert(false);
                 }
-                else if constexpr (std::is_same_v<Node, PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
+                else if constexpr (std::is_same_v<Node, PackageListNode>
+                                   || std::is_same_v<Node, ConstraintListNode>)
                 {
                     write_pkg_repr(tn);
                     if (tn.status)
@@ -1608,8 +1611,8 @@ namespace mamba::solver
         return out;
     }
 
-    auto problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
-        -> std::string
+    auto
+    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format) -> std::string
     {
         std::stringstream ss;
         print_problem_tree_msg(ss, pbs, format);

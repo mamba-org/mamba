@@ -19,8 +19,8 @@
 
 namespace mamba::solver
 {
-    [[nodiscard]] auto find_new_python_in_solution(const Solution& solution)
-        -> std::optional<std::reference_wrapper<const specs::PackageInfo>>;
+    [[nodiscard]] auto find_new_python_in_solution(const Solution& solution
+    ) -> std::optional<std::reference_wrapper<const specs::PackageInfo>>;
 
     [[nodiscard]] auto python_binary_compatible(  //
         const specs::Version& older,

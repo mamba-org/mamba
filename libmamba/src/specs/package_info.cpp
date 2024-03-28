@@ -96,7 +96,7 @@ namespace mamba::specs
         {
             constexpr auto is_hash_char = [](char c) -> bool
             {
-                auto const lower = util::to_lower(c);
+                const auto lower = util::to_lower(c);
                 return util::is_digit(c) || (lower == 'a') || (lower == 'b') || (lower == 'c')
                        || (lower == 'd') || (lower == 'e') || (lower == 'f');
             };

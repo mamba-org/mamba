@@ -801,9 +801,9 @@ namespace mamba::fs
         template <typename... OtherArgs>
         explicit recursive_directory_iterator(const u8path& path, OtherArgs&&... args)
             : std::filesystem::recursive_directory_iterator(
-                path.std_path(),
-                std::forward<OtherArgs>(args)...
-            )
+                  path.std_path(),
+                  std::forward<OtherArgs>(args)...
+              )
         {
         }
 

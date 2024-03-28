@@ -439,11 +439,8 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<History>(m, "History")
         .def(
-            py::init(
-                [](const fs::u8path& path, ChannelContext& channel_context) {
-                    return History{ path, channel_context };
-                }
-            ),
+            py::init([](const fs::u8path& path, ChannelContext& channel_context)
+                     { return History{ path, channel_context }; }),
             py::arg("path"),
             py::arg("channel_context")
         )

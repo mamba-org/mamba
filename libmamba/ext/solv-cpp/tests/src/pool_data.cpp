@@ -48,8 +48,8 @@ namespace solv::test
         return attrs(a) >= attrs(b);
     }
 
-    auto add_simple_package(solv::ObjPool& pool, solv::ObjRepoView& repo, const SimplePkg& pkg)
-        -> solv::SolvableId
+    auto
+    add_simple_package(solv::ObjPool& pool, solv::ObjRepoView& repo, const SimplePkg& pkg) -> solv::SolvableId
     {
         auto [solv_id, solv] = repo.add_solvable();
         solv.set_name(pkg.name);

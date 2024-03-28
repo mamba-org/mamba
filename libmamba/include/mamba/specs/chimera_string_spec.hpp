@@ -62,8 +62,8 @@ struct fmt::formatter<mamba::specs::ChimeraStringSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::ChimeraStringSpec& spec, format_context& ctx)
-        -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::ChimeraStringSpec& spec, format_context& ctx) -> decltype(ctx.out());
 };
 
 #endif

@@ -244,8 +244,8 @@ namespace mamba
                             {
                                 std::stringstream ss;
                                 ss << "Could not load repodata.json for " << subdir.name()
-                                   << " after retry."
-                                   << "Please check repodata source. Exiting." << std::endl;
+                                   << " after retry." << "Please check repodata source. Exiting."
+                                   << std::endl;
                                 error_list.push_back(
                                     mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
                                 );

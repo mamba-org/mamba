@@ -22,8 +22,8 @@ using namespace mamba::solver;
 
 namespace
 {
-    auto mkpkg(std::string name, std::string version, std::vector<std::string> deps = {})
-        -> specs::PackageInfo
+    auto
+    mkpkg(std::string name, std::string version, std::vector<std::string> deps = {}) -> specs::PackageInfo
     {
         auto out = specs::PackageInfo();
         out.name = std::move(name);
@@ -197,7 +197,7 @@ TEST_SUITE("solver::libsolv::database")
                 [&](const specs::PackageInfo& pkg)
                 {
                     found_python = true;
-                    for (auto const& dep : pkg.dependencies)
+                    for (const auto& dep : pkg.dependencies)
                     {
                         CHECK_FALSE(util::contains(dep, "pip"));
                     }
@@ -227,7 +227,7 @@ TEST_SUITE("solver::libsolv::database")
                 {
                     found_python = true;
                     auto found_pip = false;
-                    for (auto const& dep : pkg.dependencies)
+                    for (const auto& dep : pkg.dependencies)
                     {
                         found_pip |= util::contains(dep, "pip");
                     }

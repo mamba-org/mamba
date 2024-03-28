@@ -105,8 +105,8 @@ namespace mamba::util
             {
                 if (!out.empty() && !to_add.empty())
                 {
-                    bool const out_has_slash = out.back() == '/';
-                    bool const to_add_has_slash = to_add.front() == '/';
+                    const bool out_has_slash = out.back() == '/';
+                    const bool to_add_has_slash = to_add.front() == '/';
                     if (out_has_slash && to_add_has_slash)
                     {
                         to_add = to_add.substr(1);

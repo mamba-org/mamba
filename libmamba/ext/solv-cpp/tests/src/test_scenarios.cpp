@@ -201,9 +201,7 @@ TEST_SUITE("solv::scenariso")
 
                 auto solver = ObjSolver(pool);
                 CHECK_THROWS_AS(
-                    [&] {
-                        return solver.solve(pool, { SOLVER_INSTALL, dep_id });
-                    }(),
+                    [&] { return solver.solve(pool, { SOLVER_INSTALL, dep_id }); }(),
                     std::runtime_error
                 );
             }
@@ -269,9 +267,7 @@ TEST_SUITE("solv::scenariso")
 
                 auto solver = ObjSolver(pool);
                 CHECK_THROWS_AS(
-                    [&] {
-                        return solver.solve(pool, { SOLVER_INSTALL, job_id });
-                    }(),
+                    [&] { return solver.solve(pool, { SOLVER_INSTALL, job_id }); }(),
                     std::runtime_error
                 );
             }

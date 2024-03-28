@@ -125,8 +125,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::ChimeraStringSpec>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::ChimeraStringSpec>::parse(format_parse_context& ctx
+) -> decltype(ctx.begin())
 {
     // make sure that range is empty
     if (ctx.begin() != ctx.end() && *ctx.begin() != '}')

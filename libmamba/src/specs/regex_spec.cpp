@@ -99,8 +99,10 @@ fmt::formatter<mamba::specs::RegexSpec>::parse(format_parse_context& ctx) -> dec
 }
 
 auto
-fmt::formatter<mamba::specs::RegexSpec>::format(const ::mamba::specs::RegexSpec& spec, format_context& ctx)
-    -> decltype(ctx.out())
+fmt::formatter<mamba::specs::RegexSpec>::format(
+    const ::mamba::specs::RegexSpec& spec,
+    format_context& ctx
+) -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.str());
 }

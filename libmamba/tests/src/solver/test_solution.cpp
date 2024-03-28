@@ -37,7 +37,7 @@ TEST_SUITE("solver::solution")
                 [&](const PackageInfo& pkg)
                 {
                     remove_count++;
-                    auto const has_remove = util::ends_with(pkg.name, "remove")
+                    const auto has_remove = util::ends_with(pkg.name, "remove")
                                             || (pkg.name == "reinstall");
                     CHECK(has_remove);
                 }
@@ -50,7 +50,7 @@ TEST_SUITE("solver::solution")
                 [&](const PackageInfo& pkg)
                 {
                     install_count++;
-                    auto const has_install = util::ends_with(pkg.name, "install")
+                    const auto has_install = util::ends_with(pkg.name, "install")
                                              || (pkg.name == "reinstall");
                     CHECK(has_install);
                 }

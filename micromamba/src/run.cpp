@@ -210,7 +210,7 @@ set_run_command(CLI::App* subcom, Configuration& config)
 
             auto& ctx = config.context();
 
-            auto const get_prefix = [&]()
+            const auto get_prefix = [&]()
             {
                 if (auto prefix = ctx.prefix_params.target_prefix; !prefix.empty())
                 {

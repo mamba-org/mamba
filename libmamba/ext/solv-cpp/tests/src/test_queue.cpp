@@ -85,7 +85,7 @@ TEST_SUITE("solv::ObjQueue")
         CHECK_EQ(q.at(0), q[0]);
         CHECK_EQ(q.at(1), q[1]);
         CHECK_EQ(q.at(2), q[2]);
-        auto use_at = [&]() { [[maybe_unused]] auto const& x = q.at(q.size()); };
+        auto use_at = [&]() { [[maybe_unused]] const auto& x = q.at(q.size()); };
         CHECK_THROWS_AS(use_at(), std::out_of_range);
     }
 

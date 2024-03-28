@@ -39,11 +39,13 @@ namespace mambapy
             .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
 
-        py::enum_<UseOnlyTarBz2>(m, "UseOnlyTarBz2")
-            .value("No", UseOnlyTarBz2::No)
-            .value("Yes", UseOnlyTarBz2::Yes)
-            .def(py::init([](bool val) { return static_cast<UseOnlyTarBz2>(val); }));
-        py::implicitly_convertible<py::bool_, UseOnlyTarBz2>();
+        py::enum_<PackageTypes>(m, "PackageTypes")
+            .value("CondaOnly", PackageTypes::CondaOnly)
+            .value("TarBz2Only", PackageTypes::TarBz2Only)
+            .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
+            .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2)
+            .def(py::init(&enum_from_str<PackageTypes>));
+        py::implicitly_convertible<py::str, PackageTypes>();
 
         py::enum_<VerifyPackages>(m, "VerifyPackages")
             .value("No", VerifyPackages::No)
@@ -124,7 +126,7 @@ namespace mambapy
                 py::arg("url"),
                 py::arg("channel_id"),
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
-                py::arg("use_only_tar_bz2") = UseOnlyTarBz2::No,
+                py::arg("package_types") = PackageTypes::CondaOrElseTarBz2,
                 py::arg("verify_packages") = VerifyPackages::No,
                 py::arg("repodata_parser") = RepodataParser::Mamba
             )

@@ -99,7 +99,7 @@ namespace mamba
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
                         subdir.channel_id(),
                         add_pip,
-                        static_cast<solver::libsolv::UseOnlyTarBz2>(ctx.use_only_tar_bz2),
+                        static_cast<solver::libsolv::PackageTypes>(ctx.use_only_tar_bz2),
                         static_cast<solver::libsolv::VerifyPackages>(ctx.validation_params.verify_artifacts
                         ),
                         json_parser

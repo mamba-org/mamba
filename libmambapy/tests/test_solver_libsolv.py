@@ -39,11 +39,16 @@ def test_PipASPythonDependency():
     assert libsolv.PipAsPythonDependency(True) == libsolv.PipAsPythonDependency.Yes
 
 
-def test_UseOnlyTarBz2():
-    assert libsolv.UseOnlyTarBz2.No.name == "No"
-    assert libsolv.UseOnlyTarBz2.Yes.name == "Yes"
+def test_PackageTypes():
+    assert libsolv.PackageTypes.CondaOnly.name == "CondaOnly"
+    assert libsolv.PackageTypes.TarBz2Only.name == "TarBz2Only"
+    assert libsolv.PackageTypes.CondaAndTarBz2.name == "CondaAndTarBz2"
+    assert libsolv.PackageTypes.CondaOrElseTarBz2.name == "CondaOrElseTarBz2"
 
-    assert libsolv.UseOnlyTarBz2(True) == libsolv.UseOnlyTarBz2.Yes
+    assert libsolv.PackageTypes("TarBz2Only") == libsolv.PackageTypes.TarBz2Only
+
+    with pytest.raises(KeyError):
+        libsolv.RepodataParser("tarbz2-only")
 
 
 def test_VerifyPackages():
@@ -181,11 +186,15 @@ def tmp_repodata_json(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ["add_pip_as_python_dependency", "use_only_tar_bz2", "repodata_parser"],
-    itertools.product([True, False], [True, False], ["Mamba", "Libsolv"]),
+    ["add_pip_as_python_dependency", "package_types", "repodata_parser"],
+    itertools.product(
+        [True, False],
+        ["CondaOnly", "TarBz2Only", "CondaAndTarBz2", "CondaOrElseTarBz2"],
+        ["Mamba", "Libsolv"],
+    ),
 )
 def test_Database_RepoInfo_from_repodata(
-    tmp_path, tmp_repodata_json, add_pip_as_python_dependency, use_only_tar_bz2, repodata_parser
+    tmp_path, tmp_repodata_json, add_pip_as_python_dependency, package_types, repodata_parser
 ):
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
 
@@ -198,12 +207,12 @@ def test_Database_RepoInfo_from_repodata(
         url=url,
         channel_id=channel_id,
         add_pip_as_python_dependency=add_pip_as_python_dependency,
-        use_only_tar_bz2=use_only_tar_bz2,
+        package_types=package_types,
         repodata_parser=repodata_parser,
     )
     db.set_installed_repo(repo)
 
-    assert repo.package_count() == 1 if use_only_tar_bz2 else 2
+    assert repo.package_count() == 1 if package_types in ["TarBz2Only", "CondaOnly"] else 2
     assert db.package_count() == repo.package_count()
 
     pkgs = db.packages_in_repo(repo)
@@ -228,7 +237,7 @@ def test_Database_RepoInfo_from_repodata(
         channel_id=channel_id,
         add_pip_as_python_dependency=add_pip_as_python_dependency,
     )
-    assert repo_loaded.package_count() == 1 if use_only_tar_bz2 else 2
+    assert repo_loaded.package_count() == 1 if package_types in ["TarBz2Only", "CondaOnly"] else 2
 
 
 def test_Database_RepoInfo_from_repodata_error():

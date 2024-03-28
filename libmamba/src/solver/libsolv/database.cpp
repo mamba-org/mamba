@@ -131,7 +131,7 @@ namespace mamba::solver::libsolv
         std::string_view url,
         const std::string& channel_id,
         PipAsPythonDependency add,
-        UseOnlyTarBz2 only_tar,
+        PackageTypes only_tar,
         VerifyPackages verify_packages,
         RepodataParser parser
     ) -> expected_t<RepoInfo>

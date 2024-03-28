@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <functional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -154,7 +155,7 @@ namespace mamba::solver::libsolv
         void set_solv_signatures(
             solv::ObjSolvableView solv,
             const std::string& filename,
-            const std::optional<simdjson::dom::object>& signatures
+            std::optional<std::reference_wrapper<const simdjson::dom::object>> signatures
         )
         {
             // NOTE We need to use an intermediate nlohmann::json object to store signatures
@@ -163,7 +164,7 @@ namespace mamba::solver::libsolv
             nlohmann::json glob_sigs, nested_sigs;
             if (signatures)
             {
-                if (auto sigs = signatures.value()[filename].get_object(); !sigs.error())
+                if (auto sigs = signatures->get()[filename].get_object(); !sigs.error())
                 {
                     for (auto dict : sigs)
                     {
@@ -194,7 +195,7 @@ namespace mamba::solver::libsolv
             solv::ObjSolvableView solv,
             const std::string& filename,
             const simdjson::dom::element& pkg,
-            const std::optional<simdjson::dom::object>& signatures,
+            std::optional<std::reference_wrapper<const simdjson::dom::object>> signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -370,7 +371,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             const simdjson::dom::object& packages,
-            const std::optional<simdjson::dom::object>& signatures
+            std::optional<std::reference_wrapper<const simdjson::dom::object>> signatures
         )
         {
             std::string filename = {};
@@ -412,23 +413,22 @@ namespace mamba::solver::libsolv
             bool verify_artifacts
         )
         {
-            if (auto signatures = repodata["signatures"].get_object();
-                !signatures.error() && verify_artifacts)
+            auto signatures = std::optional<std::reference_wrapper<const simdjson::dom::object>>();
+            if (auto maybe_sigs = repodata["signatures"].get_object();
+                !maybe_sigs.error() && verify_artifacts)
             {
-                set_repo_solvables(
-                    pool,
-                    repo,
-                    parsed_url,
-                    channel_id,
-                    default_subdir,
-                    packages,
-                    signatures.value()
-                );
+                signatures = maybe_sigs.value();
             }
-            else
-            {
-                set_repo_solvables(pool, repo, parsed_url, channel_id, default_subdir, packages, std::nullopt);
-            }
+
+            set_repo_solvables(  //
+                pool,
+                repo,
+                parsed_url,
+                channel_id,
+                default_subdir,
+                packages,
+                signatures
+            );
         }
     }
 

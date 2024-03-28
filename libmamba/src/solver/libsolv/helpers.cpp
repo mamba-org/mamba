@@ -20,6 +20,7 @@
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/cfile.hpp"
 #include "mamba/util/random.hpp"
@@ -362,10 +363,53 @@ namespace mamba::solver::libsolv
             return true;
         }
 
+        template <typename Filter, typename OnParsed>
+        void set_repo_solvables_impl(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const specs::CondaURL& repo_url,
+            const std::string& channel_id,
+            const std::string& default_subdir,
+            const simdjson::dom::object& packages,
+            const std::optional<simdjson::dom::object>& signatures,
+            Filter&& filter,
+            OnParsed&& on_parsed
+        )
+        {
+            std::string filename = {};
+            for (const auto& [fn, pkg] : packages)
+            {
+                if (filter(fn))
+                {
+                    auto [id, solv] = repo.add_solvable();
+                    filename = fn;
+                    const bool parsed = set_solvable(
+                        pool,
+                        repo_url,
+                        channel_id,
+                        solv,
+                        filename,
+                        pkg,
+                        signatures,
+                        default_subdir
+                    );
+                    if (parsed)
+                    {
+                        on_parsed(fn);
+                        LOG_DEBUG << "Adding package record to repo " << fn;
+                    }
+                    else
+                    {
+                        repo.remove_solvable(id, /* reuse_id= */ true);
+                        LOG_WARNING << "Failed to parse from repodata " << fn;
+                    }
+                }
+            }
+        }
+
         void set_repo_solvables(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
-            // const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
@@ -373,32 +417,69 @@ namespace mamba::solver::libsolv
             const std::optional<simdjson::dom::object>& signatures
         )
         {
-            std::string filename = {};
-            for (const auto& [fn, pkg] : packages)
-            {
-                auto [id, solv] = repo.add_solvable();
-                filename = fn;
-                const bool parsed = set_solvable(
-                    pool,
-                    // repo_url_str,
-                    repo_url,
-                    channel_id,
-                    solv,
-                    filename,
-                    pkg,
-                    signatures,
-                    default_subdir
-                );
-                if (parsed)
-                {
-                    LOG_DEBUG << "Adding package record to repo " << fn;
-                }
-                else
-                {
-                    repo.remove_solvable(id, /* reuse_id= */ true);
-                    LOG_WARNING << "Failed to parse from repodata " << fn;
-                }
-            }
+            return set_repo_solvables_impl(
+                pool,
+                repo,
+                repo_url,
+                channel_id,
+                default_subdir,
+                packages,
+                signatures,
+                /* filter= */ [](const auto&) { return true; },
+                /* on_parsed= */ [](const auto&) {}
+            );
+        }
+
+        auto set_repo_solvables_and_return_added_filename_stem(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const specs::CondaURL& repo_url,
+            const std::string& channel_id,
+            const std::string& default_subdir,
+            const simdjson::dom::object& packages,
+            const std::optional<simdjson::dom::object>& signatures
+        ) -> util::flat_set<std::string_view>
+        {
+            auto filenames = std::vector<std::string_view>();
+            set_repo_solvables_impl(
+                pool,
+                repo,
+                repo_url,
+                channel_id,
+                default_subdir,
+                packages,
+                signatures,
+                /* filter= */ [](const auto&) { return true; },
+                /* on_parsed= */ [&](const auto& fn)
+                { filenames.push_back(specs::strip_archive_extension(fn)); }
+            );
+            // Sort only once
+            return util::flat_set<std::string_view>{ std::move(filenames) };
+        }
+
+        void set_repo_solvables_if_not_already_set(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const specs::CondaURL& repo_url,
+            const std::string& channel_id,
+            const std::string& default_subdir,
+            const simdjson::dom::object& packages,
+            const std::optional<simdjson::dom::object>& signatures,
+            const util::flat_set<std::string_view>& added
+        )
+        {
+            return set_repo_solvables_impl(
+                pool,
+                repo,
+                repo_url,
+                channel_id,
+                default_subdir,
+                packages,
+                signatures,
+                /* filter= */ [&](const auto& fn)
+                { return !added.contains(specs::strip_archive_extension(fn)); },
+                /* on_parsed= */ [&](const auto&) {}
+            );
         }
     }
 
@@ -456,7 +537,7 @@ namespace mamba::solver::libsolv
         const fs::u8path& filename,
         const std::string& repo_url,
         const std::string& channel_id,
-        bool only_tar_bz2,
+        PackageTypes package_types,
         bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>
     {
@@ -485,30 +566,64 @@ namespace mamba::solver::libsolv
             signatures = std::move(maybe_sigs).value();
         }
 
-        if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+        if (package_types == PackageTypes::CondaOrElseTarBz2)
         {
-            set_repo_solvables(  //
-                pool,
-                repo,
-                parsed_url,
-                channel_id,
-                default_subdir,
-                pkgs.value(),
-                signatures
-            );
+            auto added = util::flat_set<std::string_view>();
+            if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error())
+            {
+                added = set_repo_solvables_and_return_added_filename_stem(  //
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    pkgs.value(),
+                    signatures
+                );
+            }
+            if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+            {
+                set_repo_solvables_if_not_already_set(  //
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    pkgs.value(),
+                    signatures,
+                    added
+                );
+            }
         }
-
-        if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error() && !only_tar_bz2)
+        else
         {
-            set_repo_solvables(  //
-                pool,
-                repo,
-                parsed_url,
-                channel_id,
-                default_subdir,
-                pkgs.value(),
-                signatures
-            );
+            if (auto pkgs = repodata["packages"].get_object();
+                !pkgs.error() && (package_types != PackageTypes::CondaOnly))
+            {
+                set_repo_solvables(  //
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    pkgs.value(),
+                    signatures
+                );
+            }
+
+            if (auto pkgs = repodata["packages.conda"].get_object();
+                !pkgs.error() && (package_types != PackageTypes::TarBz2Only))
+            {
+                set_repo_solvables(  //
+                    pool,
+                    repo,
+                    parsed_url,
+                    channel_id,
+                    default_subdir,
+                    pkgs.value(),
+                    signatures
+                );
+            }
         }
 
         return { repo };

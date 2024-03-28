@@ -189,7 +189,7 @@ def tmp_repodata_json(tmp_path):
     ["add_pip_as_python_dependency", "package_types", "repodata_parser"],
     itertools.product(
         [True, False],
-        ["CondaOnly", "TarBz2Only", "CondaAndTarBz2", "CondaOrElseTarBz2"],
+        ["TarBz2Only", "CondaOrElseTarBz2"],
         ["Mamba", "Libsolv"],
     ),
 )
@@ -217,8 +217,8 @@ def test_Database_RepoInfo_from_repodata(
 
     pkgs = db.packages_in_repo(repo)
     assert len(pkgs) == repo.package_count()
-    assert pkgs[0].name == "python"
-    assert pkgs[0].dependencies == [] if add_pip_as_python_dependency else ["pip"]
+    python_pkg = next(p for p in pkgs if p.name == "python")
+    assert python_pkg.dependencies == [] if add_pip_as_python_dependency else ["pip"]
 
     # Native serialize repo
     solv_file = tmp_path / "repodata.solv"

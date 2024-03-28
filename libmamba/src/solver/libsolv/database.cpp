@@ -136,7 +136,6 @@ namespace mamba::solver::libsolv
         RepodataParser parser
     ) -> expected_t<RepoInfo>
     {
-        const auto use_only_tar_bz2 = static_cast<bool>(only_tar);
         const auto verify_artifacts = static_cast<bool>(verify_packages);
 
         if (!fs::exists(path))
@@ -159,7 +158,7 @@ namespace mamba::solver::libsolv
                     path,
                     std::string(url),
                     channel_id,
-                    use_only_tar_bz2,
+                    package_types,
                     verify_artifacts
                 );
             }

@@ -54,7 +54,7 @@ namespace mamba::solver::libsolv
         const fs::u8path& filename,
         const std::string& repo_url,
         const std::string& channel_id,
-        bool only_tar_bz2,
+        PackageTypes types,
         bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>;
 

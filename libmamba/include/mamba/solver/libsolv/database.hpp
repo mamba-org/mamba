@@ -73,7 +73,7 @@ namespace mamba::solver::libsolv
             std::string_view url,
             const std::string& channel_id,
             PipAsPythonDependency add = PipAsPythonDependency::No,
-            PackageTypes only_tar = PackageTypes::CondaOrElseTarBz2,
+            PackageTypes package_types = PackageTypes::CondaOrElseTarBz2,
             VerifyPackages verify_packages = VerifyPackages::No,
             RepodataParser parser = RepodataParser::Mamba
         ) -> expected_t<RepoInfo>;

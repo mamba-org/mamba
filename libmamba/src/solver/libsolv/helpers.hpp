@@ -44,7 +44,7 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto libsolv_read_json(  //
         solv::ObjRepoView repo,
         const fs::u8path& filename,
-        bool only_tar_bz2,
+        PackageTypes types,
         bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>;
 

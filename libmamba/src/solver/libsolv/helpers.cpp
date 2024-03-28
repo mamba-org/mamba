@@ -405,14 +405,23 @@ namespace mamba::solver::libsolv
     auto libsolv_read_json(
         solv::ObjRepoView repo,
         const fs::u8path& filename,
-        bool only_tar_bz2,
+        PackageTypes types,
         bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>
     {
+        if ((types != PackageTypes::TarBz2Only) && (types != PackageTypes::CondaOrElseTarBz2))
+        {
+            return make_unexpected(
+                "Invalid PackageTypes option for libsolv repodata.json parser:"
+                " supported types are TarBz2Only and CondaOrElseTarBz2.",
+                mamba_error_code::repodata_not_loaded
+            );
+        }
+
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using libsolv";
 
-        int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        int flags = (types == PackageTypes::TarBz2Only) ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         if (verify_artifacts)
         {
             // cf.

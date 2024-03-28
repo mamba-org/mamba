@@ -131,7 +131,7 @@ namespace mamba::solver::libsolv
         std::string_view url,
         const std::string& channel_id,
         PipAsPythonDependency add,
-        PackageTypes only_tar,
+        PackageTypes package_types,
         VerifyPackages verify_packages,
         RepodataParser parser
     ) -> expected_t<RepoInfo>
@@ -163,7 +163,7 @@ namespace mamba::solver::libsolv
                     verify_artifacts
                 );
             }
-            return libsolv_read_json(repo, path, use_only_tar_bz2, verify_artifacts)
+            return libsolv_read_json(repo, path, package_types, verify_artifacts)
                 .transform(
                     [&url, &channel_id](solv::ObjRepoView p_repo)
                     {

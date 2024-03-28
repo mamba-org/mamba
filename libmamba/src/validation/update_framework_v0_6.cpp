@@ -146,8 +146,8 @@ namespace mamba::validation::v0_6
     }
 
     auto
-    RootImpl::upgraded_signature(const nlohmann::json& j, const std::string& pk, const std::byte* sk) const
-        -> RoleSignature
+    RootImpl::upgraded_signature(const nlohmann::json& j, const std::string& pk, const std::byte* sk)
+        const -> RoleSignature
     {
         std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
         sign(j.dump(), sk, sig_bin.data());

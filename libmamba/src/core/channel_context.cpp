@@ -27,8 +27,8 @@ namespace mamba
 
     namespace
     {
-        auto create_platforms(const std::vector<std::string>& platforms)
-            -> specs::ChannelResolveParams::platform_list
+        auto create_platforms(const std::vector<std::string>& platforms
+        ) -> specs::ChannelResolveParams::platform_list
         {
             return { platforms.cbegin(), platforms.cend() };
         }

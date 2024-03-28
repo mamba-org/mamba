@@ -436,8 +436,7 @@ namespace mamba
         const std::string cwd = path.parent_path().string();
         options.working_directory = cwd.c_str();
 
-        LOG_TRACE << "ENV MAP:"
-                  << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
+        LOG_TRACE << "ENV MAP:" << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
                   << "\n PREFIX: " << envmap["PREFIX"] << "\n PKG_NAME: " << envmap["PKG_NAME"]
                   << "\n PKG_VERSION: " << envmap["PKG_VERSION"]
                   << "\n PKG_BUILDNUM: " << envmap["PKG_BUILDNUM"] << "\n PATH: " << envmap["PATH"]

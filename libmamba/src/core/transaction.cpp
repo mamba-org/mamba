@@ -83,8 +83,8 @@ namespace mamba
             return out;
         }
 
-        auto installed_python(const solver::libsolv::Database& db)
-            -> std::optional<specs::PackageInfo>
+        auto
+        installed_python(const solver::libsolv::Database& db) -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
@@ -402,7 +402,7 @@ namespace mamba
         {
             using Action = std::decay_t<decltype(act)>;
 
-            auto const link = [&](specs::PackageInfo const& pkg)
+            const auto link = [&](const specs::PackageInfo& pkg)
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
                 LinkPackage lp(pkg, cache_path, &m_transaction_context);
@@ -410,7 +410,7 @@ namespace mamba
                 rollback.record(lp);
                 m_history_entry.link_dists.push_back(pkg.long_str());
             };
-            auto const unlink = [&](specs::PackageInfo const& pkg)
+            const auto unlink = [&](const specs::PackageInfo& pkg)
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
                 UnlinkPackage up(pkg, cache_path, &m_transaction_context);

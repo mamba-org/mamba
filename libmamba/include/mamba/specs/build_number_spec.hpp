@@ -70,8 +70,8 @@ namespace mamba::specs
         BuildNumberPredicate(BuildNumber ver, BinaryOperator op);
 
         friend auto equal(free_interval, free_interval) -> bool;
-        friend auto operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs)
-            -> bool;
+        friend auto
+        operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs) -> bool;
         friend class ::fmt::formatter<BuildNumberPredicate>;
     };
 
@@ -151,8 +151,8 @@ struct fmt::formatter<mamba::specs::BuildNumberSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx)
-        -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx) -> decltype(ctx.out());
 };
 
 #endif

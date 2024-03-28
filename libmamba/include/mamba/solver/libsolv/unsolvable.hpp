@@ -53,8 +53,8 @@ namespace mamba::solver::libsolv
             const Palette& palette
         ) const -> std::ostream&;
 
-        [[nodiscard]] auto explain_problems(Database& pool, const Palette& palette) const
-            -> std::string;
+        [[nodiscard]] auto
+        explain_problems(Database& pool, const Palette& palette) const -> std::string;
 
     private:
 

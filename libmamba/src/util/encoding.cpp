@@ -144,8 +144,8 @@ namespace mamba::util
     }
 
     // TODO(C++20): use iterators return type
-    auto hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept
-        -> tl::expected<void, EncodingError>
+    auto
+    hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept -> tl::expected<void, EncodingError>
     {
         auto error = EncodingError::Ok;
         hex_to_bytes_to(hex, out, error);

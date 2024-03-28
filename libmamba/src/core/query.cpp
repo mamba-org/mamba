@@ -203,7 +203,7 @@ namespace mamba
                     }
                     else
                     {
-                        auto const child_id = m_graph.add_node(std::move(pkg));
+                        const auto child_id = m_graph.add_node(std::move(pkg));
                         m_graph.add_edge(id, child_id);
                         m_visited.emplace(&m_graph.node(child_id), child_id);
                         reverse_walk_impl(child_id);

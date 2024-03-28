@@ -19,8 +19,8 @@ namespace mamba::specs
      *  BuildNumberPredicate BinaryOperators Implementation  *
      *********************************************************/
 
-    auto BuildNumberPredicate::free_interval::operator()(const BuildNumber&, const BuildNumber&) const
-        -> bool
+    auto
+    BuildNumberPredicate::free_interval::operator()(const BuildNumber&, const BuildNumber&) const -> bool
     {
         return true;
     }
@@ -98,8 +98,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::BuildNumberPredicate>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::BuildNumberPredicate>::parse(format_parse_context& ctx
+) -> decltype(ctx.begin())
 {
     // make sure that range is empty
     if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
@@ -253,8 +253,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::BuildNumberSpec>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::BuildNumberSpec>::parse(format_parse_context& ctx
+) -> decltype(ctx.begin())
 {
     // make sure that range is empty
     if (ctx.begin() != ctx.end() && *ctx.begin() != '}')

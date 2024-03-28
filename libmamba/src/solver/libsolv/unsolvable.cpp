@@ -70,9 +70,9 @@ namespace mamba::solver::libsolv
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
             {
-                for (solv::RuleId const rule : solver().problem_rules(pb))
+                for (const solv::RuleId rule : solver().problem_rules(pb))
                 {
-                    auto const info = solver().get_rule_info(pool, rule);
+                    const auto info = solver().get_rule_info(pool, rule);
                     problems << "  - " << solver().rule_info_to_string(pool, info) << "\n";
                 }
             }
@@ -152,7 +152,7 @@ namespace mamba::solver::libsolv
             solver.for_each_problem_id(
                 [&](solv::ProblemId pb)
                 {
-                    for (solv::RuleId const rule : solver.problem_rules(pb))
+                    for (const solv::RuleId rule : solver.problem_rules(pb))
                     {
                         auto info = solver.get_rule_info(pool, rule);
                         res.push_back(make_solver_problem(

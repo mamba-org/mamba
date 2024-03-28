@@ -37,16 +37,16 @@ namespace solv
          *
          * Negative solvable ids are use to mean that the solvable must be removed.
          */
-        [[nodiscard]] static auto from_solvables(const ObjPool& pool, const ObjQueue& solvables)
-            -> ObjTransaction;
+        [[nodiscard]] static auto
+        from_solvables(const ObjPool& pool, const ObjQueue& solvables) -> ObjTransaction;
 
         /**
          * Create a transaction from the result of a solver run.
          *
          * The solver must be solved.
          */
-        [[nodiscard]] static auto from_solver(const ObjPool& pool, const ObjSolver& solver)
-            -> ObjTransaction;
+        [[nodiscard]] static auto
+        from_solver(const ObjPool& pool, const ObjSolver& solver) -> ObjTransaction;
 
         ObjTransaction(const ObjPool& pool);
         ObjTransaction(ObjTransaction&&) noexcept = default;

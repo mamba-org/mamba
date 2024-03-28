@@ -37,7 +37,7 @@ namespace mamba::util
                 [&](const auto& l) -> bool
                 {
                     using Alt = std::decay_t<decltype(l)>;
-                    auto const& r = std::get<Alt>(rhs);
+                    const auto& r = std::get<Alt>(rhs);
                     return alt_cmp(l, r);
                 },
                 lhs

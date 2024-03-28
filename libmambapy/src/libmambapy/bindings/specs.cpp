@@ -296,7 +296,7 @@ namespace mambapy
                    std::string_view rstrip_path,
                    CondaURL::Credentials credentials)
                 {
-                    auto const scheme = strip_scheme ? CondaURL::StripScheme::yes
+                    const auto scheme = strip_scheme ? CondaURL::StripScheme::yes
                                                      : CondaURL::StripScheme::no;
                     const char rstrip = rstrip_path.empty() ? '\0' : rstrip_path.front();
                     return self.pretty_str(scheme, rstrip, credentials);

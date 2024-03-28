@@ -325,7 +325,7 @@ namespace
         subcmd->callback(
             [all_subsubcmds, &config]()
             {
-                bool const got_subsubcmd = std::any_of(
+                const bool got_subsubcmd = std::any_of(
                     all_subsubcmds.cbegin(),
                     all_subsubcmds.cend(),
                     [](auto* subsubcmd) -> bool { return subsubcmd->parsed(); }
@@ -338,7 +338,7 @@ namespace
                     consolidate_prefix_options(config);
                     config.load();
 
-                    auto const get_shell = []() -> std::string
+                    const auto get_shell = []() -> std::string
                     {
                         if constexpr (util::on_win)
                         {

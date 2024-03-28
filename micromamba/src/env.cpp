@@ -151,7 +151,7 @@ set_env_command(CLI::App* com, Configuration& config)
                                 }
                             )
                             .or_else(
-                                [&](auto const&) -> specs::expected_parse_t<std::string>
+                                [&](const auto&) -> specs::expected_parse_t<std::string>
                                 { return record.package_url; }
                             )
                             .value();
@@ -211,7 +211,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "\n";
                     }
 
-                    for (auto const& chan : chans)
+                    for (const auto& chan : chans)
                     {
                         channels.insert(chan.display_name());
                     }

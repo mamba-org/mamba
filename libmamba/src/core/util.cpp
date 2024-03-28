@@ -1400,9 +1400,8 @@ namespace mamba
             // 'python -m conda'
             // *with* PYTHONPATH set.
             out << silencer << "SET PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
-            out << silencer << "SET CONDA_EXE="
-                << "python.exe"
-                << "\n";  // TODO this should be `sys.executable`
+            out << silencer << "SET CONDA_EXE=" << "python.exe" << "\n";  // TODO this should be
+                                                                          // `sys.executable`
             out << silencer << "SET _CE_M=-m\n";
             out << silencer << "SET _CE_CONDA=conda\n";
         }

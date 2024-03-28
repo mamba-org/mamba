@@ -125,14 +125,14 @@ namespace mamba::util
         friend auto operator==(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs) -> bool;
 
         template <typename K, typename C, typename A>
-        friend auto set_union(const flat_set<K, C, A>&, const flat_set<K, C, A>&)
-            -> flat_set<K, C, A>;
+        friend auto
+        set_union(const flat_set<K, C, A>&, const flat_set<K, C, A>&) -> flat_set<K, C, A>;
         template <typename K, typename C, typename A>
-        friend auto set_intersection(const flat_set<K, C, A>&, const flat_set<K, C, A>&)
-            -> flat_set<K, C, A>;
+        friend auto
+        set_intersection(const flat_set<K, C, A>&, const flat_set<K, C, A>&) -> flat_set<K, C, A>;
         template <typename K, typename C, typename A>
-        friend auto set_difference(const flat_set<K, C, A>&, const flat_set<K, C, A>&)
-            -> flat_set<K, C, A>;
+        friend auto
+        set_difference(const flat_set<K, C, A>&, const flat_set<K, C, A>&) -> flat_set<K, C, A>;
         template <typename K, typename C, typename A>
         friend auto set_symetric_difference(const flat_set<K, C, A>&, const flat_set<K, C, A>&)
             -> flat_set<K, C, A>;
@@ -158,14 +158,16 @@ namespace mamba::util
         -> flat_set<Key, Compare, Allocator>;
 
     template <typename Key, typename Compare, typename Allocator>
-    auto
-    operator==(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
-        -> bool;
+    auto operator==(
+        const flat_set<Key, Compare, Allocator>& lhs,
+        const flat_set<Key, Compare, Allocator>& rhs
+    ) -> bool;
 
     template <typename Key, typename Compare, typename Allocator>
-    auto
-    operator!=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
-        -> bool;
+    auto operator!=(
+        const flat_set<Key, Compare, Allocator>& lhs,
+        const flat_set<Key, Compare, Allocator>& rhs
+    ) -> bool;
 
     template <typename Key, typename Compare, typename Allocator>
     auto set_is_disjoint_of(
@@ -426,8 +428,7 @@ namespace mamba::util
          */
         template <class InputIt1, class InputIt2, class Compare>
         auto
-        set_disjoint(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Compare comp)
-            -> bool
+        set_disjoint(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Compare comp) -> bool
         {
             while (first1 != last1 && first2 != last2)
             {
@@ -509,8 +510,8 @@ namespace mamba::util
     }
 
     template <typename K, typename C, typename A>
-    auto set_intersection(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs)
-        -> flat_set<K, C, A>
+    auto
+    set_intersection(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs) -> flat_set<K, C, A>
     {
         auto out = flat_set<K, C, A>();
         std::set_intersection(
@@ -525,8 +526,8 @@ namespace mamba::util
     }
 
     template <typename K, typename C, typename A>
-    auto set_difference(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs)
-        -> flat_set<K, C, A>
+    auto
+    set_difference(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs) -> flat_set<K, C, A>
     {
         auto out = flat_set<K, C, A>();
         std::set_difference(

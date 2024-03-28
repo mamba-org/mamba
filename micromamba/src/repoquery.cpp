@@ -97,9 +97,9 @@ namespace
             [&]()
             {
                 // Set remote when a channel is passed
-                bool const channel_passed = config.at("channels").cli_configured();
-                auto const format = compute_format(query, config, options);
-                bool const success = repoquery(
+                const bool channel_passed = config.at("channels").cli_configured();
+                const auto format = compute_format(query, config, options);
+                const bool success = repoquery(
                     config,
                     query,
                     format,
@@ -141,9 +141,9 @@ namespace
         subcmd->callback(
             [&]()
             {
-                bool const channel_passed = config.at("channels").cli_configured();
-                auto const format = compute_format(query, config, options);
-                bool const success = repoquery(config, query, format, use_local, options.specs);
+                const bool channel_passed = config.at("channels").cli_configured();
+                const auto format = compute_format(query, config, options);
+                const bool success = repoquery(config, query, format, use_local, options.specs);
                 if (!success && (format != mamba::QueryResultFormat::Json))
                 {
                     if (!use_local && !channel_passed)

@@ -423,8 +423,7 @@ namespace mamba
         content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
         content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "$env.PATH = ($env.PATH | append ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
-        content << "$env.PROMPT_COMMAND_BK = $env.PROMPT_COMMAND"
-                << "\n";
+        content << "$env.PROMPT_COMMAND_BK = $env.PROMPT_COMMAND" << "\n";
         // TODO the following shouldn't live here but in a shell hook
         content << R"nu(def --env ")nu" << exe_name << R"nu( activate"  [name: string] {)nu";
         content << R"###(
@@ -446,8 +445,7 @@ namespace mamba
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
     }
-})###"
-                << "\n";
+})###" << "\n";
 
         content << R"nu(def --env ")nu" << exe_name << R"nu( deactivate"  [] {)nu";
         content << R"###(
@@ -469,8 +467,7 @@ namespace mamba
     # update prompt
     $env.PROMPT_COMMAND = $env.PROMPT_COMMAND
   }
-})###"
-                << "\n";
+})###" << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }
@@ -956,8 +953,7 @@ namespace mamba
             if (fs::exists(root_prefix / "condabin") && fs::is_empty(root_prefix / "condabin"))
             {
                 fs::remove(root_prefix / "condabin");
-                LOG_INFO << "Removed " << root_prefix / "condabin"
-                         << " directory.";
+                LOG_INFO << "Removed " << root_prefix / "condabin" << " directory.";
             }
         }
     }

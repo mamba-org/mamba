@@ -74,8 +74,8 @@ namespace mamba::util
          * The children must have been previously added to the tree and thei IDs can be used
          * to point to them.
          */
-        auto add_branch(const branch_type& branch, idx_type left_child, idx_type right_child)
-            -> idx_type;
+        auto
+        add_branch(const branch_type& branch, idx_type left_child, idx_type right_child) -> idx_type;
         auto add_branch(branch_type&& branch, idx_type left_child, idx_type right_child) -> idx_type;
 
         [[nodiscard]] auto node(idx_type idx) const -> const node_type&;
@@ -234,9 +234,11 @@ namespace mamba::util
     }
 
     template <typename B, typename L>
-    auto
-    flat_binary_tree<B, L>::add_branch(const branch_type& branch, idx_type left_child, idx_type right_child)
-        -> idx_type
+    auto flat_binary_tree<B, L>::add_branch(
+        const branch_type& branch,
+        idx_type left_child,
+        idx_type right_child
+    ) -> idx_type
     {
         return add_branch_impl(branch, left_child, right_child);
     }

@@ -8,8 +8,8 @@
 
 namespace mamba::solver
 {
-    auto find_new_python_in_solution(const Solution& solution)
-        -> std::optional<std::reference_wrapper<const specs::PackageInfo>>
+    auto find_new_python_in_solution(const Solution& solution
+    ) -> std::optional<std::reference_wrapper<const specs::PackageInfo>>
     {
         auto out = std::optional<std::reference_wrapper<const specs::PackageInfo>>{};
         for_each_to_install(

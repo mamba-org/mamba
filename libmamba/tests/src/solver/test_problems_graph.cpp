@@ -272,9 +272,10 @@ namespace
         return create_pubgrub_hard_(ctx, channel_context, true);
     }
 
-    auto
-    make_platform_channels(std::vector<std::string>&& channels, const std::vector<std::string>& platforms)
-        -> std::vector<std::string>
+    auto make_platform_channels(
+        std::vector<std::string>&& channels,
+        const std::vector<std::string>& platforms
+    ) -> std::vector<std::string>
     {
         auto add_plat = [&platforms](const auto& chan)
         { return fmt::format("{}[{}]", chan, fmt::join(platforms, ",")); };
@@ -522,7 +523,8 @@ namespace
                 {
                     return false;
                 }
-                else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode> || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
+                else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode>
+                                   || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
                 {
                     return util::starts_with(std::invoke(&Node::name, n).str(), "__");
                 }

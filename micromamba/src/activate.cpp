@@ -64,9 +64,9 @@ set_activate_command(CLI::App* subcom)
     subcom->callback(
         [&]()
         {
-            std::string const guessed_shell = guess_shell();
+            const std::string guessed_shell = guess_shell();
 
-            std::string const message = fmt::format(
+            const std::string message = fmt::format(
                 "\n'{exe}' is running as a subprocess and can't modify the parent shell.\n"
                 "Thus you must initialize your shell before using activate and deactivate.\n"
                 "\n"

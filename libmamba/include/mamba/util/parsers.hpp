@@ -249,8 +249,8 @@ namespace mamba::util
     /**
      * Test wether the glob pattern @p pattern matches the string @p str.
      */
-    [[nodiscard]] auto glob_match(std::string_view pattern, std::string_view str, char glob = '*')
-        -> bool;
+    [[nodiscard]] auto
+    glob_match(std::string_view pattern, std::string_view str, char glob = '*') -> bool;
 
     /********************
      *  Implementation  *
@@ -265,7 +265,7 @@ namespace mamba::util
             std::size_t out_idx = 0;
             auto copy_one = [&](const auto& a)
             {
-                for (auto const& x : a)
+                for (const auto& x : a)
                 {
                     out[out_idx++] = x;
                 }

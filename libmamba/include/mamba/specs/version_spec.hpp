@@ -36,8 +36,8 @@ namespace mamba::specs
         [[nodiscard]] static auto make_less_equal(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
-        [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
-            -> VersionPredicate;
+        [[nodiscard]] static auto
+        make_compatible_with(Version ver, std::size_t level) -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -218,8 +218,8 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx)
-        -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) -> decltype(ctx.out());
 };
 
 template <>

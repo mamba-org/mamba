@@ -104,7 +104,7 @@ namespace mamba::specs
         {
             constexpr auto is_hash_char = [](char c) -> bool
             {
-                auto const lower = util::to_lower(c);
+                const auto lower = util::to_lower(c);
                 return util::is_digit(c) || (lower == 'a') || (lower == 'b') || (lower == 'c')
                        || (lower == 'd') || (lower == 'e') || (lower == 'f');
             };
@@ -311,8 +311,8 @@ namespace mamba::specs
                 );
         }
 
-        [[nodiscard]] auto split_attribute_val(std::string_view key_val)
-            -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
+        [[nodiscard]] auto split_attribute_val(std::string_view key_val
+        ) -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
         {
             // Forbid known ambiguity
             if (util::starts_with(key_val, "version"))
@@ -437,8 +437,8 @@ namespace mamba::specs
                 );
         }
 
-        auto split_version_and_build(std::string_view str)
-            -> std::pair<std::string_view, std::string_view>
+        auto split_version_and_build(std::string_view str
+        ) -> std::pair<std::string_view, std::string_view>
         {
             str = util::strip(str);
 

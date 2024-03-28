@@ -143,9 +143,8 @@ namespace mamba::specs
     auto VersionPartAtom::operator==(const VersionPartAtom& other) const -> bool
     {
         // More efficient thatn three way comparison because of edge cases
-        auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&> {
-            return { a.numeral(), a.literal() };
-        };
+        auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&>
+        { return { a.numeral(), a.literal() }; };
         return attrs(*this) == attrs(other);
     }
 
@@ -177,8 +176,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::VersionPartAtom>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::VersionPartAtom>::parse(format_parse_context& ctx
+) -> decltype(ctx.begin())
 {
     // make sure that range is empty
     if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
@@ -405,8 +404,8 @@ namespace mamba::specs
         {
         };
 
-        [[maybe_unused]] auto starts_with_three_way(const AlwaysEqual&, const AlwaysEqual&)
-            -> strong_ordering
+        [[maybe_unused]] auto
+        starts_with_three_way(const AlwaysEqual&, const AlwaysEqual&) -> strong_ordering
         {
             // This comparison should not happen with the current usage.
             assert(false);
@@ -425,8 +424,8 @@ namespace mamba::specs
             return strong_ordering::equal;
         }
 
-        auto starts_with_three_way(const VersionPartAtom& a, const VersionPartAtom& b)
-            -> strong_ordering
+        auto
+        starts_with_three_way(const VersionPartAtom& a, const VersionPartAtom& b) -> strong_ordering
         {
             if ((a.numeral() == b.numeral()) && b.literal().empty())
             {
@@ -534,8 +533,8 @@ namespace mamba::specs
         }
 
         template <typename Int>
-        auto parse_leading_epoch(std::string_view str)
-            -> expected_parse_t<std::pair<Int, std::string_view>>
+        auto parse_leading_epoch(std::string_view str
+        ) -> expected_parse_t<std::pair<Int, std::string_view>>
         {
             const auto delim_pos = str.find(Version::epoch_delim);
             // No epoch is specified
@@ -575,8 +574,8 @@ namespace mamba::specs
             return { maybe_integer.value(), rest };
         }
 
-        auto parse_leading_literal(std::string_view str)
-            -> std::pair<std::string_view, std::string_view>
+        auto
+        parse_leading_literal(std::string_view str) -> std::pair<std::string_view, std::string_view>
         {
             const auto [literal, rest] = util::lstrip_if_parts(
                 str,
@@ -585,8 +584,8 @@ namespace mamba::specs
             return { literal, rest };
         }
 
-        auto parse_leading_part_atom(std::string_view str)
-            -> std::pair<VersionPartAtom, std::string_view>
+        auto
+        parse_leading_part_atom(std::string_view str) -> std::pair<VersionPartAtom, std::string_view>
         {
             assert(!str.empty());
 
@@ -695,8 +694,8 @@ namespace mamba::specs
             return { std::move(parts) };
         }
 
-        auto parse_trailing_local_version(std::string_view str)
-            -> expected_parse_t<std::pair<std::string_view, CommonVersion>>
+        auto parse_trailing_local_version(std::string_view str
+        ) -> expected_parse_t<std::pair<std::string_view, CommonVersion>>
         {
             const auto delim_pos = str.rfind(Version::local_delim);
             // No local is specified
@@ -712,11 +711,8 @@ namespace mamba::specs
                 );
             }
             return parse_common_version(str.substr(delim_pos + 1))
-                .transform(
-                    [&](CommonVersion&& version) {
-                        return std::pair{ str.substr(0, delim_pos), std::move(version) };
-                    }
-                );
+                .transform([&](CommonVersion&& version)
+                           { return std::pair{ str.substr(0, delim_pos), std::move(version) }; });
         }
 
         auto parse_version(std::string_view str) -> expected_parse_t<CommonVersion>
@@ -807,7 +803,7 @@ fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, f
 
     auto format_version_to = [this](auto l_out, const auto& version)
     {
-        auto const n_levels = m_level.value_or(version.size());
+        const auto n_levels = m_level.value_or(version.size());
         for (std::size_t i = 0; i < n_levels; ++i)
         {
             if (i != 0)

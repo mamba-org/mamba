@@ -401,35 +401,6 @@ namespace mamba::solver::libsolv
                 }
             }
         }
-
-        void set_repo_solvables_with_sigs(
-            solv::ObjPool& pool,
-            solv::ObjRepoView repo,
-            const specs::CondaURL& parsed_url,
-            const std::string& channel_id,
-            const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            const simdjson::dom::object& repodata,
-            bool verify_artifacts
-        )
-        {
-            auto signatures = std::optional<std::reference_wrapper<const simdjson::dom::object>>();
-            if (auto maybe_sigs = repodata["signatures"].get_object();
-                !maybe_sigs.error() && verify_artifacts)
-            {
-                signatures = maybe_sigs.value();
-            }
-
-            set_repo_solvables(  //
-                pool,
-                repo,
-                parsed_url,
-                channel_id,
-                default_subdir,
-                packages,
-                signatures
-            );
-        }
     }
 
     auto libsolv_read_json(
@@ -499,31 +470,36 @@ namespace mamba::solver::libsolv
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 
+        auto signatures = std::optional<std::reference_wrapper<const simdjson::dom::object>>();
+        if (auto maybe_sigs = repodata["signatures"].get_object();
+            !maybe_sigs.error() && verify_artifacts)
+        {
+            signatures = maybe_sigs.value();
+        }
+
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
-            set_repo_solvables_with_sigs(
+            set_repo_solvables(  //
                 pool,
                 repo,
-                /*repo_url,*/ parsed_url,
+                parsed_url,
                 channel_id,
                 default_subdir,
                 pkgs.value(),
-                repodata,
-                verify_artifacts
+                signatures
             );
         }
 
         if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error() && !only_tar_bz2)
         {
-            set_repo_solvables_with_sigs(
+            set_repo_solvables(  //
                 pool,
                 repo,
-                /*repo_url,*/ parsed_url,
+                parsed_url,
                 channel_id,
                 default_subdir,
                 pkgs.value(),
-                repodata,
-                verify_artifacts
+                signatures
             );
         }
 

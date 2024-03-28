@@ -21,6 +21,9 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/os_linux.hpp"
+#include "mamba/util/os_osx.hpp"
+#include "mamba/util/os_win.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -145,21 +148,21 @@ namespace mamba
             return "";
         }
 
-        specs::PackageInfo make_virtual_package(
-            const std::string& name,
-            const std::string& subdir,
-            const std::string& version,
-            const std::string& build_string
-        )
+        auto make_virtual_package(  //
+            std::string name,
+            std::string subdir,
+            std::string version,
+            std::string build_string
+        ) -> specs::PackageInfo
         {
-            specs::PackageInfo res(name);
-            res.version = version.size() ? version : "0";
-            res.build_string = build_string.size() ? build_string : "0";
+            specs::PackageInfo res(std::move(name));
+            res.version = version.empty() ? "0" : std::move(version);
+            res.build_string = build_string.empty() ? "0" : std::move(build_string);
             res.build_number = 0;
             res.channel = "@";
-            res.platform = subdir;
+            res.platform = std::move(subdir);
             res.md5 = "12345678901234567890123456789012";
-            res.filename = name;
+            res.filename = res.name;
             return res;
         }
 
@@ -213,6 +216,33 @@ namespace mamba
             }
         }
 
+        [[nodiscard]] auto overridable_linux_version() -> tl::expected<std::string, util::OSError>
+        {
+            if (auto override_version = util::get_env("CONDA_OVERRIDE_LINUX"))
+            {
+                return { std::move(override_version).value() };
+            }
+            return util::linux_version();
+        }
+
+        [[nodiscard]] auto overridable_osx_version() -> tl::expected<std::string, util::OSError>
+        {
+            if (auto override_version = util::get_env("CONDA_OVERRIDE_OSX"))
+            {
+                return { std::move(override_version).value() };
+            }
+            return util::osx_version();
+        }
+
+        [[nodiscard]] auto overridable_windows_version() -> tl::expected<std::string, util::OSError>
+        {
+            if (auto override_version = util::get_env("CONDA_OVERRIDE_WIN"))
+            {
+                return { std::move(override_version).value() };
+            }
+            return util::windows_version();
+        }
+
         std::vector<specs::PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -231,19 +261,47 @@ namespace mamba
 
             if (os == "win")
             {
-                res.push_back(make_virtual_package("__win", platform));
+                overridable_windows_version()
+                    .transform(
+                        [&](std::string&& version) {
+                            res.push_back(make_virtual_package("__win", platform, std::move(version)));
+                        }
+                    )
+                    .or_else(
+                        [&](util::OSError err)
+                        {
+                            res.push_back(make_virtual_package("__win", platform, "0"));
+                            LOG_WARNING
+                                << "Windows version not found, defaulting virtual package version to 0."
+                                   " Try setting CONDA_OVERRIDE_WIN environment variable to the"
+                                   " desired version.";
+                            LOG_DEBUG << err.message;
+                        }
+                    );
             }
             if (os == "linux")
             {
                 res.push_back(make_virtual_package("__unix", platform));
 
-                std::string linux_ver = linux_version();
-                if (linux_ver.empty())
-                {
-                    LOG_WARNING << "linux version not found, defaulting to '0'";
-                    linux_ver = "0";
-                }
-                res.push_back(make_virtual_package("__linux", platform, linux_ver));
+                overridable_linux_version()
+                    .transform(
+                        [&](std::string&& version) {
+                            res.push_back(
+                                make_virtual_package("__linux", platform, std::move(version))
+                            );
+                        }
+                    )
+                    .or_else(
+                        [&](util::OSError err)
+                        {
+                            res.push_back(make_virtual_package("__linux", platform, "0"));
+                            LOG_WARNING
+                                << "Linux version not found, defaulting virtual package version to 0."
+                                   " Try setting CONDA_OVERRIDE_LINUX environment variable to the"
+                                   " desired version.";
+                            LOG_DEBUG << err.message;
+                        }
+                    );
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())
@@ -259,15 +317,23 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix", platform));
 
-                std::string osx_ver = macos_version();
-                if (!osx_ver.empty())
-                {
-                    res.push_back(make_virtual_package("__osx", platform, osx_ver));
-                }
-                else
-                {
-                    LOG_WARNING << "osx version not found (virtual package skipped)";
-                }
+                overridable_osx_version()
+                    .transform(
+                        [&](std::string&& version) {
+                            res.push_back(make_virtual_package("__osx", platform, std::move(version)));
+                        }
+                    )
+                    .or_else(
+                        [&](util::OSError err)
+                        {
+                            res.push_back(make_virtual_package("__osx", platform, "0"));
+                            LOG_WARNING
+                                << "OSX version not found, defaulting virtual package version to 0."
+                                   " Try setting CONDA_OVERRIDE_OSX environment variable to the"
+                                   " desired version.";
+                            LOG_DEBUG << err.message;
+                        }
+                    );
             }
 
             res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));

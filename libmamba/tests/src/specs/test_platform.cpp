@@ -42,6 +42,38 @@ TEST_SUITE("specs::platform")
         }
     }
 
+    TEST_CASE("platform_is_xxx")
+    {
+        SUBCASE("KnownPlatform")
+        {
+            // Making sure no-one forgot to ad the platform witha specific OS
+            for (auto plat : known_platforms())
+            {
+                auto check = platform_is_linux(plat)             //
+                             || platform_is_osx(plat)            //
+                             || platform_is_win(plat)            //
+                             || (plat == KnownPlatform::noarch)  //
+                             || (plat == KnownPlatform::zos_z);
+                CHECK(check);
+            }
+        }
+
+        SUBCASE("DynamicPlatform")
+        {
+            CHECK_FALSE(platform_is_linux("win-64"));
+            CHECK_FALSE(platform_is_linux("osx-64"));
+            CHECK(platform_is_linux("linux-64"));
+
+            CHECK_FALSE(platform_is_osx("win-64"));
+            CHECK(platform_is_osx("osx-64"));
+            CHECK_FALSE(platform_is_osx("linux-64"));
+
+            CHECK(platform_is_win("win-64"));
+            CHECK_FALSE(platform_is_win("osx-64"));
+            CHECK_FALSE(platform_is_win("linux-64"));
+        }
+    }
+
     TEST_CASE("NoArch")
     {
         SUBCASE("name")

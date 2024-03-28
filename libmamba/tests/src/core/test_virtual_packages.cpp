@@ -8,6 +8,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/specs/version.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 
@@ -48,6 +49,8 @@ namespace mamba
 
             TEST_CASE("dist_packages")
             {
+                using Version = specs::Version;
+
                 auto& ctx = mambatests::context();
                 auto pkgs = detail::dist_packages(ctx);
 
@@ -55,19 +58,23 @@ namespace mamba
                 {
                     REQUIRE_EQ(pkgs.size(), 2);
                     CHECK_EQ(pkgs[0].name, "__win");
+                    CHECK_GT(Version::parse(pkgs[0].version).value(), Version());
                 }
                 if (util::on_linux)
                 {
                     REQUIRE_EQ(pkgs.size(), 4);
                     CHECK_EQ(pkgs[0].name, "__unix");
                     CHECK_EQ(pkgs[1].name, "__linux");
+                    CHECK_GT(Version::parse(pkgs[1].version).value(), Version());
                     CHECK_EQ(pkgs[2].name, "__glibc");
+                    CHECK_GT(Version::parse(pkgs[2].version).value(), Version());
                 }
                 if (util::on_mac)
                 {
                     REQUIRE_EQ(pkgs.size(), 3);
                     CHECK_EQ(pkgs[0].name, "__unix");
                     CHECK_EQ(pkgs[1].name, "__osx");
+                    CHECK_GT(Version::parse(pkgs[1].version).value(), Version());
                 }
 #if __x86_64__ || defined(_WIN64)
                 CHECK_EQ(pkgs.back().name, "__archspec");

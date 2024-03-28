@@ -27,6 +27,50 @@ namespace mamba::specs
         return {};
     }
 
+    auto platform_is_linux(KnownPlatform plat) -> bool
+    {
+        return (plat == KnownPlatform::linux_32)          //
+               || (plat == KnownPlatform::linux_64)       //
+               || (plat == KnownPlatform::linux_armv6l)   //
+               || (plat == KnownPlatform::linux_armv7l)   //
+               || (plat == KnownPlatform::linux_aarch64)  //
+               || (plat == KnownPlatform::linux_ppc64le)  //
+               || (plat == KnownPlatform::linux_ppc64)    //
+               || (plat == KnownPlatform::linux_s390x)    //
+               || (plat == KnownPlatform::linux_riscv32)  //
+               || (plat == KnownPlatform::linux_riscv64);
+    }
+
+    auto platform_is_linux(DynamicPlatform plat) -> bool
+    {
+        static constexpr auto repr = std::string_view("linux");
+        return (plat.size() >= repr.size()) && util::starts_with(util::to_lower(plat), repr);
+    }
+
+    auto platform_is_osx(KnownPlatform plat) -> bool
+    {
+        return (plat == KnownPlatform::osx_64) || (plat == KnownPlatform::osx_arm64);
+    }
+
+    auto platform_is_osx(DynamicPlatform plat) -> bool
+    {
+        static constexpr auto repr = std::string_view("osx");
+        return (plat.size() >= repr.size()) && util::starts_with(util::to_lower(plat), repr);
+    }
+
+    auto platform_is_win(KnownPlatform plat) -> bool
+    {
+        return (plat == KnownPlatform::win_32)     //
+               || (plat == KnownPlatform::win_64)  //
+               || (plat == KnownPlatform::win_arm64);
+    }
+
+    auto platform_is_win(DynamicPlatform plat) -> bool
+    {
+        static constexpr auto repr = std::string_view("win");
+        return (plat.size() >= repr.size()) && util::starts_with(util::to_lower(plat), repr);
+    }
+
     /**
      * Detect the platform on which mamba was built.
      */

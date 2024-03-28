@@ -93,13 +93,16 @@ namespace mamba
             .and_then(
                 [&](fs::u8path&& repodata_json)
                 {
+                    using PackageTypes = solver::libsolv::PackageTypes;
+
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
                     return db.add_repo_from_repodata_json(
                         repodata_json,
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
                         subdir.channel_id(),
                         add_pip,
-                        static_cast<solver::libsolv::PackageTypes>(ctx.use_only_tar_bz2),
+                        ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
+                                             : PackageTypes::CondaOrElseTarBz2,
                         static_cast<solver::libsolv::VerifyPackages>(ctx.validation_params.verify_artifacts
                         ),
                         json_parser

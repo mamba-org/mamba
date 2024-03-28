@@ -48,30 +48,41 @@ namespace mamba::specs
 
     using DynamicPlatform = std::string;
 
-    constexpr auto known_platforms_count() -> std::size_t
+    [[nodiscard]] constexpr auto known_platforms_count() -> std::size_t
     {
         return static_cast<std::size_t>(KnownPlatform::count_);
     }
 
-    constexpr auto known_platforms() -> std::array<KnownPlatform, known_platforms_count()>;
+    [[nodiscard]] constexpr auto known_platforms()
+        -> std::array<KnownPlatform, known_platforms_count()>;
 
-    constexpr auto known_platform_names() -> std::array<std::string_view, known_platforms_count()>;
+    [[nodiscard]] constexpr auto known_platform_names()
+        -> std::array<std::string_view, known_platforms_count()>;
 
     /**
      * Convert the enumeration to its conda string.
      */
-    constexpr auto platform_name(KnownPlatform p) -> std::string_view;
+    [[nodiscard]] constexpr auto platform_name(KnownPlatform p) -> std::string_view;
 
     /**
      * Return the enum matching the platform name.
      */
-    auto platform_parse(std::string_view str) -> std::optional<KnownPlatform>;
+    [[nodiscard]] auto platform_parse(std::string_view str) -> std::optional<KnownPlatform>;
+
+    [[nodiscard]] auto platform_is_linux(KnownPlatform plat) -> bool;
+    [[nodiscard]] auto platform_is_linux(DynamicPlatform plat) -> bool;
+
+    [[nodiscard]] auto platform_is_osx(KnownPlatform plat) -> bool;
+    [[nodiscard]] auto platform_is_osx(DynamicPlatform plat) -> bool;
+
+    [[nodiscard]] auto platform_is_win(KnownPlatform plat) -> bool;
+    [[nodiscard]] auto platform_is_win(DynamicPlatform plat) -> bool;
 
     /**
      * Detect the platform on which mamba was built.
      */
-    auto build_platform() -> KnownPlatform;
-    auto build_platform_name() -> std::string_view;
+    [[nodiscard]] auto build_platform() -> KnownPlatform;
+    [[nodiscard]] auto build_platform_name() -> std::string_view;
 
     /**
      * Serialize to JSON string.

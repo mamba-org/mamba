@@ -246,10 +246,55 @@ TEST_SUITE("solver::libsolv::database")
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
                 libsolv::PipAsPythonDependency::No,
-                libsolv::UseOnlyTarBz2::Yes
+                libsolv::PackageTypes::TarBz2Only
             );
             REQUIRE(repo1.has_value());
             CHECK_EQ(repo1->package_count(), 4);
+        }
+
+        SUBCASE("Add repo from repodata only .conda")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOnly
+            );
+            REQUIRE(repo1.has_value());
+            CHECK_EQ(repo1->package_count(), 30);
+        }
+
+        SUBCASE("Add repo from repodata .conda and .tar.bz2")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaAndTarBz2
+            );
+            REQUIRE(repo1.has_value());
+            CHECK_EQ(repo1->package_count(), 34);
+        }
+
+        SUBCASE("Add repo from repodata .conda or else .tar.bz2")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2
+            );
+            REQUIRE(repo1.has_value());
+            CHECK_EQ(repo1->package_count(), 33);
         }
 
         SUBCASE("Add repo from repodata with verifying packages signatures")
@@ -263,7 +308,7 @@ TEST_SUITE("solver::libsolv::database")
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
                     libsolv::PipAsPythonDependency::No,
-                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::PackageTypes::CondaOrElseTarBz2,
                     libsolv::VerifyPackages::Yes,
                     libsolv::RepodataParser::Mamba
                 );
@@ -303,7 +348,7 @@ TEST_SUITE("solver::libsolv::database")
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
                     libsolv::PipAsPythonDependency::No,
-                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::PackageTypes::CondaOrElseTarBz2,
                     libsolv::VerifyPackages::Yes,
                     libsolv::RepodataParser::Libsolv
                 );
@@ -352,7 +397,7 @@ TEST_SUITE("solver::libsolv::database")
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
                     libsolv::PipAsPythonDependency::No,
-                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::PackageTypes::CondaOrElseTarBz2,
                     libsolv::VerifyPackages::No,
                     libsolv::RepodataParser::Mamba
                 );
@@ -372,7 +417,7 @@ TEST_SUITE("solver::libsolv::database")
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
                     libsolv::PipAsPythonDependency::No,
-                    libsolv::UseOnlyTarBz2::No,
+                    libsolv::PackageTypes::CondaOrElseTarBz2,
                     libsolv::VerifyPackages::No,
                     libsolv::RepodataParser::Libsolv
                 );

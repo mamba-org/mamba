@@ -25,13 +25,15 @@ namespace mamba::solver::libsolv
         Yes = true,
     };
 
-    enum class UseOnlyTarBz2
+    enum class PackageTypes
     {
-        No = false,
-        Yes = true,
+        CondaOnly,
+        TarBz2Only,
+        CondaAndTarBz2,
+        CondaOrElseTarBz2,
     };
 
-    enum class VerifyPackages
+    enum class VerifyPackages : bool
     {
         No = false,
         Yes = true,

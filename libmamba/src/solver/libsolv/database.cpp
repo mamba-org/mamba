@@ -131,12 +131,11 @@ namespace mamba::solver::libsolv
         std::string_view url,
         const std::string& channel_id,
         PipAsPythonDependency add,
-        UseOnlyTarBz2 only_tar,
+        PackageTypes package_types,
         VerifyPackages verify_packages,
         RepodataParser parser
     ) -> expected_t<RepoInfo>
     {
-        const auto use_only_tar_bz2 = static_cast<bool>(only_tar);
         const auto verify_artifacts = static_cast<bool>(verify_packages);
 
         if (!fs::exists(path))
@@ -159,11 +158,11 @@ namespace mamba::solver::libsolv
                     path,
                     std::string(url),
                     channel_id,
-                    use_only_tar_bz2,
+                    package_types,
                     verify_artifacts
                 );
             }
-            return libsolv_read_json(repo, path, use_only_tar_bz2, verify_artifacts)
+            return libsolv_read_json(repo, path, package_types, verify_artifacts)
                 .transform(
                     [&url, &channel_id](solv::ObjRepoView p_repo)
                     {

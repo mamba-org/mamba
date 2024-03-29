@@ -213,6 +213,26 @@
       "url": "https://conda.anaconda.org/conda-forge/linux-64/libexpat-2.5.0-hcb278e6_1.conda",
       "version": "2.5.0"
     },
+    "libffi-3.4.2-h7f98852_5.conda": {
+      "build": "h7f98852_5",
+      "build_number": 5,
+      "build_string": "h7f98852_5",
+      "constrains": null,
+      "depends": [
+        "libgcc-ng >=9.4.0"
+      ],
+      "fn": "libffi-3.4.2-h7f98852_5.conda",
+      "license": "MIT",
+      "md5": "d645c6d2ac96843a2bfaccd2d62b3ac3",
+      "name": "libffi",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size": 58292,
+      "subdir": "linux-64",
+      "timestamp": 1636488182,
+      "track_features": "",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/libffi-3.4.2-h7f98852_5.conda",
+      "version": "3.4.2"
+    },
     "libgcc-ng-13.2.0-h807b86a_5.conda": {
       "build": "h807b86a_5",
       "build_number": 5,

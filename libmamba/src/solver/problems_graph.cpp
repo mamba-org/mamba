@@ -105,7 +105,6 @@ namespace mamba::solver
                             assert(graph.has_node(id_child));
                             assert(graph.has_node(c_parent));
                             conflicts.add(id_child, c_parent);
-                            graph.remove_edge(c_parent, c);
                         }
                         conflicts.remove(id, c);
                         if (!conflicts.has_conflict(c))

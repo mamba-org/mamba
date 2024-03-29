@@ -15,7 +15,7 @@ Command Line Executables
 Mamba (executable)
 ******************
 ``mamba``, previously a Python executable mixing ``libmambapy``, ``conda``, and code to bridge both
-project is being replace by a fully C++ executable based ``libmamba`` solely.
+project is being replace by a fully C++ executable based on ``libmamba`` solely.
 
 It now presents the same user interface and experience as ``micromamba``.
 
@@ -37,6 +37,7 @@ Breaking changes include:
   Both options were supported in version ``1.5``.
 - A new config ``order_solver_request`` (default true) can be used to order the dependencies passed
   to the solver, getting order independent solutions.
+- Support for complex match specs such as ``pkg[md5=0000000000000]`` and ``pkg[build='^\d*$']``.
 
 .. TODO OCI and mirrors
 
@@ -111,7 +112,7 @@ The main changes are:
   - Implementations of ``Version`` and ``VersionSpec`` for matching versions,
   - A refactoring of a purely funcitonal ``Channel`` class,
   - Implementaiton of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
-  - A refactored implementation of ``MatchSpec`` using the components above.
+  - A refactored and complete implementation of ``MatchSpec`` using the components above.
 
 - A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the
   ``specs::Channel``.
@@ -129,6 +130,10 @@ The main changes are:
   - A solver ``Request`` with all requirements to solve is the new way to specify jobs.
   - A refactoring of ``Solver``.
   - A solver outcome as either a ``Solution`` or an ``UnSolvable`` state.
+
+- Plug of the Mamba's ``MatchSpec`` implementation in the ``Solver``, enabling the solving of all
+  types of previously unsupported MatchSpecs.
+
 - Improved downloaders.
 
 .. TODO OCI registry

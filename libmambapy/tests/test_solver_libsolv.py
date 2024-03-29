@@ -120,6 +120,14 @@ def test_RepodataOrigin():
     assert other == orig
 
 
+def test_Database_logger():
+    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+
+    def logger(level, msg): ...
+
+    db.set_logger(logger)
+
+
 @pytest.mark.parametrize("add_pip_as_python_dependency", [True, False])
 def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency):
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())

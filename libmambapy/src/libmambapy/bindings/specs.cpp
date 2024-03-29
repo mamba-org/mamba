@@ -566,7 +566,27 @@ namespace mambapy
             .def("__copy__", &copy<Version>)
             .def("__deepcopy__", &deepcopy<Version>, py::arg("memo"));
 
-        // Bindings for VersionSpec currently ignores VersionPredicate and flat_bool_expr_tree
+        py::class_<VersionPredicate>(m, "VersionPredicate")
+            .def_static("make_free", &VersionPredicate::make_free)
+            .def_static("make_equal_to", &VersionPredicate::make_equal_to)
+            .def_static("make_not_equal_to", &VersionPredicate::make_not_equal_to)
+            .def_static("make_greater", &VersionPredicate::make_greater)
+            .def_static("make_greater_equal", &VersionPredicate::make_greater_equal)
+            .def_static("make_less", &VersionPredicate::make_less)
+            .def_static("make_less_equal", &VersionPredicate::make_less_equal)
+            .def_static("make_starts_with", &VersionPredicate::make_starts_with)
+            .def_static("make_not_starts_with", &VersionPredicate::make_not_starts_with)
+            .def_static("make_compatible_with", &VersionPredicate::make_compatible_with)
+            .def(py::init())
+            .def("contains", &VersionPredicate::contains)
+            .def("str_conda_build", &VersionPredicate::str_conda_build)
+            .def("__str__", &VersionPredicate::str)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<VersionPredicate>)
+            .def("__deepcopy__", &deepcopy<VersionPredicate>, py::arg("memo"));
+
+        // Bindings for VersionSpec currently ignores flat_bool_expr_tree
         // which would be tedious to bind, and even more to make extendable through Python
 
         py::class_<VersionSpec>(m, "VersionSpec")

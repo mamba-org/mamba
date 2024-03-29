@@ -674,6 +674,37 @@ def test_Version():
     assert not v1.compatible_with(older=v2, level=1)
 
 
+def test_VersionPredicate():
+    Version = libmambapy.specs.Version
+    VersionPredicate = libmambapy.specs.VersionPredicate
+
+    assert str(VersionPredicate.make_free()) == "=*"
+    assert str(VersionPredicate.make_equal_to(Version.parse("1"))) == "==1"
+    assert str(VersionPredicate.make_not_equal_to(Version.parse("1"))) == "!=1"
+    assert str(VersionPredicate.make_greater(Version.parse("1"))) == ">1"
+    assert str(VersionPredicate.make_greater_equal(Version.parse("1"))) == ">=1"
+    assert str(VersionPredicate.make_less(Version.parse("1"))) == "<1"
+    assert str(VersionPredicate.make_less_equal(Version.parse("1"))) == "<=1"
+    assert str(VersionPredicate.make_starts_with(Version.parse("1"))) == "=1"
+    assert str(VersionPredicate.make_not_starts_with(Version.parse("1"))) == "!=1.*"
+    assert str(VersionPredicate.make_compatible_with(Version.parse("1"), 1)) == "~=1"
+
+    pred = VersionPredicate.make_equal_to(Version.parse("1"))
+
+    # Contains
+    assert pred.contains(Version.parse("1"))
+    assert not pred.contains(Version.parse("2"))
+
+    # Equality
+    assert pred == pred
+    assert pred != VersionPredicate()
+
+    # Copy
+    other = copy.deepcopy(pred)
+    assert other == pred
+    assert other is not pred
+
+
 def test_VersionSpec():
     Version = libmambapy.specs.Version
     VersionSpec = libmambapy.specs.VersionSpec

@@ -350,7 +350,7 @@ of the steps will assume that the following ``environment.yml`` file is used:
 
 Any compatible spec file can be used, but note that if the ``channels`` property
 is not set in the file, you may have to set it via the ``-c/--channel`` argument
-if it is not set elsewhere. 
+if it is not set elsewhere.
 
 Create a ``conda-lock.yml`` file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

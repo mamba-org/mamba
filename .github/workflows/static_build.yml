@@ -115,13 +115,13 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v3
-      - name: Cache vcpkg packages
-        uses: actions/cache@v3
-        with:
+        #- name: Cache vcpkg packages
+        #uses: actions/cache@v3
+        #with:
           # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
           # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg
-          path: C:\Users\runneradmin\AppData\Local\vcpkg
-          key: vcpkg-win-64-appdata
+          #path: C:\Users\runneradmin\AppData\Local\vcpkg
+          #key: vcpkg-win-64-appdata
       - name: Install dependencies with vcpkg
         shell: cmd
         # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released

@@ -1,3 +1,20 @@
+libmambapy 2.0.0beta0 (April 04, 2024)
+======================================
+
+Enhancements:
+
+- Bind VersionPredicate by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3255
+- Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+
+Bug fixes:
+
+- Add missing pybind header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3256
+- Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+
+CI fixes and doc:
+
+- Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+
 libmambapy 2.0.0alpha4 (March 26, 2024)
 =======================================
 

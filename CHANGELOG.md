@@ -1,3 +1,23 @@
+2024.04.04
+==========
+
+Releases: libmamba 2.0.0beta0, libmambapy 2.0.0beta0, micromamba 2.0.0beta0
+
+Enhancements:
+
+- [libmambapy] Bind VersionPredicate by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3255
+- [all] Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- [libmamba, micromamba] Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+
+Bug fixes:
+
+- [libmambapy] Add missing pybind header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3256
+- [libmambapy, libmamba] Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+
+CI fixes and doc:
+
+- [all] Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+
 2024.03.26
 ==========
 

@@ -1,3 +1,15 @@
+micromamba 2.0.0beta0 (April 04, 2024)
+======================================
+
+Enhancements:
+
+- Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+
+CI fixes and doc:
+
+- Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+
 micromamba 2.0.0alpha4 (March 26, 2024)
 =======================================
 

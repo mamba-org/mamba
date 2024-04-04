@@ -8,6 +8,9 @@
       "platform": "windows"
     },
     {
+      "name": "liblzma"
+    },
+    {
       "features": [
         "bzip2",
         "lz4",

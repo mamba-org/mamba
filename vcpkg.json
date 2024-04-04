@@ -1,14 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "dependencies": [
+    "liblzma",
     "zstd",
     "curl",
     {
       "name": "winreg",
       "platform": "windows"
-    },
-    {
-      "name": "liblzma"
     },
     {
       "features": [

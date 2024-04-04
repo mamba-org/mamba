@@ -9,7 +9,7 @@
       "baseline": "ddbcd3c4e49a04ac10b402c732b6f4ccf4432e65",
       "kind": "git",
       "packages": [
-        "liblzma"
+        "libarchive", "liblzma"
       ],
       "repository": "https://github.com/QuantStack/vcpkg"
     }

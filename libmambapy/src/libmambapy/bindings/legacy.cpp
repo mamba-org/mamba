@@ -635,6 +635,11 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("progress_bar_downloaded", &Palette::progress_bar_downloaded)
         .def_readwrite("progress_bar_extracted", &Palette::progress_bar_extracted);
 
+    py::class_<Context::GraphicsParams>(m, "GraphicsParams")
+        .def(py::init())
+        .def_readwrite("no_progress_bars", &Context::GraphicsParams::no_progress_bars)
+        .def_readwrite("palette", &Context::GraphicsParams::palette);
+
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx  //
         .def_static(
@@ -654,6 +659,7 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ))
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
+        .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

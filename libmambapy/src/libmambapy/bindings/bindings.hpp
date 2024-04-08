@@ -11,6 +11,7 @@
 
 namespace mambapy
 {
+    void bind_submodule_utils(pybind11::module_ m);
     void bind_submodule_specs(pybind11::module_ m);
     void bind_submodule_solver(pybind11::module_ m);
     void bind_submodule_solver_libsolv(pybind11::module_ m);

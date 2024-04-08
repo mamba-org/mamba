@@ -8,6 +8,7 @@
 
 PYBIND11_MODULE(bindings, m)
 {
+    mambapy::bind_submodule_utils(m.def_submodule("utils"));
     mambapy::bind_submodule_specs(m.def_submodule("specs"));
     auto solver_submodule = m.def_submodule("solver");
     mambapy::bind_submodule_solver(solver_submodule);

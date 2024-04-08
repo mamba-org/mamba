@@ -1,4 +1,5 @@
 # Import all submodules so that one can use them directly with `import libmambapy`
+import libmambapy.utils
 import libmambapy.version
 import libmambapy.specs
 import libmambapy.solver

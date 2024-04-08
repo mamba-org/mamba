@@ -620,7 +620,20 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<Palette>(m, "Palette")
         .def_static("no_color", &Palette::no_color)
-        .def_static("terminal", &Palette::terminal);
+        .def_static("terminal", &Palette::terminal)
+        .def_readwrite("success", &Palette::success)
+        .def_readwrite("failure", &Palette::failure)
+        .def_readwrite("external", &Palette::external)
+        .def_readwrite("shown", &Palette::shown)
+        .def_readwrite("safe", &Palette::safe)
+        .def_readwrite("unsafe", &Palette::unsafe)
+        .def_readwrite("user", &Palette::user)
+        .def_readwrite("ignored", &Palette::ignored)
+        .def_readwrite("addition", &Palette::addition)
+        .def_readwrite("deletion", &Palette::deletion)
+        .def_readwrite("progress_bar_none", &Palette::progress_bar_none)
+        .def_readwrite("progress_bar_downloaded", &Palette::progress_bar_downloaded)
+        .def_readwrite("progress_bar_extracted", &Palette::progress_bar_extracted);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx  //

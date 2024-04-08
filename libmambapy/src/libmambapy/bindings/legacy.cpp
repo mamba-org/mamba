@@ -35,11 +35,11 @@
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
 #include "path_caster.hpp"
-#include "utils.hpp"
 
 namespace py = pybind11;
 

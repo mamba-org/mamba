@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef LIBMAMBAPY_UTILS_HPP
-#define LIBMAMBAPY_UTILS_HPP
+#ifndef LIBMAMBAPY_BIND_UTILS_HPP
+#define LIBMAMBAPY_BIND_UTILS_HPP
 
 #include <memory>
 

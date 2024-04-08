@@ -15,10 +15,10 @@
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "path_caster.hpp"
-#include "utils.hpp"
 
 namespace mambapy
 {

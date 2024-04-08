@@ -11,9 +11,9 @@
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
-#include "utils.hpp"
 
 namespace mamba::solver
 {

@@ -8,7 +8,6 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
-#include "mamba/core/palette.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -223,7 +222,7 @@ namespace mambapy
                 "explain_problems",
                 &UnSolvable::explain_problems,
                 py::arg("database"),
-                py::arg("palette")
+                py::arg("format")
             );
 
         constexpr auto solver_flags_v2_migrator = [](Solver&, py::args, py::kwargs) {

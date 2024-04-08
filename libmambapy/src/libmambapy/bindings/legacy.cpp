@@ -35,11 +35,11 @@
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
 #include "path_caster.hpp"
-#include "utils.hpp"
 
 namespace py = pybind11;
 
@@ -620,7 +620,25 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<Palette>(m, "Palette")
         .def_static("no_color", &Palette::no_color)
-        .def_static("terminal", &Palette::terminal);
+        .def_static("terminal", &Palette::terminal)
+        .def_readwrite("success", &Palette::success)
+        .def_readwrite("failure", &Palette::failure)
+        .def_readwrite("external", &Palette::external)
+        .def_readwrite("shown", &Palette::shown)
+        .def_readwrite("safe", &Palette::safe)
+        .def_readwrite("unsafe", &Palette::unsafe)
+        .def_readwrite("user", &Palette::user)
+        .def_readwrite("ignored", &Palette::ignored)
+        .def_readwrite("addition", &Palette::addition)
+        .def_readwrite("deletion", &Palette::deletion)
+        .def_readwrite("progress_bar_none", &Palette::progress_bar_none)
+        .def_readwrite("progress_bar_downloaded", &Palette::progress_bar_downloaded)
+        .def_readwrite("progress_bar_extracted", &Palette::progress_bar_extracted);
+
+    py::class_<Context::GraphicsParams>(m, "GraphicsParams")
+        .def(py::init())
+        .def_readwrite("no_progress_bars", &Context::GraphicsParams::no_progress_bars)
+        .def_readwrite("palette", &Context::GraphicsParams::palette);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx  //
@@ -641,6 +659,7 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ))
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
+        .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

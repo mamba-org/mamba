@@ -221,6 +221,36 @@ def test_Solution():
     assert len(other.actions) == len(sol.actions)
 
 
+def test_ProblemsMessageFormat():
+    ProblemsMessageFormat = libmambapy.solver.ProblemsMessageFormat
+
+    format = ProblemsMessageFormat()
+
+    format = ProblemsMessageFormat(
+        available=libmambapy.utils.TextStyle(foreground="Green"),
+        unavailable=libmambapy.utils.TextStyle(foreground="Red"),
+        indents=["a", "b", "c", "d"],
+    )
+
+    # Getters
+    assert format.available.foreground == libmambapy.utils.TextTerminalColor.Green
+    assert format.unavailable.foreground == libmambapy.utils.TextTerminalColor.Red
+    assert format.indents == ["a", "b", "c", "d"]
+
+    # Setters
+    format.available = libmambapy.utils.TextStyle(foreground="White")
+    format.unavailable = libmambapy.utils.TextStyle(foreground="Black")
+    format.indents = ["1", "2", "3", "4"]
+    assert format.available.foreground == libmambapy.utils.TextTerminalColor.White
+    assert format.unavailable.foreground == libmambapy.utils.TextTerminalColor.Black
+    assert format.indents == ["1", "2", "3", "4"]
+
+    # Copy
+    other = copy.deepcopy(format)
+    assert other is not format
+    assert other.indents == format.indents
+
+
 def test_ProblemsGraph():
     # Create a ProblemsGraph
     db = libmambapy.solver.libsolv.Database(libmambapy.specs.ChannelResolveParams())
@@ -278,7 +308,7 @@ def test_ProblemsGraph():
     nodes, edges = cp_pbg.graph()
     assert len(nodes) > 0
     assert len(edges) > 0
-    assert "is not installable" in cp_pbg.tree_message()
+    assert "is not installable" in cp_pbg.tree_message(libmambapy.solver.ProblemsMessageFormat())
 
 
 def test_CompressedProblemsGraph_NamedList():

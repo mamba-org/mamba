@@ -278,7 +278,7 @@ def test_Solver_UnSolvable():
     assert isinstance(outcome.problems_to_str(db), str)
     assert isinstance(outcome.all_problems_to_str(db), str)
     assert "The following package could not be installed" in outcome.explain_problems(
-        db, libmambapy.Palette.no_color()
+        db, libmambapy.solver.ProblemsMessageFormat()
     )
     assert outcome.problems_graph(db).graph() is not None
 

@@ -50,11 +50,11 @@ namespace mamba::solver::libsolv
         auto explain_problems_to(  //
             Database& pool,
             std::ostream& out,
-            const Palette& palette
+            const ProblemsMessageFormat& format
         ) const -> std::ostream&;
 
         [[nodiscard]] auto
-        explain_problems(Database& pool, const Palette& palette) const -> std::string;
+        explain_problems(Database& pool, const ProblemsMessageFormat& format) const -> std::string;
 
     private:
 

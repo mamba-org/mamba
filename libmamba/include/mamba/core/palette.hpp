@@ -26,7 +26,6 @@ namespace mamba
         /** Some action is unsafe or not trusted. */
         fmt::text_style unsafe;
 
-
         /** Reference to some input from the user. */
         fmt::text_style user;
         /** Input from the user was ignored or has no effect. */

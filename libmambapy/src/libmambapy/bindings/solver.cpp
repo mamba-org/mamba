@@ -11,9 +11,9 @@
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
-#include "utils.hpp"
 
 namespace mamba::solver
 {
@@ -388,6 +388,31 @@ namespace mambapy
             )
             .def_static("simplify_conflicts", &solver::simplify_conflicts);
 
+        py::class_<ProblemsMessageFormat>(m, "ProblemsMessageFormat")
+            .def(py::init<>())
+            .def(
+                py::init(
+                    [](fmt::text_style unavailable,
+                       fmt::text_style available,
+                       std::array<std::string_view, 4> indents) -> ProblemsMessageFormat
+                    {
+                        return {
+                            /* .unavailable= */ unavailable,
+                            /* .available= */ available,
+                            /* .indents= */ indents,
+                        };
+                    }
+                ),
+                py::arg("unavailable"),
+                py::arg("available"),
+                py::arg("indents")
+            )
+            .def_readwrite("unavailable", &ProblemsMessageFormat::unavailable)
+            .def_readwrite("available", &ProblemsMessageFormat::available)
+            .def_readwrite("indents", &ProblemsMessageFormat::indents)
+            .def("__copy__", &copy<ProblemsMessageFormat>)
+            .def("__deepcopy__", &deepcopy<ProblemsMessageFormat>, py::arg("memo"));
+
         auto py_compressed_problems_graph = py::class_<CompressedProblemsGraph>(
             m,
             "CompressedProblemsGraph"
@@ -481,9 +506,6 @@ namespace mambapy
                     return std::pair(g.nodes(), g.edges());
                 }
             )
-            .def(
-                "tree_message",
-                [](const CompressedProblemsGraph& self) { return problem_tree_msg(self); }
-            );
+            .def("tree_message", &problem_tree_msg, py::arg("format") = ProblemsMessageFormat());
     }
 }

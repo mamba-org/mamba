@@ -21,10 +21,10 @@
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
-#include "utils.hpp"
 #include "weakening_map_bind.hpp"
 
 PYBIND11_MAKE_OPAQUE(mamba::specs::VersionPart);

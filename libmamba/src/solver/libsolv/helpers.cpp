@@ -132,14 +132,6 @@ namespace mamba::solver::libsolv
             std::transform(feats.begin(), feats.end(), std::back_inserter(out.track_features), id_to_str);
         }
 
-        // Pins have a name like "pin-fsej43208fsd" so we set a readable name for them.
-        // This is mainly displayed in the solver error messages.
-        // Perhaps this is not the best place to put this...
-        if (s.type() == solv::SolvableType::Pin)
-        {
-            out.name = fmt::format("pin on {}", fmt::join(out.constrains, " and "));
-        }
-
         return out;
     }
 

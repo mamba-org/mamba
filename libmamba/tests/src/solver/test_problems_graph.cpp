@@ -272,6 +272,30 @@ namespace
         return create_pubgrub_hard_(ctx, channel_context, true);
     }
 
+    /**
+     * Create a conflict due to a pin.
+     */
+    auto create_pin_conflict(Context&, ChannelContext& channel_context)
+    {
+        return std::pair(
+            create_pkgs_database(
+                channel_context,
+                std::array{
+                    mkpkg("foo", "2.0.0", { "bar=2.0" }),
+                    mkpkg("bar", "1.0.0"),
+                    mkpkg("bar", "2.0.0"),
+                }
+            ),
+            Request{
+                {},
+                {
+                    Request::Install{ "foo"_ms },
+                    Request::Pin{ "bar=1.0"_ms },
+                },
+            }
+        );
+    }
+
     auto make_platform_channels(
         std::vector<std::string>&& channels,
         const std::vector<std::string>& platforms

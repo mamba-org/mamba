@@ -461,7 +461,7 @@ namespace solv
         // Safe optional unchecked because we iterate over available values
         return for_each_whatprovides_id(
             dep,
-            [this, func](SolvableId id) { func(get_solvable(id)).value(); }
+            [this, func](SolvableId id) { func(get_solvable(id).value()); }
         );
     }
 

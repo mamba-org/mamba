@@ -1309,6 +1309,34 @@ namespace mamba::solver
             std::visit(do_write, concat_nodes(tn.ids));
         }
 
+        /**
+         * Sort suffices such that if one ends with the other, the longest one is put first.
+         */
+        template <std::size_t N>
+        constexpr auto
+        sorted_suffix(std::array<std::string_view, N> arr) -> std::array<std::string_view, N>
+        {
+            std::sort(
+                arr.begin(),
+                arr.end(),
+                [](const auto& str1, const auto& str2) { return util::ends_with(str1, str2); }
+            );
+            return arr;
+        }
+
+        auto rstrip_excessive_free(std::string_view str) -> std::string_view
+        {
+            str = util::rstrip(str);
+            str = util::remove_suffix(str, specs::GlobSpec::free_pattern);
+            str = util::rstrip(str);
+            for (const auto& suffix : sorted_suffix(specs::VersionSpec::all_free_strs))
+            {
+                str = util::remove_suffix(str, suffix);
+            }
+            str = util::rstrip(str);
+            return str;
+        }
+
         void TreeExplainer::write_pkg_dep(const TreeNode& tn)
         {
             auto edges = concat_edges(tn.ids_from, tn.ids);
@@ -1322,8 +1350,24 @@ namespace mamba::solver
             }
             else
             {
-                write(fmt::format(style, (size == 1 ? "{} {}" : "{} [{}]"), edges.name(), vers_builds_trunc)
-                );
+                // Single depenency with only name constraint often end up looking like
+                // ``python =* *`` so we strip all this.
+                // Best would be to handle this with a richer NamedList that contains
+                // ``VersionSpecs`` to avoid flaky reliance on string modification.
+                const auto relevant_vers_builds_trunc = rstrip_excessive_free(vers_builds_trunc);
+                if (relevant_vers_builds_trunc.empty())
+                {
+                    write(fmt::format(style, "{}", edges.name()));
+                }
+                else
+                {
+                    write(fmt::format(
+                        style,
+                        (size == 1 ? "{} {}" : "{} [{}]"),
+                        edges.name(),
+                        relevant_vers_builds_trunc
+                    ));
+                }
             }
         }
 

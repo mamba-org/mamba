@@ -283,14 +283,80 @@ namespace mamba::solver::libsolv
             return added;
         }
 
+        void fixup_pin_solvable(const solv::ObjPool& pool, specs::PackageInfo& pkg)
+        {
+            // Pins solvable have a name like "pin-fsej43208fsd" and a constraint representing
+            // the pin.
+            // They are added with a install top-level dependency
+            // ``Install{ "pin-fsej43208fsd"_ms }``.
+            // We need to change their name to make them look more readable.
+            if (auto id = pool.find_string(pkg.name))
+            {
+                pool.for_each_whatprovides(
+                    *id,
+                    [&](const solv::ObjSolvableViewConst& solv_pin)
+                    {
+                        if (solv_pin.type() == solv::SolvableType::Pin)
+                        {
+                            // There should really just be one constraint
+                            pkg.name = fmt::format("pin on {}", fmt::join(pkg.constrains, " and "));
+                        }
+                        return solv::LoopControl::Break;
+                    }
+                );
+            }
+        }
+
+        void fixup_dep_on_pin_solvable(const solv::ObjPool& pool, specs::MatchSpec& ms)
+        {
+            // Pins solvable have a name like "pin-fsej43208fsd" and a constraint representing
+            // the pin.
+            // They are added with a install top-level dependency
+            // ``Install{ "pin-fsej43208fsd"_ms }``.
+            // We need to change their name to make them look more readable.
+            if (auto id = pool.find_string(ms.name().str()))
+            {
+                pool.for_each_whatprovides(
+                    *id,
+                    [&](const solv::ObjSolvableViewConst& solv_pin)
+                    {
+                        if (solv_pin.type() == solv::SolvableType::Pin)
+                        {
+                            auto pin = make_package_info(pool, solv_pin);
+                            // There should really just be one constraint
+                            ms.set_name(specs::MatchSpec::NameSpec(
+                                fmt::format("pin on {}", fmt::join(pin.constrains, " and "))
+                            ));
+                        }
+                        return solv::LoopControl::Break;
+                    }
+                );
+            }
+        }
+
         void ProblemsGraphCreator::parse_problems()
         {
             // TODO Throwing error for now but we should use expected in UnSolvable API
-            constexpr auto make_match_spec = [](std::string_view str) -> specs::MatchSpec
+            auto make_match_spec = [&](std::string_view str) -> specs::MatchSpec
             {
                 return specs::MatchSpec::parse(str)
                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .transform(
+                        [&](specs::MatchSpec&& ms) -> specs::MatchSpec
+                        {
+                            fixup_dep_on_pin_solvable(m_pool, ms);
+                            return std::move(ms);
+                        }
+                    )
                     .value();
+            };
+
+            // FIXME in practice we should extend the data structure with a PinNode rather than
+            // patching the name.
+            auto fixup_pkg = [&](specs::PackageInfo pkg) -> specs::PackageInfo
+            {
+                fixup_pin_solvable(m_pool, pkg);
+                return pkg;
             };
 
             for (auto& problem : all_problems_structured(m_pool, m_solver))
@@ -315,11 +381,11 @@ namespace mamba::solver::libsolv
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value() }
+                            PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
-                            PackageNode{ std::move(target).value() }
+                            PackageNode{ fixup_pkg(std::move(target).value()) }
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
@@ -343,7 +409,7 @@ namespace mamba::solver::libsolv
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value() }
+                            PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         auto edge = make_match_spec(dep.value());
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
@@ -406,7 +472,7 @@ namespace mamba::solver::libsolv
                         auto edge = make_match_spec(dep.value());
                         node_id src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value() }
+                            PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
@@ -429,11 +495,11 @@ namespace mamba::solver::libsolv
                         }
                         node_id src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value() }
+                            PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
-                            PackageNode{ std::move(target).value() }
+                            PackageNode{ fixup_pkg(std::move(target).value()) }
                         );
                         add_conflict(src_id, tgt_id);
                         break;
@@ -449,7 +515,7 @@ namespace mamba::solver::libsolv
                             break;
                         }
 
-                        // We re-create an dependency. There is no dependency ready to use for
+                        // We re-create a dependency. There is no dependency ready to use for
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.

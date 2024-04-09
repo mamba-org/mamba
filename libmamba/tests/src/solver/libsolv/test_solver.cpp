@@ -925,6 +925,74 @@ TEST_SUITE("solver::libsolv::solver")
         }
     }
 
+    TEST_CASE("Respect pins")
+    {
+        using PackageInfo = specs::PackageInfo;
+
+        auto db = libsolv::Database({});
+
+        SUBCASE("Respect pins through direct dependencies")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.version = "1.0";
+            auto pkg2 = PackageInfo("foo");
+            pkg2.version = "2.0";
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "foo"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            const auto foo_actions = find_actions_with_name(solution, "foo");
+            REQUIRE_EQ(foo_actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(foo_actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(foo_actions.front()).install.version, "1.0");
+        }
+
+        SUBCASE("Respect pins through indirect dependencies")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.version = "1.0";
+            auto pkg2 = PackageInfo("foo");
+            pkg2.version = "2.0";
+            auto pkg3 = PackageInfo("bar");
+            pkg3.version = "1.0";
+            pkg3.dependencies = { "foo=1.0" };
+            auto pkg4 = PackageInfo("bar");
+            pkg4.version = "2.0";
+            pkg4.dependencies = { "foo=2.0" };
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3, pkg4 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "bar"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            const auto foo_actions = find_actions_with_name(solution, "foo");
+            REQUIRE_EQ(foo_actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(foo_actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(foo_actions.front()).install.version, "1.0");
+
+            const auto bar_actions = find_actions_with_name(solution, "bar");
+            REQUIRE_EQ(bar_actions.size(), 1);
+            CHECK(std::holds_alternative<Solution::Install>(bar_actions.front()));
+            CHECK_EQ(std::get<Solution::Install>(bar_actions.front()).install.version, "1.0");
+        }
+    }
+
     TEST_CASE("Handle complex matchspecs")
     {
         using PackageInfo = specs::PackageInfo;

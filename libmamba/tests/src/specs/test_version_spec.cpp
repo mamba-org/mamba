@@ -311,6 +311,7 @@ TEST_SUITE("specs::version_spec")
             CHECK_FALSE("==1.7"_vs.contains("1.7.1"_v));
             CHECK_FALSE("==1.7.2"_vs.contains("1.7.1"_v));
             CHECK("==1.7.1.0"_vs.contains("1.7.1"_v));
+            CHECK("==1.7.1.*"_vs.contains("1.7.1.1"_v));  // Degenerate case
             CHECK("1.7.*|1.8.*"_vs.contains("1.7.1"_v));
             CHECK(">1.7,<1.8"_vs.contains("1.7.1"_v));
             CHECK_FALSE(">1.7.1,<1.8"_vs.contains("1.7.1"_v));

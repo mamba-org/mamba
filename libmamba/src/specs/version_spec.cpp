@@ -382,7 +382,7 @@ namespace mamba::specs
                 // Glob suffix changes meaning for ==1.3.*
                 if (has_glob_suffix)
                 {
-                    return Version::parse(str.substr(VersionSpec::less_equal_str.size()))
+                    return Version::parse(str.substr(start, str.size() - glob_len - start))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });
                 }

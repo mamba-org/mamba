@@ -175,6 +175,59 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
         assert any(package["name"] == "xtl" for package in packages)
 
 
+env_yaml_content_default = """
+name: linux
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - rattler-build
+  - valgrind
+"""
+
+env_yaml_content_changed = """
+name: linux
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - rattler-build
+  - valgrind
+  - gxx_linux-64=13.*
+"""
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_update_with_file(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "linux"
+
+    # Create an empty env named linux
+    helpers.create("-n", env_name, no_dry_run=True)
+
+    # Update env with file
+
+    env_file_yml = tmp_path / "linux_env.yaml"
+    env_file_yml.write_text(env_yaml_content_default)
+
+    cmd = ["update", "-n", env_name, f"--file={env_file_yml}", "-y"]
+    cmd += ["--prune"]
+    helpers.run_env(*cmd)
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    assert not any(package["name"] == "gxx_linux-64" for package in packages)
+
+    os.remove(env_file_yml)
+    env_file_yml.write_text(env_yaml_content_changed)
+    helpers.run_env(*cmd)
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    assert any(package["name"] == "gxx_linux-64" for package in packages)
+
+    os.remove(env_file_yml)
+    env_file_yml.write_text(env_yaml_content_default)
+    helpers.run_env(*cmd)
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    assert not any(package["name"] == "gxx_linux-64" for package in packages)
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_explicit_export_topologically_sorted(tmp_home, tmp_prefix):
     """Explicit export must have dependencies before dependent packages."""

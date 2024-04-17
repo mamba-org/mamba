@@ -236,8 +236,11 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
-        bool repodata_use_zst = true;
-        std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
+        bool repodata_use_zst = false;  // TODO add this to CLI? or make it false in case of oci
+                                        // registry/mirrors
+        std::vector<std::string> repodata_has_zst = {};  //{
+                                                         //"https://conda.anaconda.org/conda-forge"
+                                                         //};
 
         // FIXME: Should not be stored here
         // Notice that we cannot build this map directly from mirrored_channels,

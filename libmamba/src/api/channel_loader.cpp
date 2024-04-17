@@ -127,6 +127,16 @@ namespace mamba
 
             std::vector<mamba_error> error_list;
 
+            // TODO put this at the right place: ctx and/or CLI config
+            // oci:// at the beginning is not working => https will be added to the url
+            // we can also somehow change this behaviour if necessary
+            //("ghcr.io/mamba-org/boa-forge"); //"oci://ghcr.io/channel-mirrors/conda-forge";
+
+            ctx.mirrored_channels["conda-forge"].push_back("ghcr.io/channel-mirrors/conda-forge");
+
+            // ACCESS DENIED WITH MAMBA-ORG (check if it's because it needs creds?)
+            // ctx.mirrored_channels["conda-forge"].push_back("ghcr.io/mamba-org/boa-forge");
+
             for (const auto& mirror : ctx.mirrored_channels)
             {
                 for (auto channel : channel_context.make_channel(mirror.first, mirror.second))

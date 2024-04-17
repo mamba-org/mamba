@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -330,7 +332,8 @@ namespace mamba::download
             context.remote_fetch_params.user_agent,
             curl_version()
         );
-        p_handle->add_header(user_agent);
+        // TODO check if this impacts curl success (I don't think so)
+        // p_handle->add_header(user_agent);
 
         // get url host
         const auto url_handler = util::URL::parse(p_request->url).value();
@@ -352,15 +355,24 @@ namespace mamba::download
             }
         }
 
-        if (p_request->etag.has_value())
+        // TODO check how this should work / use cases with if found auth_info
+        if (!p_request->headers.empty())
         {
-            p_handle->add_header("If-None-Match:" + p_request->etag.value());
+            p_handle->add_headers(p_request->headers);
         }
 
-        if (p_request->last_modified.has_value())
-        {
-            p_handle->add_header("If-Modified-Since:" + p_request->last_modified.value());
-        }
+        // TODO debug this later (check if still working after everything is ok to narrow the
+        // problem down)
+        //         if (p_request->etag.has_value())
+        //         {
+        //             p_handle->add_header("If-None-Match:" + p_request->etag.value());
+        //         }
+        //
+        //         if (p_request->last_modified.has_value())
+        //         {
+        //             p_handle->add_header("If-Modified-Since:" +
+        //             p_request->last_modified.value());
+        //         }
 
         p_handle->set_opt_header();
     }
@@ -579,8 +591,21 @@ namespace mamba::download
     {
     }
 
+    expected_t<void> MirrorAttempt::invoke_on_success(const Success& res) const
+    {
+        if (m_request.value().on_success.has_value())
+        {
+            std::cout << "IN MirrorAttempt::invoke_on_success" << std::endl;
+            auto ret = safe_invoke(m_request.value().on_success.value(), res);
+            return ret.has_value() ? ret.value() : forward_error(ret);
+        }
+        return expected_t<void>();
+    }
+
     void MirrorAttempt::prepare_request(const Request& initial_request)
     {
+        std::cout << "MirrorAttempt::prepare_request, size: " << m_request_generators.size()
+                  << " m_step: " << m_step << std::endl;
         if (m_state != State::LAST_REQUEST_FAILED)
         {
             m_request = m_request_generators[m_step](initial_request, p_last_content);
@@ -590,6 +615,8 @@ namespace mamba::download
         {
             m_next_retry = std::nullopt;
             ++m_retries;
+            LOG_DEBUG << "Last request failed! Tried " << m_retries << " over "
+                      << p_mirror->max_retries() << " times";
         }
     }
 
@@ -601,6 +628,7 @@ namespace mamba::download
         on_failure_callback error
     ) -> completion_function
     {
+        LOG_DEBUG << "Preparing download...";
         m_state = State::PREPARING_DOWNLOAD;
         m_attempt = DownloadAttempt(
             handle,
@@ -626,7 +654,11 @@ namespace mamba::download
 
     bool MirrorAttempt::has_finished() const
     {
-        return m_state == State::SEQUENCE_FINISHED;
+        std::cout << "has_finished(), state: " << static_cast<int>(m_state) << " , m_step: " << m_step
+                  << " ,req gen size: " << m_request_generators.size() << std::endl;
+        auto res = (m_state == State::SEQUENCE_FINISHED) || (m_step == m_request_generators.size());
+        std::cout << "m_mirror_attempt.has_finished()? " << res << std::endl;
+        return res;
     }
 
     void MirrorAttempt::set_transfer_started()
@@ -634,6 +666,12 @@ namespace mamba::download
         m_state = State::RUNNING_DOWNLOAD;
         p_mirror->increase_running_transfers();
     }
+
+    //     void MirrorAttempt::is_sequence_finished()
+    //     {
+    //         m_state = State::RUNNING_DOWNLOAD;
+    //         p_mirror->increase_running_transfers();
+    //     }
 
     void MirrorAttempt::set_state(bool success)
     {
@@ -774,16 +812,29 @@ namespace mamba::download
 
     expected_t<void> DownloadTracker::invoke_on_success(const Success& res) const
     {
-        if (p_initial_request->on_success.has_value())
+        std::cout << "In invoke_on_success, finished? " << m_mirror_attempt.has_finished()
+                  << std::endl;
+        if (!m_mirror_attempt.has_finished())
         {
-            auto ret = safe_invoke(p_initial_request->on_success.value(), res);
-            return ret.has_value() ? ret.value() : forward_error(ret);
+            return m_mirror_attempt.invoke_on_success(res);
+        }
+        else
+        {
+            if (p_initial_request->on_success.has_value())
+            {
+                std::cout << "req name: " << p_initial_request->name << " mirror name "
+                          << p_initial_request->mirror_name << " url_path "
+                          << p_initial_request->url_path << std::endl;
+                auto ret = safe_invoke(p_initial_request->on_success.value(), res);
+                return ret.has_value() ? ret.value() : forward_error(ret);
+            }
         }
         return expected_t<void>();
     }
 
     void DownloadTracker::invoke_on_failure(const Error& res) const
     {
+        // TODO do something like on_success
         if (p_initial_request->on_failure.has_value())
         {
             safe_invoke(p_initial_request->on_failure.value(), res);
@@ -999,6 +1050,7 @@ namespace mamba::download
             { return running_attempts < max_parallel_downloads && tracker.can_start_transfer(); }
         );
 
+        // Here we loop over all requests contained in filtered m_trackers
         for (auto& tracker : start_filter)
         {
             auto [iter, success] = m_completion_map.insert(
@@ -1015,6 +1067,8 @@ namespace mamba::download
     void Downloader::update_downloads()
     {
         std::size_t still_running = m_curl_handle.perform();
+        std::cout << "curl still running: " << still_running
+                  << " ,m_waiting_count : " << m_waiting_count << std::endl;
 
         if (still_running == m_waiting_count)
         {
@@ -1041,9 +1095,11 @@ namespace mamba::download
             else
             {
                 bool still_waiting = completion_callback->second(m_curl_handle, msg.m_transfer_result);
+                std::cout << "still waiting ? " << still_waiting << std::endl;
                 m_completion_map.erase(completion_callback);
                 if (!still_waiting)
                 {
+                    std::cout << "m_waiting_count decremented: " << m_waiting_count << std::endl;
                     --m_waiting_count;
                 }
             }

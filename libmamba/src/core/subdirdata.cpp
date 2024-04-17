@@ -753,6 +753,7 @@ namespace mamba
 
         bool use_zst = m_metadata.has_zst();
 
+        use_zst = false;  // TODO check later how to handle this
         download::Request request(
             name(),
             download::MirrorName(m_channel_id),

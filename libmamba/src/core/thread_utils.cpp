@@ -64,7 +64,7 @@ namespace mamba
         int signum = 0;
         // wait until a signal is delivered:
         sigwait(&sigset, &signum);
-        sig_interrupted.store(true);
+        set_sig_interrupted();
         return signum;
     }
 
@@ -84,17 +84,11 @@ namespace mamba
         receiver_exists.store(true);
         receiver.detach();
     }
-
-    void set_default_signal_handler()
-    {
-        set_signal_handler(default_signal_handler);
-    }
-#else
+#endif
     void set_default_signal_handler()
     {
         std::signal(SIGINT, [](int /*signum*/) { set_sig_interrupted(); });
     }
-#endif
 
     bool is_sig_interrupted() noexcept
     {

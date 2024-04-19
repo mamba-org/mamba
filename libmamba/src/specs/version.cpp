@@ -242,15 +242,15 @@ namespace mamba::specs
     namespace
     {
         /**
-         * Compare two range where some trailing elements can be considered as empty.
+         * Compare two ranges where some trailing elements can be considered as empty.
          *
          * If ``0`` is considered "empty" then all the ranges ``[1, 2] and ``[1, 2, 0]``,
          * ``[1, 2, 0, 0]`` are considered equal, however ``[1, 2]`` and ``[1, 0, 2]`` are not.
          * Similarly ``[1, 1] is less than ``[1, 2, 0]`` but more than ``[1, 1, -1]``
          * because ``-1 < 0``.
          *
-         * @return The comparison between the two sequence
-         * @return The first index where the two sequence diverge.
+         * @return The comparison between the two sequences
+         * @return The first index where the two sequences diverge.
          */
         template <typename Iter1, typename Iter2, typename Empty1, typename Empty2, typename Cmp>
         constexpr auto lexicographical_compare_three_way_trailing(
@@ -277,7 +277,7 @@ namespace mamba::specs
             }
 
             // They have the same leading elements but 1 has more elements
-            // We do a lexicographic compare with an infinite sequence of empties
+            // We do a lexicographic comparison with an infinite sequence of empties
             if ((iter1 != last1))
             {
                 for (; iter1 != last1; ++iter1)
@@ -290,7 +290,7 @@ namespace mamba::specs
             }
             // first2 != last2
             // They have the same leading elements but 2 has more elements
-            // We do a lexicographic compare with an infinite sequence of empties
+            // We do a lexicographic comparison with an infinite sequence of empties
             if ((iter2 != last2))
             {
                 for (; iter2 != last2; ++iter2)

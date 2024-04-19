@@ -370,7 +370,7 @@ namespace
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     )
     {
-        // Reusing the cache for all invocation of this function for speedup
+        // Reusing the cache for all invocations of this function for speedup
 
         static const auto tmp_dir = TemporaryDirectory();
 

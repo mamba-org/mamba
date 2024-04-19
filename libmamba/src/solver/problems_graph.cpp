@@ -1005,7 +1005,7 @@ namespace mamba::solver
                 return false;
             }
 
-            // Assuming any other type of leave is a kind of problem and other nodes not.
+            // Assuming any other type of leaves is a kind of problem and other nodes not.
             return m_pbs.graph().successors(id).size() == 0;
         }
 
@@ -1096,7 +1096,7 @@ namespace mamba::solver
                 const auto child_pos = last ? SiblingNumber::last : SiblingNumber::not_last;
                 Status status;
                 std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out);
-                // If there are any valid option in the split, the split is itself valid.
+                // If there are any valid options in the split, the split is itself valid.
                 ongoing.status |= status;
             }
 

@@ -29,7 +29,7 @@ namespace mamba::solver
 
     auto python_binary_compatible(const specs::Version& older, const specs::Version& newer) -> bool
     {
-        // Python binary compatiblity is defined athe the same MINOR level.
+        // Python binary compatibility is defined athe the same MINOR level.
         return older.compatible_with(newer, /* level= */ 2);
     }
 }

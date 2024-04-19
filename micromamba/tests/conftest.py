@@ -80,7 +80,7 @@ def tmp_home(
     if not request.config.getoption("--no-eager-clean"):
         try:
             helpers.rmtree(new_home)
-        # Silence possible cleanup exeptions on CI, weird things happening there
+        # Silence possible cleanup exceptions on CI, weird things happening there
         except Exception as e:
             if not on_ci:
                 raise e
@@ -153,7 +153,7 @@ def tmp_root_prefix(
     if not request.config.getoption("--no-eager-clean"):
         try:
             helpers.rmtree(new_root_prefix)
-        # Silence possible cleanup exeptions on CI, weird things happening there
+        # Silence possible cleanup exceptions on CI, weird things happening there
         except Exception as e:
             if not on_ci:
                 raise e

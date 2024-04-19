@@ -564,7 +564,7 @@ namespace mamba::util
     template <typename UnaryFunc>
     auto flat_bool_expr_tree<V>::evaluate_impl(UnaryFunc& var_eval, idx_type idx) const -> bool
     {
-        // We do a tree evluation rather than a stack-based postfix evaluation to
+        // We do a tree evaluation rather than a stack-based postfix evaluation to
         // avoid evaluation sub trees thanks to operator && and || short circuiting.
         assert(idx < m_tree.size());
         if (m_tree.is_leaf(idx))

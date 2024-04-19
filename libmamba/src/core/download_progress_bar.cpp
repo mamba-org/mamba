@@ -20,8 +20,8 @@ namespace mamba
         {
             const auto now = std::chrono::steady_clock::now();
 
-            const auto throttle_treshold = std::chrono::milliseconds(50);
-            if (now - throttle_time < throttle_treshold)
+            const auto throttle_threshold = std::chrono::milliseconds(50);
+            if (now - throttle_time < throttle_threshold)
             {
                 return;
             }

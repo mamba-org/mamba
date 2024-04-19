@@ -147,9 +147,9 @@ namespace mamba
                            "with the fall 2016 \"Anniversary update\" or newer.";
             return false;
         }
-        auto splitted = util::split(win_ver.value(), ".");
-        if (!(splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
-              && std::stoull(splitted[2]) >= 14352))
+        auto split_out = util::split(win_ver.value(), ".");
+        if (!(split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
+              && std::stoull(split_out[2]) >= 14352))
         {
             LOG_WARNING << "Not setting long path registry key; Windows version must be at least 10 "
                            "with the fall 2016 \"Anniversary update\" or newer.";
@@ -414,9 +414,9 @@ namespace mamba
 
         if (auto version = util::windows_version())
         {
-            auto splitted = util::split(version.value(), '.');
-            if (splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
-                && std::stoull(splitted[2]) >= 15063)
+            auto split_out = util::split(version.value(), '.');
+            if (split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
+                && std::stoull(split_out[2]) >= 15063)
             {
                 features.true_colors = true;
             }

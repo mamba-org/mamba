@@ -28,7 +28,7 @@ It now presents the same user interface and experience as ``micromamba``.
 
 Micromamba
 **********
-Micromamba recieves all new features and its CLI remains mostly unchanged.
+Micromamba receives all new features and its CLI remains mostly unchanged.
 
 Breaking changes include:
 
@@ -53,7 +53,7 @@ Libmambapy (Python bindings)
 ****************************
 The Python bindings to the C++ ``libamamba`` library remain available through ``import libmambapy``.
 They are now considered the first class citizen to using Mamba in Python.
-Changes inlcude:
+Changes include:
 
 - The global ``Context``, previously available through ``Context()``, must now be accessed through
   ``Context.instance()``.
@@ -96,7 +96,7 @@ Changes inlcude:
       ``libmambapy.solver.libsolv.Unsolvable`` state from which rich error messages can be
       extracted.
 
-For many changes, an exception throwing placeholder has ben kept to advise developpers on the new
+For many changes, an exception throwing placeholder has ben kept to advise developers on the new
 direction to take.
 
 Libmamba (C++)
@@ -110,8 +110,8 @@ The main changes are:
   A usage documentation (in Python) is available at :ref:`mamba_usage_specs`.
 
   - Implementations of ``Version`` and ``VersionSpec`` for matching versions,
-  - A refactoring of a purely funcitonal ``Channel`` class,
-  - Implementaiton of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
+  - A refactoring of a purely functional ``Channel`` class,
+  - Implementation of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
   - A refactored and complete implementation of ``MatchSpec`` using the components above.
 
 - A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the

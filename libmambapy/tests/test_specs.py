@@ -309,7 +309,7 @@ def test_BasicHTTPAuthentication():
     assert other.user == auth.user
     assert other is not auth
 
-    # Comparion
+    # Comparison
     assert auth == auth
     assert auth == other
     other.user = "rattler"
@@ -332,7 +332,7 @@ def test_BearerToken():
     assert other is not auth
     assert other.token == auth.token
 
-    # Comparion
+    # Comparison
     assert auth == auth
     assert auth == other
     other.token = "foo"
@@ -459,7 +459,7 @@ def test_Channel():
     # Constructor
     chan = Channel(url=url_1, platforms=platforms_1, display_name=display_name_1)
 
-    # Gettters
+    # Getters
     assert chan.url == url_1
     assert chan.platforms == platforms_1
     assert chan.display_name == display_name_1
@@ -714,7 +714,7 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.or_token, str)
     assert isinstance(VersionSpec.left_parenthesis_token, str)
     assert isinstance(VersionSpec.right_parenthesis_token, str)
-    assert isinstance(VersionSpec.prefered_free_str, str)
+    assert isinstance(VersionSpec.preferred_free_str, str)
     assert isinstance(VersionSpec.all_free_strs, list)
     assert isinstance(VersionSpec.starts_with_str, str)
     assert isinstance(VersionSpec.equal_str, str)

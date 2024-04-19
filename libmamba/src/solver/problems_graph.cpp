@@ -81,7 +81,7 @@ namespace mamba::solver
         for (const auto& [id, id_conflicts] : old_conflicts)
         {
             // We are trying to detect node that are in conflicts but are not leaves.
-            // This shows up in Pyhon dependencies because the constraint on ``python`` and
+            // This shows up in Python dependencies because the constraint on ``python`` and
             // ``python_abi`` was reversed.
             if (has_constraint_child(id))
             {
@@ -94,10 +94,10 @@ namespace mamba::solver
                     // between the ``id_child`` and the parents ``c_parent`` of the ``c``.
                     // This is a bit hacky but the intuition is to replicate the structure of
                     // nodes conflicting with ``id_child`` with ``c_parent``.
-                    // They likely reprensent the same thing and so we want them to be able to
+                    // They likely represent the same thing and so we want them to be able to
                     // merge later on.
 
-                    // id_child may alrady have been removed through a preivous iteration
+                    // id_child may already have been removed through a previous iteration
                     if (graph.has_node(id_child) && is_constraint(old_graph.node(c)))
                     {
                         for (const node_id c_parent : old_graph.predecessors(c))
@@ -133,8 +133,8 @@ namespace mamba::solver
          * that will be merged together.
          *
          * @param node_indices The indices of nodes of a given type.
-         * @param merge_criteria A binary function that decices whether two nodes should be merged
-         *        together. The function is assumed to be symetric and transitive.
+         * @param merge_criteria A binary function that decides whether two nodes should be merged
+         *        together. The function is assumed to be symmetric and transitive.
          * @return A partition of the the indices in @p node_indices.
          */
         template <typename CompFunc>
@@ -157,7 +157,7 @@ namespace mamba::solver
                     std::vector<node_id> current_group{};
                     current_group.push_back(id_i);
                     node_added_to_a_group[i] = true;
-                    // This is where we use symetry and transitivity, going through all remaining
+                    // This is where we use symmetry and transitivity, going through all remaining
                     // nodes and adding them to the current group if they match the criteria.
                     for (std::size_t j = i + 1; j < n_nodes; ++j)
                     {
@@ -208,8 +208,8 @@ namespace mamba::solver
          *
          * Merge by applying the @p merge_criteria to nodes that hold the same type in the variant.
          *
-         * @param merge_criteria A binary function that decices whether two nodes should be merged
-         * together. The function is assumed to be symetric and transitive.
+         * @param merge_criteria A binary function that decides whether two nodes should be merged
+         * together. The function is assumed to be symmetric and transitive.
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
@@ -438,8 +438,8 @@ namespace mamba::solver
          *
          * Merge by applying the @p merge_criteria to nodes that hold the same type in the variant.
          *
-         * @param merge_criteria A binary function that decices whether two nodes should be merged
-         * together. The function is assumed to be symetric and transitive.
+         * @param merge_criteria A binary function that decides whether two nodes should be merged
+         * together. The function is assumed to be symmetric and transitive.
          * @return A tuple of the graph with newly created nodes (without edges), the new root node,
          * and a mapping between old node ids and new node ids.
          */
@@ -733,7 +733,7 @@ namespace mamba::solver
     ) const -> std::pair<std::string, std::size_t>
     {
         auto builds = std::vector<std::string>(size());
-        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string) | ranges::unique
+        // TODO(C++20) *this | std::ranges::transform(invoke_build_string) | ranges::unique
         std::transform(
             begin(),
             end(),
@@ -840,7 +840,7 @@ namespace mamba::solver
                 last = true,
             };
 
-            /** Progagate a status up the tree, such as whether the package is installable. */
+            /** Propagate a status up the tree, such as whether the package is installable. */
             using Status = bool;
 
             using node_id = CompressedProblemsGraph::node_id;
@@ -867,7 +867,7 @@ namespace mamba::solver
          *
          * We need to reimplement a DFS algorithm instead of using the one provided by the one
          * from DiGraph because we need a more complex exploration, including:
-         *   - Controling the order in which neighbors are explored;
+         *   - Controlling the order in which neighbors are explored;
          *   - Dynamically adding and removing nodes;
          *   - Executing some operations before and after a node is visited;
          *   - Propagating information from the exploration of the subtree back to the current
@@ -920,7 +920,7 @@ namespace mamba::solver
              * Function to decide if a node is not installable.
              *
              * For a leaf this sets the final status.
-             * For other nodes, a pacakge could still be not installable because of its children.
+             * For other nodes, a package could still be not installable because of its children.
              */
             auto node_not_installable(node_id id) -> Status;
 
@@ -1016,7 +1016,7 @@ namespace mamba::solver
             const bool is_visited = m_node_visited.at(id).has_value();
             // We purposefully check if the node is a leaf before checking if it
             // is visited because showing a single  node again is more intelligible than
-            // refering to another one.
+            // referring to another one.
             if (!has_successors)
             {
                 return TreeNode::Type::leaf;
@@ -1041,7 +1041,7 @@ namespace mamba::solver
                 std::string key = edge.name();
                 if (!name_only)
                 {
-                    // Making up an arbitrary string represnetation of the edge
+                    // Making up an arbitrary string representation of the edge
                     key += edge.versions_and_build_strings_trunc(
                                    "",
                                    "",
@@ -1096,7 +1096,7 @@ namespace mamba::solver
                 const auto child_pos = last ? SiblingNumber::last : SiblingNumber::not_last;
                 Status status;
                 std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out);
-                // If there are any valid option in the split, the split is iself valid.
+                // If there are any valid option in the split, the split is itself valid.
                 ongoing.status |= status;
             }
 
@@ -1350,7 +1350,7 @@ namespace mamba::solver
             }
             else
             {
-                // Single depenency with only name constraint often end up looking like
+                // Single dependency with only name constraint often end up looking like
                 // ``python =* *`` so we strip all this.
                 // Best would be to handle this with a richer NamedList that contains
                 // ``VersionSpecs`` to avoid flaky reliance on string modification.

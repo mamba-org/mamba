@@ -80,16 +80,16 @@ namespace mamba::specs
     namespace
     {
         inline constexpr auto open_or_quote_tokens = std::array{
-            MatchSpec::prefered_list_open,
+            MatchSpec::preferred_list_open,
             MatchSpec::alt_list_open,
-            MatchSpec::prefered_quote,
+            MatchSpec::preferred_quote,
             MatchSpec::alt_quote,
         };
 
         inline constexpr auto close_or_quote_tokens = std::array{
-            MatchSpec::prefered_list_close,
+            MatchSpec::preferred_list_close,
             MatchSpec::alt_list_close,
-            MatchSpec::prefered_quote,
+            MatchSpec::preferred_quote,
             MatchSpec::alt_quote,
         };
 
@@ -180,7 +180,7 @@ namespace mamba::specs
             return util::strip_if(
                 str,
                 [](char c) -> bool {
-                    return !util::is_graphic(c) || (c == MatchSpec::prefered_quote)
+                    return !util::is_graphic(c) || (c == MatchSpec::preferred_quote)
                            || (c == MatchSpec::alt_quote);
                 }
 
@@ -410,7 +410,7 @@ namespace mamba::specs
             //   - ``target=blarg,optional``
             //   - ``build=3``
 
-            if (!util::ends_with(str, MatchSpec::prefered_list_close)
+            if (!util::ends_with(str, MatchSpec::preferred_list_close)
                 && !util::ends_with(str, MatchSpec::alt_list_close))
             {
                 return str;
@@ -1107,7 +1107,7 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
         out = fmt::format_to(
             out,
             "{}",
-            bracket_written ? MatchSpec::attribute_sep : MatchSpec::prefered_list_open
+            bracket_written ? MatchSpec::attribute_sep : MatchSpec::preferred_list_open
         );
         bracket_written = true;
     };
@@ -1115,7 +1115,7 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
     {
         if (bracket_written)
         {
-            out = fmt::format_to(out, "{}", MatchSpec::prefered_list_close);
+            out = fmt::format_to(out, "{}", MatchSpec::preferred_list_close);
         }
     };
 
@@ -1124,18 +1124,18 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
         if (const auto& ver = spec.version(); !ver.is_explicitly_free())
         {
             ensure_bracket_open_or_comma();
-            out = fmt::format_to(out, "version={0}{1}{0}", MatchSpec::prefered_quote, ver);
+            out = fmt::format_to(out, "version={0}{1}{0}", MatchSpec::preferred_quote, ver);
         }
         if (const auto& bs = spec.build_string(); !bs.is_explicitly_free())
         {
             ensure_bracket_open_or_comma();
-            out = fmt::format_to(out, "build={0}{1}{0}", MatchSpec::prefered_quote, bs);
+            out = fmt::format_to(out, "build={0}{1}{0}", MatchSpec::preferred_quote, bs);
         }
     }
     if (const auto& num = spec.build_number(); !num.is_explicitly_free())
     {
         ensure_bracket_open_or_comma();
-        out = fmt::format_to(out, "build_number={0}{1}{0}", MatchSpec::prefered_quote, num);
+        out = fmt::format_to(out, "build_number={0}{1}{0}", MatchSpec::preferred_quote, num);
     }
     if (const auto& tf = spec.track_features(); tf.has_value() && !tf->get().empty())
     {
@@ -1143,7 +1143,7 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
         out = fmt::format_to(
             out,
             "track_features={0}{1}{0}",
-            MatchSpec::prefered_quote,
+            MatchSpec::preferred_quote,
             fmt::join(tf->get(), std::string_view(&MatchSpec::feature_sep.front(), 1))
         );
     }

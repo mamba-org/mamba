@@ -20,7 +20,8 @@ TEST_SUITE("util::tuple_hash")
         const auto t1 = std::tuple{ 33, std::string("hello") };
         CHECK_NE(hash_tuple(t1), 0);
 
-        // Hash colision are hard to predict, but this is so trivial it is likely a bug if it fails.
+        // Hash collision are hard to predict, but this is so trivial it is likely a bug if it
+        // fails.
         const auto t2 = std::tuple{ 0, std::string("hello") };
         CHECK_NE(hash_tuple(t1), hash_tuple(t2));
 
@@ -31,7 +32,8 @@ TEST_SUITE("util::tuple_hash")
     TEST_CASE("hash_combine_val_range")
     {
         const auto hello = std::string("hello");
-        // Hash colision are hard to predict, but this is so trivial it is likely a bug if it fails.
+        // Hash collision are hard to predict, but this is so trivial it is likely a bug if it
+        // fails.
         CHECK_NE(hash_combine_val_range(0, hello.cbegin(), hello.cend()), 0);
         CHECK_NE(hash_combine_val_range(0, hello.crbegin(), hello.crend()), 0);
         CHECK_NE(
@@ -44,7 +46,8 @@ TEST_SUITE("util::tuple_hash")
     {
         const auto hello = std::string("hello");
         const auto world = std::string("world");
-        // Hash colision are hard to predict, but this is so trivial it is likely a bug if it fails.
+        // Hash collision are hard to predict, but this is so trivial it is likely a bug if it
+        // fails.
         CHECK_NE(hash_range(hello), 0);
         CHECK_NE(hash_range(world), 0);
         CHECK_NE(hash_range(hello), hash_range(world));

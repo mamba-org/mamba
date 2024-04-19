@@ -581,7 +581,7 @@ namespace mamba
             {
                 auto out = Console::stream();
                 print_request_pins_to(request, out);
-                // Console stream prints on destrucion
+                // Console stream prints on destruction
             }
 
             auto outcome = solver::libsolv::Solver().solve(db, request).value();
@@ -637,10 +637,10 @@ namespace mamba
             Console::instance().json_write({ { "success", true } });
 
             // The point here is to delete the database before executing the transaction.
-            // The database can have high memrory impact, and so can installing pacakges as it
+            // The database can have high memrory impact, and so can installing packages as it
             // requires downloading, extracgint, and launching Python interpreters for
             // creating ``.pyc`` files.
-            // Ideally this whole function should be properly refactored and the transction itself
+            // Ideally this whole function should be properly refactored and the transaction itself
             // should not need the database.
             auto trans = [&](auto db)
             {

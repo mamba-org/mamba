@@ -27,12 +27,12 @@ namespace mamba
 
     enum class file_parsing_error_code
     {
-        unknown_failure,     /// Something failed while parsing but we can't identify what.
-        unsuported_version,  /// The version of the file does not matched supported ver.
-        parsing_failure,     /// The content of the file doesnt match the expected format/language
-                             /// structure or constraints.
-        invalid_data,        /// The structure of the data in the file is fine but some fields have
-                             /// invalid values for our purpose.
+        unknown_failure,      /// Something failed while parsing but we can't identify what.
+        unsupported_version,  /// The version of the file does not matched supported ver.
+        parsing_failure,      /// The content of the file doesnt match the expected format/language
+                              /// structure or constraints.
+        invalid_data,         /// The structure of the data in the file is fine but some fields have
+                              /// invalid values for our purpose.
     };
 
     struct EnvLockFileError

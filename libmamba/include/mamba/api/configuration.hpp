@@ -423,11 +423,11 @@ namespace mamba
         void clear_values();
 
         /**
-         * Pop values that should have a single operation lifetime to avoid memroy effect
+         * Pop values that should have a single operation lifetime to avoid memory effect
          * between multiple operations.
          * It corresponds to CLI values in most of the cases, but may also include API
          * values if the `Configurable::has_single_op_lifetime` method returns true.
-         * RC files and environment variables are always overriden when loading the
+         * RC files and environment variables are always overridden when loading the
          * configuration.
          */
         void operation_teardown();

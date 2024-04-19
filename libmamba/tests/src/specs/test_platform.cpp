@@ -46,7 +46,7 @@ TEST_SUITE("specs::platform")
     {
         SUBCASE("KnownPlatform")
         {
-            // Making sure no-one forgot to ad the platform witha specific OS
+            // Making sure no-one forgot to add the platform with a specific OS
             for (auto plat : known_platforms())
             {
                 auto check = platform_is_linux(plat)             //

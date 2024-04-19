@@ -84,7 +84,7 @@ TEST_SUITE("specs::version")
         // Different epoch 0!2post < 1!1dev
         CHECK_LT(Version(0, { { { 2, "post" } } }), Version(1, { { { 1, "dev" } } }));
         CHECK_GE(Version(1, { { { 1, "dev" } } }), Version(0, { { { 2, "post" } } }));
-        // Different lenght with dev
+        // Different length with dev
         CHECK_LT(Version(0, { { { 1 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
         CHECK_LT(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
         // Different major 0!1post < 0!2dev

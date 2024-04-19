@@ -101,7 +101,7 @@ namespace mambapy
         mamba::MainExecutor m_main_executor;
         mamba::Context m_context{ { /* .enable_logging_and_signal_handling = */ true } };
         mamba::Console m_console{ m_context };
-        // ChannelContext needs to be lazy initialized, to enusre the Context has been initialized
+        // ChannelContext needs to be lazy initialized, to ensure the Context has been initialized
         // before
         std::unique_ptr<mamba::ChannelContext> p_channel_context = nullptr;
         mamba::Configuration m_config{ m_context };

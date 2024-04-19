@@ -851,7 +851,7 @@ TEST_SUITE("specs::channel")
                 auto found_names = util::flat_set<std::string>();
                 for (const auto& chan : channels)
                 {
-                    CHECK_EQ(chan.platforms(), uc.platform_filters());  // Overriden
+                    CHECK_EQ(chan.platforms(), uc.platform_filters());  // Overridden
                     found_names.insert(chan.display_name());
                 }
                 CHECK_EQ(found_names, util::flat_set<std::string>{ "pkgs/main", "pkgs/pro", "pkgs/r" });

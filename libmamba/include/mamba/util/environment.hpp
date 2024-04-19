@@ -37,7 +37,7 @@ namespace mamba::util
     /**
      * Return a map of all environment variables encoded in UTF8.
      *
-     * This is useful if one in intersted to do an operatrion over all envrionment variables
+     * This is useful if one in interested to do an operatrion over all environment variables
      * when their name is unknown.
      */
     [[nodiscard]] auto get_env_map() -> environment_map;
@@ -45,14 +45,14 @@ namespace mamba::util
     /**
      * Equivalent to calling set_env in a loop.
      *
-     * This leaves environment variables not refered to in the map unmodified.
+     * This leaves environment variables not referred to in the map unmodified.
      */
     void update_env_map(const environment_map& env);
 
     /**
      * Set the environment to be exactly the map given.
      *
-     * This unset all environment variables not refered to in the map unmodified.
+     * This unset all environment variables not referred to in the map unmodified.
      */
     void set_env_map(const environment_map& env);
 

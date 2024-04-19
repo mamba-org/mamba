@@ -160,7 +160,7 @@ namespace mamba
         {
             auto out = Console::stream();
             print_request_pins_to(request, out);
-            // Console stream prints on destrucion
+            // Console stream prints on destruction
         }
 
         auto outcome = solver::libsolv::Solver().solve(db, request).value();

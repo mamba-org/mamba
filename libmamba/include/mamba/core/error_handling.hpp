@@ -71,7 +71,7 @@ namespace mamba
 
         error_list_t m_error_list;
         mutable std::string m_aggregated_message;
-        static constexpr const char* m_base_message = "Multiple errors occured:\n";
+        static constexpr const char* m_base_message = "Multiple errors occurred:\n";
     };
 
     /********************************
@@ -277,7 +277,7 @@ namespace mamba
     }
 
     /***********************************
-     * helper funcitons implementation *
+     * helper functions implementation *
      ***********************************/
 
     template <class T, class E>

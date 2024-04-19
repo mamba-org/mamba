@@ -172,7 +172,7 @@ namespace mamba::solver::libsolv
         void warn_unexpected_problem(const SolverProblem& problem)
         {
             // TODO: Once the new error message are not experimental, we should consider
-            // reducing this level since it is not somethig the user has control over.
+            // reducing this level since it is not something the user has control over.
             LOG_WARNING << "Unexpected empty optionals for problem type "
                         << solv::enum_name(problem.type);
         }
@@ -462,7 +462,7 @@ namespace mamba::solver::libsolv
                     {
                         // A package dependency does not exist.
                         // Could be a wrong name or missing channel.
-                        // This is a partial exaplanation of why a specific solvable (could be any
+                        // This is a partial explanation of why a specific solvable (could be any
                         // of the parent) cannot be installed.
                         if (!source || !dep)
                         {
@@ -486,7 +486,7 @@ namespace mamba::solver::libsolv
                     {
                         // Looking for a valid solution to the installation satisfiability expand to
                         // two solvables of same package that cannot be installed together. This is
-                        // a partial exaplanation of why one of the solvables (could be any of the
+                        // a partial explanation of why one of the solvables (could be any of the
                         // parent) cannot be installed.
                         if (!source || !target)
                         {
@@ -533,7 +533,7 @@ namespace mamba::solver::libsolv
                     }
                     default:
                     {
-                        // Many more SolverRuleinfo that heve not been encountered.
+                        // Many more SolverRuleinfo that have not been encountered.
                         LOG_WARNING << "Problem type not implemented " << solv::enum_name(type);
                         break;
                     }

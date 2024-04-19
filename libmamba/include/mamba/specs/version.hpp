@@ -73,7 +73,7 @@ namespace mamba::specs
     /**
      * A sequence of VersionPart meant to represent all parts of a version.
      *
-     * CommonVersion are composed of an aribtrary postive number parts, such as major, minor.
+     * CommonVersion are composed of an arbitrary positive number parts, such as major, minor.
      * They are typically separated by dots, for instance the three parts in 3.0post1dev.4 are
      * {{3, ""}}, {{0, "post"}, {1, "dev"}}, and {{4, ""}}.
      *
@@ -85,7 +85,7 @@ namespace mamba::specs
     /**
      * A version according to Conda specifications.
      *
-     * A verison is composed of
+     * A version is composed of
      * - A epoch number, usually 0;
      * - A regular version,
      * - An optional local.
@@ -153,7 +153,7 @@ namespace mamba::specs
          *
          * For instance 1.3.1 is compatible with 1.2.1 at level 0 (first component `1 == 1``),
          * at level 1 (second component `` 3 >= 2``), but not at level two (because the second
-         * component is stricly larger ``3 > 2``).
+         * component is strictly larger ``3 > 2``).
          * Compatible versions are always smaller than the current version.
          */
         [[nodiscard]] auto compatible_with(const Version& older, std::size_t level) const -> bool;

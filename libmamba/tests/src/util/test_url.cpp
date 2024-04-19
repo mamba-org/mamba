@@ -421,7 +421,7 @@ TEST_SUITE("util::URL")
             URL url = {};
             url.set_host("mamba.org");
 
-            SUBCASE("defaut scheme")
+            SUBCASE("default scheme")
             {
                 CHECK_EQ(url.pretty_str(URL::StripScheme::no), "https://mamba.org/");
                 CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "mamba.org/");

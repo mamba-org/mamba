@@ -56,7 +56,7 @@ namespace mamba
         return m_data;
     }
 
-    constexpr const char* mamba_aggregated_error::m_base_message;  // = "Many errors occured:\n";
+    constexpr const char* mamba_aggregated_error::m_base_message;  // = "Many errors occurred:\n";
 
     mamba_aggregated_error::mamba_aggregated_error(error_list_t&& error_list)
         : base_type(mamba_aggregated_error::m_base_message, mamba_error_code::aggregated)

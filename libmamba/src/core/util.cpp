@@ -295,7 +295,7 @@ namespace mamba
         std::string line;
         while (std::getline(file_stream, line))
         {
-            // Remove the trailing \r to accomodate Windows line endings.
+            // Remove the trailing \r to accommodate Windows line endings.
             if ((!line.empty()) && (line.back() == '\r'))
             {
                 line.pop_back();
@@ -366,7 +366,7 @@ namespace mamba
                 bs_buf.clear();
                 if (!result.empty())
                 {
-                    // seperate arguments
+                    // separate arguments
                     result += " ";
                 }
 
@@ -451,7 +451,7 @@ namespace mamba
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean)
     {
         std::size_t deleted_files = 0;
-        std::size_t remainig_trash = 0;
+        std::size_t remaining_trash = 0;
         std::error_code ec;
         std::vector<fs::u8path> remaining_files;
         auto trash_txt = prefix / "conda-meta" / "mamba_trash.txt";
@@ -469,7 +469,7 @@ namespace mamba
                 else
                 {
                     LOG_INFO << "Trash: could not remove " << full_path;
-                    remainig_trash += 1;
+                    remaining_trash += 1;
                     // save relative path
                     remaining_files.push_back(f);
                 }
@@ -496,7 +496,7 @@ namespace mamba
                 }
                 else
                 {
-                    remainig_trash += 1;
+                    remaining_trash += 1;
                     // save relative path
                     remaining_files.push_back(fs::relative(p, prefix));
                 }
@@ -519,7 +519,7 @@ namespace mamba
             }
         }
 
-        LOG_INFO << "Cleaned " << deleted_files << " .mamba_trash files. " << remainig_trash
+        LOG_INFO << "Cleaned " << deleted_files << " .mamba_trash files. " << remaining_trash
                  << " remaining.";
         return deleted_files;
     }

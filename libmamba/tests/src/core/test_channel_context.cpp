@@ -245,7 +245,7 @@ TEST_SUITE("ChannelContext")
                 );
             }
 
-            // Explicilty override defaults
+            // Explicitly override defaults
             {
                 const auto& defaults = chan_ctx.params().custom_multichannels.at("defaults");
 
@@ -371,7 +371,7 @@ TEST_SUITE("ChannelContext")
                 );
             }
 
-            // Explicilty created defaults
+            // Explicitly created defaults
             {
                 const auto& defaults = chan_ctx.params().custom_multichannels.at("defaults");
 

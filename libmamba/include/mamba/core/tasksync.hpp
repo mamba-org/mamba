@@ -31,7 +31,7 @@ namespace mamba
           - if this object is being joined and/or destroyed, it will block until any already started
             tasks are ended;
 
-        WARNING: When used as a member of a type to syncrhonized tasks of the `this` instance, it is
+        WARNING: When used as a member of a type to synchronized tasks of the `this` instance, it is
         best to set the TaskSynchronizer as the last member so that it is the first one to be
        destroyed; alternatively, `.join_tasks()` can be called manually in the destructor too.
 
@@ -161,14 +161,14 @@ namespace mamba
             assert(!is_joined());
         }
 
-        /** @return true if all synchronized tasks have beeen joined, false otherwise. @see
+        /** @return true if all synchronized tasks have been joined, false otherwise. @see
          * join_tasks(), reset()*/
         bool is_joined() const
         {
             return !m_status && m_running_tasks == 0;
         }
 
-        /** @return Number of synchronized tasks which are currently beeing executed. */
+        /** @return Number of synchronized tasks which are currently being executed. */
         int64_t running_tasks() const
         {
             return m_running_tasks;

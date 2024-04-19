@@ -492,10 +492,10 @@ TEST_SUITE("util::graph")
             {
                 CAPTURE(std::pair(g.node(from), g.node(to)));
                 const auto from_pos = std::find(sorted.cbegin(), sorted.cend(), from);
-                // Must be true given the permuation assumption
+                // Must be true given the permutation assumption
                 REQUIRE_LT(from_pos, sorted.cend());
                 const auto to_pos = std::find(sorted.cbegin(), sorted.cend(), to);
-                // Must be true given the permuation assumption
+                // Must be true given the permutation assumption
                 REQUIRE_LT(to_pos, sorted.cend());
                 // The topological sort property
                 CHECK_LT(from_pos, to_pos);

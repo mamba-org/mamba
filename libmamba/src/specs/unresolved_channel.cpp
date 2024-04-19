@@ -181,7 +181,7 @@ namespace mamba::specs
         if (m_type == Type::Unknown)
         {
             m_location = unknown_channel;
-            // Allowing in any platform filters for unkown type can be useful in MatchSpec
+            // Allowing in any platform filters for unknown type can be useful in MatchSpec
         }
         if (m_location.empty())
         {

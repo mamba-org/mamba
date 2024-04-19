@@ -20,7 +20,7 @@ namespace mamba::util
      * multiple keys.
      * This can be understood as an extreme generalization of defaults: when a key is not found,
      * the behaviour is to look for another key.
-     * The behaviour for generating the sequence of weaken keys is controled by the Weakener.
+     * The behaviour for generating the sequence of weaken keys is controlled by the Weakener.
      */
     template <typename Map, typename Weakener>
     class weakening_map : private Map

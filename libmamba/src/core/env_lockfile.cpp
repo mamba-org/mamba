@@ -198,7 +198,7 @@ namespace mamba
                 default:
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::unsuported_version,
+                        file_parsing_error_code::unsupported_version,
                         fmt::format(
                             "Failed to read environment lockfile at '{}' : unknown version '{}'",
                             file_path.string(),

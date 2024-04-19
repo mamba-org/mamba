@@ -34,7 +34,7 @@ using namespace mamba::solver;
 
 TEST_SUITE("solver::conflict_map")
 {
-    TEST_CASE("symetric")
+    TEST_CASE("symmetric")
     {
         auto c = conflict_map<std::size_t>();
         CHECK_EQ(c.size(), 0);
@@ -100,7 +100,7 @@ namespace
     /**
      * Create a solver and a database of a conflict.
      *
-     * The underlying packages do not exist, we are onl interested in the conflict.
+     * The underlying packages do not exist, we are only interested in the conflict.
      */
     template <typename PkgRange>
     auto create_pkgs_database(ChannelContext& channel_context, const PkgRange& packages)
@@ -370,7 +370,7 @@ namespace
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     )
     {
-        // Reusing the cache for all invocation of this funciton for speedup
+        // Reusing the cache for all invocation of this function for speedup
 
         static const auto tmp_dir = TemporaryDirectory();
 

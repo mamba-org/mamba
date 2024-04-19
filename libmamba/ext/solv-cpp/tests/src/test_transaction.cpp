@@ -146,7 +146,7 @@ TEST_SUITE("solv::ObjTransaction")
                     }
                 );
 
-                // Sorting for comaprison
+                // Sorting for comparison
                 std::sort(solvables.begin(), solvables.end());
                 auto steps = trans.steps();
                 std::sort(steps.begin(), steps.end());

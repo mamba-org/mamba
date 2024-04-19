@@ -84,23 +84,23 @@ TEST_SUITE("util::environment")
     {
         const auto restore = mambatests::EnvironmentCleaner();
 
-        const auto key_inexistant = std::string(u8"CONDA😀");
+        const auto key_inexistent = std::string(u8"CONDA😀");
         const auto key_unchanged = std::string(u8"MAMBA😀");
         const auto key_changed = std::string(u8"PIXI😀");
 
-        CHECK_FALSE(get_env(key_inexistant).has_value());
+        CHECK_FALSE(get_env(key_inexistent).has_value());
         CHECK_FALSE(get_env(key_unchanged).has_value());
         CHECK_FALSE(get_env(key_changed).has_value());
 
         const auto val_set_1 = std::string(u8"a😀");
         update_env_map({ { key_changed, val_set_1 }, { key_unchanged, val_set_1 } });
-        CHECK_EQ(get_env(key_inexistant), std::nullopt);
+        CHECK_EQ(get_env(key_inexistent), std::nullopt);
         CHECK_EQ(get_env(key_unchanged), val_set_1);
         CHECK_EQ(get_env(key_changed), val_set_1);
 
         const auto val_set_2 = std::string(u8"b😀");
         update_env_map({ { key_changed, val_set_2 } });
-        CHECK_EQ(get_env(key_inexistant), std::nullopt);
+        CHECK_EQ(get_env(key_inexistent), std::nullopt);
         CHECK_EQ(get_env(key_unchanged), val_set_1);
         CHECK_EQ(get_env(key_changed), val_set_2);
     }
@@ -109,23 +109,23 @@ TEST_SUITE("util::environment")
     {
         const auto restore = mambatests::EnvironmentCleaner();
 
-        const auto key_inexistant = std::string(u8"CONDA🤗");
+        const auto key_inexistent = std::string(u8"CONDA🤗");
         const auto key_unchanged = std::string(u8"MAMBA🤗");
         const auto key_changed = std::string(u8"PIXI🤗");
 
-        CHECK_FALSE(get_env(key_inexistant).has_value());
+        CHECK_FALSE(get_env(key_inexistent).has_value());
         CHECK_FALSE(get_env(key_unchanged).has_value());
         CHECK_FALSE(get_env(key_changed).has_value());
 
         const auto val_set_1 = std::string(u8"a😀");
         set_env_map({ { key_changed, val_set_1 }, { key_unchanged, val_set_1 } });
-        CHECK_EQ(get_env(key_inexistant), std::nullopt);
+        CHECK_EQ(get_env(key_inexistent), std::nullopt);
         CHECK_EQ(get_env(key_unchanged), val_set_1);
         CHECK_EQ(get_env(key_changed), val_set_1);
 
         const auto val_set_2 = std::string(u8"b😀");
         set_env_map({ { key_changed, val_set_2 } });
-        CHECK_EQ(get_env(key_inexistant), std::nullopt);
+        CHECK_EQ(get_env(key_inexistent), std::nullopt);
         CHECK_EQ(get_env(key_unchanged), std::nullopt);  // Difference with update_env_map
         CHECK_EQ(get_env(key_changed), val_set_2);
     }
@@ -195,7 +195,7 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("which_in")
     {
-        SUBCASE("Inexistant search dirs")
+        SUBCASE("Inexistent search dirs")
         {
             CHECK_EQ(which_in("echo", "/obviously/does/not/exist"), "");
         }
@@ -255,9 +255,9 @@ TEST_SUITE("util::environment")
             }
         }
 
-        SUBCASE("Inexistant path")
+        SUBCASE("Inexistent path")
         {
-            CHECK_EQ(which("obvisously-does-not-exist"), "");
+            CHECK_EQ(which("obviously-does-not-exist"), "");
         }
     }
 }

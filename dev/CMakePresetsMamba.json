@@ -54,7 +54,7 @@
         "CMAKE_C_COMPILER_LAUNCHER": "ccache",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       },
-      "description": "Extra convenience flags used when developping",
+      "description": "Extra convenience flags used when developing",
       "displayName": "Mamba Dev",
       "hidden": true,
       "name": "mamba-dev",

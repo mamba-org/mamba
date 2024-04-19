@@ -99,7 +99,7 @@ representation of the string. By default, it will hide all credentials
    )
    assert url.str(credentials="Remove") == "https://mamba.pm/"
 
-Similarily the :cpp:func:`CondaURL.pretty_str <mamba::specs::CondaURL::pretty_str>` returns a more
+Similarly the :cpp:func:`CondaURL.pretty_str <mamba::specs::CondaURL::pretty_str>` returns a more
 user-friendly string, but that may not be parsed back.
 
 
@@ -110,7 +110,7 @@ A |UnresolvedChannel| is a lightweight object to represent a channel string, as 
 the CLI or configuration.
 Since channels rely heavily on configuration options, this type can be used as a placeholder for a
 channel that has not been fully "resolved" to a specific location.
-It does minimal parsing and can detect the type of ressource (an unresolved name, a URL, a file)
+It does minimal parsing and can detect the type of resource (an unresolved name, a URL, a file)
 and the platform filters.
 
 .. code:: python
@@ -180,7 +180,7 @@ There are no hard-coded names:
 
 You may have noticed that :cpp:func:`Channel.resolve <mamba::specs::Channel::resolve>` returns
 multiple channels.
-This is because of custom multichannel, a single name can return mutliple channels.
+This is because of custom multichannel, a single name can return multiple channels.
 
 
 .. code:: python
@@ -229,7 +229,7 @@ There can also be any number, such as in ``1.0.0alpha1dev3``.
 We can specify another *"local"* version, that we can separate with a ``+``, as in ``1.9.0+2.0.0``,
 but that is not widely used.
 Finally, there is also an epoch, similar to `PEP440 <https://peps.python.org/pep-0440/>`_, to
-accomodate for change in the versioning scheme.
+accommodate for change in the versioning scheme.
 For instance, in ``1!2.0.3``, the epoch is ``1``.
 
 To sum up, a version like ``7!1.2a3.5b4dev+1.3.0``, can be parsed as:
@@ -243,7 +243,7 @@ so ``1.2``, ``1.2.0``, and ``1.2.0.0`` are all considered equal.
 
 .. warning::
 
-   The flexibility of conda versions (arguably too flexible) is meant to accomodate differences
+   The flexibility of conda versions (arguably too flexible) is meant to accommodate differences
    in various ecosystems.
    Library authors should stick to well defined version schemes such as
    `semantic versioning <https://semver.org/>`_,
@@ -283,7 +283,7 @@ We have the following primitives:
   Note that since ``1.2.4.0`` is the same as ``1.2.4``, this is also matched.
 - ``!=`` for **not equal** is the opposite, it matches all but the given version.
   For instance ``=!1.2.4`` matches ``1.2.5`` and ``1!1.2.4`` but not ``1.2.4``.
-- ``>`` for **greater** matches versions stricly greater than the current one, for instance
+- ``>`` for **greater** matches versions strictly greater than the current one, for instance
   ``>1.2.4`` matches ``2.0.0``, ``1!1.0.0``, but not ``1.1.0`` or ``1.2.4``.
 - ``>=`` for **greater or equal**.
 - ``<`` for **less**.
@@ -333,7 +333,7 @@ To check if a given version matches a version spec, we use
 
 BuildNumberSpec
 ---------------
-Similarily, a build number spec is a way to describe a set of build numbers.
+Similarly, a build number spec is a way to describe a set of build numbers.
 It's much simpler than the |VersionSpec| in that it does not contain any boolean grammar
 (the ``,`` and ``|`` operators).
 |BuildNumberSpec| only contain primitives similar to that used in |VersionSpec|:
@@ -341,7 +341,7 @@ It's much simpler than the |VersionSpec| in that it does not contain any boolean
 - ``*`` or ``=*`` matches all build numbers (unrestricted).
 - ``=`` for **equal** matches build numbers equal to the given one (a singleton).
 - ``!=`` for **not equal**.
-- ``>`` for **greater** matches versions stricly greater than the current one.
+- ``>`` for **greater** matches versions strictly greater than the current one.
 - ``>=`` for **greater or equal**.
 - ``<`` for **less**.
 - ``<=`` for **less or equal**.
@@ -420,7 +420,7 @@ with an example
 
 .. warning::
 
-   Specifying some value mulitple time, such as in ``python>=3.7[version="(=3.9|>3.11)"]``, or
+   Specifying some value multiple time, such as in ``python>=3.7[version="(=3.9|>3.11)"]``, or
    ``python[build="foo"][build="bar"]`` is undefined and subject to change in the future.
 
 .. warning::
@@ -436,7 +436,7 @@ The method
 :cpp:func:`MatchSpec.contains_except_channel <mamba::specs::MatchSpec::contains_except_channel>`
 can be used to check if a package is contained (matched) by the current |MatchSpec|.
 The somewhat verbose name serve to indicate that the channel is ignored in this function.
-As mentionned in the :ref:`Channel section<libmamba_usage_channel>` resolving and matching channels
+As mentioned in the :ref:`Channel section<libmamba_usage_channel>` resolving and matching channels
 is a delicate operation.
 In addition, the channel is a part that describe the **provenance** of a package and not is content
 so various application ay want to handle it in different ways.

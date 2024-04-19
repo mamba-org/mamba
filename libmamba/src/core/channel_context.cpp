@@ -177,7 +177,7 @@ namespace mamba
                 params.custom_multichannels.emplace("local", std::move(channels));
             }
 
-            // Called after to guarentee there are no custom multichannels when calling
+            // Called after to guarantee there are no custom multichannels when calling
             // make_unique_chan.
             add_simple_params_custom_multichannel(params, ctx);
         }

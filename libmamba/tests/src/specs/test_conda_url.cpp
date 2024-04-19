@@ -97,7 +97,7 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("/bar/t/xy-12345678-1234-1234-1234-123456789012/");
             CHECK_FALSE(url.has_token());
-            CHECK_EQ(url.token(), "");  // Not at begining of path
+            CHECK_EQ(url.token(), "");  // Not at beginning of path
 
             url.set_token("abcd");
             CHECK(url.has_token());
@@ -223,11 +223,11 @@ TEST_SUITE("specs::CondaURL")
             url.set_path("conda-forge/OSX-64");
 
             CHECK_EQ(url.platform(), KnownPlatform::osx_64);
-            CHECK_EQ(url.platform_name(), "OSX-64");  // Captialization not changed
+            CHECK_EQ(url.platform_name(), "OSX-64");  // Capitalization not changed
 
             url.set_platform("Win-64");
             CHECK_EQ(url.platform(), KnownPlatform::win_64);
-            CHECK_EQ(url.path(), "/conda-forge/Win-64");  // Captialization not changed
+            CHECK_EQ(url.path(), "/conda-forge/Win-64");  // Capitalization not changed
 
             CHECK(url.clear_platform());
             CHECK_EQ(url.path(), "/conda-forge");
@@ -364,7 +364,7 @@ TEST_SUITE("specs::CondaURL")
             CondaURL url = {};
             url.set_host("mamba.org");
 
-            SUBCASE("defaut scheme")
+            SUBCASE("default scheme")
             {
                 CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no), "https://mamba.org/");
                 CHECK_EQ(url.pretty_str(CondaURL::StripScheme::yes), "mamba.org/");

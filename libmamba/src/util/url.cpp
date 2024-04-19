@@ -68,7 +68,7 @@ namespace mamba::util
         /**
          * A RAII wrapper for string mananged by CURL.
          *
-         * String can possibly be null, or zero-lenght, depending on the data returned by CURL.
+         * String can possibly be null, or zero-length, depending on the data returned by CURL.
          */
         class CurlStr
         {

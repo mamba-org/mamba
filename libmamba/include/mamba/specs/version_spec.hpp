@@ -137,7 +137,7 @@ namespace mamba::specs
         static constexpr char left_parenthesis_token = '(';
         static constexpr char right_parenthesis_token = ')';
 
-        static constexpr std::string_view prefered_free_str = "=*";
+        static constexpr std::string_view preferred_free_str = "=*";
         static constexpr std::array<std::string_view, 4> all_free_strs = { "", "*", "=*", "==*" };
         static constexpr std::string_view starts_with_str = "=";
         static constexpr std::string_view equal_str = "==";
@@ -162,10 +162,10 @@ namespace mamba::specs
         explicit VersionSpec(tree_type&& tree) noexcept;
 
         /**
-         * Returns wether the VersionSpec is unconstrained.
+         * Returns whether the VersionSpec is unconstrained.
          *
          * Due to the complex nature of VersionSpec expressions, it is not always easy to know
-         * whether a complex expression can be simpified to the unconstrained one.
+         * whether a complex expression can be simplified to the unconstrained one.
          * This functions only handles the trivial cases.
          */
         [[nodiscard]] auto is_explicitly_free() const -> bool;

@@ -879,7 +879,7 @@ TEST_SUITE("solver::libsolv::solver")
             );
             REQUIRE(repo_linux.has_value());
 
-            // FIXME the subdir is not overriden here so it is still linux-64 because that's what
+            // FIXME the subdir is not overridden here so it is still linux-64 because that's what
             // is in the json file.
             // We'de want to pass option to the database to override channel and subsir.
             const auto repo_noarch = db.add_repo_from_repodata_json(

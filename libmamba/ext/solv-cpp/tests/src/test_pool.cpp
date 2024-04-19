@@ -60,7 +60,7 @@ TEST_SUITE("solv::ObjPool")
                 }
             }
 
-            SUBCASE("Find non-existant string")
+            SUBCASE("Find non-existent string")
             {
                 CHECK_FALSE(pool.find_string("Bar").has_value());
             }
@@ -215,7 +215,7 @@ TEST_SUITE("solv::ObjPool")
 
                 SUBCASE("Iterate on installed solvables")
                 {
-                    SUBCASE("No instaled repo")
+                    SUBCASE("No installed repo")
                     {
                         pool.for_each_installed_solvable_id([&](SolvableId) { CHECK(false); });
                     }
@@ -225,7 +225,7 @@ TEST_SUITE("solv::ObjPool")
                         pool.set_installed_repo(repo1_id);
                         std::vector<SolvableId> ids = {};
                         pool.for_each_installed_solvable_id([&](auto id) { ids.push_back(id); });
-                        std::sort(ids.begin(), ids.end());  // Ease comparsion
+                        std::sort(ids.begin(), ids.end());  // Ease comparison
                         CHECK_EQ(ids, decltype(ids){ id1 });
                     }
                 }

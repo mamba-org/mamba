@@ -26,7 +26,7 @@
 #include "solver/libsolv/matcher.hpp"
 
 /**
- * Solver, repo, and solvable helpers dependent on specifi libsolv logic and objects.
+ * Solver, repo, and solvable helpers dependent on specific libsolv logic and objects.
  */
 
 namespace mamba::fs

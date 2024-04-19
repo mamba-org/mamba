@@ -320,7 +320,7 @@ namespace mamba::util
      * defined by iterating through the ``n`` elements of the iterator pair, interleaving the
      * separator in between the elements (thus appearing ``n-1`` times).
      *
-     * @param first The iterator pointing to the begining of the range of elements to join.
+     * @param first The iterator pointing to the beginning of the range of elements to join.
      * @param last The iterator pointing to past the end of the range of elements to join.
      * @param func The unary function to apply to all elements (separation and truncation included).
      * @param sep The separator used in between elements.

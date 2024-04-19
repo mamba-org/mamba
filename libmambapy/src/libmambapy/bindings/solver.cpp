@@ -17,13 +17,13 @@
 
 namespace mamba::solver
 {
-    // Fix Pybind11 py::bind_vector<Request::job_list> has trouble detecting the abscence
-    // of comparions operators, so we tell it explicitly.
+    // Fix Pybind11 py::bind_vector<Request::job_list> has trouble detecting the absence
+    // of comparison operators, so we tell it explicitly.
     auto operator==(const Request::Job&, const Request::Job&) -> bool = delete;
     auto operator!=(const Request::Job&, const Request::Job&) -> bool = delete;
 
-    // Fix Pybind11 py::bind_vector<Solution::actions> has trouble detecting the abscence
-    // of comparions operators, so we tell it explicitly.
+    // Fix Pybind11 py::bind_vector<Solution::actions> has trouble detecting the absence
+    // of comparison operators, so we tell it explicitly.
     auto operator==(const Solution::Action&, const Solution::Action&) -> bool = delete;
     auto operator!=(const Solution::Action&, const Solution::Action&) -> bool = delete;
 }

@@ -27,7 +27,7 @@ namespace mamba::util
                 alt_cmp = std::forward<AlternativeCmp>(alternative_cmp)  //
         ](const auto& lhs, const auto& rhs) -> bool
         {
-            // When alternatives are differents, compare the index.
+            // When alternatives are different, compare the index.
             if (lhs.index() != rhs.index())
             {
                 return int_cmp(lhs.index(), rhs.index());

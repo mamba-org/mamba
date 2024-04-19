@@ -46,7 +46,7 @@ namespace mamba::solver::libsolv
      * Database of solvable involved in resolving en environment.
      *
      * The database contains the solvable (packages) information required from the @ref Solver.
-     * The database can be reused by multiple solvers to solve differents requirements with the
+     * The database can be reused by multiple solvers to solve different requirements with the
      * same ecosystem.
      */
     class Database

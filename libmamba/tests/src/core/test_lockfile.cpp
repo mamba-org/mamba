@@ -146,7 +146,7 @@ namespace mamba
                     }
                     catch (...)
                     {
-                        std::cout << "convertion error" << std::endl;
+                        std::cout << "conversion error" << std::endl;
                     }
                     CHECK(is_locked);
 
@@ -168,7 +168,7 @@ namespace mamba
                     }
                     catch (...)
                     {
-                        std::cout << "convertion error" << std::endl;
+                        std::cout << "conversion error" << std::endl;
                     }
                     CHECK_FALSE(new_lock_created);
                 }
@@ -270,7 +270,7 @@ namespace mamba
                     }
                     catch (...)
                     {
-                        std::cout << "convertion error" << std::endl;
+                        std::cout << "conversion error" << std::endl;
                     }
                     CHECK(is_locked);
 
@@ -292,7 +292,7 @@ namespace mamba
                     }
                     catch (...)
                     {
-                        std::cout << "convertion error" << std::endl;
+                        std::cout << "conversion error" << std::endl;
                     }
                     CHECK_FALSE(new_lock_created);
                 }

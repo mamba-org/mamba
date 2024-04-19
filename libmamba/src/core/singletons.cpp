@@ -31,7 +31,7 @@ namespace mamba
     // Other static objects from other translation units can be destroyed in parallel to the ones
     // here as C++ does not guarantee any order of destruction after `main()`.
 
-    //--- Dependencie's singletons
+    //--- Dependencies singletons
     //----------------------------------------------------------------------
 
 
@@ -106,7 +106,7 @@ namespace mamba
     static std::atomic<MainExecutor*> main_executor{ nullptr };
 
     static std::unique_ptr<MainExecutor> default_executor;
-    static std::mutex default_executor_mutex;  // TODO: replace by sychronized_value once available
+    static std::mutex default_executor_mutex;  // TODO: replace by synchronized_value once available
 
     MainExecutor& MainExecutor::instance()
     {

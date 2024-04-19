@@ -445,7 +445,7 @@ TEST_SUITE("specs::match_spec")
         }
     }
 
-    TEST_CASE("Conda discrepencies")
+    TEST_CASE("Conda discrepancies")
     {
         SUBCASE("python=3.7=bld")
         {

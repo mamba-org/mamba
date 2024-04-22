@@ -51,7 +51,7 @@ All code previously available in Python through ``import mamba`` has been remove
 
 Libmambapy (Python bindings)
 ****************************
-The Python bindings to the C++ ``libamamba`` library remain available through ``import libmambapy``.
+The Python bindings to the C++ ``libmamba`` library remain available through ``import libmambapy``.
 They are now considered the first class citizen to using Mamba in Python.
 Changes include:
 
@@ -59,7 +59,7 @@ Changes include:
   ``Context.instance()``.
   What's more, it is required to be passed explicitly in a few more functions.
   Future version of ``libmambapy`` will continue in this direction until there are no global context.
-  In version 2, ``Context()`` will throw an exception to avoid hard to catch errors.
+  In version 2, ``Context()`` will throw an exception to allow catching errors more smoothly.
 - ``ChannelContext`` is no longer an implicit global variable.
   It must be constructed with one of ``ChannelContext.make_simple`` or
   ``ChannelContext.make_conda_compatible`` (with ``Context.instance`` as argument in most cases)
@@ -81,11 +81,11 @@ Changes include:
   A usage documentation page is available at :ref:`mamba_usage_solver`.
 
   - The redesign of the ``Pool``, which is now available as ``libmambapy.solver.libsolv.Database``.
-    The new interfaces makes it easier to create repositories without using other ``libmambapy``
+    The new interfaces make it easier to create repositories without using other ``libmambapy``
     objects.
   - ``Repo`` has been redesigned into a lightweight ``RepoInfo`` and moved to
     ``libmambapy.solver.libsolv``.
-    The creation and modification of repos happens through the ``Database``, with methods such as
+    The creation and modification of repos happen through the ``Database``, with methods such as
     ``Database.add_repo_from_repodata_json`` and ``Database.add_repo_from_packages``, but also
     high-level free functions such as ``load_subdir_in_database`` and
     ``load_installed_packages_in_database``.
@@ -96,7 +96,7 @@ Changes include:
       ``libmambapy.solver.libsolv.Unsolvable`` state from which rich error messages can be
       extracted.
 
-For many changes, an exception throwing placeholder has ben kept to advise developers on the new
+For many changes, an exception throwing placeholders has been kept to advise developers on the new
 direction to take.
 
 Libmamba (C++)
@@ -105,8 +105,8 @@ The C++ library ``libmamba`` has received significant changes.
 Due to the low usage of the C++ interface, all changes are not listed here.
 The main changes are:
 
-- Refactoring and testing of a large number of utilities into a ``util::`` namespace,
-- Creation of the ``specs::`` the items below.
+- Refactoring and testing of a large number of utilities into a ``util::`` namespace.
+- Creation of ``specs::`` including the items below.
   A usage documentation (in Python) is available at :ref:`mamba_usage_specs`.
 
   - Implementations of ``Version`` and ``VersionSpec`` for matching versions,
@@ -114,7 +114,7 @@ The main changes are:
   - Implementation of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
   - A refactored and complete implementation of ``MatchSpec`` using the components above.
 
-- A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the
+- A cleanup of ``ChannelContext`` to be a light proxy and parameter holder wrapping the
   ``specs::Channel``.
 - A new ``repodata.json`` parser using `simdjson <https://simdjson.org/>`_.
 - The ``MPool``, ``MRepo`` and ``MSolver`` API has been completely redesigned into a ``solver``

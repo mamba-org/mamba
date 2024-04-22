@@ -13,7 +13,7 @@ Describing Conda Objects
 .. |MatchSpec|          replace:: :cpp:type:`MatchSpec <mamba::specs::MatchSpec>`
 
 
-The :any:`libmambapy.specs <mamba::specs>` submodule contains object to *describe* abstraction in the Conda ecosystem.
+The :any:`libmambapy.specs <mamba::specs>` submodule contains objects to *describe* abstraction in the Conda ecosystem.
 They are purely functional and do not have any observable impact on the user system.
 For instance |Channel| is used to describe a channel but does not download any file.
 
@@ -22,7 +22,7 @@ CondaURL
 The |CondaURL| is a rich URL object that has additional capabilities for dealing with tokens,
 platforms, and packages.
 
-To parse a string into a |CondaURL| use :cpp:func:`CondaURL.parse <mamba::specs::CondaURL::parse>`
+To parse a string into a |CondaURL|, use :cpp:func:`CondaURL.parse <mamba::specs::CondaURL::parse>`
 as follows:
 
 .. code:: python
@@ -42,7 +42,7 @@ For instance, here the character ``!`` in the file name ``x264-1!164.3095-h166bd
 to be replaced with ``%21``.
 The getter functions, such as :cpp:func:`CondaURL.package <mamba::specs::CondaURL::package>`
 automatically decoded it for us, but we can specify ``decode=False`` to keep the raw representation.
-The setters follow the same logic, as described bellow.
+The setters follow the same logic, as described below.
 
 .. code:: python
 
@@ -180,7 +180,7 @@ There are no hard-coded names:
 
 You may have noticed that :cpp:func:`Channel.resolve <mamba::specs::Channel::resolve>` returns
 multiple channels.
-This is because of custom multichannel, a single name can return multiple channels.
+This is because of custom multichannels, a single name can return multiple channels.
 
 
 .. code:: python
@@ -299,7 +299,7 @@ We have the following primitives:
   all but the last parts specified, including zeros.
   For instance ``~=2.0`` matches ``2.0.0``, ``2.1.3``, but not ``3.0.1`` or ``2.0.0alpha``.
 
-All version spec can be combine using a boolean grammar where ``|`` means **or** and ``,`` means
+All version specs can be combined using a boolean grammar where ``|`` means **or** and ``,`` means
 **and**.
 For instance, ``(>2.1.0,<3.0)|==2.0.1`` means:
 
@@ -336,7 +336,7 @@ BuildNumberSpec
 Similarly, a build number spec is a way to describe a set of build numbers.
 It's much simpler than the |VersionSpec| in that it does not contain any boolean grammar
 (the ``,`` and ``|`` operators).
-|BuildNumberSpec| only contain primitives similar to that used in |VersionSpec|:
+|BuildNumberSpec| only contain primitives similar to those used in |VersionSpec|:
 
 - ``*`` or ``=*`` matches all build numbers (unrestricted).
 - ``=`` for **equal** matches build numbers equal to the given one (a singleton).
@@ -387,10 +387,10 @@ Match specs have a complex string representation, which we can informally write 
 with an example
 ``conda-forge:ns:python>=3.7=*cypthon[subdir="linux-64",fn=pkg.conda]``.
 
-- ``<channel>``, here ``conda-forge`` describes an |UnresolvedChannel| of where the channel the
-  package should come from.
+- ``<channel>``, here ``conda-forge``, describes an |UnresolvedChannel| where the package
+  should come from.
   It accepts all values from an unresolved channel, such as ``conda-forge/label/micromamba_dev``,
-  URLs, local file path, and platforms filters in between brackets.
+  URL, local file path, and platforms filters in between brackets.
 - ``<namespace>``, here ``ns`` is a future, not implemented, feature.
   It is nonetheless parsed, and retrievable.
 - ``<name>``, here ``python`` is the package name or glob expression and is the only mandatory
@@ -400,8 +400,8 @@ with an example
   followed by a ``<build_string>`` glob specification, here ``*cpython``.
 - Last, a bracket section of comma separated ``<attribute>`` = ``<value>``.
   In the example, we have two attributes, ``subdir`` and ``fn``.
-  Attribute values support quaoting with ``"`` or ``'``.
-  As such, they can be useful to set previously mentioned field without ambiguity.
+  Attribute values support quoting with ``"`` or ``'``.
+  As such, they can be useful to set previously mentioned fields without ambiguity.
   Valid attribute names are:
 
   - ``channel``, similar to ``<channel>``.
@@ -410,7 +410,7 @@ with an example
     parentheses and ``,`` and ``|`` operators).
   - ``build``, similar to ``<build_string>``.
   - ``build_number`` to set the |BuildNumberSpec|.
-  - ``subdir`` to select the channel subdirectory platform from which the package must come from.
+  - ``subdir`` to select the channel subdirectory platform from which the package must come.
   - ``fn`` to select the filename the package must match.
   - ``md5`` to specify the MD5 hash the package archive must have.
   - ``sha256`` to specify the SHA256 hash the package archive must have.
@@ -420,7 +420,7 @@ with an example
 
 .. warning::
 
-   Specifying some value multiple time, such as in ``python>=3.7[version="(=3.9|>3.11)"]``, or
+   Specifying some value multiple times, such as in ``python>=3.7[version="(=3.9|>3.11)"]``, or
    ``python[build="foo"][build="bar"]`` is undefined and subject to change in the future.
 
 .. warning::
@@ -435,13 +435,13 @@ with an example
 The method
 :cpp:func:`MatchSpec.contains_except_channel <mamba::specs::MatchSpec::contains_except_channel>`
 can be used to check if a package is contained (matched) by the current |MatchSpec|.
-The somewhat verbose name serve to indicate that the channel is ignored in this function.
-As mentioned in the :ref:`Channel section<libmamba_usage_channel>` resolving and matching channels
+The somewhat verbose name serves to indicate that the channel is ignored in this function.
+As mentioned in the :ref:`Channel section<libmamba_usage_channel>`, resolving and matching channels
 is a delicate operation.
-In addition, the channel is a part that describe the **provenance** of a package and not is content
-so various application ay want to handle it in different ways.
+In addition, the channel is a part that describes the **provenance** of a package and not its content,
+so various applications may want to handle it in different ways.
 The :cpp:func:`MatchSpec.channel <mamba::specs::MatchSpec::channel>` attribute can be used to
-reason about the possible channel contained in the |MatchSpec|.
+reason about the possible channels contained in the |MatchSpec|.
 
 .. code:: python
 

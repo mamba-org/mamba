@@ -157,6 +157,15 @@ set_run_command(CLI::App* subcom, Configuration& config)
     static bool clean_env = false;
     subcom->add_flag("--clean-env", clean_env, "Start with a clean environment");
 
+    // TODO:implement
+    static bool no_capture_output = false;
+    subcom->add_flag(
+        "--no-capture-output",
+        no_capture_output,
+        "Don't capture stdout/stderr (unimplement implement)"
+    );
+
+
     static std::vector<std::string> env_vars;
     subcom->add_option("-e,--env", env_vars, "Add env vars with -e ENVVAR or -e ENVVAR=VALUE")
         ->allow_extra_args(false);

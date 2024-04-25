@@ -637,8 +637,8 @@ namespace mamba
             Console::instance().json_write({ { "success", true } });
 
             // The point here is to delete the database before executing the transaction.
-            // The database can have high memrory impact, and so can installing packages as it
-            // requires downloading, extracgint, and launching Python interpreters for
+            // The database can have high memory impact, since installing packages
+            // requires downloading, extracting, and launching Python interpreters for
             // creating ``.pyc`` files.
             // Ideally this whole function should be properly refactored and the transaction itself
             // should not need the database.

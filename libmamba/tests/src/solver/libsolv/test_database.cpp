@@ -430,5 +430,57 @@ TEST_SUITE("solver::libsolv::database")
                 );
             }
         }
+
+        SUBCASE("Add repo from repodata with repodata_version 2")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-repodata-version-2.json";
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2
+            );
+            REQUIRE(repo1.has_value());
+            CHECK_EQ(repo1->package_count(), 2);
+
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "_libgcc_mutex")
+                    {
+                        CHECK_EQ(
+                            p.package_url,
+                            "https://repo.anaconda.com/repo/main/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                        );
+                    }
+                    else if (p.name == "bzip2")
+                    {
+                        CHECK_EQ(
+                            p.package_url,
+                            "https://repo.anaconda.com/repo/main/linux-64/bzip2-1.0.8-hd590300_5.conda"
+                        );
+                    }
+                }
+            );
+        }
+
+        SUBCASE("Add repo from repodata with repodata_version 2 with missing base_url")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-repodata-version-2-missing-base_url.json";
+            CHECK_THROWS_AS(
+                db.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No,
+                    libsolv::PackageTypes::CondaOrElseTarBz2
+                ),
+                std::invalid_argument
+            );
+        }
     }
 }

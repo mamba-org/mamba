@@ -41,7 +41,7 @@ namespace mamba::specs
 
 
             auto out = PackageInfo();
-            // TODO decide on the bet way to group filename/channel/subdir/package_url all at once
+            // TODO decide on the best way to group filename/channel/subdir/package_url all at once
             out.package_url = util::path_or_url_to_url(spec);
 
             auto url = CondaURL();

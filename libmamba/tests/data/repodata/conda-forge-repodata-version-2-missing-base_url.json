@@ -1,0 +1,48 @@
+{
+  "info": {
+    "subdir": "linux-64"
+  },
+  "packages": {
+    "_libgcc_mutex-0.1-conda_forge.tar.bz2": {
+      "build": "conda_forge",
+      "build_number": 0,
+      "build_string": "conda_forge",
+      "constrains": null,
+      "depends": null,
+      "fn": "_libgcc_mutex-0.1-conda_forge.tar.bz2",
+      "license": "None",
+      "md5": "d7c89558ba9fa0495403155b64376d81",
+      "name": "_libgcc_mutex",
+      "sha256": "fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726",
+      "size": 2562,
+      "subdir": "linux-64",
+      "timestamp": 1578324546,
+      "track_features": "",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2",
+      "version": "0.1"
+    }
+  },
+  "packages.conda": {
+    "bzip2-1.0.8-hd590300_5.conda": {
+      "build": "hd590300_5",
+      "build_number": 5,
+      "build_string": "hd590300_5",
+      "constrains": null,
+      "depends": [
+        "libgcc-ng >=12"
+      ],
+      "fn": "bzip2-1.0.8-hd590300_5.conda",
+      "license": "bzip2-1.0.6",
+      "md5": "69b8b6202a07720f448be700e300ccf4",
+      "name": "bzip2",
+      "sha256": "242c0c324507ee172c0e0dd2045814e746bb303d1eb78870d182ceb0abc726a8",
+      "size": 254228,
+      "subdir": "linux-64",
+      "timestamp": 1699279927,
+      "track_features": "",
+      "url": "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hd590300_5.conda",
+      "version": "1.0.8"
+    }
+  },
+  "repodata_version": 2
+}

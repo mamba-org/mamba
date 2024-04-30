@@ -75,7 +75,7 @@ class TestInstall:
         specs = []
 
         if source in ("cli_only", "both"):
-            specs = ["xframe", "xtl"]
+            specs = ["xtensor-python", "xtl"]
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):
@@ -471,16 +471,16 @@ class TestInstall:
     )
     def test_freeze_installed(self, existing_cache):
         helpers.install("xtensor=0.20", no_dry_run=True)
-        res = helpers.install("xframe", "--freeze-installed", "--json")
+        res = helpers.install("xtensor-python", "--freeze-installed", "--json")
 
-        # without freeze installed, xframe 0.3.0 should be installed and xtensor updated to 0.21
+        # without freeze installed, xtensor-python 0.3.0 should be installed and xtensor updated to 0.21
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
         action_keys = {"LINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"xframe"}
+        expected_packages = {"xtensor-python"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_packages == link_packages
         assert res["actions"]["LINK"][0]["version"] == "0.2.0"

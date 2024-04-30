@@ -758,7 +758,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
     pin_name = "xtensor"
-    pin_max_version = "0.20"
+    pin_max_version = "0.24"
     # We add the channel to test a fragile behavior of ``Database``
     spec_name = "conda-forge::xtensor"
     rc_file = tmp_path / "rc.yaml"
@@ -774,7 +774,7 @@ def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
             install_pkg = p
 
     # Should do proper version comparison
-    assert install_pkg["version"] == "0.20.0"
+    assert install_pkg["version"] == "0.24.0"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

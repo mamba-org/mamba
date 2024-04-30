@@ -76,6 +76,14 @@ namespace mamba
     void Context::use_default_signal_handler(bool val)
     {
         use_default_signal_handler_val = val;
+        if(use_default_signal_handler_val)
+        {
+            set_default_signal_handler();
+        }
+        else
+        {
+            restore_system_signal_handler();
+        }
     }
 
     void Context::enable_logging_and_signal_handling(Context& context)

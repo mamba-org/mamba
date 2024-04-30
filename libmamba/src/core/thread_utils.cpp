@@ -95,6 +95,10 @@ namespace mamba
         std::signal(SIGINT, [](int /*signum*/) { set_sig_interrupted(); });
     }
 #endif
+    void restore_system_signal_handler()
+    {
+        std::signal(SIGINT, SIG_DFL);
+    }
 
     bool is_sig_interrupted() noexcept
     {

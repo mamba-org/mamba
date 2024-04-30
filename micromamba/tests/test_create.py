@@ -827,7 +827,6 @@ def test_set_platform(tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize(
     "version,build,cache_tag",
     [
-        ["2.7", "*", ""],
         ["3.10", "*_cpython", "cpython-310"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],

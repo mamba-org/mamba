@@ -1025,15 +1025,15 @@ def add_glibc_virtual_package():
 @pytest.fixture
 def copy_channels_osx():
     for channel in ["a", "b"]:
-        if not (__this_dir__ / f"channel_{channel}/osx-64").exists():
+        if not (__this_dir__ / f"channel_{channel}/osx-arm64").exists():
             shutil.copytree(
                 __this_dir__ / f"channel_{channel}/linux-64",
-                __this_dir__ / f"channel_{channel}/osx-64",
+                __this_dir__ / f"channel_{channel}/osx-arm64",
             )
-            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json") as f:
+            with open(__this_dir__ / f"channel_{channel}/osx-arm64/repodata.json") as f:
                 repodata = f.read()
-            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json", "w") as f:
-                repodata = repodata.replace("linux", "osx")
+            with open(__this_dir__ / f"channel_{channel}/osx-arm64/repodata.json", "w") as f:
+                repodata = repodata.replace("linux-64", "osx-arm64")
                 f.write(repodata)
 
 

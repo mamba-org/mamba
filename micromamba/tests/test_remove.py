@@ -39,15 +39,15 @@ def test_remove(tmp_home, tmp_root_prefix, env_selector, tmp_xtensor_env, tmp_en
 @pytest.mark.skipif(sys.platform == "win32", reason="This test is currently failing on Windows")
 def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
     env_pkgs = [p["name"] for p in helpers.umamba_list("-p", tmp_xtensor_env, "--json")]
-    helpers.install("xframe", "-n", tmp_env_name, no_dry_run=True)
+    helpers.install("xtensor-python", "-n", tmp_env_name, no_dry_run=True)
 
-    res = helpers.remove("xframe", "-p", tmp_xtensor_env, "--json")
+    res = helpers.remove("xtensor-python", "-p", tmp_xtensor_env, "--json")
 
     keys = {"dry_run", "success", "prefix", "actions"}
     assert keys.issubset(set(res.keys()))
     assert res["success"]
     assert len(res["actions"]["UNLINK"]) == 1
-    assert res["actions"]["UNLINK"][0]["name"] == "xframe"
+    assert res["actions"]["UNLINK"][0]["name"] == "xtensor-python"
     assert res["actions"]["PREFIX"] == str(tmp_xtensor_env)
 
     res = helpers.remove("xtensor", "-p", tmp_xtensor_env, "--json")
@@ -67,7 +67,7 @@ def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_nam
 def test_remove_force(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
     # check that we can remove a package without solving the environment (putting
     # it in a bad state, actually)
-    helpers.install("xframe", "-n", tmp_env_name, no_dry_run=True)
+    helpers.install("xtensor-python", "-n", tmp_env_name, no_dry_run=True)
 
     res = helpers.remove("xtl", "-p", str(tmp_xtensor_env), "--json", "--force")
 
@@ -81,7 +81,7 @@ def test_remove_force(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_remove_no_prune_deps(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
-    helpers.install("xframe", "-n", tmp_env_name, no_dry_run=True)
+    helpers.install("xtensor-python", "-n", tmp_env_name, no_dry_run=True)
 
     res = helpers.remove("xtensor", "-p", tmp_xtensor_env, "--json", "--no-prune-deps")
 
@@ -91,7 +91,7 @@ def test_remove_no_prune_deps(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_en
     assert len(res["actions"]["UNLINK"]) == 2
     removed_names = [x["name"] for x in res["actions"]["UNLINK"]]
     assert "xtensor" in removed_names
-    assert "xframe" in removed_names
+    assert "xtensor-python" in removed_names
     assert res["actions"]["PREFIX"] == str(tmp_xtensor_env)
 
 
@@ -186,7 +186,7 @@ def remove_config_common_assertions(res, root_prefix, target_prefix):
 
 
 def test_remove_config_specs(tmp_home, tmp_root_prefix, tmp_prefix):
-    specs = ["xframe", "xtl"]
+    specs = ["xtensor-python", "xtl"]
     cmd = list(specs)
 
     res = helpers.remove(*cmd, "--print-config-only")

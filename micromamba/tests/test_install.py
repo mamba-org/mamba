@@ -482,9 +482,8 @@ class TestInstall:
 
         expected_packages = {"xtensor-blas"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        print(res["actions"]["LINK"])
         assert expected_packages.issubset(link_packages)
-        assert res["actions"]["LINK"][0]["version"] == "0.20.0"
+        assert res["actions"]["LINK"][-1]["version"] == "0.20.0"
 
     def test_channel_specific(self, existing_cache):
         res = helpers.install("conda-forge::xtensor", "--json", default_channel=False, no_rc=True)

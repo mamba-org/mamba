@@ -460,8 +460,6 @@ class TestInstall:
     )
     def test_python_pinning(self, existing_cache):
         """Black fails to install as it is not available for pinned Python 2."""
-        print(sys.platform)
-        print(platform.machine())
         res = helpers.install("python=2", "--json", no_dry_run=True)
         assert res["success"]
         # We do not have great way to check for the type of error for now
@@ -590,7 +588,7 @@ def test_track_features(tmp_home, tmp_root_prefix):
     tmp_root_prefix / "envs" / env_name
 
     # should install CPython since PyPy has track features
-    version = "3.7.9"
+    version = "3.11.0"
     helpers.create("-n", env_name, default_channel=False, no_rc=False)
     helpers.install(
         "-n",

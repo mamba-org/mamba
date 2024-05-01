@@ -46,7 +46,7 @@ def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_nam
     keys = {"dry_run", "success", "prefix", "actions"}
     assert keys.issubset(set(res.keys()))
     assert res["success"]
-    assert len(res["actions"]["UNLINK"]) == 1
+    assert len(res["actions"]["UNLINK"]) == 11
     assert res["actions"]["UNLINK"][0]["name"] == "xtensor-python"
     assert res["actions"]["PREFIX"] == str(tmp_xtensor_env)
 

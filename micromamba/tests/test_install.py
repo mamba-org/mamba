@@ -453,7 +453,7 @@ class TestInstall:
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
         reason="Running only ultra-dry tests",
     )
-    @pytest.mark.skipif(sys.platform == "win32", reason="Python2 no available")
+    @pytest.mark.skipif(sys.platform == "win32" or sys.platform == "osx-arm64", reason="Python2 no available")
     def test_python_pinning(self, existing_cache):
         """Black fails to install as it is not available for pinned Python 2."""
         res = helpers.install("python=2", "--json", no_dry_run=True)

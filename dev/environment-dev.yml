@@ -36,8 +36,6 @@ dependencies:
   - conda-package-handling
   - cryptography<40.0  # Or breaks conda-content-trust
   - securesystemslib
-    #- pip:
-    #- securesystemslib
   # libmambapy build dependencies
   - scikit-build
   - build

@@ -134,7 +134,7 @@ def test_whoneeds_local_not_installed(yaml_env: Path):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_whoneeds_remote(yaml_env: Path):
-    res = helpers.umamba_repoquery("whoneeds", "xtl=0.24.5", "--remote", "--json")
+    res = helpers.umamba_repoquery("whoneeds", "xtl=0.7.7", "--remote", "--json")
 
     assert "xproperty" in {pkg["name"] for pkg in res["result"]["pkgs"]}
 

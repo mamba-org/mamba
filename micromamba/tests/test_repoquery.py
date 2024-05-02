@@ -43,14 +43,14 @@ def test_depends_local_not_installed(yaml_env: Path):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_depends_remote(yaml_env: Path):
-    res = helpers.umamba_repoquery("depends", "yaml=0.2.4", "--remote", "--json")
+    res = helpers.umamba_repoquery("depends", "yaml=0.2.5", "--remote", "--json")
 
-    assert res["query"]["query"] == "yaml=0.2.4"
+    assert res["query"]["query"] == "yaml=0.2.5"
     assert res["query"]["type"] == "depends"
 
     pkgs = res["result"]["pkgs"]
     assert any(x["name"] == "yaml" for x in pkgs)
-    assert any(x["version"] == "0.2.4" for x in pkgs)
+    assert any(x["version"] == "0.2.5" for x in pkgs)
 
     if platform.system() == "Linux":
         assert any(x["name"] == "libgcc-ng" for x in pkgs)

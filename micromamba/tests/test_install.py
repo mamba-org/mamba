@@ -583,12 +583,16 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin" and platform.machine() == "arm64",
+    reason="Python 3.7.9 not available",
+)
 def test_track_features(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
 
     # should install CPython since PyPy has track features
-    version = "3.11.0"
+    version = "3.7.9"
     helpers.create("-n", env_name, default_channel=False, no_rc=False)
     helpers.install(
         "-n",

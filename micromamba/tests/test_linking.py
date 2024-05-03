@@ -1,4 +1,5 @@
 import os
+import sys
 import platform
 from pathlib import Path
 
@@ -126,5 +127,9 @@ class TestLinking:
         os.remove(linked_file)
         helpers.remove("xtensor", "-n", TestLinking.env_name)
 
+    @pytest.mark.skipif(
+        sys.platform == "darwin" and platform.machine() == "arm64",
+        reason="Python 3.7 not available",
+    )
     def test_link_missing_scripts_dir(self):  # issue 2808
         helpers.create("python=3.7", "pypy", "-n", TestLinking.env_name, "--json", no_dry_run=True)

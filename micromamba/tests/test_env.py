@@ -138,14 +138,14 @@ dependencies:
 def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     env_name = "env-create-update"
 
-    # Create env with python=3.6.15 and xtensor=0.20.0
-    helpers.create("python=3.6.15", "xtensor=0.20.0", "-n", env_name, "--json", no_dry_run=True)
+    # Create env with python=3.11.0 and xtensor=0.25.0
+    helpers.create("python=3.11.0", "xtensor=0.25.0", "-n", env_name, "--json", no_dry_run=True)
     packages = helpers.umamba_list("-n", env_name, "--json")
     assert any(
-        package["name"] == "python" and package["version"] == "3.6.15" for package in packages
+        package["name"] == "python" and package["version"] == "3.11.0" for package in packages
     )
     assert any(
-        package["name"] == "xtensor" and package["version"] == "0.20.0" for package in packages
+        package["name"] == "xtensor" and package["version"] == "0.25.0" for package in packages
     )
     assert any(package["name"] == "xtl" for package in packages)
 
@@ -161,7 +161,7 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     helpers.run_env(*cmd)
     packages = helpers.umamba_list("-n", env_name, "--json")
     assert any(
-        package["name"] == "python" and Version(package["version"]) > Version("3.6.15")
+        package["name"] == "python" and Version(package["version"]) > Version("3.11.0")
         for package in packages
     )
     if prune:
@@ -170,7 +170,7 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
         assert not any(package["name"] == "xtl" for package in packages)
     else:
         assert any(
-            package["name"] == "xtensor" and package["version"] == "0.20.0" for package in packages
+            package["name"] == "xtensor" and package["version"] == "0.25.0" for package in packages
         )
         assert any(package["name"] == "xtl" for package in packages)
 

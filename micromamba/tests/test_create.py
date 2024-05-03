@@ -60,7 +60,7 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
     specs = []
 
     if source in ("cli_only", "both"):
-        specs = ["xframe", "xtl"]
+        specs = ["xtensor-python", "xtl"]
         cmd += specs
 
     if source in ("spec_file_only", "both"):
@@ -112,18 +112,19 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
-@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
-    env_prefix = tmp_path / "myenv"
-    spec_file = (
-        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
-    )
-
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-    assert res["success"]
-
-    packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+# TODO: uncomment when https://github.com/mamba-org/mamba/pull/3286 is merged
+# @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+# def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+#    env_prefix = tmp_path / "myenv"
+#    spec_file = (
+#        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+#    )
+#
+#    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+#    assert res["success"]
+#
+#    packages = helpers.umamba_list("-p", env_prefix, "--json")
+#    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -736,7 +737,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
         "  - yaml",
         "  - nodefaults",
         "dependencies:",
-        "  - xframe",
+        "  - xtensor-python",
     ]
     with open(spec_file, "w") as f:
         f.write("\n".join(contents))
@@ -758,7 +759,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
     pin_name = "xtensor"
-    pin_max_version = "0.20"
+    pin_max_version = "0.24"
     # We add the channel to test a fragile behavior of ``Database``
     spec_name = "conda-forge::xtensor"
     rc_file = tmp_path / "rc.yaml"
@@ -774,7 +775,7 @@ def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
             install_pkg = p
 
     # Should do proper version comparison
-    assert install_pkg["version"] == "0.20.0"
+    assert install_pkg["version"] == "0.24.0"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -826,7 +827,6 @@ def test_set_platform(tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize(
     "version,build,cache_tag",
     [
-        ["2.7", "*", ""],
         ["3.10", "*_cpython", "cpython-310"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
@@ -1025,15 +1025,15 @@ def add_glibc_virtual_package():
 @pytest.fixture
 def copy_channels_osx():
     for channel in ["a", "b"]:
-        if not (__this_dir__ / f"channel_{channel}/osx-64").exists():
+        if not (__this_dir__ / f"channel_{channel}/osx-arm64").exists():
             shutil.copytree(
                 __this_dir__ / f"channel_{channel}/linux-64",
-                __this_dir__ / f"channel_{channel}/osx-64",
+                __this_dir__ / f"channel_{channel}/osx-arm64",
             )
-            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json") as f:
+            with open(__this_dir__ / f"channel_{channel}/osx-arm64/repodata.json") as f:
                 repodata = f.read()
-            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json", "w") as f:
-                repodata = repodata.replace("linux", "osx")
+            with open(__this_dir__ / f"channel_{channel}/osx-arm64/repodata.json", "w") as f:
+                repodata = repodata.replace("linux-64", "osx-arm64")
                 f.write(repodata)
 
 

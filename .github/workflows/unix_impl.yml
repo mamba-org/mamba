@@ -189,8 +189,6 @@ jobs:
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
           unset CONDARC  # Interferes with tests
-          # FIXME this is apparently a bug to be fixed (pip specs are not installed from env yml file)
-          python -m pip install securesystemslib --no-input --no-deps
           cd micromamba/test-server
           ./generate_gpg_keys.sh
           ./testserver_pkg_signing.sh

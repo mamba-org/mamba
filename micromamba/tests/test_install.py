@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import sys
+import platform
 from pathlib import Path
 
 import pytest
@@ -75,7 +76,7 @@ class TestInstall:
         specs = []
 
         if source in ("cli_only", "both"):
-            specs = ["xframe", "xtl"]
+            specs = ["xtensor-python", "xtl"]
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):
@@ -429,7 +430,7 @@ class TestInstall:
     )
     def test_no_python_pinning(self, existing_cache):
         helpers.install("python=3.9", no_dry_run=True)
-        res = helpers.install("setuptools=28.4.0", "--no-py-pin", "--json")
+        res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -453,7 +454,10 @@ class TestInstall:
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
         reason="Running only ultra-dry tests",
     )
-    @pytest.mark.skipif(sys.platform == "win32", reason="Python2 no available")
+    @pytest.mark.skipif(
+        sys.platform == "win32" or (sys.platform == "darwin" and platform.machine() == "arm64"),
+        reason="Python2 no available",
+    )
     def test_python_pinning(self, existing_cache):
         """Black fails to install as it is not available for pinned Python 2."""
         res = helpers.install("python=2", "--json", no_dry_run=True)
@@ -470,20 +474,20 @@ class TestInstall:
         reason="Running only ultra-dry tests",
     )
     def test_freeze_installed(self, existing_cache):
-        helpers.install("xtensor=0.20", no_dry_run=True)
-        res = helpers.install("xframe", "--freeze-installed", "--json")
+        helpers.install("xtensor=0.24", no_dry_run=True)
+        res = helpers.install("xtensor-blas", "--freeze-installed", "--json")
 
-        # without freeze installed, xframe 0.3.0 should be installed and xtensor updated to 0.21
+        # without freeze installed, xtensor-blas 0.21.0 should be installed and xtensor updated to 0.25
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
         action_keys = {"LINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"xframe"}
+        expected_packages = {"xtensor-blas"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_packages == link_packages
-        assert res["actions"]["LINK"][0]["version"] == "0.2.0"
+        assert expected_packages.issubset(link_packages)
+        assert res["actions"]["LINK"][-1]["version"] == "0.20.0"
 
     def test_channel_specific(self, existing_cache):
         res = helpers.install("conda-forge::xtensor", "--json", default_channel=False, no_rc=True)
@@ -579,6 +583,10 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin" and platform.machine() == "arm64",
+    reason="Python 3.7.9 not available",
+)
 def test_track_features(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name

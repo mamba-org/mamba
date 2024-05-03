@@ -1,3 +1,30 @@
+micromamba 2.0.0beta0 (May 03, 2024)
+====================================
+
+Enhancements:
+
+- Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+- Add integration test by @Hind-M in https://github.com/mamba-org/mamba/pull/3234
+- Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+
+Bug fixes:
+
+- Fix VersionSpec equal and glob by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3269
+- Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+
+CI fixes and doc:
+
+- Test with xtensor-python instead of unmaintained xframe by @JohanMabille in https://github.com/mamba-org/mamba/pull/3286
+- Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+- Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
 micromamba 2.0.0beta0 (April 04, 2024)
 ======================================
 

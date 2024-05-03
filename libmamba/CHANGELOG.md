@@ -1,3 +1,42 @@
+libmamba 2.0.0beta0 (May 03, 2024)
+==================================
+
+Enhancements:
+
+- Bind text_style and graphic params by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3266
+- Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+- Implemented OCI mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3246
+- Passed url_path to request_generators by @JohanMabille in https://github.com/mamba-org/mamba/pull/3245
+- Handle regex in build string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3239
+- Release libsolv memory before installation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3238
+- Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- Add MatchSpec::contains_except_channel" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3231
+- Refactor MatchSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3215
+- Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- Fully bind MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3213
+- Add more MatchSpec tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3211
+- Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+
+Bug fixes:
+
+- Hotfix to allow Ctrl+C in python scipts by @Klaim in https://github.com/mamba-org/mamba/pull/3285
+- Fix typos in comments by @ryandesign in https://github.com/mamba-org/mamba/pull/3272
+- Fix VersionSpec equal and glob by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3269
+- Fix pin repr in solver error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3268
+- Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+- Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+- fix(micromamba): anaconda private channels not working by @s22chan in https://github.com/mamba-org/mamba/pull/3220
+
+CI fixes and doc:
+
+- Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+- Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
 libmamba 2.0.0beta0 (April 04, 2024)
 ====================================
 

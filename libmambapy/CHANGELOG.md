@@ -1,3 +1,33 @@
+libmambapy 2.0.0beta0 (May 03, 2024)
+====================================
+
+Enhancements:
+
+- Bind text_style and graphic params by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3266
+- Bind VersionPredicate by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3255
+- Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- Handle regex in build string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3239
+- Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- Add MatchSpec::contains_except_channel" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3231
+- Refactor MatchSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3215
+- Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- Fully bind MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3213
+
+Bug fixes:
+
+- Fix VersionSpec equal and glob by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3269
+- Add missing pybind header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3256
+- Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+- Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+
+CI fixes and doc:
+
+- Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+- Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
 libmambapy 2.0.0beta0 (April 04, 2024)
 ======================================
 

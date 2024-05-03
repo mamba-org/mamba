@@ -31,6 +31,7 @@ namespace mamba
 #endif
 
     void set_default_signal_handler();
+    void restore_system_signal_handler();
     bool is_sig_interrupted() noexcept;
     void set_sig_interrupted() noexcept;
 

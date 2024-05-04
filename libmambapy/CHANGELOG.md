@@ -1,4 +1,4 @@
-libmambapy 2.0.0beta0 (May 03, 2024)
+libmambapy 2.0.0beta1 (May 04, 2024)
 ====================================
 
 Enhancements:

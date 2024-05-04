@@ -1,7 +1,7 @@
-2024.05.03
+2024.05.04
 ==========
 
-Releases: libmamba 2.0.0beta0, libmambapy 2.0.0beta0, micromamba 2.0.0beta0
+Releases: libmamba 2.0.0beta1, libmambapy 2.0.0beta1, micromamba 2.0.0beta1
 
 Enhancements:
 

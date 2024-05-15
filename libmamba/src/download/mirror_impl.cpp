@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
-
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/output.hpp"
@@ -152,9 +150,10 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto
-    OCIMirror::get_request_generators_impl(const std::string& url_path, const std::string& spec_sha256) const
-        -> request_generator_list
+    auto OCIMirror::get_request_generators_impl(
+        const std::string& url_path,
+        const std::string& spec_sha256
+    ) const -> request_generator_list
     {
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as
@@ -322,7 +321,6 @@ namespace mamba::download
     std::string OCIMirror::get_manifest_url(const std::string& repo, const std::string& reference) const
     {
         return fmt::format("{}/v2/{}/manifests/{}", m_url, get_repo(repo), reference);
-        // return fmt::format("{}/{}", m_url, get_repo(repo));
     }
 
     std::string OCIMirror::get_blob_url(const std::string& repo, const std::string& sha256sum) const
@@ -353,7 +351,9 @@ namespace mamba::download
         {
             return std::make_unique<PassThroughMirror>();
         }
-        else if ((util::starts_with(url, "https://") || util::starts_with(url, "http://") || util::starts_with(url, "file://")) && !util::contains(url, "ghcr"))
+        else if ((util::starts_with(url, "https://") || util::starts_with(url, "http://")
+                  || util::starts_with(url, "file://"))
+                 && !util::contains(url, "ghcr"))
         {
             return std::make_unique<HTTPMirror>(std::move(url));
         }

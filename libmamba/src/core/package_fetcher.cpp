@@ -142,6 +142,7 @@ namespace mamba
         download::Request
             request(name(), download::MirrorName(channel()), url_path(), m_tarball_path.string());
         request.expected_size = expected_size();
+        request.sha256 = sha256();
 
         request.on_success = [this, cb = std::move(callback)](const download::Success& success)
         {
@@ -324,26 +325,33 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        if (m_package_info.package_type == specs::PackageType::Conda)
-        {
-            return m_package_info.channel;
-        }
-        else
-        {
-            return "";
-        }
+        // TODO either this fix or set package_type in set_solv... to specs::PackageType::Conda and
+        // maybe other places?
+        return m_package_info.channel;
+        //         if (m_package_info.package_type == specs::PackageType::Conda)
+        //         {
+        //             return m_package_info.channel;
+        //         }
+        //         else
+        //         {
+        //             return "";
+        //         }
     }
 
     std::string PackageFetcher::url_path() const
     {
-        if (m_package_info.package_type == specs::PackageType::Conda)
-        {
-            return util::concat(m_package_info.platform, '/', m_package_info.filename);
-        }
-        else
-        {
-            return m_package_info.package_url;
-        }
+        // TODO maybe check that m_package_info.package_url contains github... for oci, if yes do
+        // not return the package url?
+        return util::concat(m_package_info.platform, '/', m_package_info.filename);
+
+        //         if (m_package_info.package_type == specs::PackageType::Conda)
+        //         {
+        //             return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        //         }
+        //         else
+        //         {
+        //             return m_package_info.package_url;
+        //         }
     }
 
     const std::string& PackageFetcher::url() const

@@ -40,8 +40,8 @@ namespace mamba::download
         return PASSTHROUGH_MIRROR_ID;
     }
 
-    auto
-    PassThroughMirror::get_request_generators_impl(const std::string&) const -> request_generator_list
+    auto PassThroughMirror::get_request_generators_impl(const std::string&, const std::string&) const
+        -> request_generator_list
     {
         return { [](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, dl_request.url_path); } };
@@ -62,7 +62,8 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto HTTPMirror::get_request_generators_impl(const std::string&) const -> request_generator_list
+    auto HTTPMirror::get_request_generators_impl(const std::string&, const std::string&) const
+        -> request_generator_list
     {
         return { [url = m_url](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, util::url_concat(url, dl_request.url_path)); } };
@@ -151,14 +152,19 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto OCIMirror::get_request_generators_impl(const std::string& url_path
-    ) const -> request_generator_list
+    auto
+    OCIMirror::get_request_generators_impl(const std::string& url_path, const std::string& spec_sha256) const
+        -> request_generator_list
     {
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as
         // inserting a new AuthenticationData object may relocate preexisting ones.
-        std::cout << "OCIMirror::get_request_generators_impl url_path: " << url_path << std::endl;
         auto [split_path, split_tag] = split_path_tag(url_path);
+        // TODO we are getting here a new token for every artifact/path
+        // => we should handle this differently to use the same token
+        // => we could assume all requests are necessarily finished in < ~30 min? (max of token
+        // validity) and store auth data by subdir instead?
+        // but data also contains sha256 which is specific to the artifact
         auto* data = get_authentication_data(split_path);
         if (!data)
         {
@@ -172,18 +178,27 @@ namespace mamba::download
         // a token otherwise we use non empty token or creds (both)
         if (data->token.empty())  // && need_authentication())
         {
-            std::cout << "Building build_authentication_request " << std::endl;
             req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
                               { return build_authentication_request(dl_request, split_path); });
         }
 
         if (data->sha256sum.empty())
         {
-            // TODO Add comment: we need to be authenticated to pull the manifest
-            // Should we force having user and password not empty?
-            std::cout << "Building build_manifest_request " << std::endl;
-            req_gen.push_back([this, split_path, split_tag](const Request& dl_request, const Content*)
-                              { return build_manifest_request(dl_request, split_path, split_tag); });
+            // If we know the spec sha256 (retrieved from repodata.json), we don't ask for the
+            // manifest to get the spec
+            if (!spec_sha256.empty())
+            {
+                // Update data with the corresponding spec sha256
+                data->sha256sum = spec_sha256;
+            }
+            else
+            {
+                // This is the case of requesting repodata.json, we need to get the manifest first
+                req_gen.push_back(
+                    [this, split_path, split_tag](const Request& dl_request, const Content*)
+                    { return build_manifest_request(dl_request, split_path, split_tag); }
+                );
+            }
         }
 
         req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
@@ -197,8 +212,6 @@ namespace mamba::download
         const std::string& split_path
     ) const
     {
-        // TODO ADD LOG_DEBUG or INFO HERE? think about more logging in general
-        std::cout << "In build_authentication_request" << std::endl;
         AuthenticationData* data = get_authentication_data(split_path);
         std::string auth_url = get_authentication_url(split_path);
         MirrorRequest req(initial_request.name, auth_url);
@@ -208,7 +221,6 @@ namespace mamba::download
 
         req.on_success = [data](const Success& success) -> expected_t<void>
         {
-            std::cout << "IN BUILD AUTH SUCCESS" << std::endl;
             const Buffer& buf = std::get<Buffer>(success.content);
             auto j = parse_json_nothrow(buf.value);
             if (j.contains("token"))
@@ -233,26 +245,17 @@ namespace mamba::download
         const std::string& split_tag
     ) const
     {
-        std::cout << "In build_manifest_request" << std::endl;
         AuthenticationData* data = get_authentication_data(split_path);
         std::string manifest_url = get_manifest_url(split_path, split_tag);
-        std::cout << "token is: " << data->token << std::endl;
         std::vector<std::string> headers = { get_authentication_header(data->token),
                                              "Accept: application/vnd.oci.image.manifest.v1+json" };
-        std::cout << "initial_request.name: " << initial_request.name
-                  << ", manifest_url: " << manifest_url << std::endl;
-        for (auto h : headers)
-        {
-            std::cout << "header: " << h << std::endl;
-        }
+
         MirrorRequest req(initial_request.name, manifest_url, std::move(headers));
 
         req.on_success = [data](const Success& success) -> expected_t<void>
         {
-            std::cout << "IN BUILD MANIFEST SUCCESS " << std::endl;
             const Buffer& buf = std::get<Buffer>(success.content);
             auto j = parse_json_nothrow(buf.value);
-            std::cout << "json is: " << j.dump() << std::endl;
             if (j.contains("layers"))
             {
                 std::string digest = j["layers"][0]["digest"];
@@ -271,29 +274,11 @@ namespace mamba::download
     MirrorRequest
     OCIMirror::build_blob_request(const Request& initial_request, const std::string& split_path) const
     {
-        std::cout << "In build_blob_request" << std::endl;
         const AuthenticationData* data = get_authentication_data(split_path);
         std::string url = get_blob_url(split_path, data->sha256sum);
         std::vector<std::string> headers = { get_authentication_header(data->token) };
 
-        MirrorRequest req(initial_request, url, std::move(headers));
-        req.on_success = [data](const Success& success) -> expected_t<void>
-        {
-            std::cout << "IN BUILD BLOB SUCCESS " << std::endl;
-            const Buffer& buf = std::get<Buffer>(success.content);
-            auto j = parse_json_nothrow(buf.value);
-            std::cout << "json is: " << j.dump() << std::endl;
-            if (1)
-            {
-                return expected_t<void>();
-            }
-            else
-            {
-                return make_unexpected("Could not retrieve blob", mamba_error_code::download_content);
-            }
-        };
-        return req;
-        // return MirrorRequest(initial_request, url, std::move(headers));
+        return MirrorRequest(initial_request, url, std::move(headers));
     }
 
     bool OCIMirror::need_authentication() const
@@ -315,8 +300,6 @@ namespace mamba::download
 
     std::string OCIMirror::get_authentication_url(const std::string& repo) const
     {
-        std::cout << "In get_authentication_url: m_url " << m_url << " repo: " << repo
-                  << " get_repo(repo) " << get_repo(repo) << " m_scope " << m_scope << std::endl;
         return fmt::format("{}/token?scope=repository:{}:{}", m_url, get_repo(repo), m_scope);
     }
 
@@ -338,9 +321,6 @@ namespace mamba::download
 
     std::string OCIMirror::get_manifest_url(const std::string& repo, const std::string& reference) const
     {
-        std::cout << "In get_manifest_url, m_url: " << m_url << " repo: " << repo
-                  << " get_repo(repo): " << get_repo(repo) << " reference: " << reference
-                  << std::endl;
         return fmt::format("{}/v2/{}/manifests/{}", m_url, get_repo(repo), reference);
         // return fmt::format("{}/{}", m_url, get_repo(repo));
     }
@@ -355,8 +335,6 @@ namespace mamba::download
     auto
     OCIMirror::get_authentication_data(const std::string& split_path) const -> AuthenticationData*
     {
-        std::cout << "IN get_authentication_data, split_path: " << split_path
-                  << " m_path_map.size: " << m_path_map.size() << std::endl;
         auto it = m_path_map.find(split_path);
         if (it != m_path_map.end())
         {
@@ -371,7 +349,6 @@ namespace mamba::download
 
     std::unique_ptr<Mirror> make_mirror(std::string url)
     {
-        std::cout << "url in make mirror: " << url << std::endl;
         if (url.empty())
         {
             return std::make_unique<PassThroughMirror>();
@@ -392,14 +369,7 @@ namespace mamba::download
             // now hardcoded GH_USER, GH_SECRET GHA_USER, GHA_PAT (if empty get env var names)
             // return std::make_unique<OCIMirror>(std::move(url), {}/*repo_prefix*/,
             // /*scope*/"pull"/*, username, password*/);
-            std::cout << "OCIMirror make mirror, url: " << url << std::endl;
             const auto parsed_url = util::URL::parse(url).value();
-            std::cout << "parsed_url scheme " << parsed_url.scheme() << " host "
-                      << parsed_url.host() << std::endl;
-            std::cout << "concatenated: "
-                      << util::concat(parsed_url.scheme(), "://", parsed_url.host()) << std::endl;
-            std::cout << "parsed_url path " << parsed_url.path()
-                      << " striped: " << util::lstrip(parsed_url.path(), "/") << std::endl;
             return std::make_unique<OCIMirror>(
                 util::concat(parsed_url.scheme(), "://", parsed_url.host()),
                 std::string(util::lstrip(parsed_url.path(), "/")),

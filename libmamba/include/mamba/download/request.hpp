@@ -140,6 +140,11 @@ namespace mamba::download
     {
         std::string mirror_name;
         std::string url_path;
+        // TODO maybe we would want to use a struct instead
+        // containing the `checksum` and its `type`
+        // (to handle other checksums types like md5...)
+        // cf. `Checksum` struct in powerloader
+        std::string sha256;
 
         Request(
             std::string_view lname,

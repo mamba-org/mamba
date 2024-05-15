@@ -72,7 +72,8 @@ namespace mamba::download
         Mirror& operator=(Mirror&&) = delete;
 
         const MirrorID& id() const;
-        request_generator_list get_request_generators(const std::string& url_path) const;
+        request_generator_list
+        get_request_generators(const std::string& url_path, const std::string& spec_sha256) const;
 
         std::size_t max_retries() const;
         std::size_t successful_transfers() const;
@@ -91,7 +92,7 @@ namespace mamba::download
 
     private:
 
-        virtual request_generator_list get_request_generators_impl(const std::string&) const = 0;
+        virtual request_generator_list get_request_generators_impl(const std::string&, const std::string&) const = 0;
 
         MirrorID m_id;
         size_t m_max_retries;

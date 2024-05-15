@@ -241,7 +241,7 @@ namespace mamba::download
         curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void* userptr)
         {
             auto* logger = reinterpret_cast<spdlog::logger*>(userptr);
-            auto log = Console::hide_secrets(std::string_view(data, size));
+            auto log = std::string(data, size);
             switch (type)
             {
                 case CURLINFO_TEXT:
@@ -585,9 +585,9 @@ namespace mamba::download
      * LAST_REQUEST_FAILED:
      *     - m_retries == p_mirror->max_retries ? => SEQUENCE_FAILED
      */
-    MirrorAttempt::MirrorAttempt(Mirror& mirror, const std::string& url_path)
+    MirrorAttempt::MirrorAttempt(Mirror& mirror, const std::string& url_path, const std::string& spec_sha256)
         : p_mirror(&mirror)
-        , m_request_generators(p_mirror->get_request_generators(url_path))
+        , m_request_generators(p_mirror->get_request_generators(url_path, spec_sha256))
     {
     }
 
@@ -923,7 +923,11 @@ namespace mamba::download
         if (mirror != nullptr)
         {
             m_tried_mirrors.insert(mirror->id());
-            m_mirror_attempt = MirrorAttempt(*mirror, p_initial_request->url_path);
+            m_mirror_attempt = MirrorAttempt(
+                *mirror,
+                p_initial_request->url_path,
+                p_initial_request->sha256
+            );
         }
         else
         {
@@ -1067,8 +1071,6 @@ namespace mamba::download
     void Downloader::update_downloads()
     {
         std::size_t still_running = m_curl_handle.perform();
-        std::cout << "curl still running: " << still_running
-                  << " ,m_waiting_count : " << m_waiting_count << std::endl;
 
         if (still_running == m_waiting_count)
         {

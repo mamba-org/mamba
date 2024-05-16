@@ -77,7 +77,10 @@ namespace mamba::download
         {
             // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
             // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
-            if (util::ends_with(path, ".json"))
+
+            // If the file corresponds to repodata: i.e `repodata.json` or `repodata.json.zst`,
+            // the tag is `latest`, and there is no need for splitting parts
+            if (util::ends_with(path, ".json") || util::ends_with(path, ".json.zst"))
             {
                 return { path, "latest" };
             }

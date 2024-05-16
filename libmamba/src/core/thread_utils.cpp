@@ -19,9 +19,11 @@ namespace mamba
      * thread interruption *
      ***********************/
 
+
     namespace
     {
         std::atomic<bool> sig_interrupted(false);
+        std::atomic<signal_handler_t> previous_handler = SIG_DFL;
     }
 
 #ifndef _WIN32
@@ -87,17 +89,22 @@ namespace mamba
 
     void set_default_signal_handler()
     {
-        set_signal_handler(default_signal_handler);
+        previous_handler = set_signal_handler(default_signal_handler);
     }
 #else
     void set_default_signal_handler()
     {
-        std::signal(SIGINT, [](int /*signum*/) { set_sig_interrupted(); });
+        previous_handler = std::signal(SIGINT, [](int /*signum*/) { set_sig_interrupted(); });
     }
 #endif
-    void restore_system_signal_handler()
+    void restore_previous_signal_handler()
     {
-        std::signal(SIGINT, SIG_DFL);
+        std::signal(SIGINT, previous_handler.exchange(SIG_DFL));
+    }
+
+    signal_handler_t previous_signal_handler()
+    {
+        return previous_handler.load();
     }
 
     bool is_sig_interrupted() noexcept

@@ -22,6 +22,9 @@ namespace mamba
      * thread interruption *
      ***********************/
 
+
+    using signal_handler_t = void(*)(int);
+
 #ifndef _WIN32
     void set_signal_handler(const std::function<void(sigset_t)>& handler);
 
@@ -31,10 +34,10 @@ namespace mamba
 #endif
 
     void set_default_signal_handler();
-    void restore_system_signal_handler();
+    void restore_previous_signal_handler();
+    signal_handler_t previous_signal_handler();
     bool is_sig_interrupted() noexcept;
     void set_sig_interrupted() noexcept;
-
 
     void interruption_point();
 

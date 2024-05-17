@@ -122,6 +122,8 @@ namespace mamba::download
         MirrorAttempt(Mirror& mirror, const std::string& url_path, const std::string& spec_sha256);
 
         expected_t<void> invoke_on_success(const Success& res) const;
+        void invoke_on_failure(const Error& res) const;
+
         void prepare_request(const Request& initial_request);
         auto prepare_attempt(
             CURLHandle& handle,

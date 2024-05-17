@@ -330,8 +330,7 @@ namespace mamba::download
             context.remote_fetch_params.user_agent,
             curl_version()
         );
-        // TODO check if this impacts curl success (I don't think so)
-        // p_handle->add_header(user_agent);
+        p_handle->add_header(user_agent);
 
         // get url host
         const auto url_handler = util::URL::parse(p_request->url).value();
@@ -342,6 +341,8 @@ namespace mamba::download
             host += ":" + port;
         }
 
+        // TODO How should this be handled if not empty?
+        // (think about precedence with request token auth header added below)
         const auto& auth_info = context.authentication_info();
         if (auto it = auth_info.find_weaken(host); it != auth_info.end())
         {
@@ -353,24 +354,22 @@ namespace mamba::download
             }
         }
 
-        // TODO check how this should work / use cases with if found auth_info
+        if (p_request->etag.has_value())
+        {
+            p_handle->add_header("If-None-Match:" + p_request->etag.value());
+        }
+
+        if (p_request->last_modified.has_value())
+        {
+            p_handle->add_header("If-Modified-Since:" + p_request->last_modified.value());
+        }
+
+        // Add specific request headers
+        // (token auth header, and application type when getting the manifest)
         if (!p_request->headers.empty())
         {
             p_handle->add_headers(p_request->headers);
         }
-
-        // TODO debug this later (check if still working after everything is ok to narrow the
-        // problem down)
-        //         if (p_request->etag.has_value())
-        //         {
-        //             p_handle->add_header("If-None-Match:" + p_request->etag.value());
-        //         }
-        //
-        //         if (p_request->last_modified.has_value())
-        //         {
-        //             p_handle->add_header("If-Modified-Since:" +
-        //             p_request->last_modified.value());
-        //         }
 
         p_handle->set_opt_header();
     }
@@ -599,6 +598,14 @@ namespace mamba::download
         return expected_t<void>();
     }
 
+    void MirrorAttempt::invoke_on_failure(const Error& res) const
+    {
+        if (m_request.value().on_failure.has_value())
+        {
+            safe_invoke(m_request.value().on_failure.value(), res);
+        }
+    }
+
     void MirrorAttempt::prepare_request(const Request& initial_request)
     {
         if (m_state != State::LAST_REQUEST_FAILED)
@@ -815,10 +822,16 @@ namespace mamba::download
 
     void DownloadTracker::invoke_on_failure(const Error& res) const
     {
-        // TODO do something like on_success
-        if (p_initial_request->on_failure.has_value())
+        if (!m_mirror_attempt.has_finished())
         {
-            safe_invoke(p_initial_request->on_failure.value(), res);
+            m_mirror_attempt.invoke_on_failure(res);
+        }
+        else
+        {
+            if (p_initial_request->on_failure.has_value())
+            {
+                safe_invoke(p_initial_request->on_failure.value(), res);
+            }
         }
     }
 

@@ -239,19 +239,24 @@ namespace mamba::download
         curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void* userptr)
         {
             auto* logger = reinterpret_cast<spdlog::logger*>(userptr);
-            auto log = std::string(data, size);
+            std::string log;
             switch (type)
             {
                 case CURLINFO_TEXT:
+                    log = Console::hide_secrets(std::string_view(data, size));
                     logger->info(fmt::format("* {}", log));
                     break;
                 case CURLINFO_HEADER_OUT:
+                    log = Console::hide_secrets(std::string_view(data, size));
                     logger->info(fmt::format("> {}", log));
                     break;
                 case CURLINFO_HEADER_IN:
+                    log = Console::hide_secrets(std::string_view(data, size));
                     logger->info(fmt::format("< {}", log));
                     break;
                 default:
+                    // WARNING Using `hide_secrets` here will give a seg fault on linux,
+                    // and other errors on other platforms
                     break;
             }
             return 0;

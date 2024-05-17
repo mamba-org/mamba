@@ -162,11 +162,14 @@ namespace mamba::download
         // data should not be captured in lambda used for building the request, as
         // inserting a new AuthenticationData object may relocate preexisting ones.
         auto [split_path, split_tag] = split_path_tag(url_path);
+
         // TODO we are getting here a new token for every artifact/path
         // => we should handle this differently to use the same token
         // => we could assume all requests are necessarily finished in < ~30 min? (max of token
         // validity) and store auth data by subdir instead?
         // but data also contains sha256 which is specific to the artifact
+        // (however, the token that we get seems to be the same even if asked multiple times...
+        // so maybe that's okay)
         auto* data = get_authentication_data(split_path);
         if (!data)
         {
@@ -176,9 +179,7 @@ namespace mamba::download
 
         request_generator_list req_gen;
 
-        // TODO I think we need to add: && creds are empty (we need both) too => we need to ask for
-        // a token otherwise we use non empty token or creds (both)
-        if (data->token.empty())  // && need_authentication())
+        if (data->token.empty())
         {
             req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
                               { return build_authentication_request(dl_request, split_path); });
@@ -203,6 +204,7 @@ namespace mamba::download
             }
         }
 
+        // Request to get the actual artifact
         req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
                           { return build_blob_request(dl_request, split_path); });
 
@@ -218,8 +220,8 @@ namespace mamba::download
         std::string auth_url = get_authentication_url(split_path);
         MirrorRequest req(initial_request.name, auth_url);
 
-        //         req.username = m_username;
-        //         req.password = m_password;
+        req.username = m_username;
+        req.password = m_password;
 
         req.on_success = [data](const Success& success) -> expected_t<void>
         {
@@ -283,6 +285,8 @@ namespace mamba::download
         return MirrorRequest(initial_request, url, std::move(headers));
     }
 
+    // This is not used but could be if we use creds
+    // cf. OCIMirror constructor comment in header
     bool OCIMirror::need_authentication() const
     {
         return !m_username.empty() && !m_password.empty();
@@ -307,13 +311,10 @@ namespace mamba::download
 
     std::string OCIMirror::get_authentication_header(const std::string& token) const
     {
-        // TODO check where this is called
-        // The idea is that this is called because we really need to be auth so
-        // if creds are there (do nothing) make sure they are set as opt in curl
-        // if not, and token empty => raise error!
         if (token.empty())
         {
-            return {};
+            LOG_ERROR << "Trying to pull artifacts with an empty token";
+            throw std::invalid_argument("Trying to pull artifacts with an empty token");
         }
         else
         {
@@ -360,18 +361,8 @@ namespace mamba::download
         {
             return std::make_unique<HTTPMirror>(std::move(url));
         }
-        else if (util::contains(url, "oci") || util::contains(url, "ghcr"))  // TODO just contains
-                                                                             // or starts_with? or
-                                                                             // contains "ghcr"?
+        else if (util::contains(url, "ghcr"))  // TODO should start with oci? (to be handled)
         {
-            // TODO set proxy_match to context.remote_fetch_params.proxy_servers (understand this
-            // more/ usage in mamba and in curl)
-
-            // TODO add in constructor: scope would be pull (download) or push (upload), not
-            // available for now "scope", "username" and "password" should be added as args later?
-            // now hardcoded GH_USER, GH_SECRET GHA_USER, GHA_PAT (if empty get env var names)
-            // return std::make_unique<OCIMirror>(std::move(url), {}/*repo_prefix*/,
-            // /*scope*/"pull"/*, username, password*/);
             const auto parsed_url = util::URL::parse(url).value();
             return std::make_unique<OCIMirror>(
                 util::concat(parsed_url.scheme(), "://", parsed_url.host()),

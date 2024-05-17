@@ -52,6 +52,14 @@ namespace mamba::download
     {
     public:
 
+        // NOTE
+        // `scope` could be: `pull`(download), `push`(upload) or `pull_push`
+        // Only `pull` is supported for now
+        // Pulling artifacts can be performed anonymously
+        // (by requesting a token)
+        // This may also be done by setting credentials (username and password),
+        // but this is not supported for now as credentials
+        // are more used (and needed) with `push` and `pull_push` scope
         explicit OCIMirror(
             std::string url,
             std::string repo_prefix,

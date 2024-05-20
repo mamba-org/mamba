@@ -355,17 +355,17 @@ namespace mamba::download
         {
             return std::make_unique<PassThroughMirror>();
         }
-        else if ((util::starts_with(url, "https://") || util::starts_with(url, "http://")
-                  || util::starts_with(url, "file://"))
-                 && !util::contains(url, "ghcr"))
+        else if (util::starts_with(url, "https://") || util::starts_with(url, "http://")
+                 || util::starts_with(url, "file://"))
         {
             return std::make_unique<HTTPMirror>(std::move(url));
         }
-        else if (util::contains(url, "ghcr"))  // TODO should start with oci? (to be handled)
+        else if (util::starts_with(url, "oci://"))
         {
             const auto parsed_url = util::URL::parse(url).value();
             return std::make_unique<OCIMirror>(
-                util::concat(parsed_url.scheme(), "://", parsed_url.host()),
+                util::concat("https://", parsed_url.host()),  // we use "https" as scheme instead
+                                                              // of "oci"
                 std::string(util::lstrip(parsed_url.path(), "/")),
                 "pull"
             );

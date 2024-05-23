@@ -262,7 +262,22 @@ namespace mamba::download
             auto j = parse_json_nothrow(buf.value);
             if (j.contains("layers"))
             {
-                std::string digest = j["layers"][0]["digest"];
+                std::string digest;
+                for (auto& l : j["layers"])
+                {
+                    // Getting repodata.json.zst, if present, is preferable
+                    // Otherwise, we stick with the non compressed repodata.json
+                    if (l["mediaType"] == "application/vnd.conda.repodata.v1+json+zst")
+                    {
+                        digest = l["digest"];
+                        data->is_repodata_zst = true;
+                        break;
+                    }
+                    else if (l["mediaType"] == "application/vnd.conda.repodata.v1+json")
+                    {
+                        digest = l["digest"];
+                    }
+                }
                 assert(util::starts_with(digest, "sha256:"));
                 data->sha256sum = digest.substr(sizeof("sha256:") - 1);
                 return expected_t<void>();
@@ -282,7 +297,7 @@ namespace mamba::download
         std::string url = get_blob_url(split_path, data->sha256sum);
         std::vector<std::string> headers = { get_authentication_header(data->token) };
 
-        return MirrorRequest(initial_request, url, std::move(headers));
+        return MirrorRequest(initial_request, url, std::move(headers), data->is_repodata_zst);
     }
 
     // This is not used but could be if we use creds

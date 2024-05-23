@@ -1372,7 +1372,10 @@ namespace mamba
         insert(Configurable("repodata_use_zst", &m_context.repodata_use_zst)
                    .group("Repodata")
                    .set_rc_configurable()
-                   .description("Use zstd encoded repodata when fetching"));
+                   .description("Use zstd encoded repodata when fetching ("
+                                "Note that this doesn't apply when fetching from an OCI registry - "
+                                "using `mirrored_channels` - since compressed repodata is "
+                                "automatically used when present.)\n"));
 
 
         insert(Configurable("repodata_has_zst", &m_context.repodata_has_zst)

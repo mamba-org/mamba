@@ -76,6 +76,7 @@ namespace mamba::download
         {
             std::string sha256sum = {};  // TODO what about other checksums types? i.e md5
             std::string token = {};
+            bool is_repodata_zst = false;
         };
 
         using request_generator_list = Mirror::request_generator_list;

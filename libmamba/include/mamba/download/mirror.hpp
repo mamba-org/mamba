@@ -41,11 +41,22 @@ namespace mamba::download
 
         std::string url;
         header_list headers;
+        bool is_repodata_zst;
         std::string username = {};
         std::string password = {};
 
-        MirrorRequest(std::string_view name, std::string_view url, header_list headers = {});
-        MirrorRequest(const RequestBase& base, std::string_view url, header_list headers = {});
+        MirrorRequest(
+            std::string_view name,
+            std::string_view url,
+            header_list headers = {},
+            bool is_repodata_zst = false
+        );
+        MirrorRequest(
+            const RequestBase& base,
+            std::string_view url,
+            header_list headers = {},
+            bool is_repodata_zst = false
+        );
 
         ~MirrorRequest() = default;
         MirrorRequest(const MirrorRequest&) = default;

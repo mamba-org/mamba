@@ -72,9 +72,9 @@ namespace mamba::download
 
     private:
 
-        struct AuthenticationData
+        struct ArtifactData
         {
-            std::string sha256sum = {};  // TODO what about other checksums types? i.e md5
+            std::string sha256sum = {};
             std::string token = {};
             bool is_repodata_zst = false;
         };
@@ -102,14 +102,14 @@ namespace mamba::download
         std::string get_authentication_header(const std::string& token) const;
         std::string get_manifest_url(const std::string& repo, const std::string& reference) const;
         std::string get_blob_url(const std::string& repo, const std::string& sha256sum) const;
-        AuthenticationData* get_authentication_data(const std::string& split_path) const;
+        ArtifactData* get_artifact_data(const std::string& split_path) const;
 
         std::string m_url;
         std::string m_repo_prefix;
         std::string m_scope;
         std::string m_username;
         std::string m_password;
-        mutable std::unordered_map<std::string, std::unique_ptr<AuthenticationData>> m_path_map;
+        mutable std::unordered_map<std::string, std::unique_ptr<ArtifactData>> m_path_map;
     };
 }
 

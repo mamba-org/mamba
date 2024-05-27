@@ -119,7 +119,10 @@ namespace mamba::download
         using on_failure_callback = DownloadAttempt::on_failure_callback;
 
         MirrorAttempt() = default;
-        MirrorAttempt(Mirror& mirror, const std::string& url_path);
+        MirrorAttempt(Mirror& mirror, const std::string& url_path, const std::string& spec_sha256);
+
+        expected_t<void> invoke_on_success(const Success& res) const;
+        void invoke_on_failure(const Error& res) const;
 
         void prepare_request(const Request& initial_request);
         auto prepare_attempt(

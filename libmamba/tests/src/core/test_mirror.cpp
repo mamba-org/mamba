@@ -8,6 +8,8 @@
 
 #include "mamba/core/mirror.hpp"
 
+// TODO to be removed along with the previous header
+
 namespace mamba
 {
     /*TEST_SUITE("mirror")

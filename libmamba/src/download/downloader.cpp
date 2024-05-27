@@ -239,19 +239,24 @@ namespace mamba::download
         curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void* userptr)
         {
             auto* logger = reinterpret_cast<spdlog::logger*>(userptr);
-            auto log = Console::hide_secrets(std::string_view(data, size));
+            std::string log;
             switch (type)
             {
                 case CURLINFO_TEXT:
+                    log = Console::hide_secrets(std::string_view(data, size));
                     logger->info(fmt::format("* {}", log));
                     break;
                 case CURLINFO_HEADER_OUT:
+                    log = Console::hide_secrets(std::string_view(data, size));
                     logger->info(fmt::format("> {}", log));
                     break;
                 case CURLINFO_HEADER_IN:
+                    log = Console::hide_secrets(std::string_view(data, size));
                     logger->info(fmt::format("< {}", log));
                     break;
                 default:
+                    // WARNING Using `hide_secrets` here will give a seg fault on linux,
+                    // and other errors on other platforms
                     break;
             }
             return 0;
@@ -341,6 +346,8 @@ namespace mamba::download
             host += ":" + port;
         }
 
+        // TODO How should this be handled if not empty?
+        // (think about precedence with request token auth header added below)
         const auto& auth_info = context.authentication_info();
         if (auto it = auth_info.find_weaken(host); it != auth_info.end())
         {
@@ -360,6 +367,13 @@ namespace mamba::download
         if (p_request->last_modified.has_value())
         {
             p_handle->add_header("If-Modified-Since:" + p_request->last_modified.value());
+        }
+
+        // Add specific request headers
+        // (token auth header, and application type when getting the manifest)
+        if (!p_request->headers.empty())
+        {
+            p_handle->add_headers(p_request->headers);
         }
 
         p_handle->set_opt_header();
@@ -573,10 +587,28 @@ namespace mamba::download
      * LAST_REQUEST_FAILED:
      *     - m_retries == p_mirror->max_retries ? => SEQUENCE_FAILED
      */
-    MirrorAttempt::MirrorAttempt(Mirror& mirror, const std::string& url_path)
+    MirrorAttempt::MirrorAttempt(Mirror& mirror, const std::string& url_path, const std::string& spec_sha256)
         : p_mirror(&mirror)
-        , m_request_generators(p_mirror->get_request_generators(url_path))
+        , m_request_generators(p_mirror->get_request_generators(url_path, spec_sha256))
     {
+    }
+
+    expected_t<void> MirrorAttempt::invoke_on_success(const Success& res) const
+    {
+        if (m_request.value().on_success.has_value())
+        {
+            auto ret = safe_invoke(m_request.value().on_success.value(), res);
+            return ret.has_value() ? ret.value() : forward_error(ret);
+        }
+        return expected_t<void>();
+    }
+
+    void MirrorAttempt::invoke_on_failure(const Error& res) const
+    {
+        if (m_request.value().on_failure.has_value())
+        {
+            safe_invoke(m_request.value().on_failure.value(), res);
+        }
     }
 
     void MirrorAttempt::prepare_request(const Request& initial_request)
@@ -590,6 +622,8 @@ namespace mamba::download
         {
             m_next_retry = std::nullopt;
             ++m_retries;
+            LOG_DEBUG << "Last request failed! Tried " << m_retries << " over "
+                      << p_mirror->max_retries() << " times";
         }
     }
 
@@ -601,6 +635,7 @@ namespace mamba::download
         on_failure_callback error
     ) -> completion_function
     {
+        LOG_DEBUG << "Preparing download...";
         m_state = State::PREPARING_DOWNLOAD;
         m_attempt = DownloadAttempt(
             handle,
@@ -626,7 +661,8 @@ namespace mamba::download
 
     bool MirrorAttempt::has_finished() const
     {
-        return m_state == State::SEQUENCE_FINISHED;
+        auto res = (m_state == State::SEQUENCE_FINISHED) || (m_step == m_request_generators.size());
+        return res;
     }
 
     void MirrorAttempt::set_transfer_started()
@@ -774,19 +810,33 @@ namespace mamba::download
 
     expected_t<void> DownloadTracker::invoke_on_success(const Success& res) const
     {
-        if (p_initial_request->on_success.has_value())
+        if (!m_mirror_attempt.has_finished())
         {
-            auto ret = safe_invoke(p_initial_request->on_success.value(), res);
-            return ret.has_value() ? ret.value() : forward_error(ret);
+            return m_mirror_attempt.invoke_on_success(res);
+        }
+        else
+        {
+            if (p_initial_request->on_success.has_value())
+            {
+                auto ret = safe_invoke(p_initial_request->on_success.value(), res);
+                return ret.has_value() ? ret.value() : forward_error(ret);
+            }
         }
         return expected_t<void>();
     }
 
     void DownloadTracker::invoke_on_failure(const Error& res) const
     {
-        if (p_initial_request->on_failure.has_value())
+        if (!m_mirror_attempt.has_finished())
         {
-            safe_invoke(p_initial_request->on_failure.value(), res);
+            m_mirror_attempt.invoke_on_failure(res);
+        }
+        else
+        {
+            if (p_initial_request->on_failure.has_value())
+            {
+                safe_invoke(p_initial_request->on_failure.value(), res);
+            }
         }
     }
 
@@ -872,7 +922,11 @@ namespace mamba::download
         if (mirror != nullptr)
         {
             m_tried_mirrors.insert(mirror->id());
-            m_mirror_attempt = MirrorAttempt(*mirror, p_initial_request->url_path);
+            m_mirror_attempt = MirrorAttempt(
+                *mirror,
+                p_initial_request->url_path,
+                p_initial_request->sha256
+            );
         }
         else
         {
@@ -999,6 +1053,7 @@ namespace mamba::download
             { return running_attempts < max_parallel_downloads && tracker.can_start_transfer(); }
         );
 
+        // Here we loop over all requests contained in filtered m_trackers
         for (auto& tracker : start_filter)
         {
             auto [iter, success] = m_completion_map.insert(

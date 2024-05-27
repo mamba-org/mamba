@@ -142,6 +142,7 @@ namespace mamba
         download::Request
             request(name(), download::MirrorName(channel()), url_path(), m_tarball_path.string());
         request.expected_size = expected_size();
+        request.sha256 = sha256();
 
         request.on_success = [this, cb = std::move(callback)](const download::Success& success)
         {
@@ -324,26 +325,12 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        if (m_package_info.package_type == specs::PackageType::Conda)
-        {
-            return m_package_info.channel;
-        }
-        else
-        {
-            return "";
-        }
+        return m_package_info.channel;
     }
 
     std::string PackageFetcher::url_path() const
     {
-        if (m_package_info.package_type == specs::PackageType::Conda)
-        {
-            return util::concat(m_package_info.platform, '/', m_package_info.filename);
-        }
-        else
-        {
-            return m_package_info.package_url;
-        }
+        return util::concat(m_package_info.platform, '/', m_package_info.filename);
     }
 
     const std::string& PackageFetcher::url() const

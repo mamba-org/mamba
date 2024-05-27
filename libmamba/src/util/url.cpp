@@ -174,9 +174,9 @@ namespace mamba::util
         }
     }
 
-    /*****************************
-     * URLHandler implementation *
-     *****************************/
+    /**********************
+     * URL implementation *
+     **********************/
 
     auto URL::parse(std::string_view url) -> tl::expected<URL, ParseError>
     {

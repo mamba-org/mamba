@@ -27,7 +27,8 @@ namespace mamba::download
     private:
 
         using request_generator_list = Mirror::request_generator_list;
-        request_generator_list get_request_generators_impl(const std::string&) const override;
+        request_generator_list
+        get_request_generators_impl(const std::string&, const std::string&) const override;
     };
 
     class HTTPMirror : public Mirror
@@ -41,7 +42,8 @@ namespace mamba::download
     private:
 
         using request_generator_list = Mirror::request_generator_list;
-        request_generator_list get_request_generators_impl(const std::string&) const override;
+        request_generator_list
+        get_request_generators_impl(const std::string&, const std::string&) const override;
 
         std::string m_url;
     };
@@ -50,6 +52,14 @@ namespace mamba::download
     {
     public:
 
+        // NOTE
+        // `scope` could be: `pull`(download), `push`(upload) or `pull_push`
+        // Only `pull` is supported for now
+        // Pulling artifacts can be performed anonymously
+        // (by requesting a token)
+        // This may also be done by setting credentials (username and password),
+        // but this is not supported for now as credentials
+        // are more used (and needed) with `push` and `pull_push` scope
         explicit OCIMirror(
             std::string url,
             std::string repo_prefix,
@@ -70,7 +80,8 @@ namespace mamba::download
 
         using request_generator_list = Mirror::request_generator_list;
         request_generator_list
-        get_request_generators_impl(const std::string& url_path) const override;
+        get_request_generators_impl(const std::string& url_path, const std::string& spec_sha256)
+            const override;
 
         MirrorRequest
         build_authentication_request(const Request& initial_request, const std::string& split_path) const;

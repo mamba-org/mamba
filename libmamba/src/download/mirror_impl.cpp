@@ -8,6 +8,7 @@
 
 #include "mamba/core/output.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 
 #include "nlohmann/json.hpp"
@@ -37,8 +38,8 @@ namespace mamba::download
         return PASSTHROUGH_MIRROR_ID;
     }
 
-    auto
-    PassThroughMirror::get_request_generators_impl(const std::string&) const -> request_generator_list
+    auto PassThroughMirror::get_request_generators_impl(const std::string&, const std::string&) const
+        -> request_generator_list
     {
         return { [](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, dl_request.url_path); } };
@@ -59,7 +60,8 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto HTTPMirror::get_request_generators_impl(const std::string&) const -> request_generator_list
+    auto HTTPMirror::get_request_generators_impl(const std::string&, const std::string&) const
+        -> request_generator_list
     {
         return { [url = m_url](const Request& dl_request, const Content*)
                  { return MirrorRequest(dl_request, util::url_concat(url, dl_request.url_path)); } };
@@ -75,7 +77,10 @@ namespace mamba::download
         {
             // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
             // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
-            if (util::ends_with(path, ".json"))
+
+            // If the file corresponds to repodata: i.e `repodata.json` or `repodata.json.zst`,
+            // the tag is `latest`, and there is no need for splitting parts
+            if (util::ends_with(path, ".json") || util::ends_with(path, ".json.zst"))
             {
                 return { path, "latest" };
             }
@@ -85,7 +90,7 @@ namespace mamba::download
 
             if (parts.size() < 2)
             {
-                LOG_ERROR << "Could not split filename into enough parts";
+                LOG_ERROR << "Could not split " << path << " into enough parts";
                 throw std::runtime_error("Could not split filename into enough parts");
             }
 
@@ -148,13 +153,23 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto OCIMirror::get_request_generators_impl(const std::string& url_path
+    auto OCIMirror::get_request_generators_impl(
+        const std::string& url_path,
+        const std::string& spec_sha256
     ) const -> request_generator_list
     {
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as
         // inserting a new AuthenticationData object may relocate preexisting ones.
         auto [split_path, split_tag] = split_path_tag(url_path);
+
+        // TODO we are getting here a new token for every artifact/path
+        // => we should handle this differently to use the same token
+        // => we could assume all requests are necessarily finished in < ~30 min? (max of token
+        // validity) and store auth data by subdir instead?
+        // but data also contains sha256 which is specific to the artifact
+        // (however, the token that we get seems to be the same even if asked multiple times...
+        // so maybe that's okay)
         auto* data = get_authentication_data(split_path);
         if (!data)
         {
@@ -164,7 +179,7 @@ namespace mamba::download
 
         request_generator_list req_gen;
 
-        if (data->token.empty() && need_authentication())
+        if (data->token.empty())
         {
             req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
                               { return build_authentication_request(dl_request, split_path); });
@@ -172,10 +187,24 @@ namespace mamba::download
 
         if (data->sha256sum.empty())
         {
-            req_gen.push_back([this, split_path, split_tag](const Request& dl_request, const Content*)
-                              { return build_manifest_request(dl_request, split_path, split_tag); });
+            // If we know the spec sha256 (retrieved from repodata.json), we don't ask for the
+            // manifest to get the spec
+            if (!spec_sha256.empty())
+            {
+                // Update data with the corresponding spec sha256
+                data->sha256sum = spec_sha256;
+            }
+            else
+            {
+                // This is the case of requesting repodata.json, we need to get the manifest first
+                req_gen.push_back(
+                    [this, split_path, split_tag](const Request& dl_request, const Content*)
+                    { return build_manifest_request(dl_request, split_path, split_tag); }
+                );
+            }
         }
 
+        // Request to get the actual artifact
         req_gen.push_back([this, split_path](const Request& dl_request, const Content*)
                           { return build_blob_request(dl_request, split_path); });
 
@@ -224,6 +253,7 @@ namespace mamba::download
         std::string manifest_url = get_manifest_url(split_path, split_tag);
         std::vector<std::string> headers = { get_authentication_header(data->token),
                                              "Accept: application/vnd.oci.image.manifest.v1+json" };
+
         MirrorRequest req(initial_request.name, manifest_url, std::move(headers));
 
         req.on_success = [data](const Success& success) -> expected_t<void>
@@ -250,9 +280,13 @@ namespace mamba::download
     {
         const AuthenticationData* data = get_authentication_data(split_path);
         std::string url = get_blob_url(split_path, data->sha256sum);
-        return MirrorRequest(initial_request, url);
+        std::vector<std::string> headers = { get_authentication_header(data->token) };
+
+        return MirrorRequest(initial_request, url, std::move(headers));
     }
 
+    // This is not used but could be if we use creds
+    // cf. OCIMirror constructor comment in header
     bool OCIMirror::need_authentication() const
     {
         return !m_username.empty() && !m_password.empty();
@@ -277,9 +311,10 @@ namespace mamba::download
 
     std::string OCIMirror::get_authentication_header(const std::string& token) const
     {
-        if (!need_authentication() || token.empty())
+        if (token.empty())
         {
-            return {};
+            LOG_ERROR << "Trying to pull artifacts with an empty token";
+            throw std::invalid_argument("Trying to pull artifacts with an empty token");
         }
         else
         {
@@ -324,6 +359,16 @@ namespace mamba::download
                  || util::starts_with(url, "file://"))
         {
             return std::make_unique<HTTPMirror>(std::move(url));
+        }
+        else if (util::starts_with(url, "oci://"))
+        {
+            const auto parsed_url = util::URL::parse(url).value();
+            return std::make_unique<OCIMirror>(
+                util::concat("https://", parsed_url.host()),  // we use "https" as scheme instead
+                                                              // of "oci"
+                std::string(util::lstrip(parsed_url.path(), "/")),
+                "pull"
+            );
         }
         return nullptr;
     }

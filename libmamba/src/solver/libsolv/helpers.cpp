@@ -559,12 +559,6 @@ namespace mamba::solver::libsolv
                 {
                     base_url = std::string(url.value_unsafe());
                 }
-                else
-                {
-                    throw std::invalid_argument(
-                        "'info/base_url' not found in repodata.json file while 'repodata_version': 2"
-                    );
-                }
             }
         }
 

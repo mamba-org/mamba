@@ -84,7 +84,7 @@ namespace mamba::util
          * The fields of the URL must be percent encoded, otherwise use the individual
          * field setters to encode.
          * For instance, "https://user@email.com@mamba.org/" must be passed as
-         *"https://user%40email.com@mamba.org/".The first '@' charater is part of the username
+         *"https://user%40email.com@mamba.org/".The first '@' character is part of the username
          * "user@email.com" whereas the second is the URL specification for separating username
          * and hostname.
          *
@@ -108,13 +108,13 @@ namespace mamba::util
         /** Clear the scheme back to a defaulted value and return the old value. */
         auto clear_scheme() -> std::string;
 
-        /** Return wether the user is empty. */
+        /** Return whether the user is empty. */
         [[nodiscard]] auto has_user() const -> bool;
 
         /** Return the encoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
 
-        /** Retrun the decoded user, or empty if none. */
+        /** Return the decoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set the user from a not encoded value. */
@@ -126,7 +126,7 @@ namespace mamba::util
         /** Clear and return the encoded user. */
         auto clear_user() -> std::string;
 
-        /** Return wether the password is empty. */
+        /** Return whether the password is empty. */
         [[nodiscard]] auto has_password() const -> bool;
 
         /** Return the encoded password, or empty if none. */
@@ -174,7 +174,7 @@ namespace mamba::util
         /** Clear and return the port number. */
         auto clear_port() -> std::string;
 
-        /** Return the encoded autority part of the URL. */
+        /** Return the encoded authority part of the URL. */
         [[nodiscard]] auto authority(Credentials = Credentials::Hide) const -> std::string;
 
         /** Return the encoded path, always starts with a '/'. */
@@ -249,7 +249,7 @@ namespace mamba::util
          *
          * Due to decoding, the outcome may not be understood by parser and usable to fetch the URL.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
-         * @param rstrip_path If non-null, remove the given charaters at the end of the path.
+         * @param rstrip_path If non-null, remove the given characters at the end of the path.
          * @param credentials Decide to keep, remove, or hide credentials.
          */
         [[nodiscard]] auto pretty_str(

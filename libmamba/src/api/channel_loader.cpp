@@ -28,7 +28,7 @@ namespace mamba
         {
             if (!fs::exists(pkgs_dir))
             {
-                // TODO : us tl::expected mechanis
+                // TODO : us tl::expected mechanism
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
             auto sprefix_data = PrefixData::create(pkgs_dir, channel_context);

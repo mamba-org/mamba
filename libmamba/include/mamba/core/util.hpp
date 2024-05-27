@@ -222,7 +222,7 @@ namespace mamba
     //          {
     //              print("locked file {}, locking counts: {}", some_path,
     //              lock.count_lock_owners()); // success might mean we are locking the same path
-    //              from multiple threads do_something(som_path); // locking was a success
+    //              from multiple threads do_something(some_path); // locking was a success
     //          }
     //          else // locking didnt succeed for some reason
     //          {
@@ -232,7 +232,7 @@ namespace mamba
     //              other reason, maybe a configuration option
     //          }
     //          some_more_work(some_path); // do this that the lock failed or not
-    //          return lock; // The locking ownership can be transfered to another function if
+    //          return lock; // The locking ownership can be transferred to another function if
     //          necessary
     //      }
     //

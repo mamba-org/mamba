@@ -193,7 +193,7 @@ Build from source
 
 .. note::
 
-   These instuction do not work currently on Windows, which requires a more complex hybrid build.
+   These instructions do not work currently on Windows, which requires a more complex hybrid build.
    For up-to-date instructions on Windows and Unix, consult the scripts in the
    `micromamba-feedstock <https://github.com/conda-forge/micromamba-feedstock>`_.
 

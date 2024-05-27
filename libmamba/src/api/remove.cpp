@@ -160,7 +160,7 @@ namespace mamba
                                     .value();
                     const auto& installed = prefix_data.records();
                     // TODO should itreate over all packages and use MatchSpec.contains
-                    // TODO should move such method over Pool for consitent use
+                    // TODO should move such method over Pool for consistent use
                     if (auto iter = installed.find(spec.name().str()); iter != installed.cend())
                     {
                         pkgs_to_remove.push_back(iter->second);

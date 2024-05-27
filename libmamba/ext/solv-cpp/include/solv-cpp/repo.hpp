@@ -198,7 +198,7 @@ namespace solv
          * Set the version used for writing solv files.
          *
          * This has no effect for libsolv and is purely for data storing.
-         * It is up to the user to make comparsions with this attribute.
+         * It is up to the user to make comparisons with this attribute.
          *
          * @note A call to @ref ObjRepoView::internalize is required for this attribute to
          *       be available for lookup.
@@ -210,7 +210,7 @@ namespace solv
          * Clear all solvables from the repository.
          *
          * If @p reuse_ids is true, the solvable ids used in the pool can be reused for future
-         * solvables (incuding in other repositories).
+         * solvables (including in other repositories).
          */
         void clear(bool reuse_ids) const;
 
@@ -243,7 +243,7 @@ namespace solv
          * Remove a solvable from the repository.
          *
          * If @p reuse_id is true, the solvable id used in the pool can be reused for future
-         * solvables (incuding in other repositories).
+         * solvables (including in other repositories).
          */
         auto remove_solvable(SolvableId id, bool reuse_id) const -> bool;
 

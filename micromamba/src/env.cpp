@@ -195,7 +195,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         if (channel_subdir)
                         {
                             dependencies
-                                // If the size is not one, it's a custom mutli channel
+                                // If the size is not one, it's a custom multi channel
                                 << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
                                 << "/" << v.platform << "::";
                         }

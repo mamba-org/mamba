@@ -414,7 +414,7 @@ namespace mamba
         catch (...)
         {
             return make_unexpected(
-                "Unkown error when trying to load subdir data "
+                "Unknown error when trying to load subdir data "
                     + SubdirData::get_name(channel.id(), platform),
                 mamba_error_code::unknown
             );
@@ -624,7 +624,7 @@ namespace mamba
 
         for (const fs::u8path& cache_path : cache_paths)
         {
-            // TODO: rewite this with pipe chains of ranges
+            // TODO: rewrite this with pipe chains of ranges
             fs::u8path json_file = cache_path / "cache" / m_json_fn;
             if (!fs::is_regular_file(json_file))
             {

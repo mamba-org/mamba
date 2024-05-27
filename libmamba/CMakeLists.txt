@@ -34,7 +34,7 @@ set(
 )
 message(STATUS "Building libmamba v${${PROJECT_NAME}_VERSION}")
 
-# Binary version See the following URL for explanations about the binary versionning
+# Binary version See the following URL for explanations about the binary versioning
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
 file(
     STRINGS "${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp" libmamba_version_defines
@@ -591,7 +591,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 yaml-cpp::yaml-cpp
                 fmt::fmt
                 # Since conda-forge spdlog is built with a bundled version of fmt we use the header
-                # only version to avoid chasing after the correct fmt version mathching the one used
+                # only version to avoid chasing after the correct fmt version matching the one used
                 # in the bundle
                 spdlog::spdlog_header_only
             PRIVATE

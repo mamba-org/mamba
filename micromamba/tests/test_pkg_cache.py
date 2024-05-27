@@ -22,7 +22,7 @@ def find_cache_archive(cache: Path, pkg_name: str) -> Optional[Path]:
 
 
 def find_pkg_build(cache: Path, name: str) -> str:
-    """Find the build name of a package in the cache from the pacakge name."""
+    """Find the build name of a package in the cache from the package name."""
     matches = [p for p in cache.glob(f"{name}*") if p.is_dir()]
     assert len(matches) == 1
     return matches[0].name

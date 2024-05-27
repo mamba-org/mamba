@@ -46,7 +46,7 @@ namespace mamba::util
         };
 
         /**
-         * Hash a blob of data and write the hashed bytes to the provided ouput.
+         * Hash a blob of data and write the hashed bytes to the provided output.
          */
         void blob_bytes_to(blob_type blob, std::byte* out);
 
@@ -71,7 +71,7 @@ namespace mamba::util
         [[nodiscard]] auto blob_hex_str(blob_type blob) -> std::string;
 
         /**
-         * Hash a string and write the hashed bytes to the provided ouput.
+         * Hash a string and write the hashed bytes to the provided output.
          */
         void str_bytes_to(std::string_view data, std::byte* out);
 
@@ -96,7 +96,7 @@ namespace mamba::util
         [[nodiscard]] auto str_hex_str(std::string_view data) -> std::string;
 
         /**
-         * Incrementally hash a file and write the hashed bytes to the provided ouput.
+         * Incrementally hash a file and write the hashed bytes to the provided output.
          */
         void file_bytes_to(std::ifstream& file, std::byte* out);
 

@@ -27,7 +27,7 @@ function(mamba_target_add_compile_warnings target)
         /external:W1
         # Baseline reasonable warnings
         /W4
-        # "identfier": conversion from "type1" to "type1", possible loss of data
+        # "identifier": conversion from "type1" to "type1", possible loss of data
         /w14242
         # "operator": conversion from "type1:field_bits" to "type2:field_bits", possible loss of
         # data
@@ -117,7 +117,7 @@ function(mamba_target_add_compile_warnings target)
     set(
         gcc_warnings
         ${clang_warnings}
-        # Warn if identation implies blocks where blocks do not exist
+        # Warn if indentation implies blocks where blocks do not exist
         -Wmisleading-indentation
         # Warn if if / else chain has duplicated conditions
         -Wduplicated-cond

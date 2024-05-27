@@ -31,7 +31,7 @@ namespace solv
      * Pool of solvable involved in resolving en environment.
      *
      * The pool contains the solvable (packages) information required from the ``::Solver``.
-     * The pool can be reused by multiple solvers to solve differents requirements with the same
+     * The pool can be reused by multiple solvers to solve different requirements with the same
      * ecosystem.
      */
     class ObjPoolView
@@ -118,7 +118,7 @@ namespace solv
         /** Get the registered version of a dependency. */
         auto get_dependency_version(DependencyId id) const -> std::string_view;
 
-        /** Get the registered realtion between a dependency name and version. */
+        /** Get the registered relation between a dependency name and version. */
         auto get_dependency_relation(DependencyId id) const -> std::string_view;
 
         /** Compute the string representation of a dependency. */
@@ -129,7 +129,7 @@ namespace solv
          *
          * Create an index to retrieve the list of solvables satisfying a given dependency.
          * This is an expensive operation.
-         * The index is also computed over regular ``StringId``, in which case they reprensent
+         * The index is also computed over regular ``StringId``, in which case they represent
          * all packages that provide that name (without restriction on version).
          */
         void create_whatprovides();
@@ -157,7 +157,7 @@ namespace solv
          * Add an entry to ``whatprovides``.
          *
          * This is the table that is looked up to know which solvables satistfy a given dependency.
-         * Entries set with this function get overriden by @ref create_whatprovides.
+         * Entries set with this function get overridden by @ref create_whatprovides.
          */
         void add_to_whatprovides(DependencyId dep, OffsetId solvables);
 
@@ -253,7 +253,7 @@ namespace solv
          * Set the installed repository.
          *
          * The installed repository represents package already installed.
-         * For instance, it is used to filter out the solvable that are alrady available after
+         * For instance, it is used to filter out the solvable that are already available after
          * a solve.
          */
         void set_installed_repo(RepoId id);

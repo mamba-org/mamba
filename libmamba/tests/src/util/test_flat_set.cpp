@@ -185,15 +185,15 @@ TEST_SUITE("util::flat_set")
             CHECK_EQ(set_difference(s3, s2), s3);
         }
 
-        SUBCASE("Symetric difference")
+        SUBCASE("Symmetric difference")
         {
-            CHECK_EQ(set_symetric_difference(s1, s1), flat_set<int>{});
-            CHECK_EQ(set_symetric_difference(s1, s2), flat_set<int>{ 1, 4 });
-            CHECK_EQ(set_symetric_difference(s2, s1), set_symetric_difference(s1, s2));
-            CHECK_EQ(set_symetric_difference(s1, s3), flat_set<int>{ 1, 3, 5, 6 });
-            CHECK_EQ(set_symetric_difference(s3, s1), set_symetric_difference(s1, s3));
-            CHECK_EQ(set_symetric_difference(s2, s3), flat_set<int>{ 3, 4, 5, 6 });
-            CHECK_EQ(set_symetric_difference(s3, s2), set_symetric_difference(s2, s3));
+            CHECK_EQ(set_symmetric_difference(s1, s1), flat_set<int>{});
+            CHECK_EQ(set_symmetric_difference(s1, s2), flat_set<int>{ 1, 4 });
+            CHECK_EQ(set_symmetric_difference(s2, s1), set_symmetric_difference(s1, s2));
+            CHECK_EQ(set_symmetric_difference(s1, s3), flat_set<int>{ 1, 3, 5, 6 });
+            CHECK_EQ(set_symmetric_difference(s3, s1), set_symmetric_difference(s1, s3));
+            CHECK_EQ(set_symmetric_difference(s2, s3), flat_set<int>{ 3, 4, 5, 6 });
+            CHECK_EQ(set_symmetric_difference(s3, s2), set_symmetric_difference(s2, s3));
         }
 
         SUBCASE("Algebra")
@@ -210,12 +210,12 @@ TEST_SUITE("util::flat_set")
                         set_union(u, v)
                     );
                     CHECK_EQ(
-                        set_union(set_symetric_difference(u, v), set_intersection(u, v)),
+                        set_union(set_symmetric_difference(u, v), set_intersection(u, v)),
                         set_union(u, v)
                     );
                     CHECK_EQ(
                         set_difference(set_union(u, v), set_intersection(u, v)),
-                        set_symetric_difference(u, v)
+                        set_symmetric_difference(u, v)
                     );
                 }
             }

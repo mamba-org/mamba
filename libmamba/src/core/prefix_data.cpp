@@ -115,7 +115,7 @@ namespace mamba
             }
 
             // Flip known problematic edges.
-            // This is made to adress cycles but there is no straightforward way to make
+            // This is made to address cycles but there is no straightforward way to make
             // a generic cycle handler so we instead force flip the given edges
             static constexpr auto edges_to_flip = std::array{ std::pair{ "pip", "python" } };
             for (const auto& [from, to] : edges_to_flip)

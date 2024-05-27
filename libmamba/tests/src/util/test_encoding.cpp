@@ -109,7 +109,7 @@ TEST_SUITE("util::encoding")
         }
     }
 
-    TEST_CASE("precent")
+    TEST_CASE("percent")
     {
         SUBCASE("encode")
         {

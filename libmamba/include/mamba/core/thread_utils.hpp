@@ -60,7 +60,7 @@ namespace mamba
 
     // Waits until all other threads have finished
     // Must be called by the cleaning thread to ensure
-    // it won't free ressources that could be required
+    // it won't free resources that could be required
     // by threads still active.
     void wait_for_all_threads();
 

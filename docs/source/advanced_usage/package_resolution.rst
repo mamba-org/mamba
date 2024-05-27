@@ -61,4 +61,4 @@ For this example the default is the cpython build of numpy. However, currently c
 
 For the case where we want to simply install ``numpy``, we need to find which numpy variant installs the highest python package. In this case libsolv would decide for ``numpy-1.20-cpython38``.
 
-If we install ``numpy python=3.7`` we have two potential variants: ``numpy-1.20-cpython37`` and ``numpy-1.20-pypy37``. In this case we need to inspect wether one of those two builds will require exclusively packages with a track_feature applied. And indeed, the ``pypy37`` package will have a requirement on ``python_abi 3.7 *pypy`` and **all** packages matching this requirement have a track_feature, so that it will be down-weighted.
+If we install ``numpy python=3.7`` we have two potential variants: ``numpy-1.20-cpython37`` and ``numpy-1.20-pypy37``. In this case we need to inspect whether one of those two builds will require exclusively packages with a track_feature applied. And indeed, the ``pypy37`` package will have a requirement on ``python_abi 3.7 *pypy`` and **all** packages matching this requirement have a track_feature, so that it will be down-weighted.

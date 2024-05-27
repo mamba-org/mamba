@@ -105,7 +105,7 @@ namespace mamba::specs
          */
         void append_path(std::string_view path, Encode::no_type);
 
-        /** Return wether a token is set. */
+        /** Return whether a token is set. */
         [[nodiscard]] auto has_token() const -> bool;
 
         /** Return the Conda token, as delimited with "/t/", or empty if there isn't any. */
@@ -115,7 +115,7 @@ namespace mamba::specs
          * Set a token.
          *
          * If the URL already contains one replace it at the same location, otherwise, add it at
-         * the begining of the path.
+         * the beginning of the path.
          */
         void set_token(std::string_view token);
 
@@ -216,7 +216,7 @@ namespace mamba::specs
          * Due to decoding, the outcome may not be understood by parser and usable to reach an
          * asset.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
-         * @param rstrip_path If non-null, remove the given charaters at the end of the path.
+         * @param rstrip_path If non-null, remove the given characters at the end of the path.
          * @param credentials If true, hide password and tokens in the decoded string.
          * @param credentials Decide to keep, remove, or hide passwrd, users, and token.
          */

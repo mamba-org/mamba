@@ -146,7 +146,7 @@ channel_parser.add_argument(
 )
 
 
-# Gobal args can be given anywhere with the first set of args for backward compatibility.
+# Global args can be given anywhere with the first set of args for backward compatibility.
 args, argv_remaining = global_parser.parse_known_args()
 PORT = args.port
 
@@ -175,8 +175,8 @@ while argv_remaining:
 
 print(channels)
 
-# Unamed channel in multi-channel case would clash URLs but we want to allow
-# a single unamed channel for backward compatibility.
+# Unnamed channel in multi-channel case would clash URLs but we want to allow
+# a single unnamed channel for backward compatibility.
 if (len(channels) > 1) and (None in channels):
     print("Cannot use empty channel name when using multiple channels", file=sys.stderr)
     exit(1)

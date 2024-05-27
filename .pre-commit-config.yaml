@@ -43,3 +43,11 @@ repos:
     rev: v0.6.13
     hooks:
       - id: cmake-format
+  - repo: https://github.com/Quantco/pre-commit-mirrors-typos
+    rev: 1.20.8
+    hooks:
+      - id: typos-conda
+        exclude: (CHANGELOG.md)
+        # In case of ambiguity (multiple possible corrections), `typos` will just report it to the user and move on without applying/writing any changes.
+        # cf. https://github.com/crate-ci/typos
+        args: [ --write-changes ]

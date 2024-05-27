@@ -104,7 +104,7 @@ namespace mamba
 
         private:
 
-            // Variables to restore the original COntext state and avoid
+            // Variables to restore the original Context state and avoid
             // side effect across the tests. A better solution would be to
             // save and restore the whole context (that requires refactoring
             // of the Context class)

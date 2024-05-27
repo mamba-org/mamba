@@ -103,7 +103,7 @@ namespace mamba::specs
                 return num_ord;
             }
 
-            // Certain literals have sepcial meaning we map then to a priority
+            // Certain literals have special meaning we map then to a priority
             // 0 meaning regular string
             auto lit_priority = [](const auto& l) -> int
             {
@@ -142,7 +142,7 @@ namespace mamba::specs
 
     auto VersionPartAtom::operator==(const VersionPartAtom& other) const -> bool
     {
-        // More efficient thatn three way comparison because of edge cases
+        // More efficient than three way comparison because of edge cases
         auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&>
         { return { a.numeral(), a.literal() }; };
         return attrs(*this) == attrs(other);
@@ -150,7 +150,7 @@ namespace mamba::specs
 
     auto VersionPartAtom::operator!=(const VersionPartAtom& other) const -> bool
     {
-        // More efficient thatn three way comparison
+        // More efficient than three way comparison
         return !(*this == other);
     }
 
@@ -233,7 +233,7 @@ namespace mamba::specs
     auto Version::str(std::size_t level) const -> std::string
     {
         // We should be able to do, as it works with numbers but it is not clear how this works
-        // with the cusotm parser
+        // with the custom parser
         // return fmt::format("{:{}}", *this, level);
         auto fmt = fmt::format("{{:{}}}", level);
         return fmt::format(fmt, *this);
@@ -242,15 +242,15 @@ namespace mamba::specs
     namespace
     {
         /**
-         * Compare two range where some trailing elements can be considered as empty.
+         * Compare two ranges where some trailing elements can be considered as empty.
          *
          * If ``0`` is considered "empty" then all the ranges ``[1, 2] and ``[1, 2, 0]``,
          * ``[1, 2, 0, 0]`` are considered equal, however ``[1, 2]`` and ``[1, 0, 2]`` are not.
-         * Similarily ``[1, 1] is less than ``[1, 2, 0]`` but more than ``[1, 1, -1]``
+         * Similarly ``[1, 1] is less than ``[1, 2, 0]`` but more than ``[1, 1, -1]``
          * because ``-1 < 0``.
          *
-         * @return The comparison between the two sequence
-         * @return The first index where the two sequence diverge.
+         * @return The comparison between the two sequences
+         * @return The first index where the two sequences diverge.
          */
         template <typename Iter1, typename Iter2, typename Empty1, typename Empty2, typename Cmp>
         constexpr auto lexicographical_compare_three_way_trailing(
@@ -277,7 +277,7 @@ namespace mamba::specs
             }
 
             // They have the same leading elements but 1 has more elements
-            // We do a lexicographic compare with an infite sequence of empties
+            // We do a lexicographic comparison with an infinite sequence of empties
             if ((iter1 != last1))
             {
                 for (; iter1 != last1; ++iter1)
@@ -290,7 +290,7 @@ namespace mamba::specs
             }
             // first2 != last2
             // They have the same leading elements but 2 has more elements
-            // We do a lexicographic compare with an infite sequence of empties
+            // We do a lexicographic comparison with an infinite sequence of empties
             if ((iter2 != last2))
             {
                 for (; iter2 != last2; ++iter2)
@@ -671,7 +671,7 @@ namespace mamba::specs
             while (true)
             {
                 tail_delim_pos = tail.find_first_of(delims);
-                // `_` is both a delimiter and has sepcial meaning.
+                // `_` is both a delimiter and has special meaning.
                 // We need to check if it is at the end and omit it
                 if ((tail_delim_pos == tail.size() - 1)
                     && tail[tail_delim_pos] == Version::part_delim_special)

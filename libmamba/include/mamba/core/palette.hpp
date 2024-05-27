@@ -13,9 +13,9 @@ namespace mamba
 {
     struct Palette
     {
-        /** Something that is possible or exsists. */
+        /** Something that is possible or exists. */
         fmt::text_style success;
-        /** Something that is impossible or does not exsist. */
+        /** Something that is impossible or does not exist. */
         fmt::text_style failure;
         /** Refers to external ecosystem. */
         fmt::text_style external;

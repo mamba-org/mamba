@@ -48,7 +48,7 @@ namespace mamba
             const auto error = maybe_lockfile.error();
             REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
             const auto& error_details = EnvLockFileError::get_details(error);
-            CHECK_EQ(file_parsing_error_code::unsuported_version, error_details.parsing_error_code);
+            CHECK_EQ(file_parsing_error_code::unsupported_version, error_details.parsing_error_code);
         }
 
         TEST_CASE("valid_no_package_succeed")

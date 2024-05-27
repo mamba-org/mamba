@@ -594,7 +594,7 @@ namespace mambapy
             .def_readonly_static("or_token", &VersionSpec::or_token)
             .def_readonly_static("left_parenthesis_token", &VersionSpec::left_parenthesis_token)
             .def_readonly_static("right_parenthesis_token", &VersionSpec::right_parenthesis_token)
-            .def_readonly_static("prefered_free_str", &VersionSpec::prefered_free_str)
+            .def_readonly_static("preferred_free_str", &VersionSpec::preferred_free_str)
             .def_readonly_static("all_free_strs", &VersionSpec::all_free_strs)
             .def_readonly_static("starts_with_str", &VersionSpec::starts_with_str)
             .def_readonly_static("equal_str", &VersionSpec::equal_str)
@@ -763,11 +763,11 @@ namespace mambapy
             .def_property_readonly_static("NameSpec", &py::type::of<MatchSpec::NameSpec>)
             .def_property_readonly_static("BuildStringSpec", &py::type::of<MatchSpec::BuildStringSpec>)
             .def_readonly_static("url_md5_sep", &MatchSpec::url_md5_sep)
-            .def_readonly_static("prefered_list_open", &MatchSpec::prefered_list_open)
-            .def_readonly_static("prefered_list_close", &MatchSpec::prefered_list_close)
+            .def_readonly_static("preferred_list_open", &MatchSpec::preferred_list_open)
+            .def_readonly_static("preferred_list_close", &MatchSpec::preferred_list_close)
             .def_readonly_static("alt_list_open", &MatchSpec::alt_list_open)
             .def_readonly_static("alt_list_close", &MatchSpec::alt_list_close)
-            .def_readonly_static("prefered_quote", &MatchSpec::prefered_quote)
+            .def_readonly_static("preferred_quote", &MatchSpec::preferred_quote)
             .def_readonly_static("alt_quote", &MatchSpec::alt_quote)
             .def_readonly_static("channel_namespace_spec_sep", &MatchSpec::channel_namespace_spec_sep)
             .def_readonly_static("attribute_sep", &MatchSpec::attribute_sep)
@@ -776,7 +776,7 @@ namespace mambapy
             .def_static("parse", &MatchSpec::parse)
             .def_static("parse_url", &MatchSpec::parse_url)
             .def(
-                // V2 Migation: Hard deperecation since errors would be hard to track.
+                // V2 Migation: Hard deprecation since errors would be hard to track.
                 py::init(
                     [](std::string_view) -> MatchSpec {
                         throw std::invalid_argument(

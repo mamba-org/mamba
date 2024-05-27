@@ -587,7 +587,7 @@ fmt::formatter<mamba::specs::VersionSpec>::format(
     auto out = ctx.out();
     if (spec.m_tree.empty())
     {
-        return fmt::format_to(out, "{}", VersionSpec::prefered_free_str);
+        return fmt::format_to(out, "{}", VersionSpec::preferred_free_str);
     }
     spec.m_tree.infix_for_each(
         [&](const auto& token)

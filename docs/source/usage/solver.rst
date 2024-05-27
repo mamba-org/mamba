@@ -31,8 +31,8 @@ Packages are organised in repositories, described by a
 This serves to resolve explicit channel requirements or channel priority.
 As such, the database constructor takes a set of
 :cpp:type:`ChannelResolveParams <mamba::specs::ChannelResolveParams>`
-to work with :cpp:type:`Channel <mamba::specs::Channel>` work with Channel data
-internaly (see :ref:`the usage section on Channels <libmamba_usage_channel>` for more
+to work with :cpp:type:`Channel <mamba::specs::Channel>` data
+internally (see :ref:`the usage section on Channels <libmamba_usage_channel>` for more
 information).
 
 The first way to add a repository is from a list of |PackageInfo| using
@@ -55,10 +55,10 @@ The first way to add a repository is from a list of |PackageInfo| using
        name="myrepo",
    )
 
-The second way of loading packages is throuch Conda's reposoitory index format ``repodata.json``
+The second way of loading packages is through Conda's repository index format ``repodata.json``
 using
 :cpp:func:`DataBase.add_repo_from_repodata <mamba::solver::libsolv::Database::add_repo_from_repodata>`.
-This is meant as a convenience and performant alternative to the former method, since these files
+This is meant for convenience, and is not a performant alternative to the former method, since these files
 grow large.
 
 .. code:: python
@@ -68,9 +68,9 @@ grow large.
        url="htts://conda.anaconda.org/conda-forge/linux-64",
    )
 
-One of the reppository can be set to have a special meaning of "installed repository".
+One of the repositories can be set to have a special meaning of "installed repository".
 It is used as a reference point in the solver to compute changes.
-For instance if a package is required but is already available in the installed repo, the solving
+For instance, if a package is required but is already available in the installed repo, the solving
 result will not mention it.
 The function
 :cpp:func:`DataBase.set_installed_repo <mamba::solver::libsolv::Database::set_installed_repo>` is
@@ -88,9 +88,9 @@ such as source url and
 :cpp:type:`RepodataOrigin <mamba::solver::libsolv::RepodataOrigin>`, are stored inside the
 file when calling
 :cpp:func:`DataBase.native_serialize_repo <mamba::solver::libsolv::Database::native_serialize_repo>` .
-Upon reading, similar parameters are expected as input to
+Upon reading, similar parameters are expected as inputs to
 :cpp:func:`DataBase.add_repo_from_native_serialization <mamba::solver::libsolv::Database::add_repo_from_native_serialization>`.
-If they mistmatch, the loading results in an error.
+If they mismatch, the loading results in an error.
 
 A typical wokflow first tries to load a repository from such binary cache, and then quietly
 fallbacks to ``repodata.json`` on failure.
@@ -120,7 +120,7 @@ This includes installing, updating, removing packages, as well as solving cutomi
 Solving the request
 -------------------
 The |Request| and the |Database| are the two input parameters needed to solve an environment.
-This task is achieve with the :cpp:func:`Solver.solve <mamba::solver::libsolv::Solver::solve>`
+This task is achieved with the :cpp:func:`Solver.solve <mamba::solver::libsolv::Solver::solve>`
 method.
 
 .. code:: python
@@ -129,8 +129,8 @@ method.
    outcome = solver.solve(db, request)
 
 The outcome can be of two types, either a |Solution| listing packages (|Packageinfo|) and the
-action to take on them (install, remove...), or an |UnSolvable| type when no solution exist
-(because of conflict, missing pacakges...).
+action to take on them (install, remove...), or an |UnSolvable| type when no solution exists
+(because of conflict, missing packages...).
 
 Examine the solution
 ~~~~~~~~~~~~~~~~~~~~
@@ -168,10 +168,10 @@ Alternatively, an easy way to compute the update to the environment is to check 
 
 Understand unsolvable problems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When a problem as no |Solution|, it is inherenty hard to come up with an explanation.
-In the easiest case, a requiered package is missing from the |Database|.
+When a problem has no |Solution|, it is inherenty hard to come up with an explanation.
+In the easiest case, a required package is missing from the |Database|.
 In the most complex, many package dependencies are incompatible without a single culprit.
-In this case, packages should be rebuild with weaker requirements, or with more build variants.
+In this case, packages should be rebuilt with weaker requirements, or with more build variants.
 The |UnSolvable| class attempts to build an explanation.
 
 The :cpp:func:`UnSolvable.problems <mamba::solver::libsolv::UnSolvable::problems>` is a list

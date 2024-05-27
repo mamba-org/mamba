@@ -94,7 +94,7 @@ namespace mamba
     void shell_hook(Context& ctx, const std::string& shell_type)
     {
         auto activator = make_activator(ctx, shell_type);
-        // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
+        // TODO do we need to do something with `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
         {
             Console::instance().json_write({ { "success", true },

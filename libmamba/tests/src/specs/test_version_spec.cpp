@@ -370,7 +370,7 @@ TEST_SUITE("specs::version_spec")
             // CHECK("1.*.1"_vs.contains("1.7.1"_v));
         }
 
-        SUBCASE("Unsuccesful")
+        SUBCASE("Unsuccessful")
         {
             using namespace std::literals::string_view_literals;
             static constexpr auto bad_specs = std::array{

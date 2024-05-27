@@ -40,7 +40,7 @@ namespace mamba::download
         // Returns true if there are registered mirrors stored here, false if none are.
         bool has_mirrors(std::string_view mirror_name) const;
 
-        // Get a list of unique mirorrs if existing for the provided mirror name, or an empty list
+        // Get a list of unique mirrors if existing for the provided mirror name, or an empty list
         // otherwise.
         mirror_set_view get_mirrors(std::string_view mirror_name) const;
 

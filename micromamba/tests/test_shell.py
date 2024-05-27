@@ -136,7 +136,7 @@ def test_auto_detection(tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
 @pytest.mark.parametrize("prefix_is_root", [False, True])
 @pytest.mark.parametrize("prefix_exists", [False, True])
-@pytest.mark.parametrize("prefix_type", ["shrinked_prefix", "expanded_prefix", "name"])
+@pytest.mark.parametrize("prefix_type", ["shrunk_prefix", "expanded_prefix", "name"])
 def test_activate(
     tmp_home,
     tmp_root_prefix,
@@ -162,7 +162,7 @@ def test_activate(
     cmd = ["activate", "-s", shell_type]
     if prefix_type == "expanded_prefix":
         cmd.append(p)
-    elif prefix_type == "shrinked_prefix":
+    elif prefix_type == "shrunk_prefix":
         cmd.append(str(p).replace(os.path.expanduser("~"), "~"))
     else:
         cmd.append(n)

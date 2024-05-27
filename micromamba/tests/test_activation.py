@@ -39,7 +39,7 @@ suffixes = {
 class WindowsProfiles:
     def __getitem__(self, shell: str) -> str:
         if shell == "powershell":
-            # find powershell profile path dyanmically
+            # find powershell profile path dynamically
             args = [
                 "powershell",
                 "-NoProfile",
@@ -882,7 +882,7 @@ def test_activate_path(tmp_empty_env, tmp_env_name, interpreter, tmp_path):
 
 @pytest.mark.parametrize("interpreter", get_interpreters())
 def test_activate_envs_dirs(tmp_root_prefix: Path, interpreter, tmp_path: Path):
-    """Activate an environemt as the non leading entry in ``envs_dirs``."""
+    """Activate an environment as the non leading entry in ``envs_dirs``."""
     env_name = "myenv"
     helpers.create("-p", tmp_path / env_name, "--offline", "--no-rc", no_dry_run=True)
     os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"

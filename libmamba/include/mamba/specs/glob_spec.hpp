@@ -37,7 +37,7 @@ namespace mamba::specs
         [[nodiscard]] auto is_free() const -> bool;
 
         /**
-         * Return true if the spec will match exaclty one input.
+         * Return true if the spec will match exactly one input.
          */
         [[nodiscard]] auto is_exact() const -> bool;
 

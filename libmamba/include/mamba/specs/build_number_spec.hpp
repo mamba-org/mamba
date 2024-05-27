@@ -81,7 +81,7 @@ namespace mamba::specs
     /**
      * Match a build number with a predicate.
      *
-     * Conda does not implement expression for build numbers but they could be added similarily
+     * Conda does not implement expression for build numbers but they could be added similarly
      * to @ref VersionSpec.
      */
     class BuildNumberSpec
@@ -90,7 +90,7 @@ namespace mamba::specs
 
         using BuildNumber = typename BuildNumberPredicate::BuildNumber;
 
-        static constexpr std::string_view prefered_free_str = "=*";
+        static constexpr std::string_view preferred_free_str = "=*";
         static constexpr std::array<std::string_view, 4> all_free_strs = { "", "*", "=*", "==*" };
         static constexpr std::string_view equal_str = "=";
         static constexpr std::string_view not_equal_str = "!=";
@@ -107,7 +107,7 @@ namespace mamba::specs
         explicit BuildNumberSpec(BuildNumberPredicate predicate) noexcept;
 
         /**
-         * Returns wether the BuildNumberSpec is unconstrained.
+         * Returns whether the BuildNumberSpec is unconstrained.
          */
         [[nodiscard]] auto is_explicitly_free() const -> bool;
 

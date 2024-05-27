@@ -134,7 +134,7 @@ namespace mamba::util
         friend auto
         set_difference(const flat_set<K, C, A>&, const flat_set<K, C, A>&) -> flat_set<K, C, A>;
         template <typename K, typename C, typename A>
-        friend auto set_symetric_difference(const flat_set<K, C, A>&, const flat_set<K, C, A>&)
+        friend auto set_symmetric_difference(const flat_set<K, C, A>&, const flat_set<K, C, A>&)
             -> flat_set<K, C, A>;
     };
 
@@ -218,7 +218,7 @@ namespace mamba::util
     ) -> flat_set<Key, Compare, Allocator>;
 
     template <typename Key, typename Compare, typename Allocator>
-    auto set_symetric_difference(
+    auto set_symmetric_difference(
         const flat_set<Key, Compare, Allocator>& lhs,
         const flat_set<Key, Compare, Allocator>& rhs
     ) -> flat_set<Key, Compare, Allocator>;
@@ -542,7 +542,7 @@ namespace mamba::util
     }
 
     template <typename K, typename C, typename A>
-    auto set_symetric_difference(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs)
+    auto set_symmetric_difference(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs)
         -> flat_set<K, C, A>
     {
         auto out = flat_set<K, C, A>();

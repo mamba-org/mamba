@@ -305,7 +305,7 @@ namespace mamba::specs
         if (!plat.has_value())
         {
             throw std::invalid_argument(
-                fmt::format(R"(No platform in orignial path "{}")", path(Decode::no))
+                fmt::format(R"(No platform in original path "{}")", path(Decode::no))
             );
         }
         assert(1 < len);
@@ -351,7 +351,7 @@ namespace mamba::specs
 
     auto CondaURL::package(Decode::no_type) const -> std::string_view
     {
-        // Must not decode to find the meaningful '/' spearators
+        // Must not decode to find the meaningful '/' separators
         const auto& l_path = path(Decode::no);
         if (has_archive_extension(l_path))
         {
@@ -374,7 +374,7 @@ namespace mamba::specs
                 fmt::format(R"(Invalid CondaURL package "{}", use path_append instead)", pkg)
             );
         }
-        // Must not decode to find the meaningful '/' spearators
+        // Must not decode to find the meaningful '/' separators
         if (has_archive_extension(path(Decode::no)))
         {
             auto l_path = clear_path();
@@ -390,7 +390,7 @@ namespace mamba::specs
 
     auto CondaURL::clear_package() -> bool
     {
-        // Must not decode to find the meaningful '/' spearators
+        // Must not decode to find the meaningful '/' separators
         if (has_archive_extension(path(Decode::no)))
         {
             auto l_path = clear_path();

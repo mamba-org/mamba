@@ -26,9 +26,9 @@ namespace mamba::solver::libsolv
      *
      * In libsolv, most of the data is help in the @ref Database, and repo are tightly coupled
      * with them.
-     * This repository class is a lightwight description of a repository returned when creating
+     * This repository class is a lightweight description of a repository returned when creating
      * a new repository in the @ref Database.
-     * Some modifications to the repo are possible throught the @ref Database.
+     * Some modifications to the repo are possible through the @ref Database.
      * @see Database::add_repo_from_repodata_json
      * @see Database::add_repo_from_packages
      * @see Database::remove_repo

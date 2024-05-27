@@ -39,11 +39,11 @@ namespace mamba::specs
         using string_set_const_ref = typename std::reference_wrapper<const string_set>;
 
         inline static constexpr char url_md5_sep = '#';
-        inline static constexpr char prefered_list_open = '[';
-        inline static constexpr char prefered_list_close = ']';
+        inline static constexpr char preferred_list_open = '[';
+        inline static constexpr char preferred_list_close = ']';
         inline static constexpr char alt_list_open = '(';
         inline static constexpr char alt_list_close = ')';
-        inline static constexpr char prefered_quote = '"';
+        inline static constexpr char preferred_quote = '"';
         inline static constexpr char alt_quote = '\'';
         inline static constexpr char channel_namespace_spec_sep = ':';
         inline static constexpr char attribute_sep = ',';
@@ -123,7 +123,7 @@ namespace mamba::specs
          * comparing unresolved channels and the fact that this check can be also be done once
          * at a repository level when the user knows how packages are organised.
          *
-         * This function is written as a generic template, to acomodate various uses: the fact
+         * This function is written as a generic template, to accommodate various uses: the fact
          * that the attributes may not always be in the correct format in the package, and that
          * their parsing may be cached.
          */
@@ -131,7 +131,7 @@ namespace mamba::specs
         [[nodiscard]] auto contains_except_channel(const Pkg& pkg) const -> bool;
 
         /**
-         * Convenience wrapper making necessary convertions.
+         * Convenience wrapper making necessary conversions.
          */
         [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
 

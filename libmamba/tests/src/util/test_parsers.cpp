@@ -134,7 +134,7 @@ TEST_SUITE("util::parsers")
                 ParseError::InvalidInput
             );
 
-            // The following unfortunaltely does not work as we would need to allocate a stack
+            // The following unfortunately does not work as we would need to allocate a stack
             // to keep track of the opening and closing of parentheses.
             // CHECK_EQ(
             //     find_not_in_parentheses("(hello, [world, )welcome, here],", ',', opens,

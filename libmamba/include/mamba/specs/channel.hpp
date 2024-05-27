@@ -113,7 +113,7 @@ namespace mamba::specs
         /*
          * This ID is a cross URL id, and is dependent on the
          * channel_alias when the channel has not been specified in
-         * the new mirrord_channel section of the configuration.
+         * the new mirrored_channel section of the configuration.
          */
         [[nodiscard]] auto id() const -> const std::string&;
         [[nodiscard]] auto display_name() const -> const std::string&;

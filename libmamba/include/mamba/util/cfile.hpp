@@ -26,7 +26,7 @@ namespace mamba::util
          *
          * In case of error, set the error code @p ec.
          *
-         * @param path must hae filesystem default encoding.
+         * @param path must have filesystem default encoding.
          */
         static auto try_open(  //
             const fs::u8path& path,

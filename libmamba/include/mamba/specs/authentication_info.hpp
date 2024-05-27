@@ -72,7 +72,7 @@ namespace mamba::specs
     /**
      * A class that holds the authentication info stored by users.
      *
-     * Essentially a map, except that some keys can match mutliple queries.
+     * Essentially a map, except that some keys can match multiple queries.
      * For instance "mamba.org/private" should be matched by queries "mamba.org/private",
      * "mamba.org/private/channel", but not "mamba.org/public".
      *
@@ -81,7 +81,7 @@ namespace mamba::specs
      * Future development of this class should aim to replace the map and keys with a
      * `AuthenticationSpec`, that can decide whether or not a URL should benefit from such
      * its authentication.
-     * Possibly, a string reprensentation such as "*.mamba.org/private/channel*" could be added
+     * Possibly, a string representation such as "*.mamba.org/private/channel*" could be added
      * to parse users intentions, rather than relying on the assumptions made here.
      */
     using AuthenticationDataBase = util::

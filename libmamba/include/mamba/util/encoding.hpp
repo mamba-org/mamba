@@ -27,7 +27,7 @@ namespace mamba::util
     [[nodiscard]] auto nibble_to_hex(std::byte b) noexcept -> char;
 
     /**
-     * Convert a buffer of bytes to a hexadecimal string written in the @p out paremeter.
+     * Convert a buffer of bytes to a hexadecimal string written in the @p out parameter.
      *
      * The @p out parameter must be allocated with twice the size of the input byte buffer.
      */
@@ -80,7 +80,7 @@ namespace mamba::util
     /**
      * Escape reserved URL reserved characters with '%' encoding.
      *
-     * The secons argument can be used to specify characters to exclude from encoding,
+     * The second argument can be used to specify characters to exclude from encoding,
      * so that for instance path can be encoded without splitting them (if they have no '/' other
      * than separators).
      *

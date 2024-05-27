@@ -27,8 +27,8 @@ namespace mamba::util
     /**
      * Find the first opening parenthesis and its matching pair.
      *
-     * Correctly matches parenteses together so that inner parentheses pairs are skipped.
-     * Open and closing pairs need not be differents.
+     * Correctly matches parentheses together so that inner parentheses pairs are skipped.
+     * Open and closing pairs don't need to be different.
      * If an error is encountered, @p err is modified to contain the error, otherwise it is left
      * as it is.
      */
@@ -64,7 +64,7 @@ namespace mamba::util
      * Find the last closing parenthesese and its matching pair.
      *
      * Correctly matches parenteses together so that inner parentheses pairs are skipped.
-     * Open and closing pairs need not be differents.
+     * Open and closing pairs don't need to be different.
      * If an error is encountered, @p err is modified to contain the error, otherwise it is left
      * as it is.
      */
@@ -99,12 +99,12 @@ namespace mamba::util
     /**
      * Find a character or string, except in matching parentheses pairs.
      *
-     * Find the first occurence of the given character, except if such character is inside a valid
+     * Find the first occurrence of the given character, except if such character is inside a valid
      * pair of parentheses.
-     * Open and closing pairs need not be differents.
+     * Open and closing pairs don't need to be different.
      * If not found, ``std::string_view::npos`` is returned but no error is set as this is not
      * considered an error.
-     * Due to a greedy approach, the functin may not be able to detect all errors, but will be
+     * Due to a greedy approach, the function may not be able to detect all errors, but will be
      * correct when parentheses are correctly matched.
      */
     auto find_not_in_parentheses(  //
@@ -174,12 +174,12 @@ namespace mamba::util
     /**
      * Find the last character or string, except in matching parentheses pairs.
      *
-     * Find the last occurence of the given character, except if such character is inside a valid
+     * Find the last occurrence of the given character, except if such character is inside a valid
      * pair of parentheses.
-     * Open and closing pairs need not be differents.
+     * Open and closing pairs don't need to be different.
      * If not found, ``std::string_view::npos`` is returned but no error is set as this is not
      * considered an error.
-     * Due to a greedy approach, the functin may not be able to detect all errors, but will be
+     * Due to a greedy approach, the function may not be able to detect all errors, but will be
      * correct when parentheses are correctly matched.
      */
     auto rfind_not_in_parentheses(  //
@@ -247,7 +247,7 @@ namespace mamba::util
     ) noexcept -> tl::expected<std::size_t, ParseError>;
 
     /**
-     * Test wether the glob pattern @p pattern matches the string @p str.
+     * Test whether the glob pattern @p pattern matches the string @p str.
      */
     [[nodiscard]] auto
     glob_match(std::string_view pattern, std::string_view str, char glob = '*') -> bool;
@@ -359,7 +359,7 @@ namespace mamba::util
             auto pos = start;
             while (pos != npos)
             {
-                // Change depth of corresponding open/close pair, writting in index P for
+                // Change depth of corresponding open/close pair, writing in index P for
                 // the one not matching.
                 const auto open_depth_idx = detail_parsers::find(open, text[pos]);
                 const auto close_depth_idx = detail_parsers::find(close, text[pos]);
@@ -510,7 +510,7 @@ namespace mamba::util
         auto [last, first] = detail_parsers::find_matching_parentheses_impl(
             text,
             err,
-            close,  // swaped
+            close,  // swapped
             open,
             detail_parsers::RFindParenthesesSearcher()
         );
@@ -626,7 +626,7 @@ namespace mamba::util
             text,
             c,
             err,
-            close,  // swaped
+            close,  // swapped
             open,
             detail_parsers::RFindParenthesesSearcher()
         );
@@ -662,7 +662,7 @@ namespace mamba::util
             text,
             val,
             err,
-            close,  // swaped
+            close,  // swapped
             open,
             detail_parsers::RFindParenthesesSearcher()
         );

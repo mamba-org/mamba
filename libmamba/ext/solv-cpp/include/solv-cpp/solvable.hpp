@@ -87,7 +87,7 @@ namespace solv
          * When the array is split in two using a maker, @p marker can be used to get
          * only a part of the the dependency array.
          * Use ``-1`` to get the first part, ``1`` to get the second part, and ``0`` to get
-         * eveything including the marker.
+         * everything including the marker.
          */
         auto dependencies(DependencyMarker marker = -1) const -> ObjQueue;
 
@@ -322,8 +322,8 @@ namespace solv
          * Set all constraints.
          *
          * A constraint is like a dependency that is not part of the solving outcome.
-         * In other words, if a solvable has a constraint, it is activated ony if another solvable
-         * in the solving requires that package as a dependencyl
+         * In other words, if a solvable has a constraint, it is only activated if another solvable
+         * in the solving requires that package as a dependency
          *
          * @warning The pool must be of type conda for this to have an impact in during solving
          *          @ref ``ObjPool::set_disttype``.

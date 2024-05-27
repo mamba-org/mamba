@@ -126,7 +126,7 @@ fmt::formatter<mamba::specs::BuildNumberPredicate>::format(
             using Op = std::decay_t<decltype(op)>;
             if constexpr (std::is_same_v<Op, BuildNumberPredicate::free_interval>)
             {
-                out = fmt::format_to(out, "{}", BuildNumberSpec::prefered_free_str);
+                out = fmt::format_to(out, "{}", BuildNumberSpec::preferred_free_str);
             }
             if constexpr (std::is_same_v<Op, std::equal_to<BuildNumber>>)
             {

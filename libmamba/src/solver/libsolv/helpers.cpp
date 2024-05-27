@@ -860,7 +860,7 @@ namespace mamba::solver::libsolv
         // Locking on a spec applies the lock to all packages matching the spec.
         // In mamba, we do not want to lock the package because we want to allow other variants
         // (matching the same spec) to unlock more solutions.
-        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swapped with a version built
         // by a more recent compiler.
         //
         // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
@@ -870,7 +870,7 @@ namespace mamba::solver::libsolv
         //
         // Another wrong idea is to add the pin as an install job.
         // This is not what is expected of pins, as they must not be installed if they were not
-        // in the environement.
+        // in the environment.
         // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
         //
         // The idea behind the current version is to add the pin/spec as a constraint that must be
@@ -898,7 +898,7 @@ namespace mamba::solver::libsolv
             // If the installed repo does not exists, we can safely create it because this is
             // called right before the solve function.
             // If it gets modified latter on the pin should not interfere with user packages.
-            // If it gets overriden this it is not a problem for the solve because pins are added
+            // If it gets overridden this it is not a problem for the solve because pins are added
             // on each solve.
             auto [id, repo] = pool.add_repo("installed");
             pool.set_installed_repo(id);
@@ -991,7 +991,7 @@ namespace mamba::solver::libsolv
 
                     // We can specifically filter out packages, for things such as deps-only or
                     // no-deps.
-                    // We add them as ommited anyhow so that downstream code can print them for
+                    // We add them as omitted anyhow so that downstream code can print them for
                     // instance.
                     if (!filter(pkginfo))
                     {
@@ -1476,7 +1476,7 @@ namespace mamba::solver::libsolv
         // Pins add solvables to Pol and hence require a call to create_whatprovides.
         // For some reason we need to add them first.
         pool.create_whatprovides();
-        for (const auto& unkown_job : request.jobs)
+        for (const auto& unknown_job : request.jobs)
         {
             auto xpt = std::visit(
                 [&](const auto& job) -> expected_t<void>
@@ -1487,7 +1487,7 @@ namespace mamba::solver::libsolv
                     }
                     return {};
                 },
-                unkown_job
+                unknown_job
             );
             if (!xpt)
             {

@@ -148,8 +148,8 @@ namespace mamba
                 // This is an approximation.
                 // Resolving all depenndencies, even of a single Matchspec isnot as simple
                 // as taking any package matching a dependency recursively.
-                // Package dependencies can appear mulitple time, further reducing its valid set.
-                // To do this properly, we should instanciate a solver and resolve the spec.
+                // Package dependencies can appear multiple time, further reducing its valid set.
+                // To do this properly, we should instantiate a solver and resolve the spec.
                 const auto ms = specs::MatchSpec::parse(dep)
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
@@ -871,7 +871,7 @@ namespace mamba
         for (auto id : m_pkg_id_list)
         {
             nlohmann::json pkg_info_json = m_dep_graph.node(id);
-            // We want the cannonical channel name here.
+            // We want the canonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
             pkg_info_json["channel"] = cut_subdir(
@@ -886,7 +886,7 @@ namespace mamba
             if (!m_dep_graph.successors(0).empty())
             {
                 nlohmann::json pkg_info_json = m_dep_graph.node(0);
-                // We want the cannonical channel name here.
+                // We want the canonical channel name here.
                 // We do not know what is in the `channel` field so we need to make sure.
                 // This is most likely legacy and should be updated on the next major release.
                 pkg_info_json["channel"] = cut_subdir(

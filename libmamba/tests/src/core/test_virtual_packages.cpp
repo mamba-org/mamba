@@ -81,7 +81,7 @@ namespace mamba
                 CHECK_EQ(pkgs.back().build_string.find("x86_64"), 0);
 #endif
 
-                // This is bad design, tests should not interfer
+                // This is bad design, tests should not interfere
                 // Will get rid of that when implementing context as not a singleton
                 auto restore_ctx = [&ctx, old_plat = ctx.platform]() { ctx.platform = old_plat; };
                 auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };

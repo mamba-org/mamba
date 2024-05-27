@@ -118,7 +118,7 @@ Windows API historically supports paths up to 260 characters. While it's now pos
 Long paths support has to be activated
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-source: Robocorp `troubleshooting documentation <https://robocorp.com/docs/troubleshooting/windows-long-path>`_
+source: Robocop `troubleshooting documentation <https://robocorp.com/docs/troubleshooting/windows-long-path>`_
 
 1. Open the Local Group Policy Editor application: - Start --> type gpedit.msc --> Enter:
 2. Navigate to Computer Configuration > Administrative Templates > System > Filesystem. On the right, find the "Enable win32 long paths" item and double-click it

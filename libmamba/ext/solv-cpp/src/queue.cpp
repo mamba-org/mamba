@@ -53,7 +53,7 @@ namespace solv
     auto ObjQueue::operator=(ObjQueue&& other) -> ObjQueue&
     {
         swap(*this, other);
-        // Leaving other empty to make sure ressources are no longer used
+        // Leaving other empty to make sure resources are no longer used
         auto empty = ObjQueue(nullptr);
         swap(other, empty);
         return *this;

@@ -532,7 +532,7 @@ namespace mamba
             auto& spec_file_env_name = config.at("spec_file_env_name");
             auto& spec_file_name = spec_file_env_name.value<std::string>();
 
-            // Allow spec file environment name to be overriden by target prefix
+            // Allow spec file environment name to be overridden by target prefix
             if (env_name.cli_configured() && config.at("target_prefix").cli_configured())
             {
                 LOG_ERROR << "Cannot set both prefix and env name";
@@ -1251,7 +1251,7 @@ namespace mamba
                    .set_env_var_names({ "CONDA_SUBDIR", "MAMBA_PLATFORM" })
                    .description("The platform description")
                    .long_description(unindent(R"(
-                        The plaftorm description points what channels
+                        The platform description points what channels
                         subdir/platform have to be fetched for package solving.
                         This can be 'linux-64' or similar.)")));
 
@@ -1349,7 +1349,7 @@ namespace mamba
                    .description("Custom multichannels")
                    .long_description(  //
                        "A dictionary where keys are multi channels names, and values are a list "
-                       "of correspinding names / urls / file paths to use.\n"
+                       "of corresponding names / urls / file paths to use.\n"
                    )
                    .needs({ "default_channels", "target_prefix", "root_prefix" }));
 
@@ -1387,8 +1387,8 @@ namespace mamba
                    .set_env_var_names()
                    .description("Path (file or directory) SSL certificate(s)")
                    .long_description(unindent(R"(
-                        Path (file or directory) SSL certificate(s) to use whe
-                        'ssl_verify' in turned on but not set with path to certs.
+                        Path (file or directory) SSL certificate(s) to use when
+                        'ssl_verify' is turned on but not set with path to certs.
                         WARNING: overrides 'ssl_verify' if provided and 'ssl_verify'
                         also contains a path to SSL certificates.)")));
 

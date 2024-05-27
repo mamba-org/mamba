@@ -96,7 +96,7 @@ namespace mamba::download
         MirrorID m_id;
         size_t m_max_retries;
 
-        // TODO: use sychronized value
+        // TODO: use synchronized value
         std::mutex m_stats_mutex;
         std::optional<std::size_t> m_allowed_connections = std::nullopt;
         std::size_t m_max_tried_connections = 0;

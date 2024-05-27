@@ -37,7 +37,7 @@ if(BUILD_LIBMAMBA_TESTS)
 endif()
 
 # Object libraries are installed as an interface library (in libmambaTargets) but do not install any
-# objects (.o files) or headers without the ``OBJETS DESTINATION`` property.
+# objects (.o files) or headers without the ``OBJECTS DESTINATION`` property.
 install(
     TARGETS solv-cpp
     EXPORT ${PROJECT_NAME}Targets

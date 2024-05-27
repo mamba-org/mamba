@@ -25,7 +25,7 @@ namespace mamba::util
     [[nodiscard]] auto is_file_uri(std::string_view url) -> bool;
 
     /**
-     * Retrun true if @p url starts with a URL scheme.
+     * Return true if @p url starts with a URL scheme.
      */
     [[nodiscard]] auto url_has_scheme(std::string_view url) -> bool;
 
@@ -68,13 +68,13 @@ namespace mamba::util
      *
      * Windows paths can be expressed in a form, called UNC, where it is possible to express a
      * server location, as in "\\hostname\folder\data.xml".
-     * This can be succefully encoded in a file URI like "file://hostname/folder/data.xml"
+     * This can be successfully encoded in a file URI like "file://hostname/folder/data.xml"
      * since file URI contain a part for the hostname (empty hostname file URI must start with
      * "file:///").
      * Since CURL does not support hostname in file URI, we can encode UNC hostname as part
      * of the path (called 4-slash), where it becomes "file:////hostname/folder/data.xml".
      *
-     * This function leaves all non-matching URI (inluding a number of invalid URI for unkown
+     * This function leaves all non-matching URI (including a number of invalid URI for unknown
      * legacy reasons taken from ``url_to_path`` in conda.common.path) unchanged.
      *
      * @see https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths

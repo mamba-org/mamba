@@ -59,7 +59,7 @@ namespace mamba
         // Schedules a task for execution.
         // The task must be a callable which takes either the provided arguments or none.
         // If this executor is open, the task is scheduled for execution and will be called
-        // as soon as execution resources are available. The call to the task is not garanteed
+        // as soon as execution resources are available. The call to the task is not guaranteed
         // to have been done at the end of the execution of this function, nor before.
         // If this executor is closed, the task is ignored and no code will be executed nor the task
         // be called.
@@ -81,7 +81,7 @@ namespace mamba
         // Moves ownership of a thread into this executor.
         // This is used in case a thread needs to be manipulated in a particular way,
         // but we still want to avoid having to use `std::thread::detach()`. By
-        // transfering the ownership of the thread to this executor, we are guaranteed that
+        // transferring the ownership of the thread to this executor, we are guaranteed that
         // the thread will be joined before the end of the lifetime of this executor.
         // If this executor is closed, no code will be executed and the thread will be destroyed,
         // resulting in a call to `std::terminate()` if the thread is not already joined.

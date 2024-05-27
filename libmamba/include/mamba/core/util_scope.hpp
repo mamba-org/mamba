@@ -29,11 +29,11 @@ namespace mamba
             }
             catch (const std::exception& ex)
             {
-                LOG_ERROR << fmt::format("Scope exit error (catched and ignored): {}", ex.what());
+                LOG_ERROR << fmt::format("Scope exit error (caught and ignored): {}", ex.what());
             }
             catch (...)
             {
-                LOG_ERROR << "Scope exit unknown error (catched and ignored)";
+                LOG_ERROR << "Scope exit unknown error (caught and ignored)";
             }
         }
 

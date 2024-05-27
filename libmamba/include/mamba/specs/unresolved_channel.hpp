@@ -27,12 +27,12 @@ namespace mamba::specs
      * Due the the heavy reliance of channels on configuration options, this placeholder type
      * can be used to represent channel inputs that have not been "resolved" to s specific
      * location.
-     * This can even be true when a full URL or path is given, as some authentification information
+     * This can even be true when a full URL or path is given, as some authentication information
      * may come from login database.
      *
      * Note that for a string to be considered a URL, it must have an explicit scheme.
-     * So "repo.anaconda.com" is considered a name, similarily to "conda-forge" and not a URL.
-     * This is because otherwise it is not possible to tell names and URL appart.
+     * So "repo.anaconda.com" is considered a name, similarly to "conda-forge" and not a URL.
+     * This is because otherwise it is not possible to tell names and URL apart.
      */
     class UnresolvedChannel
     {
@@ -41,7 +41,7 @@ namespace mamba::specs
         enum class Type
         {
             /**
-             * A URL to a full repo strucuture.
+             * A URL to a full repo structure.
              *
              * Example "https://repo.anaconda.com/conda-forge".
              */
@@ -53,7 +53,7 @@ namespace mamba::specs
              */
             PackageURL,
             /**
-             * An (possibly implicit) path to a full repo strucuture.
+             * An (possibly implicit) path to a full repo structure.
              *
              * Example "/Users/name/conda-bld", "./conda-bld", "~/.conda-bld".
              */

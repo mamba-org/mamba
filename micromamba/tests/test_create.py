@@ -1172,6 +1172,46 @@ def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_p
         )
 
 
+oci_registry_config = {
+    "mirrored_channels": {"conda-forge": ["oci://ghcr.io/channel-mirrors/conda-forge"]},
+    # `repodata_use_zst` isn't considered when fetching from oci registries
+    # since compressed repodata is handled internally
+    # (if present, compressed repodata is necessarily fetched)
+    # Setting `repodata_use_zst` to `False` avoids useless requests with
+    # zst extension in repodata filename
+    "repodata_use_zst": False,
+}
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("spec", ["pandoc", "pandoc=3.1.13"])
+def test_create_with_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, spec):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(yaml.dump(oci_registry_config))
+
+    res = helpers.create(
+        "-n",
+        env_name,
+        spec,
+        "--dry-run",
+        "--json",
+        f"--rc-file={rc_file}",
+        no_rc=False,
+    )
+
+    assert res["actions"]["PREFIX"] == str(env_prefix)
+    for pkg in res["actions"]["LINK"]:
+        assert pkg["url"].startswith(
+            "https://pkg-containers.githubusercontent.com/ghcr1/blobs/pandoc"
+        )
+        assert pkg["name"] == "pandoc"
+        if spec == "pandoc=3.1.13":
+            assert pkg["version"] == "3.1.13"
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_unicode(tmp_home, tmp_root_prefix):
     env_name = "320 áγђß家固êôōçñ한"

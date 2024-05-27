@@ -123,7 +123,7 @@ Running commands manually
    The CI files in ``.github/workflow`` provide an alternative way of developing Mamba.
 
 Install development dependencies
-*******************************
+********************************
 
 .. code:: bash
 

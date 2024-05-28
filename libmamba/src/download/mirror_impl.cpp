@@ -160,20 +160,20 @@ namespace mamba::download
     {
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as
-        // inserting a new AuthenticationData object may relocate preexisting ones.
+        // inserting a new ArtifactData object may relocate preexisting ones.
         auto [split_path, split_tag] = split_path_tag(url_path);
 
         // TODO we are getting here a new token for every artifact/path
         // => we should handle this differently to use the same token
         // => we could assume all requests are necessarily finished in < ~30 min? (max of token
-        // validity) and store auth data by subdir instead?
+        // validity) and store artifact data by subdir instead?
         // but data also contains sha256 which is specific to the artifact
         // (however, the token that we get seems to be the same even if asked multiple times...
         // so maybe that's okay)
-        auto* data = get_authentication_data(split_path);
+        auto* data = get_artifact_data(split_path);
         if (!data)
         {
-            m_path_map[split_path].reset(new AuthenticationData);
+            m_path_map[split_path].reset(new ArtifactData);
             data = m_path_map[split_path].get();
         }
 
@@ -216,7 +216,7 @@ namespace mamba::download
         const std::string& split_path
     ) const
     {
-        AuthenticationData* data = get_authentication_data(split_path);
+        ArtifactData* data = get_artifact_data(split_path);
         std::string auth_url = get_authentication_url(split_path);
         MirrorRequest req(initial_request.name, auth_url);
 
@@ -249,7 +249,7 @@ namespace mamba::download
         const std::string& split_tag
     ) const
     {
-        AuthenticationData* data = get_authentication_data(split_path);
+        ArtifactData* data = get_artifact_data(split_path);
         std::string manifest_url = get_manifest_url(split_path, split_tag);
         std::vector<std::string> headers = { get_authentication_header(data->token),
                                              "Accept: application/vnd.oci.image.manifest.v1+json" };
@@ -262,7 +262,22 @@ namespace mamba::download
             auto j = parse_json_nothrow(buf.value);
             if (j.contains("layers"))
             {
-                std::string digest = j["layers"][0]["digest"];
+                std::string digest;
+                for (auto& l : j["layers"])
+                {
+                    // Getting repodata.json.zst, if present, is preferable
+                    // Otherwise, we stick with the non compressed repodata.json
+                    if (l["mediaType"] == "application/vnd.conda.repodata.v1+json+zst")
+                    {
+                        digest = l["digest"];
+                        data->is_repodata_zst = true;
+                        break;
+                    }
+                    else if (l["mediaType"] == "application/vnd.conda.repodata.v1+json")
+                    {
+                        digest = l["digest"];
+                    }
+                }
                 assert(util::starts_with(digest, "sha256:"));
                 data->sha256sum = digest.substr(sizeof("sha256:") - 1);
                 return expected_t<void>();
@@ -278,11 +293,11 @@ namespace mamba::download
     MirrorRequest
     OCIMirror::build_blob_request(const Request& initial_request, const std::string& split_path) const
     {
-        const AuthenticationData* data = get_authentication_data(split_path);
+        const ArtifactData* data = get_artifact_data(split_path);
         std::string url = get_blob_url(split_path, data->sha256sum);
         std::vector<std::string> headers = { get_authentication_header(data->token) };
 
-        return MirrorRequest(initial_request, url, std::move(headers));
+        return MirrorRequest(initial_request, url, std::move(headers), data->is_repodata_zst);
     }
 
     // This is not used but could be if we use creds
@@ -334,8 +349,7 @@ namespace mamba::download
         return fmt::format("{}/v2/{}/blobs/sha256:{}", m_url, get_repo(repo), sha256sum);
     }
 
-    auto
-    OCIMirror::get_authentication_data(const std::string& split_path) const -> AuthenticationData*
+    auto OCIMirror::get_artifact_data(const std::string& split_path) const -> ArtifactData*
     {
         auto it = m_path_map.find(split_path);
         if (it != m_path_map.end())

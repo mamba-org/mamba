@@ -160,6 +160,7 @@ namespace mamba::download
     {
         p_stream = make_compression_stream(
             p_request->url,
+            p_request->is_repodata_zst,
             [this](char* in, std::size_t size) { return this->write_data(in, size); }
         );
         configure_handle(context);

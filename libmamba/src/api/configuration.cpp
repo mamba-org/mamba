@@ -874,6 +874,15 @@ namespace mamba
             }
         }
 
+        // cf. https://github.com/openSUSE/libsolv/issues/562 to track corresponding issue
+        void not_supported_option_hook(bool& value)
+        {
+            if (!value)
+            {
+                LOG_WARNING << "Parsing with libsolv does not support repodata_version 2";
+            }
+        }
+
         void debug_hook(bool& value)
         {
             if (value)
@@ -1290,7 +1299,8 @@ namespace mamba
                        "Default is `true`. `false` means libsolv is used.\n"
                    )
                    .set_rc_configurable()
-                   .set_env_var_names());
+                   .set_env_var_names()
+                   .set_post_merge_hook(detail::not_supported_option_hook));
 
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")

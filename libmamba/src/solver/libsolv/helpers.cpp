@@ -540,14 +540,29 @@ namespace mamba::solver::libsolv
         const auto lock = LockFile(filename);
         const auto repodata = parser.load(filename);
 
-        // An override for missing package subdir is found in at the top level
+        // An override for missing package subdir is found at the top level
         auto default_subdir = std::string();
-        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); subdir.error())
+        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); !subdir.error())
         {
             default_subdir = std::string(subdir.value_unsafe());
         }
 
-        const auto parsed_url = specs::CondaURL::parse(repo_url)
+        // Get `base_url` in case 'repodata_version': 2
+        // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
+        auto base_url = repo_url;
+        if (auto repodata_version = repodata["repodata_version"].get_int64();
+            !repodata_version.error())
+        {
+            if (repodata_version.value_unsafe() == 2)
+            {
+                if (auto url = repodata.at_pointer("/info/base_url").get_string(); !url.error())
+                {
+                    base_url = std::string(url.value_unsafe());
+                }
+            }
+        }
+
+        const auto parsed_url = specs::CondaURL::parse(base_url)
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 

@@ -107,7 +107,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
         else
         {
             throw mamba::mamba_error(
-                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
+                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file. Run `micromamba config append channels conda-forge`.",
                 mamba_error_code::selfupdate_failure
             );
         }

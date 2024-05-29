@@ -126,7 +126,7 @@ def main():
             release_start = idx + 1
             break
 
-    brackets_re = re.compile(r"\[(.*)\]")
+    brackets_re = re.compile(r"\[(.*?)\]")
 
     # section with groups, heading + items
     sections = []

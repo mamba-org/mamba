@@ -127,7 +127,7 @@ Install development dependencies
 
 .. code:: bash
 
-    micromamba create -n mamba -c conda-forge -f dev/environment-dev.yml
+    micromamba create -n mamba -c conda-forge -f dev/environment-dev-extra.yml
     micromamba activate -n mamba
 
 Compile ``libmamba`` and other artifacts

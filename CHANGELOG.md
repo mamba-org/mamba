@@ -1,3 +1,15 @@
+2024.05.29
+==========
+
+Releases: libmamba 2.0.0beta2, libmambapy 2.0.0beta2, micromamba 2.0.0beta2
+
+Enhancements:
+
+- [libmamba] [OCI Registry] Handle compressed repodata by @Hind-M in https://github.com/mamba-org/mamba/pull/3300
+- [libmamba] [CEP-15] Support `base_url` with `repodata_version: 2` using `mamba` parser by @Hind-M in https://github.com/mamba-org/mamba/pull/3282
+- [libmamba] Fix OCIMirror use by @Hind-M in https://github.com/mamba-org/mamba/pull/3296
+- [all] Add checking typos to pre-commit by @Hind-M in https://github.com/mamba-org/mamba/pull/3278
+
 2024.05.04
 ==========
 

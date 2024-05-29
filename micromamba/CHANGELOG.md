@@ -1,3 +1,10 @@
+micromamba 2.0.0beta2 (May 29, 2024)
+====================================
+
+Enhancements:
+
+- Add checking typos to pre-commit by @Hind-M in https://github.com/mamba-org/mamba/pull/3278
+
 micromamba 2.0.0beta1 (May 04, 2024)
 ====================================
 

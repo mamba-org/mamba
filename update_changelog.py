@@ -58,13 +58,19 @@ def append_to_file(ctgr_name, prs, out_file):
         pr_url_cmd = "gh pr view {} --json url".format(pr)
         url = dict(json.loads(subprocess_run(*pr_url_cmd.split()).decode("utf-8")))["url"]
         # Files
-        pr_files_cmd = "gh pr view {} --json files".format(pr)
-        files = dict(json.loads(subprocess_run(*pr_files_cmd.split()).decode("utf-8")))["files"]
+        # Use a different command with graphql allowing pagination
+        # (since number of files retrieved with 'gh pr view {pr} files' is limited to 100)
+        # cf. https://github.com/cli/cli/issues/5368
+        graphql_files_cmd = f"gh api graphql -f query='query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {{repository(owner: $owner, name: $repo) {{pullRequest(number: $pr) {{files(first: 100, after: $endCursor) {{pageInfo{{ hasNextPage, endCursor }} nodes {{path}}}}}}}}}}' -F owner='mamba-org' -F repo='mamba' -F pr={pr} --paginate --jq '.data.repository.pullRequest.files.nodes.[].path'"
+        files = subprocess.run(
+            graphql_files_cmd, shell=True, capture_output=True, text=True
+        ).stdout.split("\n")
+
         ref_mamba_pkgs = ["libmamba/", "libmambapy/", "micromamba/"]
         concerned_pkgs = set()
         for f in files:
             for ref_pkg in ref_mamba_pkgs:
-                if f["path"].startswith(ref_pkg):
+                if f.startswith(ref_pkg):
                     concerned_pkgs.add(ref_pkg)
 
         if (sorted(ref_mamba_pkgs) == sorted(concerned_pkgs)) or (len(concerned_pkgs) == 0):
@@ -145,9 +151,12 @@ def main():
             "\nReleases: libmamba {0}, libmambapy {0}, micromamba {0}\n".format(release_version)
         )
         # PRs info
-        append_to_file("Enhancements", enhancements_prs, changelog_file)
-        append_to_file("Bug fixes", bug_fixes_prs, changelog_file)
-        append_to_file("CI fixes and doc", ci_docs_prs, changelog_file)
+        if enhancements_prs:
+            append_to_file("Enhancements", enhancements_prs, changelog_file)
+        if bug_fixes_prs:
+            append_to_file("Bug fixes", bug_fixes_prs, changelog_file)
+        if ci_docs_prs:
+            append_to_file("CI fixes and doc", ci_docs_prs, changelog_file)
 
         # Write back old content of CHANGELOG file
         changelog_file.write("\n" + content_to_restore)

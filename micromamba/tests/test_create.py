@@ -1173,13 +1173,13 @@ def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_p
 
 
 oci_registry_config = {
-    "mirrored_channels": {"conda-forge": ["oci://ghcr.io/channel-mirrors/conda-forge"]},
+    "mirrored_channels": {"oci_channel": ["oci://ghcr.io/channel-mirrors/conda-forge"]},
     # `repodata_use_zst` isn't considered when fetching from oci registries
     # since compressed repodata is handled internally
     # (if present, compressed repodata is necessarily fetched)
-    # Setting `repodata_use_zst` to `False` avoids useless requests with
+    # Setting `repodata_use_zst` to `false` avoids useless requests with
     # zst extension in repodata filename
-    "repodata_use_zst": False,
+    "repodata_use_zst": "false",
 }
 
 
@@ -1198,7 +1198,10 @@ def test_create_with_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
         spec,
         "--dry-run",
         "--json",
+        "-c",
+        "oci_channel",
         f"--rc-file={rc_file}",
+        default_channel=False,
         no_rc=False,
     )
 

@@ -119,7 +119,7 @@ namespace mamba::download
 
     // This class is used to create strong alias on
     // string_view. This helps to avoid error-prone
-    // calls to functionsthat accept many arguments
+    // calls to functions that accept many arguments
     // of the same type
     template <int I>
     class string_view_alias

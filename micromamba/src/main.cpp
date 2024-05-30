@@ -30,8 +30,7 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-int
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ {

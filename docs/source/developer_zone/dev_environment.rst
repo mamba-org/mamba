@@ -1,4 +1,4 @@
-=======================
+
 Development Environment
 =======================
 
@@ -127,8 +127,19 @@ Install development dependencies
 
 .. code:: bash
 
-    micromamba create -n mamba -c conda-forge -f dev/environment-dev-extra.yml
+    micromamba create -n mamba -c conda-forge -f dev/environment.yml
     micromamba activate -n mamba
+
+.. note::
+
+    You need to have ccache installed on your system.
+    You can either install it via your package manager or via conda-forge
+    in this development environment with:
+
+    .. code:: bash
+
+        micromamba install -n mamba -c conda-forge ccache
+
 
 Compile ``libmamba`` and other artifacts
 ****************************************

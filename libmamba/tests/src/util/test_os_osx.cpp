@@ -22,7 +22,10 @@ TEST_SUITE("util::os_osx")
         if (util::on_mac)
         {
             REQUIRE(maybe_version.has_value());
-            static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
+            // The version would be a sequence:
+            // 'x.x' or 'x.x.x'
+            // with 'x' matching one or more digits
+            static const auto version_regex = std::regex(R"r(\d+\.\d+(\.\d+)?)r");
             CHECK(std ::regex_match(maybe_version.value(), version_regex));
         }
         else

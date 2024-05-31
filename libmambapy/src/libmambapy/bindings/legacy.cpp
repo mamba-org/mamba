@@ -657,7 +657,9 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("palette", &Context::GraphicsParams::palette);
 
     py::class_<ContextOptions>(m, "ContextOptions")
-        .def(py::init())
+        .def(py::init([](bool enable_logging_and_signal_handling = true){
+                return ContextOptions{ enable_logging_and_signal_handling };
+            }), py::arg("enable_logging_and_signal_handling") = true)
         .def_readwrite("enable_logging_and_signal_handling", &ContextOptions::enable_logging_and_signal_handling);
 
     // The lifetime of the unique Context instance will determine the lifetime of the other singletons.
@@ -676,7 +678,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<Context, context_ptr> ctx(m, "Context");
 
-    ctx.def(py::init(context_constructor))
+    ctx.def(py::init(context_constructor), py::arg("options") = ContextOptions{ true })
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)

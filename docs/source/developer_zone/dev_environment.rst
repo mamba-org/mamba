@@ -130,17 +130,6 @@ Install development dependencies
     micromamba create -n mamba -c conda-forge -f dev/environment-dev.yml
     micromamba activate -n mamba
 
-.. note::
-
-    You need to have ccache installed on your system.
-    You can either install it via your package manager or via conda-forge
-    in this development environment with:
-
-    .. code:: bash
-
-        micromamba install -n mamba -c conda-forge ccache
-
-
 Compile ``libmamba`` and other artifacts
 ****************************************
 
@@ -153,7 +142,7 @@ A recommended set is already provided as CMake Preset, but feel free to use any 
 
 .. note::
     If you do choose to use the provided CMake Preset, you may need to
-    installed ``ccache`` as an extra requirement as specified
+    install ``ccache`` as an extra requirement as specified
     in ``dev/environment-dev-extra.yml``.
 
 .. note::

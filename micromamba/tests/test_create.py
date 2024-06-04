@@ -1185,21 +1185,20 @@ oci_registry_config = {
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("spec", ["pandoc", "pandoc=3.1.13"])
-def test_create_with_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, spec):
+@pytest.mark.parametrize("parser", ["mamba", "libsolv"])
+def test_create_with_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, spec, parser):
     env_name = "myenv"
     env_prefix = tmp_root_prefix / "envs" / env_name
 
     rc_file = tmp_path / "config.yaml"
     rc_file.write_text(yaml.dump(oci_registry_config))
 
+    cmd = ["-n", env_name, spec, "--dry-run", "--json", "-c", "oci_channel"]
+    if parser == "libsolv":
+        cmd += ["--no-exp-repodata-parsing"]
+
     res = helpers.create(
-        "-n",
-        env_name,
-        spec,
-        "--dry-run",
-        "--json",
-        "-c",
-        "oci_channel",
+        *cmd,
         f"--rc-file={rc_file}",
         default_channel=False,
         no_rc=False,

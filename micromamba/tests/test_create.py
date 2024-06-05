@@ -1186,7 +1186,7 @@ oci_registry_config = {
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("spec", ["pandoc", "pandoc=3.1.13"])
 @pytest.mark.parametrize("parser", ["mamba", "libsolv"])
-def test_create_with_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, spec, parser):
+def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, spec, parser):
     env_name = "myenv"
     env_prefix = tmp_root_prefix / "envs" / env_name
 
@@ -1212,6 +1212,69 @@ def test_create_with_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
         assert pkg["name"] == "pandoc"
         if spec == "pandoc=3.1.13":
             assert pkg["version"] == "3.1.13"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("parser", ["mamba", "libsolv"])
+def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, tmp_path, parser):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(yaml.dump(oci_registry_config))
+
+    cmd = ["-n", env_name, "xtensor", "--dry-run", "--json", "-c", "oci_channel"]
+    if parser == "libsolv":
+        cmd += ["--no-exp-repodata-parsing"]
+
+    res = helpers.create(
+        *cmd,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+
+    assert res["actions"]["PREFIX"] == str(env_prefix)
+    for pkg in res["actions"]["LINK"]:
+        assert pkg["url"].startswith("https://pkg-containers.githubusercontent.com/ghcr1/blobs/")
+    assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["LINK"])
+    assert any(pkg["name"] == "xtl" for pkg in res["actions"]["LINK"])
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("parser", ["mamba", "libsolv"])
+def test_create_from_oci_mirrored_channels_pkg_name_mapping(
+    tmp_home, tmp_root_prefix, tmp_path, parser
+):
+    # This is to test Conda/OCI package name mapping
+    # Test fetching package from OCI registry with name starting with '_'
+    # Packages with such names are not common to all platforms
+    # So this test is only run on Linux
+    if platform.system() != "Linux":
+        return
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(yaml.dump(oci_registry_config))
+
+    cmd = ["-n", env_name, "_libgcc_mutex", "--dry-run", "--json", "-c", "oci_channel"]
+    if parser == "libsolv":
+        cmd += ["--no-exp-repodata-parsing"]
+
+    res = helpers.create(
+        *cmd,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+
+    assert res["actions"]["PREFIX"] == str(env_prefix)
+    for pkg in res["actions"]["LINK"]:
+        assert pkg["url"].startswith(
+            "https://pkg-containers.githubusercontent.com/ghcr1/blobs/_libgcc_mutex"
+        )
+        assert pkg["name"] == "_libgcc_mutex"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

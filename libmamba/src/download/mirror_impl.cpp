@@ -309,13 +309,25 @@ namespace mamba::download
 
     std::string OCIMirror::get_repo(const std::string& repo) const
     {
+        // OCI image names cannot start with `_`
+        // Get the package name and prepend with `zzz` to map to `channel_mirrors` implementation
+        auto parts = util::rsplit(repo, "/", 1);
+        assert(parts.size() == 2);
+        std::string mapped_package_name = parts.back();
+        std::string mapped_repo = repo;
+        if (util::starts_with(mapped_package_name, "_"))
+        {
+            mapped_package_name.insert(0, std::string("zzz"));
+            mapped_repo = fmt::format("{}/{}", parts[0], mapped_package_name);
+        }
+
         if (!m_repo_prefix.empty())
         {
-            return fmt::format("{}/{}", m_repo_prefix, repo);
+            return fmt::format("{}/{}", m_repo_prefix, mapped_repo);
         }
         else
         {
-            return repo;
+            return mapped_repo;
         }
     }
 

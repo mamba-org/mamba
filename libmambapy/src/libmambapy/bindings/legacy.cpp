@@ -432,14 +432,16 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<>(
-            [](const std::vector<fs::u8path>& pkgs_dirs)
+            [](Context& context, const std::vector<fs::u8path>& pkgs_dirs)
             {
                 return MultiPackageCache{
                     pkgs_dirs,
-                    mambapy::singletons().context().validation_params,
+                    context.validation_params,
                 };
-            }
-        ))
+            }),
+            py::arg("context"),
+            py::arg("pkgs_dirs")
+        )
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
@@ -506,11 +508,14 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& subdir, solver::libsolv::Database& db) -> solver::libsolv::RepoInfo
+            [](SubdirData& self, Context& context, solver::libsolv::Database& db
+            ) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
-                return extract(load_subdir_in_database(mambapy::singletons().context(), db, subdir));
-            }
+                return extract(load_subdir_in_database(context, db, self));
+            },
+            py::arg("context"),
+            py::arg("db")
         )
         .def("loaded", &SubdirData::is_loaded)
         .def(
@@ -563,6 +568,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create",
             [](SubdirIndex& self,
+               Context& context,
                ChannelContext& channel_context,
                const specs::Channel& channel,
                const std::string& platform,
@@ -572,7 +578,7 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& url)
             {
                 self.create(
-                    mambapy::singletons().context(),
+                    context,
                     channel_context,
                     channel,
                     platform,
@@ -582,6 +588,7 @@ bind_submodule_impl(pybind11::module_ m)
                     url
                 );
             },
+            py::arg("context"),
             py::arg("channel_context"),
             py::arg("channel"),
             py::arg("platform"),
@@ -1165,18 +1172,22 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("json_str")
         );
 
-    m.def("clean", [](int flags) { return clean(mambapy::singletons().config(), flags); });
+    m.def(
+        "clean",
+        [](Context&, int flags) { return clean(mambapy::singletons().config(), flags); },
+        py::arg("context"),
+        py::arg("flags")
+    );
 
     m.def(
         "transmute",
-        +[](const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
+        +[](Context& context, const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
          )
         {
-            const auto extract_options = mamba::ExtractOptions::from_context(
-                mambapy::singletons().context()
-            );
+            const auto extract_options = mamba::ExtractOptions::from_context(context);
             return transmute(pkg_file, target, compression_level, compression_threads, extract_options);
         },
+        py::arg("context"),
         py::arg("source_package"),
         py::arg("destination_package"),
         py::arg("compression_level"),
@@ -1192,9 +1203,9 @@ bind_submodule_impl(pybind11::module_ m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons().context()); });
+    m.def("get_virtual_packages", [](Context& context) { return get_virtual_packages(context); });
 
-    m.def("cancel_json_output", [] { mambapy::singletons().console().cancel_json_print(); });
+    m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

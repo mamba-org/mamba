@@ -67,8 +67,8 @@ namespace mamba
 
     enum class logger_kind
     {
-        normal,
-        default,
+        normal_logger,
+        default_logger,
     };
 
     // Associate the registration of a logger to the lifetime of this object.
@@ -80,11 +80,11 @@ namespace mamba
 
     public:
 
-        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal)
+        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal_logger)
             : m_logger(std::move(new_logger))
         {
             assert(m_logger);
-            if (kind == logger_kind::default)
+            if (kind == logger_kind::default_logger)
             {
                 spdlog::set_default_logger(m_logger);
             }
@@ -154,7 +154,7 @@ namespace mamba
 
         context.loggers.emplace_back(
             std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n"),
-            logger_kind::default
+            logger_kind::default_logger
         );
         MainExecutor::instance().on_close(
             context.tasksync.synchronized([&context] { context.main_logger()->flush(); })

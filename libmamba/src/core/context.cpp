@@ -26,6 +26,7 @@
 
 namespace mamba
 {
+
     class Logger : public spdlog::logger
     {
     public:
@@ -63,6 +64,55 @@ namespace mamba
         }
     }
 
+
+    enum class logger_kind
+    {
+        normal,
+        default,
+    };
+
+    // Associate the registration of a logger to the lifetime of this object.
+    // This is used to help with making sure loggers are unregistered once
+    // their logical owner is destroyed.
+    class Context::ScopedLogger
+    {
+        std::shared_ptr<Logger> m_logger;
+
+    public:
+
+        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal)
+            : m_logger(std::move(new_logger))
+        {
+            assert(m_logger);
+            if (kind == logger_kind::default)
+            {
+                spdlog::set_default_logger(m_logger);
+            }
+            else
+            {
+                spdlog::register_logger(m_logger);
+            }
+        }
+
+        ~ScopedLogger()
+        {
+            if(m_logger)
+                spdlog::drop(m_logger->name());
+        }
+
+        std::shared_ptr<Logger> logger() const
+        {
+            assert(m_logger);
+            return m_logger;
+        }
+
+        ScopedLogger(ScopedLogger&&) = default;
+        ScopedLogger& operator=(ScopedLogger&&) = default;
+
+        ScopedLogger(const ScopedLogger&) = delete;
+        ScopedLogger& operator=(const ScopedLogger&) = delete;
+    };
+
     spdlog::level::level_enum convert_log_level(log_level l)
     {
         return static_cast<spdlog::level::level_enum>(l);
@@ -86,6 +136,13 @@ namespace mamba
         }
     }
 
+    std::shared_ptr<Logger> Context::main_logger()
+    {
+        if (loggers.empty()) return {};
+
+        return loggers.front().logger();
+    }
+
     void Context::enable_logging_and_signal_handling(Context& context)
     {
         if (use_default_signal_handler_val)
@@ -93,26 +150,30 @@ namespace mamba
             set_default_signal_handler();
         }
 
-        context.logger = std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n");
+        context.loggers.clear(); // Make sure we work with a known set of loggers, first one is always the default one.
+
+        context.loggers.emplace_back(
+            std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n"),
+            logger_kind::default
+        );
         MainExecutor::instance().on_close(
-            context.tasksync.synchronized([&context] { context.logger->flush(); })
+            context.tasksync.synchronized([&context] { context.main_logger()->flush(); })
         );
 
-        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
+        context.loggers.emplace_back(
+            std::make_shared<Logger>(
             "libcurl",
             context.output_params.log_pattern,
             ""
-        );
-        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
+        ));
+
+        context.loggers.emplace_back(
+            std::make_shared<Logger>(
             "libsolv",
             context.output_params.log_pattern,
             ""
-        );
+        ));
 
-        spdlog::register_logger(libcurl_logger);
-        spdlog::register_logger(libsolv_logger);
-
-        spdlog::set_default_logger(context.logger);
         spdlog::set_level(convert_log_level(context.output_params.logging_level));
     }
 
@@ -384,9 +445,9 @@ namespace mamba
 
     void Context::dump_backtrace_no_guards()
     {
-        if (logger)  // REVIEW: is this correct?
+        if (main_logger())  // REVIEW: is this correct?
         {
-            logger->dump_backtrace_no_guards();
+            main_logger()->dump_backtrace_no_guards();
         }
     }
 

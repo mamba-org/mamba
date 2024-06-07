@@ -26,15 +26,14 @@ namespace mamba
         while (tasks_left_to_launch > 0)
         {
             const std::size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
-            producers[thread_idx] = std::thread{
-                [=]
-                {
-                    for (std::size_t i = 0; i < tasks_to_generate; ++i)
-                    {
-                        work();
-                    }
-                }
-            };
+            producers[thread_idx] = std::thread{ [=]
+                                                 {
+                                                     for (std::size_t i = 0; i < tasks_to_generate;
+                                                          ++i)
+                                                     {
+                                                         work();
+                                                     }
+                                                 } };
             tasks_left_to_launch -= tasks_to_generate;
             ++thread_idx;
             assert(thread_idx < producers.size());
@@ -43,7 +42,7 @@ namespace mamba
         // Make sure all the producers are finished before continuing.
         for (auto&& t : producers)
         {
-            if(t.joinable())
+            if (t.joinable())
             {
                 t.join();
             }

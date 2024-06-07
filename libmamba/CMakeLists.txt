@@ -432,6 +432,8 @@ find_package(yaml-cpp CONFIG REQUIRED)
 find_package(reproc CONFIG REQUIRED)
 find_package(reproc++ CONFIG REQUIRED)
 find_package(Libsolv MODULE REQUIRED)
+find_package(Resolvo CONFIG REQUIRED)
+
 add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
@@ -487,6 +489,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 solv::libsolv_static
                 solv::libsolvext_static
                 solv::cpp
+                Resolvo::Resolvo
         )
 
         if(UNIX)
@@ -633,6 +636,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 solv::libsolv
                 solv::libsolvext
                 solv::cpp
+                Resolvo::Resolvo
         )
         # CMake 3.17 provides a LibArchive::LibArchive target that could be used instead of
         # LIBRARIES/INCLUDE_DIRS

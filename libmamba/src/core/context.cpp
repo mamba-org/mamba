@@ -96,8 +96,10 @@ namespace mamba
 
         ~ScopedLogger()
         {
-            if(m_logger)
+            if (m_logger)
+            {
                 spdlog::drop(m_logger->name());
+            }
         }
 
         std::shared_ptr<Logger> logger() const
@@ -138,7 +140,10 @@ namespace mamba
 
     std::shared_ptr<Logger> Context::main_logger()
     {
-        if (loggers.empty()) return {};
+        if (loggers.empty())
+        {
+            return {};
+        }
 
         return loggers.front().logger();
     }
@@ -150,7 +155,8 @@ namespace mamba
             set_default_signal_handler();
         }
 
-        context.loggers.clear(); // Make sure we work with a known set of loggers, first one is always the default one.
+        context.loggers.clear();  // Make sure we work with a known set of loggers, first one is
+                                  // always the default one.
 
         context.loggers.emplace_back(
             std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n"),
@@ -161,18 +167,12 @@ namespace mamba
         );
 
         context.loggers.emplace_back(
-            std::make_shared<Logger>(
-            "libcurl",
-            context.output_params.log_pattern,
-            ""
-        ));
+            std::make_shared<Logger>("libcurl", context.output_params.log_pattern, "")
+        );
 
         context.loggers.emplace_back(
-            std::make_shared<Logger>(
-            "libsolv",
-            context.output_params.log_pattern,
-            ""
-        ));
+            std::make_shared<Logger>("libsolv", context.output_params.log_pattern, "")
+        );
 
         spdlog::set_level(convert_log_level(context.output_params.logging_level));
     }

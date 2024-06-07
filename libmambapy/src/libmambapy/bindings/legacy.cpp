@@ -56,16 +56,16 @@ namespace mambapy
 {
     // When using this library we for now still need to have a few singletons available
     // to avoid the python code to have to create 3-4 objects before starting to work with
-    // mamba functions. Instead, here, we associate the lifetime of all the necessary singletons
-    // to the lifetime of the Context. This is to provide to the user explicit control over the
-    // lifetime and construction options of the Context and library resources, preventing issues
-    // related to default configuration/options.
-    // In the future, we might remove all singletons and provide a simple way to start working
-    // with mamba, but the C++ side needs to be made 100% singleton-less first.
+    // mamba functions. Instead, here, we associate the lifetime of all the necessary
+    // singletons to the lifetime of the Context. This is to provide to the user explicit
+    // control over the lifetime and construction options of the Context and library
+    // resources, preventing issues related to default configuration/options.
+    // In the future, we might remove all singletons and provide a simple way to start
+    // working with mamba, but the C++ side needs to be made 100% singleton-less first.
     //
-    // In the code below we provide a mechanism to associate the lifetime of the necessary singletons
-    // to the lifetime of one Context instance and forbid more instances in the case of Python
-    // (it is theorically allowed by the C++ api).
+    // In the code below we provide a mechanism to associate the lifetime of the
+    // necessary singletons to the lifetime of one Context instance and forbid more
+    //  instances in the case of Python (it is theoretically allowed by the C++ api).
 
 
     class Singletons
@@ -74,7 +74,8 @@ namespace mambapy
 
         explicit Singletons(mamba::ContextOptions options)
             : m_context(std::move(options))
-        {}
+        {
+        }
 
         mamba::MainExecutor& main_executor()
         {
@@ -118,13 +119,12 @@ namespace mambapy
 
     struct destroy_singleton
     {
-        template<class... Args>
+        template <class... Args>
         void operator()(Args&&...) noexcept
         {
             current_singletons.reset();
         }
     };
-
 
     // MSubdirData objects are movable only, and they need to be moved into
     // a std::vector before we call MSudbirData::download. Since we cannot
@@ -431,14 +431,16 @@ bind_submodule_impl(pybind11::module_ m)
     );
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
-        .def(py::init<>(
-            [](Context& context, const std::vector<fs::u8path>& pkgs_dirs)
-            {
-                return MultiPackageCache{
-                    pkgs_dirs,
-                    context.validation_params,
-                };
-            }),
+        .def(
+            py::init<>(
+                [](Context& context, const std::vector<fs::u8path>& pkgs_dirs)
+                {
+                    return MultiPackageCache{
+                        pkgs_dirs,
+                        context.validation_params,
+                    };
+                }
+            ),
             py::arg("context"),
             py::arg("pkgs_dirs")
         )
@@ -575,18 +577,8 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& full_url,
                MultiPackageCache& caches,
                const std::string& repodata_fn,
-               const std::string& url)
-            {
-                self.create(
-                    context,
-                    channel_context,
-                    channel,
-                    platform,
-                    full_url,
-                    caches,
-                    repodata_fn,
-                    url
-                );
+               const std::string& url) {
+                self.create(context, channel_context, channel, platform, full_url, caches, repodata_fn, url);
             },
             py::arg("context"),
             py::arg("channel_context"),
@@ -664,12 +656,18 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("palette", &Context::GraphicsParams::palette);
 
     py::class_<ContextOptions>(m, "ContextOptions")
-        .def(py::init([](bool enable_logging_and_signal_handling = true){
-                return ContextOptions{ enable_logging_and_signal_handling };
-            }), py::arg("enable_logging_and_signal_handling") = true)
-        .def_readwrite("enable_logging_and_signal_handling", &ContextOptions::enable_logging_and_signal_handling);
+        .def(
+            py::init([](bool enable_logging_and_signal_handling = true)
+                     { return ContextOptions{ enable_logging_and_signal_handling }; }),
+            py::arg("enable_logging_and_signal_handling") = true
+        )
+        .def_readwrite(
+            "enable_logging_and_signal_handling",
+            &ContextOptions::enable_logging_and_signal_handling
+        );
 
-    // The lifetime of the unique Context instance will determine the lifetime of the other singletons.
+    // The lifetime of the unique Context instance will determine the lifetime of the other
+    // singletons.
     using context_ptr = std::unique_ptr<Context, mambapy::destroy_singleton>;
     auto context_constructor = [](ContextOptions options = {}) -> context_ptr
     {
@@ -1181,8 +1179,11 @@ bind_submodule_impl(pybind11::module_ m)
 
     m.def(
         "transmute",
-        +[](Context& context, const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
-         )
+        +[](Context& context,
+            const fs::u8path& pkg_file,
+            const fs::u8path& target,
+            int compression_level,
+            int compression_threads)
         {
             const auto extract_options = mamba::ExtractOptions::from_context(context);
             return transmute(pkg_file, target, compression_level, compression_threads, extract_options);

@@ -2,7 +2,8 @@ import libmambapy
 
 
 def test_context_instance_scoped():
-    ctx = libmambapy.Context() # Initialize and then terminate libmamba internals
+    ctx = libmambapy.Context()  # Initialize and then terminate libmamba internals
+    return ctx
 
 
 def test_channel_context():

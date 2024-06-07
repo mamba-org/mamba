@@ -444,7 +444,11 @@ namespace mamba
     {
         using Request = solver::Request;
 
-        request.jobs.reserve(request.jobs.size() + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin);
+        LOG_WARNING << "DEBUG WARNING: no_py_pin = " << (no_py_pin ? "true" : "false");
+
+        const auto estimated_jobs_count = request.jobs.size()
+                                          + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin;
+        request.jobs.reserve(estimated_jobs_count);
         if (!no_pin)
         {
             for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))

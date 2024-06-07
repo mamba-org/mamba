@@ -18,12 +18,15 @@ namespace mamba
     void
     execute_tasks_from_concurrent_threads(std::size_t task_count, std::size_t tasks_per_thread, Func work)
     {
-        std::vector<std::thread> producers;
+        const auto estimated_thread_count = (task_count / tasks_per_thread) + 1;
+        std::vector<std::thread> producers(estimated_thread_count);
+
         std::size_t tasks_left_to_launch = task_count;
+        std::size_t thread_idx = 0;
         while (tasks_left_to_launch > 0)
         {
             const std::size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
-            producers.emplace_back(
+            producers[thread_idx] = std::thread{
                 [=]
                 {
                     for (std::size_t i = 0; i < tasks_to_generate; ++i)
@@ -31,13 +34,18 @@ namespace mamba
                         work();
                     }
                 }
-            );
+            };
             tasks_left_to_launch -= tasks_to_generate;
+            ++thread_idx;
         }
 
+        // Make sure all the producers are finished before continuing.
         for (auto&& t : producers)
         {
-            t.join();  // Make sure all the producers are finished before continuing.
+            if(t.joinable())
+            {
+                t.join();
+            }
         }
     }
 

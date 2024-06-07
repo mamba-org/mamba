@@ -37,6 +37,7 @@ namespace mamba
             };
             tasks_left_to_launch -= tasks_to_generate;
             ++thread_idx;
+            assert(thread_idx < producers.size());
         }
 
         // Make sure all the producers are finished before continuing.

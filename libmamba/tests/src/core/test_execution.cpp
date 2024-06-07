@@ -18,7 +18,7 @@ namespace mamba
     void
     execute_tasks_from_concurrent_threads(std::size_t task_count, std::size_t tasks_per_thread, Func work)
     {
-        const auto estimated_thread_count = (task_count / tasks_per_thread) + 1;
+        const auto estimated_thread_count = (task_count / tasks_per_thread) * 2;
         std::vector<std::thread> producers(estimated_thread_count);
 
         std::size_t tasks_left_to_launch = task_count;

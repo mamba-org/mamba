@@ -127,7 +127,7 @@ Install development dependencies
 
 .. code:: bash
 
-    micromamba create -n mamba -c conda-forge -f dev/environment.yml
+    micromamba create -n mamba -c conda-forge -f dev/environment-dev.yml
     micromamba activate -n mamba
 
 Compile ``libmamba`` and other artifacts
@@ -139,6 +139,11 @@ from Conda-Forge.
 
 The first step is to configure the build options.
 A recommended set is already provided as CMake Preset, but feel free to use any variations.
+
+.. note::
+    If you do choose to use the provided CMake Preset, you may need to
+    install ``ccache`` as an extra requirement as specified
+    in ``dev/environment-dev-extra.yml``.
 
 .. note::
     All ``cmake`` commands listed below use ``bash`` multi-line syntax.

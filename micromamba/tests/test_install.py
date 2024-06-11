@@ -429,7 +429,7 @@ class TestInstall:
         reason="Running only ultra-dry tests",
     )
     def test_no_python_pinning(self, existing_cache):
-        helpers.install("python=3.9", no_dry_run=True)
+        helpers.install("python=3.9.19", no_dry_run=True)
         res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
 
         keys = {"success", "prefix", "actions", "dry_run"}
@@ -445,10 +445,10 @@ class TestInstall:
         assert {"python"}.issubset(unlink_packages)
 
         py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
-        assert not py_pkg["version"].startswith("3.9")
+        assert py_pkg["version"] != ("3.9.19")
 
         py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
-        assert py_pkg["version"].startswith("3.9")
+        assert py_pkg["version"] == ("3.9.19")
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,

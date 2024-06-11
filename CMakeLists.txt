@@ -40,12 +40,10 @@ if(MSVC)
     # incorrect wrong value. /MP : enable multi-process build with MSBuild (it should be on by
     # default but CMake generates the project files without the right params). /external:I
     # $ENV{CONDA_PREFIX}: consider the conda env prefix libraries headers as "external" to this
-    # project. /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR : is a workaround to fix CI failure on win-64
-    # after updating runners to 20240603.1 image (cf.
-    # https://github.com/actions/runner-images/issues/10004#issuecomment-2153445161)
+    # project.
     set(
         CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DNOMINMAX /EHsc /Zc:__cplusplus /utf-8 /MP /experimental:external /external:I $ENV{CONDA_PREFIX}"
+        "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /utf-8 /MP /experimental:external /external:I $ENV{CONDA_PREFIX}"
     )
     # Force release mode to avoid debug libraries to be linked
     set(

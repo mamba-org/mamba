@@ -642,11 +642,11 @@ namespace mamba
             // creating ``.pyc`` files.
             // Ideally this whole function should be properly refactored and the transaction itself
             // should not need the database.
-            auto trans = [&](auto db)
+            auto trans = [&](auto database)
             {
                 return MTransaction(  //
                     ctx,
-                    db,
+                    database,
                     request,
                     std::get<solver::Solution>(outcome),
                     package_caches

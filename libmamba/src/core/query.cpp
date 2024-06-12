@@ -351,7 +351,7 @@ namespace mamba
          */
         auto print_other_builds(
             std::ostream& out,
-            const specs::PackageInfo& pkg,
+            const specs::PackageInfo&,
             const std::map<std::string, std::vector<specs::PackageInfo>> groupedOtherBuilds,
             bool showAllBuilds
         )
@@ -860,7 +860,7 @@ namespace mamba
     auto QueryResult::json() const -> nlohmann::json
     {
         nlohmann::json j;
-        std::string query_type = std::string(util::to_lower(enum_name(m_type)));
+        std::string query_type = util::to_lower(enum_name(m_type));
         j["query"] = { { "query", m_query }, { "type", query_type } };
 
         std::string msg = m_pkg_id_list.empty() ? "No entries matching \"" + m_query + "\" found"

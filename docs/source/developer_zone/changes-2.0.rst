@@ -136,5 +136,42 @@ The main changes are:
 
 - Improved downloaders.
 
-.. TODO OCI registry
-.. TODO Mirrors
+Mirrors and OCI registries
+--------------------------
+In the perspective of ensuring continuous and faster access when downloading packages, we now support mirroring channels.
+
+Furthermore, we support fetching packages from `OCI registries <https://github.com/opencontainers/distribution-spec/blob/v1.0/spec.md#definitions>`_
+in order to provide an alternative to hosting on https://conda.anaconda.org/conda-forge/.
+
+Specifying a mirror can be done in the rc file as follows:
+
+.. code::
+
+  $ cat ~/.mambarc
+
+  # Specify a mirror (can be a list of mirrors) for conda-forge channel
+  mirrored_channels:
+    conda-forge: ["oci://ghcr.io/channel-mirrors/conda-forge"]
+
+  # ``repodata_use_zst`` isn't considered when fetching from oci registries
+  # since compressed repodata is handled internally
+  # (if present, compressed repodata is necessarily fetched)
+  # Setting ``repodata_use_zst`` to ``false`` avoids useless requests with
+  # zst extension in repodata filename
+  repodata_use_zst: false
+
+Then, you can for instance create a new environment ``pandoc_from_oci`` where ``pandoc`` can be fetched from the specified mirror and installed:
+
+.. code::
+
+  $ micromamba create -n pandoc_from_oci pandoc -c conda-forge
+
+Listing packages in the created ``pandoc_from_oci`` environment:
+
+.. code::
+
+  $ micromamba list -n pandoc_from_oci
+
+  Name    Version  Build       Channel
+  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  pandoc  3.2      ha770c72_0  https://pkg-containers.githubusercontent.com/ghcr1/blobs/pandoc-3.2-ha770c72_0.conda

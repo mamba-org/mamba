@@ -71,7 +71,7 @@ namespace mamba::download
      * OCIMirror implementation *
      ****************************/
 
-    namespace
+    namespace utils
     {
         std::pair<std::string, std::string> split_path_tag(const std::string& path)
         {
@@ -161,7 +161,7 @@ namespace mamba::download
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as
         // inserting a new ArtifactData object may relocate preexisting ones.
-        auto [split_path, split_tag] = split_path_tag(url_path);
+        auto [split_path, split_tag] = utils::split_path_tag(url_path);
 
         // TODO we are getting here a new token for every artifact/path
         // => we should handle this differently to use the same token
@@ -226,7 +226,7 @@ namespace mamba::download
         req.on_success = [data](const Success& success) -> expected_t<void>
         {
             const Buffer& buf = std::get<Buffer>(success.content);
-            auto j = parse_json_nothrow(buf.value);
+            auto j = utils::parse_json_nothrow(buf.value);
             if (j.contains("token"))
             {
                 data->token = j["token"].get<std::string>();
@@ -259,7 +259,7 @@ namespace mamba::download
         req.on_success = [data](const Success& success) -> expected_t<void>
         {
             const Buffer& buf = std::get<Buffer>(success.content);
-            auto j = parse_json_nothrow(buf.value);
+            auto j = utils::parse_json_nothrow(buf.value);
             if (j.contains("layers"))
             {
                 std::string digest;

@@ -65,6 +65,7 @@ set(
     src/validation/test_update_framework_v1.cpp
     # Implementation of downloaders and mirrors
     src/download/test_downloader.cpp
+    src/download/test_mirror.cpp
     # Core tests
     ../longpath.manifest
     src/core/test_activation.cpp
@@ -75,7 +76,6 @@ set(
     src/core/test_environments_manager.cpp
     src/core/test_history.cpp
     src/core/test_lockfile.cpp
-    src/core/test_mirror.cpp
     src/core/test_pinning.cpp
     src/core/test_output.cpp
     src/core/test_progress_bar.cpp

@@ -17,6 +17,7 @@ extern "C"
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 }
 #else
@@ -35,6 +36,7 @@ extern "C"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/run.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/random.hpp"
@@ -281,6 +283,40 @@ namespace mamba
             }
         }
     }
+
+    // Wait for a process to finish
+    // Similar to reproc::process.wait, but also handles suspension
+    int wait_for_process(pid_t pid)
+    {
+        int status;
+        pid_t wpid;
+        while (1)
+        {
+            wpid = waitpid(pid, &status, WUNTRACED);
+            if (wpid == pid && WIFSTOPPED(status))
+            {
+                // If the child was suspended (e.g. CTRL-Z),
+                // suspend entire process group as well
+                kill(0, SIGSTOP);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Compute the return status mimicing the private logic in reproc++
+        // https://github.com/DaanDeMeyer/reproc/blob/1c07bdbec3f2ecba7125b9499b9a8a77bf9aa8c7/reproc/src/process.posix.c#L455
+        if (wpid < 0)
+        {
+            status = -errno;
+        }
+        else
+        {
+            status = WIFEXITED(status) ? WEXITSTATUS(status) : WTERMSIG(status) + 128;
+        }
+        return status;
+    }
 #endif
 
     int run_in_environment(
@@ -427,7 +463,7 @@ namespace mamba
                 );
             }
 #endif
-            PID pid;
+            static PID pid;
             std::error_code lec;
             static reproc::process proc;
 
@@ -442,24 +478,38 @@ namespace mamba
             }
 
 #ifndef _WIN32
-            MainExecutor::instance().schedule(
-                []()
+            sigset_t empty_sigmask, prev_sigmask;
+            sigemptyset(&empty_sigmask);
+
+            // Stop the normal signal handler so that SIGINT is forwarded as well,
+            // and unblock all signals, while saving the previous state
+            // TODO: Is this the right place to change the mask and is this the right order?
+            stop_receiver_thread();
+            pthread_sigmask(SIG_SETMASK, &empty_sigmask, &prev_sigmask);
+
+            std::map<int, struct sigaction> prev_actions;
+
+            // Signal handler that forwards all signals except CHLD to the child
+            auto forward_signal = [](int signum)
+            {
+                if (signum != SIGCHLD)
                 {
-                    signal(
-                        SIGTERM,
-                        [](int /*signum*/)
-                        {
-                            LOG_INFO << "Received SIGTERM on micromamba run - terminating process";
-                            reproc::stop_actions sa;
-                            sa.first = reproc::stop_action{ reproc::stop::terminate,
-                                                            std::chrono::milliseconds(3000) };
-                            sa.second = reproc::stop_action{ reproc::stop::kill,
-                                                             std::chrono::milliseconds(3000) };
-                            proc.stop(sa);
-                        }
-                    );
+                    kill(pid, signum);
                 }
-            );
+            };
+
+            // Set handlers for all signals and save the previous state.
+            for (int signum = 1; signum < NSIG; signum++)
+            {
+                struct sigaction sa, prev_sa;
+                sa.sa_flags = SA_RESTART;
+                sa.sa_handler = forward_signal;
+                int err = sigaction(signum, &sa, &prev_sa);
+                if (!err)
+                {
+                    prev_actions[signum] = prev_sa;
+                }
+            }
 #endif
 
             // check if we need this
@@ -470,12 +520,23 @@ namespace mamba
 
             ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
 
-            std::tie(status, ec) = proc.stop(opt.stop);
+#ifndef _WIN32
+            status = wait_for_process(pid);
 
+            // Restore the signal handlers and the signal mask
+            set_default_signal_handler();
+            pthread_sigmask(SIG_SETMASK, &prev_sigmask, nullptr);
+            for (const auto& [signum, sa] : prev_actions)
+            {
+                sigaction(signum, &sa, nullptr);
+            }
+#else
+            std::tie(status, ec) = proc.stop(opt.stop);
             if (ec)
             {
                 std::cerr << ec.message() << " ; error code " << ec.value() << '\n';
             }
+#endif
         }
         // exit with status code from reproc
         return status;

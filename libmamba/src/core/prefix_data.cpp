@@ -45,11 +45,6 @@ namespace mamba
         , m_prefix_path(prefix_path)
         , m_channel_context(channel_context)
     {
-        load();
-    }
-
-    void PrefixData::load()
-    {
         auto conda_meta_dir = m_prefix_path / "conda-meta";
         if (lexists(conda_meta_dir))
         {

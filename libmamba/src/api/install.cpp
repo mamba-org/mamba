@@ -444,8 +444,6 @@ namespace mamba
     {
         using Request = solver::Request;
 
-        LOG_WARNING << "DEBUG WARNING: no_py_pin = " << (no_py_pin ? "true" : "false");
-
         const auto estimated_jobs_count = request.jobs.size()
                                           + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin;
         request.jobs.reserve(estimated_jobs_count);

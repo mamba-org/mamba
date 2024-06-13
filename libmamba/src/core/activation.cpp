@@ -1242,8 +1242,7 @@ namespace mamba
         return "";
     }
 
-    std::pair<std::string, std::string>
-    NuActivator::update_prompt(const std::string& conda_prompt_modifier)
+    std::pair<std::string, std::string> NuActivator::update_prompt(const std::string&)
     {
         // hook is implemented in shell_init.cpp as nushell behaves like a compiled language;
         // one cannot dynamically evaluate strings

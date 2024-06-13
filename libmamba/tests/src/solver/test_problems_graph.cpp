@@ -604,6 +604,7 @@ TEST_CASE("Create problem graph")
         std::pair{ "PubGrub example", &create_pubgrub },
         std::pair{ "Harder PubGrub example", &create_pubgrub_hard },
         std::pair{ "PubGrub example with missing packages", &create_pubgrub_missing },
+        std::pair{ "Pin conflict", &create_pin_conflict },
         std::pair{ "PyTorch CPU", &create_pytorch_cpu },
         std::pair{ "PyTorch Cuda", &create_pytorch_cuda },
         std::pair{ "Cuda Toolkit", &create_cudatoolkit },

@@ -424,33 +424,34 @@ class TestInstall:
         for to_link in res["actions"]["LINK"]:
             assert to_link["channel"] == "conda-forge"
 
-    _is_on_ci = True
-
     @pytest.mark.skipif(
-        (helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY) or _is_on_ci,
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
         reason="Running only ultra-dry tests",
     )
     def test_no_python_pinning(self, existing_cache):
         helpers.install("python=3.9.19", no_dry_run=True)
-        res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
+        # res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
+        res = helpers.install("setuptools=63.4.3", "--no-py-pin")
 
-        keys = {"success", "prefix", "actions", "dry_run"}
-        assert keys.issubset(set(res.keys()))
+        print(res)
+        assert False
+        # keys = {"success", "prefix", "actions", "dry_run"}
+        # assert keys.issubset(set(res.keys()))
 
-        action_keys = {"LINK", "UNLINK", "PREFIX"}
-        assert action_keys.issubset(set(res["actions"].keys()))
+        # action_keys = {"LINK", "UNLINK", "PREFIX"}
+        # assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_link_packages = {"python"}
-        link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_link_packages.issubset(link_packages)
-        unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        assert {"python"}.issubset(unlink_packages)
+        # expected_link_packages = {"python"}
+        # link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        # assert expected_link_packages.issubset(link_packages)
+        # unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
+        # assert {"python"}.issubset(unlink_packages)
 
-        py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
-        assert py_pkg["version"] != ("3.9.19")
+        # py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
+        # assert py_pkg["version"] != ("3.9.19")
 
-        py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
-        assert py_pkg["version"] == ("3.9.19")
+        # py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
+        # assert py_pkg["version"] == ("3.9.19")
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,

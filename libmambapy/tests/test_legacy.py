@@ -1,14 +1,13 @@
 import libmambapy
 
 
-def test_context_singleton():
-    libmambapy.Context.instance().platform = "mambaos-64"
-    ctx = libmambapy.Context.instance()
-    assert ctx.platform == "mambaos-64"
+def test_context_instance_scoped():
+    ctx = libmambapy.Context()  # Initialize and then terminate libmamba internals
+    return ctx
 
 
 def test_channel_context():
-    ctx = libmambapy.Context.instance()
+    ctx = libmambapy.Context()
 
     cc = libmambapy.ChannelContext.make_conda_compatible(ctx)
     assert cc.make_channel("pkgs/main")[0].url.str() == "https://repo.anaconda.com/pkgs/main"

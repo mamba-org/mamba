@@ -54,9 +54,28 @@ deprecated(std::string_view message, std::string_view since_version = "1.5")
 
 namespace mambapy
 {
+    // When using this library we for now still need to have a few singletons available
+    // to avoid the python code to have to create 3-4 objects before starting to work with
+    // mamba functions. Instead, here, we associate the lifetime of all the necessary
+    // singletons to the lifetime of the Context. This is to provide to the user explicit
+    // control over the lifetime and construction options of the Context and library
+    // resources, preventing issues related to default configuration/options.
+    // In the future, we might remove all singletons and provide a simple way to start
+    // working with mamba, but the C++ side needs to be made 100% singleton-less first.
+    //
+    // In the code below we provide a mechanism to associate the lifetime of the
+    // necessary singletons to the lifetime of one Context instance and forbid more
+    //  instances in the case of Python (it is theoretically allowed by the C++ api).
+
+
     class Singletons
     {
     public:
+
+        explicit Singletons(mamba::ContextOptions options)
+            : m_context(std::move(options))
+        {
+        }
 
         mamba::MainExecutor& main_executor()
         {
@@ -80,34 +99,32 @@ namespace mambapy
 
     private:
 
-        template <class T, class D, class Factory>
-        T& init_once(std::unique_ptr<T, D>& ptr, Factory&& factory)
-        {
-            static std::once_flag init_flag;
-            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(factory()); });
-            if (!ptr)
-            {
-                throw mamba::mamba_error(
-                    fmt::format(
-                        "attempt to use {} singleton instance after destruction",
-                        typeid(T).name()
-                    ),
-                    mamba::mamba_error_code::internal_failure
-                );
-            }
-            return *ptr;
-        }
 
         mamba::MainExecutor m_main_executor;
-        mamba::Context m_context{ { /* .enable_logging_and_signal_handling = */ true } };
+        mamba::Context m_context;
         mamba::Console m_console{ m_context };
-        // ChannelContext needs to be lazy initialized, to ensure the Context has been initialized
-        // before
-        std::unique_ptr<mamba::ChannelContext> p_channel_context = nullptr;
         mamba::Configuration m_config{ m_context };
     };
 
-    Singletons singletons;
+    std::unique_ptr<Singletons> current_singletons;
+
+    Singletons& singletons()
+    {
+        if (current_singletons == nullptr)
+        {
+            throw std::runtime_error("Context instance must be created first");
+        }
+        return *current_singletons;
+    }
+
+    struct destroy_singleton
+    {
+        template <class... Args>
+        void operator()(Args&&...) noexcept
+        {
+            current_singletons.reset();
+        }
+    };
 
     // MSubdirData objects are movable only, and they need to be moved into
     // a std::vector before we call MSudbirData::download. Since we cannot
@@ -152,12 +169,11 @@ namespace mambapy
             }
         }
 
-        bool download()
+        bool download(mamba::Context& ctx)
         {
             using namespace mamba;
             // TODO: expose SubdirDataMonitor to libmambapy and remove this
             //  logic
-            Context& ctx = mambapy::singletons.context();
             expected_t<void> download_res;
             if (SubdirDataMonitor::can_monitor(ctx))
             {
@@ -415,15 +431,19 @@ bind_submodule_impl(pybind11::module_ m)
     );
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
-        .def(py::init<>(
-            [](const std::vector<fs::u8path>& pkgs_dirs)
-            {
-                return MultiPackageCache{
-                    pkgs_dirs,
-                    mambapy::singletons.context().validation_params,
-                };
-            }
-        ))
+        .def(
+            py::init<>(
+                [](Context& context, const std::vector<fs::u8path>& pkgs_dirs)
+                {
+                    return MultiPackageCache{
+                        pkgs_dirs,
+                        context.validation_params,
+                    };
+                }
+            ),
+            py::arg("context"),
+            py::arg("pkgs_dirs")
+        )
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
@@ -490,11 +510,14 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& subdir, solver::libsolv::Database& db) -> solver::libsolv::RepoInfo
+            [](SubdirData& self, Context& context, solver::libsolv::Database& db
+            ) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
-                return extract(load_subdir_in_database(mambapy::singletons.context(), db, subdir));
-            }
+                return extract(load_subdir_in_database(context, db, self));
+            },
+            py::arg("context"),
+            py::arg("db")
         )
         .def("loaded", &SubdirData::is_loaded)
         .def(
@@ -547,25 +570,17 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create",
             [](SubdirIndex& self,
+               Context& context,
                ChannelContext& channel_context,
                const specs::Channel& channel,
                const std::string& platform,
                const std::string& full_url,
                MultiPackageCache& caches,
                const std::string& repodata_fn,
-               const std::string& url)
-            {
-                self.create(
-                    mambapy::singletons.context(),
-                    channel_context,
-                    channel,
-                    platform,
-                    full_url,
-                    caches,
-                    repodata_fn,
-                    url
-                );
+               const std::string& url) {
+                self.create(context, channel_context, channel, platform, full_url, caches, repodata_fn, url);
             },
+            py::arg("context"),
             py::arg("channel_context"),
             py::arg("channel"),
             py::arg("platform"),
@@ -640,24 +655,35 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("no_progress_bars", &Context::GraphicsParams::no_progress_bars)
         .def_readwrite("palette", &Context::GraphicsParams::palette);
 
-    py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
-    ctx  //
-        .def_static(
-            // Still need a singleton as long as mambatest::singleton::context is used
-            "instance",
-            []() -> auto& { return mambapy::singletons.context(); },
-            py::return_value_policy::reference
+    py::class_<ContextOptions>(m, "ContextOptions")
+        .def(
+            py::init([](bool enable_logging_and_signal_handling = true)
+                     { return ContextOptions{ enable_logging_and_signal_handling }; }),
+            py::arg("enable_logging_and_signal_handling") = true
         )
-        .def(py::init(
-            // Deprecating would lead to confusing error. Better to make sure people stop using it.
-            []() -> std::unique_ptr<Context, py::nodelete>
-            {
-                throw std::invalid_argument(  //
-                    "Context() will create a new Context object in the future.\n"
-                    "Use Context.instance() to access the global singleton."
-                );
-            }
-        ))
+        .def_readwrite(
+            "enable_logging_and_signal_handling",
+            &ContextOptions::enable_logging_and_signal_handling
+        );
+
+    // The lifetime of the unique Context instance will determine the lifetime of the other
+    // singletons.
+    using context_ptr = std::unique_ptr<Context, mambapy::destroy_singleton>;
+    auto context_constructor = [](ContextOptions options = {}) -> context_ptr
+    {
+        if (mambapy::current_singletons)
+        {
+            throw std::runtime_error("Only one Context instance can exist at any time");
+        }
+
+        mambapy::current_singletons = std::make_unique<mambapy::Singletons>(options);
+        assert(&mambapy::singletons() == mambapy::current_singletons.get());
+        return context_ptr(&mambapy::singletons().context());
+    };
+
+    py::class_<Context, context_ptr> ctx(m, "Context");
+
+    ctx.def(py::init(context_constructor), py::arg("options") = ContextOptions{ true })
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)
@@ -1144,18 +1170,25 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("json_str")
         );
 
-    m.def("clean", [](int flags) { return clean(mambapy::singletons.config(), flags); });
+    m.def(
+        "clean",
+        [](Context&, int flags) { return clean(mambapy::singletons().config(), flags); },
+        py::arg("context"),
+        py::arg("flags")
+    );
 
     m.def(
         "transmute",
-        +[](const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
-         )
+        +[](Context& context,
+            const fs::u8path& pkg_file,
+            const fs::u8path& target,
+            int compression_level,
+            int compression_threads)
         {
-            const auto extract_options = mamba::ExtractOptions::from_context(
-                mambapy::singletons.context()
-            );
+            const auto extract_options = mamba::ExtractOptions::from_context(context);
             return transmute(pkg_file, target, compression_level, compression_threads, extract_options);
         },
+        py::arg("context"),
         py::arg("source_package"),
         py::arg("destination_package"),
         py::arg("compression_level"),
@@ -1171,9 +1204,9 @@ bind_submodule_impl(pybind11::module_ m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons.context()); });
+    m.def("get_virtual_packages", [](Context& context) { return get_virtual_packages(context); });
 
-    m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
+    m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

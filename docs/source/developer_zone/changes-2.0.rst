@@ -55,11 +55,23 @@ The Python bindings to the C++ ``libmamba`` library remain available through ``i
 They are now considered the first class citizen to using Mamba in Python.
 Changes include:
 
-- The global ``Context``, previously available through ``Context()``, must now be accessed through
-  ``Context.instance()``.
-  What's more, it is required to be passed explicitly in a few more functions.
-  Future version of ``libmambapy`` will continue in this direction until there are no global context.
+- The global ``Context``, previously available through ``Context()``, must now be instantiated at least
+  once before using ``libmambapy`` functions and types. Only one instance can exist at any time,
+  but that instance can be destroyed and another recreated later, for example if you use it in
+  specific functions scopes.
+
+  What's more, it is required to be passed explicitly in a few more functions. Notably:
+    - ``MultiPackageCache`` (constructor)
+    - ``SubdirData.create_repo``
+    - ``SubdirIndex.create``
+    - ``SubdirIndex.download``
+    - ``clean``
+    - ``transmute``
+    - ``get_virtual_packages``
+    - ``cancel_json_output``
+
   In version 2, ``Context()`` will throw an exception to allow catching errors more smoothly.
+
 - ``ChannelContext`` is no longer an implicit global variable.
   It must be constructed with one of ``ChannelContext.make_simple`` or
   ``ChannelContext.make_conda_compatible`` (with ``Context.instance`` as argument in most cases)

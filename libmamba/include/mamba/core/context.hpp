@@ -272,7 +272,11 @@ namespace mamba
         specs::AuthenticationDataBase m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
-        std::shared_ptr<Logger> logger;
+        class ScopedLogger;
+        std::vector<ScopedLogger> loggers;
+
+        std::shared_ptr<Logger> main_logger();
+        void add_logger(std::shared_ptr<Logger>);
 
         TaskSynchronizer tasksync;
     };

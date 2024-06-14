@@ -6,6 +6,7 @@ __all__ = [
     "Channel",
     "ChannelPriority",
     "CompressedProblemsGraph",
+    "ContextOptions",
     "Context",
     "ExtraPkgInfo",
     "History",
@@ -363,6 +364,26 @@ class CompressedProblemsGraph:
     def tree_message(self) -> str: ...
     pass
 
+class ContextOptions:
+    def __init__(self) -> None: ...
+    @property
+    def json(self) -> bool:
+        """
+        :type: bool
+        """
+    @json.setter
+    def json(self, arg0: bool) -> None:
+        pass
+    @property
+    def enable_logging_and_signal_handling(self) -> bool:
+        """
+        :type: bool
+        """
+    @enable_logging_and_signal_handling.setter
+    def enable_logging_and_signal_handling(self, arg0: bool) -> None:
+        pass
+    pass
+
 class Context:
     class OutputParams:
         def __init__(self) -> None: ...
@@ -500,7 +521,7 @@ class Context:
             pass
         pass
 
-    def __init__(self) -> None: ...
+    def __init__(self, options: ContextOptions = ContextOptions()) -> None: ...
     def set_log_level(self, arg0: LogLevel) -> None: ...
     def set_verbosity(self, arg0: int) -> None: ...
     @property
@@ -966,7 +987,7 @@ class MatchSpec:
     pass
 
 class MultiPackageCache:
-    def __init__(self, arg0: typing.List[Path]) -> None: ...
+    def __init__(self, context: Context, arg0: typing.List[Path]) -> None: ...
     def get_tarball_path(self, arg0: PackageInfo, arg1: bool) -> Path: ...
     @property
     def first_writable_path(self) -> Path:
@@ -1579,7 +1600,7 @@ class SpecImpl(SpecBase):
 
 class SubdirData:
     def cache_path(self) -> str: ...
-    def create_repo(self, arg0: Pool) -> Repo: ...
+    def create_repo(self, context: Context, arg0: Pool) -> Repo: ...
     def loaded(self) -> bool: ...
     pass
 
@@ -1590,6 +1611,7 @@ class SubdirIndex:
     def __len__(self) -> int: ...
     def create(
         self,
+        context: Context,
         arg0: Channel,
         arg1: str,
         arg2: str,
@@ -1597,7 +1619,7 @@ class SubdirIndex:
         arg4: str,
         arg5: str,
     ) -> None: ...
-    def download(self) -> bool: ...
+    def download(self, context: Context) -> bool: ...
     pass
 
 class SubdirIndexEntry:
@@ -1669,10 +1691,10 @@ class ostream_redirect:
 def cache_fn_url(arg0: str) -> str:
     pass
 
-def cancel_json_output() -> None:
+def cancel_json_output(context: Context) -> None:
     pass
 
-def clean(arg0: int) -> None:
+def clean(context: Context, arg0: int) -> None:
     pass
 
 def create_cache_dir(arg0: Path) -> str:
@@ -1684,7 +1706,7 @@ def generate_ed25519_keypair() -> typing.Tuple[str, str]:
 def get_channels(arg0: typing.List[str]) -> typing.List[Channel]:
     pass
 
-def get_virtual_packages() -> typing.List[PackageInfo]:
+def get_virtual_packages(context: Context) -> typing.List[PackageInfo]:
     pass
 
 def init_console() -> None:
@@ -1697,6 +1719,7 @@ def simplify_conflicts(arg0: ProblemsGraph) -> ProblemsGraph:
     pass
 
 def transmute(
+    context: Context,
     source_package: Path,
     destination_package: Path,
     compression_level: int,

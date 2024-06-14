@@ -12,6 +12,13 @@ from mitmproxy import ctx
 from mitmproxy.addonmanager import Loader
 from mitmproxy.http import HTTPFlow
 
+import logging
+
+# Asking `passlib` to only log errors to avoid random failure in the CI
+# cf. https://github.com/mamba-org/mamba/issues/3323
+# and https://github.com/pyca/bcrypt/issues/684
+logging.getLogger("passlib").setLevel(logging.ERROR)
+
 
 class DumpAddon:
     def load(self, loader: Loader):

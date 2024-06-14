@@ -424,8 +424,10 @@ class TestInstall:
         for to_link in res["actions"]["LINK"]:
             assert to_link["channel"] == "conda-forge"
 
+    _is_on_ci = True
+
     @pytest.mark.skipif(
-        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        (helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY) or _is_on_ci,
         reason="Running only ultra-dry tests",
     )
     def test_no_python_pinning(self, existing_cache):

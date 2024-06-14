@@ -1,3 +1,16 @@
+libmambapy 2.0.0beta3 (June 14, 2024)
+=====================================
+
+
+Bug fixes:
+
+- libmambapy:  use `Context` explicitly by @Klaim in https://github.com/mamba-org/mamba/pull/3309
+- Fix release scripts by @Hind-M in https://github.com/mamba-org/mamba/pull/3306
+
+CI fixes and doc:
+
+- Fix CI failure on win-64 by @Hind-M in https://github.com/mamba-org/mamba/pull/3315
+
 libmambapy 2.0.0beta2 (May 29, 2024)
 ====================================
 

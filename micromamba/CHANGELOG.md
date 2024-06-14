@@ -1,3 +1,20 @@
+micromamba 2.0.0beta3 (June 14, 2024)
+=====================================
+
+Enhancements:
+
+- OCI/Conda mapping by @Hind-M in https://github.com/mamba-org/mamba/pull/3310
+- [OCI - Mirrors] Add tests and doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3307
+
+Bug fixes:
+
+- Fix test_no_python_pinning by @Hind-M in https://github.com/mamba-org/mamba/pull/3319
+- Fix release scripts by @Hind-M in https://github.com/mamba-org/mamba/pull/3306
+
+CI fixes and doc:
+
+- Fix CI failure on win-64 by @Hind-M in https://github.com/mamba-org/mamba/pull/3315
+
 micromamba 2.0.0beta2 (May 29, 2024)
 ====================================
 

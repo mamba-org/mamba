@@ -1,3 +1,22 @@
+libmamba 2.0.0beta3 (June 14, 2024)
+===================================
+
+Enhancements:
+
+- maint: Remove some warnings by @jjerphan in https://github.com/mamba-org/mamba/pull/3320
+- maint: Remove `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3318
+- OCI/Conda mapping by @Hind-M in https://github.com/mamba-org/mamba/pull/3310
+- [OCI - Mirrors] Add tests and doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3307
+
+Bug fixes:
+
+- libmambapy:  use `Context` explicitly by @Klaim in https://github.com/mamba-org/mamba/pull/3309
+- Fix release scripts by @Hind-M in https://github.com/mamba-org/mamba/pull/3306
+
+CI fixes and doc:
+
+- Fix CI failure on win-64 by @Hind-M in https://github.com/mamba-org/mamba/pull/3315
+
 libmamba 2.0.0beta2 (May 29, 2024)
 ==================================
 

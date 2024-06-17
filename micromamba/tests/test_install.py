@@ -430,28 +430,42 @@ class TestInstall:
     )
     def test_no_python_pinning(self, existing_cache):
         helpers.install("python=3.9.19", no_dry_run=True)
-        # res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
-        res = helpers.install("setuptools=63.4.3", "--no-py-pin")
+        res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
 
-        print(res)
-        assert False
-        # keys = {"success", "prefix", "actions", "dry_run"}
-        # assert keys.issubset(set(res.keys()))
+        keys = {"success", "prefix", "actions", "dry_run"}
+        assert keys.issubset(set(res.keys()))
 
-        # action_keys = {"LINK", "UNLINK", "PREFIX"}
-        # assert action_keys.issubset(set(res["actions"].keys()))
+        action_keys = {"LINK", "UNLINK", "PREFIX"}
+        assert action_keys.issubset(set(res["actions"].keys()))
 
-        # expected_link_packages = {"python"}
-        # link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        # assert expected_link_packages.issubset(link_packages)
-        # unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        # assert {"python"}.issubset(unlink_packages)
+        # When using `--no-py-pin`, it may or may not update the already installed
+        # python version, but `python_abi` is installed in any case
+        # The following tests/assertions consider both cases
+        expected_link_packages = {"python_abi"}
+        link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        assert expected_link_packages.issubset(link_packages)
 
-        # py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
-        # assert py_pkg["version"] != ("3.9.19")
+        unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
+        if {"python"}.issubset(link_packages):
+            assert {"python"}.issubset(unlink_packages)
 
-        # py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
-        # assert py_pkg["version"] == ("3.9.19")
+            py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
+            assert py_pkg["version"] != ("3.9.19")
+
+            py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
+            assert py_pkg["version"] == ("3.9.19")
+        else:
+            assert len(res["actions"]["LINK"]) == 2  # Should be setuptools and python_abi
+
+            py_abi_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python_abi"][0]
+            assert py_abi_pkg["version"] == ("3.9")
+            setuptools_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "setuptools"][
+                0
+            ]
+            assert setuptools_pkg["version"] == ("63.4.3")
+
+            assert len(res["actions"]["UNLINK"]) == 1  # Should be setuptools
+            assert res["actions"]["UNLINK"][0]["name"] == "setuptools"
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,

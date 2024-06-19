@@ -65,7 +65,8 @@ namespace mamba
 
     struct ContextOptions
     {
-        bool enable_logging_and_signal_handling = false;
+        bool enable_logging = false;
+        bool enable_signal_handling = false;
     };
 
     // Context singleton class
@@ -259,10 +260,6 @@ namespace mamba
         Context(const ContextOptions& options = {});
         ~Context();
 
-        // Enables the provided context to drive the logging system and setup signal handling.
-        // This function must be called only for one Context in the lifetime of the program.
-        static void enable_logging_and_signal_handling(Context& context);
-
     private:
 
         // Used internally
@@ -279,6 +276,16 @@ namespace mamba
         void add_logger(std::shared_ptr<Logger>);
 
         TaskSynchronizer tasksync;
+
+
+
+        // Enables the provided context setup signal handling.
+        // This function must be called only for one Context in the lifetime of the program.
+        void enable_signal_handling();
+
+        // Enables the provided context to drive the logging system.
+        // This function must be called only for one Context in the lifetime of the program.
+        void enable_logging();
     };
 
 

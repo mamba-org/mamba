@@ -658,26 +658,16 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("palette", &Context::GraphicsParams::palette);
 
 
-
     py::class_<ContextOptions>(m, "ContextOptions")
         .def(
-            py::init(
-                [](bool logging = mambapy::default_context_options.enable_logging,
-                   bool signal_handling = mambapy::default_context_options.enable_signal_handling) {
-                    return ContextOptions{ logging, signal_handling };
-                }
-            ),
+            py::init([](bool logging = mambapy::default_context_options.enable_logging,
+                        bool signal_handling = mambapy::default_context_options.enable_signal_handling
+                     ) { return ContextOptions{ logging, signal_handling }; }),
             py::arg("enable_logging") = true,
             py::arg("enable_signal_handling") = true
         )
-        .def_readwrite(
-            "enable_logging",
-            &ContextOptions::enable_logging
-        )
-        .def_readwrite(
-            "enable_signal_handling",
-            &ContextOptions::enable_signal_handling
-        );
+        .def_readwrite("enable_logging", &ContextOptions::enable_logging)
+        .def_readwrite("enable_signal_handling", &ContextOptions::enable_signal_handling);
 
     // The lifetime of the unique Context instance will determine the lifetime of the other
     // singletons.

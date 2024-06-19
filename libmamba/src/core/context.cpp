@@ -159,23 +159,17 @@ namespace mamba
     void Context::enable_logging()
     {
         loggers.clear();  // Make sure we work with a known set of loggers, first one is
-                                  // always the default one.
+                          // always the default one.
 
         loggers.emplace_back(
             std::make_shared<Logger>("libmamba", output_params.log_pattern, "\n"),
             logger_kind::default_logger
         );
-        MainExecutor::instance().on_close(
-            tasksync.synchronized([&] { main_logger()->flush(); })
-        );
+        MainExecutor::instance().on_close(tasksync.synchronized([&] { main_logger()->flush(); }));
 
-        loggers.emplace_back(
-            std::make_shared<Logger>("libcurl", output_params.log_pattern, "")
-        );
+        loggers.emplace_back(std::make_shared<Logger>("libcurl", output_params.log_pattern, ""));
 
-        loggers.emplace_back(
-            std::make_shared<Logger>("libsolv", output_params.log_pattern, "")
-        );
+        loggers.emplace_back(std::make_shared<Logger>("libsolv", output_params.log_pattern, ""));
 
         spdlog::set_level(convert_log_level(output_params.logging_level));
     }

@@ -278,7 +278,6 @@ namespace mamba
         TaskSynchronizer tasksync;
 
 
-
         // Enables the provided context setup signal handling.
         // This function must be called only for one Context in the lifetime of the program.
         void enable_signal_handling();

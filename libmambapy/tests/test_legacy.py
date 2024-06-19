@@ -5,8 +5,11 @@ def test_context_instance_scoped():
     ctx = libmambapy.Context()  # Initialize and then terminate libmamba internals
     return ctx
 
+
 def test_context_no_log_nor_signal_handling():
-    ctx = libmambapy.Context(libmambapy.ContextOptions(enable_logging=False, enable_signal_handling=False))
+    ctx = libmambapy.Context(
+        libmambapy.ContextOptions(enable_logging=False, enable_signal_handling=False)
+    )
     return ctx
 
 

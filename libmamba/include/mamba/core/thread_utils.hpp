@@ -23,7 +23,7 @@ namespace mamba
      ***********************/
 
 
-    using signal_handler_t = void(*)(int);
+    using signal_handler_t = void (*)(int);
 
 #ifndef _WIN32
     void set_signal_handler(const std::function<void(sigset_t)>& handler);

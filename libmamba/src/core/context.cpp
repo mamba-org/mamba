@@ -148,33 +148,30 @@ namespace mamba
         return loggers.front().logger();
     }
 
-    void Context::enable_logging_and_signal_handling(Context& context)
+    void Context::enable_signal_handling()
     {
         if (use_default_signal_handler_val)
         {
             set_default_signal_handler();
         }
+    }
 
-        context.loggers.clear();  // Make sure we work with a known set of loggers, first one is
-                                  // always the default one.
+    void Context::enable_logging()
+    {
+        loggers.clear();  // Make sure we work with a known set of loggers, first one is
+                          // always the default one.
 
-        context.loggers.emplace_back(
-            std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n"),
+        loggers.emplace_back(
+            std::make_shared<Logger>("libmamba", output_params.log_pattern, "\n"),
             logger_kind::default_logger
         );
-        MainExecutor::instance().on_close(
-            context.tasksync.synchronized([&context] { context.main_logger()->flush(); })
-        );
+        MainExecutor::instance().on_close(tasksync.synchronized([&] { main_logger()->flush(); }));
 
-        context.loggers.emplace_back(
-            std::make_shared<Logger>("libcurl", context.output_params.log_pattern, "")
-        );
+        loggers.emplace_back(std::make_shared<Logger>("libcurl", output_params.log_pattern, ""));
 
-        context.loggers.emplace_back(
-            std::make_shared<Logger>("libsolv", context.output_params.log_pattern, "")
-        );
+        loggers.emplace_back(std::make_shared<Logger>("libsolv", output_params.log_pattern, ""));
 
-        spdlog::set_level(convert_log_level(context.output_params.logging_level));
+        spdlog::set_level(convert_log_level(output_params.logging_level));
     }
 
     Context::Context(const ContextOptions& options)
@@ -210,9 +207,14 @@ namespace mamba
         ascii_only = false;
 #endif
 
-        if (options.enable_logging_and_signal_handling)
+        if (options.enable_signal_handling)
         {
-            enable_logging_and_signal_handling(*this);
+            enable_signal_handling();
+        }
+
+        if (options.enable_logging)
+        {
+            enable_logging();
         }
     }
 

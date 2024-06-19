@@ -126,6 +126,8 @@ namespace mambapy
         }
     };
 
+    static constexpr auto default_context_options = mamba::ContextOptions{ true, true };
+
     // MSubdirData objects are movable only, and they need to be moved into
     // a std::vector before we call MSudbirData::download. Since we cannot
     // replicate the move semantics in Python, we encapsulate the creation
@@ -655,21 +657,23 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("no_progress_bars", &Context::GraphicsParams::no_progress_bars)
         .def_readwrite("palette", &Context::GraphicsParams::palette);
 
+
     py::class_<ContextOptions>(m, "ContextOptions")
         .def(
-            py::init([](bool enable_logging_and_signal_handling = true)
-                     { return ContextOptions{ enable_logging_and_signal_handling }; }),
-            py::arg("enable_logging_and_signal_handling") = true
+            py::init([](bool logging = mambapy::default_context_options.enable_logging,
+                        bool signal_handling = mambapy::default_context_options.enable_signal_handling
+                     ) { return ContextOptions{ logging, signal_handling }; }),
+            py::arg("enable_logging") = true,
+            py::arg("enable_signal_handling") = true
         )
-        .def_readwrite(
-            "enable_logging_and_signal_handling",
-            &ContextOptions::enable_logging_and_signal_handling
-        );
+        .def_readwrite("enable_logging", &ContextOptions::enable_logging)
+        .def_readwrite("enable_signal_handling", &ContextOptions::enable_signal_handling);
 
     // The lifetime of the unique Context instance will determine the lifetime of the other
     // singletons.
     using context_ptr = std::unique_ptr<Context, mambapy::destroy_singleton>;
-    auto context_constructor = [](ContextOptions options = {}) -> context_ptr
+    auto context_constructor = [](ContextOptions options = mambapy::default_context_options
+                               ) -> context_ptr
     {
         if (mambapy::current_singletons)
         {
@@ -683,7 +687,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<Context, context_ptr> ctx(m, "Context");
 
-    ctx.def(py::init(context_constructor), py::arg("options") = ContextOptions{ true })
+    ctx.def(py::init(context_constructor), py::arg("options") = mambapy::default_context_options)
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)

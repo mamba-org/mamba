@@ -6,6 +6,13 @@ def test_context_instance_scoped():
     return ctx
 
 
+def test_context_no_log_nor_signal_handling():
+    ctx = libmambapy.Context(
+        libmambapy.ContextOptions(enable_logging=False, enable_signal_handling=False)
+    )
+    return ctx
+
+
 def test_channel_context():
     ctx = libmambapy.Context()
 

@@ -33,6 +33,8 @@ include("cmake/LinkTimeOptimization.cmake")
 include("cmake/Checks.cmake")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(MSVC)
     # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>` /EHsc :
     # enable C++ exceptions (otherwise exceptions do not work) /Zc:__cplusplus : makes sure

@@ -92,6 +92,8 @@ set(
     src/core/test_thread_utils.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp
+    src/core/test_filesystem.cpp
+    src/solver/resolvo/test_solver.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

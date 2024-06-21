@@ -195,7 +195,6 @@ namespace mamba::specs
                 return !(*this == other);
             }
 
-            friend struct std::hash<ExtraMembers>;
         };
         friend struct std::hash<MatchSpec::ExtraMembers>;
 

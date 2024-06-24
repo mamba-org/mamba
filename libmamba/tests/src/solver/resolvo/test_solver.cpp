@@ -36,23 +36,40 @@ struct std::hash<SolvableId> {
     }
 };
 
+template <>
+struct std::hash<NameId> {
+    std::size_t operator()(const NameId& id) const {
+        return std::hash<uint32_t>{}(id.id);
+    }
+};
+
+template <>
+struct std::hash<StringId> {
+    std::size_t operator()(const StringId& id) const {
+        return std::hash<uint32_t>{}(id.id);
+    }
+};
 
 struct PackageDatabase : public DependencyProvider {
 
-    Pool<NameId, String> names;
-    Pool<StringId, String> strings;
+    std::unordered_map<NameId, String> name_map;
+    std::unordered_map<String, NameId> name_ids;
 
+    std::unordered_map<StringId, String> string_ids;
+    std::unordered_map<String, StringId> string_map;
+
+    // PackageInfo are Solvable in resolvo's semantics
     std::unordered_map<PackageInfo, SolvableId> solvable_ids;
-    std::unordered_map<MatchSpec, VersionSetId> version_set_ids;
-
-    // Reverse mapping
     std::unordered_map<SolvableId, PackageInfo> solvable_map;
+
+    // MatchSpec are VersionSet in resolvo's semantics
+    std::unordered_map<MatchSpec, VersionSetId> version_set_ids;
     std::unordered_map<VersionSetId, MatchSpec> version_set_map;
 
     /**
      * Allocates a new requirement and return the id of the requirement.
      */
-    VersionSetId alloc_version_set_id(
+    VersionSetId alloc_version_set(
         std::string_view raw_match_spec
     ) {
         const MatchSpec& match_spec = MatchSpec::parse(raw_match_spec).value();
@@ -69,19 +86,18 @@ struct PackageDatabase : public DependencyProvider {
     }
 
     SolvableId alloc_solvable(
-        PackageInfo solvable
+        PackageInfo package_info
     ) {
-        auto got = solvable_ids.find(solvable);
+        auto got = solvable_ids.find(package_info);
 
         if (got != solvable_ids.end()) {
             return got->second;
         } else {
             auto id = SolvableId{static_cast<uint32_t>(solvable_ids.size())};
-            solvable_ids[solvable] = id;
-            solvable_map[id] = solvable;
+            solvable_ids[package_info] = id;
+            solvable_map[id] = package_info;
             return id;
         }
-
     }
 
     /**
@@ -91,7 +107,8 @@ struct PackageDatabase : public DependencyProvider {
      * the package and any other identifying properties.
      */
     virtual String display_solvable(SolvableId solvable) {
-        return "";
+        const PackageInfo& package_info = solvable_map[solvable];
+        return String{package_info.long_str()};
     }
 
     /**
@@ -99,7 +116,8 @@ struct PackageDatabase : public DependencyProvider {
      * specified solvable.
      */
     virtual String display_solvable_name(SolvableId solvable) {
-        return display_name(solvable_name(solvable));
+        const PackageInfo& package_info = solvable_map[solvable];
+        return String{package_info.name};
     }
 
     /**
@@ -109,7 +127,12 @@ struct PackageDatabase : public DependencyProvider {
      * other identifying properties should be included.
      */
     virtual String display_merged_solvables(Slice<SolvableId> solvable) {
-        return "";
+        std::string result;
+        for (auto& solvable_id : solvable) {
+            // Append "solvable_id" and its name to the result
+            result += std::to_string(solvable_id.id) + " " + solvable_map[solvable_id].name + "\n";
+        }
+        return String{result};
     }
 
     /**
@@ -117,7 +140,7 @@ struct PackageDatabase : public DependencyProvider {
      * user-friendly way.
      */
     virtual String display_name(NameId name) {
-        return "";
+        return name_map[name];
     }
 
     /**
@@ -128,14 +151,15 @@ struct PackageDatabase : public DependencyProvider {
      * appropriate, this information is added.
      */
     virtual String display_version_set(VersionSetId version_set) {
-        return "";
+        const MatchSpec match_spec = version_set_map[version_set];
+        return String{match_spec.str()};
     }
 
     /**
      * Returns the string representation of the specified string.
      */
     virtual String display_string(StringId string) {
-        return "";
+        return string_ids[string];
     }
 
     /**
@@ -143,14 +167,16 @@ struct PackageDatabase : public DependencyProvider {
      * associated with.
      */
     virtual NameId version_set_name(VersionSetId version_set_id) {
-        return NameId{};
+        const MatchSpec match_spec = version_set_map[version_set_id];
+        return name_ids[String{match_spec.name().str()}];
     }
 
     /**
      * Returns the name of the package for the given solvable.
      */
     virtual NameId solvable_name(SolvableId solvable_id) {
-
+        const PackageInfo& package_info = solvable_map[solvable_id];
+        return name_ids[String{package_info.name}];
     }
 
     /**
@@ -158,7 +184,14 @@ struct PackageDatabase : public DependencyProvider {
      * with the given name is requested.
      */
     virtual Candidates get_candidates(NameId package) {
-        return {};
+        Candidates candidates;
+        // TODO: inefficient for now, O(n) which can be turned into O(1)
+        for (auto& [solvable_id, package_info] : solvable_map) {
+            if (package == solvable_name(solvable_id)) {
+                candidates.candidates.push_back(solvable_id);
+            }
+        }
+        return candidates;
     }
 
     /**
@@ -168,7 +201,12 @@ struct PackageDatabase : public DependencyProvider {
      * tried. This continues until a solution is found.
      */
     virtual void sort_candidates(Slice<SolvableId> solvables) {
-
+        std::sort(solvables.begin(), solvables.end(), [&](const SolvableId& a, const SolvableId& b) {
+            const PackageInfo& package_info_a = solvable_map[a];
+            const PackageInfo& package_info_b = solvable_map[b];
+            // TODO: Add some caching on the version parsing
+            return Version::parse(package_info_a.version).value() < Version::parse(package_info_b.version).value();
+        });
     }
 
     /**
@@ -178,20 +216,54 @@ struct PackageDatabase : public DependencyProvider {
      */
     virtual Vector<SolvableId> filter_candidates(Slice<SolvableId> candidates,
                                                  VersionSetId version_set_id, bool inverse) {
-        return {};
+        Vector<SolvableId> filtered;
+
+        if(inverse) {
+            for (auto& solvable_id : candidates)
+            {
+                const PackageInfo& package_info = solvable_map[solvable_id];
+                const MatchSpec match_spec = version_set_map[version_set_id];
+
+                // Is it an appropriate check? Or must another one be crafted?
+                if (!match_spec.contains_except_channel(package_info))
+                {
+                    filtered.push_back(solvable_id);
+                }
+            }
+        } else {
+            for (auto& solvable_id : candidates)
+            {
+                const PackageInfo& package_info = solvable_map[solvable_id];
+                const MatchSpec match_spec = version_set_map[version_set_id];
+
+                // Is it an appropriate check? Or must another one be crafted?
+                if (match_spec.contains_except_channel(package_info))
+                {
+                    filtered.push_back(solvable_id);
+                }
+            }
+        }
+
+        return filtered;
     }
 
     /**
      * Returns the dependencies for the specified solvable.
      */
-    virtual Dependencies get_dependencies(SolvableId solvable) {
-//        const PackageInfo& package_info = [solvable];
-//        Dependencies dependencies;
-//        for (auto& dep : package_info.dependencies) {
-//            dependencies.requirements.push_back(dep);
-//        }
-//
-//        return {Vector(package.dependencies.begin(), package.dependencies.end()), Vector{package.constrains}};
+    virtual Dependencies get_dependencies(SolvableId solvable_id) {
+        const PackageInfo& package_info = solvable_map[solvable_id];
+        Dependencies dependencies;
+
+        for (auto& dep : package_info.dependencies) {
+            const MatchSpec match_spec = MatchSpec::parse(dep).value();
+            dependencies.requirements.push_back(version_set_ids[match_spec]);
+        }
+        for (auto& constr : package_info.constrains) {
+            const MatchSpec match_spec = MatchSpec::parse(constr).value();
+            dependencies.constrains.push_back(version_set_ids[match_spec]);
+        }
+
+        return dependencies;
     }
 
 

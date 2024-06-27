@@ -117,10 +117,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE Catch2::Catch2WithMain Threads::Threads
-)
-set_target_properties(
-    test_libmamba PROPERTIES COMPILE_DEFINITIONS CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
+    PRIVATE Catch2::Catch2WithMain Threads::Threads Resolvo::Resolvo
 )
 
 # Copy data directory into binary dir to avoid modifications

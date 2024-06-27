@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <catch2/catch_all.hpp>
+#include <resolvo/resolvo.h>
 #include <resolvo/resolvo_dependency_provider.h>
 #include <resolvo/resolvo_pool.h>
 
@@ -72,15 +73,20 @@ struct PackageDatabase : public DependencyProvider {
     VersionSetId alloc_version_set(
         std::string_view raw_match_spec
     ) {
-        const MatchSpec& match_spec = MatchSpec::parse(raw_match_spec).value();
+        const MatchSpec match_spec = MatchSpec::parse(raw_match_spec).value();
         auto got = version_set_ids.find(match_spec);
 
         if (got != version_set_ids.end()) {
+            std::cout << "Found version set id for " << raw_match_spec << std::endl;
             return got->second;
         } else {
+            std::cout << "Allocating version set id for " << raw_match_spec << std::endl;
             auto id = VersionSetId{static_cast<uint32_t>(version_set_ids.size())};
+            std::cout << "Allocated version set id " << id.id << std::endl;
             version_set_ids[match_spec] = id;
+            std::cout << "Added version set id to map" << std::endl;
             version_set_map[id] = match_spec;
+            std::cout << "Added version set to map" << std::endl;
             return id;
         }
     }
@@ -90,12 +96,29 @@ struct PackageDatabase : public DependencyProvider {
     ) {
         auto got = solvable_ids.find(package_info);
 
+        const std::string& name = package_info.name;
+
         if (got != solvable_ids.end()) {
+            std::cout << "Found solvable id for " << name << std::endl;
             return got->second;
         } else {
+            std::cout << "Allocating solvable id for " << name << std::endl;
             auto id = SolvableId{static_cast<uint32_t>(solvable_ids.size())};
             solvable_ids[package_info] = id;
             solvable_map[id] = package_info;
+            // For each of the dependencies, allocate a version set
+            for (auto& dep : package_info.dependencies) {
+                alloc_version_set(dep);
+            }
+            // Populate the names and the string
+            auto name_id = NameId{static_cast<uint32_t>(name_map.size())};
+            name_map[name_id] = name;
+            name_ids[String{name}] = name_id;
+
+            auto string_id = StringId{static_cast<uint32_t>(string_ids.size())};
+            string_ids[string_id] = name;
+            string_map[String{name}] = string_id;
+
             return id;
         }
     }
@@ -168,6 +191,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     virtual NameId version_set_name(VersionSetId version_set_id) {
         const MatchSpec match_spec = version_set_map[version_set_id];
+        std::cout << "Getting name id for version_set_id " << match_spec.name().str() << std::endl;
         return name_ids[String{match_spec.name().str()}];
     }
 
@@ -176,6 +200,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     virtual NameId solvable_name(SolvableId solvable_id) {
         const PackageInfo& package_info = solvable_map[solvable_id];
+        std::cout << "Getting name id for solvable " << package_info.name << std::endl;
         return name_ids[String{package_info.name}];
     }
 
@@ -184,6 +209,7 @@ struct PackageDatabase : public DependencyProvider {
      * with the given name is requested.
      */
     virtual Candidates get_candidates(NameId package) {
+        std::cout << "Getting candidates for " << name_map[package] << std::endl;
         Candidates candidates;
         // TODO: inefficient for now, O(n) which can be turned into O(1)
         for (auto& [solvable_id, package_info] : solvable_map) {
@@ -201,6 +227,7 @@ struct PackageDatabase : public DependencyProvider {
      * tried. This continues until a solution is found.
      */
     virtual void sort_candidates(Slice<SolvableId> solvables) {
+        std::cout << "Sorting candidates" << std::endl;
         std::sort(solvables.begin(), solvables.end(), [&](const SolvableId& a, const SolvableId& b) {
             const PackageInfo& package_info_a = solvable_map[a];
             const PackageInfo& package_info_b = solvable_map[b];
@@ -252,6 +279,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     virtual Dependencies get_dependencies(SolvableId solvable_id) {
         const PackageInfo& package_info = solvable_map[solvable_id];
+        std::cout << "Getting dependencies for " << package_info.name << std::endl;
         Dependencies dependencies;
 
         for (auto& dep : package_info.dependencies) {
@@ -275,7 +303,7 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Simple resolution problem") {
 
-        // PackageDatabase database;
+        PackageDatabase database;
 
         // Create a PackageInfo for scikit-learn
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_1", 1);
@@ -299,7 +327,29 @@ TEST_CASE("solver::resolvo")
         // Create a PackageInfo for threadpoolctl
         PackageInfo threadpoolctl("threadpoolctl", "3.1.0", "py310h4a8c4bd_0", 0);
 
+        // Allocate all the PackageInfo
+        database.alloc_solvable(scikit_learn);
+        database.alloc_solvable(numpy);
+        database.alloc_solvable(scipy);
+        database.alloc_solvable(joblib);
+        database.alloc_solvable(threadpoolctl);
 
+        // Construct a problem to be solved by the solver
+        resolvo::Vector<resolvo::VersionSetId> requirements = {
+            database.alloc_version_set("scikit-learn>=1.5.0"),
+        };
+        resolvo::Vector<resolvo::VersionSetId> constraints = {};
+
+        // Solve the problem
+        std::cout << "Solving the problem" << std::endl;
+        resolvo::Vector<resolvo::SolvableId> result;
+        resolvo::solve(database, requirements, constraints, result);
+
+        // Display the result
+        std::cout << "Result contains " << result.size() << " solvables" << std::endl;
+        for (auto& solvable_id : result) {
+            std::cout << database.display_solvable(solvable_id) << std::endl;
+        }
 
     }
 }

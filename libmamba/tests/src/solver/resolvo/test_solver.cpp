@@ -101,6 +101,8 @@ private:
 
 struct PackageDatabase : public DependencyProvider {
 
+    virtual ~PackageDatabase() = default;
+
     ::Mapping<NameId, String> name_pool;
     ::Mapping<StringId, String> string_pool;
 
@@ -185,7 +187,8 @@ struct PackageDatabase : public DependencyProvider {
         std::string result;
         for (auto& solvable_id : solvable) {
             // Append "solvable_id" and its name to the result
-            result += std::to_string(solvable_id.id) + " " + solvable_pool[solvable_id].build_string + "\n";
+            std::cout << "Displaying solvable " << solvable_id.id << " " << solvable_pool[solvable_id].long_str() << std::endl;
+            result += std::to_string(solvable_id.id) + " " + solvable_pool[solvable_id].long_str();
         }
         return String{result};
     }
@@ -341,36 +344,13 @@ TEST_CASE("solver::resolvo")
 
         PackageDatabase database;
 
-        // Create a PackageInfo for scikit-learn
-        PackageInfo scikit_learn0("scikit-learn", "1.5.0", "py310h981052a_0", 0);
-        PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_1", 1);
-
-        // Add the above dependencies to the PackageInfo object dependencies
-        scikit_learn.dependencies.emplace_back("joblib==1.2.0");
-        // scikit_learn.dependencies.push_back("numpy >=1.19,<3");
-        // scikit_learn.dependencies.push_back("scipy");
-        // scikit_learn.dependencies.push_back("threadpoolctl >=3.1.0");
-
-        // Create a PackageInfo for numpy
-        PackageInfo numpy("numpy", "1.21.0", "py310h4a8c4bd_0", 0);
-
-        // Create a PackageInfo for scipy
-        PackageInfo scipy("scipy", "1.7.0", "py310h4a8c4bd_0", 0);
-        // scipy.dependencies.push_back("numpy >=1.19,<3");
-
-        // Create a PackageInfo for joblib
-        PackageInfo joblib("joblib", "1.2.0", "py310h4a8c4bd_0", 0);
-
-        // Create a PackageInfo for threadpoolctl
-        PackageInfo threadpoolctl("threadpoolctl", "3.1.0", "py310h4a8c4bd_0", 0);
-
-        // Allocate all the PackageInfo
-        database.alloc_solvable(scikit_learn0);
+        // NOTE: the problem can only be solved when two `Solvalble` are added to the `PackageDatabase`
+        PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
         database.alloc_solvable(scikit_learn);
-        // database.alloc_solvable(numpy);
-        // database.alloc_solvable(scipy);
-        database.alloc_solvable(joblib);
-        // database.alloc_solvable(threadpoolctl);
+
+        PackageInfo scikit_learn_bis("scikit-learn", "1.5.0", "py310h981052a_1", 1);
+        // NOTE: Uncomment this line and the problem becomes solvable.
+        // database.alloc_solvable(scikit_learn_bis);
 
         // Construct a problem to be solved by the solver
         resolvo::Vector<resolvo::VersionSetId> requirements = {

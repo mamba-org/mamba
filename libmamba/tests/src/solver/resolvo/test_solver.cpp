@@ -74,6 +74,7 @@ struct PackageDatabase : public DependencyProvider {
         std::string_view raw_match_spec
     ) {
         const MatchSpec match_spec = MatchSpec::parse(raw_match_spec).value();
+        const std::string name = match_spec.name().str();
         auto got = version_set_ids.find(match_spec);
 
         if (got != version_set_ids.end()) {
@@ -87,6 +88,25 @@ struct PackageDatabase : public DependencyProvider {
             std::cout << "Added version set id to map" << std::endl;
             version_set_map[id] = match_spec;
             std::cout << "Added version set to map" << std::endl;
+
+            auto got_name = name_ids.find(String{name});
+
+            if (got_name == name_ids.end()) {
+                auto name_id = NameId{static_cast<uint32_t>(name_map.size())};
+                name_map[name_id] = name;
+                name_ids[String{name}] = name_id;
+                return id;
+            }
+
+            auto got_string = string_map.find(String{name});
+
+            if (got_string == string_map.end()) {
+                auto string_id = StringId{static_cast<uint32_t>(string_ids.size())};
+                string_ids[string_id] = name;
+                string_map[String{name}] = string_id;
+                return id;
+            }
+
             return id;
         }
     }
@@ -96,7 +116,7 @@ struct PackageDatabase : public DependencyProvider {
     ) {
         auto got = solvable_ids.find(package_info);
 
-        const std::string& name = package_info.name;
+        const std::string name = package_info.name;
 
         if (got != solvable_ids.end()) {
             std::cout << "Found solvable id for " << name << std::endl;
@@ -106,18 +126,31 @@ struct PackageDatabase : public DependencyProvider {
             auto id = SolvableId{static_cast<uint32_t>(solvable_ids.size())};
             solvable_ids[package_info] = id;
             solvable_map[id] = package_info;
-            // For each of the dependencies, allocate a version set
+
             for (auto& dep : package_info.dependencies) {
                 alloc_version_set(dep);
             }
-            // Populate the names and the string
-            auto name_id = NameId{static_cast<uint32_t>(name_map.size())};
-            name_map[name_id] = name;
-            name_ids[String{name}] = name_id;
+            for (auto& constr : package_info.constrains) {
+                alloc_version_set(constr);
+            }
 
-            auto string_id = StringId{static_cast<uint32_t>(string_ids.size())};
-            string_ids[string_id] = name;
-            string_map[String{name}] = string_id;
+            auto got_name = name_ids.find(String{name});
+
+            if (got_name == name_ids.end()) {
+                auto name_id = NameId{static_cast<uint32_t>(name_map.size())};
+                name_map[name_id] = name;
+                name_ids[String{name}] = name_id;
+                return id;
+            }
+
+            auto got_string = string_map.find(String{name});
+
+            if (got_string == string_map.end()) {
+                auto string_id = StringId{static_cast<uint32_t>(string_ids.size())};
+                string_ids[string_id] = name;
+                string_map[String{name}] = string_id;
+                return id;
+            }
 
             return id;
         }
@@ -153,7 +186,7 @@ struct PackageDatabase : public DependencyProvider {
         std::string result;
         for (auto& solvable_id : solvable) {
             // Append "solvable_id" and its name to the result
-            result += std::to_string(solvable_id.id) + " " + solvable_map[solvable_id].name + "\n";
+            result += std::to_string(solvable_id.id) + " " + solvable_map[solvable_id].build_string + "\n";
         }
         return String{result};
     }
@@ -213,7 +246,9 @@ struct PackageDatabase : public DependencyProvider {
         Candidates candidates;
         // TODO: inefficient for now, O(n) which can be turned into O(1)
         for (auto& [solvable_id, package_info] : solvable_map) {
+            std::cout << "  Checking " << package_info.name << " " << package_info.version << std::endl;
             if (package == solvable_name(solvable_id)) {
+                std::cout << "  Adding candidate " << package_info.name << std::endl;
                 candidates.candidates.push_back(solvable_id);
             }
         }
@@ -306,20 +341,21 @@ TEST_CASE("solver::resolvo")
         PackageDatabase database;
 
         // Create a PackageInfo for scikit-learn
+        PackageInfo scikit_learn0("scikit-learn", "1.5.0", "py310h981052a_0", 0);
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_1", 1);
 
         // Add the above dependencies to the PackageInfo object dependencies
-        scikit_learn.dependencies.push_back("joblib >=1.2.0");
-        scikit_learn.dependencies.push_back("numpy >=1.19,<3");
-        scikit_learn.dependencies.push_back("scipy");
-        scikit_learn.dependencies.push_back("threadpoolctl >=3.1.0");
+        scikit_learn.dependencies.push_back("joblib==1.2.0");
+        // scikit_learn.dependencies.push_back("numpy >=1.19,<3");
+        // scikit_learn.dependencies.push_back("scipy");
+        // scikit_learn.dependencies.push_back("threadpoolctl >=3.1.0");
 
         // Create a PackageInfo for numpy
         PackageInfo numpy("numpy", "1.21.0", "py310h4a8c4bd_0", 0);
 
         // Create a PackageInfo for scipy
         PackageInfo scipy("scipy", "1.7.0", "py310h4a8c4bd_0", 0);
-        scipy.dependencies.push_back("numpy >=1.19,<3");
+        // scipy.dependencies.push_back("numpy >=1.19,<3");
 
         // Create a PackageInfo for joblib
         PackageInfo joblib("joblib", "1.2.0", "py310h4a8c4bd_0", 0);
@@ -328,22 +364,25 @@ TEST_CASE("solver::resolvo")
         PackageInfo threadpoolctl("threadpoolctl", "3.1.0", "py310h4a8c4bd_0", 0);
 
         // Allocate all the PackageInfo
+        database.alloc_solvable(scikit_learn0);
         database.alloc_solvable(scikit_learn);
-        database.alloc_solvable(numpy);
-        database.alloc_solvable(scipy);
+        // database.alloc_solvable(numpy);
+        // database.alloc_solvable(scipy);
         database.alloc_solvable(joblib);
-        database.alloc_solvable(threadpoolctl);
+        // database.alloc_solvable(threadpoolctl);
 
         // Construct a problem to be solved by the solver
         resolvo::Vector<resolvo::VersionSetId> requirements = {
-            database.alloc_version_set("scikit-learn>=1.5.0"),
+            database.alloc_version_set("scikit-learn==1.5.0"),
         };
         resolvo::Vector<resolvo::VersionSetId> constraints = {};
 
         // Solve the problem
         std::cout << "Solving the problem" << std::endl;
         resolvo::Vector<resolvo::SolvableId> result;
-        resolvo::solve(database, requirements, constraints, result);
+        String reason = resolvo::solve(database, requirements, constraints, result);
+
+        std::cout << "Reason: " << reason << std::endl;
 
         // Display the result
         std::cout << "Result contains " << result.size() << " solvables" << std::endl;

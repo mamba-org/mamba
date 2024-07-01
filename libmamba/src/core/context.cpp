@@ -134,7 +134,7 @@ namespace mamba
         }
         else
         {
-            restore_system_signal_handler();
+            restore_previous_signal_handler();
         }
     }
 

@@ -261,6 +261,8 @@ struct PackageDatabase : public DependencyProvider {
     Candidates get_candidates(NameId package) override {
         std::cout << "Getting candidates for " << name_pool[package] << std::endl;
         Candidates candidates;
+        candidates.favored = nullptr;
+        candidates.locked = nullptr;
         // TODO: inefficient for now, O(n) which can be turned into O(1)
         for (auto& [solvable_id, package_info] : solvable_pool) {
             std::cout << "  Checking " << package_info.name << " " << package_info.version << std::endl;
@@ -496,37 +498,24 @@ TEST_CASE("solver::resolvo")
 
     }
 
-    SECTION("Simple resolution problem") {
+    SECTION("Trivial problem") {
 
         PackageDatabase database;
-
         // NOTE: the problem can only be solved when two `Solvable` are added to the `PackageDatabase`
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
         database.alloc_solvable(scikit_learn);
 
-        PackageInfo scikit_learn_bis("scikit-learn", "1.5.0", "py310h981052a_1", 1);
-        // NOTE: Uncomment this line and the problem becomes solvable.
-        // database.alloc_solvable(scikit_learn_bis);
-
-        // Construct a problem to be solved by the solver
         resolvo::Vector<resolvo::VersionSetId> requirements = {
             database.alloc_version_set("scikit-learn==1.5.0"),
         };
         resolvo::Vector<resolvo::VersionSetId> constraints = {};
 
-        // Solve the problem
-        std::cout << "Solving the problem" << std::endl;
         resolvo::Vector<resolvo::SolvableId> result;
         String reason = resolvo::solve(database, requirements, constraints, result);
 
-        std::cout << "Reason: " << reason << std::endl;
-
-        // Display the result
-        std::cout << "Result contains " << result.size() << " solvables" << std::endl;
-        for (auto& solvable_id : result) {
-            std::cout << database.display_solvable(solvable_id) << std::endl;
-        }
-
+        CHECK(reason == "");
+        CHECK(result.size() == 1);
+        CHECK(database.solvable_pool[result[0]] == scikit_learn);
     }
 
 }

@@ -92,7 +92,6 @@ set(
     src/core/test_thread_utils.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp
-    src/core/test_filesystem.cpp
     src/solver/resolvo/test_solver.cpp
 )
 
@@ -115,7 +114,10 @@ find_package(Threads REQUIRED)
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE Catch2::Catch2WithMain Threads::Threads Resolvo::Resolvo
+    PRIVATE Catch2::Catch2WithMain Threads::Threads Resolvo::Resolvo simdjson::simdjson
+)
+set_target_properties(
+    test_libmamba PROPERTIES COMPILE_DEFINITIONS CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
 )
 
 # Copy data directory into binary dir to avoid modifications

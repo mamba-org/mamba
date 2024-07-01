@@ -250,7 +250,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     NameId solvable_name(SolvableId solvable_id) override {
         const PackageInfo& package_info = solvable_pool[solvable_id];
-        std::cout << "Getting name id for solvable " << package_info.name << std::endl;
+        std::cout << "Getting name id for solvable " << package_info.long_str() << std::endl;
         return name_pool[String{package_info.name}];
     }
 
@@ -265,9 +265,9 @@ struct PackageDatabase : public DependencyProvider {
         candidates.locked = nullptr;
         // TODO: inefficient for now, O(n) which can be turned into O(1)
         for (auto& [solvable_id, package_info] : solvable_pool) {
-            std::cout << "  Checking " << package_info.name << " " << package_info.version << std::endl;
+            std::cout << "  Checking " << package_info.long_str() << std::endl;
             if (package == solvable_name(solvable_id)) {
-                std::cout << "  Adding candidate " << package_info.name << std::endl;
+                std::cout << "  Adding candidate " << package_info.long_str() << std::endl;
                 candidates.candidates.push_back(solvable_id);
             }
         }
@@ -292,6 +292,7 @@ struct PackageDatabase : public DependencyProvider {
             if (a_version != b_version) {
                 return a_version < b_version;
             }
+            // TODO: add sorting on track features and other things
 
             return package_info_a.build_number < package_info_b.build_number;
         });
@@ -343,7 +344,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     Dependencies get_dependencies(SolvableId solvable_id) override {
         const PackageInfo& package_info = solvable_pool[solvable_id];
-        std::cout << "Getting dependencies for " << package_info.name << std::endl;
+        std::cout << "Getting dependencies for " << package_info.long_str() << std::endl;
         Dependencies dependencies;
 
         for (auto& dep : package_info.dependencies) {
@@ -517,5 +518,92 @@ TEST_CASE("solver::resolvo")
         CHECK(result.size() == 1);
         CHECK(database.solvable_pool[result[0]] == scikit_learn);
     }
+
+    TEST_CASE("Register repodata.json")
+    {
+        PackageDatabase database;
+
+
+        /*
+         * {
+            "info": {"subdir":"linux-64"},
+            "packages": {
+                "21cmfast-3.0.2-py36h1af98f8_1.tar.bz2": {
+                    "build":"py36h1af98f8_1",
+                    "build_number":1,
+                    "constrains":[
+                        "llvm-meta ==8.0.0",
+                        "llvmdev ==8.0.0"
+                    ],
+                    "depends": [
+                        "_openmp_mutex >=4.5",
+                        "astropy >=2.0",
+                        "cached-property",
+                        "cffi >=1.0",
+                        "click",
+                        "fftw >=3.3.8,<4.0a0",
+                        "gsl >=2.6,<2.7.0a0",
+                        "h5py >=2.8.0",
+                        "libblas >=3.8.0,<4.0a0",
+                        "libgcc-ng >=7.5.0",
+                        "matplotlib-base",
+                        "numpy",
+                        "python >=3.6,<3.7.0a0",
+                        "python_abi 3.6.* *_cp36m",
+                        "pyyaml",
+                        "scipy"
+                    ],
+                    "license": "MIT",
+                    "license_family": "MIT",
+                    "md5": "d65ab674acf3b7294ebacaec05fc5b54",
+                    "name": "21cmfast",
+                    "sha256": "1154fceeb5c4ee9bb97d245713ac21eb1910237c724d2b7103747215663273c2",
+                    "size": 414494,
+                    "subdir": "linux-64",
+                    "timestamp": 1605110689658,
+                    "version": "3.0.2"
+                }
+            },
+            "removed": [],
+            "repodata_version": 1
+        }
+         */
+        // Create a PackageInfo from the above JSON
+        PackageInfo package_info;
+        package_info.name = "21cmfast";
+        package_info.version = "3.0.2";
+        package_info.build_string = "py36h1af98f8_1";
+        package_info.build_number = 1;
+        package_info.channel = "conda-forge/linux-64";
+        package_info.filename = "21cmfast-3.0.2-py36h1af98f8_1.tar.bz2";
+        package_info.license = "MIT";
+        package_info.md5 = "d65ab674acf3b7294ebacaec05fc5b54";
+        package_info.sha256 = "1154fceeb5c4ee9bb97d245713ac21eb1910237c724d2b7103747215663273c2";
+        package_info.size = 414494;
+        package_info.timestamp = 1605110689658;
+        package_info.package_type = PackageType::Conda;
+
+        package_info.build_number = 1;
+        package_info.constrains = {"llvm-meta ==8.0.0", "llvmdev ==8.0.0"};
+        package_info.dependencies = {
+            "_openmp_mutex >=4.5",
+            "astropy >=2.0",
+            "cached-property",
+            "cffi >=1.0",
+            "click",
+            "fftw >=3.3.8,<4.0a0",
+            "gsl >=2.6,<2.7.0a0",
+            "h5py >=2.8.0",
+            "libblas >=3.8.0,<4.0a0",
+            "libgcc-ng >=7.5.0",
+            "matplotlib-base",
+            "numpy",
+            "python >=3.6,<3.7.0a0",
+            "python_abi 3.6.* *_cp36m",
+            "pyyaml",
+            "scipy"
+        };
+    }
+
 
 }

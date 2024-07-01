@@ -129,16 +129,19 @@ struct PackageDatabase : public DependencyProvider {
         std::string_view raw_match_spec
     ) {
         const MatchSpec match_spec = MatchSpec::parse(raw_match_spec).value();
-        const std::string name = match_spec.name().str();
 
         // Add the version set to the version set pool
         auto id = version_set_pool.alloc(match_spec);
 
-        // Add name to the name pool
+        // Add name to the Name and String pools
+        const std::string name = match_spec.name().str();
         name_pool.alloc(String{name});
-
-        // Add name to the string pool
         string_pool.alloc(String{name});
+
+        // Add the MatchSpec's string representation to the Name and String pools
+        const std::string match_spec_str = match_spec.str();
+        name_pool.alloc(String{match_spec_str});
+        string_pool.alloc(String{match_spec_str});
 
         return id;
     }
@@ -146,16 +149,18 @@ struct PackageDatabase : public DependencyProvider {
     SolvableId alloc_solvable(
         PackageInfo package_info
     ) {
-        const std::string name = package_info.name;
-
         // Add the solvable to the solvable pool
         auto id = solvable_pool.alloc(package_info);
 
-        // Add name to the name pool
+        // Add name to the Name and String pools
+        const std::string name = package_info.name;
         name_pool.alloc(String{name});
-
-        // Add name to the string pool
         string_pool.alloc(String{name});
+
+        // Add the long string representation of the package to the Name and String pools
+        const std::string long_str = package_info.long_str();
+        name_pool.alloc(String{long_str});
+        string_pool.alloc(String{long_str});
 
         for (auto& dep : package_info.dependencies) {
             alloc_version_set(dep);

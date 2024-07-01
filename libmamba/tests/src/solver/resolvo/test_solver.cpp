@@ -93,6 +93,16 @@ struct Mapping {
     auto cend() const { return id_to_value.cend(); }
     auto find(T value) { return value_to_id.find(value); }
 
+    auto begin_ids() { return value_to_id.begin(); }
+    auto end_ids() { return value_to_id.end(); }
+    auto begin_ids() const { return value_to_id.begin(); }
+    auto end_ids() const { return value_to_id.end(); }
+    auto cbegin_ids() { return value_to_id.cbegin(); }
+    auto cend_ids() { return value_to_id.cend(); }
+    auto cbegin_ids() const { return value_to_id.cbegin(); }
+    auto cend_ids() const { return value_to_id.cend(); }
+
+
 private:
     std::unordered_map<T, ID> value_to_id;
     std::unordered_map<ID, T> id_to_value;
@@ -346,6 +356,46 @@ struct PackageDatabase : public DependencyProvider {
 TEST_CASE("solver::resolvo")
 {
     using PackageInfo = PackageInfo;
+
+    SECTION("Addition of PackageInfo to PackageDatabase") {
+
+        PackageDatabase database;
+
+        PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
+        scikit_learn.dependencies.emplace_back("numpy >=1.20.0,<2.0a0");
+        scikit_learn.dependencies.emplace_back("scipy >=1.6.0,<2.0a0");
+        scikit_learn.dependencies.emplace_back("joblib >=1.0.1,<2.0a0");
+        scikit_learn.dependencies.emplace_back("threadpoolctl >=2.1.0,<3.0a0");
+
+        auto solvable = database.alloc_solvable(scikit_learn);
+
+        CHECK(solvable.id == 0);
+        CHECK(database.solvable_pool[solvable].name == "scikit-learn");
+        CHECK(database.solvable_pool[solvable].version == "1.5.0");
+        CHECK(database.solvable_pool[solvable].build_string == "py310h981052a_0");
+        CHECK(database.solvable_pool[solvable].build_number == 0);
+
+        auto deps = database.get_dependencies(solvable);
+        CHECK(deps.requirements.size() == 4);
+        CHECK(deps.constrains.size() == 0);
+
+        CHECK(database.version_set_pool[deps.requirements[0]].str() == "numpy[version=\">=1.20.0,<2.0a0\"]");
+        CHECK(database.version_set_pool[deps.requirements[1]].str() == "scipy[version=\">=1.6.0,<2.0a0\"]");
+        CHECK(database.version_set_pool[deps.requirements[2]].str() == "joblib[version=\">=1.0.1,<2.0a0\"]");
+        CHECK(database.version_set_pool[deps.requirements[3]].str() == "threadpoolctl[version=\">=2.1.0,<3.0a0\"]");
+
+        CHECK(database.name_pool.find(String{"scikit-learn"}) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{"numpy"}) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{"scipy"}) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{"joblib"}) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{"threadpoolctl"}) != database.name_pool.end_ids());
+
+        CHECK(database.string_pool.find(String{"scikit-learn"}) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{"numpy"}) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{"scipy"}) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{"joblib"}) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{"threadpoolctl"}) != database.string_pool.end_ids());
+    }
 
     SECTION("Sort solvables increasing order") {
         PackageDatabase database;

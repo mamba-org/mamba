@@ -269,7 +269,14 @@ struct PackageDatabase : public DependencyProvider {
             const PackageInfo& package_info_a = solvable_pool[a];
             const PackageInfo& package_info_b = solvable_pool[b];
             // TODO: Add some caching on the version parsing
-            return Version::parse(package_info_a.version).value() < Version::parse(package_info_b.version).value();
+            const auto a_version = Version::parse(package_info_a.version).value();
+            const auto b_version = Version::parse(package_info_b.version).value();
+
+            if (a_version != b_version) {
+                return a_version < b_version;
+            }
+
+            return package_info_a.build_number < package_info_b.build_number;
         });
     }
 
@@ -340,11 +347,41 @@ TEST_CASE("solver::resolvo")
 {
     using PackageInfo = PackageInfo;
 
+    SECTION("Sort solvables increasing order") {
+        PackageDatabase database;
+
+        PackageInfo skl0("scikit-learn", "1.5.2", "py310h981052a_0", 0);
+        auto sol0 = database.alloc_solvable(skl0);
+
+        PackageInfo skl1("scikit-learn", "1.5.0", "py310h981052a_1", 1);
+        auto sol1 = database.alloc_solvable(skl1);
+
+        PackageInfo skl2("scikit-learn", "1.5.1", "py310h981052a_2", 2);
+        auto sol2 = database.alloc_solvable(skl2);
+
+        PackageInfo skl3("scikit-learn", "1.5.0", "py310h981052a_2", 2);
+        auto sol3 = database.alloc_solvable(skl3);
+
+        PackageInfo scikit_learn_ter("scikit-learn", "1.5.1", "py310h981052a_1", 1);
+        auto sol4 = database.alloc_solvable(skl3);
+
+        Vector<SolvableId> solvables = {sol0, sol1, sol2, sol3, sol4};
+
+        database.sort_candidates(solvables);
+
+        CHECK(solvables[0] == sol1);
+        CHECK(solvables[1] == sol3);
+        CHECK(solvables[2] == sol4);
+        CHECK(solvables[3] == sol2);
+        CHECK(solvables[4] == sol0);
+
+    }
+
     SECTION("Simple resolution problem") {
 
         PackageDatabase database;
 
-        // NOTE: the problem can only be solved when two `Solvalble` are added to the `PackageDatabase`
+        // NOTE: the problem can only be solved when two `Solvable` are added to the `PackageDatabase`
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
         database.alloc_solvable(scikit_learn);
 

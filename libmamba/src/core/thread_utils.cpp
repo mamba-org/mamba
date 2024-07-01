@@ -89,7 +89,8 @@ namespace mamba
 
     void set_default_signal_handler()
     {
-        previous_handler = set_signal_handler(default_signal_handler);
+        previous_handler = std::signal(SIGINT, [](int) {});
+        set_signal_handler(default_signal_handler);
     }
 #else
     void set_default_signal_handler()

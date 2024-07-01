@@ -397,6 +397,70 @@ TEST_CASE("solver::resolvo")
         CHECK(database.string_pool.find(String{"threadpoolctl"}) != database.string_pool.end_ids());
     }
 
+    SECTION("Filter solvables") {
+        PackageDatabase database;
+
+        PackageInfo skl0("scikit-learn", "1.4.0", "py310h981052a_0", 0);
+        auto sol0 = database.alloc_solvable(skl0);
+
+        PackageInfo skl1("scikit-learn", "1.5.0", "py310h981052a_1", 1);
+        auto sol1 = database.alloc_solvable(skl1);
+
+        PackageInfo skl2("scikit-learn", "1.5.1", "py310h981052a_0", 0);
+        auto sol2 = database.alloc_solvable(skl2);
+
+        PackageInfo skl3("scikit-learn", "1.5.1", "py310h981052a_2", 2);
+        auto sol3 = database.alloc_solvable(skl3);
+
+        auto solvables = Vector<SolvableId>{sol0, sol1, sol2, sol3};
+
+        // Filter on scikit-learn
+        auto all = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn"), false);
+        CHECK(all.size() == 4);
+        CHECK(all[0] == sol0);
+        CHECK(all[1] == sol1);
+        CHECK(all[2] == sol2);
+        CHECK(all[3] == sol3);
+
+        // Inverse filter on scikit-learn
+        auto none = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn"), true);
+        CHECK(none.size() == 0);
+
+        // Filter on scikit-learn==1.5.1
+        auto one = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn==1.5.1"), false);
+        CHECK(one.size() == 2);
+        CHECK(one[0] == sol2);
+        CHECK(one[1] == sol3);
+
+        // Inverse filter on scikit-learn==1.5.1
+        auto three = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn==1.5.1"), true);
+        CHECK(three.size() == 2);
+        CHECK(three[0] == sol0);
+        CHECK(three[1] == sol1);
+
+        // Filter on scikit-learn<1.5.1
+        auto two = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn<1.5.1"), false);
+        CHECK(two.size() == 2);
+        CHECK(two[0] == sol0);
+        CHECK(two[1] == sol1);
+
+        // Filter on build number 0
+        auto build = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn[build_number==0]"), false);
+        CHECK(build.size() == 2);
+        CHECK(build[0] == sol0);
+        CHECK(build[1] == sol2);
+
+        // Filter on build number 2
+        auto build_bis = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn[build_number==2]"), false);
+        CHECK(build_bis.size() == 1);
+        CHECK(build_bis[0] == sol3);
+
+        // Filter on build number 3
+        auto build_ter = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn[build_number==3]"), false);
+        CHECK(build_ter.size() == 0);
+
+    }
+
     SECTION("Sort solvables increasing order") {
         PackageDatabase database;
 
@@ -459,4 +523,5 @@ TEST_CASE("solver::resolvo")
         }
 
     }
+
 }

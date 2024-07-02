@@ -91,6 +91,13 @@ class TestRun:
         except subprocess.CalledProcessError as e:
             assert "critical libmamba The given prefix does not exist:" in e.stderr.decode()
 
+    def test_run_non_existing_cwd(self):
+        cwd = random_string()
+        try:
+            umamba_run("--cwd", cwd, "python")
+        except subprocess.CalledProcessError as e:
+            assert "critical libmamba The given path does not exist:" in e.stderr.decode()
+
 
 @pytest.fixture()
 def temp_env_prefix():

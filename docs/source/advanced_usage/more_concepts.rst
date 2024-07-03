@@ -132,7 +132,7 @@ This is the most efficient way to link:
 
 There are some limitations to use ``hard-links``:
 
-- all the file systems are not supporting such links
+- not all the file systems are supporting such links
 - those links are not working across file systems/partitions
 
 

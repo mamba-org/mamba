@@ -294,9 +294,7 @@ struct PackageDatabase : public DependencyProvider {
     String display_merged_solvables(Slice<SolvableId> solvable) override {
         std::string result;
         for (auto& solvable_id : solvable) {
-            // Append "solvable_id" and its name to the result
-            // std::cout << "Displaying solvable " << solvable_id.id << " " << solvable_pool[solvable_id].long_str() << std::endl;
-            result += std::to_string(solvable_id.id) + " " + solvable_pool[solvable_id].long_str();
+            result += solvable_pool[solvable_id].long_str();
         }
         return String{result};
     }
@@ -435,7 +433,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     Dependencies get_dependencies(SolvableId solvable_id) override {
         const PackageInfo& package_info = solvable_pool[solvable_id];
-        // std::cout << "Getting dependencies for " << package_info.long_str() << std::endl;
+
         Dependencies dependencies;
 
         for (auto& dep : package_info.dependencies) {
@@ -749,6 +747,87 @@ PackageDatabase create_resolvo_db() {
 
 PackageDatabase resolvo_db = create_resolvo_db();
 
+std::vector<PackageInfo> resolvo_resolve(
+    PackageDatabase& database,
+    const std::vector<std::string>& specs
+) {
+    // resolvo's specification and resolution
+    resolvo::Vector<resolvo::VersionSetId> requirements;
+    for (const auto& spec : specs)
+    {
+        requirements.push_back(resolvo_db.alloc_version_set(spec));
+    }
+
+    resolvo::Vector<resolvo::VersionSetId> constraints = {};
+    resolvo::Vector<resolvo::SolvableId> result;
+
+    std::cout << "Start with resolvo" << std::endl;
+    auto tick_resolvo = std::chrono::steady_clock::now();
+    String reason = resolvo::solve(resolvo_db, requirements, constraints, result);
+    auto tack_resolvo = std::chrono::steady_clock::now();
+    std::cout << "End with resolvo" << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tack_resolvo - tick_resolvo).count() << "ms" << std::endl;
+
+    std::cout << "Resolvo's Reason: " << reason << std::endl;
+
+    std::vector<PackageInfo> resolvo_resolution;
+    std::transform(
+        result.begin(),
+        result.end(),
+        std::back_inserter(resolvo_resolution),
+        [&](const resolvo::SolvableId& solvable_id)
+        { return resolvo_db.solvable_pool[solvable_id]; }
+    );
+
+    std::sort(
+        resolvo_resolution.begin(),
+        resolvo_resolution.end(),
+        [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
+    );
+    return resolvo_resolution;
+}
+
+std::vector<PackageInfo> libsolv_resolve(
+    mamba::solver::libsolv::Database& db,
+    const std::vector<std::string>& specs
+) {
+    // libsolv's specification and resolution
+
+    Request::job_list jobs;
+
+    std::transform(
+        specs.begin(),
+        specs.end(),
+        std::back_inserter(jobs),
+        [](const std::string& spec)
+        { return Request::Install{ MatchSpec::parse(spec).value() }; }
+    );
+
+    const auto request = Request{
+        /* .flags= */ {},
+        /* .jobs= */ jobs,
+    };
+
+    std::cout << "Start with libsolv" << std::endl;
+    auto tick_libsolv = std::chrono::steady_clock::now();
+    const auto outcome = libsolv::Solver().solve(libsolv_db, request);
+    auto tack_libsolv = std::chrono::steady_clock::now();
+    std::cout << "End with libsolv" << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tack_libsolv - tick_libsolv).count() << "ms" << std::endl;
+
+    REQUIRE(outcome.has_value());
+    REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+    const auto& solution = std::get<Solution>(outcome.value());
+
+    std::vector<PackageInfo> libsolv_resolution = extract_package_to_install(solution);
+    std::sort(
+        libsolv_resolution.begin(),
+        libsolv_resolution.end(),
+        [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
+    );
+    return libsolv_resolution;
+}
+
 
 TEST_CASE("solver::resolvo")
 {
@@ -757,7 +836,6 @@ TEST_CASE("solver::resolvo")
     using PackageInfo = PackageInfo;
 
     SECTION("Addition of PackageInfo to PackageDatabase") {
-
         PackageDatabase database;
 
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
@@ -778,22 +856,31 @@ TEST_CASE("solver::resolvo")
         CHECK(deps.requirements.size() == 4);
         CHECK(deps.constrains.size() == 0);
 
-        CHECK(database.version_set_pool[deps.requirements[0]].str() == "numpy[version=\">=1.20.0,<2.0a0\"]");
-        CHECK(database.version_set_pool[deps.requirements[1]].str() == "scipy[version=\">=1.6.0,<2.0a0\"]");
-        CHECK(database.version_set_pool[deps.requirements[2]].str() == "joblib[version=\">=1.0.1,<2.0a0\"]");
-        CHECK(database.version_set_pool[deps.requirements[3]].str() == "threadpoolctl[version=\">=2.1.0,<3.0a0\"]");
+        CHECK(
+            database.version_set_pool[deps.requirements[0]].str() == "numpy[version=\">=1.20.0,<2.0a0\"]"
+        );
+        CHECK(
+            database.version_set_pool[deps.requirements[1]].str() == "scipy[version=\">=1.6.0,<2.0a0\"]"
+        );
+        CHECK(
+            database.version_set_pool[deps.requirements[2]].str() == "joblib[version=\">=1.0.1,<2.0a0\"]"
+        );
+        CHECK(
+            database.version_set_pool[deps.requirements[3]].str()
+            == "threadpoolctl[version=\">=2.1.0,<3.0a0\"]"
+        );
 
-        CHECK(database.name_pool.find(String{"scikit-learn"}) != database.name_pool.end_ids());
-        CHECK(database.name_pool.find(String{"numpy"}) != database.name_pool.end_ids());
-        CHECK(database.name_pool.find(String{"scipy"}) != database.name_pool.end_ids());
-        CHECK(database.name_pool.find(String{"joblib"}) != database.name_pool.end_ids());
-        CHECK(database.name_pool.find(String{"threadpoolctl"}) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{ "scikit-learn" }) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{ "numpy" }) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{ "scipy" }) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{ "joblib" }) != database.name_pool.end_ids());
+        CHECK(database.name_pool.find(String{ "threadpoolctl" }) != database.name_pool.end_ids());
 
-        CHECK(database.string_pool.find(String{"scikit-learn"}) != database.string_pool.end_ids());
-        CHECK(database.string_pool.find(String{"numpy"}) != database.string_pool.end_ids());
-        CHECK(database.string_pool.find(String{"scipy"}) != database.string_pool.end_ids());
-        CHECK(database.string_pool.find(String{"joblib"}) != database.string_pool.end_ids());
-        CHECK(database.string_pool.find(String{"threadpoolctl"}) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{ "scikit-learn" }) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{ "numpy" }) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{ "scipy" }) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{ "joblib" }) != database.string_pool.end_ids());
+        CHECK(database.string_pool.find(String{ "threadpoolctl" }) != database.string_pool.end_ids());
     }
 
     SECTION("Filter solvables") {
@@ -811,10 +898,14 @@ TEST_CASE("solver::resolvo")
         PackageInfo skl3("scikit-learn", "1.5.1", "py310h981052a_2", 2);
         auto sol3 = database.alloc_solvable(skl3);
 
-        auto solvables = Vector<SolvableId>{sol0, sol1, sol2, sol3};
+        auto solvables = Vector<SolvableId>{ sol0, sol1, sol2, sol3 };
 
         // Filter on scikit-learn
-        auto all = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn"), false);
+        auto all = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn"),
+            false
+        );
         CHECK(all.size() == 4);
         CHECK(all[0] == sol0);
         CHECK(all[1] == sol1);
@@ -822,42 +913,69 @@ TEST_CASE("solver::resolvo")
         CHECK(all[3] == sol3);
 
         // Inverse filter on scikit-learn
-        auto none = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn"), true);
+        auto none = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn"),
+            true
+        );
         CHECK(none.size() == 0);
 
         // Filter on scikit-learn==1.5.1
-        auto one = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn==1.5.1"), false);
+        auto one = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn==1.5.1"),
+            false
+        );
         CHECK(one.size() == 2);
         CHECK(one[0] == sol2);
         CHECK(one[1] == sol3);
 
         // Inverse filter on scikit-learn==1.5.1
-        auto three = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn==1.5.1"), true);
+        auto three = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn==1.5.1"),
+            true
+        );
         CHECK(three.size() == 2);
         CHECK(three[0] == sol0);
         CHECK(three[1] == sol1);
 
         // Filter on scikit-learn<1.5.1
-        auto two = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn<1.5.1"), false);
+        auto two = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn<1.5.1"),
+            false
+        );
         CHECK(two.size() == 2);
         CHECK(two[0] == sol0);
         CHECK(two[1] == sol1);
 
         // Filter on build number 0
-        auto build = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn[build_number==0]"), false);
+        auto build = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn[build_number==0]"),
+            false
+        );
         CHECK(build.size() == 2);
         CHECK(build[0] == sol0);
         CHECK(build[1] == sol2);
 
         // Filter on build number 2
-        auto build_bis = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn[build_number==2]"), false);
+        auto build_bis = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn[build_number==2]"),
+            false
+        );
         CHECK(build_bis.size() == 1);
         CHECK(build_bis[0] == sol3);
 
         // Filter on build number 3
-        auto build_ter = database.filter_candidates(solvables, database.alloc_version_set("scikit-learn[build_number==3]"), false);
+        auto build_ter = database.filter_candidates(
+            solvables,
+            database.alloc_version_set("scikit-learn[build_number==3]"),
+            false
+        );
         CHECK(build_ter.size() == 0);
-
     }
 
     SECTION("Sort solvables increasing order") {
@@ -878,7 +996,7 @@ TEST_CASE("solver::resolvo")
         PackageInfo scikit_learn_ter("scikit-learn", "1.5.1", "py310h981052a_1", 1);
         auto sol4 = database.alloc_solvable(skl3);
 
-        Vector<SolvableId> solvables = {sol0, sol1, sol2, sol3, sol4};
+        Vector<SolvableId> solvables = { sol0, sol1, sol2, sol3, sol4 };
 
         database.sort_candidates(solvables);
 
@@ -887,11 +1005,9 @@ TEST_CASE("solver::resolvo")
         CHECK(solvables[2] == sol4);
         CHECK(solvables[3] == sol2);
         CHECK(solvables[4] == sol0);
-
     }
 
     SECTION("Trivial problem") {
-
         PackageDatabase database;
         // NOTE: the problem can only be solved when two `Solvable` are added to the `PackageDatabase`
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
@@ -923,7 +1039,6 @@ TEST_CASE("solver::resolvo")
         );
 
         std::cout << "Number of solvables: " << database.solvable_pool.size() << std::endl;
-
     }
 
     SECTION("Parse noarch/repodata.json")
@@ -939,7 +1054,6 @@ TEST_CASE("solver::resolvo")
         );
 
         std::cout << "Number of solvables: " << database.solvable_pool.size() << std::endl;
-
     }
 }
 

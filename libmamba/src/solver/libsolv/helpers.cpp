@@ -172,11 +172,11 @@ namespace mamba::solver::libsolv
                     }
                 }
             }
-            else
-            {
-                LOG_DEBUG << "No signatures available for '" << filename
-                          << "'. Downloading without verifying artifacts.";
-            }
+            //             else
+            //             {
+            //                 LOG_DEBUG << "No signatures available for '" << filename
+            //                           << "'. Downloading without verifying artifacts.";
+            //             }
         }
 
         [[nodiscard]] auto set_solvable(
@@ -388,7 +388,8 @@ namespace mamba::solver::libsolv
                     if (parsed)
                     {
                         on_parsed(fn);
-                        LOG_DEBUG << "Adding package record to repo " << fn;
+                        //                         LOG_DEBUG << "Adding package record to repo " <<
+                        //                         fn;
                     }
                     else
                     {

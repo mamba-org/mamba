@@ -1,3 +1,23 @@
+2024.07.08
+==========
+
+Releases: libmamba 2.0.0rc0, libmambapy 2.0.0rc0, micromamba 2.0.0rc0
+
+Enhancements:
+
+- [libmamba] maint: Remove declaration of `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3325
+
+Bug fixes:
+
+- [micromamba] Attempt to fix `test_proxy_install` by @Hind-M in https://github.com/mamba-org/mamba/pull/3324
+- [micromamba] Fix `test_no_python_pinning` by @Hind-M in https://github.com/mamba-org/mamba/pull/3321
+- [libmamba] Fixed restoring the previous signal handler for example in python case (Windows only for now) by @Klaim in https://github.com/mamba-org/mamba/pull/3297
+- [all] Split `ContextOptions::enable_logging_and_signal_handling` into 2 different options by @Klaim in https://github.com/mamba-org/mamba/pull/3329
+
+CI fixes and doc:
+
+- [micromamba] Temporarily disabled no_python_pinning test on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3322
+
 2024.06.14
 ==========
 

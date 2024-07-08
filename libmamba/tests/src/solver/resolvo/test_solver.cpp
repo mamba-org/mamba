@@ -1230,6 +1230,28 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
         }
     }
 
+    TEST_CASE("mlflow=2.12.2 explicit") {
+        // See: https://github.com/mamba-org/rattler/issues/684
+        std::vector<std::string> specs_to_install = { "mlflow=2.12.2" };
+
+        std::vector<PackageInfo> libsolv_resolution = libsolv_resolve(libsolv_db, specs_to_install);
+        std::vector<PackageInfo> resolvo_resolution = resolvo_resolve(resolvo_db, specs_to_install);
+
+        // Check libsolv's PackageInfo against libsolv's
+        CHECK_EQ(resolvo_resolution.size(), libsolv_resolution.size());
+        for (size_t i = 0; i < libsolv_resolution.size(); i++)
+        {
+            const PackageInfo& resolvo_package_info = resolvo_resolution[i];
+            const PackageInfo& libsolv_package_info = libsolv_resolution[i];
+            // Currently something in the parsing of the repodata.json must be different.
+            // TODO: find the difference and use `PackageInfo::operator==` instead
+            CHECK_EQ(resolvo_package_info.name, libsolv_package_info.name);
+            CHECK_EQ(resolvo_package_info.version, libsolv_package_info.version);
+            CHECK_EQ(resolvo_package_info.build_string, libsolv_package_info.build_string);
+        }
+
+    }
+
 
     SECTION("Using YAML environment specification")
     {

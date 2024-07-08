@@ -136,7 +136,7 @@ struct PackageDatabase : public DependencyProvider {
     ::Mapping<SolvableId, PackageInfo> solvable_pool;
 
     // PackageName to Vector<SolvableId>
-    std::unordered_map<NameId, std::vector<SolvableId>> name_to_solvable;
+    std::unordered_map<NameId, Vector<SolvableId>> name_to_solvable;
 
     /**
      * Allocates a new requirement and return the id of the requirement.
@@ -350,16 +350,15 @@ struct PackageDatabase : public DependencyProvider {
      * with the given name is requested.
      */
     Candidates get_candidates(NameId package) override {
-        // std::cout << "Getting candidates for " << name_pool[package] << std::endl;
-        Candidates candidates;
+        std::cout << "DO Getting candidates for " << name_pool[package] << std::endl;
+        Candidates candidates{};
         candidates.favored = nullptr;
         candidates.locked = nullptr;
+        std::cout << "DO   Assigning candidates for " << name_pool[package] << std::endl;
+        candidates.candidates = name_to_solvable[package];
+        std::cout << "DONE Assigning candidates for " << name_pool[package] << std::endl;
 
-        // TODO: implement copy/move-constructor
-        for (auto& solvable_id : name_to_solvable[package]) {
-            candidates.candidates.push_back(solvable_id);
-        }
-
+        std::cout << "DONE Getting candidates for " << name_pool[package] << std::endl;
         return candidates;
     }
 
@@ -370,7 +369,6 @@ struct PackageDatabase : public DependencyProvider {
      * tried. This continues until a solution is found.
      */
     void sort_candidates(Slice<SolvableId> solvables) override {
-        // std::cout << "Sorting candidates" << std::endl;
         std::sort(solvables.begin(), solvables.end(), [&](const SolvableId& a, const SolvableId& b) {
             const PackageInfo& package_info_a = solvable_pool[a];
             const PackageInfo& package_info_b = solvable_pool[b];
@@ -397,13 +395,13 @@ struct PackageDatabase : public DependencyProvider {
         VersionSetId version_set_id,
         bool inverse
     ) override {
+        MatchSpec match_spec = version_set_pool[version_set_id];
         Vector<SolvableId> filtered;
 
         if(inverse) {
             for (auto& solvable_id : candidates)
             {
                 const PackageInfo& package_info = solvable_pool[solvable_id];
-                const MatchSpec match_spec = version_set_pool[version_set_id];
 
                 // Is it an appropriate check? Or must another one be crafted?
                 if (!match_spec.contains_except_channel(package_info))
@@ -415,7 +413,6 @@ struct PackageDatabase : public DependencyProvider {
             for (auto& solvable_id : candidates)
             {
                 const PackageInfo& package_info = solvable_pool[solvable_id];
-                const MatchSpec match_spec = version_set_pool[version_set_id];
 
                 // Is it an appropriate check? Or must another one be crafted?
                 if (match_spec.contains_except_channel(package_info))
@@ -423,6 +420,12 @@ struct PackageDatabase : public DependencyProvider {
                     filtered.push_back(solvable_id);
                 }
             }
+        }
+        std::cout << "Keeping " << filtered.size() << " candidates for " << match_spec.str() << ":" << std::endl;
+        for (auto& solvable_id : filtered)
+        {
+            const PackageInfo& package_info = solvable_pool[solvable_id];
+            std::cout << "  - " << package_info.long_str() << std::endl;
         }
 
         return filtered;
@@ -432,10 +435,12 @@ struct PackageDatabase : public DependencyProvider {
      * Returns the dependencies for the specified solvable.
      */
     Dependencies get_dependencies(SolvableId solvable_id) override {
+        std::cout << "Getting dependencies for " << solvable_id.id << std::endl;
         const PackageInfo& package_info = solvable_pool[solvable_id];
 
         Dependencies dependencies;
 
+        // TODO: do this in O(1)
         for (auto& dep : package_info.dependencies) {
             const MatchSpec match_spec = MatchSpec::parse(dep).value();
             dependencies.requirements.push_back(version_set_pool[match_spec]);
@@ -703,19 +708,19 @@ auto libsolv_db = mamba::solver::libsolv::Database({
     /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
 });
 
-const auto repo_linux = libsolv_db.add_repo_from_repodata_json(
-    "/tmp/linux-64/repodata.json",
-    "https://conda.anaconda.org/conda-forge/linux-64",
-    "conda-forge",
-    libsolv::PipAsPythonDependency::No
-);
-
-const auto repo_noarch = libsolv_db.add_repo_from_repodata_json(
-    "/tmp/noarch/repodata.json",
-    "https://conda.anaconda.org/conda-forge/noarch",
-    "conda-forge",
-    libsolv::PipAsPythonDependency::Yes
-);
+//const auto repo_linux = libsolv_db.add_repo_from_repodata_json(
+//    "/tmp/linux-64/repodata.json",
+//    "https://conda.anaconda.org/conda-forge/linux-64",
+//    "conda-forge",
+//    libsolv::PipAsPythonDependency::No
+//);
+//
+//const auto repo_noarch = libsolv_db.add_repo_from_repodata_json(
+//    "/tmp/noarch/repodata.json",
+//    "https://conda.anaconda.org/conda-forge/noarch",
+//    "conda-forge",
+//    libsolv::PipAsPythonDependency::Yes
+//);
 
 PackageDatabase create_resolvo_db() {
     PackageDatabase resolvo_db;
@@ -1230,7 +1235,7 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
         }
     }
 
-    TEST_CASE("mlflow=2.12.2 explicit") {
+    SECTION("mlflow=2.12.2 explicit") {
         // See: https://github.com/mamba-org/rattler/issues/684
         std::vector<std::string> specs_to_install = { "mlflow=2.12.2" };
 
@@ -1238,23 +1243,28 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
         std::vector<PackageInfo> resolvo_resolution = resolvo_resolve(resolvo_db, specs_to_install);
 
         // Check libsolv's PackageInfo against libsolv's
-        CHECK_EQ(resolvo_resolution.size(), libsolv_resolution.size());
+        REQUIRE(resolvo_resolution.size() == libsolv_resolution.size());
         for (size_t i = 0; i < libsolv_resolution.size(); i++)
         {
             const PackageInfo& resolvo_package_info = resolvo_resolution[i];
             const PackageInfo& libsolv_package_info = libsolv_resolution[i];
             // Currently something in the parsing of the repodata.json must be different.
             // TODO: find the difference and use `PackageInfo::operator==` instead
-            CHECK_EQ(resolvo_package_info.name, libsolv_package_info.name);
-            CHECK_EQ(resolvo_package_info.version, libsolv_package_info.version);
-            CHECK_EQ(resolvo_package_info.build_string, libsolv_package_info.build_string);
+            REQUIRE(resolvo_package_info.name == libsolv_package_info.name);
+            REQUIRE(resolvo_package_info.version == libsolv_package_info.version);
+            REQUIRE(resolvo_package_info.build_string == libsolv_package_info.build_string);
         }
-
     }
-
 
     SECTION("Using YAML environment specification")
     {
+        // "/tmp/unconstrained_tiny_spec3.yaml",
+        // "/tmp/unconstrained_tiny_spec2.yaml",
+        // "/tmp/unconstrained_small_spec2.yaml",
+        // "/tmp/small_spec2.yaml",
+        // "/tmp/small_spec.yaml"
+        // "/tmp/spec.yaml"
+
         const fs::u8path& yaml_file = "/tmp/small_spec.yaml"; // "/tmp/spec.yaml"
         std::cout << "Resolving " << yaml_file << std::endl;
         mamba::detail::yaml_file_contents res = mamba::detail::read_yaml_file(yaml_file, "linux-64");
@@ -1271,64 +1281,27 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
         resolvo::Vector<resolvo::VersionSetId> constraints = {};
         resolvo::Vector<resolvo::SolvableId> result;
 
-        std::cout << "Start with resolvo" << std::endl;
-        auto tick_resolvo = std::chrono::steady_clock::now();
-        String reason = resolvo::solve(resolvo_db, requirements, constraints, result);
-        auto tack_resolvo = std::chrono::steady_clock::now();
-        std::cout << "End with resolvo" << std::endl;
-        std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tack_resolvo - tick_resolvo).count() << "ms" << std::endl;
 
-        REQUIRE(reason == "");
+        // Print all the dependencies
+        std::cout << "dependencies" << std::endl;
+        for (const auto& dep : specs_to_install)
+        {
+            std::cout << " - " << dep << std::endl;
+        }
 
-        std::vector<PackageInfo> resolvo_resolution;
-        std::transform(
-            result.begin(),
-            result.end(),
-            std::back_inserter(resolvo_resolution),
-            [&](const resolvo::SolvableId& solvable_id)
-            { return resolvo_db.solvable_pool[solvable_id]; }
+        // Add python to the specs to install
+        // TODO: environments aren't resolved similarly when "python" simply is used.
+        // specs_to_install.push_back("python>=3.12");
+
+        std::vector<PackageInfo> libsolv_resolution = libsolv_resolve(
+            libsolv_db,
+            specs_to_install
+        );
+        std::vector<PackageInfo> resolvo_resolution = resolvo_resolve(
+            resolvo_db,
+            specs_to_install
         );
 
-        std::sort(
-            resolvo_resolution.begin(),
-            resolvo_resolution.end(),
-            [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
-        );
-
-        // libsolv's specification and resolution
-
-        Request::job_list jobs;
-
-        std::transform(
-            specs_to_install.begin(),
-            specs_to_install.end(),
-            std::back_inserter(jobs),
-            [](const std::string& spec)
-            { return Request::Install{ MatchSpec::parse(spec).value() }; }
-        );
-
-        const auto request = Request{
-            /* .flags= */ {},
-            /* .jobs= */ jobs,
-        };
-
-        std::cout << "Start with libsolv" << std::endl;
-        auto tick_libsolv = std::chrono::steady_clock::now();
-        const auto outcome = libsolv::Solver().solve(libsolv_db, request);
-        auto tack_libsolv = std::chrono::steady_clock::now();
-        std::cout << "End with libsolv" << std::endl;
-        std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tack_libsolv - tick_libsolv).count() << "ms" << std::endl;
-
-        REQUIRE(outcome.has_value());
-        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-        const auto& solution = std::get<Solution>(outcome.value());
-
-        std::vector<PackageInfo> libsolv_resolution = extract_package_to_install(solution);
-        std::sort(
-            libsolv_resolution.begin(),
-            libsolv_resolution.end(),
-            [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
-        );
 
         // Print all the packages from libsolv
         std::cout << "libsolv resolution" << std::endl;

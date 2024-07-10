@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <unordered_set>
 
 #include <catch2/catch_all.hpp>
 #include <resolvo/resolvo.h>
@@ -137,6 +138,10 @@ struct PackageDatabase : public DependencyProvider {
 
     // PackageName to Vector<SolvableId>
     std::unordered_map<NameId, Vector<SolvableId>> name_to_solvable;
+
+    // VersionSetId to max version
+    // TODO use `SolvableId` instead of `std::pair<Version, size_t>`?
+    std::unordered_map<VersionSetId, std::pair<Version, size_t>> version_set_to_max_version_and_track_features_numbers;
 
     /**
      * Allocates a new requirement and return the id of the requirement.
@@ -357,6 +362,41 @@ struct PackageDatabase : public DependencyProvider {
         return candidates;
     }
 
+    std::pair<Version, size_t> find_highest_version(
+        VersionSetId version_set_id
+    ) {
+        // If the version set has already been computed, return it.
+        if(version_set_to_max_version_and_track_features_numbers.find(version_set_id) != version_set_to_max_version_and_track_features_numbers.end()) {
+            return version_set_to_max_version_and_track_features_numbers[version_set_id];
+        }
+
+        const MatchSpec match_spec = version_set_pool[version_set_id];
+
+        const std::string& name = match_spec.name().str();
+
+        auto name_id = name_pool.alloc(String{name});
+
+        auto solvables = name_to_solvable[name_id];
+
+        auto filtered = filter_candidates(solvables, version_set_id, false);
+
+        Version max_version = Version();
+        size_t max_n_track_features = 0;
+
+        for(auto& solvable_id : filtered) {
+            const PackageInfo& package_info = solvable_pool[solvable_id];
+            const auto version = Version::parse(package_info.version).value();
+            if(version > max_version) {
+                max_version = version;
+                max_n_track_features = package_info.track_features.size();
+            }
+        }
+
+        auto val = std::make_pair(max_version, max_n_track_features);
+        version_set_to_max_version_and_track_features_numbers[version_set_id] = val;
+        return val;
+    }
+
     /**
      * Sort the specified solvables based on which solvable to try first. The
      * solver will iteratively try to select the highest version. If a
@@ -382,6 +422,48 @@ struct PackageDatabase : public DependencyProvider {
 
             if (package_info_a.build_number != package_info_b.build_number) {
                 return package_info_a.build_number > package_info_b.build_number;
+            }
+
+            // Compare the dependencies of the variants.
+            std::unordered_map<NameId, VersionSetId> a_deps;
+            std::unordered_map<NameId, VersionSetId> b_deps;
+            for(auto dep_a: package_info_a.dependencies) {
+                // TODO: have a VersionID to NameID mapping instead
+                MatchSpec ms = MatchSpec::parse(dep_a).value();
+                const std::string& name = ms.name().str();
+                auto name_id = name_pool.alloc(String{name});
+
+                a_deps[name_id] = version_set_pool[ms];
+            }
+            for(auto dep_b: package_info_b.dependencies) {
+                // TODO: have a VersionID to NameID mapping instead
+                MatchSpec ms = MatchSpec::parse(dep_b).value();
+                const std::string& name = ms.name().str();
+                auto name_id = name_pool.alloc(String{name});
+
+                b_deps[name_id] = version_set_pool[ms];
+            }
+
+            auto ordering_score = 0;
+            for (auto [name_id, version_set_id] : a_deps) {
+                if (b_deps.find(name_id) != b_deps.end()) {
+                    auto [a_version, a_n_track_features] = find_highest_version(version_set_id);
+                    auto [b_version, b_n_track_features] = find_highest_version(b_deps[name_id]);
+
+                    // Favor the solvable with higher versions of their dependencies
+                    if (a_version != b_version) {
+                        ordering_score += a_version > b_version ? 1 : -1;
+                    }
+
+                    // Highly penalize the solvable if a dependencies has more track features
+                    if (a_n_track_features != b_n_track_features) {
+                        ordering_score += a_n_track_features > b_n_track_features ? -100 : 100;
+                    }
+                }
+            }
+
+            if(ordering_score != 0) {
+                return ordering_score > 0;
             }
 
             return package_info_a.timestamp > package_info_b.timestamp;
@@ -1362,12 +1444,21 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
         }
     }
 
+    SECTION("Find the highest version of hypothesis")
+    {
+        // Some builds of hypothesis depends on attrs and vice-versa
+        // We test that this complete correctly.
+        auto vid = resolvo_db.alloc_version_set("hypothesis");
+        auto [version, n_track_features] = resolvo_db.find_highest_version(vid);
+        REQUIRE(n_track_features == 0);
+        std::cout << "Version: " << version.str() << std::endl;
+        REQUIRE(version > Version::parse("6.105.1").value());
+    }
+
 
     SECTION("Consistency with libsolv: Celery & Dash")
     {
         std::vector<std::string> specs_to_install = {
-            // TODO: when python >=3.12 is unpinned, environment aren't identical
-            "python",
             "celery",
             "dash",
             "dash-core-components",

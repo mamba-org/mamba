@@ -42,11 +42,12 @@ namespace mamba
                         logger->error(msg);
                         break;
                     case (solver::libsolv::LogLevel::Warning):
+                    case (solver::libsolv::LogLevel::Debug):
                         logger->warn(msg);
                         break;
-                    case (solver::libsolv::LogLevel::Debug):
-                        logger->debug(msg);
-                        break;
+                        //                     case (solver::libsolv::LogLevel::Debug):
+                        //                         logger->debug(msg);
+                        //                         break;
                 }
             }
         );

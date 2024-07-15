@@ -1,3 +1,15 @@
+libmamba 2.0.0rc0 (July 08, 2024)
+=================================
+
+Enhancements:
+
+- maint: Remove declaration of `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3325
+
+Bug fixes:
+
+- Fixed restoring the previous signal handler for example in python case (Windows only for now) by @Klaim in https://github.com/mamba-org/mamba/pull/3297
+- Split `ContextOptions::enable_logging_and_signal_handling` into 2 different options by @Klaim in https://github.com/mamba-org/mamba/pull/3329
+
 libmamba 2.0.0beta3 (June 14, 2024)
 ===================================
 

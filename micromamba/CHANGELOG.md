@@ -1,3 +1,17 @@
+micromamba 2.0.0rc0 (July 08, 2024)
+===================================
+
+
+Bug fixes:
+
+- Attempt to fix `test_proxy_install` by @Hind-M in https://github.com/mamba-org/mamba/pull/3324
+- Fix `test_no_python_pinning` by @Hind-M in https://github.com/mamba-org/mamba/pull/3321
+- Split `ContextOptions::enable_logging_and_signal_handling` into 2 different options by @Klaim in https://github.com/mamba-org/mamba/pull/3329
+
+CI fixes and doc:
+
+- Temporarily disabled no_python_pinning test on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3322
+
 micromamba 2.0.0beta3 (June 14, 2024)
 =====================================
 

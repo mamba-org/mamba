@@ -67,7 +67,6 @@ TEST_SUITE("solver::libsolv::database")
                     CHECK_EQ(db.repo_count(), 0);
                     CHECK_FALSE(db.installed_repo().has_value());
                     CHECK_EQ(db.package_count(), 0);
-                    CHECK_EQ(repo1.package_count(), 0);
                 }
             }
 

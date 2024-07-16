@@ -60,6 +60,12 @@ It can significantly reduce your CI setup time by:
 - Caching package downloads.
 - Caching entire `conda` environments.
 
+## Limitations compared to `conda`
+
+While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are a small number of limitations:
+
+- No support of revisions
+
 ## micromamba
 
 `micromamba` is a small, pure-C++ reimplementation of `mamba`/`conda`. It strives to be a full replacement for `mamba` and `conda`. As such, it doesn't use any `conda` code (in fact it doesn't require Python at all).

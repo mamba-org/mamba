@@ -28,13 +28,13 @@ runs:
   steps:
     - name: Create workspace
       if: ${{ inputs.action == 'save' }}
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       with:
         path: ${{ inputs.path }}
         key: ${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}
     - name: Restore workspace
       if: ${{ inputs.action == 'restore' }}
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: ${{ inputs.path }}
         key: ${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}

@@ -116,7 +116,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Cache vcpkg packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
           # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg

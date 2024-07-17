@@ -1,5 +1,4 @@
 name: Micromamba
-
 on:
   push:
     branches:
@@ -14,11 +13,9 @@ on:
       - '**.md'
   merge_group:
     types: [checks_requested]
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   micromamba-static-unix:
     name: "${{ matrix.platform }}-${{ matrix.arch }}"
@@ -27,11 +24,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, platform: linux, arch: "64" }
-          - { os: ubuntu-latest, platform: linux, arch: aarch64 }
-          - { os: ubuntu-latest, platform: linux, arch: ppc64le }
-          - { os: macos-latest, platform: osx, arch: "64" }
-          - { os: macos-latest, platform: osx, arch: arm64 }
+          - {os: ubuntu-latest, platform: linux, arch: "64"}
+          - {os: ubuntu-latest, platform: linux, arch: aarch64}
+          - {os: ubuntu-latest, platform: linux, arch: ppc64le}
+          - {os: macos-latest, platform: osx, arch: "64"}
+          - {os: macos-latest, platform: osx, arch: arm64}
     steps:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v4
@@ -54,7 +51,7 @@ jobs:
         with:
           environment-name: mambabuild
           create-args: python boa
-          post-cleanup: none  # FIXME the cleanup fails on OSX
+          post-cleanup: none # FIXME the cleanup fails on OSX
       - name: Build conda package (Unix native)
         if: ${{ !(matrix.platform == 'linux' && matrix.arch != '64') }}
         shell: bash -l {0}
@@ -98,18 +95,17 @@ jobs:
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
       - name: Upload conda build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           retention-days: 7
       - name: Upload micromamba
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
-
   micromamba-static-win:
     name: "win-64"
     runs-on: windows-2022
@@ -138,15 +134,7 @@ jobs:
           environment-name: mambabuild
           init-shell: bash cmd.exe
           create-args: >-
-            cli11>=2.2,<3
-            cpp-expected
-            nlohmann_json
-            simdjson-static>=3.3.0
-            spdlog
-            fmt
-            yaml-cpp-static>=0.8.0
-            libsolv-static>=0.7.24
-            reproc-cpp-static>=14.2.4.post0
+            cli11>=2.2,<3 cpp-expected nlohmann_json simdjson-static>=3.3.0 spdlog fmt yaml-cpp-static>=0.8.0 libsolv-static>=0.7.24 reproc-cpp-static>=14.2.4.post0
       - name: build micromamba
         shell: cmd /C call {0}
         # Using D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR is a workaround to fix CI failure on win-64
@@ -180,13 +168,13 @@ jobs:
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: micromamba-build-failed-win-64
           path: ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz
           retention-days: 7
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: micromamba-win-64
           path: ${{ github.workspace }}/build/micromamba/micromamba.exe

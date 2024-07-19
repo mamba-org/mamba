@@ -37,6 +37,16 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "xtensor==0.12.3");
         }
 
+        SUBCASE("python_version_with_spaces")
+        {
+            auto ms = MatchSpec::parse("python      >=       0.12.3").value();
+            CHECK_EQ(ms.name().str(), "python");
+            CHECK_EQ(ms.version().str(), ">=0.12.3");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "python>=0.12.3");
+        }
+
         SUBCASE("ipykernel")
         {
             auto ms = MatchSpec::parse("ipykernel").value();

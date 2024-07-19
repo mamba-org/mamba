@@ -132,8 +132,8 @@ This is the most efficient way to link:
 
 There are some limitations to use ``hard-links``:
 
-- all the file systems are not supporting such links
-- those links are not working across file systems/partitions
+- not all file systems support ``hard-links``
+- ``hard-links`` don't work across file systems/partitions
 
 
 .. _soft_link:

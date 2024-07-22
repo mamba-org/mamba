@@ -518,15 +518,16 @@ namespace mamba::specs
                 if ((build_start != str.npos) && (version_start != build_start))
                 {
                     std::cout << "BUILD IS PRESENT " << std::endl;
+                    // TODO remove intermediate vars?
                     build = str.substr(build_start);
                     if (str[pos + 1] != ' ')
                     {
-                        std::cout << "before strip: " << str.substr(0, build_start) << " and build: " << build << std::endl;
+                        std::cout << "version:" << str.substr(0, build_start) << " and build:" << build << std::endl;
                         // version =
                         //                         util::strip(str.substr(0, build_start));
                         //                         std::cout
                         //                         << "after strip: " << version << std::endl;
-                        return { str.substr(0, build_start), build };
+                        return { str.substr(0, build_start), str.substr(build_start) };
                     }
                     else
                     {

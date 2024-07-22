@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <array>
 #include <type_traits>
-#include <iostream>
 
 #include <fmt/format.h>
 
@@ -332,9 +331,7 @@ namespace mamba::specs
 
         auto parse_op_and_version(std::string_view str) -> expected_parse_t<VersionPredicate>
         {
-//             std::cout << "ok in parse_op_and_version: str: " << str << std::endl;
             str = util::strip(str);
-//             std::cout << "after stripping " << str << std::endl;
             // WARNING order is important since some operator are prefix of others.
             if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
             {
@@ -457,7 +454,6 @@ namespace mamba::specs
             VersionSpec::right_parenthesis_token,
         };
 
-//         std::cout << " in VersionSpec::parse : " << str << std::endl;
         auto is_token = [&](auto c)
         { return std::find(all_tokens.cbegin(), all_tokens.cend(), c) != all_tokens.cend(); };
 
@@ -529,13 +525,11 @@ namespace mamba::specs
             else
             {
                 auto [op_ver, rest] = util::lstrip_if_parts(str, [&](auto c) { return !is_token(c); });
-//                 std::cout << "op_ver: " << op_ver << " rest " << rest << std::endl;
                 auto pred = parse_op_and_version(op_ver);
                 if (!pred.has_value())
                 {
                     return tl::make_unexpected(pred.error());
                 }
-                //std::cout << "pred: " << pred.value() << std::endl;
                 const bool pushed = parser.push_variable(std::move(pred).value());
                 if (!pushed)
                 {

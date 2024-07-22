@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -57,9 +56,7 @@ namespace mamba::specs
 
         // Version
         std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-        //         std::cout << "MatchSpec::parse_url " << std::endl;
         auto maybe_version = VersionSpec::parse(tail);
-        //         std::cout << "MatchSpec::parse_url after version spec parse" << std::endl;
         if (maybe_version.has_value())
         {
             out.m_version = std::move(maybe_version).value();
@@ -233,7 +230,6 @@ namespace mamba::specs
             }
             if (attr == "version")
             {
-                //                 std::cout << "set_single_matchspec_attribute_impl " << std::endl;
                 return VersionSpec::parse(val).transform([&](VersionSpec&& vs)
                                                          { spec.set_version(std::move(vs)); });
             }
@@ -398,7 +394,6 @@ namespace mamba::specs
             std::string_view str
         ) -> expected_parse_t<std::pair<std::size_t, std::size_t>>
         {
-            //             std::cout << "in rfind_attribute_section " << std::endl;
             auto res = util::rfind_matching_parentheses(str, open_or_quote_tokens, close_or_quote_tokens)
                            .map_error(
                                [&](const auto&) {
@@ -407,14 +402,12 @@ namespace mamba::specs
                                    );
                                }
                            );
-            //             std::cout << "in rfind_attribute_section before return " << std::endl;
             return res;
         }
 
         auto rparse_and_set_matchspec_attributes(MatchSpec& spec, std::string_view str)
             -> expected_parse_t<std::string_view>
         {
-            // std::cout << "IN rparse_and_set_matchspec_attributes, str: " << str << std::endl;
             // Parsing all attributes sections backwards, for instance in
             // ``conda-forge::foo[build=3](target=blarg,optional)``
             // this results in:
@@ -424,18 +417,14 @@ namespace mamba::specs
             if (!util::ends_with(str, MatchSpec::preferred_list_close)
                 && !util::ends_with(str, MatchSpec::alt_list_close))
             {
-                //                 std::cout << "before first return: str " << str << std::endl;
                 return str;
             }
 
-            //             std::cout << "before second return" << std::endl;
             return rfind_attribute_section(util::rstrip(str))
                 .and_then(
                     [&](auto start_end)
                     {
                         auto [start, end] = start_end;
-                        //                         std::cout << "start: " << start << std::endl;
-                        //                         std::cout << "end: " << end << std::endl;
                         assert(start != std::string::npos);
                         assert(end != std::string::npos);
                         assert(start < end);
@@ -457,49 +446,16 @@ namespace mamba::specs
         {
             str = util::strip(str);
 
-//             std::cout << "str after stripping: " << str << std::endl;
-
             // Support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
             // the repr of `libblas=*=*mkl`
             str = util::rstrip(str, '=');
-//             std::cout << "str after stripping = is  " << str << std::endl;
 
             auto pos = str.find_last_of(" =");
             if (pos == str.npos || pos == 0)
             {
-//                 std::cout << "1st if, returning no match " << std::endl;
                 return { str, {} };
             }
 
-            /////////////////////////
-//                         std::cout << "pos: " << pos << std::endl;
-//                         std::cout << "c=str[pos]: " << str[pos] << std::endl;
-//                         if (char c = str[pos]; c == '=')
-//                         {
-//                             std::cout << "2nd if, checking previous char " << std::endl;
-//                             char d = str[pos - 1];
-//                             if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d ==
-//                             '>' || d == '~')
-//                             {
-//                                 std::cout << "returning str and empty " << std::endl;
-//                                 return { str, {} };
-//                             }
-//                         }
-//                         else // this means that there is a space either between the operator and
-//                         //the version or that the build string is present separated from the
-//                         //version with spaces
-//                         {
-//
-//                         }
-//                         std::cout << "last return " << std::endl;
-//                         // c is either ' ' or d is none of the forbidden chars
-//                         return { str.substr(0, pos), str.substr(pos + 1) };
-            /////////////////////////
-
-            //             std::string input = ">=          somevers            somebuild";
-
-
-            /////////////////////////
             // TODO simplify and check tests pass everywhere
             pos = str.find_last_of('=');
             char d = str[pos - 1];
@@ -511,34 +467,19 @@ namespace mamba::specs
                 const auto space_start = str.find_first_of(' ', version_start);
                 // Find the position of the first non-space character after "somevers"
                 const auto build_start = str.find_first_not_of(' ', space_start);
-//                 std::cout << "version start: " << version_start << " build start: " << build_start << std::endl;
-//                 std::cout << "str version start: " << str[version_start] << " str build start: " << str[build_start] << std::endl;
 
                 std::string version, build;
                 // If another str is present after some space => build
                 if ((build_start != str.npos) && (version_start != build_start))
                 {
-//                     std::cout << "BUILD IS PRESENT " << std::endl;
                     // TODO remove intermediate vars?
                     build = str.substr(build_start);
                     if (str[pos + 1] != ' ')
                     {
-//                         std::cout << "version:" << str.substr(0, build_start) << " and build:" << build << std::endl;
-                        // version =
-                        //                         util::strip(str.substr(0, build_start));
-                        //                         std::cout
-                        //                         << "after strip: " << version << std::endl;
                         return { str.substr(0, build_start), str.substr(build_start) };
                     }
                     else
                     {
-//                         std::cout << "before concat and strip: " << str.substr(0, pos + 1)
-//                                     << " and " << str.substr(version_start, build_start) << std::endl;
-                        version = util::concat(
-                            str.substr(0, pos + 1),
-                            util::strip(str.substr(version_start, build_start))
-                        );
-//                         std::cout << "after concat and strip: " << version  << " and build : " << build << std::endl;
                         return { util::strip(str.substr(0, build_start)), str.substr(build_start) };
                     }
                 }
@@ -547,19 +488,10 @@ namespace mamba::specs
                     // Otherwise no build is present after the version
                     if (str[pos + 1] != ' ')
                     {
-//                         std::cout << "returning str and empty " << std::endl;
                         return { str, {} };
                     }
                     else
                     {
-                        // TODO remove concat_vers var
-                        // the concat may be problematic?
-//                         std::cout << "returning str and empty concatenated " << std::endl;
-//                         auto concat_vers = util::concat(
-//                             str.substr(0, pos + 1),
-//                             util::strip(str.substr(pos + 1))
-//                         );
-//                         return { concat_vers, {} };
                         return { str, {} };
                     }
                 }
@@ -569,27 +501,17 @@ namespace mamba::specs
             {
                 // That means that there is no operator and version and build are separated with space(s)
                 pos = str.find_last_of(' ');
-//                 std::cout << "returning version and build separated with spaces" << std::endl;
                 return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
             }
             const auto version_start = str.find_first_not_of(' ', pos + 1);
             const auto build_start = str.find_first_not_of(' ', version_start);
-           // std::cout << "pos: "<< pos << std::endl;
-           // std::cout << "version start: " << version_start << " build start: " << build_start << std::endl;
-           // std::cout << "str version start: " << str[version_start] << "  str build start: " << str[build_start] << std::endl;
-            //             std::cout << "before stripping: " << str.substr(version_start,
-            //             build_start)
-            //                       << " after : " << util::strip(str.substr(version_start,
-            //                       build_start))
-            //                       << std::endl;
-            // std::cout << "str.substr(0, pos+1) " << str.substr(0, pos+1) << std::endl;
+
             // auto version = util::concat(str.substr(0, pos+1),
             // util::strip(str.substr(version_start, build_start)));
 
             //             auto version = str.substr(0, pos);
             //             auto build = str.substr(build_start);
             //             return { version, build };
-//             std::cout << "before last return patched, version: " << str.substr(0, pos) << " and " << str.substr(build_start) << std::endl;
             return { str.substr(0, pos), str.substr(build_start) };
             /////////////////////////
         }
@@ -597,17 +519,13 @@ namespace mamba::specs
         auto split_name_version_and_build(std::string_view str)
         {
             // Split the package name and version in ``pkg 1.5`` or ``pkg>=1.3=bld``.
-            //             std::cout << "before splittint parts" << std::endl;
             auto [pkg_name, version_and_build] = util::lstrip_if_parts(
                 str,
                 [](char c) -> bool { return !contains(MatchSpec::package_version_sep, c); }
             );
 
-//             std::cout << "pkg_name: " << pkg_name << " version_and_build " << version_and_build << std::endl;
-//             std::cout << "before splitting version and build" << std::endl;
             auto [version_str, build_string_str] = split_version_and_build(version_and_build);
-//             std::cout << "after splitting version and build: version: " << version_str
-//                        << " build: " << build_string_str << std::endl;
+
             return std::tuple(pkg_name, version_str, build_string_str);
         }
     }
@@ -703,34 +621,20 @@ namespace mamba::specs
                 util::lstrip(std::move(maybe_pkg_ver_bld).value())
             );
         }
-        //         std::cout << "name_str: " << name_str << std::endl;
-        //         std::cout << "ver_str: " << ver_str << std::endl;
-        //         std::cout << "bld_str: " << bld_str << std::endl;
 
         // Set non-empty package name
         if (name_str.empty())
         {
             return parse_error("Empty package name.");
         }
-        //         std::cout << "again ver_str: " << ver_str << std::endl;
-        //         std::cout << "again bis ver_str: " << ver_str << std::endl;
-        //         std::cout << "name spec: " << NameSpec(std::string(name_str)).str() << std::endl;
+
         out.m_name = NameSpec(std::string(name_str));
-        //         std::cout << "out name: " << out.m_name << std::endl;
-        //         std::cout << "after name ver_str: " << ver_str << std::endl;
-        //         std::cout << "after name bis ver_str: " << ver_str << std::endl;
-        //
-        //         std::cout << "name_str: " << name_str << std::endl;
-        //         std::cout << "ver_str: " << ver_str << std::endl;
-        //         std::cout << "bld_str: " << bld_str << std::endl;
+
         // Set the version and build string, but avoid overriding in case nothing is specified
         // as it may already be set in attribute as in ``numpy[version=1.12]``.
 
-        //         std::cout << "before checking if ver is empty: " << ver_str << std::endl;
         if (!ver_str.empty())
         {
-            //             std::cout << "in parsing match spec, ver_str not empty: " << ver_str <<
-            //             std::endl;
             auto maybe_ver = VersionSpec::parse(ver_str);
             if (!maybe_ver)
             {

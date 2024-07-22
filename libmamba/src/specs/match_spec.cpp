@@ -457,17 +457,17 @@ namespace mamba::specs
         {
             str = util::strip(str);
 
-            std::cout << "str after stripping: " << str << std::endl;
+//             std::cout << "str after stripping: " << str << std::endl;
 
             // Support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
             // the repr of `libblas=*=*mkl`
             str = util::rstrip(str, '=');
-            std::cout << "str after stripping = is  " << str << std::endl;
+//             std::cout << "str after stripping = is  " << str << std::endl;
 
             auto pos = str.find_last_of(" =");
             if (pos == str.npos || pos == 0)
             {
-                std::cout << "1st if, returning no match " << std::endl;
+//                 std::cout << "1st if, returning no match " << std::endl;
                 return { str, {} };
             }
 
@@ -511,19 +511,19 @@ namespace mamba::specs
                 const auto space_start = str.find_first_of(' ', version_start);
                 // Find the position of the first non-space character after "somevers"
                 const auto build_start = str.find_first_not_of(' ', space_start);
-                std::cout << "version start: " << version_start << " build start: " << build_start << std::endl;
-                std::cout << "str version start: " << str[version_start] << " str build start: " << str[build_start] << std::endl;
+//                 std::cout << "version start: " << version_start << " build start: " << build_start << std::endl;
+//                 std::cout << "str version start: " << str[version_start] << " str build start: " << str[build_start] << std::endl;
 
                 std::string version, build;
                 // If another str is present after some space => build
                 if ((build_start != str.npos) && (version_start != build_start))
                 {
-                    std::cout << "BUILD IS PRESENT " << std::endl;
+//                     std::cout << "BUILD IS PRESENT " << std::endl;
                     // TODO remove intermediate vars?
                     build = str.substr(build_start);
                     if (str[pos + 1] != ' ')
                     {
-                        std::cout << "version:" << str.substr(0, build_start) << " and build:" << build << std::endl;
+//                         std::cout << "version:" << str.substr(0, build_start) << " and build:" << build << std::endl;
                         // version =
                         //                         util::strip(str.substr(0, build_start));
                         //                         std::cout
@@ -532,13 +532,13 @@ namespace mamba::specs
                     }
                     else
                     {
-                        std::cout << "before concat and strip: " << str.substr(0, pos + 1)
+//                         std::cout << "before concat and strip: " << str.substr(0, pos + 1)
                                     << " and " << str.substr(version_start, build_start) << std::endl;
                         version = util::concat(
                             str.substr(0, pos + 1),
                             util::strip(str.substr(version_start, build_start))
                         );
-                        std::cout << "after concat and strip: " << version  << " and build : " << build << std::endl;
+//                         std::cout << "after concat and strip: " << version  << " and build : " << build << std::endl;
                         return { util::strip(str.substr(0, build_start)), str.substr(build_start) };
                     }
                 }
@@ -547,14 +547,14 @@ namespace mamba::specs
                     // Otherwise no build is present after the version
                     if (str[pos + 1] != ' ')
                     {
-                        std::cout << "returning str and empty " << std::endl;
+//                         std::cout << "returning str and empty " << std::endl;
                         return { str, {} };
                     }
                     else
                     {
                         // TODO remove concat_vers var
                         // the concat may be problematic?
-                        std::cout << "returning str and empty concatenated " << std::endl;
+//                         std::cout << "returning str and empty concatenated " << std::endl;
 //                         auto concat_vers = util::concat(
 //                             str.substr(0, pos + 1),
 //                             util::strip(str.substr(pos + 1))
@@ -569,7 +569,7 @@ namespace mamba::specs
             {
                 // That means that there is no operator and version and build are separated with space(s)
                 pos = str.find_last_of(' ');
-                std::cout << "returning version and build separated with spaces" << std::endl;
+//                 std::cout << "returning version and build separated with spaces" << std::endl;
                 return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
             }
             const auto version_start = str.find_first_not_of(' ', pos + 1);
@@ -589,7 +589,7 @@ namespace mamba::specs
             //             auto version = str.substr(0, pos);
             //             auto build = str.substr(build_start);
             //             return { version, build };
-            std::cout << "before last return patched, version: " << str.substr(0, pos) << " and " << str.substr(build_start) << std::endl;
+//             std::cout << "before last return patched, version: " << str.substr(0, pos) << " and " << str.substr(build_start) << std::endl;
             return { str.substr(0, pos), str.substr(build_start) };
             /////////////////////////
         }
@@ -603,11 +603,11 @@ namespace mamba::specs
                 [](char c) -> bool { return !contains(MatchSpec::package_version_sep, c); }
             );
 
-            std::cout << "pkg_name: " << pkg_name << " version_and_build " << version_and_build << std::endl;
-            std::cout << "before splitting version and build" << std::endl;
+//             std::cout << "pkg_name: " << pkg_name << " version_and_build " << version_and_build << std::endl;
+//             std::cout << "before splitting version and build" << std::endl;
             auto [version_str, build_string_str] = split_version_and_build(version_and_build);
-            std::cout << "after splitting version and build: version: " << version_str
-                       << " build: " << build_string_str << std::endl;
+//             std::cout << "after splitting version and build: version: " << version_str
+//                        << " build: " << build_string_str << std::endl;
             return std::tuple(pkg_name, version_str, build_string_str);
         }
     }
@@ -715,7 +715,7 @@ namespace mamba::specs
         //         std::cout << "again ver_str: " << ver_str << std::endl;
         //         std::cout << "again bis ver_str: " << ver_str << std::endl;
         //         std::cout << "name spec: " << NameSpec(std::string(name_str)).str() << std::endl;
-        //         out.m_name = NameSpec(std::string(name_str));
+        out.m_name = NameSpec(std::string(name_str));
         //         std::cout << "out name: " << out.m_name << std::endl;
         //         std::cout << "after name ver_str: " << ver_str << std::endl;
         //         std::cout << "after name bis ver_str: " << ver_str << std::endl;
@@ -749,7 +749,7 @@ namespace mamba::specs
             out.m_build_string = std::move(maybe_build_string).value();
         }
 
-        out.m_name = NameSpec(std::string(name_str));
+        //out.m_name = NameSpec(std::string(name_str));
         return out;
     }
 

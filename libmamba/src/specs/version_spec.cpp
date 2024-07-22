@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <type_traits>
+#include <iostream>
 
 #include <fmt/format.h>
 
@@ -331,7 +332,9 @@ namespace mamba::specs
 
         auto parse_op_and_version(std::string_view str) -> expected_parse_t<VersionPredicate>
         {
+            std::cout << "ok in parse_op_and_version: str: " << str << std::endl;
             str = util::strip(str);
+            std::cout << "after stripping " << str << std::endl;
             // WARNING order is important since some operator are prefix of others.
             if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
             {
@@ -339,31 +342,31 @@ namespace mamba::specs
             }
             if (util::starts_with(str, VersionSpec::greater_equal_str))
             {
-                return Version::parse(str.substr(VersionSpec::greater_equal_str.size()))
+                return Version::parse(util::lstrip(str.substr(VersionSpec::greater_equal_str.size())))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_greater_equal(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::greater_str))
             {
-                return Version::parse(str.substr(VersionSpec::greater_str.size()))
+                return Version::parse(util::lstrip(str.substr(VersionSpec::greater_str.size())))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_greater(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::less_equal_str))
             {
-                return Version::parse(str.substr(VersionSpec::less_equal_str.size()))
+                return Version::parse(util::lstrip(str.substr(VersionSpec::less_equal_str.size())))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_less_equal(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::less_str))
             {
-                return Version::parse(str.substr(VersionSpec::less_str.size()))
+                return Version::parse(util::lstrip(str.substr(VersionSpec::less_str.size())))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_less(std::move(ver)); });
             }
             if (util::starts_with(str, VersionSpec::compatible_str))
             {
-                return Version::parse(str.substr(VersionSpec::compatible_str.size()))
+                return Version::parse(util::lstrip(str.substr(VersionSpec::compatible_str.size())))
                     .transform(
                         [](specs::Version&& ver)
                         {
@@ -382,13 +385,13 @@ namespace mamba::specs
                 // Glob suffix changes meaning for ==1.3.*
                 if (has_glob_suffix)
                 {
-                    return Version::parse(str.substr(start, str.size() - glob_len - start))
+                    return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });
                 }
                 else
                 {
-                    return Version::parse(str.substr(start))
+                    return Version::parse(util::lstrip(str.substr(start)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_equal_to(std::move(ver)); });
                 }
@@ -399,14 +402,14 @@ namespace mamba::specs
                 // Glob suffix changes meaning for !=1.3.*
                 if (has_glob_suffix)
                 {
-                    return Version::parse(str.substr(start, str.size() - glob_len - start))
+                    return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_not_starts_with(std::move(ver)); }
                         );
                 }
                 else
                 {
-                    return Version::parse(str.substr(start))
+                    return Version::parse(util::lstrip(str.substr(start)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_not_equal_to(std::move(ver)); });
                 }
@@ -415,7 +418,7 @@ namespace mamba::specs
             {
                 const std::size_t start = VersionSpec::starts_with_str.size();
                 // Glob suffix does not change meaning for =1.3.*
-                return Version::parse(str.substr(start, str.size() - glob_len - start))
+                return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_starts_with(std::move(ver)); });
             }
@@ -427,13 +430,13 @@ namespace mamba::specs
                     // either ".*" or "*"
                     static constexpr auto one = std::size_t(1);  // MSVC
                     const std::size_t len = str.size() - std::max(glob_len, one);
-                    return Version::parse(str.substr(0, len))
+                    return Version::parse(util::lstrip(str.substr(0, len)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });
                 }
                 else
                 {
-                    return Version::parse(str).transform(
+                    return Version::parse(util::lstrip(str)).transform(
                         [](specs::Version&& ver)
                         { return VersionPredicate::make_equal_to(std::move(ver)); }
                     );
@@ -454,6 +457,7 @@ namespace mamba::specs
             VersionSpec::right_parenthesis_token,
         };
 
+        std::cout << " in VersionSpec::parse : " << str << std::endl;
         auto is_token = [&](auto c)
         { return std::find(all_tokens.cbegin(), all_tokens.cend(), c) != all_tokens.cend(); };
 
@@ -481,7 +485,7 @@ namespace mamba::specs
                         str
                     )));
                 }
-                str = str.substr(1);
+                str = util::lstrip(str.substr(1));
             }
             else if (str.front() == VersionSpec::or_token)
             {
@@ -494,7 +498,7 @@ namespace mamba::specs
                         str
                     )));
                 }
-                str = str.substr(1);
+                str = util::lstrip(str.substr(1));
             }
             else if (str.front() == VersionSpec::left_parenthesis_token)
             {
@@ -525,11 +529,13 @@ namespace mamba::specs
             else
             {
                 auto [op_ver, rest] = util::lstrip_if_parts(str, [&](auto c) { return !is_token(c); });
+                std::cout << "op_ver: " << op_ver << " rest " << rest << std::endl;
                 auto pred = parse_op_and_version(op_ver);
                 if (!pred.has_value())
                 {
                     return tl::make_unexpected(pred.error());
                 }
+                //std::cout << "pred: " << pred.value() << std::endl;
                 const bool pushed = parser.push_variable(std::move(pred).value());
                 if (!pushed)
                 {
@@ -539,7 +545,7 @@ namespace mamba::specs
                         str
                     )));
                 }
-                str = rest;
+                str = util::lstrip(rest);
             }
         }
 

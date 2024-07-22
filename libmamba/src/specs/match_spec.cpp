@@ -500,6 +500,7 @@ namespace mamba::specs
 
 
             /////////////////////////
+            // TODO simplify and check tests pass everywhere
             pos = str.find_last_of('=');
             char d = str[pos - 1];
 
@@ -538,7 +539,7 @@ namespace mamba::specs
                             util::strip(str.substr(version_start, build_start))
                         );
                         std::cout << "after concat and strip: " << version  << " and build : " << build << std::endl;
-                        return { version, build };
+                        return { util::strip(str.substr(0, build_start)), str.substr(build_start) };
                     }
                 }
                 else
@@ -554,11 +555,12 @@ namespace mamba::specs
                         // TODO remove concat_vers var
                         // the concat may be problematic?
                         std::cout << "returning str and empty concatenated " << std::endl;
-                        auto concat_vers = util::concat(
-                            str.substr(0, pos + 1),
-                            util::strip(str.substr(pos + 1))
-                        );
-                        return { concat_vers, {} };
+//                         auto concat_vers = util::concat(
+//                             str.substr(0, pos + 1),
+//                             util::strip(str.substr(pos + 1))
+//                         );
+//                         return { concat_vers, {} };
+                        return { str, {} };
                     }
                 }
             }

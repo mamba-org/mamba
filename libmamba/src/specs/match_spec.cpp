@@ -414,8 +414,7 @@ namespace mamba::specs
         auto rparse_and_set_matchspec_attributes(MatchSpec& spec, std::string_view str)
             -> expected_parse_t<std::string_view>
         {
-            //             std::cout << "IN rparse_and_set_matchspec_attributes, str: " << str <<
-            //             std::endl;
+            // std::cout << "IN rparse_and_set_matchspec_attributes, str: " << str << std::endl;
             // Parsing all attributes sections backwards, for instance in
             // ``conda-forge::foo[build=3](target=blarg,optional)``
             // this results in:
@@ -458,43 +457,43 @@ namespace mamba::specs
         {
             str = util::strip(str);
 
-            //             std::cout << "str after stripping: " << str << std::endl;
+            // std::cout << "str after stripping: " << str << std::endl;
 
             // Support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
             // the repr of `libblas=*=*mkl`
             str = util::rstrip(str, '=');
-            //             std::cout << "str after stripping = is  " << str << std::endl;
+            // std::cout << "str after stripping = is  " << str << std::endl;
 
             auto pos = str.find_last_of(" =");
             if (pos == str.npos || pos == 0)
             {
-                //                 std::cout << "1st if, returning no match " << std::endl;
+               //  std::cout << "1st if, returning no match " << std::endl;
                 return { str, {} };
             }
 
             /////////////////////////
-            //             std::cout << "pos: " << pos << std::endl;
-            //             std::cout << "c=str[pos]: " << str[pos] << std::endl;
-            //             if (char c = str[pos]; c == '=')
-            //             {
-            //                 std::cout << "2nd if, checking previous char " << std::endl;
-            //                 char d = str[pos - 1];
-            //                 if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d ==
-            //                 '>' || d == '~')
-            //                 {
-            //                     std::cout << "returning str and empty " << std::endl;
-            //                     return { str, {} };
-            //                 }
-            //             }
-            //             else // this means that there is a space either between the operator and
-            //             the version or that the build string is present separated from the
-            //             version with spaces
-            //             {
-            //
-            //             }
-            //             std::cout << "last return " << std::endl;
-            //             // c is either ' ' or d is none of the forbidden chars
-            //             return { str.substr(0, pos), str.substr(pos + 1) };
+//                         std::cout << "pos: " << pos << std::endl;
+//                         std::cout << "c=str[pos]: " << str[pos] << std::endl;
+//                         if (char c = str[pos]; c == '=')
+//                         {
+//                             std::cout << "2nd if, checking previous char " << std::endl;
+//                             char d = str[pos - 1];
+//                             if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d ==
+//                             '>' || d == '~')
+//                             {
+//                                 std::cout << "returning str and empty " << std::endl;
+//                                 return { str, {} };
+//                             }
+//                         }
+//                         else // this means that there is a space either between the operator and
+//                         //the version or that the build string is present separated from the
+//                         //version with spaces
+//                         {
+//
+//                         }
+//                         std::cout << "last return " << std::endl;
+//                         // c is either ' ' or d is none of the forbidden chars
+//                         return { str.substr(0, pos), str.substr(pos + 1) };
             /////////////////////////
 
             //             std::string input = ">=          somevers            somebuild";
@@ -511,23 +510,19 @@ namespace mamba::specs
                 const auto space_start = str.find_first_of(' ', version_start);
                 // Find the position of the first non-space character after "somevers"
                 const auto build_start = str.find_first_not_of(' ', space_start);
-                //                 std::cout << "version start: " << version_start << " build start:
-                //                 " << build_start
-                //                           << std::endl;
-                //                 std::cout << "str version start: " << str[version_start]
-                //                           << " str build start: " << str[build_start] <<
-                //                           std::endl;
+              //  std::cout << "version start: " << version_start << " build start: " << build_start << std::endl;
+              //  std::cout << "str version start: " << str[version_start] << " str build start: " << str[build_start] << std::endl;
 
                 std::string version, build;
                 // If another str is present after some space => build
                 if ((build_start != str.npos) && (version_start != build_start))
                 {
-                    //                     std::cout << "BUILD IS PRESENT " << std::endl;
+                 //   std::cout << "BUILD IS PRESENT " << std::endl;
                     build = str.substr(build_start);
                     if (str[pos + 1] != ' ')
                     {
-                        //                         std::cout << "before strip: " << str.substr(0,
-                        //                         build_start) << std::endl; version =
+                     //   std::cout << "before strip: " << str.substr(0, build_start) << " and build: " << build << std::endl;
+                        // version =
                         //                         util::strip(str.substr(0, build_start));
                         //                         std::cout
                         //                         << "after strip: " << version << std::endl;
@@ -543,8 +538,7 @@ namespace mamba::specs
                             str.substr(0, pos + 1),
                             util::strip(str.substr(version_start, build_start))
                         );
-                        //                         std::cout << "after concat and strip: " <<
-                        //                         version << std::endl;
+                     //   std::cout << "after concat and strip: " << version  << " and build : " << build << std::endl;
                         return { version, build };
                     }
                 }
@@ -569,8 +563,17 @@ namespace mamba::specs
                 }
             }
 
+            if (pos == str.npos)
+            {
+                // That means that there is no operator and version and build are separated with space(s)
+                pos = str.find_last_of(' ');
+                return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
+            }
             const auto version_start = str.find_first_not_of(' ', pos + 1);
             const auto build_start = str.find_first_not_of(' ', version_start);
+           // std::cout << "pos: "<< pos << std::endl;
+           // std::cout << "version start: " << version_start << " build start: " << build_start << std::endl;
+           // std::cout << "str version start: " << str[version_start] << "  str build start: " << str[build_start] << std::endl;
             //             std::cout << "before stripping: " << str.substr(version_start,
             //             build_start)
             //                       << " after : " << util::strip(str.substr(version_start,
@@ -583,6 +586,7 @@ namespace mamba::specs
             //             auto version = str.substr(0, pos);
             //             auto build = str.substr(build_start);
             //             return { version, build };
+        //    std::cout << "before last return patched, version: " << str.substr(0, pos) << " and " << str.substr(build_start) << std::endl;
             return { str.substr(0, pos), str.substr(build_start) };
             /////////////////////////
         }
@@ -596,14 +600,11 @@ namespace mamba::specs
                 [](char c) -> bool { return !contains(MatchSpec::package_version_sep, c); }
             );
 
-            //             std::cout << "pkg_name: " << pkg_name << " version_and_build " <<
-            //             version_and_build
-            //                       << std::endl;
-            //             std::cout << "before splitting version and build" << std::endl;
+          //  std::cout << "pkg_name: " << pkg_name << " version_and_build " << version_and_build << std::endl;
+          //  std::cout << "before splitting version and build" << std::endl;
             auto [version_str, build_string_str] = split_version_and_build(version_and_build);
-            //             std::cout << "after splitting version and build: version: " <<
-            //             version_str
-            //                       << " build: " << build_string_str << std::endl;
+          //  std::cout << "after splitting version and build: version: " << version_str
+          //              << " build: " << build_string_str << std::endl;
             return std::tuple(pkg_name, version_str, build_string_str);
         }
     }

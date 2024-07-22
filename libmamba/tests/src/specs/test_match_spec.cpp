@@ -37,14 +37,24 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "xtensor==0.12.3");
         }
 
-        SUBCASE("python_version_with_spaces")
+        SUBCASE("xtensor      >=       0.12.3")
         {
-            auto ms = MatchSpec::parse("python      >=       0.12.3").value();
-            CHECK_EQ(ms.name().str(), "python");
+            auto ms = MatchSpec::parse("xtensor      >=       0.12.3").value();
+            CHECK_EQ(ms.name().str(), "xtensor");
             CHECK_EQ(ms.version().str(), ">=0.12.3");
             CHECK(ms.build_string().is_explicitly_free());
             CHECK(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "python>=0.12.3");
+            CHECK_EQ(ms.str(), "xtensor>=0.12.3");
+        }
+
+        SUBCASE("_libgcc_mutex 0.1 conda_forge")
+        {
+            auto ms = MatchSpec::parse("_libgcc_mutex 0.1 conda_forge").value();
+            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
+            CHECK_EQ(ms.version().str(), "==0.1");
+            CHECK_EQ(ms.build_string().str(), "conda_forge");
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "_libgcc_mutex==0.1=conda_forge");
         }
 
         SUBCASE("ipykernel")

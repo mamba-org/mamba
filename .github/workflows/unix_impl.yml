@@ -79,7 +79,7 @@ jobs:
       - name: Run libmamba tests
         run: |
           unset CONDARC  # Interferes with tests
-          ./build/libmamba/tests/test_libmamba -ts=specs::match_spec -tc=parse
+          ./build/libmamba/tests/test_libmamba
 
   libmambapy_tests_unix:
     name: libmambapy tests

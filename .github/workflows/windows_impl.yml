@@ -87,7 +87,7 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
-          cd ./build/libmamba && ./tests/test_libmamba -ts=specs::match_spec -tc=parse
+          cd ./build/libmamba && ./tests/test_libmamba
 
   libmambapy_tests_win:
     name: libmambapy tests

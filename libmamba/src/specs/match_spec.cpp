@@ -533,7 +533,7 @@ namespace mamba::specs
                     else
                     {
 //                         std::cout << "before concat and strip: " << str.substr(0, pos + 1)
-                                    << " and " << str.substr(version_start, build_start) << std::endl;
+//                                     << " and " << str.substr(version_start, build_start) << std::endl;
                         version = util::concat(
                             str.substr(0, pos + 1),
                             util::strip(str.substr(version_start, build_start))

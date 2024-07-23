@@ -382,7 +382,9 @@ namespace mamba::specs
                 // Glob suffix changes meaning for ==1.3.*
                 if (has_glob_suffix)
                 {
-                    return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
+                    return Version::parse(
+                               util::lstrip(str.substr(start, str.size() - glob_len - start))
+                    )
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });
                 }
@@ -399,7 +401,9 @@ namespace mamba::specs
                 // Glob suffix changes meaning for !=1.3.*
                 if (has_glob_suffix)
                 {
-                    return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
+                    return Version::parse(
+                               util::lstrip(str.substr(start, str.size() - glob_len - start))
+                    )
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_not_starts_with(std::move(ver)); }
                         );
@@ -433,10 +437,9 @@ namespace mamba::specs
                 }
                 else
                 {
-                    return Version::parse(util::lstrip(str)).transform(
-                        [](specs::Version&& ver)
-                        { return VersionPredicate::make_equal_to(std::move(ver)); }
-                    );
+                    return Version::parse(util::lstrip(str))
+                        .transform([](specs::Version&& ver)
+                                   { return VersionPredicate::make_equal_to(std::move(ver)); });
                 }
             }
             return tl::make_unexpected(

@@ -456,64 +456,38 @@ namespace mamba::specs
                 return { str, {} };
             }
 
-            // TODO simplify and check tests pass everywhere
             pos = str.find_last_of('=');
             char d = str[pos - 1];
 
             if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
             {
-                // Find the position of the first non-space character after ">="
+                // Find the position of the first non-space character after operator
                 const auto version_start = str.find_first_not_of(' ', pos + 1);
                 const auto space_start = str.find_first_of(' ', version_start);
-                // Find the position of the first non-space character after "somevers"
+                // Find the position of the first non-space character after version
                 const auto build_start = str.find_first_not_of(' ', space_start);
 
-                std::string version, build;
                 // If another str is present after some space => build
                 if ((build_start != str.npos) && (version_start != build_start))
                 {
-                    // TODO remove intermediate vars?
-                    build = str.substr(build_start);
-                    if (str[pos + 1] != ' ')
-                    {
-                        return { str.substr(0, build_start), str.substr(build_start) };
-                    }
-                    else
-                    {
-                        return { util::strip(str.substr(0, build_start)), str.substr(build_start) };
-                    }
+                    return { util::strip(str.substr(0, build_start)), str.substr(build_start) };
                 }
-                else
-                {
-                    // Otherwise no build is present after the version
-                    if (str[pos + 1] != ' ')
-                    {
-                        return { str, {} };
-                    }
-                    else
-                    {
-                        return { str, {} };
-                    }
-                }
+                // Otherwise no build is present after the version
+                return { str, {} };
             }
 
             if (pos == str.npos)
             {
-                // That means that there is no operator and version and build are separated with space(s)
+                // That means that there is no operator, and version and build are separated with
+                // space(s)
                 pos = str.find_last_of(' ');
                 return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
             }
-            const auto version_start = str.find_first_not_of(' ', pos + 1);
-            const auto build_start = str.find_first_not_of(' ', version_start);
 
-            // auto version = util::concat(str.substr(0, pos+1),
-            // util::strip(str.substr(version_start, build_start)));
-
-            //             auto version = str.substr(0, pos);
-            //             auto build = str.substr(build_start);
-            //             return { version, build };
+            // '=' is found but not combined with `d` above
+            // meaning that the build is right after the last '='
+            const auto build_start = str.find_first_not_of(' ', pos + 1);
             return { str.substr(0, pos), str.substr(build_start) };
-            /////////////////////////
         }
 
         auto split_name_version_and_build(std::string_view str)
@@ -653,7 +627,6 @@ namespace mamba::specs
             out.m_build_string = std::move(maybe_build_string).value();
         }
 
-        //out.m_name = NameSpec(std::string(name_str));
         return out;
     }
 

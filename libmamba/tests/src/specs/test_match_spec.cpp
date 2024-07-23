@@ -57,6 +57,16 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "_libgcc_mutex==0.1=conda_forge");
         }
 
+        SUBCASE("_libgcc_mutex    0.1       conda_forge     ")
+        {
+            auto ms = MatchSpec::parse("_libgcc_mutex    0.1       conda_forge     ").value();
+            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
+            CHECK_EQ(ms.version().str(), "==0.1");
+            CHECK_EQ(ms.build_string().str(), "conda_forge");
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "_libgcc_mutex==0.1=conda_forge");
+        }
+
         SUBCASE("ipykernel")
         {
             auto ms = MatchSpec::parse("ipykernel").value();
@@ -249,6 +259,16 @@ TEST_SUITE("specs::match_spec")
         SUBCASE("foo=1.0=2")
         {
             auto ms = MatchSpec::parse("foo=1.0=2").value();
+            CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
+            CHECK_EQ(ms.name().str(), "foo");
+            CHECK_EQ(ms.version().str(), "=1.0");
+            CHECK_EQ(ms.build_string().str(), "2");
+            CHECK_EQ(ms.str(), "foo=1.0=2");
+        }
+
+        SUBCASE("foo   =    1.0    =    2")
+        {
+            auto ms = MatchSpec::parse("foo   =    1.0    =    2").value();
             CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
             CHECK_EQ(ms.name().str(), "foo");
             CHECK_EQ(ms.version().str(), "=1.0");

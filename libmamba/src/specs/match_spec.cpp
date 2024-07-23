@@ -394,15 +394,11 @@ namespace mamba::specs
             std::string_view str
         ) -> expected_parse_t<std::pair<std::size_t, std::size_t>>
         {
-            auto res = util::rfind_matching_parentheses(str, open_or_quote_tokens, close_or_quote_tokens)
-                           .map_error(
-                               [&](const auto&) {
-                                   return ParseError(
-                                       fmt::format(R"(Parentheses mismatch in "{}".)", str)
-                                   );
-                               }
-                           );
-            return res;
+            return util::rfind_matching_parentheses(str, open_or_quote_tokens, close_or_quote_tokens)
+                .map_error(
+                    [&](const auto&)
+                    { return ParseError(fmt::format(R"(Parentheses mismatch in "{}".)", str)); }
+                );
         }
 
         auto rparse_and_set_matchspec_attributes(MatchSpec& spec, std::string_view str)
@@ -457,7 +453,7 @@ namespace mamba::specs
             }
 
             pos = str.find_last_of('=');
-            char d = str[pos - 1];
+            const char d = str[pos - 1];
 
             if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
             {
@@ -499,7 +495,6 @@ namespace mamba::specs
             );
 
             auto [version_str, build_string_str] = split_version_and_build(version_and_build);
-
             return std::tuple(pkg_name, version_str, build_string_str);
         }
     }
@@ -601,12 +596,10 @@ namespace mamba::specs
         {
             return parse_error("Empty package name.");
         }
-
         out.m_name = NameSpec(std::string(name_str));
 
         // Set the version and build string, but avoid overriding in case nothing is specified
         // as it may already be set in attribute as in ``numpy[version=1.12]``.
-
         if (!ver_str.empty())
         {
             auto maybe_ver = VersionSpec::parse(ver_str);

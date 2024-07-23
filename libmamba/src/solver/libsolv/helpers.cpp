@@ -172,11 +172,6 @@ namespace mamba::solver::libsolv
                     }
                 }
             }
-            else
-            {
-                LOG_DEBUG << "No signatures available for '" << filename
-                          << "'. Downloading without verifying artifacts.";
-            }
         }
 
         [[nodiscard]] auto set_solvable(
@@ -388,7 +383,6 @@ namespace mamba::solver::libsolv
                     if (parsed)
                     {
                         on_parsed(fn);
-                        LOG_DEBUG << "Adding package record to repo " << fn;
                     }
                     else
                     {
@@ -571,6 +565,10 @@ namespace mamba::solver::libsolv
             !maybe_sigs.error() && verify_artifacts)
         {
             signatures = std::move(maybe_sigs).value();
+        }
+        else
+        {
+            LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
         }
 
         if (package_types == PackageTypes::CondaOrElseTarBz2)

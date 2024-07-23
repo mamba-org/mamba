@@ -134,7 +134,15 @@ jobs:
           environment-name: mambabuild
           init-shell: bash cmd.exe
           create-args: >-
-            cli11>=2.2,<3 cpp-expected nlohmann_json simdjson-static>=3.3.0 spdlog fmt yaml-cpp-static>=0.8.0 libsolv-static>=0.7.24 reproc-cpp-static>=14.2.4.post0
+            cli11>=2.2,<3
+            cpp-expected
+            nlohmann_json
+            simdjson-static>=3.3.0
+            spdlog
+            fmt
+            yaml-cpp-static>=0.8.0
+            libsolv-static>=0.7.24
+            reproc-cpp-static>=14.2.4.post0
       - name: build micromamba
         shell: cmd /C call {0}
         # Using D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR is a workaround to fix CI failure on win-64

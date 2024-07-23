@@ -446,23 +446,44 @@ namespace mamba::specs
             // the repr of `libblas=*=*mkl`
             str = util::rstrip(str, '=');
 
-            const auto pos = str.find_last_of(" =");
+            auto pos = str.find_last_of(" =");
             if (pos == str.npos || pos == 0)
             {
                 return { str, {} };
             }
 
-            if (char c = str[pos]; c == '=')
+            pos = str.find_last_of('=');
+            const char d = str[pos - 1];
+
+            if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
             {
-                char d = str[pos - 1];
-                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
+                // Find the position of the first non-space character after operator
+                const auto version_start = str.find_first_not_of(' ', pos + 1);
+                const auto space_start = str.find_first_of(' ', version_start);
+                // Find the position of the first non-space character after version
+                const auto build_start = str.find_first_not_of(' ', space_start);
+
+                // If another str is present after some space => build
+                if ((build_start != str.npos) && (version_start != build_start))
                 {
-                    return { str, {} };
+                    return { util::strip(str.substr(0, build_start)), str.substr(build_start) };
                 }
+                // Otherwise no build is present after the version
+                return { str, {} };
             }
 
-            // c is either ' ' or d is none of the forbidden chars
-            return { str.substr(0, pos), str.substr(pos + 1) };
+            if (pos == str.npos)
+            {
+                // That means that there is no operator, and version and build are separated with
+                // space(s)
+                pos = str.find_last_of(' ');
+                return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
+            }
+
+            // '=' is found but not combined with `d` above
+            // meaning that the build is right after the last '='
+            const auto build_start = str.find_first_not_of(' ', pos + 1);
+            return { str.substr(0, pos), str.substr(build_start) };
         }
 
         auto split_name_version_and_build(std::string_view str)

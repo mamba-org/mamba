@@ -423,7 +423,13 @@ namespace mamba::specs
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_starts_with(std::move(ver)); });
             }
-            if (util::is_digit(str.front()))  // All versions must start with a digit
+            // All versions must start with either a digit or a lowercase letter
+            // The version regex should comply with r"^[\*\.\+!_0-9a-z]+$"
+            // cf. https://github.com/conda/conda/blob/main/conda/models/version.py#L33
+            // Note that we don't apply this condition when the version is given with an operator
+            // In that case, string literals are converted to lowercase in `version.cpp` through
+            // `Version::parse`
+            if (util::is_digit(str.front()) || util::is_lower(str.front()))
             {
                 // Glob suffix does  change meaning for 1.3.* and 1.3*
                 if (util::ends_with(str, VersionSpec::glob_suffix_token))

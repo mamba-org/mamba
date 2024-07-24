@@ -82,6 +82,43 @@ TEST_SUITE("specs::match_spec")
             CHECK(ms.version().is_explicitly_free());
         }
 
+        SUBCASE("disperse=v0.9.24")
+        {
+            auto ms = MatchSpec::parse("disperse=v0.9.24").value();
+            CHECK_EQ(ms.name().str(), "disperse");
+            CHECK_EQ(ms.version().str(), "=0v0.9.24");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "disperse=0v0.9.24");
+        }
+
+        SUBCASE("disperse v0.9.24")
+        {
+            auto ms = MatchSpec::parse("disperse v0.9.24").value();
+            CHECK_EQ(ms.name().str(), "disperse");
+            CHECK_EQ(ms.version().str(), "==0v0.9.24");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "disperse==0v0.9.24");
+        }
+
+        SUBCASE("foo V0.9.24")
+        {
+            auto ms = MatchSpec::parse("foo V0.9.24");
+            CHECK_FALSE(ms.has_value());
+            CHECK_EQ(std::string(ms.error().what()), "Found invalid version predicate in \"V0.9.24\"");
+        }
+
+        SUBCASE("foo=V0.9.24")
+        {
+            auto ms = MatchSpec::parse("foo=V0.9.24").value();
+            CHECK_EQ(ms.name().str(), "foo");
+            CHECK_EQ(ms.version().str(), "=0v0.9.24");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "foo=0v0.9.24");
+        }
+
         SUBCASE("numpy 1.7*")
         {
             auto ms = MatchSpec::parse("numpy 1.7*").value();

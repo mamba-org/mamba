@@ -1,4 +1,5 @@
 name: Micromamba
+
 on:
   push:
     branches:
@@ -13,9 +14,11 @@ on:
       - '**.md'
   merge_group:
     types: [checks_requested]
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   micromamba-static-unix:
     name: "${{ matrix.platform }}-${{ matrix.arch }}"

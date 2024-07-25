@@ -27,19 +27,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, platform: linux, arch: "64" }
-          - { os: ubuntu-latest, platform: linux, arch: aarch64 }
-          - { os: ubuntu-latest, platform: linux, arch: ppc64le }
-          - { os: macos-latest, platform: osx, arch: "64" }
-          - { os: macos-latest, platform: osx, arch: arm64 }
+          - {os: ubuntu-latest, platform: linux, arch: "64"}
+          - {os: ubuntu-latest, platform: linux, arch: aarch64}
+          - {os: ubuntu-latest, platform: linux, arch: ppc64le}
+          - {os: macos-latest, platform: osx, arch: "64"}
+          - {os: macos-latest, platform: osx, arch: arm64}
     steps:
       - name: Checkout micromamba-feedstock
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Checkout mamba branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: mamba
       - name: Clear mamba git directory and link source
@@ -54,7 +54,7 @@ jobs:
         with:
           environment-name: mambabuild
           create-args: python boa
-          post-cleanup: none  # FIXME the cleanup fails on OSX
+          post-cleanup: none # FIXME the cleanup fails on OSX
       - name: Build conda package (Unix native)
         if: ${{ !(matrix.platform == 'linux' && matrix.arch != '64') }}
         shell: bash -l {0}
@@ -98,25 +98,24 @@ jobs:
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
       - name: Upload conda build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           retention-days: 7
       - name: Upload micromamba
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
-
   micromamba-static-win:
     name: "win-64"
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Cache vcpkg packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
           # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg
@@ -180,13 +179,13 @@ jobs:
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: micromamba-build-failed-win-64
           path: ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz
           retention-days: 7
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: micromamba-win-64
           path: ${{ github.workspace }}/build/micromamba/micromamba.exe

@@ -263,6 +263,17 @@ struct PackageDatabase : public DependencyProvider {
             alloc_version_set(constr);
         }
 
+//        const size_t n_track_features = package_info.track_features.size();
+//        if(n_track_features > 0)
+//        {
+//            std::cout << "PackageInfo has " << package_info.long_str() << " has " << n_track_features << " track features" << std::endl;
+//            for (auto tf :package_info.track_features)
+//            {
+//                // Add the track feature to the Name and String pools
+//                std::cout << " - " << tf <<std::endl;
+//            }
+//        }
+
         // Add the solvable to the name_to_solvable map
         const NameId name_id = name_pool.alloc(String{package_info.name});
         name_to_solvable[name_id].push_back(id);
@@ -346,7 +357,7 @@ struct PackageDatabase : public DependencyProvider {
      */
     NameId solvable_name(SolvableId solvable_id) override {
         const PackageInfo& package_info = solvable_pool[solvable_id];
-        // std::cout << "Getting name id for solvable " << package_info.long_str() << std::endl;
+        //std::cout << "Getting name id for solvable " << package_info.long_str() << std::endl;
         return name_pool[String{package_info.name}];
     }
 
@@ -486,6 +497,13 @@ struct PackageDatabase : public DependencyProvider {
         MatchSpec match_spec = version_set_pool[version_set_id];
         Vector<SolvableId> filtered;
 
+//        std::cout << "Candidates to filter " << match_spec.str() << std::endl;
+//
+//        for(auto& solvable_id : candidates) {
+//            const PackageInfo& package_info = solvable_pool[solvable_id];
+//            std::cout << " - " << package_info.long_str() << std::endl;
+//        }
+
         if(inverse) {
             for (auto& solvable_id : candidates)
             {
@@ -509,12 +527,12 @@ struct PackageDatabase : public DependencyProvider {
                 }
             }
         }
-        // std::cout << "Keeping " << filtered.size() << " candidates for " << match_spec.str() << ":" << std::endl;
-        for (auto& solvable_id : filtered)
-        {
-            const PackageInfo& package_info = solvable_pool[solvable_id];
-            // std::cout << "  - " << package_info.long_str() << std::endl;
-        }
+//        std::cout << "Filtered candidates for " << match_spec.str() << std::endl;
+//
+//        for(auto& solvable_id : filtered) {
+//            const PackageInfo& package_info = solvable_pool[solvable_id];
+//            std::cout << " - " << package_info.long_str() << std::endl;
+//        }
 
         return filtered;
     }
@@ -1406,15 +1424,15 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
     SECTION("mamba-org/rattler/issues/684")
     {
         for (const std::vector<std::string>& specs_to_install : std::initializer_list<std::vector<std::string>> {
-              // TODO: Currently does not probably due to the ordering of the packages on track features
-              {"arrow-cpp", "abseil-cpp"},
-//            {"mlflow=2.12.2"},
-//            {"orange3=3.36.2"},
-//            {"ray-dashboard=2.6.3"},
-//            {"ray-default=2.6.3"},
-//            {"spark-nlp=5.1.2"},
-//            {"spyder=5.5.1"},
-//            {"streamlit-faker=0.0.2"}
+            // TODO: Currently does not probably due to the ordering of the packages on track features
+            {"arrow-cpp", "libabseil"},
+            {"mlflow=2.12.2"},
+            {"orange3=3.36.2"},
+            {"ray-dashboard=2.6.3"},
+            {"ray-default=2.6.3"},
+            {"spark-nlp=5.1.2"},
+            {"spyder=5.5.1"},
+            {"streamlit-faker=0.0.2"}
         })
         {
             // See: https://github.com/mamba-org/rattler/issues/684
@@ -1581,6 +1599,7 @@ TEST_CASE("Test consistency with libsolv (environment creation)") {
                 REQUIRE(resolvo_package_info.name == libsolv_package_info.name);
                 REQUIRE(resolvo_package_info.version == libsolv_package_info.version);
                 REQUIRE(resolvo_package_info.build_string == libsolv_package_info.build_string);
+
             }
         }
     }

@@ -1,3 +1,12 @@
+micromamba 2.0.0rc1 (July 26, 2024)
+===================================
+
+
+CI fixes and doc:
+
+- chore(ci): bump github action versions by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3350
+- doc(more_concepts.rst): improve clarity by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3357
+
 micromamba 2.0.0rc0 (July 08, 2024)
 ===================================
 

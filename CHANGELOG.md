@@ -1,3 +1,23 @@
+2024.07.26
+==========
+
+Releases: libmamba 2.0.0rc1, libmambapy 2.0.0rc1, micromamba 2.0.0rc1
+
+Enhancements:
+
+- [libmamba] Update mamba.xsh: support xonsh >= 0.18.0 by @anki-code in https://github.com/mamba-org/mamba/pull/3355
+- [libmamba] Remove logs for every package by @Hind-M in https://github.com/mamba-org/mamba/pull/3335
+
+Bug fixes:
+
+- [libmamba] Allow leading lowercase letter in version by @Hind-M in https://github.com/mamba-org/mamba/pull/3361
+- [libmamba] Allow spaces in version after operator by @Hind-M in https://github.com/mamba-org/mamba/pull/3358
+
+CI fixes and doc:
+
+- [all] chore(ci): bump github action versions by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3350
+- [all] doc(more_concepts.rst): improve clarity by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3357
+
 2024.07.08
 ==========
 

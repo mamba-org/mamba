@@ -39,7 +39,7 @@ namespace mamba::util
             std::size_t left_child = 0;
             std::size_t right_child = 0;
 
-            // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
+            // TODO(C++20): replace by the `= default` implementation of `operator==`
             [[nodiscard]] auto operator==(const branch_node& other) const -> bool
             {
                 return data == other.data                 //
@@ -103,7 +103,7 @@ namespace mamba::util
         [[nodiscard]] auto right(idx_type idx) const -> idx_type;
         [[nodiscard]] auto root() const -> idx_type;
 
-        // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
         [[nodiscard]] auto operator==(const flat_binary_tree& other) const -> bool
         {
             return m_nodes == other.m_nodes && m_root == other.m_root;

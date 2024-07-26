@@ -136,7 +136,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
 
-        // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
         [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool
         {
             return m_channel == other.m_channel               //
@@ -174,7 +174,7 @@ namespace mamba::specs
             string_set track_features = {};
             bool optional = false;
 
-            // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
+            // TODO(C++20): replace by the `= default` implementation of `operator==`
             [[nodiscard]] auto operator==(const ExtraMembers& other) const -> bool
             {
                 return filename == other.filename                 //

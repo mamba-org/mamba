@@ -136,7 +136,8 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
 
-        auto operator==(const MatchSpec& other) const -> bool
+        // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
+        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool
         {
             return m_channel == other.m_channel && m_version == other.m_version
                    && m_name == other.m_name && m_build_string == other.m_build_string
@@ -144,14 +145,14 @@ namespace mamba::specs
                    && m_extra == other.m_extra;
         }
 
-        auto operator!=(const MatchSpec& other) const -> bool
+        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool
         {
             return !(*this == other);
         }
 
-        auto extra_members_hash(std::size_t seed) const -> std::size_t
+        auto extra_members_hash() const -> std::size_t
         {
-            return mamba::util::hash_combine_val(seed, m_extra);
+            return mamba::util::hash_vals(m_extra);
         }
 
     private:
@@ -170,6 +171,7 @@ namespace mamba::specs
             string_set track_features = {};
             bool optional = false;
 
+            // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
             [[nodiscard]] auto operator==(const ExtraMembers& other) const -> bool
             {
                 return filename == other.filename && subdirs == other.subdirs && md5 == other.md5
@@ -296,15 +298,15 @@ struct std::hash<mamba::specs::MatchSpec>
 {
     auto operator()(const mamba::specs::MatchSpec& spec) const -> std::size_t
     {
-        auto seed = std::size_t(0);
-        seed = mamba::util::hash_combine_val(seed, spec.channel());
-        seed = mamba::util::hash_combine_val(seed, spec.version());
-        seed = mamba::util::hash_combine_val(seed, spec.name());
-        seed = mamba::util::hash_combine_val(seed, spec.build_string());
-        seed = mamba::util::hash_combine_val(seed, spec.name_space());
-        seed = mamba::util::hash_combine_val(seed, spec.build_number());
-        seed = spec.extra_members_hash(seed);
-        return seed;
+        return mamba::util::hash_vals(
+            spec.channel(),
+            spec.version(),
+            spec.name(),
+            spec.build_string(),
+            spec.name_space(),
+            spec.build_number(),
+            spec.extra_members_hash()
+        );
     }
 };
 
@@ -313,17 +315,17 @@ struct std::hash<mamba::specs::MatchSpec::ExtraMembers>
 {
     auto operator()(const mamba::specs::MatchSpec::ExtraMembers& extra) const -> std::size_t
     {
-        auto seed = std::size_t(0);
-        seed = mamba::util::hash_combine_val(seed, extra.filename);
-        seed = mamba::util::hash_combine_val(seed, extra.subdirs);
-        seed = mamba::util::hash_combine_val(seed, extra.md5);
-        seed = mamba::util::hash_combine_val(seed, extra.sha256);
-        seed = mamba::util::hash_combine_val(seed, extra.license);
-        seed = mamba::util::hash_combine_val(seed, extra.license_family);
-        seed = mamba::util::hash_combine_val(seed, extra.features);
-        seed = mamba::util::hash_combine_val(seed, extra.track_features);
-        seed = mamba::util::hash_combine_val(seed, extra.optional);
-        return seed;
+        return mamba::util::hash_vals(
+            extra.filename,
+            extra.subdirs,
+            extra.md5,
+            extra.sha256,
+            extra.license,
+            extra.license_family,
+            extra.features,
+            extra.track_features,
+            extra.optional
+        );
     }
 };
 

@@ -89,18 +89,21 @@ struct std::hash<mamba::specs::PackageInfo>
     auto operator()(const mamba::specs::PackageInfo& pkg) const -> std::size_t
     {
         auto seed = std::size_t(0);
-        seed = mamba::util::hash_combine_val(seed, pkg.name);
-        seed = mamba::util::hash_combine_val(seed, pkg.version);
-        seed = mamba::util::hash_combine_val(seed, pkg.build_string);
-        seed = mamba::util::hash_combine_val(seed, pkg.build_number);
-        seed = mamba::util::hash_combine_val(seed, pkg.channel);
-        seed = mamba::util::hash_combine_val(seed, pkg.package_url);
-        seed = mamba::util::hash_combine_val(seed, pkg.platform);
-        seed = mamba::util::hash_combine_val(seed, pkg.filename);
-        seed = mamba::util::hash_combine_val(seed, pkg.license);
-        seed = mamba::util::hash_combine_val(seed, pkg.md5);
-        seed = mamba::util::hash_combine_val(seed, pkg.sha256);
-        seed = mamba::util::hash_combine_val(seed, pkg.signatures);
+        seed = mamba::util::hash_vals(
+            seed,
+            pkg.name,
+            pkg.version,
+            pkg.build_string,
+            pkg.build_number,
+            pkg.channel,
+            pkg.package_url,
+            pkg.platform,
+            pkg.filename,
+            pkg.license,
+            pkg.md5,
+            pkg.sha256,
+            pkg.signatures
+        );
         seed = mamba::util::hash_combine_val_range(
             seed,
             pkg.track_features.begin(),
@@ -117,10 +120,7 @@ struct std::hash<mamba::specs::PackageInfo>
             pkg.defaulted_keys.begin(),
             pkg.defaulted_keys.end()
         );
-        seed = mamba::util::hash_combine_val(seed, pkg.noarch);
-        seed = mamba::util::hash_combine_val(seed, pkg.size);
-        seed = mamba::util::hash_combine_val(seed, pkg.timestamp);
-        seed = mamba::util::hash_combine_val(seed, pkg.package_type);
+        seed = mamba::util::hash_vals(seed, pkg.noarch, pkg.size, pkg.timestamp, pkg.package_type);
         return seed;
     }
 };

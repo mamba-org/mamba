@@ -154,11 +154,7 @@ struct std::hash<mamba::specs::UnresolvedChannel>
 {
     auto operator()(const mamba::specs::UnresolvedChannel& uc) const -> std::size_t
     {
-        auto seed = std::size_t{ 0 };
-        seed = mamba::util::hash_combine_val(seed, uc.location());
-        seed = mamba::util::hash_combine_val(seed, uc.platform_filters());
-        seed = mamba::util::hash_combine_val(seed, static_cast<int>(uc.type()));
-        return seed;
+        return mamba::util::hash_vals(uc.location(), uc.platform_filters(), static_cast<int>(uc.type()));
     }
 };
 

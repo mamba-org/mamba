@@ -125,6 +125,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(BuildNumber point) const -> bool;
 
+        // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
         [[nodiscard]] auto operator==(const BuildNumberSpec& other) const -> bool
         {
             return m_predicate == other.m_predicate;
@@ -171,10 +172,7 @@ struct std::hash<mamba::specs::BuildNumberSpec>
 {
     auto operator()(const mamba::specs::BuildNumberSpec& spec) const -> std::size_t
     {
-        auto seed = std::size_t{ 0 };
-        seed = mamba::util::hash_combine_val(seed, spec.str());
-
-        return seed;
+        return mamba::util::hash_vals(spec.str());
     }
 };
 

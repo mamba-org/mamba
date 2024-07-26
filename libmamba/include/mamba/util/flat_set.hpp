@@ -565,12 +565,7 @@ struct std::hash<mamba::util::flat_set<Key, Compare, Allocator>>
 {
     auto operator()(const mamba::util::flat_set<Key, Compare, Allocator>& set) const -> std::size_t
     {
-        auto seed = std::size_t{ 0 };
-        for (const auto& key : set)
-        {
-            seed = mamba::util::hash_combine_val(seed, key);
-        }
-        return seed;
+        return mamba::util::hash_vals(set);
     }
 };
 

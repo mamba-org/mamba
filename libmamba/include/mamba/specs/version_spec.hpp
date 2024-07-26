@@ -251,9 +251,7 @@ struct std::hash<mamba::specs::VersionPredicate>
 {
     auto operator()(const mamba::specs::VersionPredicate& pred) const -> std::size_t
     {
-        auto seed = std::size_t{ 0 };
-        seed = mamba::util::hash_combine_val(seed, pred.str());
-        return seed;
+        return mamba::util::hash_vals(pred.str());
     }
 };
 
@@ -262,9 +260,7 @@ struct std::hash<mamba::specs::VersionSpec>
 {
     auto operator()(const mamba::specs::VersionSpec& spec) const -> std::size_t
     {
-        auto seed = std::size_t{ 0 };
-        seed = mamba::util::hash_combine_val(seed, spec.str());
-        return seed;
+        return mamba::util::hash_vals(spec.str());
     }
 };
 

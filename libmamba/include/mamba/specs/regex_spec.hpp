@@ -47,11 +47,11 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> const std::string&;
 
+        // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
         [[nodiscard]] auto operator==(const RegexSpec& other) const -> bool
         {
-            return (
-                m_raw_pattern == other.m_raw_pattern && m_pattern.flags() == other.m_pattern.flags()
-            );
+            return m_raw_pattern == other.m_raw_pattern
+                   && m_pattern.flags() == other.m_pattern.flags();
         }
 
         [[nodiscard]] auto operator!=(const RegexSpec& other) const -> bool

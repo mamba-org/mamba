@@ -52,6 +52,7 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> const std::string&;
 
+        // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
         [[nodiscard]] auto operator==(const ChimeraStringSpec& other) const -> bool
         {
             return m_spec == other.m_spec;
@@ -82,9 +83,7 @@ struct std::hash<mamba::specs::ChimeraStringSpec>
 {
     auto operator()(const mamba::specs::ChimeraStringSpec& spec) const -> std::size_t
     {
-        auto seed = std::size_t(0);
-        seed = mamba::util::hash_combine_val(seed, spec.str());
-        return seed;
+        return mamba::util::hash_vals(spec.str());
     }
 };
 

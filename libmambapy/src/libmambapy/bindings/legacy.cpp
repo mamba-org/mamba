@@ -1208,7 +1208,10 @@ bind_submodule_impl(pybind11::module_ m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", [](Context& context) { return get_virtual_packages(context); });
+    m.def(
+        "get_virtual_packages",
+        [](Context& context) { return get_virtual_packages(context.platform); }
+    );
 
     m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });
 

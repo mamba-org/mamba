@@ -52,7 +52,7 @@ namespace mamba
                 using Version = specs::Version;
 
                 auto& ctx = mambatests::context();
-                auto pkgs = detail::dist_packages(ctx);
+                auto pkgs = detail::dist_packages(ctx.platform);
 
                 if (util::on_win)
                 {
@@ -86,9 +86,8 @@ namespace mamba
                 auto restore_ctx = [&ctx, old_plat = ctx.platform]() { ctx.platform = old_plat; };
                 auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };
 
-                ctx.platform = "osx-arm";
                 util::set_env("CONDA_OVERRIDE_OSX", "12.1");
-                pkgs = detail::dist_packages(ctx);
+                pkgs = detail::dist_packages("osx-arm");
                 REQUIRE_EQ(pkgs.size(), 3);
                 CHECK_EQ(pkgs[0].name, "__unix");
                 CHECK_EQ(pkgs[1].name, "__osx");
@@ -97,10 +96,9 @@ namespace mamba
                 CHECK_EQ(pkgs[2].build_string, "arm");
 
                 util::unset_env("CONDA_OVERRIDE_OSX");
-                ctx.platform = "linux-32";
                 util::set_env("CONDA_OVERRIDE_LINUX", "5.7");
                 util::set_env("CONDA_OVERRIDE_GLIBC", "2.15");
-                pkgs = detail::dist_packages(ctx);
+                pkgs = detail::dist_packages("linux-32");
                 REQUIRE_EQ(pkgs.size(), 4);
                 CHECK_EQ(pkgs[0].name, "__unix");
                 CHECK_EQ(pkgs[1].name, "__linux");
@@ -112,15 +110,13 @@ namespace mamba
                 util::unset_env("CONDA_OVERRIDE_GLIBC");
                 util::unset_env("CONDA_OVERRIDE_LINUX");
 
-                ctx.platform = "lin-850";
-                pkgs = detail::dist_packages(ctx);
+                pkgs = detail::dist_packages("lin-850");
                 REQUIRE_EQ(pkgs.size(), 1);
                 CHECK_EQ(pkgs[0].name, "__archspec");
                 CHECK_EQ(pkgs[0].build_string, "850");
                 util::unset_env("CONDA_SUBDIR");
 
-                ctx.platform = "linux";
-                pkgs = detail::dist_packages(ctx);
+                pkgs = detail::dist_packages("linux");
                 REQUIRE_EQ(pkgs.size(), 0);
 
                 ctx.platform = ctx.host_platform;
@@ -130,7 +126,7 @@ namespace mamba
             {
                 util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
                 const auto& context = mambatests::context();
-                auto pkgs = get_virtual_packages(context);
+                auto pkgs = get_virtual_packages(context.platform);
                 int pkgs_count;
 
                 if (util::on_win)
@@ -152,7 +148,7 @@ namespace mamba
                 CHECK_EQ(pkgs.back().version, "9.0");
 
                 util::unset_env("CONDA_OVERRIDE_CUDA");
-                pkgs = get_virtual_packages(context);
+                pkgs = get_virtual_packages(context.platform);
 
                 if (!detail::cuda_version().empty())
                 {

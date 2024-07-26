@@ -156,7 +156,7 @@ namespace mamba
             items.push_back({ "populated config files", sources });
 
             std::vector<std::string> virtual_pkgs;
-            for (auto pkg : get_virtual_packages(ctx))
+            for (auto pkg : get_virtual_packages(ctx.platform))
             {
                 virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
                 );

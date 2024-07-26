@@ -139,9 +139,12 @@ namespace mamba::specs
         // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
         [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool
         {
-            return m_channel == other.m_channel && m_version == other.m_version
-                   && m_name == other.m_name && m_build_string == other.m_build_string
-                   && m_name_space == other.m_name_space && m_build_number == other.m_build_number
+            return m_channel == other.m_channel               //
+                   && m_version == other.m_version            //
+                   && m_name == other.m_name                  //
+                   && m_build_string == other.m_build_string  //
+                   && m_name_space == other.m_name_space      //
+                   && m_build_number == other.m_build_number  //
                    && m_extra == other.m_extra;
         }
 
@@ -174,10 +177,15 @@ namespace mamba::specs
             // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
             [[nodiscard]] auto operator==(const ExtraMembers& other) const -> bool
             {
-                return filename == other.filename && subdirs == other.subdirs && md5 == other.md5
-                       && sha256 == other.sha256 && license == other.license
-                       && license_family == other.license_family && features == other.features
-                       && track_features == other.track_features && optional == other.optional;
+                return filename == other.filename                 //
+                       && subdirs == other.subdirs                //
+                       && md5 == other.md5                        //
+                       && sha256 == other.sha256                  //
+                       && license == other.license                //
+                       && license_family == other.license_family  //
+                       && features == other.features              //
+                       && track_features == other.track_features  //
+                       && optional == other.optional;
             }
 
             [[nodiscard]] auto operator!=(const ExtraMembers& other) const -> bool

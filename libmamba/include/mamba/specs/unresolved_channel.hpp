@@ -114,7 +114,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto operator==(const UnresolvedChannel& other) const -> bool
         {
-            return m_location == other.m_location && m_platform_filters == other.m_platform_filters
+            return m_location == other.m_location                     //
+                   && m_platform_filters == other.m_platform_filters  //
                    && m_type == other.m_type;
         }
 

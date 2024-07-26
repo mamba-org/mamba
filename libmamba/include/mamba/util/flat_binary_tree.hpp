@@ -42,7 +42,8 @@ namespace mamba::util
             // TODO: only use the `= default` implementation of `operator==` when we will use C++20.
             [[nodiscard]] auto operator==(const branch_node& other) const -> bool
             {
-                return data == other.data && left_child == other.left_child
+                return data == other.data                 //
+                       && left_child == other.left_child  //
                        && right_child == other.right_child;
             }
 

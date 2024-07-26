@@ -473,6 +473,16 @@ namespace mamba
         return load_channels_impl(ctx, channel_context, pool, package_caches, false);
     }
 
+    auto load_channels(
+        Context& ctx,
+        ChannelContext& channel_context,
+        solver::resolvo::PackageDatabase& pool,
+        MultiPackageCache& package_caches
+    ) -> expected_t<void, mamba_aggregated_error>
+    {
+        return load_channels_impl(ctx, channel_context, pool, package_caches, false);
+    }
+
     void init_channels(Context& context, ChannelContext& channel_context)
     {
         for (const auto& mirror : context.mirrored_channels)
@@ -513,5 +523,4 @@ namespace mamba
             }
         }
     }
-
 }

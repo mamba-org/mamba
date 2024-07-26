@@ -13,12 +13,15 @@
 #include <resolvo/resolvo_dependency_provider.h>
 #include <resolvo/resolvo_pool.h>
 
+#include "mamba/core/error_handling.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/parameters.hpp"
 #include "mamba/solver/repo_info.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
+
 
 using namespace mamba;
 using namespace mamba::specs;
@@ -160,34 +163,29 @@ private:
 
 namespace mamba::solver::resolvo
 {
-    enum class LogLevel
-    {
-        Debug,
-        Warning,
-        Error,
-        Fatal,
-    };
-
-    class PackageDatabase : public DependencyProvider
+    class PackageDatabase final : public DependencyProvider
     {
     public:
 
         using logger_type = std::function<void(LogLevel, std::string_view)>;
 
         explicit PackageDatabase(specs::ChannelResolveParams channel_params)
-            : params(params)
+            : params(channel_params)
         {
         }
 
         PackageDatabase(const PackageDatabase&) = delete;
-        PackageDatabase(PackageDatabase&&);
+        PackageDatabase(PackageDatabase&&) = delete;
 
-        virtual ~PackageDatabase() = default;
+        ~PackageDatabase() = default;
 
         auto operator=(const PackageDatabase&) -> PackageDatabase& = delete;
-        auto operator=(PackageDatabase&&) -> PackageDatabase&;
+        auto operator=(PackageDatabase&&) -> PackageDatabase& = delete;
 
-        [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
+        [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&
+        {
+            return params;
+        }
 
         void set_logger(logger_type callback);
 
@@ -223,11 +221,9 @@ namespace mamba::solver::resolvo
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
 
-        auto native_serialize_repo(
-            const RepoInfo& repo,
-            const fs::u8path& path,
-            const RepodataOrigin& metadata
-        ) -> expected_t<RepoInfo>;
+        auto
+        native_serialize_repo(const RepoInfo& repo, const fs::u8path& path, const RepodataOrigin& metadata)
+            -> expected_t<RepoInfo>;
 
         [[nodiscard]] auto installed_repo() const -> std::optional<RepoInfo>;
 
@@ -318,32 +314,6 @@ namespace mamba::solver::resolvo
                 }
                 // Placeholder return value
                 return VersionSetId{ 0 };
-            }
-
-            // NOTE: This works around some improperly encoded `constrains` in the test data, e.g.:
-            //      `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit
-            //      >= 10.2" `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
-            //      `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
-            //      `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or
-            //      `dep`:
-            //      ">=4.5.2"
-            // Remove any with space after the binary operators
-            for (const std::string& op : { ">=", "<=", "==", ">", "<", "!=", "=", "==" })
-            {
-                const std::string& bad_op = op + " ";
-                while (raw_match_spec_str.find(bad_op) != std::string::npos)
-                {
-                    raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(bad_op))
-                                         + op
-                                         + raw_match_spec_str.substr(
-                                             raw_match_spec_str.find(bad_op) + bad_op.size()
-                                         );
-                }
-                // If start with binary operator, prepend NONE
-                if (raw_match_spec_str.find(op) == 0)
-                {
-                    raw_match_spec_str = "NONE " + raw_match_spec_str;
-                }
             }
 
             const MatchSpec match_spec = MatchSpec::parse(raw_match_spec_str).value();
@@ -709,6 +679,11 @@ namespace mamba::solver::resolvo
             }
 
             return dependencies;
+        }
+
+        const PackageInfo& get_solvable(SolvableId solvable_id)
+        {
+            return solvable_pool[solvable_id];
         }
 
     private:

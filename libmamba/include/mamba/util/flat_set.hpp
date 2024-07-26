@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "mamba/util/tuple_hash.hpp"
+
 namespace mamba::util
 {
 
@@ -557,4 +559,19 @@ namespace mamba::util
         return out;
     }
 }
+
+template <typename Key, typename Compare, typename Allocator>
+struct std::hash<mamba::util::flat_set<Key, Compare, Allocator>>
+{
+    auto operator()(const mamba::util::flat_set<Key, Compare, Allocator>& set) const -> std::size_t
+    {
+        auto seed = std::size_t{ 0 };
+        for (const auto& key : set)
+        {
+            seed = mamba::util::hash_combine_val(seed, key);
+        }
+        return seed;
+    }
+};
+
 #endif

@@ -173,6 +173,16 @@ namespace mamba::util
         template <typename UnaryFunc>
         void infix_for_each(UnaryFunc&& func) const;
 
+        [[nodiscard]] auto operator==(const self_type& other) const -> bool
+        {
+            return m_tree == other.m_tree;
+        }
+
+        [[nodiscard]] auto operator!=(const self_type& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         using idx_type = typename tree_type::idx_type;

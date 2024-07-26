@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -124,6 +125,16 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(BuildNumber point) const -> bool;
 
+        [[nodiscard]] auto operator==(const BuildNumberSpec& other) const -> bool
+        {
+            return m_predicate == other.m_predicate;
+        }
+
+        [[nodiscard]] auto operator!=(const BuildNumberSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         BuildNumberPredicate m_predicate;
@@ -153,6 +164,18 @@ struct fmt::formatter<mamba::specs::BuildNumberSpec>
 
     auto
     format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx) -> decltype(ctx.out());
+};
+
+template <>
+struct std::hash<mamba::specs::BuildNumberSpec>
+{
+    auto operator()(const mamba::specs::BuildNumberSpec& spec) const -> std::size_t
+    {
+        auto seed = std::size_t{ 0 };
+        seed = mamba::util::hash_combine_val(seed, spec.str());
+
+        return seed;
+    }
 };
 
 #endif

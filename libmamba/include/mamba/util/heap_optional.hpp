@@ -68,6 +68,20 @@ namespace mamba::util
 
         void reset();
 
+        [[nodiscard]] auto operator==(const heap_optional& other) const -> bool
+        {
+            if (has_value() && other.has_value())
+            {
+                return *m_ptr == *other;
+            }
+            return !has_value() && !other.has_value();
+        }
+
+        [[nodiscard]] auto operator!=(const heap_optional& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         std::unique_ptr<element_type> m_ptr = nullptr;
@@ -236,4 +250,18 @@ namespace mamba::util
         m_ptr = nullptr;
     }
 }
+
+template <typename T>
+struct std::hash<mamba::util::heap_optional<T>>
+{
+    std::size_t operator()(const mamba::util::heap_optional<T>& opt) const
+    {
+        if (opt.has_value())
+        {
+            return std::hash<T>{}(*opt);
+        }
+        return 0;
+    }
+};
+
 #endif

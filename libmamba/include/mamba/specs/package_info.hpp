@@ -15,6 +15,7 @@
 
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -81,4 +82,47 @@ namespace mamba::specs
 
     void from_json(const nlohmann::json& j, PackageInfo& pkg);
 }
+
+template <>
+struct std::hash<mamba::specs::PackageInfo>
+{
+    auto operator()(const mamba::specs::PackageInfo& pkg) const -> std::size_t
+    {
+        auto seed = std::size_t(0);
+        seed = mamba::util::hash_combine_val(seed, pkg.name);
+        seed = mamba::util::hash_combine_val(seed, pkg.version);
+        seed = mamba::util::hash_combine_val(seed, pkg.build_string);
+        seed = mamba::util::hash_combine_val(seed, pkg.build_number);
+        seed = mamba::util::hash_combine_val(seed, pkg.channel);
+        seed = mamba::util::hash_combine_val(seed, pkg.package_url);
+        seed = mamba::util::hash_combine_val(seed, pkg.platform);
+        seed = mamba::util::hash_combine_val(seed, pkg.filename);
+        seed = mamba::util::hash_combine_val(seed, pkg.license);
+        seed = mamba::util::hash_combine_val(seed, pkg.md5);
+        seed = mamba::util::hash_combine_val(seed, pkg.sha256);
+        seed = mamba::util::hash_combine_val(seed, pkg.signatures);
+        seed = mamba::util::hash_combine_val_range(
+            seed,
+            pkg.track_features.begin(),
+            pkg.track_features.end()
+        );
+        seed = mamba::util::hash_combine_val_range(
+            seed,
+            pkg.dependencies.begin(),
+            pkg.dependencies.end()
+        );
+        seed = mamba::util::hash_combine_val_range(seed, pkg.constrains.begin(), pkg.constrains.end());
+        seed = mamba::util::hash_combine_val_range(
+            seed,
+            pkg.defaulted_keys.begin(),
+            pkg.defaulted_keys.end()
+        );
+        seed = mamba::util::hash_combine_val(seed, pkg.noarch);
+        seed = mamba::util::hash_combine_val(seed, pkg.size);
+        seed = mamba::util::hash_combine_val(seed, pkg.timestamp);
+        seed = mamba::util::hash_combine_val(seed, pkg.package_type);
+        return seed;
+    }
+};
+
 #endif

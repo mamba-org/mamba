@@ -16,12 +16,11 @@ namespace mamba
 {
     class Context;
 
-    std::vector<specs::PackageInfo> get_virtual_packages(const Context& context);
+    std::vector<specs::PackageInfo> get_virtual_packages(const std::string& platform);
 
     namespace detail
     {
         std::string cuda_version();
-        std::string get_arch();
 
         auto make_virtual_package(
             std::string name,
@@ -30,7 +29,7 @@ namespace mamba
             std::string build_string = ""
         ) -> specs::PackageInfo;
 
-        std::vector<specs::PackageInfo> dist_packages(const Context& context);
+        std::vector<specs::PackageInfo> dist_packages(const std::string& platform);
     }
 }
 

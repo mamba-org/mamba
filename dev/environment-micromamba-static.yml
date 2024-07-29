@@ -12,7 +12,8 @@ dependencies:
   - nlohmann_json
   - simdjson-static >=3.3.0
   - spdlog
-  - fmt
+  # TODO: Support fmt 11
+  - fmt <11
   - libsolv-static >=0.7.24
   - yaml-cpp-static >=0.8.0
   - reproc-static >=14.2.4.post0

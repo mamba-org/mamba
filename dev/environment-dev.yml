@@ -8,7 +8,8 @@ dependencies:
   - ninja
   # libmamba dependencies
   - cpp-expected
-  - fmt
+  # TODO: Support fmt 11
+  - fmt <11
   - libarchive
   - libcurl >=7.86
   - libsodium

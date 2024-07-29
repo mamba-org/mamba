@@ -153,10 +153,7 @@ namespace mamba::specs
             return !(*this == other);
         }
 
-        auto extra_members_hash() const -> std::size_t
-        {
-            return mamba::util::hash_vals(m_extra);
-        }
+        auto extra_members_hash() const -> std::size_t;
 
     private:
 

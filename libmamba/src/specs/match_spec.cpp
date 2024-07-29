@@ -1044,6 +1044,11 @@ namespace mamba::specs
         return *m_extra;
     }
 
+    auto MatchSpec::extra_members_hash() const -> std::size_t
+    {
+        return std::hash<ExtraMembers>{}(m_extra.value_or(ExtraMembers()));
+    }
+
     namespace match_spec_literals
     {
         auto operator""_ms(const char* str, std::size_t len) -> MatchSpec

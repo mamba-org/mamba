@@ -190,5 +190,39 @@ TEST_SUITE("specs::package_info")
                 CHECK_FALSE(j.get<PackageInfo>() != pkg);
             }
         }
+
+        SUBCASE("PackageInfo comparability and hashability")
+        {
+            auto pkg2 = PackageInfo();
+            pkg2.name = "foo";
+            pkg2.version = "4.0";
+            pkg2.build_string = "mybld";
+            pkg2.build_number = 5;
+            pkg2.noarch = NoArchType::Generic;
+            pkg2.channel = "conda-forge";
+            pkg2.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda";
+            pkg2.platform = "linux-64";
+            pkg2.filename = "foo-4.0-mybld.conda";
+            pkg2.license = "MIT";
+            pkg2.size = 3200;
+            pkg2.timestamp = 4532;
+            pkg2.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
+            pkg2.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
+            pkg2.md5 = "68b329da9893e34099c7d8ad5cb9c940";
+            pkg2.track_features = { "mkl", "blas" };
+            pkg2.dependencies = { "python>=3.7", "requests" };
+            pkg2.constrains = { "pip>=2.1" };
+
+            auto hash_fn = std::hash<PackageInfo>{};
+
+            CHECK_EQ(pkg, pkg2);
+            CHECK_EQ(hash_fn(pkg), hash_fn(pkg2));
+
+
+            pkg2.md5[0] = '0';
+
+            CHECK_NE(pkg, pkg2);
+            CHECK_NE(hash_fn(pkg), hash_fn(pkg2));
+        }
     }
 }

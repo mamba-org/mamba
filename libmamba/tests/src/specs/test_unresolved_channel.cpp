@@ -242,4 +242,18 @@ TEST_SUITE("specs::unresolved_channel")
             "location[linux-64,noarch]"
         );
     }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto uc1 = UnresolvedChannel::parse("conda-forge").value();
+        auto uc2 = UnresolvedChannel::parse("conda-forge").value();
+        auto uc3 = UnresolvedChannel::parse("conda-forge/linux-64").value();
+
+        CHECK_EQ(uc1, uc2);
+        CHECK_NE(uc1, uc3);
+
+        auto hash_fn = std::hash<UnresolvedChannel>();
+        CHECK_EQ(hash_fn(uc1), hash_fn(uc2));
+        CHECK_NE(hash_fn(uc1), hash_fn(uc3));
+    }
 }

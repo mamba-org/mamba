@@ -251,17 +251,4 @@ namespace mamba::util
     }
 }
 
-template <typename T>
-struct std::hash<mamba::util::heap_optional<T>>
-{
-    std::size_t operator()(const mamba::util::heap_optional<T>& opt) const
-    {
-        if (opt.has_value())
-        {
-            return std::hash<T>{}(*opt);
-        }
-        return 0;
-    }
-};
-
 #endif

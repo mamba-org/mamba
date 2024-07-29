@@ -565,7 +565,7 @@ struct std::hash<mamba::util::flat_set<Key, Compare, Allocator>>
 {
     auto operator()(const mamba::util::flat_set<Key, Compare, Allocator>& set) const -> std::size_t
     {
-        return mamba::util::hash_vals(set);
+        return mamba::util::hash_range(set);
     }
 };
 

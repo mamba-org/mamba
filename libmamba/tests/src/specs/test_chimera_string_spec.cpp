@@ -70,4 +70,18 @@ TEST_SUITE("specs::chimera_string_spec")
         CHECK_FALSE(spec.is_exact());
         CHECK_FALSE(spec.is_glob());
     }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto spec1 = ChimeraStringSpec::parse("mkl").value();
+        auto spec2 = ChimeraStringSpec::parse("mkl").value();
+        auto spec3 = ChimeraStringSpec::parse("*").value();
+
+        CHECK_EQ(spec1, spec2);
+        CHECK_NE(spec1, spec3);
+
+        std::hash<ChimeraStringSpec> hash_fn;
+        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
+        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+    }
 }

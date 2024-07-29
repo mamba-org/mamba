@@ -812,4 +812,31 @@ TEST_SUITE("specs::match_spec")
             }));
         }
     }
+
+    TEST_CASE("MatchSpec comparability and hashability")
+    {
+        using namespace specs::match_spec_literals;
+        using namespace specs::version_literals;
+
+        const auto spec1 = "py*>=3.7=bld[build_number='<=2', md5=lemd5, track_features='mkl,openssl']"_ms;
+
+        // Create an identical specification
+        const auto spec2 = "py*>=3.7=bld[build_number='<=2', md5=lemd5, track_features='mkl,openssl']"_ms;
+
+        // Create a different specification
+        const auto spec3 = "py*>=3.7=bld[build_number='<=2', md5=lemd5, track_features='mkl']"_ms;
+
+        // Check that the two copies are equal
+        CHECK_EQ(spec1, spec2);
+        // Check that the different specification is not equal to the first one
+        CHECK_NE(spec1, spec3);
+
+        // Check that the hash of the two copies is the same
+        auto spec1_hash = std::hash<MatchSpec>{}(spec1);
+        auto spec2_hash = std::hash<MatchSpec>{}(spec2);
+        auto spec3_hash = std::hash<MatchSpec>{}(spec3);
+
+        CHECK_EQ(spec1_hash, spec2_hash);
+        CHECK_NE(spec1_hash, spec3_hash);
+    }
 }

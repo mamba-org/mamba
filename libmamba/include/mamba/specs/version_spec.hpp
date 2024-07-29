@@ -229,8 +229,8 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto
-    format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) -> decltype(ctx.out());
+    auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) const
+        -> decltype(ctx.out());
 };
 
 template <>
@@ -243,7 +243,8 @@ struct fmt::formatter<mamba::specs::VersionSpec>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) const -> decltype(ctx.out());
 };
 
 template <>

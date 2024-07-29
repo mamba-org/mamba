@@ -191,7 +191,7 @@ auto
 fmt::formatter<mamba::specs::VersionPartAtom>::format(
     const ::mamba::specs::VersionPartAtom atom,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.literal());
 }
@@ -792,7 +792,7 @@ fmt::formatter<mamba::specs::Version>::parse(format_parse_context& ctx) -> declt
 
 auto
 fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, format_context& ctx)
-    -> decltype(ctx.out())
+    const -> decltype(ctx.out())
 {
     auto out = ctx.out();
     if (v.epoch() != 0)

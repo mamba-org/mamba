@@ -154,7 +154,7 @@ struct fmt::formatter<mamba::specs::BuildNumberPredicate>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::BuildNumberPredicate& pred, format_context& ctx)
+    auto format(const ::mamba::specs::BuildNumberPredicate& pred, format_context& ctx) const
         -> decltype(ctx.out());
 };
 
@@ -163,8 +163,8 @@ struct fmt::formatter<mamba::specs::BuildNumberSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto
-    format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx) const
+        -> decltype(ctx.out());
 };
 
 template <>

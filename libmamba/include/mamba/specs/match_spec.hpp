@@ -229,7 +229,8 @@ struct fmt::formatter<::mamba::specs::MatchSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) const -> decltype(ctx.out());
 };
 
 /*********************************

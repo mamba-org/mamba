@@ -10,6 +10,7 @@
 #include <string>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <reproc++/run.hpp>
 
 #include "mamba/util/environment.hpp"

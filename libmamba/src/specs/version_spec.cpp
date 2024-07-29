@@ -195,7 +195,7 @@ auto
 fmt::formatter<mamba::specs::VersionPredicate>::format(
     const ::mamba::specs::VersionPredicate& pred,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     using VersionPredicate = typename mamba::specs::VersionPredicate;
     using VersionSpec = typename mamba::specs::VersionSpec;
@@ -589,7 +589,7 @@ auto
 fmt::formatter<mamba::specs::VersionSpec>::format(
     const ::mamba::specs::VersionSpec& spec,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     using VersionSpec = typename mamba::specs::VersionSpec;
 

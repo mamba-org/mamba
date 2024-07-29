@@ -15,6 +15,7 @@
 
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -81,4 +82,47 @@ namespace mamba::specs
 
     void from_json(const nlohmann::json& j, PackageInfo& pkg);
 }
+
+template <>
+struct std::hash<mamba::specs::PackageInfo>
+{
+    auto operator()(const mamba::specs::PackageInfo& pkg) const -> std::size_t
+    {
+        auto seed = std::size_t(0);
+        seed = mamba::util::hash_vals(
+            seed,
+            pkg.name,
+            pkg.version,
+            pkg.build_string,
+            pkg.build_number,
+            pkg.channel,
+            pkg.package_url,
+            pkg.platform,
+            pkg.filename,
+            pkg.license,
+            pkg.md5,
+            pkg.sha256,
+            pkg.signatures
+        );
+        seed = mamba::util::hash_combine_val_range(
+            seed,
+            pkg.track_features.begin(),
+            pkg.track_features.end()
+        );
+        seed = mamba::util::hash_combine_val_range(
+            seed,
+            pkg.dependencies.begin(),
+            pkg.dependencies.end()
+        );
+        seed = mamba::util::hash_combine_val_range(seed, pkg.constrains.begin(), pkg.constrains.end());
+        seed = mamba::util::hash_combine_val_range(
+            seed,
+            pkg.defaulted_keys.begin(),
+            pkg.defaulted_keys.end()
+        );
+        seed = mamba::util::hash_vals(seed, pkg.noarch, pkg.size, pkg.timestamp, pkg.package_type);
+        return seed;
+    }
+};
+
 #endif

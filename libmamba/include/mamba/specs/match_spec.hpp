@@ -22,6 +22,7 @@
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/heap_optional.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -135,6 +136,28 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
 
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
+        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool
+        {
+            return m_channel == other.m_channel               //
+                   && m_version == other.m_version            //
+                   && m_name == other.m_name                  //
+                   && m_build_string == other.m_build_string  //
+                   && m_name_space == other.m_name_space      //
+                   && m_build_number == other.m_build_number  //
+                   && m_extra == other.m_extra;
+        }
+
+        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
+        auto extra_members_hash() const -> std::size_t
+        {
+            return mamba::util::hash_vals(m_extra);
+        }
+
     private:
 
         struct ExtraMembers
@@ -150,7 +173,29 @@ namespace mamba::specs
             std::string features = {};
             string_set track_features = {};
             bool optional = false;
+
+            // TODO(C++20): replace by the `= default` implementation of `operator==`
+            [[nodiscard]] auto operator==(const ExtraMembers& other) const -> bool
+            {
+                return filename == other.filename                 //
+                       && subdirs == other.subdirs                //
+                       && md5 == other.md5                        //
+                       && sha256 == other.sha256                  //
+                       && license == other.license                //
+                       && license_family == other.license_family  //
+                       && features == other.features              //
+                       && track_features == other.track_features  //
+                       && optional == other.optional;
+            }
+
+            [[nodiscard]] auto operator!=(const ExtraMembers& other) const -> bool
+            {
+                return !(*this == other);
+            }
+
+            friend struct std::hash<ExtraMembers>;
         };
+        friend struct std::hash<MatchSpec::ExtraMembers>;
 
         std::optional<UnresolvedChannel> m_channel;
         VersionSpec m_version;
@@ -255,4 +300,41 @@ namespace mamba::specs
         return true;
     }
 }
+
+template <>
+struct std::hash<mamba::specs::MatchSpec>
+{
+    auto operator()(const mamba::specs::MatchSpec& spec) const -> std::size_t
+    {
+        return mamba::util::hash_vals(
+            spec.channel(),
+            spec.version(),
+            spec.name(),
+            spec.build_string(),
+            spec.name_space(),
+            spec.build_number(),
+            spec.extra_members_hash()
+        );
+    }
+};
+
+template <>
+struct std::hash<mamba::specs::MatchSpec::ExtraMembers>
+{
+    auto operator()(const mamba::specs::MatchSpec::ExtraMembers& extra) const -> std::size_t
+    {
+        return mamba::util::hash_vals(
+            extra.filename,
+            extra.subdirs,
+            extra.md5,
+            extra.sha256,
+            extra.license,
+            extra.license_family,
+            extra.features,
+            extra.track_features,
+            extra.optional
+        );
+    }
+};
+
 #endif

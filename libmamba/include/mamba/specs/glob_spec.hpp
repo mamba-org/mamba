@@ -43,6 +43,17 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> const std::string&;
 
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
+        [[nodiscard]] auto operator==(const GlobSpec& other) const -> bool
+        {
+            return m_pattern == other.m_pattern;
+        }
+
+        [[nodiscard]] auto operator!=(const GlobSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         std::string m_pattern = std::string(free_pattern);
@@ -55,6 +66,15 @@ struct fmt::formatter<mamba::specs::GlobSpec>
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
     auto format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) -> decltype(ctx.out());
+};
+
+template <>
+struct std::hash<mamba::specs::GlobSpec>
+{
+    auto operator()(const mamba::specs::GlobSpec& spec) const -> std::size_t
+    {
+        return std::hash<std::string>{}(spec.str());
+    }
 };
 
 #endif

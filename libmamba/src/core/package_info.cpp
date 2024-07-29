@@ -11,6 +11,7 @@
 #include <tuple>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/specs/archive.hpp"

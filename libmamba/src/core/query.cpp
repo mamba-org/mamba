@@ -14,6 +14,7 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/ranges.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"

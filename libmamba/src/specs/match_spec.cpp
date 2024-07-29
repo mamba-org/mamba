@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -1069,7 +1070,7 @@ auto
 fmt::formatter<::mamba::specs::MatchSpec>::format(
     const ::mamba::specs::MatchSpec& spec,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     using MatchSpec = ::mamba::specs::MatchSpec;
 

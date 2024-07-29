@@ -102,7 +102,7 @@ auto
 fmt::formatter<mamba::specs::RegexSpec>::format(
     const ::mamba::specs::RegexSpec& spec,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.str());
 }

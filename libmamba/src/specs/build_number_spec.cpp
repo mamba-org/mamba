@@ -113,7 +113,7 @@ auto
 fmt::formatter<mamba::specs::BuildNumberPredicate>::format(
     const ::mamba::specs::BuildNumberPredicate& pred,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     using BuildNumberPredicate = typename mamba::specs::BuildNumberPredicate;
     using BuildNumber = typename BuildNumberPredicate::BuildNumber;
@@ -268,7 +268,7 @@ auto
 fmt::formatter<mamba::specs::BuildNumberSpec>::format(
     const ::mamba::specs::BuildNumberSpec& spec,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.m_predicate);
 }

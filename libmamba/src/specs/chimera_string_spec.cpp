@@ -140,7 +140,7 @@ auto
 fmt::formatter<mamba::specs::ChimeraStringSpec>::format(
     const ::mamba::specs::ChimeraStringSpec& spec,
     format_context& ctx
-) -> decltype(ctx.out())
+) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.str());
 }

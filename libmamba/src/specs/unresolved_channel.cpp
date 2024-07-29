@@ -13,6 +13,7 @@
 #include <utility>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/archive.hpp"

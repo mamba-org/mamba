@@ -71,7 +71,8 @@ struct fmt::formatter<mamba::specs::RegexSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::RegexSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::RegexSpec& spec, format_context& ctx) const -> decltype(ctx.out());
 };
 
 #endif

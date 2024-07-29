@@ -624,8 +624,8 @@ namespace mamba
             }
 
             if (!fs::exists(prefix / "pkgs")           //
-                || !fs::exists(prefix / "conda-meta")  //
-                || !fs::exists(prefix / "envs"))
+                && !fs::exists(prefix / "conda-meta")  //
+                && !fs::exists(prefix / "envs"))
             {
                 return make_unexpected(
                     fmt::format(R"(Path "{}" is not an existing root prefix.)", prefix.string()),

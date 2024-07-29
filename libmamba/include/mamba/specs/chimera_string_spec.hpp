@@ -15,7 +15,6 @@
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/regex_spec.hpp"
-#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -52,17 +51,6 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> const std::string&;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const ChimeraStringSpec& other) const -> bool
-        {
-            return m_spec == other.m_spec;
-        }
-
-        [[nodiscard]] auto operator!=(const ChimeraStringSpec& other) const -> bool
-        {
-            return !(*this == other);
-        }
-
     private:
 
         Chimera m_spec;
@@ -76,15 +64,6 @@ struct fmt::formatter<mamba::specs::ChimeraStringSpec>
 
     auto
     format(const ::mamba::specs::ChimeraStringSpec& spec, format_context& ctx) -> decltype(ctx.out());
-};
-
-template <>
-struct std::hash<mamba::specs::ChimeraStringSpec>
-{
-    auto operator()(const mamba::specs::ChimeraStringSpec& spec) const -> std::size_t
-    {
-        return mamba::util::hash_vals(spec.str());
-    }
 };
 
 #endif

@@ -47,18 +47,6 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> const std::string&;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const RegexSpec& other) const -> bool
-        {
-            return m_raw_pattern == other.m_raw_pattern
-                   && m_pattern.flags() == other.m_pattern.flags();
-        }
-
-        [[nodiscard]] auto operator!=(const RegexSpec& other) const -> bool
-        {
-            return !(*this == other);
-        }
-
     private:
 
         std::regex m_pattern;

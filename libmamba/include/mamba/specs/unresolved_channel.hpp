@@ -17,7 +17,6 @@
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/flat_set.hpp"
-#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -112,18 +111,6 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> std::string;
 
-        [[nodiscard]] auto operator==(const UnresolvedChannel& other) const -> bool
-        {
-            return m_location == other.m_location                     //
-                   && m_platform_filters == other.m_platform_filters  //
-                   && m_type == other.m_type;
-        }
-
-        [[nodiscard]] auto operator!=(const UnresolvedChannel& other) const -> bool
-        {
-            return !(*this == other);
-        }
-
     private:
 
         std::string m_location = std::string(unknown_channel);
@@ -148,15 +135,6 @@ struct fmt::formatter<mamba::specs::UnresolvedChannel>
     }
 
     auto format(const UnresolvedChannel& uc, format_context& ctx) const -> format_context::iterator;
-};
-
-template <>
-struct std::hash<mamba::specs::UnresolvedChannel>
-{
-    auto operator()(const mamba::specs::UnresolvedChannel& uc) const -> std::size_t
-    {
-        return mamba::util::hash_vals(uc.location(), uc.platform_filters(), static_cast<int>(uc.type()));
-    }
 };
 
 #endif

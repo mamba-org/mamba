@@ -55,4 +55,18 @@ TEST_SUITE("specs::glob_spec")
         CHECK_FALSE(spec.is_free());
         CHECK_FALSE(spec.is_exact());
     }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto spec1 = GlobSpec("py*");
+        auto spec2 = GlobSpec("py*");
+        auto spec3 = GlobSpec("pyth*");
+
+        CHECK_EQ(spec1, spec2);
+        CHECK_NE(spec1, spec3);
+
+        auto hash_fn = std::hash<GlobSpec>();
+        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
+        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+    }
 }

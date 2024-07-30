@@ -75,4 +75,13 @@ struct fmt::formatter<mamba::specs::RegexSpec>
     format(const ::mamba::specs::RegexSpec& spec, format_context& ctx) const -> decltype(ctx.out());
 };
 
+template <>
+struct std::hash<mamba::specs::RegexSpec>
+{
+    auto operator()(const mamba::specs::RegexSpec& spec) const -> std::size_t
+    {
+        return std::hash<std::string>{}(spec.str());
+    }
+};
+
 #endif

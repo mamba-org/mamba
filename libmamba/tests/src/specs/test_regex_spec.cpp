@@ -66,4 +66,18 @@ TEST_SUITE("specs::regex_spec")
         CHECK_FALSE(spec.is_explicitly_free());
         CHECK_FALSE(spec.is_exact());
     }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto spec1 = RegexSpec::parse("pyth*").value();
+        auto spec2 = RegexSpec::parse("pyth*").value();
+        auto spec3 = RegexSpec::parse("python").value();
+
+        CHECK_EQ(spec1, spec2);
+        CHECK_NE(spec1, spec3);
+
+        auto hash_fn = std::hash<RegexSpec>();
+        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
+        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+    }
 }

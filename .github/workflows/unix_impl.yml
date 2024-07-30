@@ -28,6 +28,10 @@ jobs:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+      - name: Use libcxx <18 (see conda-forge/libcxx-feedstock#162)
+        if: startsWith(inputs.os, 'macos')
+        run: |
+          micromamba install -n build_env -c conda-forge "libcxx<18"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

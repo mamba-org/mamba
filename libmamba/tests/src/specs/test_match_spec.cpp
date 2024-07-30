@@ -37,6 +37,26 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "xtensor==0.12.3");
         }
 
+        SUBCASE("1 1 1")
+        {
+            auto ms = MatchSpec::parse("1 1 1").value();
+            CHECK_EQ(ms.name().str(), "1");
+            CHECK_EQ(ms.version().str(), "==1");
+            CHECK_EQ(ms.build_string().str(), "1");
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "1==1=1");
+        }
+
+        SUBCASE("small-executable 1.0.0 0")
+        {
+            auto ms = MatchSpec::parse("small-executable 1.0.0 0").value();
+            CHECK_EQ(ms.name().str(), "small-executable");
+            CHECK_EQ(ms.version().str(), "==1.0.0");
+            CHECK_EQ(ms.build_string().str(), "0");
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "small-executable==1.0.0=0");
+        }
+
         SUBCASE("xtensor      >=       0.12.3")
         {
             auto ms = MatchSpec::parse("xtensor      >=       0.12.3").value();

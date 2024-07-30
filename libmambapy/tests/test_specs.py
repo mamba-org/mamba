@@ -953,6 +953,13 @@ def test_MatchSpec():
     assert str(other) == str(ms)
     assert other is not ms
 
+    # Test for osx crash
+    ms = MatchSpec.parse("small-executable 1.0.0 0")
+
+    assert str(ms.name) == "small-executable"
+    assert str(ms.version) == "==1.0.0"
+    assert str(ms.build_string) == "0"
+
 
 def test_MatchSpec_contains():
     MatchSpec = libmambapy.specs.MatchSpec

@@ -29,6 +29,8 @@ jobs:
           environment-name: build_env
           cache-environment: true
       - name: Use libcxx <18 (see conda-forge/libcxx-feedstock#162)
+        # TODO: remove this step once the issue is fixed
+        # See: https://github.com/conda-forge/libcxx-feedstock/issues/162
         if: startsWith(inputs.os, 'macos')
         run: |
           micromamba install -n build_env -c conda-forge "libcxx<18"

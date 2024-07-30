@@ -11,6 +11,7 @@
 
 #include <doctest/doctest.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/channel_context.hpp"

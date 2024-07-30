@@ -6,6 +6,7 @@
 
 #include <doctest/doctest.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "mamba/util/flat_set.hpp"
 

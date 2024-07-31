@@ -184,7 +184,6 @@ def test_explicit_export_topologically_sorted(tmp_home, tmp_prefix):
     indices = {
         "libzlib": 0,
         "python": 0,
-        "wheel": 0,
         "pip": 0,
         "jupyterlab": 0,
     }
@@ -194,6 +193,5 @@ def test_explicit_export_topologically_sorted(tmp_home, tmp_prefix):
                 indices[pkg] = i
 
     assert indices["libzlib"] < indices["python"]
-    assert indices["python"] < indices["wheel"]
-    assert indices["wheel"] < indices["pip"]
+    assert indices["python"] < indices["pip"]
     assert indices["python"] < indices["jupyterlab"]

@@ -7,10 +7,10 @@
 #include <string_view>
 #include <type_traits>
 
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "solv-cpp/repo.hpp"
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
     RepoInfo::RepoInfo(::Repo* repo)
         : m_ptr(repo)
@@ -22,9 +22,9 @@ namespace mamba::solver::libsolv
         return solv::ObjRepoViewConst(*m_ptr).name();
     }
 
-    auto RepoInfo::priority() const -> Priorities
+    auto RepoInfo::priority() const -> libsolv::Priorities
     {
-        static_assert(std::is_same_v<decltype(m_ptr->priority), Priorities::value_type>);
+        static_assert(std::is_same_v<decltype(m_ptr->priority), libsolv::Priorities::value_type>);
         return { /* .priority= */ m_ptr->priority, /* .subpriority= */ m_ptr->subpriority };
     }
 

@@ -10,9 +10,9 @@
 
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
+#include "mamba/solver/repo_info.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"

@@ -106,16 +106,6 @@ namespace mambapy
             .def("__copy__", &copy<RepodataOrigin>)
             .def("__deepcopy__", &deepcopy<RepodataOrigin>, py::arg("memo"));
 
-        py::class_<RepoInfo>(m, "RepoInfo")
-            .def_property_readonly("id", &RepoInfo::id)
-            .def_property_readonly("name", &RepoInfo::name)
-            .def_property_readonly("priority", &RepoInfo::priority)
-            .def("package_count", &RepoInfo::package_count)
-            .def(py::self == py::self)
-            .def(py::self != py::self)
-            .def("__copy__", &copy<RepoInfo>)
-            .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
-
         py::class_<Database>(m, "Database")
             .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
             .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
@@ -169,7 +159,7 @@ namespace mambapy
             .def("package_count", &Database::package_count)
             .def(
                 "packages_in_repo",
-                [](const Database& db, RepoInfo repo)
+                [](const Database& db, solver::RepoInfo repo)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.

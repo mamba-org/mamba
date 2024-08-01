@@ -101,8 +101,8 @@ namespace
      *
      * The underlying packages do not exist, we are only interested in the conflict.
      */
-    template <typename PkgRange>
-    auto create_pkgs_database(ChannelContext& channel_context, const PkgRange& packages)
+    auto
+    create_pkgs_database(ChannelContext& channel_context, const std::vector<specs::PackageInfo>& packages)
     {
         solver::libsolv::Database db{ channel_context.params() };
         db.add_repo_from_packages(packages);
@@ -114,7 +114,7 @@ TEST_CASE("Test create_pkgs_database utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto db = create_pkgs_database(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) });
+    auto db = create_pkgs_database(channel_context, std::vector{ mkpkg("foo", "0.1.0", {}) });
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
     const auto outcome = solver::libsolv::Solver().solve(db, request).value();
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
@@ -126,7 +126,7 @@ TEST_CASE("Test empty specs")
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     auto db = create_pkgs_database(
         channel_context,
-        std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
+        std::vector{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) }
     );
     auto request = Request{ {}, { Request::Install{ "foo"_ms } } };
     const auto outcome = solver::libsolv::Solver().solve(db, request).value();
@@ -140,7 +140,7 @@ namespace
         return std::pair(
             create_pkgs_database(
                 channel_context,
-                std::array{
+                std::vector{
                     mkpkg("A", "0.1.0"),
                     mkpkg("A", "0.2.0"),
                     mkpkg("A", "0.3.0"),
@@ -161,7 +161,7 @@ namespace
         return std::pair(
             create_pkgs_database(
                 channel_context,
-                std::array{
+                std::vector{
                     mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
                     mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
                     mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
@@ -279,7 +279,7 @@ namespace
         return std::pair(
             create_pkgs_database(
                 channel_context,
-                std::array{
+                std::vector{
                     mkpkg("foo", "2.0.0", { "bar=2.0" }),
                     mkpkg("bar", "1.0.0"),
                     mkpkg("bar", "2.0.0"),
@@ -597,7 +597,7 @@ TEST_CASE("Create problem graph")
     using PbGr = ProblemsGraph;
     using CpPbGr = CompressedProblemsGraph;
 
-    const auto issues = std::array{
+    const auto issues = std::vector{
         std::pair{ "Basic conflict", &create_basic_conflict },
         std::pair{ "PubGrub example", &create_pubgrub },
         std::pair{ "Harder PubGrub example", &create_pubgrub_hard },

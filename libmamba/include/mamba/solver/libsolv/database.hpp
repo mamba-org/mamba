@@ -85,17 +85,15 @@ namespace mamba::solver::libsolv
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> expected_t<RepoInfo>;
 
-        template <typename Iter>
         auto add_repo_from_packages(
-            Iter first_package,
-            Iter last_package,
+            std::vector<specs::PackageInfo>::const_iterator first_package,
+            std::vector<specs::PackageInfo>::const_iterator last_package,
             std::string_view name = "",
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
 
-        template <typename Range>
         auto add_repo_from_packages(
-            const Range& packages,
+            const std::vector<specs::PackageInfo>& packages,
             std::string_view name = "",
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
@@ -170,31 +168,6 @@ namespace mamba::solver::libsolv
     /********************
      *  Implementation  *
      ********************/
-
-    template <typename Iter>
-    auto Database::add_repo_from_packages(
-        Iter first_package,
-        Iter last_package,
-        std::string_view name,
-        PipAsPythonDependency add
-    ) -> RepoInfo
-    {
-        auto repo = add_repo_from_packages_impl_pre(name);
-        for (; first_package != last_package; ++first_package)
-        {
-            add_repo_from_packages_impl_loop(repo, *first_package);
-        }
-        add_repo_from_packages_impl_post(repo, add);
-        return repo;
-    }
-
-    template <typename Range>
-    auto
-    Database::add_repo_from_packages(const Range& packages, std::string_view name, PipAsPythonDependency add)
-        -> RepoInfo
-    {
-        return add_repo_from_packages(packages.begin(), packages.end(), name, add);
-    }
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>

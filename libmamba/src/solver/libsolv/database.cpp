@@ -365,4 +365,30 @@ namespace mamba::solver::libsolv
         );
         return out;
     }
+
+    auto Database::add_repo_from_packages(
+        std::vector<specs::PackageInfo>::const_iterator first_package,
+        std::vector<specs::PackageInfo>::const_iterator last_package,
+        std::string_view name,
+        PipAsPythonDependency add
+    ) -> RepoInfo
+    {
+        auto repo = add_repo_from_packages_impl_pre(name);
+        for (; first_package != last_package; ++first_package)
+        {
+            add_repo_from_packages_impl_loop(repo, *first_package);
+        }
+        add_repo_from_packages_impl_post(repo, add);
+        return repo;
+    }
+
+    auto Database::add_repo_from_packages(
+        const std::vector<specs::PackageInfo>& packages,
+        std::string_view name,
+        PipAsPythonDependency add
+    ) -> RepoInfo
+    {
+        return add_repo_from_packages(packages.begin(), packages.end(), name, add);
+    }
+
 }

@@ -273,7 +273,7 @@ def test_Solver_UnSolvable():
     solver = libsolv.Solver()
     outcome = solver.solve(db, request)
 
-    assert isinstance(outcome, libsolv.UnSolvable)
+    assert isinstance(outcome, libmambapy.solver.UnSolvable)
     assert len(outcome.problems(db)) > 0
     assert isinstance(outcome.problems_to_str(db), str)
     assert isinstance(outcome.all_problems_to_str(db), str)

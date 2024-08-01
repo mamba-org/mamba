@@ -269,7 +269,7 @@ def test_ProblemsGraph():
 
     outcome = libmambapy.solver.libsolv.Solver().solve(db, request)
 
-    assert isinstance(outcome, libmambapy.solver.libsolv.UnSolvable)
+    assert isinstance(outcome, libmambapy.solver.UnSolvable)
     pbg = outcome.problems_graph(db)
     assert isinstance(pbg.root_node(), int)
 

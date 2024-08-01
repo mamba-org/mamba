@@ -7,9 +7,11 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
+#include "mamba/solver/unsolvable.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -40,6 +42,18 @@ namespace mambapy
         using namespace mamba::solver;
 
         auto py_request = py::class_<Request>(m, "Request");
+
+        py::class_<UnSolvable>(m, "UnSolvable")
+            .def("problems", &UnSolvable::problems, py::arg("database"))
+            .def("problems_to_str", &UnSolvable::problems_to_str, py::arg("database"))
+            .def("all_problems_to_str", &UnSolvable::all_problems_to_str, py::arg("database"))
+            .def("problems_graph", &UnSolvable::problems_graph, py::arg("database"))
+            .def(
+                "explain_problems",
+                &UnSolvable::explain_problems,
+                py::arg("database"),
+                py::arg("format")
+            );
 
         py::class_<Request::Install>(py_request, "Install")
             .def(

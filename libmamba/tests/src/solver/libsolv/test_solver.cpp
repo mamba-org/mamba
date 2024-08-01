@@ -75,7 +75,7 @@ TEST_SUITE("solver::libsolv::solver")
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
             "conda-forge",
-            libsolv::PipAsPythonDependency::No
+            PipAsPythonDependency::No
         );
         REQUIRE(repo.has_value());
 
@@ -353,7 +353,7 @@ TEST_SUITE("solver::libsolv::solver")
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
             "conda-forge",
-            libsolv::PipAsPythonDependency::No
+            PipAsPythonDependency::No
         );
         REQUIRE(repo.has_value());
 
@@ -875,7 +875,7 @@ TEST_SUITE("solver::libsolv::solver")
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No
+                PipAsPythonDependency::No
             );
             REQUIRE(repo_linux.has_value());
 
@@ -886,7 +886,7 @@ TEST_SUITE("solver::libsolv::solver")
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
                 "https://conda.anaconda.org/conda-forge/noarch",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No
+                PipAsPythonDependency::No
             );
             REQUIRE(repo_noarch.has_value());
 

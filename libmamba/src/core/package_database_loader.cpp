@@ -20,7 +20,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
@@ -54,7 +54,7 @@ namespace mamba
 
     auto
     load_subdir_in_database(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)
-        -> expected_t<solver::libsolv::RepoInfo>
+        -> expected_t<solver::RepoInfo>
     {
         const auto expected_cache_origin = solver::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
@@ -107,7 +107,7 @@ namespace mamba
                 }
             )
             .transform(
-                [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
+                [&](solver::RepoInfo&& repo) -> solver::RepoInfo
                 {
                     if (!util::on_win)
                     {
@@ -131,7 +131,7 @@ namespace mamba
         const Context& ctx,
         solver::libsolv::Database& db,
         const PrefixData& prefix
-    ) -> solver::libsolv::RepoInfo
+    ) -> solver::RepoInfo
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();

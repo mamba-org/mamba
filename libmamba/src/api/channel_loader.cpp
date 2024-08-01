@@ -12,7 +12,8 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/resolvo/database.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -24,7 +25,7 @@ namespace mamba
             ChannelContext& channel_context,
             solver::libsolv::Database& pool,
             const fs::u8path& pkgs_dir
-        ) -> solver::libsolv::RepoInfo
+        ) -> solver::RepoInfo
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -248,8 +249,178 @@ namespace mamba
                 }
 
                 load_subdir_in_database(ctx, pool, subdir)
-                    .transform([&](solver::libsolv::RepoInfo&& repo)
+                    .transform([&](solver::RepoInfo&& repo)
                                { pool.set_repo_priority(repo, priorities[i]); })
+                    .or_else(
+                        [&](const auto&)
+                        {
+                            if (is_retry)
+                            {
+                                std::stringstream ss;
+                                ss << "Could not load repodata.json for " << subdir.name()
+                                   << " after retry." << "Please check repodata source. Exiting."
+                                   << std::endl;
+                                error_list.push_back(
+                                    mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                                );
+                            }
+                            else
+                            {
+                                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                            << ". Deleting cache, and retrying.";
+                                subdir.clear_cache();
+                                loading_failed = true;
+                            }
+                        }
+                    );
+            }
+
+            if (loading_failed)
+            {
+                if (!ctx.offline && !is_retry)
+                {
+                    LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
+                    return load_channels_impl(ctx, channel_context, pool, package_caches, true);
+                }
+                error_list.emplace_back(
+                    "Could not load repodata. Cache corrupted?",
+                    mamba_error_code::repodata_not_loaded
+                );
+            }
+            using return_type = expected_t<void, mamba_aggregated_error>;
+            return error_list.empty() ? return_type()
+                                      : return_type(make_unexpected(std::move(error_list)));
+        }
+
+        auto load_channels_impl(
+            Context& ctx,
+            ChannelContext& channel_context,
+            solver::resolvo::PackageDatabase& pool,
+            MultiPackageCache& package_caches,
+            bool is_retry
+        ) -> expected_t<void, mamba_aggregated_error>
+        {
+            std::vector<SubdirData> subdirs;
+
+            std::vector<solver::Priorities> priorities;
+            int max_prio = static_cast<int>(ctx.channels.size());
+            auto prev_channel_url = specs::CondaURL();
+
+            Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
+
+            std::vector<mamba_error> error_list;
+
+            for (const auto& mirror : ctx.mirrored_channels)
+            {
+                for (auto channel : channel_context.make_channel(mirror.first, mirror.second))
+                {
+                    create_mirrors(channel, ctx.mirrors);
+                    create_subdirs(
+                        ctx,
+                        channel_context,
+                        channel,
+                        package_caches,
+                        subdirs,
+                        error_list,
+                        priorities,
+                        max_prio,
+                        prev_channel_url
+                    );
+                }
+            }
+
+            auto packages = std::vector<specs::PackageInfo>();
+
+            for (const auto& location : ctx.channels)
+            {
+                // TODO: C++20, replace with contains
+                if (ctx.mirrored_channels.find(location) == ctx.mirrored_channels.end())
+                {
+                    for (auto channel : channel_context.make_channel(location))
+                    {
+                        if (channel.is_package())
+                        {
+                            auto pkg_info = specs::PackageInfo::from_url(channel.url().str())
+                                                .or_else([](specs::ParseError&& err)
+                                                         { throw std::move(err); })
+                                                .value();
+                            packages.push_back(pkg_info);
+                            continue;
+                        }
+
+                        create_mirrors(channel, ctx.mirrors);
+                        create_subdirs(
+                            ctx,
+                            channel_context,
+                            channel,
+                            package_caches,
+                            subdirs,
+                            error_list,
+                            priorities,
+                            max_prio,
+                            prev_channel_url
+                        );
+                    }
+                }
+            }
+
+            //        TODO: Implement this
+            //        if (!packages.empty())
+            //        {
+            //            pool.add_repo_from_packages(packages, "packages");
+            //        }
+
+            expected_t<void> download_res;
+            if (SubdirDataMonitor::can_monitor(ctx))
+            {
+                SubdirDataMonitor check_monitor({ true, true });
+                SubdirDataMonitor index_monitor;
+                download_res = SubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
+            }
+            else
+            {
+                download_res = SubdirData::download_indexes(subdirs, ctx);
+            }
+
+            if (!download_res)
+            {
+                mamba_error error = download_res.error();
+                mamba_error_code ec = error.error_code();
+                error_list.push_back(std::move(error));
+                if (ec == mamba_error_code::user_interrupted)
+                {
+                    return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
+                }
+            }
+
+            if (ctx.offline)
+            {
+                LOG_INFO << "Creating repo from pkgs_dir for offline";
+                for (const auto& c : ctx.pkgs_dirs)
+                {
+                    // create_repo_from_pkgs_dir(ctx, channel_context, pool, c);
+                }
+            }
+            std::string prev_channel;
+            bool loading_failed = false;
+            for (std::size_t i = 0; i < subdirs.size(); ++i)
+            {
+                auto& subdir = subdirs[i];
+                if (!subdir.is_loaded())
+                {
+                    if (!ctx.offline && subdir.is_noarch())
+                    {
+                        error_list.push_back(mamba_error(
+                            "Subdir " + subdir.name() + " not loaded!",
+                            mamba_error_code::subdirdata_not_loaded
+                        ));
+                    }
+                    continue;
+                }
+
+                load_subdir_in_database(ctx, pool, subdir)
+                    //                .transform([&](solver::libsolv::RepoInfo&& repo)
+                    //                           { pool.set_repo_priority(repo, priorities[i]); })
                     .or_else(
                         [&](const auto&)
                         {

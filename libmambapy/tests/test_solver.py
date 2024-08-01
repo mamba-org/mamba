@@ -344,3 +344,103 @@ def test_CompressedProblemsGraph_NamedList():
     # Clear
     named_list.clear()
     assert len(named_list) == 0
+
+
+def test_RepodataParser():
+    assert libmambapy.solver.RepodataParser.Mamba.name == "Mamba"
+    assert libmambapy.solver.RepodataParser.Libsolv.name == "Libsolv"
+
+    assert libmambapy.solver.RepodataParser("Libsolv") == libmambapy.solver.RepodataParser.Libsolv
+
+    with pytest.raises(KeyError):
+        libmambapy.solver.RepodataParser("NoParser")
+
+
+def test_PipASPythonDependency():
+    assert libmambapy.solver.PipAsPythonDependency.No.name == "No"
+    assert libmambapy.solver.PipAsPythonDependency.Yes.name == "Yes"
+
+    assert (
+        libmambapy.solver.PipAsPythonDependency(True) == libmambapy.solver.PipAsPythonDependency.Yes
+    )
+
+
+def test_PackageTypes():
+    assert libmambapy.solver.PackageTypes.CondaOnly.name == "CondaOnly"
+    assert libmambapy.solver.PackageTypes.TarBz2Only.name == "TarBz2Only"
+    assert libmambapy.solver.PackageTypes.CondaAndTarBz2.name == "CondaAndTarBz2"
+    assert libmambapy.solver.PackageTypes.CondaOrElseTarBz2.name == "CondaOrElseTarBz2"
+
+    assert libmambapy.solver.PackageTypes("TarBz2Only") == libmambapy.solver.PackageTypes.TarBz2Only
+
+    with pytest.raises(KeyError):
+        libmambapy.solver.RepodataParser("tarbz2-only")
+
+
+def test_VerifyPackages():
+    assert libmambapy.solver.VerifyPackages.No.name == "No"
+    assert libmambapy.solver.VerifyPackages.Yes.name == "Yes"
+
+    assert libmambapy.solver.VerifyPackages(True) == libmambapy.solver.VerifyPackages.Yes
+
+
+def test_Platform():
+    assert libmambapy.solver.LogLevel.Debug.name == "Debug"
+    assert libmambapy.solver.LogLevel.Warning.name == "Warning"
+    assert libmambapy.solver.LogLevel.Error.name == "Error"
+    assert libmambapy.solver.LogLevel.Fatal.name == "Fatal"
+
+    assert libmambapy.solver.LogLevel("Error") == libmambapy.solver.LogLevel.Error
+
+    with pytest.raises(KeyError):
+        # No parsing, explicit name
+        libmambapy.solver.LogLevel("Unicorn")
+
+
+def test_Priorities():
+    p = libmambapy.solver.Priorities(priority=-1, subpriority=-2)
+
+    assert p.priority == -1
+    assert p.subpriority == -2
+
+    # Setters
+    p.priority = 33
+    p.subpriority = 0
+    assert p.priority == 33
+    assert p.subpriority == 0
+
+    # Operators
+    assert p == p
+    assert p != libmambapy.solver.Priorities()
+
+    # Copy
+    other = copy.deepcopy(p)
+    assert other is not p
+    assert other == p
+
+
+def test_RepodataOrigin():
+    orig = libmambapy.solver.RepodataOrigin(
+        url="https://conda.anaconda.org/conda-forge", mod="the-mod", etag="the-etag"
+    )
+
+    assert orig.url == "https://conda.anaconda.org/conda-forge"
+    assert orig.etag == "the-etag"
+    assert orig.mod == "the-mod"
+
+    # Setters
+    orig.url = "https://repo.mamba.pm"
+    orig.etag = "other-etag"
+    orig.mod = "other-mod"
+    assert orig.url == "https://repo.mamba.pm"
+    assert orig.etag == "other-etag"
+    assert orig.mod == "other-mod"
+
+    # Operators
+    assert orig == orig
+    assert orig != libmambapy.solver.RepodataOrigin()
+
+    # Copy
+    other = copy.deepcopy(orig)
+    assert other is not orig
+    assert other == orig

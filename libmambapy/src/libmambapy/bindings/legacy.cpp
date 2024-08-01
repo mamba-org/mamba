@@ -513,8 +513,7 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& self, Context& context, solver::libsolv::Database& db
-            ) -> solver::libsolv::RepoInfo
+            [](SubdirData& self, Context& context, solver::libsolv::Database& db) -> solver::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
                 return extract(load_subdir_in_database(context, db, self));

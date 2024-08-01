@@ -9,6 +9,7 @@
 
 #include "mamba/solver/parameters.hpp"
 #include "mamba/solver/problems_graph.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 
@@ -587,5 +588,15 @@ namespace mambapy
             .def(py::self != py::self)
             .def("__copy__", &copy<RepodataOrigin>)
             .def("__deepcopy__", &deepcopy<RepodataOrigin>, py::arg("memo"));
+
+        py::class_<RepoInfo>(m, "RepoInfo")
+            .def_property_readonly("id", &RepoInfo::id)
+            .def_property_readonly("name", &RepoInfo::name)
+            .def_property_readonly("priority", &RepoInfo::priority)
+            .def("package_count", &RepoInfo::package_count)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<RepoInfo>)
+            .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
     }
 }

@@ -14,6 +14,11 @@
 
 #include "solver/libsolv/helpers.hpp"
 
+namespace mamba::solver
+{
+    class UnSolvable;
+}
+
 namespace mamba::solver::libsolv
 {
     namespace

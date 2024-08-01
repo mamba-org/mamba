@@ -24,10 +24,13 @@ namespace mamba
     struct Palette;
 }
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
-    class Solver;
-    class Database;
+    namespace libsolv
+    {
+        class Solver;
+        class Database;
+    }
 
     class UnSolvable
     {
@@ -39,22 +42,23 @@ namespace mamba::solver::libsolv
 
         auto operator=(UnSolvable&&) -> UnSolvable&;
 
-        [[nodiscard]] auto problems(Database& pool) const -> std::vector<std::string>;
+        [[nodiscard]] auto problems(libsolv::Database& pool) const -> std::vector<std::string>;
 
-        [[nodiscard]] auto problems_to_str(Database& pool) const -> std::string;
+        [[nodiscard]] auto problems_to_str(libsolv::Database& pool) const -> std::string;
 
-        [[nodiscard]] auto all_problems_to_str(Database& pool) const -> std::string;
+        [[nodiscard]] auto all_problems_to_str(libsolv::Database& pool) const -> std::string;
 
-        [[nodiscard]] auto problems_graph(const Database& pool) const -> ProblemsGraph;
+        [[nodiscard]] auto problems_graph(const libsolv::Database& pool) const -> ProblemsGraph;
 
         auto explain_problems_to(  //
-            Database& pool,
+            libsolv::Database& pool,
             std::ostream& out,
             const ProblemsMessageFormat& format
         ) const -> std::ostream&;
 
         [[nodiscard]] auto
-        explain_problems(Database& pool, const ProblemsMessageFormat& format) const -> std::string;
+        explain_problems(libsolv::Database& pool, const ProblemsMessageFormat& format) const
+            -> std::string;
 
     private:
 
@@ -67,7 +71,7 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto solver() const -> const solv::ObjSolver&;
 
-        friend class Solver;
+        friend class libsolv::Solver;
     };
 }
 #endif

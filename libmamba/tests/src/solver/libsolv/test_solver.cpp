@@ -192,7 +192,7 @@ namespace
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
 
 
@@ -208,7 +208,7 @@ namespace
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
     }
 
@@ -667,7 +667,7 @@ namespace
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
     }
 
@@ -862,7 +862,7 @@ namespace
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+                REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
             }
 
             SECTION("https://conda.anaconda.org/mamba-forge::foo")
@@ -914,7 +914,7 @@ namespace
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+                REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
             }
 
             SECTION("conda-forge::numpy[subdir=linux-64]")
@@ -1055,7 +1055,7 @@ namespace
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
 
         SECTION("foo[build_string=bld]")
@@ -1131,9 +1131,9 @@ namespace
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
 
-            const auto& unsolvable = std::get<libsolv::UnSolvable>(outcome.value());
+            const auto& unsolvable = std::get<UnSolvable>(outcome.value());
             const auto problems_explained = unsolvable.explain_problems(db, {});
             // To avoid mismatch due to color formatting, we perform the check by splitting the
             // output following the format

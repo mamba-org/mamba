@@ -213,18 +213,6 @@ namespace mambapy
                 py::arg("spec")
             );
 
-        py::class_<UnSolvable>(m, "UnSolvable")
-            .def("problems", &UnSolvable::problems, py::arg("database"))
-            .def("problems_to_str", &UnSolvable::problems_to_str, py::arg("database"))
-            .def("all_problems_to_str", &UnSolvable::all_problems_to_str, py::arg("database"))
-            .def("problems_graph", &UnSolvable::problems_graph, py::arg("database"))
-            .def(
-                "explain_problems",
-                &UnSolvable::explain_problems,
-                py::arg("database"),
-                py::arg("format")
-            );
-
         constexpr auto solver_flags_v2_migrator = [](Solver&, py::args, py::kwargs)
         {
             throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request.");

@@ -9,7 +9,7 @@
 
 #include <string_view>
 
-#include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/parameters.hpp"
 
 
 extern "C"

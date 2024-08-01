@@ -75,7 +75,7 @@ namespace
                 auto tmp_dir = TemporaryDirectory();
                 auto solv_file = tmp_dir.path() / "repo1.solv";
 
-                auto origin = libsolv::RepodataOrigin{
+                auto origin = RepodataOrigin{
                     /* .url= */ "https://repo.mamba.pm",
                     /* .etag= */ "etag",
                     /* .mod= */ "Fri, 11 Feb 2022 13:52:44 GMT",
@@ -96,9 +96,9 @@ namespace
                 SECTION("Fail reading outdated repo")
                 {
                     for (auto attr : {
-                             &libsolv::RepodataOrigin::url,
-                             &libsolv::RepodataOrigin::etag,
-                             &libsolv::RepodataOrigin::mod,
+                             &RepodataOrigin::url,
+                             &RepodataOrigin::etag,
+                             &RepodataOrigin::mod,
                          })
                     {
                         auto expected = origin;
@@ -184,7 +184,7 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No
+                PipAsPythonDependency::No
             );
             REQUIRE(repo1.has_value());
 
@@ -213,7 +213,7 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::Yes
+                PipAsPythonDependency::Yes
             );
             REQUIRE(repo1.has_value());
 
@@ -244,8 +244,8 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No,
-                libsolv::PackageTypes::TarBz2Only
+                PipAsPythonDependency::No,
+                PackageTypes::TarBz2Only
             );
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() == 4);
@@ -259,8 +259,8 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No,
-                libsolv::PackageTypes::CondaOnly
+                PipAsPythonDependency::No,
+                PackageTypes::CondaOnly
             );
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() == 30);
@@ -274,8 +274,8 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No,
-                libsolv::PackageTypes::CondaAndTarBz2
+                PipAsPythonDependency::No,
+                PackageTypes::CondaAndTarBz2
             );
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() == 34);
@@ -289,8 +289,8 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No,
-                libsolv::PackageTypes::CondaOrElseTarBz2
+                PipAsPythonDependency::No,
+                PackageTypes::CondaOrElseTarBz2
             );
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() == 33);
@@ -306,10 +306,10 @@ namespace
                     repodata,
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::Yes,
-                    libsolv::RepodataParser::Mamba
+                    PipAsPythonDependency::No,
+                    PackageTypes::CondaOrElseTarBz2,
+                    VerifyPackages::Yes,
+                    RepodataParser::Mamba
                 );
                 REQUIRE(repo1.has_value());
                 REQUIRE(repo1->package_count() == 33);
@@ -346,10 +346,10 @@ namespace
                     repodata,
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::Yes,
-                    libsolv::RepodataParser::Libsolv
+                    PipAsPythonDependency::No,
+                    PackageTypes::CondaOrElseTarBz2,
+                    VerifyPackages::Yes,
+                    RepodataParser::Libsolv
                 );
                 REQUIRE(repo1.has_value());
                 REQUIRE(repo1->package_count() == 33);
@@ -395,10 +395,10 @@ namespace
                     repodata,
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::No,
-                    libsolv::RepodataParser::Mamba
+                    PipAsPythonDependency::No,
+                    PackageTypes::CondaOrElseTarBz2,
+                    VerifyPackages::No,
+                    RepodataParser::Mamba
                 );
                 REQUIRE(repo1.has_value());
                 REQUIRE(repo1->package_count() == 33);
@@ -415,10 +415,10 @@ namespace
                     repodata,
                     "https://conda.anaconda.org/conda-forge/linux-64",
                     "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::No,
-                    libsolv::RepodataParser::Libsolv
+                    PipAsPythonDependency::No,
+                    PackageTypes::CondaOrElseTarBz2,
+                    VerifyPackages::No,
+                    RepodataParser::Libsolv
                 );
                 REQUIRE(repo1.has_value());
                 REQUIRE(repo1->package_count() == 33);
@@ -438,8 +438,8 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No,
-                libsolv::PackageTypes::CondaOrElseTarBz2
+                PipAsPythonDependency::No,
+                PackageTypes::CondaOrElseTarBz2
             );
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() == 2);
@@ -474,8 +474,8 @@ namespace
                 repodata,
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No,
-                libsolv::PackageTypes::CondaOrElseTarBz2
+                PipAsPythonDependency::No,
+                PackageTypes::CondaOrElseTarBz2
             );
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() == 2);

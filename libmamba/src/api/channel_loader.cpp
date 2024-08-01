@@ -56,7 +56,7 @@ namespace mamba
             MultiPackageCache& package_caches,
             std::vector<SubdirData>& subdirs,
             std::vector<mamba_error>& error_list,
-            std::vector<solver::libsolv::Priorities>& priorities,
+            std::vector<solver::Priorities>& priorities,
             int& max_prio,
             specs::CondaURL& prev_channel_url
         )
@@ -132,7 +132,7 @@ namespace mamba
         {
             std::vector<SubdirData> subdirs;
 
-            std::vector<solver::libsolv::Priorities> priorities;
+            std::vector<solver::Priorities> priorities;
             int max_prio = static_cast<int>(ctx.channels.size());
             auto prev_channel_url = specs::CondaURL();
 

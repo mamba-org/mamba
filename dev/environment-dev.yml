@@ -6,6 +6,7 @@ dependencies:
   - cmake >=3.16
   - pkg-config  # Used by some CMake dependencies
   - ninja
+  - make  # not always present
   # libmamba dependencies
   - cpp-expected
   - fmt
@@ -34,7 +35,7 @@ dependencies:
   - sel(win): menuinst
   - conda-content-trust
   - conda-package-handling
-  - cryptography<40.0  # Or breaks conda-content-trust
+  - cryptography
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build

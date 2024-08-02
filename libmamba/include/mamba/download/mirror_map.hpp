@@ -7,6 +7,7 @@
 #ifndef MAMBA_DOWNLOAD_MIRROR_MAP_HPP
 #define MAMBA_DOWNLOAD_MIRROR_MAP_HPP
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <string_view>

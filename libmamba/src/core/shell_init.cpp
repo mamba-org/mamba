@@ -464,8 +464,8 @@ namespace mamba
             load-env {$keyValue.0.key: $keyValue.0.value}
           }
     }
-    # update prompt
-    $env.PROMPT_COMMAND = $env.PROMPT_COMMAND
+    # reset prompt
+    $env.PROMPT_COMMAND = $env.PROMPT_COMMAND_BK
   }
 })###" << "\n";
         content << "# <<< mamba initialize <<<\n";

@@ -25,19 +25,16 @@ namespace mamba
         auto create_update_request(
             PrefixData& prefix_data,
             std::vector<std::string> specs,
-            bool update_all,
-            bool prune_deps,
-            bool env_update,
-            bool remove_not_specified
+            const UpdateParams& update_params
         ) -> solver::Request
         {
             using Request = solver::Request;
 
             auto request = Request();
 
-            if (update_all)
+            if (update_params.update_all == UpdateAll::Yes)
             {
-                if (prune_deps)
+                if (update_params.prune_deps == PruneDeps::Yes)
                 {
                     auto hist_map = prefix_data.history().get_requested_specs_map();
                     request.jobs.reserve(hist_map.size() + 1);
@@ -56,9 +53,9 @@ namespace mamba
             else
             {
                 request.jobs.reserve(specs.size());
-                if (env_update)
+                if (update_params.env_update == EnvUpdate::Yes)
                 {
-                    if (remove_not_specified)
+                    if (update_params.remove_not_specified == RemoveNotSpecified::Yes)
                     {
                         auto hist_map = prefix_data.history().get_requested_specs_map();
                         for (auto& it : hist_map)
@@ -126,8 +123,7 @@ namespace mamba
         }
     }
 
-    void
-    update(Configuration& config, bool update_all, bool prune_deps, bool env_update, bool remove_not_specified)
+    void update(Configuration& config, const UpdateParams& update_params)
     {
         auto& ctx = config.context();
 
@@ -179,14 +175,7 @@ namespace mamba
 
         load_installed_packages_in_database(ctx, db, prefix_data);
 
-        auto request = create_update_request(
-            prefix_data,
-            raw_update_specs,
-            /* update_all= */ update_all,
-            /* prune_deps= */ prune_deps,
-            /* env_update= */ env_update,
-            /* remove_not_specified= */ remove_not_specified
-        );
+        auto request = create_update_request(prefix_data, raw_update_specs, update_params);
         add_pins_to_request(
             request,
             ctx,

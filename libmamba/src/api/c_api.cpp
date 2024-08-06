@@ -101,7 +101,9 @@ mamba_update(mamba::Configuration* config, int update_all)
     assert(config != nullptr);
     try
     {
-        update(*config, update_all);
+        mamba::UpdateParams update_params{};
+        update_params.update_all = update_all ? mamba::UpdateAll::Yes : mamba::UpdateAll::No;
+        update(*config, update_params);
         return 0;
     }
     catch (...)

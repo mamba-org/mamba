@@ -11,13 +11,39 @@ namespace mamba
 {
     class Configuration;
 
-    void update(
-        Configuration& config,
-        bool update_all = false,
-        bool prune_deps = false,
-        bool env_update = false,           // Specific to `env update` command
-        bool remove_not_specified = false  // Specific to `env update` command
-    );
+    enum class UpdateAll : bool
+    {
+        No = false,
+        Yes = true,
+    };
+
+    enum class PruneDeps : bool
+    {
+        No = false,
+        Yes = true,
+    };
+
+    enum class EnvUpdate : bool  // Specific to `env update` command
+    {
+        No = false,
+        Yes = true,
+    };
+
+    enum class RemoveNotSpecified : bool  // Specific to `env update` command
+    {
+        No = false,
+        Yes = true,
+    };
+
+    struct UpdateParams
+    {
+        UpdateAll update_all = UpdateAll::No;
+        PruneDeps prune_deps = PruneDeps::No;
+        EnvUpdate env_update = EnvUpdate::No;
+        RemoveNotSpecified remove_not_specified = RemoveNotSpecified::No;
+    };
+
+    void update(Configuration& config, const UpdateParams& update_params = {});
 }
 
 #endif

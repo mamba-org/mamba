@@ -15,7 +15,8 @@ namespace mamba
         Configuration& config,
         bool update_all = false,
         bool prune_deps = false,
-        bool remove_not_specified = false
+        bool env_update = false,           // Specific to `env update` command
+        bool remove_not_specified = false  // Specific to `env update` command
     );
 }
 

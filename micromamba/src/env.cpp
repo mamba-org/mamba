@@ -284,6 +284,14 @@ set_env_command(CLI::App* com, Configuration& config)
 
     update_subcom->callback(
         [&config]
-        { update(config, /*update_all*/ false, /*prune_deps*/ false, remove_not_specified); }
+        {
+            update(
+                config,
+                /*update_all*/ false,
+                /*prune_deps*/ true,
+                /*env_update*/ true,
+                remove_not_specified
+            );
+        }
     );
 }

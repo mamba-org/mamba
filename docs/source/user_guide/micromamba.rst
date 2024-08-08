@@ -156,7 +156,7 @@ More powerful are ``YAML`` files like the following, because they already contai
   dependencies:
     - python >=3.6,<3.7
     - ipykernel >=5.1
-    - ipywidgets
+    - ipywidgets[build_number=!=0]
 
 They are used the same way as text files:
 

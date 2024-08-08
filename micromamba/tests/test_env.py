@@ -125,11 +125,12 @@ def test_env_remove(tmp_home, tmp_root_prefix):
         assert str(env_fp) not in lines
 
 
-env_yaml_content = """
+env_yaml_content_with_version_and_new_pkg = """
 channels:
 - conda-forge
 dependencies:
-- python
+- python 3.11.*
+- ipython
 """
 
 
@@ -138,22 +139,23 @@ dependencies:
 def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     env_name = "env-create-update"
 
-    # Create env with python=3.11.0 and xtensor=0.25.0
-    helpers.create("python=3.11.0", "xtensor=0.25.0", "-n", env_name, "--json", no_dry_run=True)
+    # Create env with python=3.10.0 and xtensor=0.25.0
+    helpers.create("python=3.10.0", "xtensor=0.25.0", "-n", env_name, "--json", no_dry_run=True)
     packages = helpers.umamba_list("-n", env_name, "--json")
     assert any(
-        package["name"] == "python" and package["version"] == "3.11.0" for package in packages
+        package["name"] == "python" and package["version"] == "3.10.0" for package in packages
     )
     assert any(
         package["name"] == "xtensor" and package["version"] == "0.25.0" for package in packages
     )
     assert any(package["name"] == "xtl" for package in packages)
+    assert not any(package["name"] == "ipython" for package in packages)
 
     # Update python
     from packaging.version import Version
 
     env_file_yml = tmp_path / "test_env.yaml"
-    env_file_yml.write_text(env_yaml_content)
+    env_file_yml.write_text(env_yaml_content_with_version_and_new_pkg)
 
     cmd = ["update", "-n", env_name, f"--file={env_file_yml}", "-y"]
     if prune:
@@ -161,12 +163,15 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     helpers.run_env(*cmd)
     packages = helpers.umamba_list("-n", env_name, "--json")
     assert any(
-        package["name"] == "python" and Version(package["version"]) > Version("3.11.0")
+        package["name"] == "python" and Version(package["version"]) >= Version("3.11.0")
         for package in packages
     )
+    assert any(package["name"] == "ipython" for package in packages)
     if prune:
         assert not any(package["name"] == "xtensor" for package in packages)
-        # Make sure dependencies of removed pkgs are removed as well (xtl is a dep of xtensor)
+        # Make sure dependencies of removed pkgs are removed as well
+        # since `prune_deps` is always set to true in the case of `env update` command
+        # (xtl is a dep of xtensor)
         assert not any(package["name"] == "xtl" for package in packages)
     else:
         assert any(

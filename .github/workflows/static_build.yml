@@ -136,13 +136,15 @@ jobs:
         with:
           environment-name: mambabuild
           init-shell: bash cmd.exe
+          # Constraint on fmt is due to an issue with 11.0.2 (to be fixed in next version)
+          # cf. https://github.com/fmtlib/fmt/issues/4091
           create-args: >-
             cli11>=2.2,<3
             cpp-expected
             nlohmann_json
             simdjson-static>=3.3.0
             spdlog
-            fmt
+            fmt<=11.0.1
             yaml-cpp-static>=0.8.0
             libsolv-static>=0.7.24
             reproc-cpp-static>=14.2.4.post0

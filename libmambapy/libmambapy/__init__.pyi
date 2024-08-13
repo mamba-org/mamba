@@ -132,10 +132,8 @@ class Channel:
     def __init__(self, arg0: str) -> None: ...
     def __repr__(self) -> str: ...
     def platform_url(self, platform: str, with_credentials: bool = True) -> str: ...
-    def platform_urls(
-        self, with_credentials: bool = True
-    ) -> typing.List[typing.Tuple[str, str]]: ...
-    def urls(self, with_credentials: bool = True) -> typing.List[str]: ...
+    def platform_urls(self, with_credentials: bool = True) -> list[tuple[str, str]]: ...
+    def urls(self, with_credentials: bool = True) -> list[str]: ...
     @property
     def auth(self) -> typing.Optional[str]:
         """
@@ -162,9 +160,9 @@ class Channel:
         :type: typing.Optional[str]
         """
     @property
-    def platforms(self) -> typing.List[str]:
+    def platforms(self) -> list[str]:
         """
-        :type: typing.List[str]
+        :type: list[str]
         """
     @property
     def scheme(self) -> str:
@@ -198,6 +196,7 @@ class ChannelPriority:
     def __ne__(self, other: object) -> bool: ...
     def __repr__(self) -> str: ...
     def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
     def name(self) -> str:
         """
@@ -219,11 +218,11 @@ class CompressedProblemsGraph:
         def __bool__(self) -> bool: ...
         def __contains__(self, arg0: int) -> bool: ...
         def __init__(self) -> None: ...
-        def __iter__(self) -> typing.Iterator: ...
+        def __iter__(self) -> typing.Iterator[tuple[int, set[int]]]: ...
         def __len__(self) -> int: ...
         def add(self, arg0: int, arg1: int) -> bool: ...
         def clear(self) -> None: ...
-        def conflicts(self, arg0: int) -> typing.Set[int]: ...
+        def conflicts(self, arg0: int) -> set[int]: ...
         def has_conflict(self, arg0: int) -> bool: ...
         def in_conflict(self, arg0: int, arg1: int) -> bool: ...
         pass
@@ -231,7 +230,7 @@ class CompressedProblemsGraph:
     class ConstraintListNode:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
-        def __iter__(self) -> typing.Iterator: ...
+        def __iter__(self) -> typing.Iterator[ProblemsGraph.ConstraintNode]: ...
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.ConstraintNode) -> None: ...
         def build_strings_trunc(
@@ -240,7 +239,7 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
         def versions_and_build_strings_trunc(
@@ -249,20 +248,20 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def versions_trunc(
             self,
             sep: str = "|",
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         pass
 
     class DependencyList:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
-        def __iter__(self) -> typing.Iterator: ...
+        def __iter__(self) -> typing.Iterator[MatchSpec]: ...
         def __len__(self) -> int: ...
         def add(self, arg0: MatchSpec) -> None: ...
         def build_strings_trunc(
@@ -271,7 +270,7 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
         def versions_and_build_strings_trunc(
@@ -280,20 +279,20 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def versions_trunc(
             self,
             sep: str = "|",
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         pass
 
     class PackageListNode:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
-        def __iter__(self) -> typing.Iterator: ...
+        def __iter__(self) -> typing.Iterator[ProblemsGraph.PackageNode]: ...
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.PackageNode) -> None: ...
         def build_strings_trunc(
@@ -302,7 +301,7 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
         def versions_and_build_strings_trunc(
@@ -311,14 +310,14 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def versions_trunc(
             self,
             sep: str = "|",
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         pass
 
     class RootNode:
@@ -328,7 +327,9 @@ class CompressedProblemsGraph:
     class UnresolvedDependencyListNode:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
-        def __iter__(self) -> typing.Iterator: ...
+        def __iter__(
+            self,
+        ) -> typing.Iterator[ProblemsGraph.UnresolvedDependencyNode]: ...
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.UnresolvedDependencyNode) -> None: ...
         def build_strings_trunc(
@@ -337,7 +338,7 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
         def versions_and_build_strings_trunc(
@@ -346,14 +347,14 @@ class CompressedProblemsGraph:
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         def versions_trunc(
             self,
             sep: str = "|",
             etc: str = "...",
             threshold: int = 5,
             remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        ) -> tuple[str, int]: ...
         pass
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod
@@ -366,8 +367,8 @@ class CompressedProblemsGraph:
     def from_problems_graph(arg0: ProblemsGraph) -> CompressedProblemsGraph: ...
     def graph(
         self,
-    ) -> typing.Tuple[
-        typing.Dict[
+    ) -> tuple[
+        dict[
             int,
             typing.Union[
                 ProblemsGraph.RootNode,
@@ -376,7 +377,7 @@ class CompressedProblemsGraph:
                 CompressedProblemsGraph.ConstraintListNode,
             ],
         ],
-        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyList],
+        dict[tuple[int, int], CompressedProblemsGraph.DependencyList],
     ]: ...
     def root_node(self) -> int: ...
     def tree_message(self) -> str: ...
@@ -458,12 +459,12 @@ class Context:
         def max_retries(self, arg0: int) -> None:
             pass
         @property
-        def proxy_servers(self) -> typing.Dict[str, str]:
+        def proxy_servers(self) -> dict[str, str]:
             """
-            :type: typing.Dict[str, str]
+            :type: dict[str, str]
             """
         @proxy_servers.setter
-        def proxy_servers(self, arg0: typing.Dict[str, str]) -> None:
+        def proxy_servers(self, arg0: dict[str, str]) -> None:
             pass
         @property
         def retry_backoff(self) -> int:
@@ -556,20 +557,20 @@ class Context:
     def channel_priority(self, arg0: ChannelPriority) -> None:
         pass
     @property
-    def channels(self) -> typing.List[str]:
+    def channels(self) -> list[str]:
         """
-        :type: typing.List[str]
+        :type: list[str]
         """
     @channels.setter
-    def channels(self, arg0: typing.List[str]) -> None:
+    def channels(self, arg0: list[str]) -> None:
         pass
     @property
-    def conda_build_local_paths(self) -> typing.List[str]:
+    def conda_build_local_paths(self) -> list[str]:
         """
-        :type: typing.List[str]
+        :type: list[str]
         """
     @conda_build_local_paths.setter
-    def conda_build_local_paths(self, arg1: typing.List[str]) -> None:
+    def conda_build_local_paths(self, arg1: list[str]) -> None:
         pass
     @property
     def conda_prefix(self) -> Path:
@@ -588,28 +589,28 @@ class Context:
     def connect_timeout_secs(self, arg1: float) -> None:
         pass
     @property
-    def custom_channels(self) -> typing.Dict[str, str]:
+    def custom_channels(self) -> dict[str, str]:
         """
-        :type: typing.Dict[str, str]
+        :type: dict[str, str]
         """
     @custom_channels.setter
-    def custom_channels(self, arg0: typing.Dict[str, str]) -> None:
+    def custom_channels(self, arg0: dict[str, str]) -> None:
         pass
     @property
-    def custom_multichannels(self) -> typing.Dict[str, typing.List[str]]:
+    def custom_multichannels(self) -> dict[str, list[str]]:
         """
-        :type: typing.Dict[str, typing.List[str]]
+        :type: dict[str, list[str]]
         """
     @custom_multichannels.setter
-    def custom_multichannels(self, arg0: typing.Dict[str, typing.List[str]]) -> None:
+    def custom_multichannels(self, arg0: dict[str, list[str]]) -> None:
         pass
     @property
-    def default_channels(self) -> typing.List[str]:
+    def default_channels(self) -> list[str]:
         """
-        :type: typing.List[str]
+        :type: list[str]
         """
     @default_channels.setter
-    def default_channels(self, arg0: typing.List[str]) -> None:
+    def default_channels(self, arg0: list[str]) -> None:
         pass
     @property
     def download_only(self) -> bool:
@@ -636,12 +637,12 @@ class Context:
     def dry_run(self, arg0: bool) -> None:
         pass
     @property
-    def envs_dirs(self) -> typing.List[Path]:
+    def envs_dirs(self) -> list[Path]:
         """
-        :type: typing.List[Path]
+        :type: list[Path]
         """
     @envs_dirs.setter
-    def envs_dirs(self, arg0: typing.List[Path]) -> None:
+    def envs_dirs(self, arg0: list[Path]) -> None:
         pass
     @property
     def experimental_sat_error_message(self) -> bool:
@@ -700,12 +701,12 @@ class Context:
     def output_params(self, arg0: Context.OutputParams) -> None:
         pass
     @property
-    def pkgs_dirs(self) -> typing.List[Path]:
+    def pkgs_dirs(self) -> list[Path]:
         """
-        :type: typing.List[Path]
+        :type: list[Path]
         """
     @pkgs_dirs.setter
-    def pkgs_dirs(self, arg0: typing.List[Path]) -> None:
+    def pkgs_dirs(self, arg0: list[Path]) -> None:
         pass
     @property
     def platform(self) -> str:
@@ -724,12 +725,12 @@ class Context:
     def prefix_params(self, arg0: Context.PrefixParams) -> None:
         pass
     @property
-    def proxy_servers(self) -> typing.Dict[str, str]:
+    def proxy_servers(self) -> dict[str, str]:
         """
-        :type: typing.Dict[str, str]
+        :type: dict[str, str]
         """
     @proxy_servers.setter
-    def proxy_servers(self, arg1: typing.Dict[str, str]) -> None:
+    def proxy_servers(self, arg1: dict[str, str]) -> None:
         pass
     @property
     def quiet(self) -> bool:
@@ -865,7 +866,7 @@ class ExtraPkgInfo:
 
 class History:
     def __init__(self, arg0: Path) -> None: ...
-    def get_requested_specs_map(self) -> typing.Dict[str, MatchSpec]: ...
+    def get_requested_specs_map(self) -> dict[str, MatchSpec]: ...
     pass
 
 class Key:
@@ -903,7 +904,7 @@ class Key:
     pass
 
 class RoleBase:
-    def all_keys(self) -> typing.Dict[str, RoleFullKeys]: ...
+    def all_keys(self) -> dict[str, RoleFullKeys]: ...
     @property
     def expired(self) -> bool:
         """
@@ -968,6 +969,7 @@ class LogLevel:
     def __ne__(self, other: object) -> bool: ...
     def __repr__(self) -> str: ...
     def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
     def name(self) -> str:
         """
@@ -1000,7 +1002,7 @@ class MatchSpec:
     pass
 
 class MultiPackageCache:
-    def __init__(self, arg0: typing.List[Path]) -> None: ...
+    def __init__(self, arg0: list[Path]) -> None: ...
     def get_tarball_path(self, arg0: PackageInfo, arg1: bool) -> Path: ...
     @property
     def first_writable_path(self) -> Path:
@@ -1041,28 +1043,28 @@ class PackageInfo:
     def channel(self, arg0: str) -> None:
         pass
     @property
-    def constrains(self) -> typing.List[str]:
+    def constrains(self) -> list[str]:
         """
-        :type: typing.List[str]
+        :type: list[str]
         """
     @constrains.setter
-    def constrains(self, arg0: typing.List[str]) -> None:
+    def constrains(self, arg0: list[str]) -> None:
         pass
     @property
-    def defaulted_keys(self) -> typing.Set[str]:
+    def defaulted_keys(self) -> set[str]:
         """
-        :type: typing.Set[str]
+        :type: set[str]
         """
     @defaulted_keys.setter
-    def defaulted_keys(self, arg0: typing.Set[str]) -> None:
+    def defaulted_keys(self, arg0: set[str]) -> None:
         pass
     @property
-    def depends(self) -> typing.List[str]:
+    def depends(self) -> list[str]:
         """
-        :type: typing.List[str]
+        :type: list[str]
         """
     @depends.setter
-    def depends(self, arg0: typing.List[str]) -> None:
+    def depends(self, arg0: list[str]) -> None:
         pass
     @property
     def fn(self) -> str:
@@ -1192,17 +1194,17 @@ class Pool:
     def matchspec2id(self, ms: MatchSpec) -> int: ...
     @typing.overload
     def matchspec2id(self, ms: str) -> int: ...
-    def select_solvables(self, id: int, sorted: bool = False) -> typing.List[int]: ...
+    def select_solvables(self, id: int, sorted: bool = False) -> list[int]: ...
     def set_debuglevel(self) -> None: ...
     pass
 
 class PrefixData:
     def __init__(self, arg0: Path) -> None: ...
-    def add_packages(self, arg0: typing.List[PackageInfo]) -> None: ...
+    def add_packages(self, arg0: list[PackageInfo]) -> None: ...
     @property
-    def package_records(self) -> typing.Dict[str, PackageInfo]:
+    def package_records(self) -> dict[str, PackageInfo]:
         """
-        :type: typing.Dict[str, PackageInfo]
+        :type: dict[str, PackageInfo]
         """
     pass
 
@@ -1226,8 +1228,8 @@ class ProblemsGraph:
     def from_solver(arg0: Solver, arg1: Pool) -> ProblemsGraph: ...
     def graph(
         self,
-    ) -> typing.Tuple[
-        typing.Dict[
+    ) -> tuple[
+        dict[
             int,
             typing.Union[
                 ProblemsGraph.RootNode,
@@ -1236,7 +1238,7 @@ class ProblemsGraph:
                 ProblemsGraph.ConstraintNode,
             ],
         ],
-        typing.Dict[typing.Tuple[int, int], MatchSpec],
+        dict[tuple[int, int], MatchSpec],
     ]: ...
     def root_node(self) -> int: ...
     pass
@@ -1272,6 +1274,7 @@ class QueryFormat:
     def __ne__(self, other: object) -> bool: ...
     def __repr__(self) -> str: ...
     def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
     def name(self) -> str:
         """
@@ -1295,10 +1298,10 @@ class Repo:
     def __init__(self, arg0: Pool, arg1: str, arg2: str, arg3: str) -> None: ...
     @typing.overload
     def __init__(self, arg0: Pool, arg1: PrefixData) -> None: ...
-    def add_extra_pkg_info(self, arg0: typing.Dict[str, ExtraPkgInfo]) -> None: ...
+    def add_extra_pkg_info(self, arg0: dict[str, ExtraPkgInfo]) -> None: ...
     def clear(self, arg0: bool) -> bool: ...
     def name(self) -> str: ...
-    def priority(self) -> typing.Tuple[int, int]: ...
+    def priority(self) -> tuple[int, int]: ...
     def set_installed(self) -> None: ...
     def set_priority(self, arg0: int, arg1: int) -> None: ...
     def size(self) -> int: ...
@@ -1316,14 +1319,14 @@ class RoleFullKeys:
     @typing.overload
     def __init__(self) -> None: ...
     @typing.overload
-    def __init__(self, keys: typing.Dict[str, Key], threshold: int) -> None: ...
+    def __init__(self, keys: dict[str, Key], threshold: int) -> None: ...
     @property
-    def keys(self) -> typing.Dict[str, Key]:
+    def keys(self) -> dict[str, Key]:
         """
-        :type: typing.Dict[str, Key]
+        :type: dict[str, Key]
         """
     @keys.setter
-    def keys(self, arg0: typing.Dict[str, Key]) -> None:
+    def keys(self, arg0: dict[str, Key]) -> None:
         pass
     @property
     def threshold(self) -> int:
@@ -1345,23 +1348,19 @@ class RootRole:
     pass
 
 class Solver:
-    def __init__(
-        self, arg0: Pool, arg1: typing.List[typing.Tuple[int, int]]
-    ) -> None: ...
+    def __init__(self, arg0: Pool, arg1: list[tuple[int, int]]) -> None: ...
     def add_constraint(self, arg0: str) -> None: ...
     def add_global_job(self, arg0: int) -> None: ...
-    def add_jobs(self, arg0: typing.List[str], arg1: int) -> None: ...
+    def add_jobs(self, arg0: list[str], arg1: int) -> None: ...
     def add_pin(self, arg0: str) -> None: ...
-    def all_problems_structured(self) -> typing.List[SolverProblem]: ...
+    def all_problems_structured(self) -> list[SolverProblem]: ...
     def all_problems_to_str(self) -> str: ...
     def explain_problems(self) -> str: ...
     def is_solved(self) -> bool: ...
     def must_solve(self) -> None: ...
     def problems_to_str(self) -> str: ...
-    def set_flags(self, arg0: typing.List[typing.Tuple[int, int]]) -> None: ...
-    def set_postsolve_flags(
-        self, arg0: typing.List[typing.Tuple[int, int]]
-    ) -> None: ...
+    def set_flags(self, arg0: list[tuple[int, int]]) -> None: ...
+    def set_postsolve_flags(self, arg0: list[tuple[int, int]]) -> None: ...
     def solve(self) -> bool: ...
     def try_solve(self) -> bool: ...
     pass
@@ -1506,6 +1505,7 @@ class SolverRuleinfo:
     def __ne__(self, other: object) -> bool: ...
     def __repr__(self) -> str: ...
     def __setstate__(self, state: int) -> None: ...
+    def __str__(self) -> str: ...
     @property
     def name(self) -> str:
         """
@@ -1583,16 +1583,14 @@ class Transaction:
     def __init__(self, arg0: Pool, arg1: Solver, arg2: MultiPackageCache) -> None: ...
     def execute(self, arg0: PrefixData) -> bool: ...
     def fetch_extract_packages(self) -> bool: ...
-    def find_python_version(self) -> typing.Tuple[str, str]: ...
+    def find_python_version(self) -> tuple[str, str]: ...
     def log_json(self) -> None: ...
     def print(self) -> None: ...
     def prompt(self) -> bool: ...
     def to_conda(
         self,
-    ) -> typing.Tuple[
-        typing.Tuple[typing.List[str], typing.List[str]],
-        typing.List[typing.Tuple[str, str, str]],
-        typing.List[typing.Tuple[str, str]],
+    ) -> tuple[
+        tuple[list[str], list[str]], list[tuple[str, str, str]], list[tuple[str, str]]
     ]: ...
     pass
 
@@ -1614,13 +1612,13 @@ def clean(arg0: int) -> None:
 def create_cache_dir(arg0: Path) -> str:
     pass
 
-def generate_ed25519_keypair() -> typing.Tuple[str, str]:
+def generate_ed25519_keypair() -> tuple[str, str]:
     pass
 
-def get_channels(arg0: typing.List[str]) -> typing.List[Channel]:
+def get_channels(arg0: list[str]) -> list[Channel]:
     pass
 
-def get_virtual_packages() -> typing.List[PackageInfo]:
+def get_virtual_packages() -> list[PackageInfo]:
     pass
 
 def init_console() -> None:

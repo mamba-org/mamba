@@ -102,7 +102,9 @@ def test_env_update(shell_type, tmpdir):
 def test_track_features(shell_type):
     with Environment(shell_type) as env:
         # should install CPython since PyPy has track features
-        version = "3.7.9"
+        # macos runners switched to arm64, where available python versions are at least "3.8"
+        # "3.8.12" seems to be a stable one
+        version = "3.8.12"
         env.mamba(
             f'install -q -y "python={version}" --strict-channel-priority -c conda-forge'
         )

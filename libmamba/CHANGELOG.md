@@ -1,3 +1,28 @@
+libmamba 2.0.0rc2 (August 19, 2024)
+===================================
+
+Enhancements:
+
+- test: Comparability and hashability of `PackageInfo` and `MatchSpec`  by @jjerphan in https://github.com/mamba-org/mamba/pull/3369
+- build: Support fmt 11 (follow-up) by @jjerphan in https://github.com/mamba-org/mamba/pull/3371
+- build: Support fmt 11 by @jjerphan in https://github.com/mamba-org/mamba/pull/3368
+- Make more classes hashable and comparable by @jjerphan in https://github.com/mamba-org/mamba/pull/3363
+- Replace `Context` with `Context::platform` where possible by @jjerphan in https://github.com/mamba-org/mamba/pull/3364
+
+Bug fixes:
+
+- [micromamba] Fix behavior of `env update` (to mimick conda) by @Hind-M in https://github.com/mamba-org/mamba/pull/3396
+- Reset the prompt back to default by @cvanelteren in https://github.com/mamba-org/mamba/pull/3392
+- Add missing header by @Hind-M in https://github.com/mamba-org/mamba/pull/3389
+- Restore previous behavior of `MAMBA_ROOT_PREFIX` by @Hind-M in https://github.com/mamba-org/mamba/pull/3365
+
+CI fixes and doc:
+
+- [win-64] Remove workaround by @Hind-M in https://github.com/mamba-org/mamba/pull/3398
+- [win-64] Add constraint on fmt by @Hind-M in https://github.com/mamba-org/mamba/pull/3400
+- Unpin cryptography, python, and add make to environment-dev.yml by @jaimergp in https://github.com/mamba-org/mamba/pull/3352
+- ci: Unpin libcxx <18 by @jjerphan in https://github.com/mamba-org/mamba/pull/3375
+
 libmamba 2.0.0rc1 (July 26, 2024)
 =================================
 

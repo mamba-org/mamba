@@ -1,3 +1,22 @@
+micromamba 2.0.0rc2 (August 19, 2024)
+=====================================
+
+Enhancements:
+
+- test: Adapt test_explicit_export_topologically_sorted by @jjerphan in https://github.com/mamba-org/mamba/pull/3377
+- build: Support fmt 11 by @jjerphan in https://github.com/mamba-org/mamba/pull/3368
+
+Bug fixes:
+
+- [micromamba] Fix behavior of `env update` (to mimick conda) by @Hind-M in https://github.com/mamba-org/mamba/pull/3396
+
+CI fixes and doc:
+
+- [win-64] Remove workaround by @Hind-M in https://github.com/mamba-org/mamba/pull/3398
+- [win-64] Add constraint on fmt by @Hind-M in https://github.com/mamba-org/mamba/pull/3400
+- Unpin cryptography, python, and add make to environment-dev.yml by @jaimergp in https://github.com/mamba-org/mamba/pull/3352
+- ci: Unpin libcxx <18 by @jjerphan in https://github.com/mamba-org/mamba/pull/3375
+
 micromamba 2.0.0rc1 (July 26, 2024)
 ===================================
 

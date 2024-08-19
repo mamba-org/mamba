@@ -1,3 +1,31 @@
+2024.08.19
+==========
+
+Releases: libmamba 2.0.0rc2, libmambapy 2.0.0rc2, micromamba 2.0.0rc2
+
+Enhancements:
+
+- [micromamba] test: Adapt test_explicit_export_topologically_sorted by @jjerphan in https://github.com/mamba-org/mamba/pull/3377
+- [libmamba] test: Comparability and hashability of `PackageInfo` and `MatchSpec`  by @jjerphan in https://github.com/mamba-org/mamba/pull/3369
+- [libmamba] build: Support fmt 11 (follow-up) by @jjerphan in https://github.com/mamba-org/mamba/pull/3371
+- [libmamba, micromamba] build: Support fmt 11 by @jjerphan in https://github.com/mamba-org/mamba/pull/3368
+- [libmamba] Make more classes hashable and comparable by @jjerphan in https://github.com/mamba-org/mamba/pull/3363
+- [libmambapy, libmamba] Replace `Context` with `Context::platform` where possible by @jjerphan in https://github.com/mamba-org/mamba/pull/3364
+
+Bug fixes:
+
+- [libmamba, micromamba] [micromamba] Fix behavior of `env update` (to mimick conda) by @Hind-M in https://github.com/mamba-org/mamba/pull/3396
+- [libmamba] Reset the prompt back to default by @cvanelteren in https://github.com/mamba-org/mamba/pull/3392
+- [libmamba] Add missing header by @Hind-M in https://github.com/mamba-org/mamba/pull/3389
+- [libmamba] Restore previous behavior of `MAMBA_ROOT_PREFIX` by @Hind-M in https://github.com/mamba-org/mamba/pull/3365
+
+CI fixes and doc:
+
+- [all] [win-64] Remove workaround by @Hind-M in https://github.com/mamba-org/mamba/pull/3398
+- [all] [win-64] Add constraint on fmt by @Hind-M in https://github.com/mamba-org/mamba/pull/3400
+- [all] Unpin cryptography, python, and add make to environment-dev.yml by @jaimergp in https://github.com/mamba-org/mamba/pull/3352
+- [all] ci: Unpin libcxx <18 by @jjerphan in https://github.com/mamba-org/mamba/pull/3375
+
 2024.07.26
 ==========
 

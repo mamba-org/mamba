@@ -140,10 +140,22 @@ jobs:
             mkdir -p $CONDA_PREFIX/conda-bld/linux-64
             wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
             wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            if [ "$(uname -m)" == "x86_64" ]; then
+              mkdir -p $CONDA_PREFIX/conda-bld/osx-64
+              wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
+              wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
+            elif [ "$(uname -m)" == "arm64" ]; then
+              mkdir -p $CONDA_PREFIX/conda-bld/osx-arm64
+              wget -P $CONDA_PREFIX/conda-bld/osx-arm64 https://anaconda.org/conda-forge/xtensor/0.21.10/download/osx-arm64/xtensor-0.21.10-h260d524_0.tar.bz2
+              wget -P $CONDA_PREFIX/conda-bld/osx-arm64 https://anaconda.org/conda-forge/xtl/0.6.23/download/osx-arm64/xtl-0.6.23-h260d524_1.tar.bz2
+            else
+              echo "Unsupported architecture: $(uname -m)"
+              exit 1
+            fi
           else
-            mkdir -p $CONDA_PREFIX/conda-bld/osx-64
-            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
-            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
+            echo "Unsupported OS: $RUNNER_OS"
+            exit 1
           fi
           conda index $CONDA_PREFIX/conda-bld
           mamba create -n l_o_cal_test local::xtensor -c conda-forge -y

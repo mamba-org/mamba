@@ -16,5 +16,5 @@ dependencies:
   - yaml-cpp >=0.8.0
   - cli11 >=2.2
   - spdlog
-  - fmt
+  - fmt < 11 # TODO remove constraint when backporting the fix for fmt last release (from mamba main branch)
   - sel(win): winreg

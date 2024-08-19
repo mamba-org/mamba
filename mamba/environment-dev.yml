@@ -29,6 +29,5 @@ dependencies:
   - conda-content-trust
   - cryptography<40.0  # Or breaks conda-content-trust
   - pre-commit
-  - pip:
-    - securesystemslib
+  - securesystemslib
   - sel(win): winreg

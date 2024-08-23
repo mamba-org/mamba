@@ -38,9 +38,6 @@ target_link_libraries(mamba-package PRIVATE mamba::libmamba)
 set_target_properties(mamba-package PROPERTIES CXX_STANDARD 17)
 
 set(MAMBA_PACKAGE_PROFILE_D ${CMAKE_CURRENT_SOURCE_DIR/etc/profile.d})
-install(
-    DIRECTORY ${MAMBA_PACKAGE_PROFILE_D}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/
-)
+install(DIRECTORY ${MAMBA_PACKAGE_PROFILE_D} DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/)
 
 install(TARGETS mamba-package)

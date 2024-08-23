@@ -9,6 +9,7 @@ taskfile.yaml
 
 # Mamba generated files
 include/mamba/core/version.hpp
+mamba_package/etc/profile.d/mamba.sh
 
 # OS files
 .DS_Store

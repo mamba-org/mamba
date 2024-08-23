@@ -9,6 +9,7 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 
 project(mamba-package)
+include(GNUInstallDirs)
 
 # Source files
 # ============
@@ -37,7 +38,16 @@ target_link_libraries(mamba-package PRIVATE mamba::libmamba)
 
 set_target_properties(mamba-package PROPERTIES CXX_STANDARD 17)
 
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh"
+)
+
 set(MAMBA_PACKAGE_PROFILE_D ${CMAKE_CURRENT_SOURCE_DIR/etc/profile.d})
 install(DIRECTORY ${MAMBA_PACKAGE_PROFILE_D} DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/)
-
-install(TARGETS mamba-package)
+install(
+    TARGETS mamba-package
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

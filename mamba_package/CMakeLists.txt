@@ -43,8 +43,11 @@ configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh"
 )
 
-set(MAMBA_PACKAGE_PROFILE_D ${CMAKE_CURRENT_SOURCE_DIR/etc/profile.d})
-install(DIRECTORY ${MAMBA_PACKAGE_PROFILE_D} DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/)
+install(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/
+)
+
 install(
     TARGETS mamba-package
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

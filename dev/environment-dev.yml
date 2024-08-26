@@ -3,7 +3,7 @@ channels:
 dependencies:
   # libmamba build dependencies
   - cxx-compiler
-  - cmake >=3.16
+  - cmake
   - pkg-config  # Used by some CMake dependencies
   - ninja
   - make  # not always present
@@ -39,7 +39,6 @@ dependencies:
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build
-  - build
   - pybind11-stubgen <1.0
   # libmambapy dependencies
   - python

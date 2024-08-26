@@ -1,3 +1,18 @@
+2024.08.26
+==========
+
+Releases: libmamba 2.0.0rc3, libmambapy 2.0.0rc3, micromamba 2.0.0rc3
+
+Bug fixes:
+
+- [all] Define `etc/profile.d/mamba.sh` and install it by @jjerphan in https://github.com/mamba-org/mamba/pull/3413
+- [micromamba] Add posix to supported shells by @jjerphan in https://github.com/mamba-org/mamba/pull/3412
+- [all] Replaces instances of -p with --root-prefix in documentation by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3411
+
+CI fixes and doc:
+
+- [all] docs: Adapt "Solving Package Environments" section by @jjerphan in https://github.com/mamba-org/mamba/pull/3326
+
 2024.08.19
 ==========
 

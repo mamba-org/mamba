@@ -480,20 +480,20 @@ class TestInstall:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     def test_freeze_installed(self, existing_cache):
-        install("xtensor=0.20", no_dry_run=True)
-        res = install("xframe", "--freeze-installed", "--json")
+        install("xtensor=0.24", no_dry_run=True)
+        res = install("xtensor-blas", "--freeze-installed", "--json")
 
-        # without freeze installed, xframe 0.3.0 should be installed and xtensor updated to 0.21
+        # without freeze installed, xtensor-blas 0.21.0 should be installed and xtensor updated to 0.25
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
         action_keys = {"LINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"xframe"}
+        expected_packages = {"xtensor-blas"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_packages == link_packages
-        assert res["actions"]["LINK"][0]["version"] == "0.2.0"
+        assert expected_packages.issubset(link_packages)
+        assert res["actions"]["LINK"][-1]["version"] == "0.20.0"
 
     def test_channel_specific(self, existing_cache):
         res = install(

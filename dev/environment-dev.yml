@@ -3,7 +3,7 @@ channels:
 dependencies:
   # libmamba build dependencies
   - cxx-compiler
-  - cmake
+  - cmake >=3.16
   - pkg-config  # Used by some CMake dependencies
   - ninja
   - make  # not always present

@@ -24,6 +24,7 @@ metadata:
   - linux-64
   - osx-64
   - win-64
+  - osx-arm64
   sources:
   - environment.yml
 package:
@@ -123,6 +124,29 @@ package:
   optional: false
   platform: osx-64
   url: https://conda.anaconda.org/conda-forge/osx-64/zlib-1.2.11-h9173be1_1013.tar.bz2
+  version: 1.2.11
+- category: main
+  dependencies: {}
+  hash:
+    md5: fe3c74ef0fe456a4011468f860b0c3dc
+    sha256: 008465adb9815441f03437393d4274e0154edc55e278bdf1acdf87224d1107e6
+  manager: conda
+  name: libzlib
+  optional: false
+  platform: osx-arm64
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/libzlib-1.2.11-hee7b306_1013.tar.bz2
+  version: 1.2.11
+- category: main
+  dependencies:
+    libzlib: 1.2.11 hee7b306_1013
+  hash:
+    md5: 0b65c3db409dd06257dd879605eddb45
+    sha256: 04cbcc43aaf9b1ba31eddb0a93adb1a025156542fd4ba2b7b66b4ba4f4126d50
+  manager: conda
+  name: zlib
+  optional: false
+  platform: osx-arm64
+  url: https://conda.anaconda.org/conda-forge/osx-arm64/zlib-1.2.11-hee7b306_1013.tar.bz2
   version: 1.2.11
 - category: main
   dependencies: {}

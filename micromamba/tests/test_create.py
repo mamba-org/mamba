@@ -143,6 +143,9 @@ def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, 
     helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
 
 
+# Only run this test on Linux, as it is the only platform where xeus-cling
+# (which is part of the environment) is available.
+@pytest.mark.skipif(platform.system() != "Linux", reason="Test only available on Linux")
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_spdlog_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     # Non-regression test

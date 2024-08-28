@@ -29,6 +29,7 @@ dependencies:
   - mitmproxy
   - pytest >=7.3.0
   - pytest-asyncio
+  - pytest-timeout
   - pytest-xprocess
   - requests
   - sel(win): pywin32

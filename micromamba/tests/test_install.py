@@ -441,7 +441,7 @@ class TestInstall:
     )
     def test_no_python_pinning(self, existing_cache):
         install("python=3.9.19", no_dry_run=True)
-        res = install("setuptools=28.4.0", "--no-py-pin", "--json")
+        res = install("setuptools=63.4.3", "--no-py-pin", "--json")
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))

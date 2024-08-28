@@ -15,6 +15,7 @@
 #include <solv/solver.h>
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -109,13 +110,13 @@ namespace mamba::solver::libsolv
 
     void Database::set_logger(logger_type callback)
     {
-        // We use the penultimate level of verbosity to avoid the most verbose messages
+        // We guard against the last level of verbosity to avoid the most verbose messages
         // (of type SOLV_DEBUG_RULE_CREATION | SOLV_DEBUG_WATCHES), which might spam the
         // output and make mamba hang.
         // See:
         // https://github.com/openSUSE/libsolv/blob/27aa6a72c7db73d78aa711ae412231768e77c9e0/src/pool.c#L1623-L1637
-        int penultimate_level = 3;
-        ::pool_setdebuglevel(pool().raw(), penultimate_level);
+        int level = Context().output_params.verbosity - 1;
+        ::pool_setdebuglevel(pool().raw(), std::min(level, 3));
         pool().set_debug_callback(
             [logger = std::move(callback)](const solv::ObjPoolView&, int type, std::string_view msg) noexcept
             {

@@ -30,7 +30,6 @@ namespace mamba
 {
     void add_spdlog_logger_to_database(solver::libsolv::Database& db)
     {
-        int level = Context().output_params.verbosity - 1;
         db.set_logger(
             [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
             {
@@ -49,8 +48,7 @@ namespace mamba
                         logger->debug(msg);
                         break;
                 }
-            },
-            level
+            }
         );
     }
 

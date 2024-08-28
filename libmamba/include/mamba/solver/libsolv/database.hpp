@@ -68,6 +68,8 @@ namespace mamba::solver::libsolv
 
         void set_logger(logger_type callback);
 
+        void set_logger(logger_type callback, int verbosity);
+
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,

@@ -144,6 +144,20 @@ def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, 
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_spdlog_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
+    # Non-regression test
+
+    env_prefix = tmp_path / "myenv"
+    create_spec_file = tmp_path / "env-spdlog-callback.yaml"
+
+    shutil.copyfile(__this_dir__ / "env-spdlog-callback.yaml", create_spec_file)
+
+    # Must not hang and complete successfully
+    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
+    assert res["success"]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("root_prefix_type", (None, "env_var", "cli"))
 @pytest.mark.parametrize("target_is_root", (False, True))
 @pytest.mark.parametrize("cli_prefix", (False, True))

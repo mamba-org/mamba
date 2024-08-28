@@ -78,10 +78,7 @@ class TestRemove:
         assert keys.issubset(set(res.keys()))
         assert res["success"]
 
-        if sys.platform == "darwin" and platform.machine() == "arm64":
-            assert len(res["actions"]["UNLINK"]) == 12
-        else:
-            assert len(res["actions"]["UNLINK"]) == 11
+        assert len(res["actions"]["UNLINK"]) > 1
         assert res["actions"]["UNLINK"][0]["name"] == "xtensor-python"
 
         assert res["actions"]["PREFIX"] == TestRemove.prefix

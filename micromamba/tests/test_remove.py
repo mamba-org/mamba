@@ -47,10 +47,7 @@ def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_nam
     assert keys.issubset(set(res.keys()))
     assert res["success"]
 
-    if sys.platform == "darwin" and platform.machine() == "arm64":
-        assert len(res["actions"]["UNLINK"]) == 12
-    else:
-        assert len(res["actions"]["UNLINK"]) == 11
+    assert len(res["actions"]["UNLINK"]) == 12
     assert res["actions"]["UNLINK"][0]["name"] == "xtensor-python"
     assert res["actions"]["PREFIX"] == str(tmp_xtensor_env)
 

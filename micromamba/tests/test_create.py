@@ -157,7 +157,8 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     shutil.copyfile(__this_dir__ / "env-logging-overhead-regression.yaml", create_spec_file)
 
     # Must not hang
-    helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", "--dry-run")
+    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", "--dry-run")
+    assert res["success"]
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

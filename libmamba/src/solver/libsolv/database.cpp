@@ -114,7 +114,7 @@ namespace mamba::solver::libsolv
         // spam the output and make mamba hang. See:
         // https://github.com/openSUSE/libsolv/blob/27aa6a72c7db73d78aa711ae412231768e77c9e0/src/pool.c#L1623-L1637
         // TODO: Make `level` configurable once the semantics and UX for verbosity are clarified.
-        int level = 3;  // Context().output_params.verbosity - 1;
+        const int level = 3;  // Context().output_params.verbosity - 1;
         ::pool_setdebuglevel(pool().raw(), level);
         pool().set_debug_callback(
             [logger = std::move(callback)](const solv::ObjPoolView&, int type, std::string_view msg) noexcept

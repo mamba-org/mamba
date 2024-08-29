@@ -1,3 +1,10 @@
+libmamba 2.0.0rc4 (August 29, 2024)
+===================================
+
+Bug fixes:
+
+- fix: Reduce logging system overhead by @jjerphan in https://github.com/mamba-org/mamba/pull/3416
+
 libmamba 2.0.0rc3 (August 26, 2024)
 ===================================
 

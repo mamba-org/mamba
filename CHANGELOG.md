@@ -1,3 +1,13 @@
+2024.08.29
+==========
+
+Releases: libmamba 2.0.0rc4, libmambapy 2.0.0rc4, micromamba 2.0.0rc4
+
+Bug fixes:
+
+- [micromamba] test: Adapt `test_remove_orphaned` unlinks by @jjerphan in https://github.com/mamba-org/mamba/pull/3417
+- [micromamba, libmamba] fix: Reduce logging system overhead by @jjerphan in https://github.com/mamba-org/mamba/pull/3416
+
 2024.08.26
 ==========
 

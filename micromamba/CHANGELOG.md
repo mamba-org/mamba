@@ -1,3 +1,11 @@
+micromamba 2.0.0rc4 (August 29, 2024)
+=====================================
+
+Bug fixes:
+
+- test: Adapt `test_remove_orphaned` unlinks by @jjerphan in https://github.com/mamba-org/mamba/pull/3417
+- fix: Reduce logging system overhead by @jjerphan in https://github.com/mamba-org/mamba/pull/3416
+
 micromamba 2.0.0rc3 (August 26, 2024)
 =====================================
 

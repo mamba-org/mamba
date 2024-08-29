@@ -1,11 +1,11 @@
 # This environment was observed to have the spdlog-based logging system make
 # mamba hang when environments are created with:
 #
-#   {micromamba,mamba} env create -n repro-create -f ./env-spdlog-callback.yml
+#   {micromamba,mamba} env create -n repro-create -f ./env-logging-overhead-regression.yaml
 #
 # or updated with:
 #
-#   {micromamba,mamba} env update -n repro-create -f ./env-spdlog-callback.yml
+#   {micromamba,mamba} env update -n repro-create -f ./env-logging-overhead-regression.yaml
 #
 channels:
   - conda-forge

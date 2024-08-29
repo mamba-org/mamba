@@ -109,14 +109,13 @@ namespace mamba::solver::libsolv
 
     void Database::set_logger(logger_type callback)
     {
-        // We guard against the last level of verbosity to avoid the most verbose messages
-        // (of type SOLV_DEBUG_RULE_CREATION | SOLV_DEBUG_WATCHES), which might spam the
-        // output and make mamba hang.
-        // See:
+        // We use the penultimate level of verbosity of libsolv (which is 3) to avoid the most
+        // verbose messages (of type SOLV_DEBUG_RULE_CREATION | SOLV_DEBUG_WATCHES), which might
+        // spam the output and make mamba hang. See:
         // https://github.com/openSUSE/libsolv/blob/27aa6a72c7db73d78aa711ae412231768e77c9e0/src/pool.c#L1623-L1637
         // TODO: Make `level` configurable once the semantics and UX for verbosity are clarified.
         int level = 3;  // Context().output_params.verbosity - 1;
-        ::pool_setdebuglevel(pool().raw(), std::min(level, 3));
+        ::pool_setdebuglevel(pool().raw(), level);
         pool().set_debug_callback(
             [logger = std::move(callback)](const solv::ObjPoolView&, int type, std::string_view msg) noexcept
             {

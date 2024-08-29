@@ -115,13 +115,12 @@ namespace mamba::solver::libsolv
         // https://github.com/openSUSE/libsolv/blob/27aa6a72c7db73d78aa711ae412231768e77c9e0/src/pool.c#L1623-L1637
         // TODO: Make `level` configurable once the semantics and UX for verbosity are clarified.
         // Currently, we use the behavior of `1.x` whose default value for the verbosity level was
-        // `0` in which case the logs of libsolv were not transferred. See:
+        // `0` in which case `::pool_setdebuglevel` was not called. See:
         // https://github.com/mamba-org/mamba/blob/4f269258b4237a342da3e9891045cdd51debb27c/libmamba/include/mamba/core/context.hpp#L88
         // See: https://github.com/mamba-org/mamba/blob/1.x/libmamba/src/core/pool.cpp#L72
         // Instead use something like:
         // const int level = Context().output_params.verbosity - 1;
-        const int level = 0;
-        ::pool_setdebuglevel(pool().raw(), level);
+        // ::pool_setdebuglevel(pool().raw(), level);
         pool().set_debug_callback(
             [logger = std::move(callback)](const solv::ObjPoolView&, int type, std::string_view msg) noexcept
             {

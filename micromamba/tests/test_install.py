@@ -464,7 +464,11 @@ class TestInstall:
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
-    @pytest.mark.skipif(sys.platform == "win32", reason="Python2 no available")
+    @pytest.mark.skipif(
+        sys.platform == "win32"
+        or (sys.platform == "darwin" and platform.machine() == "arm64"),
+        reason="Python2 not available",
+    )
     def test_python_pinning(self, existing_cache):
         """Black fails to install as it is not available for pinned Python 2."""
         res = install("python=2", "--json", no_dry_run=True)

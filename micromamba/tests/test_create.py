@@ -143,6 +143,24 @@ def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, 
     helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
 
 
+# Only run this test on Linux, as it is the only platform where xeus-cling
+# (which is part of the environment) is available.
+@pytest.mark.timeout(20)
+@pytest.mark.skipif(platform.system() != "Linux", reason="Test only available on Linux")
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
+    # Non-regression test https://github.com/mamba-org/mamba/issues/3415.
+
+    env_prefix = tmp_path / "myenv"
+    create_spec_file = tmp_path / "env-logging-overhead-regression.yaml"
+
+    shutil.copyfile(__this_dir__ / "env-logging-overhead-regression.yaml", create_spec_file)
+
+    # Must not hang
+    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", "--dry-run")
+    assert res["success"]
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("root_prefix_type", (None, "env_var", "cli"))
 @pytest.mark.parametrize("target_is_root", (False, True))

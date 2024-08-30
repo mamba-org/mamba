@@ -1,7 +1,7 @@
-__mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell zsh --root-prefix "@CMAKE_INSTALL_PREFIX@" 2> /dev/null)"
+__mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell posix --root-prefix "@CMAKE_INSTALL_PREFIX@" 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__mamba_setup"
 else
-    alias micromamba="@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba"  # Fallback on help from mamba activate
+    alias mamba="@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba"  # Fallback on help from mamba activate
 fi
 unset __mamba_setup

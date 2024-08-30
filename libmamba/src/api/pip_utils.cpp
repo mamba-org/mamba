@@ -31,19 +31,27 @@ namespace mamba
 
             const std::unordered_map<std::string, command_args> pip_install_command{
                 { "pip",
-                  { python, "-m", "pip", "install", "-r", spec_file, "--no-input", "--quiet" } },
+                  { python,
+                    "-m",
+                    "pip",
+                    "install",
+                    (update ? ("-U", "-r") : "-r"),
+                    spec_file,
+                    "--no-input",
+                    "--quiet" } },
                 { "pip --no-deps",
-                  { python, "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input", "--quiet" } }
+                  { python,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-deps",
+                    (update ? ("-U", "-r") : "-r"),
+                    spec_file,
+                    "--no-input",
+                    "--quiet" } }
             };
 
-            const std::unordered_map<std::string, command_args> pip_update_command{
-                { "pip",
-                  { python, "-m", "pip", "install", "-U", "-r", spec_file, "--no-input", "--quiet" } },
-                { "pip --no-deps",
-                  { python, "-m", "pip", "install", "-U", "--no-deps", "-r", spec_file, "--no-input", "--quiet" } }
-            };
-
-            auto found_it = update ? pip_update_command.find(name) : pip_install_command.find(name);
+            auto found_it = pip_install_command.find(name);
             if (found_it != pip_install_command.end())
             {
                 return found_it->second;

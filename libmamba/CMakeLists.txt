@@ -258,6 +258,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/pip_utils.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/pip_utils.hpp
     ${LIBMAMBA_SOURCE_DIR}/api/remove.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/repoquery.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp

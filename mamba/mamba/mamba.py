@@ -14,8 +14,9 @@ from pathlib import Path
 from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
 from conda.base.context import context
 from conda.cli.common import check_non_admin, confirm_yn, specs_from_url
+from conda.cli.conda_argparse import generate_parser
 from conda.cli.install import check_prefix, clone, get_revision
-from conda.cli.main import generate_parser, init_loggers
+from conda.cli.main import init_loggers
 from conda.common.compat import on_win
 from conda.common.path import paths_equal
 from conda.core.envs_manager import unregister_env

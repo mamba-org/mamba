@@ -117,12 +117,12 @@ class TestUpdate:
         assert requests_link["build_string"] == prev_requests["build_string"]
 
     def test_further_constrained_update(self, env_created):
-        update_res = update("xtensor==0.21.1=*_0", "--json")
+        update_res = update("xtensor==0.24.5=*_0", "--json")
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
         ][0]
 
-        assert xtensor_link["version"] == "0.21.1"
+        assert xtensor_link["version"] == "0.24.5"
         assert xtensor_link["build_number"] == 0
 
     def test_classic_spec(self, env_created):
@@ -266,7 +266,7 @@ class TestUpdateConfig:
         specs = []
 
         if source in ("cli_only", "both"):
-            specs = ["xframe", "xtl"]
+            specs = ["xtensor-python", "xtl"]
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):

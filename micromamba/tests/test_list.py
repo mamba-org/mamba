@@ -17,7 +17,7 @@ class TestList:
 
     @classmethod
     def setup_class(cls):
-        create("xtensor=0.18", "-n", TestList.env_name, "--json", no_dry_run=True)
+        create("xtensor=0.24.5", "-n", TestList.env_name, "--json", no_dry_run=True)
         os.environ["CONDA_PREFIX"] = TestList.prefix
 
     @classmethod

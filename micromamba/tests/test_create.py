@@ -60,7 +60,7 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
     specs = []
 
     if source in ("cli_only", "both"):
-        specs = ["xframe", "xtl"]
+        specs = ["xtensor-python", "xtl"]
         cmd += specs
 
     if source in ("spec_file_only", "both"):
@@ -660,7 +660,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
         "  - yaml",
         "  - nodefaults",
         "dependencies:",
-        "  - xframe",
+        "  - xtensor-python",
     ]
     with open(spec_file, "w") as f:
         f.write("\n".join(contents))
@@ -682,7 +682,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
     pin_name = "xtensor"
-    pin_max_version = "0.20"
+    pin_max_version = "0.24"
     # We add the channel to test a fragile behavior of ``MPool``
     spec_name = "conda-forge::xtensor"
     rc_file = tmp_path / "rc.yaml"
@@ -700,7 +700,7 @@ def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
             install_pkg = p
 
     # Should do proper version comparison
-    assert install_pkg["version"] == "0.20.0"
+    assert install_pkg["version"] == "0.24.0"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -754,7 +754,6 @@ def test_set_platform(tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize(
     "version,build,cache_tag",
     [
-        ["2.7", "*", ""],
         ["3.10", "*_cpython", "cpython-310"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],

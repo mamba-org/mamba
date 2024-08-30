@@ -170,18 +170,23 @@ def add_glibc_virtual_package():
 
 def copy_channels_osx():
     here = os.path.dirname(os.path.abspath(__file__))
-    for channel in ["a", "b"]:
-        if not os.path.exists(os.path.join(here, f"channel_{channel}/osx-64")):
-            shutil.copytree(
-                os.path.join(here, f"channel_{channel}/linux-64"),
-                os.path.join(here, f"channel_{channel}/osx-64"),
-            )
-            with open(
-                os.path.join(here, f"channel_{channel}/osx-64/repodata.json")
-            ) as f:
-                repodata = f.read()
-            with open(
-                os.path.join(here, f"channel_{channel}/osx-64/repodata.json"), "w"
-            ) as f:
-                repodata = repodata.replace("linux", "osx")
-                f.write(repodata)
+    # In CI, macos-latest can be arm64 or not
+    for arch in ["osx-64", "osx-arm64"]:
+        for channel in ["a", "b"]:
+            if not os.path.exists(os.path.join(here, f"channel_{channel}/{arch}")):
+                shutil.copytree(
+                    os.path.join(here, f"channel_{channel}/linux-64"),
+                    os.path.join(here, f"channel_{channel}/{arch}"),
+                )
+                with open(
+                    os.path.join(here, f"channel_{channel}/{arch}/repodata.json")
+                ) as f:
+                    repodata = f.read()
+                with open(
+                    os.path.join(here, f"channel_{channel}/{arch}/repodata.json"), "w"
+                ) as f:
+                    if arch == "osx-64":
+                        repodata = repodata.replace("linux", "osx")
+                    else:
+                        repodata = repodata.replace("linux-", "osx-arm")
+                    f.write(repodata)

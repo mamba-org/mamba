@@ -27,21 +27,20 @@ namespace mamba
             bool update
         )
         {
-            const auto get_python_path = [&]
-            { return util::which_in("python", get_path_dirs(target_prefix)).string(); };
+            const auto python = util::which_in("python", get_path_dirs(target_prefix)).string();
 
             const std::unordered_map<std::string, command_args> pip_install_command{
                 { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } },
+                  { python, "-m", "pip", "install", "-r", spec_file, "--no-input", "--quiet" } },
                 { "pip --no-deps",
-                  { get_python_path(), "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input" } }
+                  { python, "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input", "--quiet" } }
             };
 
             const std::unordered_map<std::string, command_args> pip_update_command{
                 { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-U", "-r", spec_file, "--no-input" } },
+                  { python, "-m", "pip", "install", "-U", "-r", spec_file, "--no-input", "--quiet" } },
                 { "pip --no-deps",
-                  { get_python_path(), "-m", "pip", "install", "-U", "--no-deps", "-r", spec_file, "--no-input" } }
+                  { python, "-m", "pip", "install", "-U", "--no-deps", "-r", spec_file, "--no-input", "--quiet" } }
             };
 
             auto found_it = update ? pip_update_command.find(name) : pip_install_command.find(name);

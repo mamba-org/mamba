@@ -1,3 +1,15 @@
+mamba 1.5.9 (August 31, 2024)
+=============================
+
+
+in https://github.com/mamba-org/mamba/pull/3425/files
+
+- Fix Conda nightly tests by @Hind-M in https://github.com/mamba-org/mamba/pull/3420
+
+CI
+
+- Fix tests by @Hind-M in https://github.com/mamba-org/mamba/pull/3347/files
+
 mamba 1.5.8 (March 25, 2024)
 ============================
 

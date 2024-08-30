@@ -1,3 +1,19 @@
+2024.08.31
+==========
+
+Releases:  libmamba 1.5.9, libmambapy 1.5.9, mamba 1.5.9, micromamba 1.5.9
+
+Bug fixes:
+
+- [libmamba] backport of #3424: Execute remove action before install actions by @JohaMabille
+in https://github.com/mamba-org/mamba/pull/3425/files
+- [mamba] Fix Conda nightly tests by @Hind-M in https://github.com/mamba-org/mamba/pull/3420
+
+CI
+
+- [mamba, micromamba] Fix tests by @Hind-M in https://github.com/mamba-org/mamba/pull/3347/files
+
+
 2024.03.25
 ==========
 

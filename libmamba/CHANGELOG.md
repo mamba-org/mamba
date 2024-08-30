@@ -1,3 +1,10 @@
+libmamba 1.5.9 (August 31, 2024)
+================================
+
+Bug fixes:
+
+- backport of #3424: Execute remove action before install actions by @JohaMabille
+
 libmamba 1.5.8 (March 25, 2024)
 ===============================
 

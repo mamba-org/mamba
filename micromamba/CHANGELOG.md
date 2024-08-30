@@ -1,3 +1,11 @@
+micromamba 1.5.9 (August 31, 2024)
+==================================
+
+
+CI
+
+- Fix tests by @Hind-M in https://github.com/mamba-org/mamba/pull/3347/files
+
 micromamba 1.5.8 (March 25, 2024)
 =================================
 

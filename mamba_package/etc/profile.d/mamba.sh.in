@@ -1,4 +1,5 @@
-__mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell posix --root-prefix "@CMAKE_INSTALL_PREFIX@" 2> /dev/null)"
+export MAMBA_ROOT_PREFIX="@CMAKE_INSTALL_PREFIX@";
+__mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell posix 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__mamba_setup"
 else

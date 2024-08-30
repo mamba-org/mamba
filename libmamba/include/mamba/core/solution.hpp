@@ -11,6 +11,8 @@
 #include <variant>
 #include <vector>
 
+#include "mamba/util/loop_control.hpp"
+
 #include "package_info.hpp"
 
 namespace mamba
@@ -161,7 +163,17 @@ namespace mamba
         {
             if (auto* const ptr = detail::to_install_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }

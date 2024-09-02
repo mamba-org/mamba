@@ -30,6 +30,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
 #include "solver/helpers.hpp"
@@ -445,19 +446,27 @@ namespace mamba
         // Get the name of the environment
         const auto environment = env_name(ctx);
 
-        Console::stream() << "\nTransaction finished\n\n"
-                             "To activate this environment, use:\n\n"
-                             "    "
-                          << executable << " activate " << environment
-                          << "\n\n"
-                             "Or to execute a single command in this environment, use:\n\n"
-                             "    "
-                          << executable
-                          << " run "
-                          // Use -n or -p depending on if the env_name is a full prefix or just
-                          // a name.
-                          << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                          << environment << " mycommand\n";
+        // Check if the target prefix is active
+        if (util::get_env("CONDA_PREFIX") == ctx.prefix_params.target_prefix)
+        {
+            Console::stream() << "\nTransaction finished\n";
+        }
+        else
+        {
+            Console::stream() << "\nTransaction finished\n\n"
+                                 "To activate this environment, use:\n\n"
+                                 "    "
+                              << executable << " activate " << environment
+                              << "\n\n"
+                                 "Or to execute a single command in this environment, use:\n\n"
+                                 "    "
+                              << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just
+                              // a name.
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
+        }
 
         prefix.history().add_entry(m_history_entry);
         return true;

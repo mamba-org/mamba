@@ -35,7 +35,7 @@ namespace mamba
                     "-m",
                     "pip",
                     "install",
-                    (update ? ("-U", "-r") : "-r"),
+                    (update ? "-U", "-r" : "-r"),
                     spec_file,
                     "--no-input",
                     "--quiet" } },
@@ -45,7 +45,7 @@ namespace mamba
                     "pip",
                     "install",
                     "--no-deps",
-                    (update ? ("-U", "-r") : "-r"),
+                    (update ? "-U", "-r" : "-r"),
                     spec_file,
                     "--no-input",
                     "--quiet" } }

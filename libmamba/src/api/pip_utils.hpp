@@ -17,11 +17,22 @@
 
 namespace mamba
 {
+    namespace pip
+    {
+        enum class Update : bool
+        {
+            No = false,
+            Yes = true,
+        };
+    }
+
     using command_args = std::vector<std::string>;
 
-    // TODO: make it `command_from_other_pkgmgr` with a enum for Install / Update / etc.
-    tl::expected<command_args, std::runtime_error>
-    install_for_other_pkgmgr(const Context& ctx, const detail::other_pkg_mgr_spec& other_spec, bool update);
+    tl::expected<command_args, std::runtime_error> install_for_other_pkgmgr(
+        const Context& ctx,
+        const detail::other_pkg_mgr_spec& other_spec,
+        pip::Update update
+    );
 
 }
 

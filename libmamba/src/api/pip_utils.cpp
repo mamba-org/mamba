@@ -28,7 +28,7 @@ namespace mamba
             const std::string& name,
             const std::string& target_prefix,
             const fs::u8path& spec_file,
-            bool update
+            pip::Update update
         )
         {
             const auto get_python_path = [&]
@@ -37,7 +37,7 @@ namespace mamba
             command_args cmd = { get_python_path(), "-m", "pip", "install" };
             command_args cmd_extension = { "-r", spec_file, "--no-input", "--quiet" };
 
-            if (update)
+            if (update == pip::Update::Yes)
             {
                 cmd.push_back("-U");
             }
@@ -62,7 +62,7 @@ namespace mamba
             {
                 return tl::unexpected(std::runtime_error(fmt::format(
                     "no {} instruction found for package manager '{}'",
-                    update ? "update" : "install",
+                    (update == pip::Update::Yes) ? "update" : "install",
                     name
                 )));
             }
@@ -108,8 +108,11 @@ namespace mamba
         }
     }
 
-    tl::expected<command_args, std::runtime_error>
-    install_for_other_pkgmgr(const Context& ctx, const detail::other_pkg_mgr_spec& other_spec, bool update)
+    tl::expected<command_args, std::runtime_error> install_for_other_pkgmgr(
+        const Context& ctx,
+        const detail::other_pkg_mgr_spec& other_spec,
+        pip::Update update
+    )
     {
         const auto& pkg_mgr = other_spec.pkg_mgr;
         const auto& deps = other_spec.deps;
@@ -155,7 +158,7 @@ namespace mamba
         Console::stream() << fmt::format(
             ctx.graphics_params.palette.external,
             "\n{} {} packages: {}",
-            update ? "Updating" : "Installing",
+            (update == pip::Update::Yes) ? "Updating" : "Installing",
             pkg_mgr,
             fmt::join(deps, ", ")
         );
@@ -166,9 +169,10 @@ namespace mamba
         assert_reproc_success(options, status, ec);
         if (status != 0)
         {
-            throw std::runtime_error(
-                fmt::format("pip failed to {} packages", update ? "update" : "install")
-            );
+            throw std::runtime_error(fmt::format(
+                "pip failed to {} packages",
+                (update == pip::Update::Yes) ? "update" : "install"
+            ));
         }
 
         return command;

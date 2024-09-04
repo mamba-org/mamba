@@ -539,7 +539,7 @@ namespace mamba
                 for (auto other_spec : config.at("others_pkg_mgrs_specs")
                                            .value<std::vector<detail::other_pkg_mgr_spec>>())
                 {
-                    install_for_other_pkgmgr(ctx, other_spec, /* update= */ false);
+                    install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
                 }
             }
             else
@@ -637,7 +637,7 @@ namespace mamba
 
                 for (auto other_spec : others)
                 {
-                    install_for_other_pkgmgr(ctx, other_spec, /* update= */ false);
+                    install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
                 }
             }
             else

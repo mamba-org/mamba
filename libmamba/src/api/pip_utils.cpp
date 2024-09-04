@@ -118,6 +118,12 @@ namespace mamba
         const auto& deps = other_spec.deps;
         const auto& cwd = other_spec.cwd;
 
+        LOG_WARNING << fmt::format(
+            "You are using '{}' as an additional package manager.\nBe aware that packages installed with '{}' are managed independently from 'conda-forge' channel.",
+            pkg_mgr,
+            pkg_mgr
+        );
+
         TemporaryFile specs("mambaf", "", cwd);
         {
             std::ofstream specs_f = open_ofstream(specs.path());

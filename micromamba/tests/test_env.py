@@ -284,10 +284,16 @@ def test_env_update_conda_forge_with_pypi(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.run_env("update", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
     assert res["success"]
 
-    # TODO
-    # numpy=1.24.2 from conda-forge is supposed to be uninstalled here (as done in conda)
-    # packages = helpers.umamba_list("-p", env_prefix, "--json")
-    # assert all(pkg["name"] != "numpy" for pkg in packages)
+    # Note that conda's behavior is different:
+    # numpy 1.24.2 is uninstalled to be replaced with 1.24.3 from PyPI
+    # (micro)mamba keeps both
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        pkg["name"] == "numpy"
+        and pkg["version"] == "1.24.2"
+        and pkg["channel"].startswith("conda-forge")
+        for pkg in packages
+    )
 
     ## Check pip packages using pip list for now
     ## See: https://github.com/mamba-org/mamba/issues/2059
@@ -340,12 +346,16 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.run_env("update", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
     assert res["success"]
 
-    # TODO
-    # numpy from conda-forge is not supposed to be installed
-    # packages = helpers.umamba_list("-p", env_prefix, "--json")
-    # assert all(
-    # package["name"] != "numpy" for package in packages
-    # )
+    # Note that conda's behavior is different:
+    # numpy 2.0.0 is not installed and numpy 1.26.4 from PyPI is kept
+    # (micro)mamba keeps both
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        pkg["name"] == "numpy"
+        and pkg["version"] == "2.0.0"
+        and pkg["channel"].startswith("conda-forge")
+        for pkg in packages
+    )
 
     ## Check pip packages using pip list for now
     ## See: https://github.com/mamba-org/mamba/issues/2059

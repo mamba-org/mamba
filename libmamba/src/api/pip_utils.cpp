@@ -1,3 +1,9 @@
+// Copyright (c) 2024, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -12,8 +18,6 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/environment.hpp"
 
-#include "tl/expected.hpp"
-
 #include "pip_utils.hpp"
 
 namespace mamba
@@ -27,28 +31,26 @@ namespace mamba
             bool update
         )
         {
-            const auto python = util::which_in("python", get_path_dirs(target_prefix)).string();
+            const auto get_python_path = [&]
+            { return util::which_in("python", get_path_dirs(target_prefix)).string(); };
 
+            command_args cmd = { get_python_path(), "-m", "pip", "install" };
+            command_args cmd_extension = { "-r", spec_file, "--no-input", "--quiet" };
+
+            if (update)
+            {
+                cmd.push_back("-U");
+            }
+
+            if (name == "pip --no-deps")
+            {
+                cmd.push_back("--no-deps");
+            }
+
+            cmd.insert(cmd.end(), cmd_extension.begin(), cmd_extension.end());
             const std::unordered_map<std::string, command_args> pip_install_command{
-                { "pip",
-                  { python,
-                    "-m",
-                    "pip",
-                    "install",
-                    (update ? "-U", "-r" : "-r"),
-                    spec_file,
-                    "--no-input",
-                    "--quiet" } },
-                { "pip --no-deps",
-                  { python,
-                    "-m",
-                    "pip",
-                    "install",
-                    "--no-deps",
-                    (update ? "-U", "-r" : "-r"),
-                    spec_file,
-                    "--no-input",
-                    "--quiet" } }
+                { "pip", cmd },
+                { "pip --no-deps", cmd }
             };
 
             auto found_it = pip_install_command.find(name);

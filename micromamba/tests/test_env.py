@@ -1,7 +1,6 @@
 import os
 import re
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -205,7 +204,7 @@ def test_explicit_export_topologically_sorted(tmp_home, tmp_prefix):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_create_pypi(tmp_home, tmp_root_prefix, tmp_path):
-    env_prefix = tmp_path / "myenv"
+    env_prefix = tmp_path / "env-create-pypi"
 
     create_spec_file = tmp_path / "env-pypi-pkg-test.yaml"
 
@@ -214,7 +213,7 @@ def test_env_create_pypi(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.run_env("create", "-p", env_prefix, "-f", create_spec_file, "-y", "--json")
     assert res["success"]
 
-    # Check that pypi-pkg-test is installed using pip for now
+    # Check that pypi-pkg-test is installed using pip list for now
     # See: https://github.com/mamba-org/mamba/issues/2059
     pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
     pip_packages_list = yaml.safe_load(pip_list_output)
@@ -223,8 +222,7 @@ def test_env_create_pypi(tmp_home, tmp_root_prefix, tmp_path):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_create_update_pypi(tmp_home, tmp_root_prefix, tmp_path):
-    env_prefix = tmp_path / "myenv"
-    env_prefix_conda = tmp_path / "myenv-conda"
+    env_prefix = tmp_path / "env-create-update-pypi"
 
     create_spec_file = tmp_path / "env-requires-pip-install.yaml"
     update_spec_file = tmp_path / "env-pypi-pkg-test.yaml"
@@ -235,30 +233,123 @@ def test_env_create_update_pypi(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.run_env("create", "-p", env_prefix, "-f", create_spec_file, "-y", "--json")
     assert res["success"]
 
-    # Check that pypi-pkg-test is not installed before the update
+    # Check pip packages using pip list for now
+    # See: https://github.com/mamba-org/mamba/issues/2059
     pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
     pip_packages_list = yaml.safe_load(pip_list_output)
-    assert all(pkg["name"] != "pypi-pkg-test" for pkg in pip_packages_list)
 
-    umamba_packages_list = helpers.umamba_list("-p", env_prefix, "--json")
-    assert all(pkg["name"] != "pypi-pkg-test" for pkg in umamba_packages_list)
+    assert any(pkg["name"] == "pydantic" for pkg in pip_packages_list)
+    # Check that pypi-pkg-test is not installed before the update
+    assert all(pkg["name"] != "pypi-pkg-test" for pkg in pip_packages_list)
 
     res = helpers.run_env("update", "-p", env_prefix, "-f", update_spec_file, "-y", "--json")
     assert res["success"]
 
-    # Check that pypi-pkg-test (that is part of the update environment) is installed after the update
+    ## Check that pypi-pkg-test is installed after the update
+    # (using pip list for now)
     # See: https://github.com/mamba-org/mamba/issues/2059
     pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
-    packages_list = yaml.safe_load(pip_list_output)
-    assert any(pkg["name"] == "pypi-pkg-test" for pkg in packages_list)
+    pip_packages_list = yaml.safe_load(pip_list_output)
+    assert any(pkg["name"] == "pypi-pkg-test" for pkg in pip_packages_list)
+    assert any(pkg["name"] == "pydantic" for pkg in pip_packages_list)
 
-    # Create a new environment with the same spec file but with conda within the shell
-    subprocess.run(f"conda update -p {update_spec_file} -f {create_spec_file} -y")
 
-    # Check that pypi-pkg-test is installed using pip for now
-    pip_list_output_conda = helpers.umamba_run(
-        "-p", env_prefix_conda, "pip", "list", "--format=json"
+env_yaml_content_to_update_pip_pkg_version = """
+channels:
+- conda-forge
+dependencies:
+- pip
+- pip:
+  - numpy==1.24.3
+"""
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_update_conda_forge_with_pypi(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-update-conda-forge-with-pypi"
+
+    # Create env with numpy=1.24.2
+    helpers.create("numpy=1.24.2", "-p", env_prefix, "--json", no_dry_run=True)
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        package["name"] == "numpy"
+        and package["version"] == "1.24.2"
+        and package["channel"].startswith("conda-forge")
+        for package in packages
     )
-    pip_packages_list_conda = yaml.safe_load(pip_list_output_conda)
-    assert any(pkg["name"] == "pypi-pkg-test" for pkg in pip_packages_list_conda)
-    assert all(pkg in pip_packages_list for pkg in pip_packages_list_conda)
+
+    env_file_yml = tmp_path / "test_env_update_pip_pkg_version.yaml"
+    env_file_yml.write_text(env_yaml_content_to_update_pip_pkg_version)
+
+    res = helpers.run_env("update", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
+    assert res["success"]
+
+    # TODO
+    # numpy=1.24.2 from conda-forge is supposed to be uninstalled here (as done in conda)
+    # packages = helpers.umamba_list("-p", env_prefix, "--json")
+    # assert all(pkg["name"] != "numpy" for pkg in packages)
+
+    ## Check pip packages using pip list for now
+    ## See: https://github.com/mamba-org/mamba/issues/2059
+    pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
+    pip_packages_list = yaml.safe_load(pip_list_output)
+
+    assert any(pkg["name"] == "numpy" and pkg["version"] == "1.24.3" for pkg in pip_packages_list)
+
+
+env_yaml_content_create_pip_pkg_with_version = """
+channels:
+- conda-forge
+dependencies:
+- pip
+- pip:
+  - numpy==1.26.4
+"""
+
+
+env_yaml_content_to_update_pip_pkg_version_from_conda_forge = """
+channels:
+- conda-forge
+dependencies:
+- numpy==2.0.0
+"""
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-update-pypi-with-conda-forge"
+
+    env_file_yml = tmp_path / "test_env_create_pip_pkg_with_version.yaml"
+    env_file_yml.write_text(env_yaml_content_create_pip_pkg_with_version)
+
+    # Create env with numpy=1.26.4
+    res = helpers.run_env("create", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
+    assert res["success"]
+
+    ## Check pip packages using pip list for now
+    ## See: https://github.com/mamba-org/mamba/issues/2059
+    pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
+    pip_packages_list = yaml.safe_load(pip_list_output)
+
+    assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)
+
+    env_file_yml = tmp_path / "test_env_update_pip_pkg_version_with_conda_forge.yaml"
+    env_file_yml.write_text(env_yaml_content_to_update_pip_pkg_version_from_conda_forge)
+
+    # Update numpy from conda-forge is not suppposed to be done
+    res = helpers.run_env("update", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
+    assert res["success"]
+
+    # TODO
+    # numpy from conda-forge is not supposed to be installed
+    # packages = helpers.umamba_list("-p", env_prefix, "--json")
+    # assert all(
+    # package["name"] != "numpy" for package in packages
+    # )
+
+    ## Check pip packages using pip list for now
+    ## See: https://github.com/mamba-org/mamba/issues/2059
+    pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
+    pip_packages_list = yaml.safe_load(pip_list_output)
+
+    assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)

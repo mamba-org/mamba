@@ -1,4 +1,4 @@
 dependencies:
   - pip
   - pip:
-      - pypi-pkg-test
+    - pypi-pkg-test

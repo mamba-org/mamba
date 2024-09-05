@@ -18,10 +18,14 @@
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
 
+#include "pip_utils.hpp"
+
 namespace mamba
 {
     namespace
     {
+        using command_args = std::vector<std::string>;
+
         auto create_update_request(
             PrefixData& prefix_data,
             std::vector<std::string> specs,
@@ -232,5 +236,10 @@ namespace mamba
         };
 
         execute_transaction(transaction);
+        for (auto other_spec :
+             config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
+        {
+            install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
+        }
     }
 }

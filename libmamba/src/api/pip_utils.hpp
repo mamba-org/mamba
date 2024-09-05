@@ -7,16 +7,21 @@
 #ifndef MAMBA_PIP_UTILS_HPP
 #define MAMBA_PIP_UTILS_HPP
 
+#include <stdexcept>
+#include <string>
 #include <vector>
-
-// TODO: move elements from `mamba/api/install.hpp` here
-#include "mamba/api/install.hpp"
-#include "mamba/core/context.hpp"
 
 #include "tl/expected.hpp"
 
 namespace mamba
 {
+    class Context;
+
+    namespace detail
+    {
+        struct other_pkg_mgr_spec;
+    }
+
     namespace pip
     {
         enum class Update : bool

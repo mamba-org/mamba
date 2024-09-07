@@ -3,7 +3,7 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-
+#include <iostream>
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
@@ -63,6 +63,10 @@ namespace mamba
         {
             for (const auto& platform : channel.platforms())
             {
+                if (channel.platform_url(platform).host() == "repo.anaconda.com") {
+                    spdlog::warn("This is a commercial channel hosted by Anaconda.com. Please make sure you understand the TOS.");
+                }
+
                 auto sdires = SubdirData::create(
                     ctx,
                     channel_context,

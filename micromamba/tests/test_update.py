@@ -397,8 +397,13 @@ class TestUpdateConfig:
         os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ.pop("CONDA_PREFIX")
 
-        with pytest.raises(helpers.subprocess.CalledProcessError):
-            helpers.install(*cmd, "--print-config-only")
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+        TestUpdateConfig.config_tests(
+            res,
+            root_prefix=TestUpdateConfig.current_root_prefix,
+            target_prefix=TestUpdateConfig.current_root_prefix,
+        )
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))

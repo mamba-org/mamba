@@ -526,7 +526,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
             if(APPLE)
                 set(MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
-                target_link_options(${target_name} PRIVATE -static-libstdc++)
+                target_link_options(${target_name} PRIVATE -nostdlib++)
             elseif(UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)

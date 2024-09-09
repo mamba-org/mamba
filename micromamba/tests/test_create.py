@@ -30,6 +30,7 @@ def check_create_result(res, root_prefix, target_prefix):
     assert res["root_prefix"] == str(root_prefix)
     assert res["target_prefix"] == str(target_prefix)
     assert not res["use_target_prefix_fallback"]
+    assert not res["use_root_prefix_fallback"]
     checks = (
         helpers.MAMBA_ALLOW_EXISTING_PREFIX
         | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -168,7 +169,7 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
 @pytest.mark.parametrize("cli_env_name", (False, True))
 @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
 @pytest.mark.parametrize("env_var", (False, True))
-@pytest.mark.parametrize("fallback", (False, True))
+@pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
 @pytest.mark.parametrize(
     "similar_non_canonical,non_canonical_position",
     ((False, None), (True, "append"), (True, "prepend")),
@@ -183,7 +184,7 @@ def test_target_prefix(
     cli_env_name,
     yaml_name,
     env_var,
-    fallback,
+    current_target_prefix_fallback,
     similar_non_canonical,
     non_canonical_position,
 ):
@@ -243,7 +244,7 @@ def test_target_prefix(
     if env_var:
         os.environ["MAMBA_TARGET_PREFIX"] = str(p)
 
-    if not fallback:
+    if not current_target_prefix_fallback:
         os.environ.pop("CONDA_PREFIX", None)
     else:
         os.environ["CONDA_PREFIX"] = str(p)

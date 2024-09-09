@@ -588,10 +588,16 @@ namespace mamba
             }
             else
             {
-                bool use_fallback = config.at("use_target_prefix_fallback").value<bool>();
-                if (use_fallback)
+                bool use_target_prefix_fallback = config.at("use_target_prefix_fallback").value<bool>();
+                if (use_target_prefix_fallback)
                 {
                     prefix = util::get_env("CONDA_PREFIX").value_or("");
+                }
+
+                bool use_root_prefix_fallback = config.at("use_root_prefix_fallback").value<bool>();
+                if (use_root_prefix_fallback && prefix.empty())
+                {
+                    prefix = root_prefix;
                 }
             }
 
@@ -1194,7 +1200,8 @@ namespace mamba
                             "envs_dirs",
                             "env_name",
                             "spec_file_env_name",
-                            "use_target_prefix_fallback" })
+                            "use_target_prefix_fallback",
+                            "use_root_prefix_fallback" })
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
                    .set_post_merge_hook<fs::u8path>(
@@ -1214,6 +1221,11 @@ namespace mamba
                    .group("Basic")
                    .set_single_op_lifetime()
                    .description("Fallback to the current target prefix or not"));
+
+        insert(Configurable("use_root_prefix_fallback", true)
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description("Fallback to the root prefix or not"));
 
         insert(Configurable("target_prefix_checks", MAMBA_NO_PREFIX_CHECK)
                    .group("Basic")

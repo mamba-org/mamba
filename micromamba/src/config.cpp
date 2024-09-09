@@ -302,6 +302,7 @@ void
 set_sequence_to_rc(mamba::Configuration& config, const SequenceAddType& opt)
 {
     config.at("use_target_prefix_fallback").set_value(true);
+    config.at("use_root_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
         .set_value(
             MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
@@ -356,6 +357,7 @@ set_config_remove_key_command(CLI::App* subcom, mamba::Configuration& config)
         [&]()
         {
             config.at("use_target_prefix_fallback").set_value(true);
+            config.at("use_root_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
                 .set_value(
                     MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
@@ -419,6 +421,7 @@ set_config_remove_command(CLI::App* subcom, mamba::Configuration& config)
         [&]
         {
             config.at("use_target_prefix_fallback").set_value(true);
+            config.at("use_root_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
                 .set_value(
                     MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
@@ -496,6 +499,7 @@ set_config_set_command(CLI::App* subcom, mamba::Configuration& config)
         [&]
         {
             config.at("use_target_prefix_fallback").set_value(true);
+            config.at("use_root_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
                 .set_value(
                     MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
@@ -541,6 +545,7 @@ set_config_get_command(CLI::App* subcom, mamba::Configuration& config)
         [&]
         {
             config.at("use_target_prefix_fallback").set_value(true);
+            config.at("use_root_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
                 .set_value(
                     MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX

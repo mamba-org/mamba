@@ -58,8 +58,9 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
         infos = helpers.info()
 
     if prefix_selection is None:
-        expected_name = "None"
-        location = "-"
+        # Fallback on root prefix
+        expected_name = "base"
+        location = tmp_root_prefix
     elif prefix_selection == "env_var":
         expected_name = name + " (active)"
         location = prefix

@@ -1663,8 +1663,8 @@ namespace mamba
         insert(Configurable("show_anaconda_channel_warnings", &m_context.show_anaconda_channel_warnings)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Show the warnings for Anaconda official channels"));
+                   .set_env_var_names({ "MAMBA_SHOW_WARNINGS" })
+                   .description("Show the warning when the Anaconda official channels are used"));
 
         insert(Configurable("shortcuts", &m_context.shortcuts)
                    .group("Extract, Link & Install")

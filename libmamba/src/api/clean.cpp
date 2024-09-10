@@ -23,6 +23,7 @@ namespace mamba
         auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
         config.load();
 
         bool clean_all = options & MAMBA_CLEAN_ALL;

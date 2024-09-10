@@ -190,6 +190,7 @@ def test_activate_target_prefix_checks(tmp_home, tmp_root_prefix):
     res = helpers.shell("activate", "-p", tmp_root_prefix, "--print-config-only")
     assert res["target_prefix_checks"] == helpers.MAMBA_NO_PREFIX_CHECK
     assert not res["use_target_prefix_fallback"]
+    assert not res["use_root_prefix_fallback"]
 
 
 @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])

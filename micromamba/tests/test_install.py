@@ -1,8 +1,8 @@
 import os
+import platform
 import shutil
 import subprocess
 import sys
-import platform
 from pathlib import Path
 
 import pytest
@@ -51,6 +51,7 @@ class TestInstall:
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
+        assert res["use_root_prefix_fallback"]
         checks = (
             helpers.MAMBA_ALLOW_EXISTING_PREFIX
             | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -116,7 +117,7 @@ class TestInstall:
     @pytest.mark.parametrize("cli_env_name", (False, True))
     @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
     @pytest.mark.parametrize("env_var", (False, True))
-    @pytest.mark.parametrize("fallback", (False, True))
+    @pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
     def test_target_prefix(
         self,
         root_prefix,
@@ -125,7 +126,7 @@ class TestInstall:
         cli_env_name,
         yaml_name,
         env_var,
-        fallback,
+        current_target_prefix_fallback,
         existing_cache,
     ):
         cmd = []
@@ -176,21 +177,66 @@ class TestInstall:
         if env_var:
             os.environ["MAMBA_TARGET_PREFIX"] = p
 
-        if not fallback:
+        if not current_target_prefix_fallback:
             os.environ.pop("CONDA_PREFIX")
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if (
-            (cli_prefix and cli_env_name)
-            or (yaml_name == "prefix")
-            or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
-        ):
+        if (cli_prefix and cli_env_name) or (yaml_name == "prefix"):
             with pytest.raises(subprocess.CalledProcessError):
                 helpers.install(*cmd, "--print-config-only")
+        elif not (
+            cli_prefix or cli_env_name or yaml_name or env_var or current_target_prefix_fallback
+        ):
+            # Fallback on root prefix
+            res = helpers.install(*cmd, "--print-config-only")
+            TestInstall.config_tests(res, root_prefix=r, target_prefix=r)
         else:
             res = helpers.install(*cmd, "--print-config-only")
             TestInstall.config_tests(res, root_prefix=r, target_prefix=expected_p)
+
+    def test_target_prefix_with_no_settings(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestInstall` class
+        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.root_prefix,
+            target_prefix=TestInstall.root_prefix,
+        )
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="MAMBA_ROOT_PREFIX is set in windows GH workflow",
+    )
+    def test_target_prefix_with_no_settings_and_no_env_var(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.current_root_prefix,
+            target_prefix=TestInstall.current_root_prefix,
+        )
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))

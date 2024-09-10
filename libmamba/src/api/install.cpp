@@ -220,6 +220,7 @@ namespace mamba
 
         config.at("create_base").set_value(true);
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX

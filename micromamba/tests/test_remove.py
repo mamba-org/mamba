@@ -180,6 +180,7 @@ def remove_config_common_assertions(res, root_prefix, target_prefix):
     assert res["root_prefix"] == str(root_prefix)
     assert res["target_prefix"] == str(target_prefix)
     assert res["use_target_prefix_fallback"]
+    assert not res["use_root_prefix_fallback"]
     checks = (
         helpers.MAMBA_ALLOW_EXISTING_PREFIX
         | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -205,7 +206,7 @@ def test_remove_config_specs(tmp_home, tmp_root_prefix, tmp_prefix):
 @pytest.mark.parametrize("cli_prefix", (False, True))
 @pytest.mark.parametrize("cli_env_name", (False, True))
 @pytest.mark.parametrize("env_var", (False, True))
-@pytest.mark.parametrize("fallback", (False, True))
+@pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
 def test_remove_config_target_prefix(
     tmp_home,
     tmp_root_prefix,
@@ -216,7 +217,7 @@ def test_remove_config_target_prefix(
     cli_prefix,
     cli_env_name,
     env_var,
-    fallback,
+    current_target_prefix_fallback,
 ):
     (tmp_root_prefix / "conda-meta").mkdir(parents=True, exist_ok=True)
 
@@ -246,12 +247,14 @@ def test_remove_config_target_prefix(
     if env_var:
         os.environ["MAMBA_TARGET_PREFIX"] = p
 
-    if not fallback:
+    if not current_target_prefix_fallback:
         os.environ.pop("CONDA_PREFIX")
     else:
         os.environ["CONDA_PREFIX"] = p
 
-    if (cli_prefix and cli_env_name) or not (cli_prefix or cli_env_name or env_var or fallback):
+    if (cli_prefix and cli_env_name) or not (
+        cli_prefix or cli_env_name or env_var or current_target_prefix_fallback
+    ):
         with pytest.raises(subprocess.CalledProcessError):
             helpers.remove(*cmd, "--print-config-only")
     else:

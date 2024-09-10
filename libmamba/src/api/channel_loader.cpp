@@ -66,8 +66,7 @@ namespace mamba
             {
                 if (channel.platform_url(platform).host() == "repo.anaconda.com")
                 {
-                    spdlog::warn(
-                        "This is a commercial channel hosted by Anaconda.com. Please make sure you understand the TOS."
+                    LOG_WARNING << ("This is a commercial channel hosted by Anaconda.com. Please make sure you understand the TOS."
                     );
                 }
 

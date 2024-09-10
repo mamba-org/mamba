@@ -1660,6 +1660,12 @@ namespace mamba
                         !WARNING: Using this option can result in corruption of long-lived
                         environments due to broken links (deleted cache).)")));
 
+        insert(Configurable("show_anaconda_channel_warnings", &m_context.show_anaconda_channel_warnings)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Show the warnings for Anaconda official channels"));
+
         insert(Configurable("shortcuts", &m_context.shortcuts)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()

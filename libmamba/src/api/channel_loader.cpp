@@ -66,8 +66,10 @@ namespace mamba
             {
                 if (channel.platform_url(platform).host() == "repo.anaconda.com")
                 {
-                    LOG_WARNING << ("This is a commercial channel hosted by Anaconda.com. Please make sure you understand the TOS."
-                    );
+                    LOG_WARNING
+                        << "'repo.anaconda.com', a commercial channel hosted by Anaconda.com, is used.\n";
+                    LOG_WARNING << "Please make sure you understand Anaconda Terms of Services.\n";
+                    LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
                 }
 
                 auto sdires = SubdirData::create(

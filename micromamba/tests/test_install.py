@@ -1,8 +1,8 @@
 import os
+import platform
 import shutil
 import subprocess
 import sys
-import platform
 from pathlib import Path
 
 import pytest
@@ -202,11 +202,36 @@ class TestInstall:
         # Specify no arg
         cmd = []
 
+        # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestInstall` class
+        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.root_prefix,
+            target_prefix=TestInstall.root_prefix,
+        )
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="MAMBA_ROOT_PREFIX is set in windows GH workflow",
+    )
+    def test_target_prefix_with_no_settings_and_no_env_var(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
         os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ.pop("CONDA_PREFIX")
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")
+
         TestInstall.config_tests(
             res,
             root_prefix=TestInstall.current_root_prefix,

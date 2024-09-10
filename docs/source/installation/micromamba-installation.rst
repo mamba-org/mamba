@@ -212,6 +212,7 @@ Use CMake from this environment to drive the build:
    cmake -B build/ \
        -G Ninja \
        ${CMAKE_ARGS} \
+       -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
        -D CMAKE_BUILD_TYPE="Release" \
        -D BUILD_LIBMAMBA=ON \
        -D BUILD_STATIC=ON \

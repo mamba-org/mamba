@@ -38,6 +38,11 @@ jobs:
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
+      - name: Disable output validation
+        if: ${{ matrix.platform == 'osx' }}
+        run: |
+          cd micromamba-feedstock/
+          sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
       - name: Checkout mamba branch
         uses: actions/checkout@v4
         with:

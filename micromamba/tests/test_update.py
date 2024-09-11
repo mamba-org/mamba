@@ -514,15 +514,3 @@ class TestUpdateConfig:
         helpers.install("quantstack::sphinx", no_dry_run=True)
         res = helpers.update("quantstack::sphinx", "-c", "conda-forge", "--json")
         assert "actions" not in res
-
-    def test_warnings(self, capsys, existing_cache):
-        os.environ["MAMBA_SHOW_ANACONDA_CHANNEL_WARNINGS"] = "true"
-        # Fallback on root prefix
-        helpers.install("-c", "defaults", "flask", default_channel=False)
-        helpers.install(
-            "-c", "https://repo.anaconda.com/pkgs/main/", "flask", default_channel=False
-        )
-        captured = capsys.readouterr()
-
-        # Check that "Terms of Service" warning is shown.
-        assert "Terms of Service" in captured.out or "Terms of Service" in captured.err

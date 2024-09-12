@@ -17,8 +17,8 @@ dependencies:
   - yaml-cpp-static >=0.8.0
   - reproc-static >=14.2.4.post0
   - reproc-cpp-static >=14.2.4.post0
-  - libcurl >=8.4.0
-  - libcurl-static >=8.4.0
+  - libcurl >=8.4.0,<8.10
+  - libcurl-static >=8.4.0,<8.10
   - xz-static
   - libssh2-static
   - libarchive-minimal-static

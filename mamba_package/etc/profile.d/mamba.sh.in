@@ -1,8 +1,50 @@
-export MAMBA_ROOT_PREFIX="@CMAKE_INSTALL_PREFIX@"
-__mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell posix 2> /dev/null)"
+# Get directories from `mamba` executable path
+
+bin_dir=""
+root_dir=""
+
+get_paths() {
+    local exec_name=$1
+    local exec_path=$(which "$exec_name")
+
+    export MAMBA_EXE="$exec_path"
+
+    current_dir="$exec_path"
+
+    while true; do
+        parent_dir=$(dirname "$current_dir")
+
+        if [[ "$parent_dir" == "$current_dir" ]]; then
+            break
+        fi
+
+        if [[ $(basename "$current_dir") == "bin" ]]; then
+            bin_dir="$parent_dir"
+        fi
+
+        if [[ $(basename "$current_dir") == "envs" ]]; then
+            root_dir="$parent_dir"
+            break # Exit the loop as we found both directories
+        fi
+
+        current_dir="$parent_dir"
+    done
+}
+
+get_paths "mamba"
+
+if [[ -n "$root_dir" ]]; then
+    export MAMBA_ROOT_PREFIX="$root_dir"
+elif [[ -n "$bin_dir" ]]; then
+    export MAMBA_ROOT_PREFIX="$bin_dir"
+else
+    export MAMBA_ROOT_PREFIX=$(dirname "$MAMBA_EXE")
+fi
+
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell posix 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__mamba_setup"
 else
-    alias mamba="@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba"  # Fallback on help from mamba activate
+    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
 fi
 unset __mamba_setup

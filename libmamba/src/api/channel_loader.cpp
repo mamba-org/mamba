@@ -63,6 +63,16 @@ namespace mamba
         {
             for (const auto& platform : channel.platforms())
             {
+                auto show_warning = ctx.show_anaconda_channel_warnings;
+                auto channel_name = channel.platform_url(platform).host();
+                if (channel_name == "repo.anaconda.com" && show_warning)
+                {
+                    LOG_WARNING << "'" << channel_name
+                                << "', a commercial channel hosted by Anaconda.com, is used.\n";
+                    LOG_WARNING << "Please make sure you understand Anaconda Terms of Services.\n";
+                    LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
+                }
+
                 auto sdires = SubdirData::create(
                     ctx,
                     channel_context,

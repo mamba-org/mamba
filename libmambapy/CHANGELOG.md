@@ -1,3 +1,19 @@
+libmambapy 2.0.0rc5 (September 13, 2024)
+========================================
+
+Enhancements:
+
+- Remove cctools patch from feedstock in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3442
+
+Bug fixes:
+
+- fix: add warning when using defaults by @wolfv in https://github.com/mamba-org/mamba/pull/3434
+- Update mamba.sh.in script by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3422
+
+CI fixes and doc:
+
+- docs: Specify `CMAKE_INSTALL_PREFIX` by @jjerphan in https://github.com/mamba-org/mamba/pull/3438
+
 libmambapy 2.0.0rc4 (August 29, 2024)
 =====================================
 

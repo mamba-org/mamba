@@ -1,3 +1,27 @@
+2024.09.13
+==========
+
+Releases: libmamba 2.0.0rc5, libmambapy 2.0.0rc5, micromamba 2.0.0rc5
+
+Enhancements:
+
+- [all] Remove cctools patch from feedstock in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3442
+
+Bug fixes:
+
+- [libmamba, libmambapy] fix: add warning when using defaults by @wolfv in https://github.com/mamba-org/mamba/pull/3434
+- [libmamba, micromamba] Add fallback to root prefix by @Hind-M in https://github.com/mamba-org/mamba/pull/3435
+- [libmamba] Fix x86_64 to use underscore instead of dash by @traversaro in https://github.com/mamba-org/mamba/pull/3433
+- [libmamba, micromamba] Fixed micromamba static build after cctools and ld64 upgrade on conda… by @JohanMabille in https://github.com/mamba-org/mamba/pull/3436
+- [libmamba, micromamba] fix: PyPI support for `env update` by @jjerphan in https://github.com/mamba-org/mamba/pull/3419
+- [libmamba] Fix output by @Hind-M in https://github.com/mamba-org/mamba/pull/3428
+- [all] Update mamba.sh.in script by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3422
+- [libmamba] Execute remove action before install actions by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3424
+
+CI fixes and doc:
+
+- [all] docs: Specify `CMAKE_INSTALL_PREFIX` by @jjerphan in https://github.com/mamba-org/mamba/pull/3438
+
 2024.08.29
 ==========
 

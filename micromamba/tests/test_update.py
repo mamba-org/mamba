@@ -245,6 +245,7 @@ class TestUpdateConfig:
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
+        assert res["use_default_prefix_fallback"]
         assert res["use_root_prefix_fallback"]
         checks = (
             helpers.MAMBA_ALLOW_EXISTING_PREFIX

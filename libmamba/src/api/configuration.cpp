@@ -629,6 +629,67 @@ namespace mamba
             }
         }
 
+        auto
+        get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path) -> expected_t<fs::u8path>
+        {
+            if (mamba_bin_path.empty())
+            {
+                return make_unexpected("`mamba` binary not found.", mamba_error_code::incorrect_usage);
+            }
+
+            auto current_dir(mamba_bin_path);
+            fs::u8path bin_dir, root_dir;
+
+            while (true)
+            {
+                fs::u8path parent_dir = current_dir.parent_path();
+
+                if (parent_dir == current_dir)
+                {
+                    // Root reached
+                    break;
+                }
+
+                if (current_dir.filename() == "bin")
+                {
+                    bin_dir = parent_dir;
+                }
+
+                if (current_dir.filename() == "envs")
+                {
+                    root_dir = parent_dir;
+                    break;  // Exit the loop as we found both directories
+                }
+
+                current_dir = parent_dir;
+            }
+
+            if (!root_dir.empty())
+            {
+                return { fs::weakly_canonical(std::move(root_dir)) };
+            }
+            else if (!bin_dir.empty())
+            {
+                return { fs::weakly_canonical(std::move(bin_dir)) };
+            }
+
+            return { fs::weakly_canonical(mamba_bin_path.parent_path()) };
+        }
+
+        auto validate_mamba_install_prefix(bool is_mamba_exe, expected_t<fs::u8path> candidate)
+            -> expected_t<fs::u8path>
+        {
+            // `is_mamba_exe` is referring to mamba exe as the `micromamba` single executable
+            if (candidate.has_value() && !candidate.value().empty() && !is_mamba_exe)
+            {
+                return { fs::weakly_canonical(std::move(candidate.value())) };
+            }
+            else
+            {
+                return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
+            }
+        }
+
         auto validate_existing_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
         {
             auto prefix = fs::u8path(util::expand_home(candidate.string()));
@@ -711,6 +772,8 @@ namespace mamba
 
         void root_prefix_hook(Configuration& config, fs::u8path& prefix)
         {
+            const auto& ctx = config.context();
+
             auto& env_name = config.at("env_name");
 
             if (prefix.empty())
@@ -727,6 +790,17 @@ namespace mamba
                     validate_existing_root_prefix(default_root_prefix_v1())
                         .or_else([](const auto& /* error */)
                                  { return validate_root_prefix(default_root_prefix_v2()); })
+                        .or_else(
+                            [&](const auto& /* error */)
+                            {
+                                // If it's mamba package, and the root prefix is not set,
+                                // set the root prefix as the mamba library installation path
+                                return validate_mamba_install_prefix(
+                                    ctx.command_params.is_mamba_exe,
+                                    get_root_prefix_from_mamba_bin(util::which("mamba"))
+                                );
+                            }
+                        )
                         .transform([&](fs::u8path&& p) { prefix = std::move(p); })
                         .or_else([](mamba_error&& error) { throw std::move(error); });
                 }

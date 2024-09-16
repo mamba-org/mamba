@@ -1274,4 +1274,70 @@ namespace mamba
             }
         }
     }  // namespace testing
+
+    namespace detail
+    {
+        TEST_SUITE("get_root_prefix_from_mamba_bin")
+        {
+            TEST_CASE("empty_path")
+            {
+                CHECK_FALSE(get_root_prefix_from_mamba_bin("").has_value());
+            }
+
+            TEST_CASE("root_dir")
+            {
+                fs::u8path test_path = "/home/usr/root_prefix/envs/mamba_env/bin/mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(get_root_prefix_from_mamba_bin(test_path).value(), "/home/usr/root_prefix");
+            }
+
+            TEST_CASE("bin_dir")
+            {
+                fs::u8path test_path = "/home/usr/root_prefix/mamba_env/bin/mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(
+                    get_root_prefix_from_mamba_bin(test_path).value(),
+                    "/home/usr/root_prefix/mamba_env"
+                );
+            }
+
+            TEST_CASE("parent_dir")
+            {
+                fs::u8path test_path = "/home/usr/root_prefix/mamba_env/mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(
+                    get_root_prefix_from_mamba_bin(test_path).value(),
+                    "/home/usr/root_prefix/mamba_env"
+                );
+            }
+
+            TEST_CASE("simple_parent_dir")
+            {
+                fs::u8path test_path = "some_folder/mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(get_root_prefix_from_mamba_bin(test_path).value(), "some_folder");
+            }
+
+            TEST_CASE("empty_parent")
+            {
+                fs::u8path test_path = "mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(get_root_prefix_from_mamba_bin(test_path).value(), "");
+            }
+
+            TEST_CASE("current_path")
+            {
+                fs::u8path test_path = "./mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(get_root_prefix_from_mamba_bin(test_path).value(), mamba::fs::current_path());
+            }
+
+            TEST_CASE("parent_is_root")
+            {
+                fs::u8path test_path = "/mamba";
+                CHECK(get_root_prefix_from_mamba_bin(test_path).has_value());
+                CHECK_EQ(get_root_prefix_from_mamba_bin(test_path).value(), "/");
+            }
+        }
+    }
 }  // namespace mamba

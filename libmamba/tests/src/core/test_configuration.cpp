@@ -1277,6 +1277,11 @@ namespace mamba
 
     namespace detail
     {
+        // This is supposed to test the behavior of `get_root_prefix_from_mamba_bin`
+        // and we should not bother with platform details (even less with CI details)
+        // (such as having different root directories (in windows and osx))
+        // Therefore, this test is only run on linux
+#ifdef __linux__
         TEST_SUITE("get_root_prefix_from_mamba_bin")
         {
             TEST_CASE("empty_path")
@@ -1339,5 +1344,6 @@ namespace mamba
                 CHECK_EQ(get_root_prefix_from_mamba_bin(test_path).value(), "/");
             }
         }
-    }
+#endif
+    }  // namespace detail
 }  // namespace mamba

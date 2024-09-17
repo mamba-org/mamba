@@ -257,6 +257,12 @@ set_env_command(CLI::App* com, Configuration& config)
                 }
             }
 
+            if (remove_env_result == RemoveResult::NO)
+            {
+                Console::stream() << "The environment was not removed.";
+                return;
+            }
+
             const auto& ctx = config.context();
             if (!ctx.dry_run)
             {

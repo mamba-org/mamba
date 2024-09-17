@@ -363,3 +363,17 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     pip_packages_list = yaml.safe_load(pip_list_output)
 
     assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):
+    # Non-regression test for: https://github.com/mamba-org/mamba/issues/3453
+
+    env_prefix = tmp_path / "env-extra-white-space"
+
+    create_spec_file = tmp_path / "env-extra-white-space.yaml"
+
+    shutil.copyfile(__this_dir__ / "env-extra-white-space.yaml", create_spec_file)
+
+    res = helpers.run_env("create", "-p", env_prefix, "-f", create_spec_file, "-y", "--json")
+    assert res["success"]

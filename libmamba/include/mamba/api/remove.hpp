@@ -18,7 +18,14 @@ namespace mamba
     class ChannelContext;
     class Configuration;
 
-    bool remove(Configuration& config, int flags = MAMBA_REMOVE_PRUNE);
+    enum RemoveResult
+    {
+        YES = 0,
+        NO = 1,
+        EMPTY = 2,
+    };
+
+    RemoveResult remove(Configuration& config, int flags = MAMBA_REMOVE_PRUNE);
 
     namespace detail
     {

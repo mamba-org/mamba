@@ -18,7 +18,7 @@
 
 namespace mamba
 {
-    bool remove(Configuration& config, int flags)
+    RemoveResult remove(Configuration& config, int flags)
     {
         auto& ctx = config.context();
 
@@ -56,12 +56,14 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            return detail::remove_specs(ctx, channel_context, remove_specs, prune, force);
+            return detail::remove_specs(ctx, channel_context, remove_specs, prune, force)
+                       ? RemoveResult::YES
+                       : RemoveResult::NO;
         }
         else
         {
             Console::instance().print("Nothing to do.");
-            return false;
+            return RemoveResult::EMPTY;
         }
     }
 

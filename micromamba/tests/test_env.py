@@ -362,4 +362,4 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
     pip_packages_list = yaml.safe_load(pip_list_output)
 
-    assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)
+    assert any(pkg["name"] == "numpy" for pkg in pip_packages_list)

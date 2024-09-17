@@ -238,29 +238,22 @@ set_env_command(CLI::App* com, Configuration& config)
             // Remove specs if exist
             RemoveResult remove_env_result = remove(config, MAMBA_REMOVE_ALL);
 
-            if (remove_env_result == RemoveResult::EMPTY)
-            {
-                Console::stream() << "No packages to remove from environment.";
-
-                while (true)
-                {
-                    auto res = Console::prompt("Do you want to remove the environment?", 'Y');
-                    if (res)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        Console::stream() << "The environment was not removed.";
-                        return;
-                    }
-                }
-            }
-
             if (remove_env_result == RemoveResult::NO)
             {
                 Console::stream() << "The environment was not removed.";
                 return;
+            }
+
+            if (remove_env_result == RemoveResult::EMPTY)
+            {
+                Console::stream() << "No packages to remove from environment.";
+
+                auto res = Console::prompt("Do you want to remove the environment?", 'Y');
+                if (!res)
+                {
+                    Console::stream() << "The environment was not removed.";
+                    return;
+                }
             }
 
             const auto& ctx = config.context();

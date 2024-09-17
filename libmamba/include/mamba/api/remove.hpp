@@ -18,7 +18,7 @@ namespace mamba
     class ChannelContext;
     class Configuration;
 
-    enum RemoveResult
+    enum class RemoveResult : int
     {
         YES = 0,
         NO = 1,

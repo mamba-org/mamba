@@ -236,10 +236,10 @@ set_env_command(CLI::App* com, Configuration& config)
         [&config]
         {
             // Remove specs if exist
-            remove(config, MAMBA_REMOVE_ALL);
+            auto must_remove_env = remove(config, MAMBA_REMOVE_ALL);
 
             const auto& ctx = config.context();
-            if (!ctx.dry_run)
+            if (must_remove_env && !ctx.dry_run)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
@@ -257,7 +257,7 @@ set_env_command(CLI::App* com, Configuration& config)
             }
             else
             {
-                Console::stream() << "Dry run. The environment was not removed.";
+                Console::stream() << "The environment was not removed.";
             }
         }
     );

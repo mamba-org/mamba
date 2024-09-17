@@ -18,7 +18,7 @@
 
 namespace mamba
 {
-    void remove(Configuration& config, int flags)
+    bool remove(Configuration& config, int flags)
     {
         auto& ctx = config.context();
 
@@ -56,11 +56,12 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(ctx, channel_context, remove_specs, prune, force);
+            return detail::remove_specs(ctx, channel_context, remove_specs, prune, force);
         }
         else
         {
             Console::instance().print("Nothing to do.");
+            return false;
         }
     }
 
@@ -108,7 +109,7 @@ namespace mamba
 
     namespace detail
     {
-        void remove_specs(
+        bool remove_specs(
             Context& ctx,
             ChannelContext& channel_context,
             const std::vector<std::string>& raw_specs,
@@ -144,10 +145,12 @@ namespace mamba
                     transaction.log_json();
                 }
 
-                if (transaction.prompt(ctx, channel_context))
+                auto prompt_entry = transaction.prompt(ctx, channel_context);
+                if (prompt_entry)
                 {
                     transaction.execute(ctx, channel_context, prefix_data);
                 }
+                return prompt_entry;
             };
 
             if (force)
@@ -168,7 +171,7 @@ namespace mamba
                     }
                 }
                 auto transaction = MTransaction(ctx, pool, pkgs_to_remove, {}, package_caches);
-                execute_transaction(transaction);
+                return execute_transaction(transaction);
             }
             else
             {
@@ -206,7 +209,7 @@ namespace mamba
                     package_caches
                 );
 
-                execute_transaction(transaction);
+                return execute_transaction(transaction);
             }
         }
     }

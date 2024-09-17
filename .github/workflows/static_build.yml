@@ -49,22 +49,12 @@ jobs:
           cd micromamba-feedstock/
           sed -i '' 's/libcurl >=8.4.0/libcurl >=8.4.0,<8.10/g' recipe/meta.yaml
           sed -i '' 's/libcurl-static >=8.4.0/libcurl-static >=8.4.0,<8.10/g' recipe/meta.yaml
-      - name: remove cctools patch
-        if: ${{ matrix.platform == 'osx' }}
-        run: |
-          cd micromamba-feedstock/
-          sed -i '' '/cctools-and-ld64.patch/d' recipe/meta.yaml
       - name: Pin libcurl
         if: ${{ matrix.platform == 'linux' }}
         run: |
           cd micromamba-feedstock/
           sed -i 's/libcurl >=8.4.0/libcurl >=8.4.0,<8.10/g' recipe/meta.yaml
           sed -i 's/libcurl-static >=8.4.0/libcurl-static >=8.4.0,<8.10/g' recipe/meta.yaml
-      - name: remove cctools patch
-        if: ${{ matrix.platform == 'linux' }}
-        run: |
-          cd micromamba-feedstock/
-          sed -i '/cctools-and-ld64.patch/d' recipe/meta.yaml
       - name: Checkout mamba branch
         uses: actions/checkout@v4
         with:

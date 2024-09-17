@@ -979,7 +979,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "some-prefix"
     helpers.create("-p", env_prefix, "pre-commit")
     env_overrides = {
-        "PRE_COMMIT_USE_MICROMAMBA": "1",
+        "PRE_COMMIT_USE_MAMBA": "1",
         "PATH": os.pathsep.join(
             [
                 str(Path(helpers.get_umamba()).parent),

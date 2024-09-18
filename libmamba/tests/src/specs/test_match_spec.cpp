@@ -107,6 +107,16 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "scikit-learn>1.0.0");
         }
 
+        SUBCASE("kytea >=0.1.4, 0.2.0")
+        {
+            auto ms = MatchSpec::parse("kytea >=0.1.4, 0.2.0").value();
+            CHECK_EQ(ms.name().str(), "kytea");
+            CHECK_EQ(ms.version().str(), ">=0.1.4,==0.2.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "kytea[version=\">=0.1.4,==0.2.0\"]");
+        }
+
         SUBCASE("_libgcc_mutex 0.1 conda_forge")
         {
             auto ms = MatchSpec::parse("_libgcc_mutex 0.1 conda_forge").value();

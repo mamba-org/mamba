@@ -504,15 +504,19 @@ namespace mamba::specs
     {
         std::string raw_match_spec_str = std::string(str);
         raw_match_spec_str = util::strip(raw_match_spec_str);
-        // NOTE: This works around some improperly encoded `constrains` in the test data, e.g.:
-        //      `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit
-        //      >= 10.2" `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
-        //      `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
-        //      `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or
-        //      `dep`:
-        //      ">=4.5.2"
-        // Remove any with space after the binary operators
-        for (const std::string& op : { ">=", "<=", "==", ">", "<", "!=", "=", "==" })
+
+        // Remove any with space after binary operators, such as:
+        //  - `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit >= 10.2"
+        //  - `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
+        //  `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
+        //  - `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or
+        //  `dep`: ">=4.5.2"
+        //  - `infokonoha-4.6.3-pyhd8ed1ab_0.tar.bz2`'s `kytea >=0.1.4, 0.2.0` -> `kytea
+        //  >=0.1.4,0.2.0`
+        // TODO: this solution reallocates memory several times potentially, but the
+        //  number of operators is small and the strings are short, so it must be fine.
+        //  If needed it can be optimized so that the string is only copied once.
+        for (const std::string& op : { ">=", "<=", "==", ">", "<", "!=", "=", "==", "," })
         {
             const std::string& bad_op = op + " ";
             while (raw_match_spec_str.find(bad_op) != std::string::npos)
@@ -522,14 +526,6 @@ namespace mamba::specs
                                          raw_match_spec_str.find(bad_op) + bad_op.size()
                                      );
             }
-        }
-
-        // Remove any white space between version
-        // e.g. `kytea >=0.1.4, 0.2.0` -> `kytea >=0.1.4,0.2.0` in
-        // `infokonoha-4.6.3-pyhd8ed1ab_0.tar.bz2`
-        while (raw_match_spec_str.find(", ") != std::string::npos)
-        {
-            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(", "), 2, ",");
         }
 
         auto parse_error = [&raw_match_spec_str](std::string_view err) -> tl::unexpected<ParseError>

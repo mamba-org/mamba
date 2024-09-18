@@ -47,6 +47,66 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "xtensor>=0.12.3");
         }
 
+        SUBCASE("xtensor      >=       0.12.3")
+        {
+            auto ms = MatchSpec::parse("xtensor      >=       0.12.3").value();
+            CHECK_EQ(ms.name().str(), "xtensor");
+            CHECK_EQ(ms.version().str(), ">=0.12.3");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "xtensor>=0.12.3");
+        }
+
+        SUBCASE("python > 3.11")
+        {
+            auto ms = MatchSpec::parse("python > 3.11").value();
+            CHECK_EQ(ms.name().str(), "python");
+            CHECK_EQ(ms.version().str(), ">3.11");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "python>3.11");
+        }
+
+        SUBCASE("numpy< 2.0")
+        {
+            auto ms = MatchSpec::parse("numpy< 2.0").value();
+            CHECK_EQ(ms.name().str(), "numpy");
+            CHECK_EQ(ms.version().str(), "<2.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "numpy<2.0");
+        }
+
+        SUBCASE("pytorch-cpu = 1.13.0")
+        {
+            auto ms = MatchSpec::parse("pytorch-cpu = 1.13.0").value();
+            CHECK_EQ(ms.name().str(), "pytorch-cpu");
+            CHECK_EQ(ms.version().str(), "=1.13.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "pytorch-cpu=1.13.0");
+        }
+
+        SUBCASE("scipy   >=    1.5.0,  < 2.0.0")
+        {
+            auto ms = MatchSpec::parse("scipy   >=    1.5.0,  < 2.0.0").value();
+            CHECK_EQ(ms.name().str(), "scipy");
+            CHECK_EQ(ms.version().str(), ">=1.5.0,<2.0.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "scipy[version=\">=1.5.0,<2.0.0\"]");
+        }
+
+        SUBCASE("scikit-learn >1.0.0")
+        {
+            auto ms = MatchSpec::parse("scikit-learn >1.0.0").value();
+            CHECK_EQ(ms.name().str(), "scikit-learn");
+            CHECK_EQ(ms.version().str(), ">1.0.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "scikit-learn>1.0.0");
+        }
+
         SUBCASE("_libgcc_mutex 0.1 conda_forge")
         {
             auto ms = MatchSpec::parse("_libgcc_mutex 0.1 conda_forge").value();

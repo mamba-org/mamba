@@ -14,6 +14,7 @@ namespace mamba
     void config_describe(Configuration& config)
     {
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
         config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
@@ -38,6 +39,7 @@ namespace mamba
     void config_list(Configuration& config)
     {
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
         config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
@@ -70,6 +72,7 @@ namespace mamba
     void config_sources(Configuration& config)
     {
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
         config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(

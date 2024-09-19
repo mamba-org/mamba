@@ -245,6 +245,7 @@ class TestUpdateConfig:
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
+        assert res["use_default_prefix_fallback"]
         assert res["use_root_prefix_fallback"]
         checks = (
             helpers.MAMBA_ALLOW_EXISTING_PREFIX
@@ -372,6 +373,7 @@ class TestUpdateConfig:
 
         if not current_target_prefix_fallback:
             os.environ.pop("CONDA_PREFIX")
+            os.environ.pop("CONDA_DEFAULT_ENV")
         else:
             os.environ["CONDA_PREFIX"] = p
 
@@ -398,6 +400,7 @@ class TestUpdateConfig:
         # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestUpdateConfig` class
         os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")
@@ -420,6 +423,7 @@ class TestUpdateConfig:
 
         os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")

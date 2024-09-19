@@ -9,7 +9,6 @@ import pytest
 import yaml
 
 from . import helpers
-from packaging.version import Version
 
 __this_dir__ = Path(__file__).parent.resolve()
 
@@ -370,8 +369,9 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     # (note that a warning is printed to the user in that case)
     assert any(
         pkg["name"] == "numpy" and Version(pkg["version"]) >= Version("1.26.4")
-        for pkg in pip_packages_list    
+        for pkg in pip_packages_list
     )
+
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):

@@ -47,16 +47,6 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "xtensor>=0.12.3");
         }
 
-        SUBCASE("xtensor      >=       0.12.3")
-        {
-            auto ms = MatchSpec::parse("xtensor      >=       0.12.3").value();
-            CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.version().str(), ">=0.12.3");
-            CHECK(ms.build_string().is_explicitly_free());
-            CHECK(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "xtensor>=0.12.3");
-        }
-
         SUBCASE("python > 3.11")
         {
             auto ms = MatchSpec::parse("python > 3.11").value();

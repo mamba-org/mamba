@@ -180,6 +180,7 @@ class TestInstall:
 
         if not current_target_prefix_fallback:
             os.environ.pop("CONDA_PREFIX")
+            os.environ.pop("CONDA_DEFAULT_ENV")
         else:
             os.environ["CONDA_PREFIX"] = p
 
@@ -206,6 +207,7 @@ class TestInstall:
         # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestInstall` class
         os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")
@@ -229,6 +231,7 @@ class TestInstall:
 
         os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")

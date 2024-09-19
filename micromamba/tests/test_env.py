@@ -392,7 +392,7 @@ def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):
     packages = helpers.umamba_list("-p", env_prefix, "--json")
 
     assert any(
-        package["name"] == "python" and Version(package["version"]) >= Version("3.11")
+        package["name"] == "python" and Version(package["version"]) > Version("3.11")
         for package in packages
     )
     assert any(

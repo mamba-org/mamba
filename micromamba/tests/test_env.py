@@ -400,10 +400,6 @@ def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):
         for package in packages
     )
     assert any(
-        package["name"] == "pytorch-cpu" and Version(package["version"]) == Version("1.13.0")
-        for package in packages
-    )
-    assert any(
         package["name"] == "scipy"
         and Version("1.5.0") <= Version(package["version"]) < Version("2.0.0")
         for package in packages

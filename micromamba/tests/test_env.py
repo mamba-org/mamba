@@ -1,6 +1,8 @@
 import os
 import re
 import shutil
+
+from packaging.version import Version
 from pathlib import Path
 
 import pytest
@@ -153,8 +155,6 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     assert not any(package["name"] == "ipython" for package in packages)
 
     # Update python
-    from packaging.version import Version
-
     env_file_yml = tmp_path / "test_env.yaml"
     env_file_yml.write_text(env_yaml_content_with_version_and_new_pkg)
 
@@ -363,8 +363,15 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     pip_list_output = helpers.umamba_run("-p", env_prefix, "pip", "list", "--format=json")
     pip_packages_list = yaml.safe_load(pip_list_output)
 
-    assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)
-
+    # When numpy 2.0.0 is installed using mamba,
+    # `numpy-2.0.0.dist-info/` is still created in `env_prefix/lib/pythonx.x/site-packages/` alongside `numpy-1.26.4.dist-info`
+    # therefore causing an unexpected result when listing the version.
+    # In an ideal world, multiple package managers shouldn't be mixed but since this is supported, tests are here
+    # (note that a warning is printed to the user in that case)
+    assert any(
+        pkg["name"] == "numpy" and Version(pkg["version"]) >= Version("1.26.4")
+        for pkg in pip_packages_list    
+    )
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):

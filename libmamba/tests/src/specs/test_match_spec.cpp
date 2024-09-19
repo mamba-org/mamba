@@ -57,7 +57,7 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "python>3.11");
         }
 
-        SUBCASE("numpy< 2.0")
+        SUBCASE("numpy < 2.0")
         {
             auto ms = MatchSpec::parse("numpy< 2.0").value();
             CHECK_EQ(ms.name().str(), "numpy");

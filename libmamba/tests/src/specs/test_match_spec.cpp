@@ -107,6 +107,19 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), "kytea[version=\">=0.1.4,==0.2.0\"]");
         }
 
+        // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+        // which is currently supported but which must not.
+        SUBCASE("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
+        {
+            auto ms = MatchSpec::parse("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
+                          .value();
+            CHECK_EQ(ms.name().str(), "mingw-w64-ucrt-x86_64-crt-git");
+            CHECK_EQ(ms.version().str(), "==0v12.0.0.0r2.0ggc561118da");
+            CHECK_EQ(ms.build_string().str(), "h707e725_0");
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
+        }
+
         SUBCASE("_libgcc_mutex 0.1 conda_forge")
         {
             auto ms = MatchSpec::parse("_libgcc_mutex 0.1 conda_forge").value();

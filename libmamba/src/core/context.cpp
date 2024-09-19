@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+// Add something to trigger CI
+
 #include <iostream>
 
 #include <fmt/ostream.h>

@@ -59,7 +59,7 @@ TEST_SUITE("specs::match_spec")
 
         SUBCASE("numpy < 2.0")
         {
-            auto ms = MatchSpec::parse("numpy< 2.0").value();
+            auto ms = MatchSpec::parse("numpy < 2.0").value();
             CHECK_EQ(ms.name().str(), "numpy");
             CHECK_EQ(ms.version().str(), "<2.0");
             CHECK(ms.build_string().is_explicitly_free());

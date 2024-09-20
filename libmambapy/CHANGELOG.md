@@ -1,3 +1,12 @@
+libmambapy 2.0.0rc6 (September 20, 2024)
+========================================
+
+
+CI fixes and doc:
+
+- Fix wrong version of miniforge in doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3462
+- Remove cctools patch removal in CI by @Hind-M in https://github.com/mamba-org/mamba/pull/3451
+
 libmambapy 2.0.0rc5 (September 13, 2024)
 ========================================
 

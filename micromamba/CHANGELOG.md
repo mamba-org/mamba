@@ -1,3 +1,22 @@
+micromamba 2.0.0rc6 (September 20, 2024)
+========================================
+
+Enhancements:
+
+- Support CONDA_DEFAULT_ENV by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3445
+
+Bug fixes:
+
+- fix: Handle extra white-space in `MatchSpec` by @jjerphan in https://github.com/mamba-org/mamba/pull/3456
+- Fix `test_env_update_pypi_with_conda_forge` by @Hind-M in https://github.com/mamba-org/mamba/pull/3459
+- fix: Environment removal confirmation by @jjerphan in https://github.com/mamba-org/mamba/pull/3450
+- Fix test in osx by @Hind-M in https://github.com/mamba-org/mamba/pull/3448
+
+CI fixes and doc:
+
+- Fix wrong version of miniforge in doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3462
+- Remove cctools patch removal in CI by @Hind-M in https://github.com/mamba-org/mamba/pull/3451
+
 micromamba 2.0.0rc5 (September 13, 2024)
 ========================================
 

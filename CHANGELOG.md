@@ -1,3 +1,26 @@
+2024.09.20
+==========
+
+Releases: libmamba 2.0.0rc6, libmambapy 2.0.0rc6, micromamba 2.0.0rc6
+
+Enhancements:
+
+- [libmamba] test: `MatchSpec` edges cases by @jjerphan in https://github.com/mamba-org/mamba/pull/3458
+- [libmamba] Compute `root prefix` as mamba install path by @Hind-M in https://github.com/mamba-org/mamba/pull/3447
+- [libmamba, micromamba] Support CONDA_DEFAULT_ENV by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3445
+
+Bug fixes:
+
+- [libmamba, micromamba] fix: Handle extra white-space in `MatchSpec` by @jjerphan in https://github.com/mamba-org/mamba/pull/3456
+- [micromamba] Fix `test_env_update_pypi_with_conda_forge` by @Hind-M in https://github.com/mamba-org/mamba/pull/3459
+- [libmamba, micromamba] fix: Environment removal confirmation by @jjerphan in https://github.com/mamba-org/mamba/pull/3450
+- [micromamba] Fix test in osx by @Hind-M in https://github.com/mamba-org/mamba/pull/3448
+
+CI fixes and doc:
+
+- [all] Fix wrong version of miniforge in doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3462
+- [all] Remove cctools patch removal in CI by @Hind-M in https://github.com/mamba-org/mamba/pull/3451
+
 2024.09.13
 ==========
 

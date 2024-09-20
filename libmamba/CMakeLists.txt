@@ -76,6 +76,11 @@ if(BUILD_STATIC)
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif()
 
+# Use mamba installation prefix to set root prefix (base)
+if(BUILD_SHARED OR BUILD_MAMBA)
+    add_definitions(-DMAMBA_USE_INSTALL_PREFIX_AS_BASE)
+endif()
+
 if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()

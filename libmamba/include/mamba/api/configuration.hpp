@@ -955,12 +955,6 @@ namespace mamba
         return m_config.at(name);
     }
 
-    namespace detail
-    {
-        auto
-        get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path) -> expected_t<fs::u8path>;
-    }
-
     void use_conda_root_prefix(Configuration& config, bool force = false);
 }
 

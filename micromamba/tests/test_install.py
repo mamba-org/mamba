@@ -236,6 +236,12 @@ class TestInstall:
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")
 
+        print("res[root_prefix]: ", res["root_prefix"])
+        print("res[target_prefix]: ", res["target_prefix"])
+        print("TestInstall.current_root_prefix: ", TestInstall.current_root_prefix)
+        print("TestInstall.current_prefix: ", TestInstall.current_prefix)
+        print("TestInstall.root_prefix: ", TestInstall.root_prefix)
+        print("TestInstall.prefix: ", TestInstall.prefix)
         TestInstall.config_tests(
             res,
             root_prefix=TestInstall.current_root_prefix,

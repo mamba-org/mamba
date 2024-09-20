@@ -1,3 +1,17 @@
+2024.09.20
+==========
+
+Releases:  libmamba 1.5.10, libmambapy 1.5.10, mamba 1.5.10, micromamba 1.5.10
+
+Enhancement:
+
+- [libmamba, libmambapy, micromamba] Backport fmt 11 support by @Hind-M in https://github.com/mamba-org/mamba/pull/3429
+
+Bug fixes:
+
+- [libmamba] Fix x86_64 to use underscore instead of dash by @traversaro in https://github.com/mamba-org/mamba/pull/3404
+- [micromamba] Fix test by @Hind-M in https://github.com/mamba-org/mamba/pull/3432
+
 2024.08.31
 ==========
 

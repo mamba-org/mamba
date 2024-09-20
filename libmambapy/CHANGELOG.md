@@ -1,3 +1,10 @@
+libmambapy 1.5.10 (September 20, 2024)
+======================================
+
+Enhancement:
+
+- Backport fmt 11 support by @Hind-M in https://github.com/mamba-org/mamba/pull/3429
+
 libmambapy 1.5.9 (August 31, 2024)
 ==================================
 

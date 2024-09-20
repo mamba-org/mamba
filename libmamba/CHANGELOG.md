@@ -1,3 +1,14 @@
+libmamba 1.5.10 (September 20, 2024)
+====================================
+
+Enhancement:
+
+- Backport fmt 11 support by @Hind-M in https://github.com/mamba-org/mamba/pull/3429
+
+Bug fixes:
+
+- Fix x86_64 to use underscore instead of dash by @traversaro in https://github.com/mamba-org/mamba/pull/3404
+
 libmamba 1.5.9 (August 31, 2024)
 ================================
 

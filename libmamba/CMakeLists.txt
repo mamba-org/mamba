@@ -659,9 +659,19 @@ endmacro()
 
 set(libmamba_targets "")
 
+option(
+    ENABLE_MAMBA_ROOT_PREFIX_FALLBACK
+    "Enable mamba (shared) root prefix to be set to install prefix"
+    ON
+)
+
 if(BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
     libmamba_create_target(libmamba-dyn SHARED libmamba)
+    if(ENABLE_MAMBA_ROOT_PREFIX_FALLBACK)
+        # Use mamba installation prefix to set root prefix (base)
+        target_compile_definitions(libmamba-dyn PUBLIC MAMBA_USE_INSTALL_PREFIX_AS_BASE)
+    endif()
 endif()
 
 if(BUILD_STATIC)

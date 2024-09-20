@@ -629,6 +629,21 @@ namespace mamba
             }
         }
 
+        auto
+        get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path) -> expected_t<fs::u8path>
+        {
+            if (mamba_bin_path.empty())
+            {
+                return make_unexpected(
+                    "`mamba` binary not found.\nPlease set `MAMBA_ROOT_PREFIX`.",
+                    mamba_error_code::incorrect_usage
+                );
+            }
+            // In linux and osx, the install path would be install_prefix/bin/mamba
+            // In windows, install_prefix/Scripts/mamba.exe
+            return { fs::weakly_canonical(mamba_bin_path.parent_path().parent_path()) };
+        }
+
         auto validate_existing_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
         {
             auto prefix = fs::u8path(util::expand_home(candidate.string()));
@@ -724,11 +739,20 @@ namespace mamba
                 }
                 else
                 {
+#ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
+                    // mamba case
+                    // set the root prefix as the mamba installation path
+                    get_root_prefix_from_mamba_bin(util::which("mamba"))
+                        .transform([&](fs::u8path&& p) { prefix = std::move(p); })
+                        .or_else([](mamba_error&& error) { throw std::move(error); });
+#else
+                    // micromamba case
                     validate_existing_root_prefix(default_root_prefix_v1())
                         .or_else([](const auto& /* error */)
                                  { return validate_root_prefix(default_root_prefix_v2()); })
                         .transform([&](fs::u8path&& p) { prefix = std::move(p); })
                         .or_else([](mamba_error&& error) { throw std::move(error); });
+#endif
                 }
 
                 if (env_name.configured())

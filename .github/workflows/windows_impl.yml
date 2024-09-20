@@ -42,7 +42,8 @@ jobs:
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
-            -D BUILD_LIBMAMBAPY=OFF
+            -D BUILD_LIBMAMBAPY=OFF ^
+            -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%

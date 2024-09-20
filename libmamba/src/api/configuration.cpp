@@ -634,7 +634,10 @@ namespace mamba
         {
             if (mamba_bin_path.empty())
             {
-                return make_unexpected("`mamba` binary not found.", mamba_error_code::incorrect_usage);
+                return make_unexpected(
+                    "`mamba` binary not found.\nPlease set `MAMBA_ROOT_PREFIX`.",
+                    mamba_error_code::incorrect_usage
+                );
             }
             // In linux and osx, the install path would be install_prefix/bin/mamba
             // In windows, install_prefix/Scripts/mamba.exe

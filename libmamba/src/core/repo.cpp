@@ -336,7 +336,7 @@ namespace mamba
             }
             catch (const std::exception& e)
             {
-                LOG_INFO << "Could not write libsolv solv file for " << json_file << ": " << e.what();
+                LOG_WARNING << "Could not write libsolv solv file for " << json_file << ": " << e.what();
             }
         }
     }

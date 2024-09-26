@@ -2,6 +2,8 @@
 Contributing
 ==============
 
+The mamba repository is hosted at https://github.com/mamba-org/mamba.
+
 When contributing to this repository, it is always a good idea to first
 discuss the change you wish to make via issue, email, or any other method with
 the owners of this repository before making a change.

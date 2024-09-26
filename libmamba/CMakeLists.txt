@@ -453,8 +453,8 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
 
-            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv)
-            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext)
+            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv_static)
+            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
             find_package(reproc++ CONFIG REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)

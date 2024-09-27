@@ -24,8 +24,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Run ver command
         run: |
-          ver_output=$(%COMSPEC% /c ver)
-          echo "Windows Version: $ver_output"
+          %COMSPEC% /c ver
 
   build_shared_win:
     name: Build binaries

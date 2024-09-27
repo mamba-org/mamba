@@ -40,6 +40,8 @@ jobs:
           environment-name: build_env
           cache-environment: true
           init-shell: cmd.exe
+        run: |
+          echo %COMSPEC%
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -48,6 +50,7 @@ jobs:
             ccache-libmamba-${{ inputs.os }}
       - name: Build mamba
         run: |
+          echo %COMSPEC%
           cmake -B build/ -G Ninja ^
             --preset mamba-win-shared-${{ inputs.build_type }}  ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^

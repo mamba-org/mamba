@@ -16,6 +16,17 @@ defaults:
     shell: cmd /C call {0}
 
 jobs:
+  test_ver_command:
+    name: Test ver command
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run ver command
+        run: |
+          ver_output=$(%COMSPEC% /c ver)
+          echo "Windows Version: $ver_output"
+
   build_shared_win:
     name: Build binaries
     runs-on: ${{ inputs.os }}

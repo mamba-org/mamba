@@ -151,6 +151,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
       - uses: mamba-org/setup-micromamba@v1
         with:
+          micromamba-version: '1.5.10-0'
           environment-name: mambabuild
           init-shell: bash cmd.exe
           # Constraint on fmt is due to an issue with 11.0.2 (to be fixed in next version)

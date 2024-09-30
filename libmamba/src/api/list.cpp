@@ -15,24 +15,15 @@
 
 namespace mamba
 {
-    void list(Configuration& config, const std::string& regex)
-    {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("use_default_prefix_fallback").set_value(true);
-        config.at("use_root_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
-            );
-        config.load();
 
-        auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::list_packages(config.context(), regex, channel_context);
-    }
 
     namespace detail
     {
+        struct list_options
+        {
+            bool full_name;
+        };
+
         struct formatted_pkg
         {
             std::string name, version, build, channel;
@@ -43,7 +34,12 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context)
+        void list_packages(
+            const Context& ctx,
+            std::string regex,
+            ChannelContext& channel_context,
+            list_options options
+        )
         {
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
@@ -53,6 +49,10 @@ namespace mamba
             }
             PrefixData& prefix_data = sprefix_data.value();
 
+            if (options.full_name)
+            {
+                regex = '^' + regex + '$';
+            }
             std::regex spec_pat(regex);
 
             if (ctx.output_params.json)
@@ -144,5 +144,23 @@ namespace mamba
 
             t.print(std::cout);
         }
+    }
+
+    void list(Configuration& config, const std::string& regex)
+    {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
+        config.load();
+
+        detail::list_options options;
+        options.full_name = config.at("full_name").value<bool>();
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
+        detail::list_packages(config.context(), regex, channel_context, std::move(options));
     }
 }

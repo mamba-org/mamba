@@ -462,6 +462,14 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
+        SUBCASE("python-graphviz  ~=      0.20")
+        {
+            auto ms = MatchSpec::parse("python-graphviz  ~=      0.20").value();
+            CHECK_EQ(ms.name().str(), "python-graphviz");
+            CHECK_EQ(ms.version().str(), ">=0.20,=0");
+            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
+        }
+
         SUBCASE("*[md5=fewjaflknd]")
         {
             auto ms = MatchSpec::parse("*[md5=fewjaflknd]").value();

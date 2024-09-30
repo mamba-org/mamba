@@ -1,3 +1,20 @@
+2024.09.30
+==========
+
+Releases: libmamba 2.0.1, libmambapy 2.0.1, micromamba 2.0.1
+
+Bug fixes:
+
+- [libmamba] Fixed channel output in umamba list by @JohanMabille in https://github.com/mamba-org/mamba/pull/3486
+- [libmamba, micromamba] --full-name option for list by @JohanMabille in https://github.com/mamba-org/mamba/pull/3485
+- [libmamba, micromamba] fix: Support for PEP 440 "Compatible Releases" (operator `~=` for `MatchSpec`) by @jjerphan in https://github.com/mamba-org/mamba/pull/3483
+- [libmamba] Fix micromamba activate on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3484
+- [micromamba] Added --copy flag to create and install commands by @JohanMabille in https://github.com/mamba-org/mamba/pull/3474
+
+CI fixes and doc:
+
+- [all] doc: add github links to documentation by @timhoffm in https://github.com/mamba-org/mamba/pull/3471
+
 2024.09.25
 ==========
 

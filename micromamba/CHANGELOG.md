@@ -1,3 +1,16 @@
+micromamba 2.0.1 (September 30, 2024)
+=====================================
+
+Bug fixes:
+
+- --full-name option for list by @JohanMabille in https://github.com/mamba-org/mamba/pull/3485
+- fix: Support for PEP 440 "Compatible Releases" (operator `~=` for `MatchSpec`) by @jjerphan in https://github.com/mamba-org/mamba/pull/3483
+- Added --copy flag to create and install commands by @JohanMabille in https://github.com/mamba-org/mamba/pull/3474
+
+CI fixes and doc:
+
+- doc: add github links to documentation by @timhoffm in https://github.com/mamba-org/mamba/pull/3471
+
 micromamba 2.0.0 (September 25, 2024)
 =====================================
 

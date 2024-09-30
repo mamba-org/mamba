@@ -1,3 +1,11 @@
+libmambapy 2.0.1 (September 30, 2024)
+=====================================
+
+
+CI fixes and doc:
+
+- doc: add github links to documentation by @timhoffm in https://github.com/mamba-org/mamba/pull/3471
+
 libmambapy 2.0.0 (September 25, 2024)
 =====================================
 

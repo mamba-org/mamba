@@ -31,7 +31,7 @@ def test_list_name(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
     names = sorted([i["name"] for i in res])
     assert names == ["xtensor", "xtensor-python", "xtl"]
 
-    full_res = helpers.umamba_list("xtensor", "--full-name")
+    full_res = helpers.umamba_list("xtensor", "--full-name", "--json", quiet_flag)
     full_names = sorted([i["name"] for i in full_res])
     assert full_names == ["xtensor"]
 

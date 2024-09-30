@@ -13,13 +13,15 @@ __MAMBA_INSERT_MAMBA_EXE__
 @SET __mambabin_dir=
 @SET __mamba_root=
 
+@echo off
 @REM We need to define an alias with the same name as the executable to be called by the user.
 @REM Get the base filename of MAMBA_EXE
-@FOR %%A in ("%MAMBA_EXE%") do set "__mamba_filename=%%~nxA"
-@REM Remove .exe extension from the filename
-@SET "__mamba_name=!__mamba_filename:%~x1=!"
-@REM Define correct alias depending on the executable name
-@set "__mamba_cmd=call ""%MAMBA_BAT%"" $*"
-@DOSKEY !__mamba_name!=!__mamba_cmd!
-
+@FOR %%A in ("%MAMBA_EXE%") do (
+    @set "__mamba_filename=%%~nxA"
+    @REM Remove .exe extension from the filename
+    @SET "__mamba_name=!__mamba_filename:%~x1=!"
+    @REM Define correct alias depending on the executable name
+    @set "__mamba_cmd=call ""%MAMBA_BAT%"" $*"
+    @DOSKEY !__mamba_name!=!__mamba_cmd!
+)
 @SET CONDA_SHLVL=0

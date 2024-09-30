@@ -446,17 +446,20 @@ TEST_SUITE("specs::match_spec")
         {
             auto ms = MatchSpec::parse(R"(numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0)").value();
             CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), ">1.8,((<2|==1.7),(!=1.9,~=1.7))");
+            CHECK_EQ(ms.version().str(), ">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))");
             CHECK_EQ(ms.build_string().str(), "py34_0");
-            CHECK_EQ(ms.str(), R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,~=1.7))",build="py34_0"])ms");
+            CHECK_EQ(
+                ms.str(),
+                R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))",build="py34_0"])ms"
+            );
         }
 
         SUBCASE("python-graphviz~=0.20")
         {
             auto ms = MatchSpec::parse("python-graphviz~=0.20").value();
             CHECK_EQ(ms.name().str(), "python-graphviz");
-            CHECK_EQ(ms.version().str(), "~=0.20");
-            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,0.*"])ms");
+            CHECK_EQ(ms.version().str(), ">=0.20,=0");
+            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
         SUBCASE("*[md5=fewjaflknd]")

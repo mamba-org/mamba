@@ -21,6 +21,10 @@ def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_sele
     names = [i["name"] for i in res]
     assert "xtensor" in names
     assert "xtl" in names
+    assert all(
+        i["channel"] == "conda-forge" and i["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for i in res
+    )
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

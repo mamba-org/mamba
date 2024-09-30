@@ -12,6 +12,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -34,12 +35,23 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(
-            const Context& ctx,
-            std::string regex,
-            ChannelContext& channel_context,
-            list_options options
-        )
+        // This is more or less an implementation of `util::rstrip` specific to this use case
+        // (for printing purposes), but using `std::string` instead of `std::string_view`
+        // `util::rstrip` is not used here because it leads to an UB,
+        // `using non owned/tracked strings from Channel (& co) and PackageInfo
+        std::string rstrip(const std::string& full_str, const std::string& sub_str)
+        {
+            if (util::ends_with(full_str, sub_str))
+            {
+                return full_str.substr(0, full_str.length() - sub_str.length());
+            }
+            else
+            {
+                return full_str;
+            }
+        }
+
+        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context, list_options options)
         {
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
@@ -73,17 +85,30 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto display_channels = channel_context.make_channel(pkg_info.channel);
-                        auto url_channels = channel_context.make_channel(pkg_info.package_url);
-                        assert(display_channels.size() == 1);  // A URL can only resolve to one
-                                                               // channel
-                        assert(url_channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = url_channels.front().url().str(
-                            specs::CondaURL::Credentials::Remove
+                        auto channels = channel_context.make_channel(pkg_info.package_url);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        obj["base_url"] = rstrip(
+                            rstrip(
+                                rstrip(
+                                    rstrip(
+                                        channels.front().url().str(specs::CondaURL::Credentials::Remove),
+                                        pkg_info.filename
+                                    ),
+                                    "/"
+                                ),
+                                pkg_info.platform
+                            ),
+                            "/"
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = display_channels.front().display_name();
+                        obj["channel"] = rstrip(
+                            rstrip(
+                                rstrip(rstrip(channels.front().display_name(), pkg_info.filename), "/"),
+                                pkg_info.platform
+                            ),
+                            "/"
+                        );
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;
@@ -119,7 +144,16 @@ namespace mamba
                     {
                         auto channels = channel_context.make_channel(package.second.channel);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = channels.front().display_name();
+                        formatted_pkgs.channel = rstrip(
+                            rstrip(
+                                rstrip(
+                                    rstrip(channels.front().display_name(), package.second.filename),
+                                    "/"
+                                ),
+                                package.second.platform
+                            ),
+                            "/"
+                        );
                     }
                     packages.push_back(formatted_pkgs);
                 }

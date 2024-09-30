@@ -22,6 +22,16 @@ init_list_parser(CLI::App* subcom, Configuration& config)
                                     .group("cli")
                                     .description("List only packages matching a regular expression"));
     subcom->add_option("regex", regex.get_cli_config<std::string>(), regex.description());
+
+    auto& full_name = config.insert(Configurable("full_name", false)
+                                        .group("cli")
+                                        .description("Only search for full names, i.e., ^<regex>$."));
+    subcom->add_flag("-f,--full-name", full_name.get_cli_config<bool>(), full_name.description());
+    
+    auto& canonical = config.insert(Configurable("canonical", false)
+                                        .group("cli")
+                                        .description("Output canonical names of packages only."));
+    subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());
 }
 
 void

@@ -75,8 +75,11 @@ namespace mamba
                     {
                         auto display_channels = channel_context.make_channel(pkg_info.channel);
                         auto url_channels = channel_context.make_channel(pkg_info.package_url);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = url_channels.front().url().str(specs::CondaURL::Credentials::Remove
+                        assert(display_channels.size() == 1);  // A URL can only resolve to one
+                                                               // channel
+                        assert(url_channels.size() == 1);  // A URL can only resolve to one channel
+                        obj["base_url"] = url_channels.front().url().str(
+                            specs::CondaURL::Credentials::Remove
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;

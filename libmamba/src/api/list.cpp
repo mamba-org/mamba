@@ -73,13 +73,14 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto channels = channel_context.make_channel(pkg_info.channel);
+                        auto display_channels = channel_context.make_channel(pkg_info.channel);
+                        auto url_channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = channels.front().url().str(specs::CondaURL::Credentials::Remove
+                        obj["base_url"] = url_channels.front().url().str(specs::CondaURL::Credentials::Remove
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = channels.front().display_name();
+                        obj["channel"] = display_channels.front().display_name();
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;

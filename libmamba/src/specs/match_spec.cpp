@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -554,8 +553,6 @@ namespace mamba::specs
         //
         while (raw_match_spec_str.find("~=") != std::string::npos)
         {
-            std::cout << "raw_match_spec_str: " << raw_match_spec_str << std::endl;
-
             // Extract the string before the `~=` operator (">1.8,<2|==1.7,!=1.9," for the above
             // example)
             const auto before = raw_match_spec_str.substr(0, str.find("~="));

@@ -34,7 +34,12 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context, list_options options)
+        void list_packages(
+            const Context& ctx,
+            std::string regex,
+            ChannelContext& channel_context,
+            list_options options
+        )
         {
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)

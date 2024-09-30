@@ -27,7 +27,7 @@ init_list_parser(CLI::App* subcom, Configuration& config)
                                         .group("cli")
                                         .description("Only search for full names, i.e., ^<regex>$."));
     subcom->add_flag("-f,--full-name", full_name.get_cli_config<bool>(), full_name.description());
-    
+
     // TODO: implement this in libmamba/list.cpp
     /*auto& canonical = config.insert(Configurable("canonical", false)
                                         .group("cli")

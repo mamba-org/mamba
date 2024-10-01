@@ -51,7 +51,21 @@ namespace mamba
             }
         }
 
-        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context, list_options options)
+        std::string strip_from_filename_and_platform(
+            const std::string& full_str,
+            const std::string& filename,
+            const std::string& platform
+        )
+        {
+            return rstrip(rstrip(rstrip(rstrip(full_str, filename), "/"), platform), "/");
+        }
+
+        void list_packages(
+            const Context& ctx,
+            std::string regex,
+            ChannelContext& channel_context,
+            list_options options
+        )
         {
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
@@ -87,27 +101,17 @@ namespace mamba
                     {
                         auto channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = rstrip(
-                            rstrip(
-                                rstrip(
-                                    rstrip(
-                                        channels.front().url().str(specs::CondaURL::Credentials::Remove),
-                                        pkg_info.filename
-                                    ),
-                                    "/"
-                                ),
-                                pkg_info.platform
-                            ),
-                            "/"
+                        obj["base_url"] = strip_from_filename_and_platform(
+                            channels.front().url().str(specs::CondaURL::Credentials::Remove),
+                            pkg_info.filename,
+                            pkg_info.platform
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = rstrip(
-                            rstrip(
-                                rstrip(rstrip(channels.front().display_name(), pkg_info.filename), "/"),
-                                pkg_info.platform
-                            ),
-                            "/"
+                        obj["channel"] = strip_from_filename_and_platform(
+                            channels.front().display_name(),
+                            pkg_info.filename,
+                            pkg_info.platform
                         );
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
@@ -144,15 +148,10 @@ namespace mamba
                     {
                         auto channels = channel_context.make_channel(package.second.channel);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = rstrip(
-                            rstrip(
-                                rstrip(
-                                    rstrip(channels.front().display_name(), package.second.filename),
-                                    "/"
-                                ),
-                                package.second.platform
-                            ),
-                            "/"
+                        formatted_pkgs.channel = strip_from_filename_and_platform(
+                            channels.front().display_name(),
+                            package.second.filename,
+                            package.second.platform
                         );
                     }
                     packages.push_back(formatted_pkgs);

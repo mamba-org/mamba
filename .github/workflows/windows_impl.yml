@@ -39,6 +39,8 @@ jobs:
       - name: Build mamba
         shell: cmd
         run: |
+          type C:\Users\runneradmin\micromamba\condabin\mamba_hook.bat
+          type C:\Users\runneradmin\micromamba\condabin\mamba.bat
           call micromamba shell init -s cmd.exe
           call micromamba activate build_env
           cmake -B build/ -G Ninja ^

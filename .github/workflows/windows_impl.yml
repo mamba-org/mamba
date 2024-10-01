@@ -39,9 +39,13 @@ jobs:
       - name: Build mamba
         shell: cmd
         run: |
+          reg query "HKCU\Software\Microsoft\Command Processor" /v Autorun
+          echo "=========="
           type C:\Users\runneradmin\micromamba\condabin\mamba_hook.bat
+          echo "=========="
           type C:\Users\runneradmin\micromamba\condabin\mamba.bat
-          call micromamba shell init -s cmd.exe
+          echo "=========="
+          call micromamba shell reinit
           call micromamba activate build_env
           cmake -B build/ -G Ninja ^
             --preset mamba-win-shared-${{ inputs.build_type }}  ^

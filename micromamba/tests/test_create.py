@@ -1231,9 +1231,8 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
     assert pkg["name"] == "pandoc"
     if spec == "pandoc=3.1.13":
         assert pkg["version"] == "3.1.13"
-    assert pkg["base_url"].startswith(
-        "https://pkg-containers.githubusercontent.com/ghcr1/blobs/pandoc"
-    )
+    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1261,16 +1260,14 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
     assert len(packages) > 2
     assert any(
         package["name"] == "xtensor"
-        and package["base_url"].startswith(
-            "https://pkg-containers.githubusercontent.com/ghcr1/blobs/xtensor"
-        )
+        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
         for package in packages
     )
     assert any(
         package["name"] == "xtl"
-        and package["base_url"].startswith(
-            "https://pkg-containers.githubusercontent.com/ghcr1/blobs/xtl"
-        )
+        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
         for package in packages
     )
 
@@ -1304,9 +1301,8 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
     assert len(packages) == 1
     pkg = packages[0]
     assert pkg["name"] == "_go_select"
-    assert pkg["base_url"].startswith(
-        "https://pkg-containers.githubusercontent.com/ghcr1/blobs/_go_select"
-    )
+    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

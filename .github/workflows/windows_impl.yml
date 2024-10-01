@@ -39,6 +39,7 @@ jobs:
       - name: Build mamba
         shell: cmd
         run: |
+          call micromamba shell init -s cmd.exe
           call micromamba activate build_env
           cmake -B build/ -G Ninja ^
             --preset mamba-win-shared-${{ inputs.build_type }}  ^

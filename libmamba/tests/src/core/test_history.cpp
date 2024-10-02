@@ -93,6 +93,18 @@ namespace mamba
             REQUIRE_EQ(updated_history_buffer.str(), check_buffer.str());
         }
 
+        TEST_CASE("parse_metadata")
+        {
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
+
+            History history_instance(
+                mambatests::test_data_dir / "history/parse_metadata",
+                channel_context
+            );
+            // Must not throw
+            std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
+        }
+
 #ifndef _WIN32
         TEST_CASE("parse_segfault")
         {

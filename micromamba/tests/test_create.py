@@ -1332,3 +1332,15 @@ def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
     res = helpers.create("-n", "myenv", "-c", "conda-forge", "x264>=1!0", "--json")
 
     assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])
+
+
+@pytest.mark.timeout(20)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_parsable_env_history_with_metadata(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-micromamba-list"
+
+    res = helpers.create("-p", env_prefix, 'pandas[version=">=0.25.2,<3"]', "--json")
+    assert res["success"]
+
+    # Must not hang
+    helpers.umamba_list("-p", env_prefix, "--json")

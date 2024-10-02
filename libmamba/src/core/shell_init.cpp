@@ -686,6 +686,7 @@ namespace mamba
     void init_root_prefix_cmdexe(const Context&, const fs::u8path& root_prefix)
     {
         fs::u8path exe = get_self_exe_path();
+        fs::u8path exe_name = exe.stem();
 
         try
         {
@@ -697,7 +698,7 @@ namespace mamba
             // Maybe the prefix isn't writable. No big deal, just keep going.
         }
 
-        std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "mamba.bat");
+        // mamba.bat
         std::string mamba_bat_contents(data_mamba_bat);
         util::replace_all(
             mamba_bat_contents,
@@ -709,14 +710,16 @@ namespace mamba
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
-
+        std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "mamba.bat");
         mamba_bat_f << mamba_bat_contents;
+
+        // _mamba_activate.bat
         std::ofstream _mamba_activate_bat_f = open_ofstream(
             root_prefix / "condabin" / "_mamba_activate.bat"
         );
         _mamba_activate_bat_f << data__mamba_activate_bat;
 
-
+        // condabin/activate.bat
         std::string activate_bat_contents(data_activate_bat);
         util::replace_all(
             activate_bat_contents,
@@ -728,22 +731,28 @@ namespace mamba
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
-
-
+        util::replace_all(
+            activate_bat_contents,
+            std::string("__MAMBA_INSERT_EXE_NAME__"),
+            exe_name.string()
+        );
         std::ofstream condabin_activate_bat_f = open_ofstream(
             root_prefix / "condabin" / "activate.bat"
         );
         condabin_activate_bat_f << activate_bat_contents;
 
+        // Scripts/activate.bat
         std::ofstream scripts_activate_bat_f = open_ofstream(root_prefix / "Scripts" / "activate.bat");
         scripts_activate_bat_f << activate_bat_contents;
 
+        // mamba_hook.bat
         std::string hook_content = data_mamba_hook_bat;
         util::replace_all(
             hook_content,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
+        util::replace_all(hook_content, std::string("__MAMBA_INSERT_EXE_NAME__"), exe_name.string());
 
         std::ofstream mamba_hook_bat_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.bat");
         mamba_hook_bat_f << hook_content;

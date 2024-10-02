@@ -1,3 +1,18 @@
+2024.10.02
+==========
+
+Releases: libmamba 2.0.2, libmambapy 2.0.2, micromamba 2.0.2
+
+Bug fixes:
+
+- [micromamba, libmamba] fix: Handle `MatchSpec` with brackets when parsing environments' history by @jjerphan in https://github.com/mamba-org/mamba/pull/3490
+- [libmamba] Win activate by @JohanMabille in https://github.com/mamba-org/mamba/pull/3489
+- [micromamba, libmamba] Fix `channel` and `base_url` in `list` cmd by @Hind-M in https://github.com/mamba-org/mamba/pull/3488
+
+CI fixes and doc:
+
+- [all] Rollback to micromamba 1.5.10 in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3491
+
 2024.09.30
 ==========
 

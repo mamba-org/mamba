@@ -1,3 +1,15 @@
+micromamba 2.0.2 (October 02, 2024)
+===================================
+
+Bug fixes:
+
+- fix: Handle `MatchSpec` with brackets when parsing environments' history by @jjerphan in https://github.com/mamba-org/mamba/pull/3490
+- Fix `channel` and `base_url` in `list` cmd by @Hind-M in https://github.com/mamba-org/mamba/pull/3488
+
+CI fixes and doc:
+
+- Rollback to micromamba 1.5.10 in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3491
+
 micromamba 2.0.1 (September 30, 2024)
 =====================================
 

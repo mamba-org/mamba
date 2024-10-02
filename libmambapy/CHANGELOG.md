@@ -1,3 +1,11 @@
+libmambapy 2.0.2 (October 02, 2024)
+===================================
+
+
+CI fixes and doc:
+
+- Rollback to micromamba 1.5.10 in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3491
+
 libmambapy 2.0.1 (September 30, 2024)
 =====================================
 

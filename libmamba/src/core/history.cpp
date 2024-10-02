@@ -126,12 +126,50 @@ namespace mamba
             {
                 needle[0] = value[idx_start];
                 idx_end = value.find_first_of(needle.c_str(), idx_search);
+
+                // Capturing `MatchSpecs` without internal quotes (e.g `libcurl`)
                 if (idx_end != std::string::npos && value[idx_end - 1] != '\\')
                 {
                     pkg_specs.push_back(value.substr(idx_start + 1, idx_end - 1 - idx_start));
                     idx_start = value.find_first_of("\'\"", idx_end + 1);
                     idx_search = idx_start + 1;
                 }
+                // Capturing `MatchSpecs` with metadata (e.g `libcurl[version=\">=7.86,<8.10\"]`)
+                else if (idx_end != std::string::npos && value[idx_end - 1] == '\\')
+                {
+                    // Find if "[" is present in between idx_search and idx_end
+                    auto idx_bracket = value.find_first_of("[", idx_search);
+
+                    // If "[" is present, then find the closing bracket
+                    if (idx_bracket != std::string::npos && idx_bracket < idx_end)
+                    {
+                        auto idx_closing_bracket = value.find_first_of("]", idx_bracket);
+                        if (idx_closing_bracket != std::string::npos)
+                        {
+                            auto start_string = idx_start + 1;
+                            auto end_string = idx_closing_bracket + 1;
+                            auto len_matchspec = end_string - start_string;
+
+                            // Quotes are excluded (e.g. `libcurl[version=\">=7.86,<8.10\"]` is
+                            // extracted from `"libcurl[version=\">=7.86,<8.10\"]"`)
+                            auto match_spec = value.substr(start_string, len_matchspec);
+                            // Remove the backslash from the MatchSpec
+                            match_spec.erase(
+                                std::remove(match_spec.begin(), match_spec.end(), '\\'),
+                                match_spec.end()
+                            );
+                            pkg_specs.push_back(std::move(match_spec));
+                            idx_start = value.find_first_of("\'\"", end_string + 1);
+                            idx_search = idx_start + 1;
+                        }
+                    }
+                    // If "[" is not present, then there's a problem with the MatchSpec
+                    else if (idx_bracket == std::string::npos || idx_bracket > idx_end)
+                    {
+                        throw std::runtime_error("Parsing of history file failed at: " + value);
+                    }
+                }
+
                 else
                 {
                     idx_search = idx_end;

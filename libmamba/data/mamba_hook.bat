@@ -13,15 +13,9 @@ __MAMBA_INSERT_MAMBA_EXE__
 @SET __mambabin_dir=
 @SET __mamba_root=
 
-@echo off
-@REM We need to define an alias with the same name as the executable to be called by the user.
-@REM Get the base filename of MAMBA_EXE
-@FOR %%A in ("%MAMBA_EXE%") do (
-    @set "__mamba_filename=%%~nxA"
-    @REM Remove .exe extension from the filename
-    @SET "__mamba_name=!__mamba_filename:%~x1=!"
-    @REM Define correct alias depending on the executable name
-    @set "__mamba_cmd=call ""%MAMBA_BAT%"" $*"
-    @DOSKEY !__mamba_name!=!__mamba_cmd!
-)
+@REM @DOSKEY does not work with delayed evaluation
+@REM @DOSKEY after the first usage of a macro whose name is defined with a variable
+@REM Therefore no magic here, just grep and replace when generating the final file
+@DOSKEY __MAMBA_INSERT_EXE_NAME__="%MAMBA_BAT%" $*
+
 @SET CONDA_SHLVL=0

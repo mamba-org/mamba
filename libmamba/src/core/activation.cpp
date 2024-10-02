@@ -228,13 +228,20 @@ namespace mamba
     std::vector<fs::u8path> Activator::get_PATH()
     {
         std::vector<fs::u8path> path;
+        std::vector<std::string> strings{};
+
         if (m_env.find("PATH") != m_env.end())
         {
-            auto strings = util::split(m_env["PATH"], util::pathsep());
-            for (auto& s : strings)
-            {
-                path.push_back(s);
-            }
+            strings = util::split(m_env["PATH"], util::pathsep());
+        }
+        // On Windows, the variable can be Path and not PATH
+        else if (m_env.find("Path") != m_env.end())
+        {
+            strings = util::split(m_env["Path"], util::pathsep());
+        }
+        for (auto& s : strings)
+        {
+            path.push_back(s);
         }
         return path;
     }
@@ -267,7 +274,6 @@ namespace mamba
         std::vector<fs::u8path> final_path = get_path_dirs(prefix);
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-
         std::string result = util::join(util::pathsep(), final_path).string();
         return result;
     }

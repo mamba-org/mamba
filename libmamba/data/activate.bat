@@ -3,4 +3,3 @@
 
 @CALL "%~dp0..\condabin\mamba_hook.bat"
 __MAMBA_INSERT_EXE_NAME__ activate %*
-

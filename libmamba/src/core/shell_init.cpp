@@ -752,11 +752,7 @@ namespace mamba
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
-        util::replace_all(
-            hook_content,
-            std::string("__MAMBA_INSERT_EXE_NAME__"),
-            exe_name.string()
-        );
+        util::replace_all(hook_content, std::string("__MAMBA_INSERT_EXE_NAME__"), exe_name.string());
 
         std::ofstream mamba_hook_bat_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.bat");
         mamba_hook_bat_f << hook_content;

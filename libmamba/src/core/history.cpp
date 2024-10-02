@@ -130,12 +130,7 @@ namespace mamba
                 // Capturing `MatchSpecs` without internal quotes (e.g `libcurl`)
                 if (idx_end != std::string::npos && value[idx_end - 1] != '\\')
                 {
-                    auto start_string = idx_start + 1;
-                    auto len_matchspec = idx_end - start_string;
-
-                    // Quotes are excluded (e.g. `libcurl` is extracted from `"libcurl"`)
-                    auto match_spec = value.substr(start_string, len_matchspec);
-                    pkg_specs.push_back(match_spec);
+                    pkg_specs.push_back(value.substr(idx_start + 1, idx_end - 1 - idx_start));
                     idx_start = value.find_first_of("\'\"", idx_end + 1);
                     idx_search = idx_start + 1;
                 }
@@ -163,7 +158,7 @@ namespace mamba
                                 std::remove(match_spec.begin(), match_spec.end(), '\\'),
                                 match_spec.end()
                             );
-                            pkg_specs.push_back(match_spec);
+                            pkg_specs.push_back(std::move(match_spec));
                             idx_start = value.find_first_of("\'\"", end_string + 1);
                             idx_search = idx_start + 1;
                         }

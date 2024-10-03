@@ -30,6 +30,13 @@ jobs:
           environment-name: build_env
           cache-environment: true
           init-shell: cmd.exe
+      - name: check setup
+        run: |
+          micromamba info
+          DOSKEY /MACROS
+          dir C:\Users\runneradmin\micromamba
+          dir C:\Users\runneradmin\micromamba\condabin
+          echo %PATH%
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

@@ -50,9 +50,8 @@ namespace mamba
     fs::u8path get_self_exe_path()
     {
 #ifdef _WIN32
-        DWORD size;
         std::wstring buffer(MAX_PATH, '\0');
-        size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
+        DWORD size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
         if (size == 0)
         {
             throw std::runtime_error("Could find location of the micromamba executable!");

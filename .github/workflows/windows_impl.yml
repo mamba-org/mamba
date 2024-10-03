@@ -23,20 +23,12 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v4
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '2.0.2-0'
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
           init-shell: cmd.exe
-      - name: check setup
-        run: |
-          micromamba info
-          DOSKEY /MACROS
-          dir C:\Users\runneradmin\micromamba
-          dir C:\Users\runneradmin\micromamba\condabin
-          echo %PATH%
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -83,9 +75,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '2.0.2-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe
@@ -113,9 +104,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '2.0.2-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe
@@ -142,9 +132,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '2.0.2-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe powershell

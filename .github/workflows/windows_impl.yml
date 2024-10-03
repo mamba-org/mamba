@@ -75,6 +75,13 @@ jobs:
           action: restore
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      # Show the version of the pre-installed micromamba as well as its location
+      - name: DEBUG -- Show information about the pre-installed version of micromamba
+        run: |
+          micromamba --version
+          micromamba info
+          # Show the location of the micromamba executable
+          where micromamba
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:

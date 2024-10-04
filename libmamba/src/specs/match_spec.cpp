@@ -520,9 +520,11 @@ namespace mamba::specs
         // TODO: this solution reallocates memory several times potentially, but the
         //  number of operators is small and the strings are short, so it must be fine.
         //  If needed it can be optimized so that the string is only copied once.
-        for (const std::string& op : { ">=", "<=", "==", ">", "<", "!=", "=", "==", "~=", "," })
+        const auto op_array = std::array<std::string, 9>{ ">=", "<=", ">",  "<", "!=",
+                                                          "=",  "==", "~=", "," };
+        for (const std::string& op : op_array)
         {
-            const std::string& bad_op = op + " ";
+            const std::string bad_op = op + " ";
             while (raw_match_spec_str.find(bad_op) != std::string::npos)
             {
                 raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(bad_op)) + op
@@ -604,7 +606,7 @@ namespace mamba::specs
                     {
                         if (is_hash(hash))
                         {
-                            ms.set_md5(std::string(hash));
+                            ms.set_md5(hash);
                         }
                         return ms;
                     }

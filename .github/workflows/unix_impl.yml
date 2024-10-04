@@ -23,9 +23,8 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v4
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '1.5.10-0'
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
@@ -71,9 +70,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '1.5.10-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
       - name: Run solv-cpp tests
@@ -98,9 +96,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '1.5.10-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
       - name: Install libmambapy
@@ -126,9 +123,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '1.5.10-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
       - name: install zsh, xonsh, fish and tcsh in linux
@@ -184,9 +180,8 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
-          micromamba-version: '1.5.10-0'
           environment-file: ./build/environment.lock
           environment-name: build_env
       - name: Run tests using conda-content-trust (server side)

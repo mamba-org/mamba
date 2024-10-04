@@ -35,29 +35,17 @@ namespace mamba
             return a.name < b.name;
         }
 
-        // This is more or less an implementation of `util::rstrip` specific to this use case
-        // (for printing purposes), but using `std::string` instead of `std::string_view`
-        // `util::rstrip` is not used here because it leads to an UB,
-        // `using non owned/tracked strings from Channel (& co) and PackageInfo
-        std::string rstrip(const std::string& full_str, const std::string& sub_str)
-        {
-            if (util::ends_with(full_str, sub_str))
-            {
-                return full_str.substr(0, full_str.length() - sub_str.length());
-            }
-            else
-            {
-                return full_str;
-            }
-        }
-
         std::string strip_from_filename_and_platform(
             const std::string& full_str,
             const std::string& filename,
             const std::string& platform
         )
         {
-            return rstrip(rstrip(rstrip(rstrip(full_str, filename), "/"), platform), "/");
+            using util::remove_suffix;
+            return std::string(remove_suffix(
+                remove_suffix(remove_suffix(remove_suffix(full_str, filename), "/"), platform),
+                "/"
+            ));
         }
 
         void list_packages(

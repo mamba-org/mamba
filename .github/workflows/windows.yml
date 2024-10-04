@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
@@ -76,7 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
@@ -164,7 +164,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
@@ -223,7 +223,7 @@ jobs:
         run: |
           tar -xvf umamba.tar
       - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env

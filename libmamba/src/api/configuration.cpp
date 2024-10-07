@@ -658,7 +658,12 @@ namespace mamba
                 && !fs::exists(prefix / "envs"))
             {
                 return make_unexpected(
-                    fmt::format(R"(Path "{}" is not an existing root prefix.)", prefix.string()),
+                    fmt::format(
+                        R"(Path "{}" is not an existing root prefix.)"
+                        R"( Please set explicitly `MAMBA_ROOT_PREFIX` to "{}" to skip this error.)",
+                        prefix.string(),
+                        prefix.string()
+                    ),
                     mamba_error_code::incorrect_usage
                 );
             }
@@ -688,7 +693,9 @@ namespace mamba
                     return make_unexpected(
                         fmt::format(
                             R"(Could not use default root_prefix "{}":)"
-                            R"( Directory exists, is not empty and not a conda prefix.)",
+                            R"( Directory exists, is not empty and not a conda prefix.)"
+                            R"( Please set explicitly `MAMBA_ROOT_PREFIX` to "{}" to skip this error.)",
+                            prefix.string(),
                             prefix.string()
                         ),
                         mamba_error_code::incorrect_usage

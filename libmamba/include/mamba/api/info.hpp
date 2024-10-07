@@ -22,6 +22,8 @@ namespace mamba
     namespace detail
     {
         void print_info(Context& ctx, ChannelContext& channel_context, const Configuration& config);
+        void
+        print_conda_compat_info(Context& ctx, ChannelContext& channel_context, const Configuration& config);
     }
 }
 

@@ -39,6 +39,7 @@ You can try Mamba now by visiting the installation for
    Micromamba <user_guide/micromamba>
    user_guide/configuration
    user_guide/troubleshooting
+   user_guide/conda_compatible
 
 .. toctree::
    :caption: ADVANCED USAGE

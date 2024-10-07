@@ -171,7 +171,7 @@ if ($MambaModuleArgs.ChangePs1) {
 
 ## ALIASES #####################################################################
 
-$__mamba_name = [System.IO.Path]::GetFileNameWithoutExtension((Split-Path -Leaf $Env:MAMBA_EXE));
+$__mamba_name = (Split-Path -Path $Env:MAMBA_EXE -Leaf) -replace '\.[^.]+$'
 New-Alias -Name $__mamba_name -Value Invoke-Mamba -Force
 Register-ArgumentCompleter -Native -CommandName $__mamba_name -ScriptBlock $MambaAutocompleteScriptblock
 

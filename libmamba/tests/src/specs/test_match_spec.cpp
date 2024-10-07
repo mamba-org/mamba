@@ -182,6 +182,15 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(std::string(ms.error().what()), "Found invalid version predicate in \"V0.9.24\"");
         }
 
+        SUBCASE("importlib-metadata  # drop this when dropping Python 3.8")
+        {
+            auto ms = MatchSpec::parse("importlib-metadata  # drop this when dropping Python 3.8")
+                          .value();
+            CHECK_EQ(ms.name().str(), "importlib-metadata");
+            CHECK(ms.version().is_explicitly_free());
+            CHECK_EQ(ms.str(), "importlib-metadata");
+        }
+
         SUBCASE("foo=V0.9.24")
         {
             auto ms = MatchSpec::parse("foo=V0.9.24").value();

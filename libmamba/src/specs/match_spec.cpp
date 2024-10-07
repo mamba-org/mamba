@@ -502,6 +502,15 @@ namespace mamba::specs
 
     auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
+        // Remove comments, i.e. everything after ` #` (space included)
+        if (const auto idx = str.find('#'); idx != std::string::npos && str[idx - 1] == ' ')
+        {
+            str = str.substr(0, idx);
+        }
+
+        // Remove trailing whitespaces
+        str = util::rstrip(str);
+
         std::string raw_match_spec_str = std::string(str);
         raw_match_spec_str = util::strip(raw_match_spec_str);
 

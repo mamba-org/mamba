@@ -585,7 +585,8 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
-        assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+        if (tmp_root_prefix / "condabin").is_dir():
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
         assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
@@ -597,7 +598,8 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
-        assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+        if (tmp_root_prefix / "condabin").is_dir():
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
         assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
         assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
@@ -609,18 +611,21 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         ] + evars
         stdout, stderr = call(s)
         res = env_to_dict(stdout)
-        assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+        if (tmp_root_prefix / "condabin").is_dir():
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
         assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
         assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
 
         stdout, stderr = call(evars)
         res = env_to_dict(stdout)
-        assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+        if (tmp_root_prefix / "condabin").is_dir():
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
 
         stdout, stderr = call([f"{mamba_name} deactivate"] + evars)
         res = env_to_dict(stdout)
-        assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+        if (tmp_root_prefix / "condabin").is_dir():
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
         assert not find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])

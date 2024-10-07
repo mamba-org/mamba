@@ -48,16 +48,12 @@ if ("$__exe_name" == "micromamba") then
 else if ("$__exe_name" == "mamba") then
     alias micromamba __mamba_wrap
 else
-    echo "Error unknow MAMBA_EXE: \"$MAMBA_EXE\", filename must be mamba or micromamba" >&2
+    echo "Error unknown MAMBA_EXE: \"$MAMBA_EXE\", filename must be mamba or micromamba" >&2
 endif
 
 if (! $?CONDA_SHLVL) then
     setenv CONDA_SHLVL 0
-    # In dev-mode MAMBA_EXE is python.exe and on Windows
-    # it is in a different relative location to condabin.
-    if ($?_CE_CONDA && $?WINDIR) then
-        setenv PATH "${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
-    else
+    if ( -d "$MAMBA_ROOT_PREFIX/condabin" ) then
         setenv PATH "${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
     endif
 

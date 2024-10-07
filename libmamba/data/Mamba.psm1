@@ -178,7 +178,10 @@ Register-ArgumentCompleter -Native -CommandName $__mamba_name -ScriptBlock $Mamb
 ## EXPORTS ###################################################################
 
 if ($null -eq $Env:CONDA_SHLVL) {
-    $Env:PATH = "$Env:MAMBA_ROOT_PREFIX\condabin;" + $Env:PATH
+    $condabinPath = "$Env:MAMBA_ROOT_PREFIX\condabin"
+    if (Test-Path -Path $condabinPath) {
+        $Env:PATH = "$condabinPath;" + $Env:PATH
+    }
 }
 
 Export-ModuleMember `

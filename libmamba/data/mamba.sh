@@ -62,7 +62,10 @@ fi
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
-    \export PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
+    # Check if the directory exists before adding it to PATH
+    if [ -d "${MAMBA_ROOT_PREFIX}/condabin" ]; then
+        \export PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
+    fi
 
     # We're not allowing PS1 to be unbound. It must at least be set.
     # However, we're not exporting it, which can cause problems when starting a second shell

@@ -86,7 +86,10 @@ if 'CONDA_SHLVL' not in ${...}:
     $CONDA_SHLVL = '0'
     import os as _os
     import sys as _sys
-    _sys.path.insert(0, _os.path.join($MAMBA_ROOT_PREFIX, "condabin"))
+
+    condabin_path = _os.path.join($MAMBA_ROOT_PREFIX, "condabin")
+    if _os.path.exists(condabin_path):
+        _sys.path.insert(0, condabin_path)
     del _os, _sys
 
 

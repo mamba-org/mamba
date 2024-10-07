@@ -1,9 +1,6 @@
 if not set -q MAMBA_SHLVL
   set -gx MAMBA_SHLVL "0"
-  set MAMBA_PATH "$MAMBA_ROOT_PREFIX/condabin"
-  if test -d $MAMBA_PATH
-    fish_add_path --move $MAMBA_PATH
-  end
+  fish_add_path --move $MAMBA_ROOT_PREFIX/condabin
 end
 
 if not set -q MAMBA_NO_PROMPT

@@ -430,9 +430,7 @@ namespace mamba
     #add condabin when base env
     if $env.MAMBA_SHLVL? == null {
         $env.MAMBA_SHLVL = 0
-        if (test -d "$env.MAMBA_ROOT_PREFIX/condabin") {
-            $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
-        }
+        $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
     }
     #ask mamba how to setup the environment and set the environment
     (^($env.MAMBA_EXE) shell activate --shell nu $name

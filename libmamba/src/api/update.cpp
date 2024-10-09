@@ -131,6 +131,11 @@ namespace mamba
     {
         auto& ctx = config.context();
 
+        // `env update` case
+        if (update_params.env_update == EnvUpdate::Yes)
+        {
+            config.at("create_base").set_value(true);
+        }
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("use_default_prefix_fallback").set_value(true);
         config.at("use_root_prefix_fallback").set_value(true);

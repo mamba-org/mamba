@@ -307,6 +307,7 @@ env_yaml_content_create_pip_pkg_with_version = """
 channels:
 - conda-forge
 dependencies:
+- python 3.10
 - pip
 - pip:
   - numpy==1.26.4

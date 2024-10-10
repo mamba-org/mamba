@@ -77,7 +77,7 @@ def test_depends_recursive(yaml_env: Path):
     )
 
     if platform.system() == "Linux":
-        assert "libzlib" in res
+        assert "_openmp_mutex" in res
     elif platform.system() == "Darwin":
         assert "libcxx" in res
     elif platform.system() == "Windows":
@@ -91,7 +91,7 @@ def test_depends_tree(yaml_env: Path):
     )
 
     if platform.system() == "Linux":
-        assert "libzlib" in res
+        assert "_openmp_mutex" in res
     elif platform.system() == "Darwin":
         assert "libcxx" in res
     elif platform.system() == "Windows":

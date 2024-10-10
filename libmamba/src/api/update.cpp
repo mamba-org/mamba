@@ -155,7 +155,19 @@ namespace mamba
         {
             if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
             {
-                ctx.channels.push_back(ms->channel()->str());
+                // Only register channels in the context once
+                // NOTE: ctx.channels could be a `std::unordered_set` but `yaml-cpp` does not
+                // support it. See: https://github.com/jbeder/yaml-cpp/issues/1322 Hence we
+                // perform linear scanning: `ctx.channels` is a short `std::vector` in practice
+                // so linearly searching is reasonable (probably even faster than using an
+                // `std::unordered_set`).
+                auto channel_name = ms->channel()->str();
+                auto channel_is_absent = std::find(ctx.channels.begin(), ctx.channels.end(), channel_name)
+                                         == ctx.channels.end();
+                if (channel_is_absent)
+                {
+                    ctx.channels.push_back(channel_name);
+                }
             }
         }
 

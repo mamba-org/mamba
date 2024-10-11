@@ -26,7 +26,7 @@ In the Mamba's context, it may points to a packages server, a :ref:`channel<chan
 Channel
 -------
 
-| A ``channel`` is an independant and isolated :ref:`repo<repo>` structure that is used to classify and administrate more easily a packages server.
+| A ``channel`` is an independent and isolated :ref:`repo<repo>` structure that is used to classify and administrate more easily a packages server.
 
 .. note::
   A packages server may host one or multiple ``channels``.
@@ -39,7 +39,7 @@ Subdir
 
 | A ``subdir`` is a :ref:`channel<channel>` subdirectory specific to a given operating system/platform pair.
 
-Mamba is a general purpose, langage agnostic package manager. The ``subdir`` structure is a convenient way to provide and access packages depending on the targeted os and platform.
+Mamba is a general purpose, language agnostic package manager. The ``subdir`` structure is a convenient way to provide and access packages depending on the targeted os and platform.
 
 Typically ``linux-64``, ``osx-arm64`` or ``win-64`` but not limited to those ones.
 
@@ -96,7 +96,7 @@ The 3 kinds of *links* are:
 
 The advanced user may want to change that behavior using configuration (see the relevant CLI or API reference for more details):
 
-- allow ``soft-links`` to be used as a prefered fallback to ``copy`` (try to ``copy`` if ``soft-link`` fails)
+- allow ``soft-links`` to be used as a preferred fallback to ``copy`` (try to ``copy`` if ``soft-link`` fails)
 - use ``soft-links`` instead of ``hard-links`` as default behavior (``copy`` is still a fallback)
 - always ``copy`` instead of ``hard-links`` as default behavior (no fallback then)
 
@@ -110,7 +110,7 @@ Hard-link
 *********
 
 | A ``hard-link`` is the relation between a name/path and the actual file located on the file system.
-| It is often used to describe additional ``hard-links`` pointed the same file, but the ownership of the file is shared accross all those links (equivalent to a C++ shared pointer):
+| It is often used to describe additional ``hard-links`` pointed the same file, but the ownership of the file is shared across all those links (equivalent to a C++ shared pointer):
 
 - a reference counter is incremented when creating a new ``hard-link``, decremented when deleting one
 - the file system location is freed only when that counter decreases to 0
@@ -132,8 +132,8 @@ This is the most efficient way to link:
 
 There are some limitations to use ``hard-links``:
 
-- all the file systems are not supporting such links
-- those links are not working accross file systems/partitions
+- not all file systems support ``hard-links``
+- ``hard-links`` don't work across file systems/partitions
 
 
 .. _soft_link:
@@ -145,7 +145,7 @@ Soft-link
 
 It is as efficient as a ``hard-link`` but has different properties:
 
-- works accross a filesystem/partition boundaries
+- works across a filesystem/partition boundaries
 - becomes invalid then the pointed name is deleted or moved (no shared ownership)
 
 

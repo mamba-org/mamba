@@ -1,6 +1,7 @@
 import os
 import platform
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -123,12 +124,12 @@ class TestUpdate:
         assert requests_link["build_string"] == prev_requests["build_string"]
 
     def test_further_constrained_update(self, env_created):
-        update_res = helpers.update("xtensor==0.21.1=*_0", "--json")
+        update_res = helpers.update("xtensor==0.24.5=*_0", "--json")
         xtensor_link = [
             to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "xtensor"
         ][0]
 
-        assert xtensor_link["version"] == "0.21.1"
+        assert xtensor_link["version"] == "0.24.5"
         assert xtensor_link["build_number"] == 0
 
     def test_classic_spec(self, env_created):
@@ -198,14 +199,11 @@ class TestUpdate:
                 "--channel-alias",
                 alias,
             )
-            ca = alias.rstrip("/")
         else:
             res = helpers.update("-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run")
-            ca = "https://conda.anaconda.org"
 
         for to_link in res["actions"]["LINK"]:
-            assert to_link["channel"].startswith(f"{ca}/conda-forge/")
-            assert to_link["url"].startswith(f"{ca}/conda-forge/")
+            assert to_link["channel"] == "conda-forge"
 
 
 class TestUpdateConfig:
@@ -247,6 +245,8 @@ class TestUpdateConfig:
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
+        assert res["use_default_prefix_fallback"]
+        assert res["use_root_prefix_fallback"]
         checks = (
             helpers.MAMBA_ALLOW_EXISTING_PREFIX
             | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -272,7 +272,7 @@ class TestUpdateConfig:
         specs = []
 
         if source in ("cli_only", "both"):
-            specs = ["xframe", "xtl"]
+            specs = ["xtensor-python", "xtl"]
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):
@@ -311,7 +311,7 @@ class TestUpdateConfig:
     @pytest.mark.parametrize("cli_env_name", (False, True))
     @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
     @pytest.mark.parametrize("env_var", (False, True))
-    @pytest.mark.parametrize("fallback", (False, True))
+    @pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
     def test_target_prefix(
         self,
         root_prefix,
@@ -320,7 +320,7 @@ class TestUpdateConfig:
         cli_env_name,
         yaml_name,
         env_var,
-        fallback,
+        current_target_prefix_fallback,
         env_created,
     ):
         cmd = []
@@ -371,21 +371,68 @@ class TestUpdateConfig:
         if env_var:
             os.environ["MAMBA_TARGET_PREFIX"] = p
 
-        if not fallback:
+        if not current_target_prefix_fallback:
             os.environ.pop("CONDA_PREFIX")
+            os.environ.pop("CONDA_DEFAULT_ENV")
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if (
-            (cli_prefix and cli_env_name)
-            or (yaml_name == "prefix")
-            or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
-        ):
+        if (cli_prefix and cli_env_name) or (yaml_name == "prefix"):
             with pytest.raises(helpers.subprocess.CalledProcessError):
                 helpers.install(*cmd, "--print-config-only")
+        elif not (
+            cli_prefix or cli_env_name or yaml_name or env_var or current_target_prefix_fallback
+        ):
+            # Fallback on root prefix
+            res = helpers.install(*cmd, "--print-config-only")
+            TestUpdateConfig.config_tests(res, root_prefix=r, target_prefix=r)
         else:
             res = helpers.install(*cmd, "--print-config-only")
             TestUpdateConfig.config_tests(res, root_prefix=r, target_prefix=expected_p)
+
+    def test_target_prefix_with_no_settings(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestUpdateConfig` class
+        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+        TestUpdateConfig.config_tests(
+            res,
+            root_prefix=TestUpdateConfig.root_prefix,
+            target_prefix=TestUpdateConfig.root_prefix,
+        )
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="MAMBA_ROOT_PREFIX is set in windows GH workflow",
+    )
+    def test_target_prefix_with_no_settings_and_no_env_var(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestUpdateConfig.config_tests(
+            res,
+            root_prefix=TestUpdateConfig.current_root_prefix,
+            target_prefix=TestUpdateConfig.current_root_prefix,
+        )
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))

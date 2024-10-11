@@ -7,7 +7,7 @@ Micromamba Installation
 
 ``micromamba`` is a fully statically-linked, self-contained, executable.
 This means that the ``base`` environment is completely empty.
-The configuration for ``micromamba`` is slighly different, namely all environments and cache will be
+The configuration for ``micromamba`` is slightly different, namely all environments and cache will be
 created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
 There is also no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba
 (they are however still read if present).
@@ -115,13 +115,13 @@ This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where t
 .. code:: sh
 
   # Linux/bash:
-  ./bin/micromamba shell init -s bash -p ~/micromamba  # this writes to your .bashrc file
+  ./bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
   # sourcing the bashrc file incorporates the changes into the running session.
   # better yet, restart your terminal!
   source ~/.bashrc
 
   # macOS/zsh:
-  ./micromamba shell init -s zsh -p ~/micromamba
+  ./micromamba shell init -s zsh -r ~/micromamba
   source ~/.zshrc
 
 Now you can activate the base environment and install new packages, or create other environments.
@@ -164,7 +164,7 @@ Windows
   .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
 
   # ... or initialize the shell
-  .\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
+  .\micromamba.exe shell init -s powershell -r C:\Your\Root\Prefix
   # and use micromamba directly
   micromamba create -f ./test/env_win.yaml -y
   micromamba activate yourenv
@@ -193,7 +193,7 @@ Build from source
 
 .. note::
 
-   These instuction do not work currently on Windows, which requires a more complex hybrid build.
+   These instructions do not work currently on Windows, which requires a more complex hybrid build.
    For up-to-date instructions on Windows and Unix, consult the scripts in the
    `micromamba-feedstock <https://github.com/conda-forge/micromamba-feedstock>`_.
 
@@ -212,6 +212,7 @@ Use CMake from this environment to drive the build:
    cmake -B build/ \
        -G Ninja \
        ${CMAKE_ARGS} \
+       -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
        -D CMAKE_BUILD_TYPE="Release" \
        -D BUILD_LIBMAMBA=ON \
        -D BUILD_STATIC=ON \

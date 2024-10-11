@@ -301,7 +301,7 @@ Watches
 
 The possible decisions on solvables are ``installation`` or ``removal``/``conflict``, this is stored as resp. positive and negative Ids.
 
-Related rules are then evaluated during another level of decision: those are the one with an opposite first litteral.
+Related rules are then evaluated during another level of decision: those are the one with an opposite first literal.
 
 Example:
 

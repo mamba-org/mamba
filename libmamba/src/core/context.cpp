@@ -6,8 +6,8 @@
 
 #include <iostream>
 
-#include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/ranges.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -26,6 +26,7 @@
 
 namespace mamba
 {
+
     class Logger : public spdlog::logger
     {
     public:
@@ -63,6 +64,57 @@ namespace mamba
         }
     }
 
+
+    enum class logger_kind
+    {
+        normal_logger,
+        default_logger,
+    };
+
+    // Associate the registration of a logger to the lifetime of this object.
+    // This is used to help with making sure loggers are unregistered once
+    // their logical owner is destroyed.
+    class Context::ScopedLogger
+    {
+        std::shared_ptr<Logger> m_logger;
+
+    public:
+
+        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal_logger)
+            : m_logger(std::move(new_logger))
+        {
+            assert(m_logger);
+            if (kind == logger_kind::default_logger)
+            {
+                spdlog::set_default_logger(m_logger);
+            }
+            else
+            {
+                spdlog::register_logger(m_logger);
+            }
+        }
+
+        ~ScopedLogger()
+        {
+            if (m_logger)
+            {
+                spdlog::drop(m_logger->name());
+            }
+        }
+
+        std::shared_ptr<Logger> logger() const
+        {
+            assert(m_logger);
+            return m_logger;
+        }
+
+        ScopedLogger(ScopedLogger&&) = default;
+        ScopedLogger& operator=(ScopedLogger&&) = default;
+
+        ScopedLogger(const ScopedLogger&) = delete;
+        ScopedLogger& operator=(const ScopedLogger&) = delete;
+    };
+
     spdlog::level::level_enum convert_log_level(log_level l)
     {
         return static_cast<spdlog::level::level_enum>(l);
@@ -76,36 +128,50 @@ namespace mamba
     void Context::use_default_signal_handler(bool val)
     {
         use_default_signal_handler_val = val;
+        if (use_default_signal_handler_val)
+        {
+            set_default_signal_handler();
+        }
+        else
+        {
+            restore_previous_signal_handler();
+        }
     }
 
-    void Context::enable_logging_and_signal_handling(Context& context)
+    std::shared_ptr<Logger> Context::main_logger()
+    {
+        if (loggers.empty())
+        {
+            return {};
+        }
+
+        return loggers.front().logger();
+    }
+
+    void Context::enable_signal_handling()
     {
         if (use_default_signal_handler_val)
         {
             set_default_signal_handler();
         }
+    }
 
-        context.logger = std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n");
-        MainExecutor::instance().on_close(
-            context.tasksync.synchronized([&context] { context.logger->flush(); })
+    void Context::enable_logging()
+    {
+        loggers.clear();  // Make sure we work with a known set of loggers, first one is
+                          // always the default one.
+
+        loggers.emplace_back(
+            std::make_shared<Logger>("libmamba", output_params.log_pattern, "\n"),
+            logger_kind::default_logger
         );
+        MainExecutor::instance().on_close(tasksync.synchronized([&] { main_logger()->flush(); }));
 
-        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
-            "libcurl",
-            context.output_params.log_pattern,
-            ""
-        );
-        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
-            "libsolv",
-            context.output_params.log_pattern,
-            ""
-        );
+        loggers.emplace_back(std::make_shared<Logger>("libcurl", output_params.log_pattern, ""));
 
-        spdlog::register_logger(libcurl_logger);
-        spdlog::register_logger(libsolv_logger);
+        loggers.emplace_back(std::make_shared<Logger>("libsolv", output_params.log_pattern, ""));
 
-        spdlog::set_default_logger(context.logger);
-        spdlog::set_level(convert_log_level(context.output_params.logging_level));
+        spdlog::set_level(convert_log_level(output_params.logging_level));
     }
 
     Context::Context(const ContextOptions& options)
@@ -141,9 +207,14 @@ namespace mamba
         ascii_only = false;
 #endif
 
-        if (options.enable_logging_and_signal_handling)
+        if (options.enable_signal_handling)
         {
-            enable_logging_and_signal_handling(*this);
+            enable_signal_handling();
+        }
+
+        if (options.enable_logging)
+        {
+            enable_logging();
         }
     }
 
@@ -229,10 +300,10 @@ namespace mamba
                     // anaconda client writes out a token for https://api.anaconda.org...
                     // but we need the token for https://conda.anaconda.org
                     // conda does the same
-                    std::size_t api_pos = token_url.find("://api.");
+                    std::size_t api_pos = token_url.find("https://api.");
                     if (api_pos != std::string::npos)
                     {
-                        token_url.replace(api_pos, 7, "://conda.");
+                        token_url.replace(api_pos, 12, "conda.");
                     }
 
                     // cut ".token" ending
@@ -376,9 +447,9 @@ namespace mamba
 
     void Context::dump_backtrace_no_guards()
     {
-        if (logger)  // REVIEW: is this correct?
+        if (main_logger())  // REVIEW: is this correct?
         {
-            logger->dump_backtrace_no_guards();
+            main_logger()->dump_backtrace_no_guards();
         }
     }
 

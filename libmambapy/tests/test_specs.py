@@ -9,18 +9,22 @@ def test_import_submodule():
     import libmambapy.specs as specs
 
     # Dummy execution
-    _p = specs.Platform.noarch
+    _p = specs.KnownPlatform.noarch
 
 
 def test_import_recursive():
     import libmambapy as mamba
 
     # Dummy execution
-    _p = mamba.specs.Platform.noarch
+    _p = mamba.specs.KnownPlatform.noarch
+
+
+def test_ParseError():
+    assert issubclass(libmambapy.specs.ParseError, ValueError)
 
 
 def test_archive_extension():
-    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda"]
+    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda", ".whl"]
 
     assert libmambapy.specs.has_archive_extension("pkg.conda")
     assert not libmambapy.specs.has_archive_extension("conda.pkg")
@@ -29,35 +33,35 @@ def test_archive_extension():
     assert libmambapy.specs.strip_archive_extension("conda.pkg") == "conda.pkg"
 
 
-def test_Platform():
-    Platform = libmambapy.specs.Platform
+def test_KnownPlatform():
+    KnownPlatform = libmambapy.specs.KnownPlatform
 
-    assert Platform.noarch.name == "noarch"
-    assert Platform.linux_32.name == "linux_32"
-    assert Platform.linux_64.name == "linux_64"
-    assert Platform.linux_armv6l.name == "linux_armv6l"
-    assert Platform.linux_armv7l.name == "linux_armv7l"
-    assert Platform.linux_aarch64.name == "linux_aarch64"
-    assert Platform.linux_ppc64le.name == "linux_ppc64le"
-    assert Platform.linux_ppc64.name == "linux_ppc64"
-    assert Platform.linux_s390x.name == "linux_s390x"
-    assert Platform.linux_riscv32.name == "linux_riscv32"
-    assert Platform.linux_riscv64.name == "linux_riscv64"
-    assert Platform.osx_64.name == "osx_64"
-    assert Platform.osx_arm64.name == "osx_arm64"
-    assert Platform.win_32.name == "win_32"
-    assert Platform.win_64.name == "win_64"
-    assert Platform.win_arm64.name == "win_arm64"
-    assert Platform.zos_z.name == "zos_z"
+    assert KnownPlatform.noarch.name == "noarch"
+    assert KnownPlatform.linux_32.name == "linux_32"
+    assert KnownPlatform.linux_64.name == "linux_64"
+    assert KnownPlatform.linux_armv6l.name == "linux_armv6l"
+    assert KnownPlatform.linux_armv7l.name == "linux_armv7l"
+    assert KnownPlatform.linux_aarch64.name == "linux_aarch64"
+    assert KnownPlatform.linux_ppc64le.name == "linux_ppc64le"
+    assert KnownPlatform.linux_ppc64.name == "linux_ppc64"
+    assert KnownPlatform.linux_s390x.name == "linux_s390x"
+    assert KnownPlatform.linux_riscv32.name == "linux_riscv32"
+    assert KnownPlatform.linux_riscv64.name == "linux_riscv64"
+    assert KnownPlatform.osx_64.name == "osx_64"
+    assert KnownPlatform.osx_arm64.name == "osx_arm64"
+    assert KnownPlatform.win_32.name == "win_32"
+    assert KnownPlatform.win_64.name == "win_64"
+    assert KnownPlatform.win_arm64.name == "win_arm64"
+    assert KnownPlatform.zos_z.name == "zos_z"
 
-    assert len(Platform.__members__) == Platform.count()
-    assert Platform.build_platform() in Platform.__members__.values()
-    assert Platform.parse("linux-64") == Platform.linux_64
-    assert Platform("linux_64") == Platform.linux_64
+    assert len(KnownPlatform.__members__) == KnownPlatform.count()
+    assert KnownPlatform.build_platform() in KnownPlatform.__members__.values()
+    assert KnownPlatform.parse("linux-64") == KnownPlatform.linux_64
+    assert KnownPlatform("linux_64") == KnownPlatform.linux_64
 
     with pytest.raises(KeyError):
         # No parsing, explicit name
-        Platform("linux-64")
+        KnownPlatform("linux-64")
 
 
 def test_NoArchType():
@@ -157,7 +161,7 @@ def test_CondaURL_setters():
     url.set_path_without_token("bar%20", encode=False)
     assert url.path_without_token() == "/bar "
     assert url.clear_path_without_token()
-    # Platform
+    # KnownPlatform
     url.set_path_without_token("conda-forge/win-64", encode=False)
     assert url.platform().name == "win_64"
     url.set_platform("linux_64")
@@ -172,6 +176,10 @@ def test_CondaURL_setters():
 
 def test_CondaURL_parse():
     CondaURL = libmambapy.specs.CondaURL
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        CondaURL.parse("py>#")
 
     url = CondaURL.parse(
         "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
@@ -262,11 +270,19 @@ def test_UnresolvedChannel():
     uc = UnresolvedChannel(location="conda-forge", platform_filters=set(), type="Name")
     assert uc.type == UnresolvedChannel.Type.Name
 
+    # str
+    uc = UnresolvedChannel(location="conda-forge", platform_filters=set(), type="Name")
+    assert str(uc) == "conda-forge"
+
     #  Parser
     uc = UnresolvedChannel.parse("conda-forge[linux-64]")
     assert uc.location == "conda-forge"
     assert uc.platform_filters == {"linux-64"}
     assert uc.type == UnresolvedChannel.Type.Name
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        UnresolvedChannel.parse("conda-forge]")
 
     #  Copy
     other = copy.deepcopy(uc)
@@ -293,7 +309,7 @@ def test_BasicHTTPAuthentication():
     assert other.user == auth.user
     assert other is not auth
 
-    # Comparion
+    # Comparison
     assert auth == auth
     assert auth == other
     other.user = "rattler"
@@ -316,7 +332,7 @@ def test_BearerToken():
     assert other is not auth
     assert other.token == auth.token
 
-    # Comparion
+    # Comparison
     assert auth == auth
     assert auth == other
     other.token = "foo"
@@ -443,7 +459,7 @@ def test_Channel():
     # Constructor
     chan = Channel(url=url_1, platforms=platforms_1, display_name=display_name_1)
 
-    # Gettters
+    # Getters
     assert chan.url == url_1
     assert chan.platforms == platforms_1
     assert chan.display_name == display_name_1
@@ -612,6 +628,10 @@ def test_Version():
     # Parse
     v = Version.parse("3!1.3ab2.4+42.0alpha")
 
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        Version.parse("#!33")
+
     # Getters
     assert v.epoch == 3
     assert v.version == CommonVersion(
@@ -654,6 +674,37 @@ def test_Version():
     assert not v1.compatible_with(older=v2, level=1)
 
 
+def test_VersionPredicate():
+    Version = libmambapy.specs.Version
+    VersionPredicate = libmambapy.specs.VersionPredicate
+
+    assert str(VersionPredicate.make_free()) == "=*"
+    assert str(VersionPredicate.make_equal_to(Version.parse("1"))) == "==1"
+    assert str(VersionPredicate.make_not_equal_to(Version.parse("1"))) == "!=1"
+    assert str(VersionPredicate.make_greater(Version.parse("1"))) == ">1"
+    assert str(VersionPredicate.make_greater_equal(Version.parse("1"))) == ">=1"
+    assert str(VersionPredicate.make_less(Version.parse("1"))) == "<1"
+    assert str(VersionPredicate.make_less_equal(Version.parse("1"))) == "<=1"
+    assert str(VersionPredicate.make_starts_with(Version.parse("1"))) == "=1"
+    assert str(VersionPredicate.make_not_starts_with(Version.parse("1"))) == "!=1.*"
+    assert str(VersionPredicate.make_compatible_with(Version.parse("1"), 1)) == "~=1"
+
+    pred = VersionPredicate.make_equal_to(Version.parse("1"))
+
+    # Contains
+    assert pred.contains(Version.parse("1"))
+    assert not pred.contains(Version.parse("2"))
+
+    # Equality
+    assert pred == pred
+    assert pred != VersionPredicate()
+
+    # Copy
+    other = copy.deepcopy(pred)
+    assert other == pred
+    assert other is not pred
+
+
 def test_VersionSpec():
     Version = libmambapy.specs.Version
     VersionSpec = libmambapy.specs.VersionSpec
@@ -663,7 +714,7 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.or_token, str)
     assert isinstance(VersionSpec.left_parenthesis_token, str)
     assert isinstance(VersionSpec.right_parenthesis_token, str)
-    assert isinstance(VersionSpec.prefered_free_str, str)
+    assert isinstance(VersionSpec.preferred_free_str, str)
     assert isinstance(VersionSpec.all_free_strs, list)
     assert isinstance(VersionSpec.starts_with_str, str)
     assert isinstance(VersionSpec.equal_str, str)
@@ -676,7 +727,19 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.glob_suffix_str, str)
     assert isinstance(VersionSpec.glob_suffix_token, str)
 
+    # Constructor
+    vs = VersionSpec()
+    assert vs.is_explicitly_free()
+    assert vs.expression_size() == 0
+
+    # Parse
     vs = VersionSpec.parse(">2.0,<3.0")
+    assert not vs.is_explicitly_free()
+    assert vs.expression_size() == 3  # including operator
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        VersionSpec.parse("=2,")
 
     assert not vs.contains(Version.parse("1.1"))
     assert vs.contains(Version.parse("2.1"))
@@ -726,8 +789,8 @@ def test_PackageInfo():
     assert pkg.channel == "conda-forge"
     pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
     assert pkg.package_url == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
-    pkg.subdir = "linux-64"
-    assert pkg.subdir == "linux-64"
+    pkg.platform = "linux-64"
+    assert pkg.platform == "linux-64"
     pkg.filename = "foo-4.0-mybld.conda"
     assert pkg.filename == "foo-4.0-mybld.conda"
     pkg.license = "MIT"
@@ -742,8 +805,8 @@ def test_PackageInfo():
     assert pkg.md5 == "68b329da9893e34099c7d8ad5cb9c940"
     pkg.track_features = ["mkl"]
     assert pkg.track_features == ["mkl"]
-    pkg.depends = ["python>=3.7"]
-    assert pkg.depends == ["python>=3.7"]
+    pkg.dependencies = ["python>=3.7"]
+    assert pkg.dependencies == ["python>=3.7"]
     pkg.constrains = ["pip>=2.1"]
     assert pkg.constrains == ["pip>=2.1"]
 
@@ -778,13 +841,131 @@ def test_PackageInfo_V2Migrator():
         pkg.url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
 
 
+def test_GlobSpec():
+    GlobSpec = libmambapy.specs.GlobSpec
+    spec = GlobSpec("py*")
+
+    assert GlobSpec().is_free()
+    assert not spec.is_free()
+
+    assert GlobSpec("python").is_exact()
+    assert not spec.is_exact()
+
+    assert spec.contains("python")
+
+    assert str(spec) == "py*"
+
+    # Copy
+    other = copy.deepcopy(spec)
+    assert str(other) == str(spec)
+    assert other is not spec
+
+
+def test_RegexSpec():
+    RegexSpec = libmambapy.specs.RegexSpec
+    spec = RegexSpec.parse("^py.*$")
+
+    assert RegexSpec().is_explicitly_free()
+    assert not spec.is_explicitly_free()
+
+    assert RegexSpec.parse("python").is_exact()
+    assert not spec.is_exact()
+
+    assert spec.contains("python")
+
+    assert str(spec) == "^py.*$"
+
+    # Copy
+    other = copy.deepcopy(spec)
+    assert str(other) == str(spec)
+    assert other is not spec
+
+
+def test_ChimeraStringSpec():
+    ChimeraStringSpec = libmambapy.specs.ChimeraStringSpec
+    spec = ChimeraStringSpec.parse("^py.*$")
+
+    assert ChimeraStringSpec().is_explicitly_free()
+    assert not spec.is_explicitly_free()
+
+    assert ChimeraStringSpec().is_glob()
+    assert not spec.is_glob()
+
+    assert ChimeraStringSpec.parse("python").is_exact()
+    assert not spec.is_exact()
+
+    assert spec.contains("python")
+
+    assert str(spec) == "^py.*$"
+
+    # Copy
+    other = copy.deepcopy(spec)
+    assert str(other) == str(spec)
+    assert other is not spec
+
+
 def test_MatchSpec():
     MatchSpec = libmambapy.specs.MatchSpec
 
-    ms = MatchSpec.parse("conda-forge::python=3.7=*pypy")
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        MatchSpec.parse_url("httos:/")
+
+    ms = MatchSpec.parse_url("https://conda.com/pkg-2-bld.conda")
+    assert ms.is_file()
+    assert str(ms.name) == "pkg"
+    assert ms.filename == "pkg-2-bld.conda"
+
+    # Errors
+    with pytest.raises(libmambapy.specs.ParseError):
+        MatchSpec.parse("py>#")
+
+    ms = MatchSpec.parse(
+        "conda-forge[plat]:ns:python=3.7=*pypy"
+        "[md5=m,sha256=s,license=l, license_family=lf,track_features=ft,optional]"
+    )
+
+    assert str(ms.channel) == "conda-forge[plat]"
+    assert ms.platforms == {"plat"}
+    assert ms.name_space == "ns"
+    assert str(ms.name) == "python"
+    assert str(ms.version) == "=3.7"
+    assert str(ms.build_string) == "*pypy"
+    assert ms.md5 == "m"
+    assert ms.sha256 == "s"
+    assert ms.license == "l"
+    assert ms.license_family == "lf"
+    assert ms.track_features == {"ft"}
+    assert ms.optional
+    assert not ms.is_file()
+    assert not ms.is_simple()
+    assert not ms.is_only_package_name()
 
     # str
-    assert str(ms) == "conda-forge::python=3.7[build='*pypy']"
+    assert str(ms) == (
+        "conda-forge[plat]:ns:python"
+        """[version="=3.7",build="*pypy",track_features="ft",md5=m,sha256=s,"""
+        """license=l,license_family=lf,optional]"""
+    )
+
+    # Copy
+    other = copy.deepcopy(ms)
+    assert str(other) == str(ms)
+    assert other is not ms
+
+
+def test_MatchSpec_contains():
+    MatchSpec = libmambapy.specs.MatchSpec
+    PackageInfo = libmambapy.specs.PackageInfo
+
+    ms = MatchSpec.parse("conda-forge::py*[build_number='>4']")
+
+    assert ms.contains_except_channel(name="python", build_number=5, build_string="bld")
+    assert not ms.contains_except_channel(name="python", build_number=2)
+    assert not ms.contains_except_channel(name="rust", build_number=4)
+
+    assert ms.contains_except_channel(PackageInfo(name="python", build_number=5))
+    assert not ms.contains_except_channel(PackageInfo(name="python"))
 
 
 def test_MatchSpec_V2Migrator():

@@ -88,3 +88,4 @@ __cache__/
 installed.json
 tmp/
 test_7.json.state
+_skbuild/

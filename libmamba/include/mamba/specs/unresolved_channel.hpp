@@ -14,7 +14,10 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/flat_set.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -25,12 +28,12 @@ namespace mamba::specs
      * Due the the heavy reliance of channels on configuration options, this placeholder type
      * can be used to represent channel inputs that have not been "resolved" to s specific
      * location.
-     * This can even be true when a full URL or path is given, as some authentification information
+     * This can even be true when a full URL or path is given, as some authentication information
      * may come from login database.
      *
      * Note that for a string to be considered a URL, it must have an explicit scheme.
-     * So "repo.anaconda.com" is considered a name, similarily to "conda-forge" and not a URL.
-     * This is because otherwise it is not possible to tell names and URL appart.
+     * So "repo.anaconda.com" is considered a name, similarly to "conda-forge" and not a URL.
+     * This is because otherwise it is not possible to tell names and URL apart.
      */
     class UnresolvedChannel
     {
@@ -39,7 +42,7 @@ namespace mamba::specs
         enum class Type
         {
             /**
-             * A URL to a full repo strucuture.
+             * A URL to a full repo structure.
              *
              * Example "https://repo.anaconda.com/conda-forge".
              */
@@ -51,7 +54,7 @@ namespace mamba::specs
              */
             PackageURL,
             /**
-             * An (possibly implicit) path to a full repo strucuture.
+             * An (possibly implicit) path to a full repo structure.
              *
              * Example "/Users/name/conda-bld", "./conda-bld", "~/.conda-bld".
              */
@@ -86,12 +89,14 @@ namespace mamba::specs
             ":///<unknown>",
         };
 
-        using dynamic_platform_set = util::flat_set<std::string>;
+        using platform_set = util::flat_set<DynamicPlatform>;
 
-        [[nodiscard]] static auto parse(std::string_view str) -> UnresolvedChannel;
+        [[nodiscard]] static auto parse_platform_list(std::string_view plats) -> platform_set;
+
+        [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<UnresolvedChannel>;
 
         UnresolvedChannel() = default;
-        UnresolvedChannel(std::string location, dynamic_platform_set filters, Type type);
+        UnresolvedChannel(std::string location, platform_set filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
 
@@ -99,16 +104,30 @@ namespace mamba::specs
         [[nodiscard]] auto location() && -> std::string;
         auto clear_location() -> std::string;
 
-        [[nodiscard]] auto platform_filters() const& -> const dynamic_platform_set&;
-        [[nodiscard]] auto platform_filters() && -> dynamic_platform_set;
-        auto clear_platform_filters() -> dynamic_platform_set;
+        [[nodiscard]] auto platform_filters() const& -> const platform_set&;
+        [[nodiscard]] auto platform_filters() && -> platform_set;
+        auto clear_platform_filters() -> platform_set;
+
+        [[nodiscard]] auto is_package() const -> bool;
 
         [[nodiscard]] auto str() const -> std::string;
+
+        [[nodiscard]] auto operator==(const UnresolvedChannel& other) const -> bool
+        {
+            return m_location == other.m_location                     //
+                   && m_platform_filters == other.m_platform_filters  //
+                   && m_type == other.m_type;
+        }
+
+        [[nodiscard]] auto operator!=(const UnresolvedChannel& other) const -> bool
+        {
+            return !(*this == other);
+        }
 
     private:
 
         std::string m_location = std::string(unknown_channel);
-        dynamic_platform_set m_platform_filters = {};
+        platform_set m_platform_filters = {};
         Type m_type = Type::Unknown;
     };
 }
@@ -129,6 +148,15 @@ struct fmt::formatter<mamba::specs::UnresolvedChannel>
     }
 
     auto format(const UnresolvedChannel& uc, format_context& ctx) const -> format_context::iterator;
+};
+
+template <>
+struct std::hash<mamba::specs::UnresolvedChannel>
+{
+    auto operator()(const mamba::specs::UnresolvedChannel& uc) const -> std::size_t
+    {
+        return mamba::util::hash_vals(uc.location(), uc.platform_filters(), static_cast<int>(uc.type()));
+    }
 };
 
 #endif

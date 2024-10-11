@@ -14,8 +14,10 @@
 
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/flat_bool_expr_tree.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -35,8 +37,8 @@ namespace mamba::specs
         [[nodiscard]] static auto make_less_equal(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
-        [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
-            -> VersionPredicate;
+        [[nodiscard]] static auto
+        make_compatible_with(Version ver, std::size_t level) -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -136,7 +138,7 @@ namespace mamba::specs
         static constexpr char left_parenthesis_token = '(';
         static constexpr char right_parenthesis_token = ')';
 
-        static constexpr std::string_view prefered_free_str = "=*";
+        static constexpr std::string_view preferred_free_str = "=*";
         static constexpr std::array<std::string_view, 4> all_free_strs = { "", "*", "=*", "==*" };
         static constexpr std::string_view starts_with_str = "=";
         static constexpr std::string_view equal_str = "==";
@@ -149,17 +151,22 @@ namespace mamba::specs
         static constexpr std::string_view glob_suffix_str = ".*";
         static constexpr char glob_suffix_token = '*';
 
-        [[nodiscard]] static auto parse(std::string_view str) -> VersionSpec;
+        [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<VersionSpec>;
+
+        /**
+         * Create a Version spec with a single predicate in the expression.
+         */
+        [[nodiscard]] static auto from_predicate(VersionPredicate pred) -> VersionSpec;
 
         /** Construct VersionSpec that match all versions. */
         VersionSpec() = default;
         explicit VersionSpec(tree_type&& tree) noexcept;
 
         /**
-         * Returns wether the VersionSpec is unconstrained.
+         * Returns whether the VersionSpec is unconstrained.
          *
          * Due to the complex nature of VersionSpec expressions, it is not always easy to know
-         * whether a complex expression can be simpified to the unconstrained one.
+         * whether a complex expression can be simplified to the unconstrained one.
          * This functions only handles the trivial cases.
          */
         [[nodiscard]] auto is_explicitly_free() const -> bool;
@@ -184,6 +191,21 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
+        /**
+         * Return the size of the boolean expression tree.
+         */
+        [[nodiscard]] auto expression_size() const -> std::size_t;
+
+        [[nodiscard]] auto operator==(const VersionSpec& other) const -> bool
+        {
+            return m_tree == other.m_tree;
+        }
+
+        [[nodiscard]] auto operator!=(const VersionSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         tree_type m_tree;
@@ -207,7 +229,7 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx)
+    auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) const
         -> decltype(ctx.out());
 };
 
@@ -221,6 +243,26 @@ struct fmt::formatter<mamba::specs::VersionSpec>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) const -> decltype(ctx.out());
 };
+
+template <>
+struct std::hash<mamba::specs::VersionPredicate>
+{
+    auto operator()(const mamba::specs::VersionPredicate& pred) const -> std::size_t
+    {
+        return mamba::util::hash_vals(pred.str());
+    }
+};
+
+template <>
+struct std::hash<mamba::specs::VersionSpec>
+{
+    auto operator()(const mamba::specs::VersionSpec& spec) const -> std::size_t
+    {
+        return mamba::util::hash_vals(spec.str());
+    }
+};
+
 #endif

@@ -1,7 +1,7 @@
 exclude: libmamba/tests/data/repodata_json_cache*
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -16,8 +16,14 @@ repos:
         args: [--autofix]
       - id: debug-statements
         language_version: python3
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+    - id: rst-backticks
+    - id: rst-directive-colons
+    - id: rst-inline-touching-normal
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.3.4
     hooks:
       - id: ruff
         args: [ --fix ]
@@ -28,7 +34,7 @@ repos:
       - id: blacken-docs
         additional_dependencies: [black==22.3.0]
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v16.0.6
+    rev: v18.1.2
     hooks:
       - id: clang-format
         args: [--style=file]
@@ -37,3 +43,11 @@ repos:
     rev: v0.6.13
     hooks:
       - id: cmake-format
+  - repo: https://github.com/Quantco/pre-commit-mirrors-typos
+    rev: 1.20.8
+    hooks:
+      - id: typos-conda
+        exclude: (CHANGELOG.md)
+        # In case of ambiguity (multiple possible corrections), `typos` will just report it to the user and move on without applying/writing any changes.
+        # cf. https://github.com/crate-ci/typos
+        args: [ --write-changes ]

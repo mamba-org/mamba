@@ -142,5 +142,16 @@ namespace mamba::validation
         index_error();
         ~index_error() override = default;
     };
+
+    /**
+     * Error raised when the given signatures of a package are empty/invalid.
+     */
+    class signatures_error : public trust_error
+    {
+    public:
+
+        signatures_error();
+        ~signatures_error() override = default;
+    };
 }
 #endif

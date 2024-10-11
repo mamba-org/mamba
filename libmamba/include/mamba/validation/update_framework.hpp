@@ -59,9 +59,8 @@ namespace mamba::validation
         [[nodiscard]] virtual auto json_key() const -> std::string = 0;
         [[nodiscard]] virtual auto expiration_json_key() const -> std::string = 0;
 
-        [[nodiscard]] virtual auto signatures(const nlohmann::json& j) const
-            -> std::set<RoleSignature>
-            = 0;
+        [[nodiscard]] virtual auto
+        signatures(const nlohmann::json& j) const -> std::set<RoleSignature> = 0;
 
     protected:
 
@@ -104,8 +103,8 @@ namespace mamba::validation
 
     protected:
 
-        [[nodiscard]] auto read_json_file(const fs::u8path& p, bool update = false) const
-            -> nlohmann::json;
+        [[nodiscard]] auto
+        read_json_file(const fs::u8path& p, bool update = false) const -> nlohmann::json;
 
         /**
          * Check that a threshold of valid signatures is met
@@ -175,12 +174,11 @@ namespace mamba::validation
         auto possible_update_files() -> std::vector<fs::u8path>;
 
         virtual auto build_index_checker(
-            Context& context,
+            const Context& context,
             const TimeRef& time_reference,
             const std::string& url,
             const fs::u8path& cache_path
-        ) const -> std::unique_ptr<RepoIndexChecker>
-            = 0;
+        ) const -> std::unique_ptr<RepoIndexChecker> = 0;
 
     protected:
 

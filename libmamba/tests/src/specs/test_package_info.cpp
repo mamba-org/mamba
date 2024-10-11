@@ -25,7 +25,7 @@ TEST_SUITE("specs::package_info")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda";
 
-            auto pkg = PackageInfo::from_url(url);
+            auto pkg = PackageInfo::from_url(url).value();
 
             CHECK_EQ(pkg.name, "pkg");
             CHECK_EQ(pkg.version, "6.4");
@@ -33,7 +33,7 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
             CHECK_EQ(pkg.package_url, url);
             CHECK_EQ(pkg.md5, "");
-            CHECK_EQ(pkg.subdir, "linux-64");
+            CHECK_EQ(pkg.platform, "linux-64");
             CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
         }
 
@@ -42,7 +42,7 @@ TEST_SUITE("specs::package_info")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0";
 
-            auto pkg = PackageInfo::from_url(url);
+            auto pkg = PackageInfo::from_url(url).value();
 
             CHECK_EQ(pkg.name, "pkg");
             CHECK_EQ(pkg.version, "6.4");
@@ -50,8 +50,14 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
             CHECK_EQ(pkg.package_url, url.substr(0, url.rfind('#')));
             CHECK_EQ(pkg.md5, url.substr(url.rfind('#') + 1));
-            CHECK_EQ(pkg.subdir, "linux-64");
+            CHECK_EQ(pkg.platform, "linux-64");
             CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
+        }
+
+        SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/pkg.conda")
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg.conda";
+            CHECK_FALSE(PackageInfo::from_url(url).has_value());
         }
     }
 
@@ -67,15 +73,16 @@ TEST_SUITE("specs::package_info")
         pkg.noarch = NoArchType::Generic;
         pkg.channel = "conda-forge";
         pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda";
-        pkg.subdir = "linux-64";
+        pkg.platform = "linux-64";
         pkg.filename = "foo-4.0-mybld.conda";
         pkg.license = "MIT";
         pkg.size = 3200;
         pkg.timestamp = 4532;
         pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
+        pkg.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
         pkg.md5 = "68b329da9893e34099c7d8ad5cb9c940";
         pkg.track_features = { "mkl", "blas" };
-        pkg.depends = { "python>=3.7", "requests" };
+        pkg.dependencies = { "python>=3.7", "requests" };
         pkg.constrains = { "pip>=2.1" };
 
         SUBCASE("field")
@@ -113,6 +120,10 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(j.at("size"), 3200);
             CHECK_EQ(j.at("timestamp"), 4532);
             CHECK_EQ(j.at("sha256"), "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b");
+            CHECK_EQ(
+                j.at("signatures"),
+                R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
+            );
             CHECK_EQ(j.at("md5"), "68b329da9893e34099c7d8ad5cb9c940");
             CHECK_EQ(j.at("track_features"), "mkl,blas");
             CHECK_EQ(j.at("depends"), StrVec{ "python>=3.7", "requests" });
@@ -135,6 +146,7 @@ TEST_SUITE("specs::package_info")
             j["size"] = 3200;
             j["timestamp"] = 4532;
             j["sha256"] = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
+            j["signatures"] = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
             j["md5"] = "68b329da9893e34099c7d8ad5cb9c940";
             j["track_features"] = "mkl,blas";
             j["depends"] = StrVec{ "python>=3.7", "requests" };
@@ -167,6 +179,50 @@ TEST_SUITE("specs::package_info")
                 j["track_features"] = nl::json::array({ "py", "malloc" });
                 CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{ "py", "malloc" });
             }
+
+            SUBCASE("equality_operator")
+            {
+                CHECK(j.get<PackageInfo>() == pkg);
+            }
+
+            SUBCASE("inequality_operator")
+            {
+                CHECK_FALSE(j.get<PackageInfo>() != pkg);
+            }
+        }
+
+        SUBCASE("PackageInfo comparability and hashability")
+        {
+            auto pkg2 = PackageInfo();
+            pkg2.name = "foo";
+            pkg2.version = "4.0";
+            pkg2.build_string = "mybld";
+            pkg2.build_number = 5;
+            pkg2.noarch = NoArchType::Generic;
+            pkg2.channel = "conda-forge";
+            pkg2.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda";
+            pkg2.platform = "linux-64";
+            pkg2.filename = "foo-4.0-mybld.conda";
+            pkg2.license = "MIT";
+            pkg2.size = 3200;
+            pkg2.timestamp = 4532;
+            pkg2.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
+            pkg2.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
+            pkg2.md5 = "68b329da9893e34099c7d8ad5cb9c940";
+            pkg2.track_features = { "mkl", "blas" };
+            pkg2.dependencies = { "python>=3.7", "requests" };
+            pkg2.constrains = { "pip>=2.1" };
+
+            auto hash_fn = std::hash<PackageInfo>{};
+
+            CHECK_EQ(pkg, pkg2);
+            CHECK_EQ(hash_fn(pkg), hash_fn(pkg2));
+
+
+            pkg2.md5[0] = '0';
+
+            CHECK_NE(pkg, pkg2);
+            CHECK_NE(hash_fn(pkg), hash_fn(pkg2));
         }
     }
 }

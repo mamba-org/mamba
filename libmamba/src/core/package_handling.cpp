@@ -27,8 +27,8 @@ namespace mamba
     {
         return {
             /* .sparse = */ context.extract_sparse,
-            /* .subproc_mode = */ context.command_params.is_micromamba
-                ? extract_subproc_mode::micromamba
+            /* .subproc_mode = */ context.command_params.is_mamba_exe
+                ? extract_subproc_mode::mamba_exe
                 : extract_subproc_mode::mamba_package,
         };
     }
@@ -514,7 +514,7 @@ namespace mamba
         {
             conda_extract_context(scoped_archive_read& lsource)
                 : source(lsource)
-                , buffer(get_zstd_buff_out_size())
+                , buffer(download::get_zstd_buff_out_size())
             {
             }
 
@@ -766,7 +766,7 @@ namespace mamba
     extract_subproc(const fs::u8path& file, const fs::u8path& dest, const ExtractOptions& options)
     {
         std::vector<std::string> args;
-        if (options.subproc_mode == extract_subproc_mode::micromamba)
+        if (options.subproc_mode == extract_subproc_mode::mamba_exe)
         {
             args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }
@@ -820,9 +820,9 @@ namespace mamba
         return true;
     }
 
-    bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options)
+    bool validate(const fs::u8path& pkg_folder, const ValidationParams& params)
     {
-        auto safety_checks = options.safety_checks;
+        auto safety_checks = params.safety_checks;
         if (safety_checks == VerificationLevel::Disabled)
         {
             return true;
@@ -830,7 +830,7 @@ namespace mamba
 
         bool is_warn = safety_checks == VerificationLevel::Warn;
         bool is_fail = safety_checks == VerificationLevel::Enabled;
-        bool full_validation = options.extra_safety_checks;
+        bool full_validation = params.extra_safety_checks;
 
         try
         {

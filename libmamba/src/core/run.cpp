@@ -26,6 +26,7 @@ extern "C"
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
 #include <spdlog/spdlog.h>
@@ -331,6 +332,11 @@ namespace mamba
         reproc::options opt;
         if (cwd != "")
         {
+            if (!fs::exists(cwd))
+            {
+                LOG_CRITICAL << "The given path does not exist: " << cwd;
+                return -1;
+            }
             opt.working_directory = cwd.c_str();
         }
 

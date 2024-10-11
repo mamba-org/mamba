@@ -35,14 +35,15 @@ main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ {
-        /* .enable_logging_and_signal_handling = */ true,
+        /* .enable_logging = */ true,
+        /* .enable_signal_handling = */ true,
     } };
     mamba::Console console{ ctx };
     mamba::Configuration config{ ctx };
 
     init_console();
 
-    ctx.command_params.is_micromamba = true;
+    ctx.command_params.is_mamba_exe = true;
 
     CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app, config);

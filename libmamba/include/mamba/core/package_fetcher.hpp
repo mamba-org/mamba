@@ -85,7 +85,7 @@ namespace mamba
         bool needs_download() const;
         bool needs_extract() const;
 
-        DownloadRequest
+        download::Request
         build_download_request(std::optional<post_download_success_t> callback = std::nullopt);
         ValidationResult
         validate(std::size_t downloaded_size, progress_callback_t* cb = nullptr) const;
@@ -102,6 +102,8 @@ namespace mamba
         struct CheckSumParams;
 
         const std::string& filename() const;
+        std::string channel() const;
+        std::string url_path() const;
         const std::string& url() const;
         const std::string& sha256() const;
         const std::string& md5() const;
@@ -121,6 +123,7 @@ namespace mamba
         fs::u8path m_cache_path;
 
         bool m_needs_download = false;
+        std::string m_downloaded_url = {};
         bool m_needs_extract = false;
     };
 

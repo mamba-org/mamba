@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <stack>
 #include <string>
 #include <utility>
@@ -14,7 +15,6 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <solv/selection.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -24,20 +24,16 @@
 #include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
-#include "mamba/core/pool.hpp"
-#include "mamba/core/solver.hpp"
+#include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/util_os.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
-#include "mamba/util/string.hpp"
-#include "solv-cpp/pool.hpp"
-#include "solv-cpp/queue.hpp"
-#include "solv-cpp/repo.hpp"
-#include "solv-cpp/solver.hpp"
-#include "solv-cpp/transaction.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/variant_cmp.hpp"
 
 #include "solver/helpers.hpp"
-#include "solver/libsolv/helpers.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -53,37 +49,66 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        template <typename Range>
-        auto make_pkg_info_from_explicit_match_specs(Range&& specs)
+        // TODO duplicated function, consider moving it to Pool
+        auto database_has_package(solver::libsolv::Database& db, const specs::MatchSpec& spec) -> bool
         {
-            std::vector<specs::PackageInfo> out = {};
-            out.reserve(specs.size());
-
-            for (auto& ms : specs)
-            {
-                out.emplace_back(ms.name().str());
-                auto& p = out.back();
-                p.package_url = ms.url();
-                p.build_string = ms.build_string().str();
-                p.version = ms.version().str_conda_build();
-                if (ms.channel().has_value())
+            bool found = false;
+            db.for_each_package_matching(
+                spec,
+                [&](const auto&)
                 {
-                    p.channel = ms.channel()->location();
-                    if (!ms.channel()->platform_filters().empty())
-                    {
-                        // There must be only one since we are expecting URLs
-                        assert(ms.channel()->platform_filters().size() == 1);
-                        p.subdir = ms.channel()->platform_filters().front();
-                    }
+                    found = true;
+                    return util::LoopControl::Break;
                 }
-                p.filename = ms.filename();
-                p.md5 = ms.md5();
-                p.sha256 = ms.sha256();
+            );
+            return found;
+        };
+
+        auto explicit_spec(const specs::PackageInfo& pkg) -> specs::MatchSpec
+        {
+            auto out = specs::MatchSpec();
+            out.set_name(specs::MatchSpec::NameSpec(pkg.name));
+            if (!pkg.version.empty())
+            {
+                out.set_version(specs::VersionSpec::parse(fmt::format("=={}", pkg.version))
+                                    .or_else([](specs::ParseError&& error)
+                                             { throw std::move(error); })
+                                    .value());
+            }
+            if (!pkg.build_string.empty())
+            {
+                out.set_build_string(
+                    specs::MatchSpec::BuildStringSpec(specs::GlobSpec(pkg.build_string))
+                );
             }
             return out;
         }
 
-        auto find_python_version(const solver::Solution& solution, const solv::ObjPool& pool)
+        auto
+        installed_python(const solver::libsolv::Database& db) -> std::optional<specs::PackageInfo>
+        {
+            // TODO combine Repo and MatchSpec search API in Pool
+            auto out = std::optional<specs::PackageInfo>();
+            if (auto repo = db.installed_repo())
+            {
+                db.for_each_package_in_repo(
+                    *repo,
+                    [&](specs::PackageInfo&& pkg)
+                    {
+                        if (pkg.name == "python")
+                        {
+                            out = std::move(pkg);
+                            return util::LoopControl::Break;
+                        }
+                        return util::LoopControl::Continue;
+                    }
+                );
+            }
+            return out;
+        }
+
+        auto
+        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& db)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -93,9 +118,9 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string installed_py_ver = {};
-            if (auto s = solver::libsolv::installed_python(pool))
+            if (auto pkg = installed_python(db))
             {
-                installed_py_ver = s->version();
+                installed_py_ver = pkg->version;
                 LOG_INFO << "Found python in installed packages " << installed_py_ver;
             }
 
@@ -109,152 +134,111 @@ namespace mamba
         }
     }
 
-    MTransaction::MTransaction(MPool& pool, MultiPackageCache& caches)
-        : m_pool(pool)
-        , m_multi_cache(caches)
-        , m_history_entry(History::UserRequest::prefilled(m_pool.context()))
+    MTransaction::MTransaction(const Context& ctx, MultiPackageCache& caches)
+        : m_multi_cache(caches)
+        , m_history_entry(History::UserRequest::prefilled(ctx))
     {
     }
 
     MTransaction::MTransaction(
-        MPool& pool,
-        const std::vector<specs::MatchSpec>& specs_to_remove,
-        const std::vector<specs::MatchSpec>& specs_to_install,
+        const Context& ctx,
+        solver::libsolv::Database& db,
+        std::vector<specs::PackageInfo> pkgs_to_remove,
+        std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
     )
-        : MTransaction(pool, caches)
+        : MTransaction(ctx, caches)
     {
-        auto mrepo = m_pool.add_repo_from_packages(
-            make_pkg_info_from_explicit_match_specs(specs_to_install),
-            "__explicit_specs__",
-            solver::libsolv::PipAsPythonDependency::No
+        auto not_found = std::stringstream();
+        for (const auto& pkg : pkgs_to_remove)
+        {
+            auto spec = explicit_spec(pkg);
+            if (!database_has_package(db, spec))
+            {
+                not_found << "\n - " << spec.str();
+            }
+        }
+
+        if (auto list = not_found.str(); !list.empty())
+        {
+            LOG_ERROR << "Could not find packages to remove:" << list << '\n';
+            Console::instance().json_write({ { "success", false } });
+            throw std::runtime_error("Could not find packages to remove:" + list);
+        }
+
+        Console::instance().json_write({ { "success", true } });
+
+        auto specs_to_install = std::vector<specs::MatchSpec>();
+        specs_to_install.reserve(pkgs_to_install.size());
+        std::transform(
+            pkgs_to_install.begin(),
+            pkgs_to_install.end(),
+            std::back_insert_iterator(specs_to_install),
+            [](const auto& pkg) { return explicit_spec(pkg); }
         );
 
-        m_pool.create_whatprovides();
+        m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
+        std::transform(
+            std::move_iterator(pkgs_to_install.begin()),
+            std::move_iterator(pkgs_to_install.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
+        );
+        std::transform(
+            std::move_iterator(pkgs_to_remove.begin()),
+            std::move_iterator(pkgs_to_remove.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Remove{ std::move(pkg) }; }
+        );
 
-        // Just add the packages we want to remove directly to the transaction
-        solv::ObjQueue job, decision;
-
-        std::vector<std::string> not_found = {};
-        for (auto& s : specs_to_remove)
+        m_history_entry.remove.reserve(pkgs_to_remove.size());
+        for (auto& pkg : pkgs_to_remove)
         {
-            job = {
-                SOLVER_SOLVABLE_PROVIDES,
-                m_pool.pool().add_conda_dependency(s.conda_build_form()),
-            };
-
-            if (const auto q = m_pool.pool().select_solvables(job); !q.empty())
-            {
-                for (auto& el : q)
-                {
-                    // To remove, these have to be negative
-                    decision.push_back(-el);
-                }
-            }
-            else
-            {
-                not_found.push_back("\n - " + s.str());
-            }
+            m_history_entry.remove.push_back(explicit_spec(pkg).str());
         }
-
-        if (!not_found.empty())
+        m_history_entry.update.reserve(pkgs_to_install.size());
+        for (auto& pkg : pkgs_to_install)
         {
-            LOG_ERROR << "Could not find packages to remove:" + util::join("", not_found)
-                      << std::endl;
-            throw std::runtime_error("Could not find packages to remove:" + util::join("", not_found));
+            m_history_entry.update.push_back(explicit_spec(pkg).str());
         }
-
-        // TODO why is this only using the last job?
-        const auto q = m_pool.pool().select_solvables(job);
-        const bool remove_success = q.size() >= specs_to_remove.size();
-        Console::instance().json_write({ { "success", remove_success } });
-
-        // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
-        repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
-
-        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
-        // We cannot order the transaction here because we do no have dependency information
-        // from the lockfile
-        // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
-        // ``fetch_extract_packages`` is called.
-
-        m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
-
-        m_history_entry.remove.reserve(specs_to_remove.size());
-        for (auto& s : specs_to_remove)
-        {
-            m_history_entry.remove.push_back(s.str());
-        }
-        m_history_entry.update.reserve(specs_to_install.size());
-        for (auto& s : specs_to_install)
-        {
-            m_history_entry.update.push_back(s.str());
-        }
-
-        const auto& context = m_pool.context();
 
         // if no action required, don't even start logging them
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX",
-                                               context.prefix_params.target_prefix.string() } });
+            Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
-            context,
-            context.prefix_params.target_prefix,
-            context.prefix_params.relocate_prefix,
-            find_python_version(m_solution, m_pool.pool()),
+            ctx,
+            ctx.prefix_params.target_prefix,
+            ctx.prefix_params.relocate_prefix,
+            find_python_version(m_solution, db),
             specs_to_install
         );
     }
 
-    MTransaction::MTransaction(MPool& p_pool, MSolver& solver, MultiPackageCache& caches)
-        : MTransaction(p_pool, caches)
+    MTransaction::MTransaction(
+        const Context& ctx,
+        solver::libsolv::Database& db,
+        const solver::Request& request,
+        solver::Solution solution,
+        MultiPackageCache& caches
+    )
+        : MTransaction(ctx, caches)
     {
-        if (!solver.is_solved())
-        {
-            throw std::runtime_error("Cannot create transaction without calling solver.solve() first."
-            );
-        }
-        auto& pool = m_pool.pool();
-
-        auto trans = solv::ObjTransaction::from_solver(pool, solver.solver());
-        trans.order(pool);
-
-        const auto& flags = solver.request().flags;
-        if (flags.keep_user_specs && flags.keep_dependencies)
-        {
-            m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
-        }
-        else if (flags.keep_user_specs && !flags.keep_dependencies)
-        {
-            m_solution = solver::libsolv::transaction_to_solution_no_deps(
-                m_pool.pool(),
-                trans,
-                solver.request()
-            );
-        }
-        else if (!flags.keep_user_specs && flags.keep_dependencies)
-        {
-            m_solution = solver::libsolv::transaction_to_solution_only_deps(
-                m_pool.pool(),
-                trans,
-                solver.request()
-            );
-        }
+        const auto& flags = request.flags;
+        m_solution = std::move(solution);
 
         if (flags.keep_user_specs)
         {
             using Request = solver::Request;
             solver::for_each_of<Request::Install, Request::Update>(
-                solver.request(),
+                request,
                 [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
             );
             solver::for_each_of<Request::Remove, Request::Update>(
-                solver.request(),
+                request,
                 [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
             );
         }
@@ -265,7 +249,7 @@ namespace mamba
                 m_solution.actions,
                 [&](const specs::PackageInfo& pkg)
                 {
-                    for (const auto& dep : pkg.depends)
+                    for (const auto& dep : pkg.dependencies)
                     {
                         m_history_entry.update.push_back(dep);
                     }
@@ -276,82 +260,68 @@ namespace mamba
         auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
-            solver.request(),
+            request,
             [&](const auto& item) { requested_specs.push_back(item.spec); }
         );
-        const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
-            context,
-            context.prefix_params.target_prefix,
-            context.prefix_params.relocate_prefix,
-            find_python_version(m_solution, m_pool.pool()),
+            ctx,
+            ctx.prefix_params.target_prefix,
+            ctx.prefix_params.relocate_prefix,
+            find_python_version(m_solution, db),
             std::move(requested_specs)
         );
-
-        if (solver::libsolv::solution_needs_python_relink(pool, m_solution))
-        {
-            m_solution = solver::libsolv::add_noarch_relink_to_solution(
-                std::move(m_solution),
-                pool,
-                "python"
-            );
-        }
 
         // if no action required, don't even start logging them
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX",
-                                               context.prefix_params.target_prefix.string() } });
+            Console::instance().json_write({
+                { "PREFIX", ctx.prefix_params.target_prefix.string() },
+            });
         }
     }
 
     MTransaction::MTransaction(
-        MPool& pool,
-        const std::vector<specs::PackageInfo>& packages,
+        const Context& ctx,
+        solver::libsolv::Database& db,
+        std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
-        : MTransaction(pool, caches)
+        : MTransaction(ctx, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        auto mrepo = m_pool.add_repo_from_packages(
-            packages,
-            "__explicit_specs__",
-            solver::libsolv::PipAsPythonDependency::No
+
+        auto specs_to_install = std::vector<specs::MatchSpec>();
+        specs_to_install.reserve(packages.size());
+        std::transform(
+            packages.cbegin(),
+            packages.cend(),
+            std::back_insert_iterator(specs_to_install),
+            [](const auto& pkg)
+            {
+                return specs::MatchSpec::parse(
+                           fmt::format("{}=={}={}", pkg.name, pkg.version, pkg.build_string)
+                )
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
+            }
         );
-        m_pool.create_whatprovides();
 
-        solv::ObjQueue decision = {};
-        // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
-        repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
+        m_solution.actions.reserve(packages.size());
+        std::transform(
+            std::move_iterator(packages.begin()),
+            std::move_iterator(packages.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
+        );
 
-        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
-        trans.order(m_pool.pool());
-
-        m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
-
-        std::vector<specs::MatchSpec> specs_to_install;
-        for (const auto& pkginfo : packages)
-        {
-            specs_to_install.push_back(specs::MatchSpec::parse(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
-            ));
-        }
-
-        const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
-            context,
-            context.prefix_params.target_prefix,
-            context.prefix_params.relocate_prefix,
-            find_python_version(m_solution, m_pool.pool()),
-            specs_to_install
+            ctx,
+            ctx.prefix_params.target_prefix,
+            ctx.prefix_params.relocate_prefix,
+            find_python_version(m_solution, db),
+            std::move(specs_to_install)
         );
-    }
-
-    auto MTransaction::py_find_python_version() const -> std::pair<std::string, std::string>
-    {
-        return find_python_version(m_solution, m_pool.pool());
     }
 
     class TransactionRollback
@@ -389,11 +359,10 @@ namespace mamba
         std::stack<LinkPackage> m_link_stack;
     };
 
-    bool MTransaction::execute(PrefixData& prefix)
+    bool
+    MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
         using Solution = solver::Solution;
-
-        auto& ctx = m_pool.context();
 
         // JSON output
         // back to the top level if any action was required
@@ -419,7 +388,7 @@ namespace mamba
         clean_trash_files(ctx.prefix_params.target_prefix, false);
 
         Console::stream() << "\nTransaction starting";
-        fetch_extract_packages();
+        fetch_extract_packages(ctx, channel_context);
 
         if (ctx.download_only)
         {
@@ -430,59 +399,37 @@ namespace mamba
 
         TransactionRollback rollback;
 
-        const auto execute_action = [&](const auto& act)
-        {
-            using Action = std::decay_t<decltype(act)>;
-
-            auto const link = [&](specs::PackageInfo const& pkg)
-            {
-                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
-                LinkPackage lp(pkg, cache_path, &m_transaction_context);
-                lp.execute();
-                rollback.record(lp);
-                m_history_entry.link_dists.push_back(pkg.long_str());
-            };
-            auto const unlink = [&](specs::PackageInfo const& pkg)
-            {
-                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
-                UnlinkPackage up(pkg, cache_path, &m_transaction_context);
-                up.execute();
-                rollback.record(up);
-                m_history_entry.unlink_dists.push_back(pkg.long_str());
-            };
-
-            if constexpr (std::is_same_v<Action, Solution::Reinstall>)
-            {
-                Console::stream() << "Reinstalling " << act.what.str();
-                unlink(act.what);
-                link(act.what);
-            }
-            else if constexpr (Solution::has_remove_v<Action> && Solution::has_install_v<Action>)
-            {
-                Console::stream() << "Changing " << act.remove.str() << " ==> " << act.install.str();
-                unlink(act.remove);
-                link(act.install);
-            }
-            else if constexpr (Solution::has_remove_v<Action>)
-            {
-                Console::stream() << "Unlinking " << act.remove.str();
-                unlink(act.remove);
-            }
-            else if constexpr (Solution::has_install_v<Action>)
-            {
-                Console::stream() << "Linking " << act.install.str();
-                link(act.install);
-            }
-        };
-
-        for (const auto& action : m_solution.actions)
+        const auto link = [&](const specs::PackageInfo& pkg)
         {
             if (is_sig_interrupted())
             {
-                break;
+                return util::LoopControl::Break;
             }
-            std::visit(execute_action, action);
-        }
+            Console::stream() << "Linking " << pkg.str();
+            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+            LinkPackage lp(pkg, cache_path, &m_transaction_context);
+            lp.execute();
+            rollback.record(lp);
+            m_history_entry.link_dists.push_back(pkg.long_str());
+            return util::LoopControl::Continue;
+        };
+        const auto unlink = [&](const specs::PackageInfo& pkg)
+        {
+            if (is_sig_interrupted())
+            {
+                return util::LoopControl::Break;
+            }
+            Console::stream() << "Unlinking " << pkg.str();
+            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
+            UnlinkPackage up(pkg, cache_path, &m_transaction_context);
+            up.execute();
+            rollback.record(up);
+            m_history_entry.unlink_dists.push_back(pkg.long_str());
+            return util::LoopControl::Continue;
+        };
+
+        for_each_to_remove(m_solution.actions, unlink);
+        for_each_to_install(m_solution.actions, link);
 
         if (is_sig_interrupted())
         {
@@ -494,24 +441,32 @@ namespace mamba
         m_transaction_context.wait_for_pyc_compilation();
 
         // Get the name of the executable used directly from the command.
-        const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
+        const auto executable = get_self_exe_path().stem().string();
 
         // Get the name of the environment
         const auto environment = env_name(ctx);
 
-        Console::stream() << "\nTransaction finished\n\n"
-                             "To activate this environment, use:\n\n"
-                             "    "
-                          << executable << " activate " << environment
-                          << "\n\n"
-                             "Or to execute a single command in this environment, use:\n\n"
-                             "    "
-                          << executable
-                          << " run "
-                          // Use -n or -p depending on if the env_name is a full prefix or just
-                          // a name.
-                          << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                          << environment << " mycommand\n";
+        // Check if the target prefix is active
+        if (util::get_env("CONDA_PREFIX") == ctx.prefix_params.target_prefix)
+        {
+            Console::stream() << "\nTransaction finished\n";
+        }
+        else
+        {
+            Console::stream() << "\nTransaction finished\n\n"
+                                 "To activate this environment, use:\n\n"
+                                 "    "
+                              << executable << " activate " << environment
+                              << "\n\n"
+                                 "Or to execute a single command in this environment, use:\n\n"
+                                 "    "
+                              << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just
+                              // a name.
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
+        }
 
         prefix.history().add_entry(m_history_entry);
         return true;
@@ -595,14 +550,16 @@ namespace mamba
         // Free functions instead of private method to avoid exposing downloaders
         // and package fetchers in the header. Ideally we may want a pimpl or
         // a private implementation header when we refactor this class.
-        FetcherList
-        build_fetchers(MPool& pool, const solver::Solution& solution, MultiPackageCache& multi_cache)
+        FetcherList build_fetchers(
+            const Context& ctx,
+            ChannelContext& channel_context,
+            const solver::Solution& solution,
+            MultiPackageCache& multi_cache
+        )
         {
             FetcherList fetchers;
-            auto& channel_context = pool.channel_context();
-            auto& ctx = pool.context();
 
-            if (ctx.experimental && ctx.validation_params.verify_artifacts)
+            if (ctx.validation_params.verify_artifacts)
             {
                 LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
             }
@@ -610,56 +567,55 @@ namespace mamba
                 solution.actions,
                 [&](const auto& pkg)
                 {
-                    // The following was used for the The Update Framework (TUF) / package signing
-                    // proof of concept.
-                    //
-                    // Due to uncertainties on how TUF would be implemented, this was left commented
-                    // out as in was getting in the way of the Channel refactoring.
-
-                    // In channel.cpp, repo-checkers were instanciated with the folowing:
-                    // const validation::RepoChecker&
-                    //    Channel::repo_checker(Context& context, MultiPackageCache& caches) const
-                    //    {
-                    //        if (p_repo_checker == nullptr)
-                    //        {
-                    //            p_repo_checker = std::make_unique<validation::RepoChecker>(
-                    //                context,
-                    //                util::rsplit(base_url(), "/", 1).front(),
-                    //                context.prefix_params.root_prefix / "etc" / "trusted-repos"
-                    //                    / util::cache_name_from_url(base_url()),
-                    //                caches.first_writable_path() / "cache" /
-                    //                util::cache_name_from_url(base_url())
-                    //            );
-                    //
-                    //            fs::create_directories(p_repo_checker->cache_path());
-                    //            p_repo_checker->generate_index_checker();
-                    //        }
-                    //
-                    //        return *p_repo_checker;
-                    //    }
-
-                    // Here, the repo-checker would be fetched the following way:
-                    // if (ctx.experimental && ctx.validation_params.verify_artifacts)
-                    // {
-                    //     const auto& repo_checker = channel_context.make_channel(pkg.channel)
-                    //                                    .repo_checker(ctx, multi_cache);
-                    //     repo_checker.verify_package(
-                    //         pkg.json_signable(),
-                    //         nlohmann::json::parse(pkg.signatures)
-                    //     );
-                    //
-                    //     LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
-                    // }
+                    if (ctx.validation_params.verify_artifacts)
+                    {
+                        LOG_INFO << "Creating RepoChecker...";
+                        auto repo_checker_store = RepoCheckerStore::make(
+                            ctx,
+                            channel_context,
+                            multi_cache
+                        );
+                        for (auto& chan : channel_context.make_channel(pkg.channel))
+                        {
+                            auto repo_checker = repo_checker_store.find_checker(chan);
+                            if (repo_checker)
+                            {
+                                LOG_INFO << "RepoChecker successfully created.";
+                                repo_checker->generate_index_checker();
+                                repo_checker->verify_package(
+                                    pkg.json_signable(),
+                                    std::string_view(pkg.signatures)
+                                );
+                            }
+                            else
+                            {
+                                LOG_ERROR << "Could not create a valid RepoChecker.";
+                                throw std::runtime_error(fmt::format(
+                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
+                                    pkg.name
+                                ));
+                            }
+                        }
+                        LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
+                    }
 
                     // FIXME: only do this for micromamba for now
-                    if (ctx.command_params.is_micromamba)
+                    if (ctx.command_params.is_mamba_exe)
                     {
                         using Credentials = typename specs::CondaURL::Credentials;
                         auto l_pkg = pkg;
-                        auto channels = channel_context.make_channel(pkg.package_url);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
-                        );
+                        {
+                            auto channels = channel_context.make_channel(pkg.package_url);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            l_pkg.package_url = channels.front().platform_urls().at(0).str(
+                                Credentials::Show
+                            );
+                        }
+                        {
+                            auto channels = channel_context.make_channel(pkg.channel);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            l_pkg.channel = channels.front().id();
+                        }
                         fetchers.emplace_back(l_pkg, multi_cache);
                     }
                     else
@@ -669,7 +625,7 @@ namespace mamba
                 }
             );
 
-            if (ctx.experimental && ctx.validation_params.verify_artifacts)
+            if (ctx.validation_params.verify_artifacts)
             {
                 auto out = Console::stream();
                 fmt::print(
@@ -701,14 +657,14 @@ namespace mamba
 
         using ExtractTrackerList = std::vector<std::future<PackageExtractTask::Result>>;
 
-        MultiDownloadRequest build_download_requests(
+        download::MultiRequest build_download_requests(
             FetcherList& fetchers,
             ExtractTaskList& extract_tasks,
             ExtractTrackerList& extract_trackers,
             std::size_t download_size
         )
         {
-            MultiDownloadRequest download_requests;
+            download::MultiRequest download_requests;
             download_requests.reserve(download_size);
             for (auto [fit, eit] = std::tuple{ fetchers.begin(), extract_tasks.begin() };
                  fit != fetchers.begin() + static_cast<std::ptrdiff_t>(download_size);
@@ -751,13 +707,13 @@ namespace mamba
         }
 
         bool trigger_download(
-            MultiDownloadRequest requests,
+            download::MultiRequest requests,
             const Context& context,
-            DownloadOptions options,
+            download::Options options,
             PackageDownloadMonitor* monitor
         )
         {
-            auto result = download(std::move(requests), context, options, monitor);
+            auto result = download::download(std::move(requests), context.mirrors, context, options, monitor);
             bool all_downloaded = std::all_of(
                 result.begin(),
                 result.end(),
@@ -784,12 +740,11 @@ namespace mamba
         }
     }
 
-    bool MTransaction::fetch_extract_packages()
+    bool MTransaction::fetch_extract_packages(const Context& ctx, ChannelContext& channel_context)
     {
-        auto& ctx = m_pool.context();
         PackageFetcherSemaphore::set_max(ctx.threads_params.extract_threads);
 
-        FetcherList fetchers = build_fetchers(m_pool, m_solution, m_multi_cache);
+        FetcherList fetchers = build_fetchers(ctx, channel_context, m_solution, m_multi_cache);
 
         auto download_end = std::partition(
             fetchers.begin(),
@@ -814,7 +769,7 @@ namespace mamba
         ExtractTaskList extract_tasks = build_extract_tasks(ctx, fetchers, extract_size);
         ExtractTrackerList extract_trackers;
         extract_trackers.reserve(extract_tasks.size());
-        MultiDownloadRequest download_requests = build_download_requests(
+        download::MultiRequest download_requests = build_download_requests(
             fetchers,
             extract_tasks,
             extract_trackers,
@@ -822,7 +777,7 @@ namespace mamba
         );
 
         std::unique_ptr<PackageDownloadMonitor> monitor = nullptr;
-        DownloadOptions download_options{ true, true };
+        download::Options download_options{ true, true };
         if (PackageDownloadMonitor::can_monitor(ctx))
         {
             monitor = std::make_unique<PackageDownloadMonitor>();
@@ -862,10 +817,10 @@ namespace mamba
         return m_solution.actions.empty();
     }
 
-    bool MTransaction::prompt()
+    bool MTransaction::prompt(const Context& ctx, ChannelContext& channel_context)
     {
-        print();
-        if (m_pool.context().dry_run || empty())
+        print(ctx, channel_context);
+        if (ctx.dry_run || empty())
         {
             return true;
         }
@@ -873,11 +828,9 @@ namespace mamba
         return Console::prompt("Confirm changes", 'y');
     }
 
-    void MTransaction::print()
+    void MTransaction::print(const Context& ctx, ChannelContext& channel_context)
     {
         using Solution = solver::Solution;
-
-        const auto& ctx = m_pool.context();
 
         if (ctx.output_params.json)
         {
@@ -942,8 +895,6 @@ namespace mamba
                           printers::alignment::left,
                           printers::alignment::right });
         t.set_padding({ 2, 2, 2, 2, 5 });
-        solv::ObjQueue classes = {};
-        solv::ObjQueue pkgs = {};
 
         using rows = std::vector<std::vector<printers::FormattedString>>;
 
@@ -956,10 +907,7 @@ namespace mamba
             ignore,
             remove
         };
-        auto format_row =
-            [this,
-             &ctx,
-             &total_size](rows& r, const specs::PackageInfo& s, Status status, std::string diff)
+        auto format_row = [&](rows& r, const specs::PackageInfo& s, Status status, std::string diff)
         {
             const std::size_t dlsize = s.size;
             printers::FormattedString dlsize_s;
@@ -1013,7 +961,7 @@ namespace mamba
                 }
                 else
                 {
-                    auto channels = m_pool.channel_context().make_channel(str);
+                    auto channels = channel_context.make_channel(str);
                     if (channels.size() == 1)
                     {
                         chan_name = channels.front().display_name();
@@ -1075,25 +1023,44 @@ namespace mamba
                 format_row(installed, act.install, Status::install, "+");
             }
         };
-        for (const auto& pkg : m_solution.actions)
-        {
-            std::visit(format_action, pkg);
-        }
 
-        // Sort row to print alphabetically according to first member (the name of the package).
+        // Sort actions to print by type first and package name second.
+        // The type does not really influence anything since they are later grouped together.
         // In the absence of a better/alternative solution, such as a tree view of install
         // requirements, this is more readable than the Solution's order.
         // WARNING: do not sort the solution as it is topologically sorted for installing
         // dependencies before dependent.
-        constexpr auto cmp_rows = [](const auto& lhs, const auto& rhs) -> bool
-        { return !lhs.empty() && !rhs.empty() && lhs.front().s < rhs.front().s; };
-        std::sort(installed.begin(), installed.end(), cmp_rows);
-        std::sort(erased.begin(), erased.end(), cmp_rows);
-        std::sort(changed.begin(), changed.end(), cmp_rows);
-        std::sort(reinstalled.begin(), reinstalled.end(), cmp_rows);
-        std::sort(upgraded.begin(), upgraded.end(), cmp_rows);
-        std::sort(downgraded.begin(), downgraded.end(), cmp_rows);
-        std::sort(ignored.begin(), ignored.end(), cmp_rows);
+        auto actions = m_solution.actions;
+        std::sort(
+            actions.begin(),
+            actions.end(),
+            util::make_variant_cmp(
+                /* index_cmp= */
+                [](auto lhs, auto rhs) { return lhs < rhs; },
+                /* alternative_cmp= */
+                [](const auto& lhs, const auto& rhs)
+                {
+                    using Action = std::decay_t<decltype(lhs)>;  // rhs has same type.
+                    if constexpr (solver::Solution::has_remove_v<Action>)
+                    {
+                        return lhs.remove.name < rhs.remove.name;
+                    }
+                    else if constexpr (solver::Solution::has_install_v<Action>)
+                    {
+                        return lhs.install.name < rhs.install.name;
+                    }
+                    else
+                    {
+                        return lhs.what.name < rhs.what.name;
+                    }
+                }
+            )
+        );
+
+        for (const auto& pkg : actions)
+        {
+            std::visit(format_action, pkg);
+        }
 
         std::stringstream summary;
         summary << "Summary:\n\n";
@@ -1142,44 +1109,27 @@ namespace mamba
     }
 
     MTransaction
-    create_explicit_transaction_from_urls(MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
+    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& db, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
-        std::vector<specs::MatchSpec> specs_to_install = {};
+        std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
-        for (auto& raw_url : urls)
-        {
-            std::string_view url = util::strip(raw_url);
-            if (url.empty())
+        std::transform(
+            urls.cbegin(),
+            urls.cend(),
+            std::back_insert_iterator(specs_to_install),
+            [&](const auto& u)
             {
-                continue;
+                return specs::PackageInfo::from_url(u)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value();
             }
-
-            const auto hash_idx = url.find_first_of('#');
-            specs_to_install.emplace_back(specs::MatchSpec::parse(url.substr(0, hash_idx)));
-            specs::MatchSpec& ms = specs_to_install.back();
-
-            if (hash_idx != std::string::npos)
-            {
-                std::string_view hash = url.substr(hash_idx + 1);
-                if (util::starts_with(hash, "sha256:"))
-                {
-                    ms.set_sha256(std::string(hash.substr(7)));
-                }
-                if (util::starts_with(hash, "md5:"))
-                {
-                    ms.set_sha256(std::string(hash.substr(4)));
-                }
-                else
-                {
-                    ms.set_md5(std::string(hash));
-                }
-            }
-        }
-        return MTransaction(pool, {}, specs_to_install, package_caches);
+        );
+        return MTransaction(ctx, db, {}, specs_to_install, package_caches);
     }
 
     MTransaction create_explicit_transaction_from_lockfile(
-        MPool& pool,
+        const Context& ctx,
+        solver::libsolv::Database& db,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
@@ -1198,12 +1148,11 @@ namespace mamba
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};
 
-        const auto& context = pool.context();
         for (const auto& category : categories)
         {
             std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 category,
-                context.platform,
+                ctx.platform,
                 "conda"
             );
             std::copy(
@@ -1216,10 +1165,10 @@ namespace mamba
             {
                 LOG_WARNING << "Selected packages for category '" << category << "' are empty. "
                             << "The lockfile might not be resolved for your platform ("
-                            << context.platform << ").";
+                            << ctx.platform << ").";
             }
 
-            selected_packages = lockfile_data.get_packages_for(category, context.platform, "pip");
+            selected_packages = lockfile_data.get_packages_for(category, ctx.platform, "pip");
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
@@ -1244,7 +1193,7 @@ namespace mamba
             );
         }
 
-        return MTransaction{ pool, conda_packages, package_caches };
+        return MTransaction{ ctx, db, std::move(conda_packages), package_caches };
     }
 
 }  // namespace mamba

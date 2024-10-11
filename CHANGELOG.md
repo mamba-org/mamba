@@ -1,3 +1,709 @@
+2024.10.02
+==========
+
+Releases: libmamba 2.0.2, libmambapy 2.0.2, micromamba 2.0.2
+
+Bug fixes:
+
+- [micromamba, libmamba] fix: Handle `MatchSpec` with brackets when parsing environments' history by @jjerphan in https://github.com/mamba-org/mamba/pull/3490
+- [libmamba] Win activate by @JohanMabille in https://github.com/mamba-org/mamba/pull/3489
+- [micromamba, libmamba] Fix `channel` and `base_url` in `list` cmd by @Hind-M in https://github.com/mamba-org/mamba/pull/3488
+
+CI fixes and doc:
+
+- [all] Rollback to micromamba 1.5.10 in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3491
+
+2024.09.30
+==========
+
+Releases: libmamba 2.0.1, libmambapy 2.0.1, micromamba 2.0.1
+
+Bug fixes:
+
+- [libmamba] Fixed channel output in umamba list by @JohanMabille in https://github.com/mamba-org/mamba/pull/3486
+- [libmamba, micromamba] --full-name option for list by @JohanMabille in https://github.com/mamba-org/mamba/pull/3485
+- [libmamba, micromamba] fix: Support for PEP 440 "Compatible Releases" (operator `~=` for `MatchSpec`) by @jjerphan in https://github.com/mamba-org/mamba/pull/3483
+- [libmamba] Fix micromamba activate on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3484
+- [micromamba] Added --copy flag to create and install commands by @JohanMabille in https://github.com/mamba-org/mamba/pull/3474
+
+CI fixes and doc:
+
+- [all] doc: add github links to documentation by @timhoffm in https://github.com/mamba-org/mamba/pull/3471
+
+2024.09.25
+==========
+
+Releases: libmamba 2.0.0, libmambapy 2.0.0, micromamba 2.0.0
+
+Enhancements:
+
+- [libmamba] test: `MatchSpec` edges cases by @jjerphan in https://github.com/mamba-org/mamba/pull/3458
+- [libmamba] Compute `root prefix` as mamba install path by @Hind-M in https://github.com/mamba-org/mamba/pull/3447
+- [libmamba, micromamba] Support CONDA_DEFAULT_ENV by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3445
+- [all] Remove cctools patch from feedstock in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3442
+- [micromamba] test: Adapt test_explicit_export_topologically_sorted by @jjerphan in https://github.com/mamba-org/mamba/pull/3377
+- [libmamba] test: Comparability and hashability of `PackageInfo` and `MatchSpec`  by @jjerphan in https://github.com/mamba-org/mamba/pull/3369
+- [libmamba] build: Support fmt 11 (follow-up) by @jjerphan in https://github.com/mamba-org/mamba/pull/3371
+- [libmamba, micromamba] build: Support fmt 11 by @jjerphan in https://github.com/mamba-org/mamba/pull/3368
+- [libmamba] Make more classes hashable and comparable by @jjerphan in https://github.com/mamba-org/mamba/pull/3363
+- [libmambapy, libmamba] Replace `Context` with `Context::platform` where possible by @jjerphan in https://github.com/mamba-org/mamba/pull/3364
+- [libmamba] Update mamba.xsh: support xonsh >= 0.18.0 by @anki-code in https://github.com/mamba-org/mamba/pull/3355
+- [libmamba] Remove logs for every package by @Hind-M in https://github.com/mamba-org/mamba/pull/3335
+- [libmamba] maint: Remove declaration of `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3325
+- [libmamba] maint: Remove some warnings by @jjerphan in https://github.com/mamba-org/mamba/pull/3320
+- [libmamba] maint: Remove `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3318
+- [libmamba, micromamba] OCI/Conda mapping by @Hind-M in https://github.com/mamba-org/mamba/pull/3310
+- [libmamba, micromamba] [OCI - Mirrors] Add tests and doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3307
+- [libmamba] [OCI Registry] Handle compressed repodata by @Hind-M in https://github.com/mamba-org/mamba/pull/3300
+- [libmamba] [CEP-15] Support `base_url` with `repodata_version: 2` using `mamba` parser by @Hind-M in https://github.com/mamba-org/mamba/pull/3282
+- [libmamba] Fix OCIMirror use by @Hind-M in https://github.com/mamba-org/mamba/pull/3296
+- [all] Add checking typos to pre-commit by @Hind-M in https://github.com/mamba-org/mamba/pull/3278
+- [libmambapy, libmamba] Bind text_style and graphic params by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3266
+- [libmambapy] Bind VersionPredicate by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3255
+- [all] Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- [micromamba, libmamba] Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+- [libmamba] Implemented OCI mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3246
+- [libmamba] Passed url_path to request_generators by @JohanMabille in https://github.com/mamba-org/mamba/pull/3245
+- [libmambapy, libmamba] Handle regex in build string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3239
+- [micromamba, libmamba] [mamba-content-trust] Add integration test by @Hind-M in https://github.com/mamba-org/mamba/pull/3234
+- [libmamba] Release libsolv memory before installation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3238
+- [all] Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- [libmambapy, libmamba] Add MatchSpec::contains_except_channel" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3231
+- [all] [mamba content trust] Enable verifying packages signatures by @Hind-M in https://github.com/mamba-org/mamba/pull/3192
+- [libmambapy, libmamba] Refactor MatchSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3215
+- [all] Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- [libmambapy, libmamba] Fully bind MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3213
+- [libmamba] Add more MatchSpec tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3211
+- [micromamba, libmamba] Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+- [libmamba] Refactor MatchSpec::parse by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3205
+- [all] Added HTTP Mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3178
+- [all] Use expected for specs parsing by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3201
+- [libmamba] Refactor ObjPool to use views in callbacks by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3199
+- [libmambapy, libmamba] Add more solver tests and other small features by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3198
+- [libmambapy, libmamba] Finalized Solver bindings and add solver doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3195
+- [libmambapy, libmamba] Add libsolv.Database Bindings and tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3186
+- [libmamba] Add (some) solver Database tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3185
+- [libmamba] Make libsolv wrappers into standalone library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3181
+- [all] Rename MPool into solver::libsolv::Database by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3180
+- [all] Automate releases (`CHANGELOG.md` updating) by @Hind-M in https://github.com/mamba-org/mamba/pull/3179
+- [all] Simplify MPool Interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3177
+- [all] Clean libsolv use in Transaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3171
+- [micromamba, libmamba] Rewrite Query with Pool functions (wrapping libsolv) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3168
+- [micromamba] Remove hard coded mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3069
+- [libmamba, micromamba] Support multiple env yaml specs by @jchorl in https://github.com/mamba-org/mamba/pull/2993
+- [libmamba] Update shell hook comments by @jonashaag in https://github.com/mamba-org/mamba/pull/3051
+- [micromamba] Duplicate reposerver to isolate micromamba tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3071
+- [libmamba, libmambapy] More specs bindings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3080
+- [libmamba, libmambapy] Add VersionSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3081
+- [all] Some future proofing MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3082
+- [libmamba] Reformat string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3085
+- [libmamba] Clean up url_manip by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3086
+- [libmamba, libmambapy] Fix VersionSpec free ranges by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3088
+- [libmamba] Add parsing utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3090
+- [libmamba] Bump MAMBA libsolv file ABI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3093
+- [libmamba, libmambapy] MatchSpec use VersionSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3089
+- [libmamba, libmambapy] GlobSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3094
+- [libmamba] Add BuildNumberSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3098
+- [libmamba] Refactor MatchSpec unlikey data by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3099
+- [libmamba, micromamba] Remove micromamba shell init -p by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3092
+- [all] Clean PackageInfo interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3103
+- [libmamba, libmambapy] NoArchType as standalone enum by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3108
+- [all] Move PackageInfo in specs:: by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3109
+- [libmamba, libmambapy] Change PackageInfo types by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3113
+- [libmamba, libmambapy] Add some PackageInfo tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3115
+- [libmamba, libmambapy] Rename ChannelSpec > UndefinedChannel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3117
+- [libmamba, libmambapy] Add Channel::contains_package by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3121
+- [libmamba, libmambapy] Pool channel match by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3122
+- [libmamba] Added mirrored channels by @JohanMabille in https://github.com/mamba-org/mamba/pull/3125
+- [libmamba, micromamba] Move util_random.hpp > util/random.hpp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3129
+- [micromamba] Refactor test_remove.py to use fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3131
+- [libmambapy] Add expected caster to Union by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3135
+- [all] MRepo refactor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3118
+- [libmamba, libmambapy] No M by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3137
+- [libmamba, micromamba] Explcit transaction duplicate code by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3138
+- [libmamba, libmambapy] Solver improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3140
+- [libmamba] Sort transaction table entries by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3146
+- [all] Solver Request by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3141
+- [libmamba] Improve Solution usage by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3148
+- [libmamba, libmambapy] Refactor solver flags by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3153
+- [libmamba] Moved download related files to dedicated folder by @JohanMabille in https://github.com/mamba-org/mamba/pull/3155
+- [libmamba] Remove outdated commented code snippet by @jjerphan in https://github.com/mamba-org/mamba/pull/3160
+- [libmamba] Implemented support for mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3157
+- [all] Split Solver and Unsolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3156
+- [libmamba] Proper sorting of display actions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3165
+- [all] Solver sort deps by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3163
+- [libmamba, libmambapy] Bind solver::libsolv::UnSolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3166
+- [libmamba, libmambapy] Improve Query API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3167
+- [all] Context: not a singleton by @Klaim in https://github.com/mamba-org/mamba/pull/2615
+- [libmamba] Add CondaURL by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2805
+- [micromamba] Add env update by @Hind-M in https://github.com/mamba-org/mamba/pull/2827
+- [micromamba] Adding locks for cache directories by @rmittal87 in https://github.com/mamba-org/mamba/pull/2811
+- [micromamba] Refactor tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2829
+- [all] No ugly kenum by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2831
+- [libmamba, micromamba] Add Nushell activation support by cvanelteren in https://github.com/mamba-org/mamba/pull/2693
+- [libmamba] Support $var syntax in .condarc by @jonashaag in https://github.com/mamba-org/mamba/pull/2833
+- [libmamba] Handle null and false noarch values by @gabrielsimoes in https://github.com/mamba-org/mamba/pull/2835
+- [libmamba] Add CondaURL::pretty_str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2830
+- [libmamba, micromamba] Channel cleanup by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2832
+- [libmamba] Authenfitication split user and password by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2849
+- [libmamba] Improved static build error message by @JohanMabille in https://github.com/mamba-org/mamba/pull/2850
+- [libmamba] Add local channels test by @Hind-M in https://github.com/mamba-org/mamba/pull/2853
+- [libmamba, micromamba] Don't force MSVC_RUNTIME by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2861
+- [libmamba] Build micromamba with /MD by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2862
+- [micromamba] Add comments in micromamba repoquery by @Hind-M in https://github.com/mamba-org/mamba/pull/2863
+- [libmamba, micromamba] Fix Posix shell on Windows by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2803
+- [libmamba, libmambapy] Further improve micromamba search output by @delsner in https://github.com/mamba-org/mamba/pull/2823
+- [libmamba] Minor Channel refactoring by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2852
+- [libmamba] path_to_url percent encoding by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2867
+- [libmamba] Change libsolv static lib name by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2876
+- [libmamba, libmambapy] Download by @JohanMabille in https://github.com/mamba-org/mamba/pull/2844
+- [libmamba, micromamba] Use CMake targets for reproc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2883
+- [micromamba] Add mamba tests by @Hind-M in https://github.com/mamba-org/mamba/pull/2877
+- [libmamba] Add FindLibsolv.cmake by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2886
+- [libmamba] Read repodata.json using nl::json (rerun) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2753
+- [libmamba, micromamba] Filesystem library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2879
+- [libmamba] Header cleanup filesystem follow-up by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2894
+- [all] Add multiple queries to repoquery search by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2897
+- [all] Add ChannelSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2870
+- [micromamba] Make some fixture local by @JohanMabille in https://github.com/mamba-org/mamba/pull/2919
+- [libmamba] Print error code if run fails by @jonashaag in https://github.com/mamba-org/mamba/pull/2848
+- [all] Added PackageFetcher by @JohanMabille in https://github.com/mamba-org/mamba/pull/2917
+- [libmamba] return architecture levels for micromamba by @isuruf in https://github.com/mamba-org/mamba/pull/2921
+- [all] Resolve ChannelSpec into a Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2899
+- [libmamba] Factorize Win user folder function between files by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2925
+- [libmamba, libmambapy] Combine dev environments by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2937
+- [libmamba, micromamba] Refactor win encoding conversion by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2939
+- [micromamba] Move reposerver tests to micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2941
+- [micromamba] Remove mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2942
+- [all] Dev workflow by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2948
+- [libmamba, micromamba] Add refactor getenv setenv unsetenv by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2944
+- [all] Explicit and smart CMake target by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2935
+- [libmamba, micromamba] Rename env functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2954
+- [libmambapy] Modularize libmambapy by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2960
+- [libmamba] Environment map by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2967
+- [libmamba] Add envrionment cleaner test fixtures by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2973
+- [all] Update dependencies on OSX by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2976
+- [all] Channel initialization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2953
+- [libmamba] Add weakening_map by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2981
+- [libmamba, micromamba] Refactor env directories by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2983
+- [libmamba] Enable new repodata parser by default by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2989
+- [libmamba] Allow overriding archspec by @isuruf in https://github.com/mamba-org/mamba/pull/2966
+- [libmamba] Add Python-like set operations to flat_set by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2557
+- [libmamba, micromamba] Migrate expand/shrink_home by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2990
+- [libmamba, micromamba] Refactor env::which by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2997
+- [all] Migrate Channel::make_channel to resolve multi channels by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2986
+- [all] Move core/channel > specs/channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3000
+- [libmamba, libmambapy] Remove ChannelContext ctor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3002
+- [libmamba] Improve ChannelContext and Channel by @AntoinePrv in xhttps://github.com/mamba-org/mamba/pull/3003
+- [all] Remove ChanelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
+- [libmamba, libmambapy] Bind Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3001
+- [libmamba, micromamba] Default to hide credentials by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3017
+- [libmamba] Validation QA by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3022
+- [libmamba, micromamba] Refactor (some) OpenSSL functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3024
+- [libmamba] Use std::array<std::byte, ...> by @AntoinePRv in https://github.com/mamba-org/mamba/pull/3037
+- [libmambapy] Bind ChannelContext by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3034
+- [libmamba, micromamba] Default to conda-forge channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3035
+- [libamba, libmambapy] Split validate.[ch]pp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3041
+- [libmamba] Remove duplicate function by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3042
+- [libmamba, libmambapy] MatchSpec small improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3043
+- [all] Plug ChannelSpec in MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3046
+- [libmamba] Drop unneeded dependencies by @opoplawski in https://github.com/mamba-org/mamba/pull/3016
+- [all] Change MatchSpec::parse to named constructor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3048
+- [libmamba, libmambapy] restore use_default_signal_handler flag for libmambapy by @dholth in https://github.com/mamba-org/mamba/pull/3028
+- [micromamba] Added mamba as dynamic build of micromamba by @JohanMabille in https://github.com/mamba-org/mamba/pull/3060
+
+Bug fixes:
+
+- [libmamba, micromamba] fix: Handle extra white-space in `MatchSpec` by @jjerphan in https://github.com/mamba-org/mamba/pull/3456
+- [micromamba] Fix `test_env_update_pypi_with_conda_forge` by @Hind-M in https://github.com/mamba-org/mamba/pull/3459
+- [libmamba, micromamba] fix: Environment removal confirmation by @jjerphan in https://github.com/mamba-org/mamba/pull/3450
+- [micromamba] Fix test in osx by @Hind-M in https://github.com/mamba-org/mamba/pull/3448
+- [libmamba, libmambapy] fix: add warning when using defaults by @wolfv in https://github.com/mamba-org/mamba/pull/3434
+- [libmamba, micromamba] Add fallback to root prefix by @Hind-M in https://github.com/mamba-org/mamba/pull/3435
+- [libmamba] Fix x86_64 to use underscore instead of dash by @traversaro in https://github.com/mamba-org/mamba/pull/3433
+- [libmamba, micromamba] Fixed micromamba static build after cctools and ld64 upgrade on conda… by @JohanMabille in https://github.com/mamba-org/mamba/pull/3436
+- [libmamba, micromamba] fix: PyPI support for `env update` by @jjerphan in https://github.com/mamba-org/mamba/pull/3419
+- [libmamba] Fix output by @Hind-M in https://github.com/mamba-org/mamba/pull/3428
+- [all] Update mamba.sh.in script by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3422
+- [libmamba] Execute remove action before install actions by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3424
+- [micromamba] test: Adapt `test_remove_orphaned` unlinks by @jjerphan in https://github.com/mamba-org/mamba/pull/3417
+- [micromamba, libmamba] fix: Reduce logging system overhead by @jjerphan in https://github.com/mamba-org/mamba/pull/3416
+- [all] Define `etc/profile.d/mamba.sh` and install it by @jjerphan in https://github.com/mamba-org/mamba/pull/3413
+- [micromamba] Add posix to supported shells by @jjerphan in https://github.com/mamba-org/mamba/pull/3412
+- [all] Replaces instances of -p with --root-prefix in documentation by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3411
+- [libmamba, micromamba] [micromamba] Fix behavior of `env update` (to mimick conda) by @Hind-M in https://github.com/mamba-org/mamba/pull/3396
+- [libmamba] Reset the prompt back to default by @cvanelteren in https://github.com/mamba-org/mamba/pull/3392
+- [libmamba] Add missing header by @Hind-M in https://github.com/mamba-org/mamba/pull/3389
+- [libmamba] Restore previous behavior of `MAMBA_ROOT_PREFIX` by @Hind-M in https://github.com/mamba-org/mamba/pull/3365
+- [libmamba] Allow leading lowercase letter in version by @Hind-M in https://github.com/mamba-org/mamba/pull/3361
+- [libmamba] Allow spaces in version after operator by @Hind-M in https://github.com/mamba-org/mamba/pull/3358
+- [micromamba] Attempt to fix `test_proxy_install` by @Hind-M in https://github.com/mamba-org/mamba/pull/3324
+- [micromamba] Fix `test_no_python_pinning` by @Hind-M in https://github.com/mamba-org/mamba/pull/3321
+- [libmamba] Fixed restoring the previous signal handler for example in python case (Windows only for now) by @Klaim in https://github.com/mamba-org/mamba/pull/3297
+- [all] Split `ContextOptions::enable_logging_and_signal_handling` into 2 different options by @Klaim in https://github.com/mamba-org/mamba/pull/3329
+- [libmambapy, libmamba] libmambapy:  use `Context` explicitly by @Klaim in https://github.com/mamba-org/mamba/pull/3309
+- [micromamba] Fix test_no_python_pinning by @Hind-M in https://github.com/mamba-org/mamba/pull/3319
+- [all] Fix release scripts by @Hind-M in https://github.com/mamba-org/mamba/pull/3306
+- [libmamba] Hotfix to allow Ctrl+C in python scipts by @Klaim in https://github.com/mamba-org/mamba/pull/3285
+- [libmamba] Fix typos in comments by @ryandesign in https://github.com/mamba-org/mamba/pull/3272
+- [all] Fix VersionSpec equal and glob by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3269
+- [libmamba] Fix pin repr in solver error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3268
+- [libmambapy] Add missing pybind header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3256
+- [libmambapy, libmamba] Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+- [all] Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- [micromamba, libmamba] Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- [all] Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+- [libmamba] fix(micromamba): anaconda private channels not working by @s22chan in https://github.com/mamba-org/mamba/pull/3220
+- [micromamba] Remove unmaintained and broken pytest-lazy-fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3193
+- [libmamba] Simple logging fix by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3184
+- [libmamba, micromamba] Fix URL enconding in repodata.json by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3076
+- [libmamba, micromamba] gracefully handle conflicting names in yaml specs by @jchorl in https://github.com/mamba-org/mamba/pull/3083
+- [libmamba] Fix verbose and strange prefix in Powershell by @pwnfan in https://github.com/mamba-org/mamba/pull/3116
+- [libmamba] handle other deps in multiple env files by @jchorl in https://github.com/mamba-org/mamba/pull/3096
+- [libmambapy] Fix expected caster by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3136
+- [libmamba, micromamba] add manually given .tar.bz2 / .conda packages to solver pool by @0xbe7a in https://github.com/mamba-org/mamba/pull/3164
+- [libmambapy] Fix 2.0 alpha by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3067
+- [libmambapy] fix subs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2817
+- [libmamba, micromamba] Fix linking on Windows when Scripts folder is missing by @dalcinl in https://github.com/mamba-org/mamba/pull/2825
+- [libmamba] added support for empty lines in dependency file in txt format by @rmittal87 in https://github.com/mamba-org/mamba/pull/2812
+- [libmamba] Fix local channels location by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2851
+- [libmamba] Fixed libmamba tests static build by @JohanMabille in https://github.com/mamba-org/mamba/pull/2855
+- [micromamba] Fix win test micro.mamba.pm by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2888
+- [libmamba, micromamba] Add CI test for local channels by @Hind-M in https://github.com/mamba-org/mamba/pull/2854
+- [micromamba] Fixed "micromamba package transmute names files going from .conda -> .tar.bz2 incorrectly" by @mariusvniekerk in https://github.com/mamba-org/mamba/issues/2911
+- [libmamba] Nushell hotfix by @cvanelteren https://github.com/mamba-org/mamba/pull/2841
+- [libmamba] Added missing dependency in libmambaConfig.cmake.in by @JohanMabille in https://github.com/mamba-org/mamba/pull/2916
+- [libmamba] Allow defaults::* spec by @isuruf in https://github.com/mamba-org/mamba/pull/2927
+- [libmamba] https://github.com/mamba-org/mamba/pull/2929 by @bruchim-cisco in https://github.com/mamba-org/mamba/pull/2929
+- [libmamba] Fix channels with slashes regression by @isuruf in https://github.com/mamba-org/mamba/pull/2926
+- [micromamba] Fix micromamba test dependency conda-package-handling by @rominf in https://github.com/mamba-org/mamba/pull/2945
+- [libmamba, libmambapy] fix: Parse remote_connect_timeout_secs as a double by @jjerphan in https://github.com/mamba-org/mamba/pull/2949
+- [libmamba] Add mirrors by @Hind-M in https://github.com/mamba-org/mamba/pull/2795
+- [all] Add cmake-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2962
+- [micromamba] removed dependency on conda-index by @JohanMabille in https://github.com/mamba-org/mamba/pull/2964
+- [libmamba] Fixed move semantics of DownloadAttempt by @JohanMabille in https://github.com/mamba-org/mamba/pull/2963
+- [libmamba] Nu 0.87.0 by @cvanelteren in https://github.com/mamba-org/mamba/pull/2984
+- [libmamba] fix config precedence for base env by @0xbe7a in https://github.com/mamba-org/mamba/pull/3009
+- [libmamba] Fix libmamba cmake version file by @opoplawski in https://github.com/mamba-org/mamba/pull/3013
+
+CI fixes and doc:
+
+- [all] Fix wrong version of miniforge in doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3462
+- [all] Remove cctools patch removal in CI by @Hind-M in https://github.com/mamba-org/mamba/pull/3451
+- [all] docs: Specify `CMAKE_INSTALL_PREFIX` by @jjerphan in https://github.com/mamba-org/mamba/pull/3438
+- [all] docs: Adapt "Solving Package Environments" section by @jjerphan in https://github.com/mamba-org/mamba/pull/3326
+- [all] [win-64] Remove workaround by @Hind-M in https://github.com/mamba-org/mamba/pull/3398
+- [all] [win-64] Add constraint on fmt by @Hind-M in https://github.com/mamba-org/mamba/pull/3400
+- [all] Unpin cryptography, python, and add make to environment-dev.yml by @jaimergp in https://github.com/mamba-org/mamba/pull/3352
+- [all] ci: Unpin libcxx <18 by @jjerphan in https://github.com/mamba-org/mamba/pull/3375
+- [all] chore(ci): bump github action versions by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3350
+- [all] doc(more_concepts.rst): improve clarity by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3357
+- [micromamba] Temporarily disabled no_python_pinning test on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3322
+- [all] Fix CI failure on win-64 by @Hind-M in https://github.com/mamba-org/mamba/pull/3315
+- [micromamba] Test with xtensor-python instead of unmaintained xframe by @JohanMabille in https://github.com/mamba-org/mamba/pull/3286
+- [all] Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+- [all] Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- [all] Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- [all] Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+- [libmambapy] Remove dead mamba.py doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3078
+- [all] Document specs::Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3077
+- [all] Fix --override-channels docs by @jonashaag in https://github.com/mamba-org/mamba/pull/3084
+- [all] Add 2.0 changes draft by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3091
+- [all] Add Breathe for API documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3087
+- [micromamba] Add instructions for gnu coreutils on OSX by @benmoss in https://github.com/mamba-org/mamba/pull/3111
+- [all] Warning around manual install and add ref to conda-libmamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3119
+- [all] Add MacOS DNS issue logging by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3130
+- [all] Add CI merge groups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3068
+- [micromamba] Build micromamba win with feedstock by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2859
+- [micromamba] Update GitHub Actions steps to open Issues for failed scheduled jobs by @jdblischak in https://github.com/mamba-org/mamba/pull/2884
+- [micromamba] Fix Ci by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2889
+- [micromamba] Mark Anaconda channels as unsupported by @jonashaag in https://github.com/mamba-org/mamba/pull/2904
+- [micromamba] Fix nodefaults in documentation by @jonashaag in https://github.com/mamba-org/mamba/pull/2809
+- [micromamba] Improve install instruction by @jonashaag in https://github.com/mamba-org/mamba/pull/2908
+- [libmambapy] Refactor CI and libamambapy tests (on Unix) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2952
+- [libmambapy] Refactor CI and libamambapy tests (on Win) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2955
+- [all] Simplify and correct development documention by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
+- [all] Add install from source instructions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2977
+- [all] update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
+- [all] Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
+
+2024.09.20
+==========
+
+Releases: libmamba 2.0.0rc6, libmambapy 2.0.0rc6, micromamba 2.0.0rc6
+
+Enhancements:
+
+- [libmamba] test: `MatchSpec` edges cases by @jjerphan in https://github.com/mamba-org/mamba/pull/3458
+- [libmamba] Compute `root prefix` as mamba install path by @Hind-M in https://github.com/mamba-org/mamba/pull/3447
+- [libmamba, micromamba] Support CONDA_DEFAULT_ENV by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3445
+
+Bug fixes:
+
+- [libmamba, micromamba] fix: Handle extra white-space in `MatchSpec` by @jjerphan in https://github.com/mamba-org/mamba/pull/3456
+- [micromamba] Fix `test_env_update_pypi_with_conda_forge` by @Hind-M in https://github.com/mamba-org/mamba/pull/3459
+- [libmamba, micromamba] fix: Environment removal confirmation by @jjerphan in https://github.com/mamba-org/mamba/pull/3450
+- [micromamba] Fix test in osx by @Hind-M in https://github.com/mamba-org/mamba/pull/3448
+
+CI fixes and doc:
+
+- [all] Fix wrong version of miniforge in doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3462
+- [all] Remove cctools patch removal in CI by @Hind-M in https://github.com/mamba-org/mamba/pull/3451
+
+2024.09.13
+==========
+
+Releases: libmamba 2.0.0rc5, libmambapy 2.0.0rc5, micromamba 2.0.0rc5
+
+Enhancements:
+
+- [all] Remove cctools patch from feedstock in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3442
+
+Bug fixes:
+
+- [libmamba, libmambapy] fix: add warning when using defaults by @wolfv in https://github.com/mamba-org/mamba/pull/3434
+- [libmamba, micromamba] Add fallback to root prefix by @Hind-M in https://github.com/mamba-org/mamba/pull/3435
+- [libmamba] Fix x86_64 to use underscore instead of dash by @traversaro in https://github.com/mamba-org/mamba/pull/3433
+- [libmamba, micromamba] Fixed micromamba static build after cctools and ld64 upgrade on conda… by @JohanMabille in https://github.com/mamba-org/mamba/pull/3436
+- [libmamba, micromamba] fix: PyPI support for `env update` by @jjerphan in https://github.com/mamba-org/mamba/pull/3419
+- [libmamba] Fix output by @Hind-M in https://github.com/mamba-org/mamba/pull/3428
+- [all] Update mamba.sh.in script by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3422
+- [libmamba] Execute remove action before install actions by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3424
+
+CI fixes and doc:
+
+- [all] docs: Specify `CMAKE_INSTALL_PREFIX` by @jjerphan in https://github.com/mamba-org/mamba/pull/3438
+
+2024.08.29
+==========
+
+Releases: libmamba 2.0.0rc4, libmambapy 2.0.0rc4, micromamba 2.0.0rc4
+
+Bug fixes:
+
+- [micromamba] test: Adapt `test_remove_orphaned` unlinks by @jjerphan in https://github.com/mamba-org/mamba/pull/3417
+- [micromamba, libmamba] fix: Reduce logging system overhead by @jjerphan in https://github.com/mamba-org/mamba/pull/3416
+
+2024.08.26
+==========
+
+Releases: libmamba 2.0.0rc3, libmambapy 2.0.0rc3, micromamba 2.0.0rc3
+
+Bug fixes:
+
+- [all] Define `etc/profile.d/mamba.sh` and install it by @jjerphan in https://github.com/mamba-org/mamba/pull/3413
+- [micromamba] Add posix to supported shells by @jjerphan in https://github.com/mamba-org/mamba/pull/3412
+- [all] Replaces instances of -p with --root-prefix in documentation by @SylvainCorlay in https://github.com/mamba-org/mamba/pull/3411
+
+CI fixes and doc:
+
+- [all] docs: Adapt "Solving Package Environments" section by @jjerphan in https://github.com/mamba-org/mamba/pull/3326
+
+2024.08.19
+==========
+
+Releases: libmamba 2.0.0rc2, libmambapy 2.0.0rc2, micromamba 2.0.0rc2
+
+Enhancements:
+
+- [micromamba] test: Adapt test_explicit_export_topologically_sorted by @jjerphan in https://github.com/mamba-org/mamba/pull/3377
+- [libmamba] test: Comparability and hashability of `PackageInfo` and `MatchSpec`  by @jjerphan in https://github.com/mamba-org/mamba/pull/3369
+- [libmamba] build: Support fmt 11 (follow-up) by @jjerphan in https://github.com/mamba-org/mamba/pull/3371
+- [libmamba, micromamba] build: Support fmt 11 by @jjerphan in https://github.com/mamba-org/mamba/pull/3368
+- [libmamba] Make more classes hashable and comparable by @jjerphan in https://github.com/mamba-org/mamba/pull/3363
+- [libmambapy, libmamba] Replace `Context` with `Context::platform` where possible by @jjerphan in https://github.com/mamba-org/mamba/pull/3364
+
+Bug fixes:
+
+- [libmamba, micromamba] [micromamba] Fix behavior of `env update` (to mimick conda) by @Hind-M in https://github.com/mamba-org/mamba/pull/3396
+- [libmamba] Reset the prompt back to default by @cvanelteren in https://github.com/mamba-org/mamba/pull/3392
+- [libmamba] Add missing header by @Hind-M in https://github.com/mamba-org/mamba/pull/3389
+- [libmamba] Restore previous behavior of `MAMBA_ROOT_PREFIX` by @Hind-M in https://github.com/mamba-org/mamba/pull/3365
+
+CI fixes and doc:
+
+- [all] [win-64] Remove workaround by @Hind-M in https://github.com/mamba-org/mamba/pull/3398
+- [all] [win-64] Add constraint on fmt by @Hind-M in https://github.com/mamba-org/mamba/pull/3400
+- [all] Unpin cryptography, python, and add make to environment-dev.yml by @jaimergp in https://github.com/mamba-org/mamba/pull/3352
+- [all] ci: Unpin libcxx <18 by @jjerphan in https://github.com/mamba-org/mamba/pull/3375
+
+2024.07.26
+==========
+
+Releases: libmamba 2.0.0rc1, libmambapy 2.0.0rc1, micromamba 2.0.0rc1
+
+Enhancements:
+
+- [libmamba] Update mamba.xsh: support xonsh >= 0.18.0 by @anki-code in https://github.com/mamba-org/mamba/pull/3355
+- [libmamba] Remove logs for every package by @Hind-M in https://github.com/mamba-org/mamba/pull/3335
+
+Bug fixes:
+
+- [libmamba] Allow leading lowercase letter in version by @Hind-M in https://github.com/mamba-org/mamba/pull/3361
+- [libmamba] Allow spaces in version after operator by @Hind-M in https://github.com/mamba-org/mamba/pull/3358
+
+CI fixes and doc:
+
+- [all] chore(ci): bump github action versions by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3350
+- [all] doc(more_concepts.rst): improve clarity by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3357
+
+2024.07.08
+==========
+
+Releases: libmamba 2.0.0rc0, libmambapy 2.0.0rc0, micromamba 2.0.0rc0
+
+Enhancements:
+
+- [libmamba] maint: Remove declaration of `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3325
+
+Bug fixes:
+
+- [micromamba] Attempt to fix `test_proxy_install` by @Hind-M in https://github.com/mamba-org/mamba/pull/3324
+- [micromamba] Fix `test_no_python_pinning` by @Hind-M in https://github.com/mamba-org/mamba/pull/3321
+- [libmamba] Fixed restoring the previous signal handler for example in python case (Windows only for now) by @Klaim in https://github.com/mamba-org/mamba/pull/3297
+- [all] Split `ContextOptions::enable_logging_and_signal_handling` into 2 different options by @Klaim in https://github.com/mamba-org/mamba/pull/3329
+
+CI fixes and doc:
+
+- [micromamba] Temporarily disabled no_python_pinning test on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3322
+
+2024.06.14
+==========
+
+Releases: libmamba 2.0.0beta3, libmambapy 2.0.0beta3, micromamba 2.0.0beta3
+
+Enhancements:
+
+- [libmamba] maint: Remove some warnings by @jjerphan in https://github.com/mamba-org/mamba/pull/3320
+- [libmamba] maint: Remove `PrefixData::load` by @jjerphan in https://github.com/mamba-org/mamba/pull/3318
+- [libmamba, micromamba] OCI/Conda mapping by @Hind-M in https://github.com/mamba-org/mamba/pull/3310
+- [libmamba, micromamba] [OCI - Mirrors] Add tests and doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3307
+
+Bug fixes:
+
+- [libmambapy, libmamba] libmambapy:  use `Context` explicitly by @Klaim in https://github.com/mamba-org/mamba/pull/3309
+- [micromamba] Fix test_no_python_pinning by @Hind-M in https://github.com/mamba-org/mamba/pull/3319
+- [all] Fix release scripts by @Hind-M in https://github.com/mamba-org/mamba/pull/3306
+
+CI fixes and doc:
+
+- [all] Fix CI failure on win-64 by @Hind-M in https://github.com/mamba-org/mamba/pull/3315
+
+2024.05.29
+==========
+
+Releases: libmamba 2.0.0beta2, libmambapy 2.0.0beta2, micromamba 2.0.0beta2
+
+Enhancements:
+
+- [libmamba] [OCI Registry] Handle compressed repodata by @Hind-M in https://github.com/mamba-org/mamba/pull/3300
+- [libmamba] [CEP-15] Support `base_url` with `repodata_version: 2` using `mamba` parser by @Hind-M in https://github.com/mamba-org/mamba/pull/3282
+- [libmamba] Fix OCIMirror use by @Hind-M in https://github.com/mamba-org/mamba/pull/3296
+- [all] Add checking typos to pre-commit by @Hind-M in https://github.com/mamba-org/mamba/pull/3278
+
+2024.05.04
+==========
+
+Releases: libmamba 2.0.0beta1, libmambapy 2.0.0beta1, micromamba 2.0.0beta1
+
+Enhancements:
+
+- [libmambapy, libmamba] Bind text_style and graphic params by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3266
+- [libmambapy] Bind VersionPredicate by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3255
+- [all] Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- [micromamba, libmamba] Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+- [libmamba] Implemented OCI mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3246
+- [libmamba] Passed url_path to request_generators by @JohanMabille in https://github.com/mamba-org/mamba/pull/3245
+- [libmambapy, libmamba] Handle regex in build string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3239
+- [micromamba, libmamba] [mamba-content-trust] Add integration test by @Hind-M in https://github.com/mamba-org/mamba/pull/3234
+- [libmamba] Release libsolv memory before installation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3238
+- [all] Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- [libmambapy, libmamba] Add MatchSpec::contains_except_channel" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3231
+- [all] [mamba content trust] Enable verifying packages signatures by @Hind-M in https://github.com/mamba-org/mamba/pull/3192
+- [libmambapy, libmamba] Refactor MatchSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3215
+- [all] Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- [libmambapy, libmamba] Fully bind MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3213
+- [libmamba] Add more MatchSpec tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3211
+- [micromamba, libmamba] Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+
+Bug fixes:
+
+- [libmamba] Hotfix to allow Ctrl+C in python scipts by @Klaim in https://github.com/mamba-org/mamba/pull/3285
+- [libmamba] Fix typos in comments by @ryandesign in https://github.com/mamba-org/mamba/pull/3272
+- [all] Fix VersionSpec equal and glob by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3269
+- [libmamba] Fix pin repr in solver error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3268
+- [libmambapy] Add missing pybind header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3256
+- [libmambapy, libmamba] Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+- [all] Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- [micromamba, libmamba] Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- [all] Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+- [libmamba] fix(micromamba): anaconda private channels not working by @s22chan in https://github.com/mamba-org/mamba/pull/3220
+
+CI fixes and doc:
+
+- [micromamba] Test with xtensor-python instead of unmaintained xframe by @JohanMabille in https://github.com/mamba-org/mamba/pull/3286
+- [all] Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+- [all] Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- [all] Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- [all] Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
+2024.04.04
+==========
+
+Releases: libmamba 2.0.0beta0, libmambapy 2.0.0beta0, micromamba 2.0.0beta0
+
+Enhancements:
+
+- [libmambapy] Bind VersionPredicate by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3255
+- [all] Update pre-commit hooks" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3252
+- [libmamba, micromamba] Refactor os utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3248
+
+Bug fixes:
+
+- [libmambapy] Add missing pybind header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3256
+- [libmambapy, libmamba] Don't add duplicate .conda and .tar.bz2 packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3253
+
+CI fixes and doc:
+
+- [all] Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
+
+2024.03.26
+==========
+
+Releases: libmamba 2.0.0alpha4, libmambapy 2.0.0alpha4, micromamba 2.0.0alpha4
+
+Enhancements:
+
+- [libmamba] Implemented OCI mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3246
+- [libmamba] Passed url_path to request_generators by @JohanMabille in https://github.com/mamba-org/mamba/pull/3245
+- [libmambapy, libmamba] Handle regex in build string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3239
+- [micromamba, libmamba] [mamba-content-trust] Add integration test by @Hind-M in https://github.com/mamba-org/mamba/pull/3234
+- [libmamba] Release libsolv memory before installation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3238
+- [all] Custom resolve complex MatchSpec in Solver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3233
+- [libmambapy, libmamba] Add MatchSpec::contains_except_channel" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3231
+- [all] [mamba content trust] Enable verifying packages signatures by @Hind-M in https://github.com/mamba-org/mamba/pull/3192
+- [libmambapy, libmamba] Refactor MatchSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3215
+- [all] Subdir renaming by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3214
+- [libmambapy, libmamba] Fully bind MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3213
+- [libmamba] Add more MatchSpec tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3211
+- [micromamba, libmamba] Expected in specs parse API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3207
+- [libmamba] Refactor MatchSpec::parse by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3205
+
+Bug fixes:
+
+- [all] Use conda-forge feedstock for static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3249
+- [micromamba, libmamba] Mamba 2.0 name fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3225
+- [all] Make Taskfile.dist.yml Windows-compatible by @carschandler in https://github.com/mamba-org/mamba/pull/3219
+- [libmamba] fix(micromamba): anaconda private channels not working by @s22chan in https://github.com/mamba-org/mamba/pull/3220
+
+CI fixes and doc:
+
+- [all] Fixed a spelling mistake in micromamba-installation.rst by @codeblech in https://github.com/mamba-org/mamba/pull/3236
+- [all] Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
+- [all] Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
+
+2024.02.28
+==========
+
+Releases: libmamba 2.0.0alpha3, libmambapy 2.0.0alpha3, micromamba 2.0.0alpha3
+
+Enhancements:
+
+- [all] Added HTTP Mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3178
+- [all] Use expected for specs parsing by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3201
+- [libmamba] Refactor ObjPool to use views in callbacks by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3199
+- [libmambapy, libmamba] Add more solver tests and other small features by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3198
+- [libmambapy, libmamba] Finalized Solver bindings and add solver doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3195
+- [libmambapy, libmamba] Add libsolv.Database Bindings and tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3186
+- [libmamba] Add (some) solver Database tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3185
+- [libmamba] Make libsolv wrappers into standalone library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3181
+- [all] Rename MPool into solver::libsolv::Database by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3180
+- [all] Automate releases (`CHANGELOG.md` updating) by @Hind-M in https://github.com/mamba-org/mamba/pull/3179
+- [all] Simplify MPool Interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3177
+- [all] Clean libsolv use in Transaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3171
+- [micromamba, libmamba] Rewrite Query with Pool functions (wrapping libsolv) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3168
+
+Bug fixes:
+
+- [micromamba] Remove unmaintained and broken pytest-lazy-fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3193
+- [libmamba] Simple logging fix by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3184
+
+CI fixes and doc:
+
+
+2024.02.02
+==========
+
+Releases: libmamba 2.0.0alpha2, libmambapy 2.0.0alpha2, micromamba 2.0.0alpha2
+
+Enhancements:
+
+- [micromamba] Remove hard coded mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3069
+- [libmamba, micromamba] Support multiple env yaml specs by @jchorl in https://github.com/mamba-org/mamba/pull/2993
+- [libmamba] Update shell hook comments by @jonashaag in https://github.com/mamba-org/mamba/pull/3051
+- [micromamba] Duplicate reposerver to isolate micromamba tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3071
+- [libmamba, libmambapy] More specs bindings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3080
+- [libmamba, libmambapy] Add VersionSpec::str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3081
+- [all] Some future proofing MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3082
+- [libmamba] Reformat string by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3085
+- [libmamba] Clean up url_manip by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3086
+- [libmamba, libmambapy] Fix VersionSpec free ranges by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3088
+- [libmamba] Add parsing utilities by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3090
+- [libmamba] Bump MAMBA libsolv file ABI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3093
+- [libmamba, libmambapy] MatchSpec use VersionSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3089
+- [libmamba, libmambapy] GlobSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3094
+- [libmamba] Add BuildNumberSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3098
+- [libmamba] Refactor MatchSpec unlikey data by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3099
+- [libmamba, micromamba] Remove micromamba shell init -p by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3092
+- [all] Clean PackageInfo interface by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3103
+- [libmamba, libmambapy] NoArchType as standalone enum by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3108
+- [all] Move PackageInfo in specs:: by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3109
+- [libmamba, libmambapy] Change PackageInfo types by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3113
+- [libmamba, libmambapy] Add some PackageInfo tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3115
+- [libmamba, libmambapy] Rename ChannelSpec > UndefinedChannel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3117
+- [libmamba, libmambapy] Add Channel::contains_package by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3121
+- [libmamba, libmambapy] Pool channel match by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3122
+- [libmamba] Added mirrored channels by @JohanMabille in https://github.com/mamba-org/mamba/pull/3125
+- [libmamba, micromamba] Move util_random.hpp > util/random.hpp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3129
+- [micromamba] Refactor test_remove.py to use fixture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3131
+- [libmambapy] Add expected caster to Union by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3135
+- [all] MRepo refactor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3118
+- [libmamba, libmambapy] No M by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3137
+- [libmamba, micromamba] Explcit transaction duplicate code by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3138
+- [libmamba, libmambapy] Solver improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3140
+- [libmamba] Sort transaction table entries by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3146
+- [all] Solver Request by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3141
+- [libmamba] Improve Solution usage by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3148
+- [libmamba, libmambapy] Refactor solver flags by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3153
+- [libmamba] Moved download related files to dedicated folder by @JohanMabille in https://github.com/mamba-org/mamba/pull/3155
+- [libmamba] Remove outdated commented code snippet by @jjerphan in https://github.com/mamba-org/mamba/pull/3160
+- [libmamba] Implemented support for mirrors by @JohanMabille in https://github.com/mamba-org/mamba/pull/3157
+- [all] Split Solver and Unsolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3156
+- [libmamba] Proper sorting of display actions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3165
+- [all] Solver sort deps by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3163
+- [libmamba, libmambapy] Bind solver::libsolv::UnSolvable by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3166
+- [libmamba, libmambapy] Improve Query API by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3167
+
+Bug fixes:
+
+- [libmamba, micromamba] Fix URL enconding in repodata.json by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3076
+- [libmamba, micromamba] gracefully handle conflicting names in yaml specs by @jchorl in https://github.com/mamba-org/mamba/pull/3083
+- [libmamba] Fix verbose and strange prefix in Powershell by @pwnfan in https://github.com/mamba-org/mamba/pull/3116
+- [libmamba] handle other deps in multiple env files by @jchorl in https://github.com/mamba-org/mamba/pull/3096
+- [libmambapy] Fix expected caster by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3136
+- [libmamba, micromamba] add manually given .tar.bz2 / .conda packages to solver pool by @0xbe7a in https://github.com/mamba-org/mamba/pull/3164
+
+CI fixes and doc:
+
+- [libmambapy] Remove dead mamba.py doc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3078
+- [all] Document specs::Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3077
+- [all] Fix --override-channels docs by @jonashaag in https://github.com/mamba-org/mamba/pull/3084
+- [all] Add 2.0 changes draft by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3091
+- [all] Add Breathe for API documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3087
+- [micromamba] Add instructions for gnu coreutils on OSX by @benmoss in https://github.com/mamba-org/mamba/pull/3111
+- [all] Warning around manual install and add ref to conda-libmamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3119
+- [all] Add MacOS DNS issue logging by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3130
+
 2023.12.18
 ==========
 

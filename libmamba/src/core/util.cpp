@@ -295,7 +295,7 @@ namespace mamba
         std::string line;
         while (std::getline(file_stream, line))
         {
-            // Remove the trailing \r to accomodate Windows line endings.
+            // Remove the trailing \r to accommodate Windows line endings.
             if ((!line.empty()) && (line.back() == '\r'))
             {
                 line.pop_back();
@@ -366,7 +366,7 @@ namespace mamba
                 bs_buf.clear();
                 if (!result.empty())
                 {
-                    // seperate arguments
+                    // separate arguments
                     result += " ";
                 }
 
@@ -451,7 +451,7 @@ namespace mamba
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean)
     {
         std::size_t deleted_files = 0;
-        std::size_t remainig_trash = 0;
+        std::size_t remaining_trash = 0;
         std::error_code ec;
         std::vector<fs::u8path> remaining_files;
         auto trash_txt = prefix / "conda-meta" / "mamba_trash.txt";
@@ -469,7 +469,7 @@ namespace mamba
                 else
                 {
                     LOG_INFO << "Trash: could not remove " << full_path;
-                    remainig_trash += 1;
+                    remaining_trash += 1;
                     // save relative path
                     remaining_files.push_back(f);
                 }
@@ -496,7 +496,7 @@ namespace mamba
                 }
                 else
                 {
-                    remainig_trash += 1;
+                    remaining_trash += 1;
                     // save relative path
                     remaining_files.push_back(fs::relative(p, prefix));
                 }
@@ -519,7 +519,7 @@ namespace mamba
             }
         }
 
-        LOG_INFO << "Cleaned " << deleted_files << " .mamba_trash files. " << remainig_trash
+        LOG_INFO << "Cleaned " << deleted_files << " .mamba_trash files. " << remaining_trash
                  << " remaining.";
         return deleted_files;
     }
@@ -1337,7 +1337,7 @@ namespace mamba
     WrappedCallOptions WrappedCallOptions::from_context(const Context& context)
     {
         return {
-            /* .is_micromamba = */ context.command_params.is_micromamba,
+            /* .is_mamba_exe = */ context.command_params.is_mamba_exe,
             /* .dev_mode = */ context.dev,
             /* .debug_wrapper_scripts = */ false,
         };
@@ -1361,7 +1361,7 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = options.is_micromamba ? "micromamba.bat" : "conda.bat";
+        std::string bat_name = get_self_exe_path().stem().string();
 
         if (options.dev_mode)
         {
@@ -1372,7 +1372,7 @@ namespace mamba
             conda_bat = util::get_env("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
-        if (!fs::exists(conda_bat) && options.is_micromamba)
+        if (!fs::exists(conda_bat) && options.is_mamba_exe)
         {
             // this adds in the needed .bat files for activation
             init_root_prefix_cmdexe(context, root_prefix);
@@ -1400,9 +1400,8 @@ namespace mamba
             // 'python -m conda'
             // *with* PYTHONPATH set.
             out << silencer << "SET PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
-            out << silencer << "SET CONDA_EXE="
-                << "python.exe"
-                << "\n";  // TODO this should be `sys.executable`
+            out << silencer << "SET CONDA_EXE=" << "python.exe" << "\n";  // TODO this should be
+                                                                          // `sys.executable`
             out << silencer << "SET _CE_M=-m\n";
             out << silencer << "SET _CE_CONDA=conda\n";
         }
@@ -1428,7 +1427,7 @@ namespace mamba
 
         std::string shebang, dev_arg;
 
-        if (!options.is_micromamba)
+        if (!options.is_mamba_exe)
         {
             // During tests, we sometimes like to have a temp env with e.g. an old python
             // in it and have it run tests against the very latest development sources.
@@ -1475,13 +1474,14 @@ namespace mamba
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
 
-        if (!options.is_micromamba)
+        if (!options.is_mamba_exe)
         {
             out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
         }
         else
         {
-            out << "micromamba activate " << std::quoted(prefix.string()) << "\n";
+            out << get_self_exe_path().stem().string() << " activate "
+                << std::quoted(prefix.string()) << "\n";
         }
 
 
@@ -1568,7 +1568,7 @@ namespace mamba
             return std::nullopt;
         }
 
-        const auto url_parsed = util::URL::parse(url);
+        const auto url_parsed = util::URL::parse(url).value();
         auto scheme = url_parsed.scheme();
         auto host = url_parsed.host();
         std::vector<std::string> options;

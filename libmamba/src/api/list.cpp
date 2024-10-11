@@ -12,25 +12,19 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
-    void list(Configuration& config, const std::string& regex)
-    {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
-            );
-        config.load();
 
-        auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::list_packages(config.context(), regex, channel_context);
-    }
 
     namespace detail
     {
+        struct list_options
+        {
+            bool full_name;
+        };
+
         struct formatted_pkg
         {
             std::string name, version, build, channel;
@@ -41,7 +35,25 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context)
+        std::string strip_from_filename_and_platform(
+            const std::string& full_str,
+            const std::string& filename,
+            const std::string& platform
+        )
+        {
+            using util::remove_suffix;
+            return std::string(remove_suffix(
+                remove_suffix(remove_suffix(remove_suffix(full_str, filename), "/"), platform),
+                "/"
+            ));
+        }
+
+        void list_packages(
+            const Context& ctx,
+            std::string regex,
+            ChannelContext& channel_context,
+            list_options options
+        )
         {
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
@@ -51,6 +63,10 @@ namespace mamba
             }
             PrefixData& prefix_data = sprefix_data.value();
 
+            if (options.full_name)
+            {
+                regex = '^' + regex + '$';
+            }
             std::regex spec_pat(regex);
 
             if (ctx.output_params.json)
@@ -73,21 +89,32 @@ namespace mamba
                     {
                         auto channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = channels.front().url().str(specs::CondaURL::Credentials::Remove
+                        obj["base_url"] = strip_from_filename_and_platform(
+                            channels.front().url().str(specs::CondaURL::Credentials::Remove),
+                            pkg_info.filename,
+                            pkg_info.platform
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
                         if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
                         {
-                            obj["channel"] = pkg_info.channel;
+                            obj["channel"] = strip_from_filename_and_platform(
+                                pkg_info.channel,
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
                         }
                         else
                         {
-                            obj["channel"] = channels.front().display_name();
+                            obj["channel"] = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
                         }
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
-                        obj["platform"] = pkg_info.subdir;
+                        obj["platform"] = pkg_info.platform;
                         obj["version"] = pkg_info.version;
                         jout.push_back(obj);
                     }
@@ -120,13 +147,21 @@ namespace mamba
                     {
                         if (package.second.package_url.empty() && (package.second.channel == "pypi"))
                         {
-                            formatted_pkgs.channel = package.second.channel;
+                            formatted_pkgs.channel = strip_from_filename_and_platform(
+                                package.second.channel,
+                                package.second.filename,
+                                package.second.platform
+                            );
                         }
                         else
                         {
-                            auto channels = channel_context.make_channel(package.second.package_url);
+                            auto channels = channel_context.make_channel(package.second.channel);
                             assert(channels.size() == 1);  // A URL can only resolve to one channel
-                            formatted_pkgs.channel = channels.front().display_name();
+                            formatted_pkgs.channel = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                package.second.filename,
+                                package.second.platform
+                            );
                         }
                     }
                     packages.push_back(formatted_pkgs);
@@ -156,5 +191,23 @@ namespace mamba
 
             t.print(std::cout);
         }
+    }
+
+    void list(Configuration& config, const std::string& regex)
+    {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
+        config.load();
+
+        detail::list_options options;
+        options.full_name = config.at("full_name").value<bool>();
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
+        detail::list_packages(config.context(), regex, channel_context, std::move(options));
     }
 }

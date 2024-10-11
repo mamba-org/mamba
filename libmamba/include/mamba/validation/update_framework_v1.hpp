@@ -34,8 +34,8 @@ namespace mamba::validation::v1
         [[nodiscard]] auto json_key() const -> std::string override;
         [[nodiscard]] auto expiration_json_key() const -> std::string override;
 
-        [[nodiscard]] auto signatures(const nlohmann::json& j) const
-            -> std::set<RoleSignature> override;
+        [[nodiscard]] auto
+        signatures(const nlohmann::json& j) const -> std::set<RoleSignature> override;
     };
 
     /**
@@ -54,7 +54,7 @@ namespace mamba::validation::v1
         [[nodiscard]] auto self_keys() const -> RoleFullKeys override;
 
         auto build_index_checker(
-            Context& context,
+            const Context& context,
             const TimeRef& time_reference,
             const std::string& url,
             const fs::u8path& cache_path

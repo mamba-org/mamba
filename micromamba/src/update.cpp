@@ -7,13 +7,13 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <reproc++/run.hpp>
-#include <solv/solver.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
@@ -27,6 +27,42 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+namespace
+{
+    auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
+    {
+        bool found = false;
+        database.for_each_package_matching(
+            spec,
+            [&](const auto&)
+            {
+                found = true;
+                return util::LoopControl::Break;
+            }
+        );
+        return found;
+    };
+
+    auto database_latest_package(solver::libsolv::Database& db, specs::MatchSpec spec)
+        -> std::optional<specs::PackageInfo>
+    {
+        auto out = std::optional<specs::PackageInfo>();
+        db.for_each_package_matching(
+            spec,
+            [&](auto pkg)
+            {
+                if (!out
+                    || (specs::Version::parse(pkg.version).value_or(specs::Version())
+                        > specs::Version::parse(out->version).value_or(specs::Version())))
+                {
+                    out = std::move(pkg);
+                }
+            }
+        );
+        return out;
+    };
+}
+
 int
 update_self(Configuration& config, const std::optional<std::string>& version)
 {
@@ -38,50 +74,45 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    mamba::MPool pool{ ctx, channel_context };
+
+    solver::libsolv::Database db{ channel_context.params() };
+    add_spdlog_logger_to_database(db);
+
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(ctx, pool, package_caches);
+    auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
     if (!exp_loaded)
     {
         throw exp_loaded.error();
     }
 
-    pool.create_whatprovides();
-    std::string matchspec = version ? fmt::format("micromamba={}", version.value())
-                                    : fmt::format("micromamba>{}", umamba::version());
+    auto matchspec = specs::MatchSpec::parse(
+                         version ? fmt::format("micromamba={}", version.value())
+                                 : fmt::format("micromamba>{}", umamba::version())
+    )
+                         .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                         .value();
 
-    auto solvable_ids = pool.select_solvables(
-        pool.matchspec2id(specs::MatchSpec::parse(matchspec)),
-        true
-    );
+    auto latest_micromamba = database_latest_package(db, matchspec);
 
-    if (solvable_ids.empty())
+    if (!latest_micromamba.has_value())
     {
-        if (pool.select_solvables(pool.matchspec2id(specs::MatchSpec::parse("micromamba"))).empty())
-        {
-            throw mamba::mamba_error(
-                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
-                mamba_error_code::selfupdate_failure
-            );
-        }
-        else
+        if (database_has_package(db, specs::MatchSpec::parse("micromamba").value()))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
             );
             return 0;
         }
+        else
+        {
+            throw mamba::mamba_error(
+                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
+                mamba_error_code::selfupdate_failure
+            );
+        }
     }
 
-    std::optional<specs::PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
-    if (!latest_micromamba)
-    {
-        throw mamba::mamba_error(
-            "Could not convert solvable to PackageInfo",
-            mamba_error_code::internal_failure
-        );
-    }
     Console::stream() << fmt::format(
         fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",
@@ -94,7 +125,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    MTransaction t(pool, { latest_micromamba.value() }, package_caches);
+    MTransaction t(ctx, db, { latest_micromamba.value() }, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {
@@ -102,7 +133,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     }
 
     PrefixData& prefix_data = exp_prefix_data.value();
-    t.execute(prefix_data);
+    t.execute(ctx, channel_context, prefix_data);
 
     fs::u8path mamba_exe = get_self_exe_path();
     fs::u8path mamba_exe_bkup = mamba_exe;
@@ -178,7 +209,18 @@ set_update_command(CLI::App* subcom, Configuration& config)
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    subcom->callback([&] { return update(config, update_all, prune_deps); });
+    subcom->callback(
+        [&]
+        {
+            auto update_params = UpdateParams{
+                update_all ? UpdateAll::Yes : UpdateAll::No,
+                prune_deps ? PruneDeps::Yes : PruneDeps::No,
+                EnvUpdate::No,
+                RemoveNotSpecified::No,
+            };
+            return update(config, update_params);
+        }
+    );
 }
 
 void

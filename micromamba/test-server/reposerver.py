@@ -89,8 +89,10 @@ class RepoSigner:
         self.folder.mkdir(exist_ok=True)
         self.create_root(self.keys)
         self.create_key_mgr(self.keys)
+        self.create_pkg_mgr(self.keys)
         for f in glob.glob(str(self.in_folder / "**" / "repodata.json")):
             self.sign_repodata(Path(f), self.keys)
+        self.copy_signing_root_file()
         return self.folder
 
     def create_root(self, keys):
@@ -168,9 +170,52 @@ class RepoSigner:
         # Doing delegation processing.
         cct_authentication.verify_delegation("key_mgr", key_mgr_metadata, root_metadata)
 
-        print("[reposigner] success: key mgr metadata verified based on root metadata.")
+        print("[reposigner] Success: key_mgr metadata verified based on root metadata.")
 
         return key_mgr
+
+    # Adding this to be compatible with `mamba` (in `conda` they don't seem to have the `pkg_mgr.json` file)
+    # But the signing does use delegation to `pkg_mgr` role in both cases
+    def create_pkg_mgr(self, keys):
+        private_key_pkg_mgr = cct_common.PrivateKey.from_hex(keys["pkg_mgr"][0]["private"])
+        pkg_mgr = cct_metadata_construction.build_delegating_metadata(
+            metadata_type="pkg_mgr",
+            delegations=None,
+            version=1,
+            # timestamp   default: now
+            # expiration  default: now plus root expiration default duration
+        )
+
+        pkg_mgr = cct_signing.wrap_as_signable(pkg_mgr)
+
+        # sign dictionary in place
+        cct_signing.sign_signable(pkg_mgr, private_key_pkg_mgr)
+
+        pkg_mgr_serialized = cct_common.canonserialize(pkg_mgr)
+        with open(self.folder / "pkg_mgr.json", "wb") as fobj:
+            fobj.write(pkg_mgr_serialized)
+
+        # let's run a verification
+        key_mgr_metadata = cct_common.load_metadata_from_file(self.folder / "key_mgr.json")
+        pkg_mgr_metadata = cct_common.load_metadata_from_file(self.folder / "pkg_mgr.json")
+
+        cct_common.checkformat_signable(key_mgr_metadata)
+
+        if "delegations" not in key_mgr_metadata["signed"]:
+            raise ValueError('Expected "delegations" entry in key_mgr metadata.')
+
+        key_mgr_delegations = key_mgr_metadata["signed"]["delegations"]  # for brevity
+        cct_common.checkformat_delegations(key_mgr_delegations)
+        if "pkg_mgr" not in key_mgr_delegations:
+            raise ValueError('Missing expected delegation to "pkg_mgr" in key_mgr metadata.')
+        cct_common.checkformat_delegation(key_mgr_delegations["pkg_mgr"])
+
+        # Doing delegation processing.
+        cct_authentication.verify_delegation("pkg_mgr", pkg_mgr_metadata, key_mgr_metadata)
+
+        print("[reposigner] Success: pkg_mgr metadata verified based on key_mgr metadata.")
+
+        return pkg_mgr
 
     def sign_repodata(self, repodata_fn, keys):
         target_folder = self.folder / repodata_fn.parent.name
@@ -184,6 +229,31 @@ class RepoSigner:
         pkg_mgr_key = keys["pkg_mgr"][0]["private"]
         cct_signing.sign_all_in_repodata(str(final_fn), pkg_mgr_key)
         print(f"[reposigner] Signed {final_fn}")
+
+        # Copy actual 'test-package-0.1-0.tar.bz2' to serving directory ('repo_signed')
+        pkg_bz2_src_fn = repodata_fn.parent / "test-package-0.1-0.tar.bz2"
+        pkg_bz2_dst_fn = target_folder / "test-package-0.1-0.tar.bz2"
+        print("copy", pkg_bz2_src_fn, pkg_bz2_dst_fn)
+        shutil.copyfile(pkg_bz2_src_fn, pkg_bz2_dst_fn)
+        print("[reposigner] 'test-package-0.1-0.tar.bz2' copied")
+
+    def copy_signing_root_file(self):
+        # Copy root json file to 'ref_path'
+        # as this should be available in a safe place locally
+        root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
+        if not root_prefix:
+            fatal_error("MAMBA_ROOT_PREFIX is not set!")
+
+        # '7da7dc10' corresponds to id of channel 'http://localhost:8000/mychannel'
+        channel_initial_trusted_root_role = root_prefix / "etc/trusted-repos/7da7dc10"
+        if not channel_initial_trusted_root_role.exists():
+            os.makedirs(channel_initial_trusted_root_role)
+
+        shutil.copy(
+            self.folder / "1.root.json",
+            channel_initial_trusted_root_role / "root.json",
+        )
+        print("Initial trusted root copied")
 
 
 class ChannelHandler(SimpleHTTPRequestHandler):
@@ -218,6 +288,12 @@ class ChannelHandler(SimpleHTTPRequestHandler):
                 return self.token_do_GET(server_token=channel["token"])
 
         self.send_response(404)
+
+    def do_HEAD(self) -> None:
+        if self.path.endswith("_mgr.json"):
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
 
     def basic_do_HEAD(self) -> None:
         self.send_response(200)
@@ -331,7 +407,7 @@ channel_parser.add_argument(
 )
 
 
-# Gobal args can be given anywhere with the first set of args for backward compatibility.
+# Global args can be given anywhere with the first set of args for backward compatibility.
 args, argv_remaining = global_parser.parse_known_args()
 PORT = args.port
 
@@ -364,8 +440,8 @@ while argv_remaining:
 
 print(channels)
 
-# Unamed channel in multi-channel case would clash URLs but we want to allow
-# a single unamed channel for backward compatibility.
+# Unnamed channel in multi-channel case would clash URLs but we want to allow
+# a single unnamed channel for backward compatibility.
 if (len(channels) > 1) and (None in channels):
     fatal_error("Cannot use empty channel name when using multiple channels")
 

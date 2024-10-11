@@ -8,8 +8,8 @@
 
 namespace mamba::solver
 {
-    auto find_new_python_in_solution(const Solution& solution)
-        -> std::optional<std::reference_wrapper<const specs::PackageInfo>>
+    auto find_new_python_in_solution(const Solution& solution
+    ) -> std::optional<std::reference_wrapper<const specs::PackageInfo>>
     {
         auto out = std::optional<std::reference_wrapper<const specs::PackageInfo>>{};
         for_each_to_install(
@@ -29,7 +29,7 @@ namespace mamba::solver
 
     auto python_binary_compatible(const specs::Version& older, const specs::Version& newer) -> bool
     {
-        // Python binary compatiblity is defined athe the same MINOR level.
+        // Python binary compatibility is defined at the same MINOR level.
         return older.compatible_with(newer, /* level= */ 2);
     }
 }

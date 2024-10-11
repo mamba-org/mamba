@@ -384,7 +384,7 @@ TEST_SUITE("util::graph")
     }
 
     template <typename Graph, typename Iter>
-    auto is_node_id_permutation(const Graph& g, Iter first, Iter last)->bool
+    auto is_node_id_permutation(const Graph& g, Iter first, Iter last) -> bool
     {
         using node_id = typename Graph::node_id;
         auto node_ids = std::vector<node_id>();
@@ -429,11 +429,7 @@ TEST_SUITE("util::graph")
 
         SUBCASE("dfs_preorder starting on a given node")
         {
-            dfs_preorder_nodes_for_each_id(
-                g,
-                [&nodes](node_id n) { nodes.push_back(n); },
-                n0
-            );
+            dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); }, n0);
             CHECK_EQ(nodes, std::vector<node_id>{ n0, n1 });
         }
 
@@ -449,11 +445,7 @@ TEST_SUITE("util::graph")
 
         SUBCASE("dfs_postorder starting on a given node")
         {
-            dfs_postorder_nodes_for_each_id(
-                g,
-                [&nodes](node_id n) { nodes.push_back(n); },
-                n0
-            );
+            dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); }, n0);
             CHECK_EQ(nodes, std::vector<node_id>{ n1, n0 });
         }
 
@@ -499,11 +491,11 @@ TEST_SUITE("util::graph")
             [&](node_id from, node_id to)
             {
                 CAPTURE(std::pair(g.node(from), g.node(to)));
-                auto const from_pos = std::find(sorted.cbegin(), sorted.cend(), from);
-                // Must be true given the permuation assumption
+                const auto from_pos = std::find(sorted.cbegin(), sorted.cend(), from);
+                // Must be true given the permutation assumption
                 REQUIRE_LT(from_pos, sorted.cend());
-                auto const to_pos = std::find(sorted.cbegin(), sorted.cend(), to);
-                // Must be true given the permuation assumption
+                const auto to_pos = std::find(sorted.cbegin(), sorted.cend(), to);
+                // Must be true given the permutation assumption
                 REQUIRE_LT(to_pos, sorted.cend());
                 // The topological sort property
                 CHECK_LT(from_pos, to_pos);

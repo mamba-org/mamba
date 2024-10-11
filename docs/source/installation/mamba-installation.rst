@@ -7,7 +7,7 @@ Mamba Installation
 Fresh install (recommended)
 ***************************
 
-We recommend that you start with the `Miniforge distribution <https://github.com/conda-forge/miniforge>`_ >= `Miniforge3-22.3.1-0`.
+We recommend that you start with the `Miniforge distribution <https://github.com/conda-forge/miniforge>`_ >= ``Miniforge3-23.3.1-0``.
 If you need an older version of Mamba, please use the Mambaforge distribution.
 Miniforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
 
@@ -16,7 +16,7 @@ After successful installation, you can use the mamba commands as described in :r
 .. note::
 
    1. After installation, please :ref:`make sure <defaults_channels>` that you do not have the Anaconda default channels configured.
-   2. Do not install anything into the `base` environment as this might break your installation. See :ref:`here <base_packages>` for details.
+   2. Do not install anything into the ``base`` environment as this might break your installation. See :ref:`here <base_packages>` for details.
 
 
 Existing ``conda`` install (not recommended)

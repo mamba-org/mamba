@@ -169,8 +169,8 @@ protected:
 
     std::unique_ptr<TemporaryDirectory> channel_dir;
 
-    auto generate_role_secrets(int count)
-        -> std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
+    auto generate_role_secrets(int count
+    ) -> std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     {
         std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>> role_secrets;
 
@@ -750,8 +750,8 @@ public:
         return update_key_mgr.patch(sig_patch);
     }
 
-    auto write_key_mgr_file(const nl::json& j, const std::string& filename = "key_mgr.json")
-        -> fs::u8path
+    auto
+    write_key_mgr_file(const nl::json& j, const std::string& filename = "key_mgr.json") -> fs::u8path
     {
         fs::u8path p = channel_dir->path() / filename;
 
@@ -1023,8 +1023,8 @@ public:
         return update_pkg_mgr.patch(sig_patch);
     }
 
-    auto write_pkg_mgr_file(const nl::json& j, const std::string& filename = "pkg_mgr.json")
-        -> fs::u8path
+    auto
+    write_pkg_mgr_file(const nl::json& j, const std::string& filename = "pkg_mgr.json") -> fs::u8path
     {
         fs::u8path p = channel_dir->path() / filename;
 

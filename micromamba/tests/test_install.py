@@ -1,8 +1,10 @@
 import os
+import platform
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from packaging.version import Version
 
 import pytest
 
@@ -50,6 +52,8 @@ class TestInstall:
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
+        assert res["use_default_prefix_fallback"]
+        assert res["use_root_prefix_fallback"]
         checks = (
             helpers.MAMBA_ALLOW_EXISTING_PREFIX
             | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -75,7 +79,7 @@ class TestInstall:
         specs = []
 
         if source in ("cli_only", "both"):
-            specs = ["xframe", "xtl"]
+            specs = ["xtensor-python", "xtl"]
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):
@@ -115,7 +119,7 @@ class TestInstall:
     @pytest.mark.parametrize("cli_env_name", (False, True))
     @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
     @pytest.mark.parametrize("env_var", (False, True))
-    @pytest.mark.parametrize("fallback", (False, True))
+    @pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
     def test_target_prefix(
         self,
         root_prefix,
@@ -124,7 +128,7 @@ class TestInstall:
         cli_env_name,
         yaml_name,
         env_var,
-        fallback,
+        current_target_prefix_fallback,
         existing_cache,
     ):
         cmd = []
@@ -175,21 +179,69 @@ class TestInstall:
         if env_var:
             os.environ["MAMBA_TARGET_PREFIX"] = p
 
-        if not fallback:
+        if not current_target_prefix_fallback:
             os.environ.pop("CONDA_PREFIX")
+            os.environ.pop("CONDA_DEFAULT_ENV")
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if (
-            (cli_prefix and cli_env_name)
-            or (yaml_name == "prefix")
-            or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
-        ):
+        if (cli_prefix and cli_env_name) or (yaml_name == "prefix"):
             with pytest.raises(subprocess.CalledProcessError):
                 helpers.install(*cmd, "--print-config-only")
+        elif not (
+            cli_prefix or cli_env_name or yaml_name or env_var or current_target_prefix_fallback
+        ):
+            # Fallback on root prefix
+            res = helpers.install(*cmd, "--print-config-only")
+            TestInstall.config_tests(res, root_prefix=r, target_prefix=r)
         else:
             res = helpers.install(*cmd, "--print-config-only")
             TestInstall.config_tests(res, root_prefix=r, target_prefix=expected_p)
+
+    def test_target_prefix_with_no_settings(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestInstall` class
+        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.root_prefix,
+            target_prefix=TestInstall.root_prefix,
+        )
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="MAMBA_ROOT_PREFIX is set in windows GH workflow",
+    )
+    def test_target_prefix_with_no_settings_and_no_env_var(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.current_root_prefix,
+            target_prefix=TestInstall.current_root_prefix,
+        )
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))
@@ -417,22 +469,19 @@ class TestInstall:
     def test_channel_alias(self, alias, existing_cache):
         if alias:
             res = helpers.install("xtensor", "--json", "--channel-alias", alias)
-            ca = alias.rstrip("/")
         else:
             res = helpers.install("xtensor", "--json")
-            ca = "https://conda.anaconda.org"
 
         for to_link in res["actions"]["LINK"]:
-            assert to_link["channel"].startswith(f"{ca}/conda-forge/")
-            assert to_link["url"].startswith(f"{ca}/conda-forge/")
+            assert to_link["channel"] == "conda-forge"
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
         reason="Running only ultra-dry tests",
     )
     def test_no_python_pinning(self, existing_cache):
-        helpers.install("python=3.9", no_dry_run=True)
-        res = helpers.install("setuptools=28.4.0", "--no-py-pin", "--json")
+        helpers.install("python=3.9.19", no_dry_run=True)
+        res = helpers.install("setuptools=63.4.3", "--no-py-pin", "--json")
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -440,23 +489,43 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_link_packages = {"python"} if os.name == "nt" else {"python", "python_abi"}
+        # When using `--no-py-pin`, it may or may not update the already installed
+        # python version, but `python_abi` is installed in any case
+        # The following tests/assertions consider both cases
+        expected_link_packages = {"python_abi"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_link_packages.issubset(link_packages)
+
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        assert {"python"}.issubset(unlink_packages)
+        if {"python"}.issubset(link_packages):
+            assert {"python"}.issubset(unlink_packages)
 
-        py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
-        assert not py_pkg["version"].startswith("3.9")
+            py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
+            assert py_pkg["version"] != ("3.9.19")
 
-        py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
-        assert py_pkg["version"].startswith("3.9")
+            py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
+            assert py_pkg["version"] == ("3.9.19")
+        else:
+            assert len(res["actions"]["LINK"]) == 2  # Should be setuptools and python_abi
+
+            py_abi_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python_abi"][0]
+            assert py_abi_pkg["version"] == ("3.9")
+            setuptools_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "setuptools"][
+                0
+            ]
+            assert setuptools_pkg["version"] == ("63.4.3")
+
+            assert len(res["actions"]["UNLINK"]) == 1  # Should be setuptools
+            assert res["actions"]["UNLINK"][0]["name"] == "setuptools"
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
         reason="Running only ultra-dry tests",
     )
-    @pytest.mark.skipif(sys.platform == "win32", reason="Python2 no available")
+    @pytest.mark.skipif(
+        sys.platform == "win32" or (sys.platform == "darwin" and platform.machine() == "arm64"),
+        reason="Python2 no available",
+    )
     def test_python_pinning(self, existing_cache):
         """Black fails to install as it is not available for pinned Python 2."""
         res = helpers.install("python=2", "--json", no_dry_run=True)
@@ -473,20 +542,20 @@ class TestInstall:
         reason="Running only ultra-dry tests",
     )
     def test_freeze_installed(self, existing_cache):
-        helpers.install("xtensor=0.20", no_dry_run=True)
-        res = helpers.install("xframe", "--freeze-installed", "--json")
+        helpers.install("xtensor=0.24", no_dry_run=True)
+        res = helpers.install("xtensor-blas", "--freeze-installed", "--json")
 
-        # without freeze installed, xframe 0.3.0 should be installed and xtensor updated to 0.21
+        # without freeze installed, xtensor-blas 0.21.0 should be installed and xtensor updated to 0.25
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
         action_keys = {"LINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"xframe"}
+        expected_packages = {"xtensor-blas"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_packages == link_packages
-        assert res["actions"]["LINK"][0]["version"] == "0.2.0"
+        assert expected_packages.issubset(link_packages)
+        assert res["actions"]["LINK"][-1]["version"] == "0.20.0"
 
     def test_channel_specific(self, existing_cache):
         res = helpers.install("conda-forge::xtensor", "--json", default_channel=False, no_rc=True)
@@ -502,7 +571,7 @@ class TestInstall:
         assert expected_packages.issubset(link_packages)
 
         for pkg in res["actions"]["LINK"]:
-            assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
+            assert pkg["channel"] == "conda-forge"
 
     def test_explicit_noarch(self, existing_cache):
         helpers.install("python", no_dry_run=True)
@@ -533,7 +602,9 @@ class TestInstall:
         try:
             helpers.install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
-            assert " Fail to parse MatchSpec" in e.stderr.decode("utf-8")
+            assert 'Missing name and version in filename "mypackage.tar.bz2"' in e.stderr.decode(
+                "utf-8"
+            )
 
     def test_no_reinstall(self, existing_cache):
         """Reinstalling is a no op."""
@@ -542,6 +613,13 @@ class TestInstall:
 
         reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
+
+    def install_local_package(self):
+        """Attempts to install a .tar.bz2 package from a local directory."""
+        file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
+
+        res = helpers.install(f"file://{file_path}", "--json", default_channel=False)
+        assert "cph_test_data" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
     def test_force_reinstall(self, existing_cache):
         """Force reinstall installs existing package again."""
@@ -555,6 +633,14 @@ class TestInstall:
         """Force reinstall on non-installed packages is valid."""
         reinstall_res = helpers.install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
+
+    def test_install_compatible_release(self, existing_cache):
+        """Install compatible release."""
+        res = helpers.install("numpy~=1.26.0", "--force-reinstall", "--json")
+        assert "numpy" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+        numpy = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "numpy"][0]
+        assert Version(numpy["version"]) >= Version("1.26.0")
 
 
 def test_install_check_dirs(tmp_home, tmp_root_prefix):
@@ -573,6 +659,10 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin" and platform.machine() == "arm64",
+    reason="Python 3.7.9 not available",
+)
 def test_track_features(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name

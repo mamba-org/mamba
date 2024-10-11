@@ -47,11 +47,6 @@ namespace mamba
         , m_prefix_path(prefix_path)
         , m_channel_context(channel_context)
     {
-        load();
-    }
-
-    void PrefixData::load()
-    {
         auto conda_meta_dir = m_prefix_path / "conda-meta";
         if (lexists(conda_meta_dir))
         {
@@ -101,10 +96,12 @@ namespace mamba
             // version are matched properly and that only names must be checked.
             for (const auto& [to_id, record] : dep_graph.nodes())
             {
-                for (const auto& dep : record->depends)
+                for (const auto& dep : record->dependencies)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
-                    auto ms = specs::MatchSpec::parse(dep);
+                    auto ms = specs::MatchSpec::parse(dep)
+                                  .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                  .value();
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
                     const auto from_iter = name_to_node_id.find(ms.name().str());
@@ -116,7 +113,7 @@ namespace mamba
             }
 
             // Flip known problematic edges.
-            // This is made to adress cycles but there is no straightforward way to make
+            // This is made to address cycles but there is no straightforward way to make
             // a generic cycle handler so we instead force flip the given edges
             static constexpr auto edges_to_flip = std::array{ std::pair{ "pip", "python" } };
             for (const auto& [from, to] : edges_to_flip)
@@ -175,7 +172,7 @@ namespace mamba
         // correct URL. This is must never happen!
         assert(channels.size() == 1);
         using Credentials = specs::CondaURL::Credentials;
-        prec.channel = channels.front().platform_url(prec.subdir).str(Credentials::Remove);
+        prec.channel = channels.front().platform_url(prec.platform).str(Credentials::Remove);
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 

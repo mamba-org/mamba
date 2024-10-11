@@ -37,22 +37,22 @@ namespace mamba::util
     /**
      * Return a map of all environment variables encoded in UTF8.
      *
-     * This is useful if one in intersted to do an operatrion over all envrionment variables
-     * when their name is unknown.
+     * This is useful if one is interested to do an operation over all environment variables
+     * when their names are unknown.
      */
     [[nodiscard]] auto get_env_map() -> environment_map;
 
     /**
      * Equivalent to calling set_env in a loop.
      *
-     * This leaves environment variables not refered to in the map unmodified.
+     * This leaves environment variables not referred to in the map unmodified.
      */
     void update_env_map(const environment_map& env);
 
     /**
      * Set the environment to be exactly the map given.
      *
-     * This unset all environment variables not refered to in the map unmodified.
+     * This unsets all environment variables not referred to in the map unmodified.
      */
     void set_env_map(const environment_map& env);
 
@@ -102,13 +102,13 @@ namespace mamba::util
      * Return the full path of a program from its name if found inside the given directories.
      */
     template <typename Iter>
-    [[nodiscard]] auto which_in(std::string_view exe, Iter search_path_first, Iter search_path_last)
-        -> fs::u8path;
+    [[nodiscard]] auto
+    which_in(std::string_view exe, Iter search_path_first, Iter search_path_last) -> fs::u8path;
 
     /**
      * Return the full path of a program from its name if found inside the given directories.
      *
-     * The directies can be given as a range or as a @ref pathsep separated list.
+     * The directories can be given as a range or as a @ref pathsep separated list.
      */
     template <typename Range>
     [[nodiscard]] auto which_in(std::string_view exe, const Range& search_paths) -> fs::u8path;
@@ -133,8 +133,8 @@ namespace mamba::util
     {
         [[nodiscard]] auto which_in_one(const fs::u8path& exe, const fs::u8path& dir) -> fs::u8path;
 
-        [[nodiscard]] auto which_in_split(const fs::u8path& exe, std::string_view paths)
-            -> fs::u8path;
+        [[nodiscard]] auto
+        which_in_split(const fs::u8path& exe, std::string_view paths) -> fs::u8path;
     }
 
     template <typename Iter>

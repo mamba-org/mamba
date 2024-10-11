@@ -14,6 +14,9 @@
 
 #include <fmt/format.h>
 
+#include "mamba/specs/error.hpp"
+#include "mamba/util/tuple_hash.hpp"
+
 namespace mamba::specs
 {
     /**
@@ -23,7 +26,7 @@ namespace mamba::specs
     {
     public:
 
-        using BuildNumber = int;
+        using BuildNumber = std::size_t;
 
         [[nodiscard]] static auto make_free() -> BuildNumberPredicate;
         [[nodiscard]] static auto make_equal_to(BuildNumber ver) -> BuildNumberPredicate;
@@ -68,8 +71,8 @@ namespace mamba::specs
         BuildNumberPredicate(BuildNumber ver, BinaryOperator op);
 
         friend auto equal(free_interval, free_interval) -> bool;
-        friend auto operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs)
-            -> bool;
+        friend auto
+        operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs) -> bool;
         friend class ::fmt::formatter<BuildNumberPredicate>;
     };
 
@@ -79,7 +82,7 @@ namespace mamba::specs
     /**
      * Match a build number with a predicate.
      *
-     * Conda does not implement expression for build numbers but they could be added similarily
+     * Conda does not implement expression for build numbers but they could be added similarly
      * to @ref VersionSpec.
      */
     class BuildNumberSpec
@@ -88,7 +91,7 @@ namespace mamba::specs
 
         using BuildNumber = typename BuildNumberPredicate::BuildNumber;
 
-        static constexpr std::string_view prefered_free_str = "=*";
+        static constexpr std::string_view preferred_free_str = "=*";
         static constexpr std::array<std::string_view, 4> all_free_strs = { "", "*", "=*", "==*" };
         static constexpr std::string_view equal_str = "=";
         static constexpr std::string_view not_equal_str = "!=";
@@ -97,7 +100,7 @@ namespace mamba::specs
         static constexpr std::string_view less_str = "<";
         static constexpr std::string_view less_equal_str = "<=";
 
-        [[nodiscard]] static auto parse(std::string_view str) -> BuildNumberSpec;
+        [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<BuildNumberSpec>;
 
         /** Construct BuildNumberSpec that match all versions. */
         BuildNumberSpec();
@@ -105,7 +108,7 @@ namespace mamba::specs
         explicit BuildNumberSpec(BuildNumberPredicate predicate) noexcept;
 
         /**
-         * Returns wether the BuildNumberSpec is unconstrained.
+         * Returns whether the BuildNumberSpec is unconstrained.
          */
         [[nodiscard]] auto is_explicitly_free() const -> bool;
 
@@ -121,6 +124,17 @@ namespace mamba::specs
          * True if the set described by the BuildNumberSpec contains the given version.
          */
         [[nodiscard]] auto contains(BuildNumber point) const -> bool;
+
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
+        [[nodiscard]] auto operator==(const BuildNumberSpec& other) const -> bool
+        {
+            return m_predicate == other.m_predicate;
+        }
+
+        [[nodiscard]] auto operator!=(const BuildNumberSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
 
     private:
 
@@ -140,7 +154,7 @@ struct fmt::formatter<mamba::specs::BuildNumberPredicate>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::BuildNumberPredicate& pred, format_context& ctx)
+    auto format(const ::mamba::specs::BuildNumberPredicate& pred, format_context& ctx) const
         -> decltype(ctx.out());
 };
 
@@ -149,8 +163,17 @@ struct fmt::formatter<mamba::specs::BuildNumberSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx)
+    auto format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx) const
         -> decltype(ctx.out());
+};
+
+template <>
+struct std::hash<mamba::specs::BuildNumberSpec>
+{
+    auto operator()(const mamba::specs::BuildNumberSpec& spec) const -> std::size_t
+    {
+        return mamba::util::hash_vals(spec.str());
+    }
 };
 
 #endif

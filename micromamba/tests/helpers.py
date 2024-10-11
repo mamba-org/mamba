@@ -65,13 +65,7 @@ def get_umamba(cwd=os.getcwd()):
     if os.getenv("TEST_MAMBA_EXE"):
         umamba = os.getenv("TEST_MAMBA_EXE")
     else:
-        if platform.system() == "Windows":
-            umamba_bin = "micromamba.exe"
-        else:
-            umamba_bin = "micromamba"
-        umamba = os.path.join(cwd, "build", "micromamba", umamba_bin)
-    if not Path(umamba).exists():
-        raise RuntimeError("Micromamba not found! Set TEST_MAMBA_EXE env variable")
+        raise RuntimeError("Mamba/Micromamba not found! Set TEST_MAMBA_EXE env variable")
     return umamba
 
 

@@ -34,7 +34,7 @@ set(
 )
 message(STATUS "Building libmamba v${${PROJECT_NAME}_VERSION}")
 
-# Binary version See the following URL for explanations about the binary versionning
+# Binary version See the following URL for explanations about the binary versioning
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
 file(
     STRINGS "${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp" libmamba_version_defines
@@ -73,7 +73,6 @@ endif()
 
 # TODO: move this into the mamba_create_target macro
 if(BUILD_STATIC)
-    add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif()
 
@@ -117,9 +116,9 @@ find_package(Python3 COMPONENTS Interpreter)
 
 set(
     SHELL_SCRIPTS
-    micromamba.sh
-    micromamba.csh
-    micromamba.bat
+    mamba.sh
+    mamba.csh
+    mamba.bat
     activate.bat
     _mamba_activate.bat
     mamba_hook.bat
@@ -155,6 +154,9 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/cryptography.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/encoding.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/os_linux.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/os_osx.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/os_unix.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/parsers.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
@@ -167,27 +169,28 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/build_number_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/chimera_string_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/glob_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/regex_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
-    # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
-    # Solver interface
+    # Solver generic interface
     ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/problems_graph.cpp
+    # Solver libsolv implementation
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/database.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/matcher.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
@@ -196,16 +199,22 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
-    # Implementation of downloaders and mirrors
+    # Downloaders and mirrors
     ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/curl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/curl.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/downloader_impl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/downloader.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_map.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/request.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_database_loader.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
@@ -215,22 +224,19 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/mirror.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/pool.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/satisfiability_error.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
@@ -251,6 +257,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/info.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/pip_utils.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/pip_utils.hpp
     ${LIBMAMBA_SOURCE_DIR}/api/remove.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/repoquery.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
@@ -285,6 +293,10 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/loop_control.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_linux.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_osx.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_unix.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
@@ -294,6 +306,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/variant_cmp.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/weakening_map.hpp
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
@@ -301,6 +314,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/build_number_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
@@ -309,11 +323,16 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/unresolved_channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
-    # Solver Interface
+    # Solver generic interface
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/problems_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
+    # Solver libsolv implementation
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/database.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
@@ -322,6 +341,11 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v0_6.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v1.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/repo_checker.hpp
+    # Downloaders and mirrors
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/downloader.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror_map.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/request.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
@@ -329,8 +353,8 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_database_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/satisfiability_error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
@@ -340,14 +364,13 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_fetcher.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
@@ -379,18 +402,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )
 
-set(
-    LIBMAMBA_PRIVATE_HEADERS
-    # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.hpp
-)
-
 # Targets and link
 # ================
 
@@ -403,6 +414,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(reproc REQUIRED)
 find_package(reproc++ REQUIRED)
 find_package(Libsolv REQUIRED)
+add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
@@ -412,37 +424,44 @@ macro(libmamba_create_target target_name linkage output_name)
 
     # Output
     # ======
-    add_library(
+    add_library(${target_name} ${linkage_upper} ${LIBMAMBA_PUBLIC_HEADERS} ${LIBMAMBA_SOURCES})
+
+    target_include_directories(
         ${target_name}
-        ${linkage_upper} ${LIBMAMBA_PUBLIC_HEADERS} ${LIBMAMBA_PRIVATE_HEADERS} ${LIBMAMBA_SOURCES}
+        PUBLIC $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>
+        PRIVATE ${LIBMAMBA_SOURCE_DIR}
     )
 
     # Header only libraries are always linked the same way
     target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
 
+    target_compile_features(${target_name} PUBLIC cxx_std_17)
+
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
 
+    # For some reasons, using target_compile_definitions does not set the definitions properly
+    add_compile_definitions(
+        SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}"
+    )
+
     if(${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
-
-        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
 
         mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc++ STATIC_LIBRARY FATAL_ERROR)
 
-        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
-
         target_link_libraries(
             ${target_name}
-            PUBLIC
-                fmt::fmt-header-only
-                spdlog::spdlog_header_only
-                yaml-cpp::yaml-cpp
+            PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
+            PRIVATE
+                reproc
+                reproc++
+                simdjson::simdjson_static
                 solv::libsolv_static
                 solv::libsolvext_static
-            PRIVATE reproc reproc++ simdjson::simdjson_static
+                solv::cpp
         )
 
         if(UNIX)
@@ -507,7 +526,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
             if(APPLE)
                 set(MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
-                target_link_options(${target_name} PRIVATE -static-libstdc++)
+                target_link_options(${target_name} PRIVATE -nostdlib++)
             elseif(UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
@@ -566,8 +585,6 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(BZip2 REQUIRED)
         find_package(OpenSSL REQUIRED)
 
-        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
-
         target_link_libraries(
             ${target_name}
             PUBLIC
@@ -576,11 +593,9 @@ macro(libmamba_create_target target_name linkage output_name)
                 yaml-cpp::yaml-cpp
                 fmt::fmt
                 # Since conda-forge spdlog is built with a bundled version of fmt we use the header
-                # only version to avoid chasing after the correct fmt version mathching the one used
+                # only version to avoid chasing after the correct fmt version matching the one used
                 # in the bundle
                 spdlog::spdlog_header_only
-                solv::libsolv
-                solv::libsolvext
             PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}
@@ -590,15 +605,11 @@ macro(libmamba_create_target target_name linkage output_name)
                 reproc++
                 simdjson::simdjson
                 zstd::libzstd_shared
+                solv::libsolv
+                solv::libsolvext
+                solv::cpp
         )
     endif()
-
-    target_compile_features(${target_name} PUBLIC cxx_std_17)
-
-    target_include_directories(
-        ${target_name}
-        PUBLIC $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>
-    )
 
     if(WIN32)
         find_path(
@@ -606,9 +617,8 @@ macro(libmamba_create_target target_name linkage output_name)
             NAMES WinReg.hpp
             PATH_SUFFIXES winreg
         )
+        target_include_directories(${target_name} PRIVATE ${WINREG_INCLUDE_DIR})
     endif()
-
-    target_include_directories(${target_name} PRIVATE ${LIBMAMBA_SOURCE_DIR} ${WINREG_INCLUDE_DIR})
 
     if(UNIX)
         math(EXPR LIBMAMBA_BINARY_COMPATIBLE "${LIBMAMBA_BINARY_CURRENT} - ${LIBMAMBA_BINARY_AGE}")
@@ -649,9 +659,19 @@ endmacro()
 
 set(libmamba_targets "")
 
+option(
+    ENABLE_MAMBA_ROOT_PREFIX_FALLBACK
+    "Enable mamba (shared) root prefix to be set to install prefix"
+    ON
+)
+
 if(BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
     libmamba_create_target(libmamba-dyn SHARED libmamba)
+    if(ENABLE_MAMBA_ROOT_PREFIX_FALLBACK)
+        # Use mamba installation prefix to set root prefix (base)
+        target_compile_definitions(libmamba-dyn PUBLIC MAMBA_USE_INSTALL_PREFIX_AS_BASE)
+    endif()
 endif()
 
 if(BUILD_STATIC)
@@ -739,8 +759,6 @@ install(
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
-# Need to install the FindLibsolv for the installed target to work
-install(FILES "../cmake/modules/FindLibsolv.cmake" DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
 
 install(
     EXPORT ${PROJECT_NAME}Targets

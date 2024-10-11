@@ -14,47 +14,34 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <solv/solver.h>
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/repoquery.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/satisfiability_error.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
-#include "mamba/util/string.hpp"
+#include "mamba/solver/problems_graph.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 
+#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
+#include "path_caster.hpp"
 
 namespace py = pybind11;
-
-namespace query
-{
-    enum RESULT_FORMAT
-    {
-        JSON = 0,
-        TREE = 1,
-        TABLE = 2,
-        PRETTY = 3,
-        RECURSIVETABLE = 4,
-    };
-}
 
 void
 deprecated(std::string_view message, std::string_view since_version = "1.5")
@@ -65,54 +52,30 @@ deprecated(std::string_view message, std::string_view since_version = "1.5")
     warnings.attr("warn")(total_message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
 }
 
-template <typename PyClass>
-auto
-bind_NamedList(PyClass pyclass)
-{
-    using type = typename PyClass::type;
-    pyclass.def(py::init())
-        .def("__len__", [](const type& self) { return self.size(); })
-        .def("__bool__", [](const type& self) { return !self.empty(); })
-        .def(
-            "__iter__",
-            [](const type& self) { return py::make_iterator(self.begin(), self.end()); },
-            py::keep_alive<0, 1>()
-        )
-        .def("clear", [](type& self) { return self.clear(); })
-        .def("add", [](type& self, const typename type::value_type& v) { self.insert(v); })
-        .def("name", &type::name)
-        .def(
-            "versions_trunc",
-            &type::versions_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        )
-        .def(
-            "build_strings_trunc",
-            &type::build_strings_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        )
-        .def(
-            "versions_and_build_strings_trunc",
-            &type::versions_and_build_strings_trunc,
-            py::arg("sep") = "|",
-            py::arg("etc") = "...",
-            py::arg("threshold") = 5,
-            py::arg("remove_duplicates") = true
-        );
-    return pyclass;
-}
-
 namespace mambapy
 {
+    // When using this library we for now still need to have a few singletons available
+    // to avoid the python code to have to create 3-4 objects before starting to work with
+    // mamba functions. Instead, here, we associate the lifetime of all the necessary
+    // singletons to the lifetime of the Context. This is to provide to the user explicit
+    // control over the lifetime and construction options of the Context and library
+    // resources, preventing issues related to default configuration/options.
+    // In the future, we might remove all singletons and provide a simple way to start
+    // working with mamba, but the C++ side needs to be made 100% singleton-less first.
+    //
+    // In the code below we provide a mechanism to associate the lifetime of the
+    // necessary singletons to the lifetime of one Context instance and forbid more
+    //  instances in the case of Python (it is theoretically allowed by the C++ api).
+
+
     class Singletons
     {
     public:
+
+        explicit Singletons(mamba::ContextOptions options)
+            : m_context(std::move(options))
+        {
+        }
 
         mamba::MainExecutor& main_executor()
         {
@@ -136,34 +99,34 @@ namespace mambapy
 
     private:
 
-        template <class T, class D, class Factory>
-        T& init_once(std::unique_ptr<T, D>& ptr, Factory&& factory)
-        {
-            static std::once_flag init_flag;
-            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(factory()); });
-            if (!ptr)
-            {
-                throw mamba::mamba_error(
-                    fmt::format(
-                        "attempt to use {} singleton instance after destruction",
-                        typeid(T).name()
-                    ),
-                    mamba::mamba_error_code::internal_failure
-                );
-            }
-            return *ptr;
-        }
 
         mamba::MainExecutor m_main_executor;
-        mamba::Context m_context{ { /* .enable_logging_and_signal_handling = */ true } };
+        mamba::Context m_context;
         mamba::Console m_console{ m_context };
-        // ChannelContext needs to be lazy initialized, to enusre the Context has been initialized
-        // before
-        std::unique_ptr<mamba::ChannelContext> p_channel_context = nullptr;
         mamba::Configuration m_config{ m_context };
     };
 
-    Singletons singletons;
+    std::unique_ptr<Singletons> current_singletons;
+
+    Singletons& singletons()
+    {
+        if (current_singletons == nullptr)
+        {
+            throw std::runtime_error("Context instance must be created first");
+        }
+        return *current_singletons;
+    }
+
+    struct destroy_singleton
+    {
+        template <class... Args>
+        void operator()(Args&&...) noexcept
+        {
+            current_singletons.reset();
+        }
+    };
+
+    static constexpr auto default_context_options = mamba::ContextOptions{ true, true };
 
     // MSubdirData objects are movable only, and they need to be moved into
     // a std::vector before we call MSudbirData::download. Since we cannot
@@ -185,12 +148,13 @@ namespace mambapy
         using entry_list = std::vector<Entry>;
         using iterator = entry_list::const_iterator;
 
+        // TODO: remove full_url from API
         void create(
             mamba::Context& ctx,
             mamba::ChannelContext& channel_context,
             const mamba::specs::Channel& channel,
             const std::string& platform,
-            const std::string& full_url,
+            const std::string& /*full_url*/,
             mamba::MultiPackageCache& caches,
             const std::string& repodata_fn,
             const std::string& url
@@ -198,7 +162,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                SubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
+                SubdirData::create(ctx, channel_context, channel, platform, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -207,12 +171,11 @@ namespace mambapy
             }
         }
 
-        bool download()
+        bool download(mamba::Context& ctx)
         {
             using namespace mamba;
             // TODO: expose SubdirDataMonitor to libmambapy and remove this
             //  logic
-            Context& ctx = mambapy::singletons.context();
             expected_t<void> download_res;
             if (SubdirDataMonitor::can_monitor(ctx))
             {
@@ -302,10 +265,28 @@ bind_submodule_impl(pybind11::module_ m)
             throw std::runtime_error(  //
                 "Use Pool.add_repo_from_repodata_json or Pool.add_repo_from_native_serialization"
                 " instead and cache with Pool.native_serialize_repo."
-                " Also consider load_subdir_in_pool for a high_level function to load"
-                " subdir index and manage cache, and load_installed_packages_in_pool for loading"
-                " prefix packages."
-                "The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+                " Also consider load_subdir_in_database for a high_level function to load"
+                " subdir index and manage cache, and load_installed_packages_in_database for"
+                " loading prefix packages."
+                " The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+            );
+        }
+    ));
+
+    struct PoolV2Migrator
+    {
+    };
+
+    py::class_<PoolV2Migrator>(m, "Pool").def(py::init(
+        [](py::args, py::kwargs) -> PoolV2Migrator
+        {
+            throw std::runtime_error(  //
+                "libmambapy.Pool has been moved to libmambapy.solver.libsolv.Database."
+                " The database contains functions to directly load packages, from a list or a"
+                " repodata.json."
+                " High level functions such as libmambapy.load_subdir_in_database and"
+                " libmambapy.load_installed_packages_in_database are also available to work"
+                " with other Mamba objects and Context parameters."
             );
         }
     ));
@@ -384,13 +365,37 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("SOLVER_SETNAME") = global_solver_job_v2_migrator;
     m.attr("SOLVER_SETMASK") = global_solver_job_v2_migrator;
 
+    enum struct SolverRuleinfoV2Migrator
+    {
+    };
+
+    py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
+        .def(py::init(
+            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator {
+                throw std::runtime_error("Direct access to libsolv objects is not longer supported.");
+            }
+        ));
+
+    enum struct SolverV2Migrator
+    {
+    };
+
+    py::enum_<SolverV2Migrator>(m, "Solver")
+        .def(py::init(
+            [](py::args, py::kwargs) -> SolverV2Migrator
+            {
+                throw std::runtime_error(
+                    "libmambapy.Solver has been moved to libmambapy.solver.libsolv.Solver."
+                );
+            }
+        ));
+
     /**************
      *  Bindings  *
      **************/
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
-    auto pySolver = py::class_<MSolver>(m, "Solver");
 
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
@@ -411,374 +416,110 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
-    py::class_<MPool>(m, "Pool")
-        .def(
-            py::init<>(
-                [](ChannelContext& channel_context) {
-                    return MPool{ mambapy::singletons.context(), channel_context };
-                }
-            ),
-            py::arg("channel_context")
-        )
-        .def("set_debuglevel", &MPool::set_debuglevel)
-        .def("create_whatprovides", &MPool::create_whatprovides)
-        .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
-        .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))
-        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"))
-        .def(
-            "add_repo_from_repodata_json",
-            &MPool::add_repo_from_repodata_json,
-            py::arg("path"),
-            py::arg("url"),
-            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
-            py::arg("repodata_parsers") = solver::libsolv::RepodataParser::Mamba
-        )
-        .def(
-            "add_repo_from_native_serialization",
-            &MPool::add_repo_from_native_serialization,
-            py::arg("path"),
-            py::arg("expected"),
-            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
-        )
-        .def(
-            "add_repo_from_packages",
-            [](MPool& pool,
-               py::iterable packages,
-               std::string_view name,
-               solver::libsolv::PipAsPythonDependency add)
-            {
-                // TODO(C++20): No need to copy in a vector, simply transform the input range.
-                auto pkg_infos = std::vector<specs::PackageInfo>();
-                for (py::handle pkg : packages)
-                {
-                    pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
-                }
-                return pool.add_repo_from_packages(pkg_infos, name, add);
-            },
-            py::arg("packages"),
-            py::arg("name") = "",
-            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
-        )
-        .def(
-            "native_serialize_repo",
-            &MPool::native_serialize_repo,
-            py::arg("repo"),
-            py::arg("path"),
-            py::arg("metadata")
-        )
-        .def("set_installed_repo", &MPool::set_installed_repo, py::arg("repo"))
-        .def("set_repo_priority", &MPool::set_repo_priority, py::arg("repo"), py::arg("priorities"));
-
     m.def(
-        "load_subdir_in_pool",
-        &load_subdir_in_pool,
+        "load_subdir_in_database",
+        &load_subdir_in_database,
         py::arg("context"),
-        py::arg("pool"),
+        py::arg("database"),
         py::arg("subdir")
     );
 
     m.def(
-        "load_installed_packages_in_pool",
-        &load_installed_packages_in_pool,
+        "load_installed_packages_in_database",
+        &load_installed_packages_in_database,
         py::arg("context"),
-        py::arg("pool"),
+        py::arg("database"),
         py::arg("prefix_data")
     );
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
-        .def(py::init<>(
-            [](const std::vector<fs::u8path>& pkgs_dirs)
-            {
-                return MultiPackageCache{
-                    pkgs_dirs,
-                    mambapy::singletons.context().validation_params,
-                };
-            }
-        ))
+        .def(
+            py::init<>(
+                [](Context& context, const std::vector<fs::u8path>& pkgs_dirs)
+                {
+                    return MultiPackageCache{
+                        pkgs_dirs,
+                        context.validation_params,
+                    };
+                }
+            ),
+            py::arg("context"),
+            py::arg("pkgs_dirs")
+        )
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<>(
-            [](MSolver& solver, MultiPackageCache& mpc)
-            {
-                deprecated("Use Transaction(Pool, Solver, MultiPackageCache) instead");
-                return std::make_unique<MTransaction>(solver.pool(), solver, mpc);
-            }
+        .def(py::init<const Context&, solver::libsolv::Database&, const solver::Request&, solver::Solution, MultiPackageCache&>(
         ))
-        .def(py::init<MPool&, MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
-        .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
-
-    py::class_<SolverProblem>(m, "SolverProblem")
-        .def_readwrite("type", &SolverProblem::type)
-        .def_readwrite("source_id", &SolverProblem::source_id)
-        .def_readwrite("target_id", &SolverProblem::target_id)
-        .def_readwrite("dep_id", &SolverProblem::dep_id)
-        .def_readwrite("source", &SolverProblem::source)
-        .def_readwrite("target", &SolverProblem::target)
-        .def_readwrite("dep", &SolverProblem::dep)
-        .def_readwrite("description", &SolverProblem::description)
-        .def("__str__", [](const SolverProblem& self) { return self.description; });
-
-    constexpr auto flags_v2_migrator = [](MSolver&, py::args, py::kwargs)
-    { throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request."); };
-    constexpr auto job_v2_migrator = [](MSolver&, py::args, py::kwargs)
-    { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
-
-    pySolver.def(py::init<MPool&>(), py::keep_alive<1, 2>())
-        .def("add_jobs", job_v2_migrator)
-        .def("add_global_job", job_v2_migrator)
-        .def("add_pin", job_v2_migrator)
-        .def("set_flags", flags_v2_migrator)
-        .def("set_libsolv_flags", flags_v2_migrator)
-        .def("set_postsolve_flags", flags_v2_migrator)
-        .def("is_solved", &MSolver::is_solved)
-        .def("problems_to_str", &MSolver::problems_to_str)
-        .def("all_problems_to_str", &MSolver::all_problems_to_str)
-        .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
-        .def("all_problems_structured", &MSolver::all_problems_structured)
-        .def(
-            "solve",
-            [](MSolver& self)
-            {
-                // TODO figure out a better interface
-                return self.try_solve();
-            }
-        )
-        .def("try_solve", &MSolver::try_solve)
-        .def("must_solve", &MSolver::must_solve);
-
-    using PbGraph = ProblemsGraph;
-    auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
-
-    py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
-    py::class_<PbGraph::PackageNode, specs::PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, specs::MatchSpec>(
-        pyPbGraph,
-        "UnresolvedDependencyNode"
-    );
-    py::class_<PbGraph::ConstraintNode, specs::MatchSpec>(pyPbGraph, "ConstraintNode");
-
-    py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
-        .def(py::init([]() { return PbGraph::conflicts_t(); }))
-        .def("__len__", [](const PbGraph::conflicts_t& self) { return self.size(); })
-        .def("__bool__", [](const PbGraph::conflicts_t& self) { return !self.empty(); })
-        .def(
-            "__iter__",
-            [](const PbGraph::conflicts_t& self)
-            { return py::make_iterator(self.begin(), self.end()); },
-            py::keep_alive<0, 1>()
-        )
-        .def("has_conflict", &PbGraph::conflicts_t::has_conflict)
-        .def("__contains__", &PbGraph::conflicts_t::has_conflict)
-        .def("conflicts", &PbGraph::conflicts_t::conflicts)
-        .def("in_conflict", &PbGraph::conflicts_t::in_conflict)
-        .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
-        .def("add", &PbGraph::conflicts_t::add);
-
-    pyPbGraph
-        .def_static(
-            "from_solver",
-            [](const MSolver& solver, const MPool& /* pool */)
-            {
-                deprecated("Use Solver.problems_graph() instead");
-                return solver.problems_graph();
-            }
-        )
-        .def("root_node", &PbGraph::root_node)
-        .def("conflicts", &PbGraph::conflicts)
-        .def(
-            "graph",
-            [](const PbGraph& self)
-            {
-                auto const& g = self.graph();
-                return std::pair(g.nodes(), g.edges());
-            }
-        );
-
-    m.def("simplify_conflicts", &simplify_conflicts);
-
-    using CpPbGraph = CompressedProblemsGraph;
-    auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
-
-    pyCpPbGraph.def_property_readonly_static(
-        "RootNode",
-        [](py::handle) { return py::type::of<PbGraph::RootNode>(); }
-    );
-    bind_NamedList(py::class_<CpPbGraph::PackageListNode>(pyCpPbGraph, "PackageListNode"));
-    bind_NamedList(
-        py::class_<CpPbGraph::UnresolvedDependencyListNode>(pyCpPbGraph, "UnresolvedDependencyListNode")
-    );
-    bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
-    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyList"));
-    pyCpPbGraph.def_property_readonly_static(
-        "ConflictMap",
-        [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); }
-    );
-
-    pyCpPbGraph.def_static("from_problems_graph", &CpPbGraph::from_problems_graph)
-        .def_static(
-            "from_problems_graph",
-            [](const PbGraph& pbs) { return CpPbGraph::from_problems_graph(pbs); }
-        )
-        .def("root_node", &CpPbGraph::root_node)
-        .def("conflicts", &CpPbGraph::conflicts)
-        .def(
-            "graph",
-            [](const CpPbGraph& self)
-            {
-                auto const& g = self.graph();
-                return std::pair(g.nodes(), g.edges());
-            }
-        )
-        .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
         .def(
-            py::init(
-                [](const fs::u8path& path, ChannelContext& channel_context) {
-                    return History{ path, channel_context };
-                }
-            ),
+            py::init([](const fs::u8path& path, ChannelContext& channel_context)
+                     { return History{ path, channel_context }; }),
             py::arg("path"),
             py::arg("channel_context")
         )
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
-    /*py::class_<Query>(m, "Query")
-        .def(py::init<MPool&>())
-        .def("find", &Query::find)
-        .def("whoneeds", &Query::whoneeds)
-        .def("depends", &Query::depends)
-    ;*/
+    py::enum_<QueryType>(m, "QueryType")
+        .value("Search", QueryType::Search)
+        .value("Depends", QueryType::Depends)
+        .value("WhoNeeds", QueryType::WhoNeeds)
+        .def(py::init(&mambapy::enum_from_str<QueryType>))
+        .def_static("parse", &query_type_parse);
+    py::implicitly_convertible<py::str, QueryType>();
 
-    py::enum_<query::RESULT_FORMAT>(m, "QueryFormat")
-        .value("JSON", query::RESULT_FORMAT::JSON)
-        .value("TREE", query::RESULT_FORMAT::TREE)
-        .value("TABLE", query::RESULT_FORMAT::TABLE)
-        .value("PRETTY", query::RESULT_FORMAT::PRETTY)
-        .value("RECURSIVETABLE", query::RESULT_FORMAT::RECURSIVETABLE);
+    py::enum_<QueryResultFormat>(m, "QueryResultFormat")
+        .value("Json", QueryResultFormat::Json)
+        .value("Tree", QueryResultFormat::Tree)
+        .value("Table", QueryResultFormat::Table)
+        .value("Pretty", QueryResultFormat::Pretty)
+        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
+        .def(py::init(&mambapy::enum_from_str<QueryResultFormat>));
+    py::implicitly_convertible<py::str, QueryType>();
 
-    auto queries_find = [](const Query& q,
-                           const std::vector<std::string>& queries,
-                           const query::RESULT_FORMAT format) -> std::string
-    {
-        query_result res = q.find(queries);
-        std::stringstream res_stream;
-        switch (format)
-        {
-            case query::JSON:
-                res_stream << res.groupby("name").json().dump(4);
-                break;
-            case query::TREE:
-            case query::TABLE:
-            case query::RECURSIVETABLE:
-                res.groupby("name").table(res_stream);
-                break;
-            case query::PRETTY:
-                res.groupby("name").pretty(res_stream, mambapy::singletons.context().output_params);
-        }
-        if (res.empty() && format != query::JSON)
-        {
-            res_stream << fmt::format("{}", fmt::join(queries, " "))
-                       << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
-        }
-        return res_stream.str();
-    };
-
-    py::class_<Query>(m, "Query")
-        .def(py::init<MPool&>())
+    py::class_<QueryResult>(m, "QueryResult")
+        .def_property_readonly("type", &QueryResult::type)
+        .def_property_readonly("query", &QueryResult::query)
+        .def("sort", &QueryResult::sort, py::return_value_policy::reference)
+        .def("groupby", &QueryResult::groupby, py::return_value_policy::reference)
+        .def("reset", &QueryResult::reset, py::return_value_policy::reference)
+        .def("table", &QueryResult::table_to_str)
+        .def("tree", &QueryResult::tree_to_str)
+        .def("pretty", &QueryResult::pretty_to_str, py::arg("show_all_builds") = true)
+        .def("json", [](const QueryResult& query) { return query.json().dump(); })
         .def(
-            "find",
-            [queries_find](const Query& q, const std::string& query, const query::RESULT_FORMAT format)
-                -> std::string { return queries_find(q, { query }, format); }
-        )
-        .def("find", queries_find)
-        .def(
-            "whoneeds",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            "to_dict",
+            [](const QueryResult& query)
             {
-                // QueryResult res = q.whoneeds(query, tree);
-                std::stringstream res_stream;
-                query_result res = q.whoneeds(query, (format == query::TREE));
-                switch (format)
-                {
-                    case query::TREE:
-                    case query::PRETTY:
-                        res.tree(res_stream, mambapy::singletons.context().graphics_params);
-                        break;
-                    case query::JSON:
-                        res_stream << res.json().dump(4);
-                        break;
-                    case query::TABLE:
-                    case query::RECURSIVETABLE:
-                        res.table(
-                            res_stream,
-                            { "Name",
-                              "Version",
-                              "Build",
-                              printers::alignmentMarker(printers::alignment::left),
-                              printers::alignmentMarker(printers::alignment::right),
-                              util::concat("Depends:", query),
-                              "Channel",
-                              "Subdir" }
-                        );
-                }
-                if (res.empty() && format != query::JSON)
-                {
-                    res_stream << query
-                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
-                }
-                return res_stream.str();
-            }
-        )
-        .def(
-            "depends",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
-            {
-                query_result res = q.depends(
-                    query,
-                    (format == query::TREE || format == query::RECURSIVETABLE)
-                );
-                std::stringstream res_stream;
-                switch (format)
-                {
-                    case query::TREE:
-                    case query::PRETTY:
-                        res.tree(res_stream, mambapy::singletons.context().graphics_params);
-                        break;
-                    case query::JSON:
-                        res_stream << res.json().dump(4);
-                        break;
-                    case query::TABLE:
-                    case query::RECURSIVETABLE:
-                        // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
-                        // query), "Channel"});
-                        res.table(res_stream);
-                }
-                if (res.empty() && format != query::JSON)
-                {
-                    res_stream << query
-                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
-                }
-                return res_stream.str();
+                auto json_module = pybind11::module_::import("json");
+                return json_module.attr("loads")(query.json().dump());
             }
         );
+
+    py::class_<Query>(m, "Query")
+        .def_static("find", &Query::find)
+        .def_static("whoneeds", &Query::whoneeds)
+        .def_static("depends", &Query::depends);
 
     py::class_<SubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& subdir, MPool& pool) -> solver::libsolv::RepoInfo
+            [](SubdirData& self, Context& context, solver::libsolv::Database& db
+            ) -> solver::libsolv::RepoInfo
             {
-                deprecated("Use `load_subdir_in_pool` instead", "2.0");
-                return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir));
-            }
+                deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
+                return extract(load_subdir_in_database(context, db, self));
+            },
+            py::arg("context"),
+            py::arg("db")
         )
         .def("loaded", &SubdirData::is_loaded)
         .def(
@@ -831,25 +572,17 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create",
             [](SubdirIndex& self,
+               Context& context,
                ChannelContext& channel_context,
                const specs::Channel& channel,
                const std::string& platform,
                const std::string& full_url,
                MultiPackageCache& caches,
                const std::string& repodata_fn,
-               const std::string& url)
-            {
-                self.create(
-                    mambapy::singletons.context(),
-                    channel_context,
-                    channel,
-                    platform,
-                    full_url,
-                    caches,
-                    repodata_fn,
-                    url
-                );
+               const std::string& url) {
+                self.create(context, channel_context, channel, platform, full_url, caches, repodata_fn, url);
             },
+            py::arg("context"),
             py::arg("channel_context"),
             py::arg("channel"),
             py::arg("platform"),
@@ -875,6 +608,11 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Strict", ChannelPriority::Strict)
         .value("Disabled", ChannelPriority::Disabled);
 
+    py::enum_<VerificationLevel>(m, "VerificationLevel")
+        .value("Disabled", VerificationLevel::Disabled)
+        .value("Warn", VerificationLevel::Warn)
+        .value("Enabled", VerificationLevel::Enabled);
+
     py::enum_<mamba::log_level>(m, "LogLevel")
         .value("TRACE", mamba::log_level::trace)
         .value("DEBUG", mamba::log_level::debug)
@@ -897,29 +635,66 @@ bind_submodule_impl(pybind11::module_ m)
         .def("params", &ChannelContext::params)
         .def("has_zst", &ChannelContext::has_zst);
 
-    py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
-    ctx  //
-        .def_static(
-            // Still need a singleton as long as mambatest::singleton::context is used
-            "instance",
-            []() -> auto& { return mambapy::singletons.context(); },
-            py::return_value_policy::reference
+    py::class_<Palette>(m, "Palette")
+        .def_static("no_color", &Palette::no_color)
+        .def_static("terminal", &Palette::terminal)
+        .def_readwrite("success", &Palette::success)
+        .def_readwrite("failure", &Palette::failure)
+        .def_readwrite("external", &Palette::external)
+        .def_readwrite("shown", &Palette::shown)
+        .def_readwrite("safe", &Palette::safe)
+        .def_readwrite("unsafe", &Palette::unsafe)
+        .def_readwrite("user", &Palette::user)
+        .def_readwrite("ignored", &Palette::ignored)
+        .def_readwrite("addition", &Palette::addition)
+        .def_readwrite("deletion", &Palette::deletion)
+        .def_readwrite("progress_bar_none", &Palette::progress_bar_none)
+        .def_readwrite("progress_bar_downloaded", &Palette::progress_bar_downloaded)
+        .def_readwrite("progress_bar_extracted", &Palette::progress_bar_extracted);
+
+    py::class_<Context::GraphicsParams>(m, "GraphicsParams")
+        .def(py::init())
+        .def_readwrite("no_progress_bars", &Context::GraphicsParams::no_progress_bars)
+        .def_readwrite("palette", &Context::GraphicsParams::palette);
+
+
+    py::class_<ContextOptions>(m, "ContextOptions")
+        .def(
+            py::init([](bool logging = mambapy::default_context_options.enable_logging,
+                        bool signal_handling = mambapy::default_context_options.enable_signal_handling
+                     ) { return ContextOptions{ logging, signal_handling }; }),
+            py::arg("enable_logging") = true,
+            py::arg("enable_signal_handling") = true
         )
-        .def(py::init(
-            // Deprecating would lead to confusing error. Better to make sure people stop using it.
-            []() -> std::unique_ptr<Context, py::nodelete>
-            {
-                throw std::invalid_argument(  //
-                    "Context() will create a new Context object in the future.\n"
-                    "Use Context.instance() to access the global singleton."
-                );
-            }
-        ))
+        .def_readwrite("enable_logging", &ContextOptions::enable_logging)
+        .def_readwrite("enable_signal_handling", &ContextOptions::enable_signal_handling);
+
+    // The lifetime of the unique Context instance will determine the lifetime of the other
+    // singletons.
+    using context_ptr = std::unique_ptr<Context, mambapy::destroy_singleton>;
+    auto context_constructor = [](ContextOptions options = mambapy::default_context_options
+                               ) -> context_ptr
+    {
+        if (mambapy::current_singletons)
+        {
+            throw std::runtime_error("Only one Context instance can exist at any time");
+        }
+
+        mambapy::current_singletons = std::make_unique<mambapy::Singletons>(options);
+        assert(&mambapy::singletons() == mambapy::current_singletons.get());
+        return context_ptr(&mambapy::singletons().context());
+    };
+
+    py::class_<Context, context_ptr> ctx(m, "Context");
+
+    ctx.def(py::init(context_constructor), py::arg("options") = mambapy::default_context_options)
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
+        .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
         .def_readwrite("always_yes", &Context::always_yes)
+        .def_readwrite("show_anaconda_channel_warnings", &Context::show_anaconda_channel_warnings)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
@@ -933,6 +708,8 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
+        .def_readwrite("experimental_repodata_parsing", &Context::experimental_repodata_parsing)
+        .def_readwrite("solver_flags", &Context::solver_flags)
         .def_property(
             "experimental_sat_error_message",
             [](const Context&)
@@ -990,18 +767,18 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("conda_prefix", &Context::PrefixParams::conda_prefix)
         .def_readwrite("root_prefix", &Context::PrefixParams::root_prefix);
 
+    py::class_<ValidationParams>(ctx, "ValidationParams")
+        .def(py::init<>())
+        .def_readwrite("safety_checks", &ValidationParams::safety_checks)
+        .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks)
+        .def_readwrite("verify_artifacts", &ValidationParams::verify_artifacts)
+        .def_readwrite("trusted_channels", &ValidationParams::trusted_channels);
+
     ctx.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
         .def_readwrite("output_params", &Context::output_params)
         .def_readwrite("threads_params", &Context::threads_params)
-        .def_readwrite("prefix_params", &Context::prefix_params);
-
-    // TODO: uncomment these parameters once they are made available to Python api.
-    // py::class_<ValidationOptions>(ctx, "ValidationOptions")
-    //     .def_readwrite("safety_checks", &ValidationOptions::safety_checks)
-    //     .def_readwrite("extra_safety_checks", &ValidationOptions::extra_safety_checks)
-    //     .def_readwrite("verify_artifacts", &ValidationOptions::verify_artifacts);
-
-    // ctx.def_readwrite("validation_params", &Context::validation_params);
+        .def_readwrite("prefix_params", &Context::prefix_params)
+        .def_readwrite("validation_params", &Context::validation_params);
 
     ////////////////////////////////////////////
     //    Support the old deprecated API     ///
@@ -1209,6 +986,60 @@ bind_submodule_impl(pybind11::module_ m)
             }
         );
 
+    // ValidationParams
+    ctx.def_property(
+           "safety_checks",
+           [](const Context& self)
+           {
+               deprecated("Use `validation_params.safety_checks` instead.");
+               return self.validation_params.safety_checks;
+           },
+           [](Context& self, VerificationLevel sc)
+           {
+               deprecated("Use `validation_params.safety_checks` instead.");
+               self.validation_params.safety_checks = sc;
+           }
+    )
+        .def_property(
+            "extra_safety_checks",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.extra_safety_checks` instead.");
+                return self.validation_params.extra_safety_checks;
+            },
+            [](Context& self, bool esc)
+            {
+                deprecated("Use `validation_params.extra_safety_checks` instead.");
+                self.validation_params.extra_safety_checks = esc;
+            }
+        )
+        .def_property(
+            "verify_artifacts",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.verify_artifacts` instead.");
+                return self.validation_params.verify_artifacts;
+            },
+            [](Context& self, bool va)
+            {
+                deprecated("Use `validation_params.verify_artifacts` instead.");
+                self.validation_params.verify_artifacts = va;
+            }
+        )
+        .def_property(
+            "trusted_channels",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.trusted_channels` instead.");
+                return self.validation_params.trusted_channels;
+            },
+            [](Context& self, std::vector<std::string> tc)
+            {
+                deprecated("Use `validation_params.trusted_channels` instead.");
+                self.validation_params.trusted_channels = tc;
+            }
+        );
+
     ////////////////////////////////////////////
 
     pyPrefixData
@@ -1344,18 +1175,25 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("json_str")
         );
 
-    m.def("clean", [](int flags) { return clean(mambapy::singletons.config(), flags); });
+    m.def(
+        "clean",
+        [](Context&, int flags) { return clean(mambapy::singletons().config(), flags); },
+        py::arg("context"),
+        py::arg("flags")
+    );
 
     m.def(
         "transmute",
-        +[](const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
-         )
+        +[](Context& context,
+            const fs::u8path& pkg_file,
+            const fs::u8path& target,
+            int compression_level,
+            int compression_threads)
         {
-            const auto extract_options = mamba::ExtractOptions::from_context(
-                mambapy::singletons.context()
-            );
+            const auto extract_options = mamba::ExtractOptions::from_context(context);
             return transmute(pkg_file, target, compression_level, compression_threads, extract_options);
         },
+        py::arg("context"),
         py::arg("source_package"),
         py::arg("destination_package"),
         py::arg("compression_level"),
@@ -1371,41 +1209,12 @@ bind_submodule_impl(pybind11::module_ m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons.context()); });
+    m.def(
+        "get_virtual_packages",
+        [](Context& context) { return get_virtual_packages(context.platform); }
+    );
 
-    m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
-
-    // Solver rule flags
-    py::enum_<SolverRuleinfo>(m, "SolverRuleinfo")
-        .value("SOLVER_RULE_UNKNOWN", SolverRuleinfo::SOLVER_RULE_UNKNOWN)
-        .value("SOLVER_RULE_PKG", SolverRuleinfo::SOLVER_RULE_PKG)
-        .value("SOLVER_RULE_PKG_NOT_INSTALLABLE", SolverRuleinfo::SOLVER_RULE_PKG_NOT_INSTALLABLE)
-        .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_PKG_REQUIRES", SolverRuleinfo::SOLVER_RULE_PKG_REQUIRES)
-        .value("SOLVER_RULE_PKG_SELF_CONFLICT", SolverRuleinfo::SOLVER_RULE_PKG_SELF_CONFLICT)
-        .value("SOLVER_RULE_PKG_CONFLICTS", SolverRuleinfo::SOLVER_RULE_PKG_CONFLICTS)
-        .value("SOLVER_RULE_PKG_SAME_NAME", SolverRuleinfo::SOLVER_RULE_PKG_SAME_NAME)
-        .value("SOLVER_RULE_PKG_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_OBSOLETES)
-        .value("SOLVER_RULE_PKG_IMPLICIT_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
-        .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
-        .value("SOLVER_RULE_PKG_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_PKG_RECOMMENDS)
-        .value("SOLVER_RULE_PKG_CONSTRAINS", SolverRuleinfo::SOLVER_RULE_PKG_CONSTRAINS)
-        .value("SOLVER_RULE_UPDATE", SolverRuleinfo::SOLVER_RULE_UPDATE)
-        .value("SOLVER_RULE_FEATURE", SolverRuleinfo::SOLVER_RULE_FEATURE)
-        .value("SOLVER_RULE_JOB", SolverRuleinfo::SOLVER_RULE_JOB)
-        .value("SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM", SolverRuleinfo::SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM)
-        .value("SOLVER_RULE_JOB_UNKNOWN_PACKAGE", SolverRuleinfo::SOLVER_RULE_JOB_UNKNOWN_PACKAGE)
-        .value("SOLVER_RULE_JOB_UNSUPPORTED", SolverRuleinfo::SOLVER_RULE_JOB_UNSUPPORTED)
-        .value("SOLVER_RULE_DISTUPGRADE", SolverRuleinfo::SOLVER_RULE_DISTUPGRADE)
-        .value("SOLVER_RULE_INFARCH", SolverRuleinfo::SOLVER_RULE_INFARCH)
-        .value("SOLVER_RULE_CHOICE", SolverRuleinfo::SOLVER_RULE_CHOICE)
-        .value("SOLVER_RULE_LEARNT", SolverRuleinfo::SOLVER_RULE_LEARNT)
-        .value("SOLVER_RULE_BEST", SolverRuleinfo::SOLVER_RULE_BEST)
-        .value("SOLVER_RULE_YUMOBS", SolverRuleinfo::SOLVER_RULE_YUMOBS)
-        .value("SOLVER_RULE_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_RECOMMENDS)
-        .value("SOLVER_RULE_BLACK", SolverRuleinfo::SOLVER_RULE_BLACK)
-        .value("SOLVER_RULE_STRICT_REPO_PRIORITY", SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
+    m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

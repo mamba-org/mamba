@@ -9,7 +9,7 @@
 
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -55,26 +55,27 @@ namespace mamba
                 ));
             }
 
-            package.info.package_url = package_node["url"].as<std::string>();
-            const auto spec = specs::MatchSpec::parse(package.info.package_url);
-            package.info.filename = spec.filename();
-            package.info.build_string = spec.build_string().str();
-            if (spec.channel().has_value())
+            package.info.package_url = package_node["url"].as<std::string_view>();
             {
-                package.info.channel = spec.channel()->location();
-                if (!spec.channel()->platform_filters().empty())
+                auto maybe_parsed_info = specs::PackageInfo::from_url(package.info.package_url);
+                if (!maybe_parsed_info)
                 {
-                    // There must be only one since we are expecting URLs
-                    assert(spec.channel()->platform_filters().size() == 1);
-                    package.info.subdir = spec.channel()->platform_filters().front();
+                    return make_unexpected(
+                        maybe_parsed_info.error().what(),
+                        mamba_error_code::invalid_spec
+                    );
                 }
+                package.info.filename = maybe_parsed_info->filename;
+                package.info.channel = maybe_parsed_info->channel;
+                package.info.build_string = maybe_parsed_info->build_string;
+                package.info.platform = maybe_parsed_info->platform;
             }
 
             for (const auto& dependency : package_node["dependencies"])
             {
                 const auto dependency_name = dependency.first.as<std::string>();
                 const auto dependency_constraint = dependency.second.as<std::string>();
-                package.info.depends.push_back(
+                package.info.dependencies.push_back(
                     fmt::format("{} {}", dependency_name, dependency_constraint)
                 );
             }
@@ -197,7 +198,7 @@ namespace mamba
                 default:
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::unsuported_version,
+                        file_parsing_error_code::unsupported_version,
                         fmt::format(
                             "Failed to read environment lockfile at '{}' : unknown version '{}'",
                             file_path.string(),

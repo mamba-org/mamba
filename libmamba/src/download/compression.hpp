@@ -12,7 +12,7 @@
 
 #include "curl.hpp"
 
-namespace mamba
+namespace mamba::download
 {
 
     class CompressionStream
@@ -43,8 +43,11 @@ namespace mamba
         writer m_writer;
     };
 
-    std::unique_ptr<CompressionStream>
-    make_compression_stream(const std::string& url, CompressionStream::writer&& func);
+    std::unique_ptr<CompressionStream> make_compression_stream(
+        const std::string& url,
+        bool is_repodata_zst_from_oci_reg,
+        CompressionStream::writer&& func
+    );
 
     // TODO: remove the following when switching to new CompressionStream
 

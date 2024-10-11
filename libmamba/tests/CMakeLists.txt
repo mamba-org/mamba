@@ -12,15 +12,6 @@ set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     src/test_main.cpp
-    # C++ wrapping of libsolv
-    src/solv-cpp/pool_data.cpp
-    src/solv-cpp/test_pool.cpp
-    src/solv-cpp/test_queue.cpp
-    src/solv-cpp/test_repo.cpp
-    src/solv-cpp/test_scenarios.cpp
-    src/solv-cpp/test_solvable.cpp
-    src/solv-cpp/test_solver.cpp
-    src/solv-cpp/test_transaction.cpp
     # Utility library
     src/util/test_cast.cpp
     src/util/test_compare.cpp
@@ -32,6 +23,9 @@ set(
     src/util/test_graph.cpp
     src/util/test_heap_optional.cpp
     src/util/test_iterator.cpp
+    src/util/test_os_linux.cpp
+    src/util/test_os_osx.cpp
+    src/util/test_os_unix.cpp
     src/util/test_os_win.cpp
     src/util/test_path_manip.cpp
     src/util/test_parsers.cpp
@@ -47,21 +41,31 @@ set(
     src/specs/test_authentication_info.cpp
     src/specs/test_build_number_spec.cpp
     src/specs/test_channel.cpp
+    src/specs/test_chimera_string_spec.cpp
     src/specs/test_conda_url.cpp
     src/specs/test_glob_spec.cpp
     src/specs/test_match_spec.cpp
     src/specs/test_package_info.cpp
     src/specs/test_platform.cpp
+    src/specs/test_regex_spec.cpp
     src/specs/test_repo_data.cpp
     src/specs/test_unresolved_channel.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
+    # Solver tests
+    src/solver/test_request.cpp
+    src/solver/test_solution.cpp
+    src/solver/test_problems_graph.cpp
+    # Solver libsolv implementation tests
+    src/solver/libsolv/test_database.cpp
+    src/solver/libsolv/test_solver.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
     src/validation/test_update_framework_v1.cpp
     # Implementation of downloaders and mirrors
     src/download/test_downloader.cpp
+    src/download/test_mirror.cpp
     # Core tests
     ../longpath.manifest
     src/core/test_activation.cpp
@@ -72,7 +76,6 @@ set(
     src/core/test_environments_manager.cpp
     src/core/test_history.cpp
     src/core/test_lockfile.cpp
-    src/core/test_mirror.cpp
     src/core/test_pinning.cpp
     src/core/test_output.cpp
     src/core/test_progress_bar.cpp
@@ -85,7 +88,6 @@ set(
     src/core/test_invoke.cpp
     src/core/test_tasksync.cpp
     src/core/test_filesystem.cpp
-    src/core/test_satisfiability_error.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")
@@ -111,7 +113,16 @@ target_link_libraries(
 )
 
 # Copy data directory into binary dir to avoid modifications
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+add_custom_target(
+    test_libmamba_data
+    COMMENT "Copying libmamba tests data"
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/data"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/data"
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        "${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+add_dependencies(test_libmamba test_libmamba_data)
 
 target_compile_definitions(
     test_libmamba

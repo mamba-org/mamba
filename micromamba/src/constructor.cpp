@@ -68,6 +68,8 @@ void
 construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
     config.at("use_target_prefix_fallback").set_value(true);
+    config.at("use_default_prefix_fallback").set_value(true);
+    config.at("use_root_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
         .set_value(
             MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
@@ -102,7 +104,9 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
         for (const auto& raw_url : read_lines(urls_file))
         {
-            auto pkg_info = specs::PackageInfo::from_url(raw_url);
+            auto pkg_info = specs::PackageInfo::from_url(raw_url)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
 
             fs::u8path entry = pkgs_dir / pkg_info.filename;
             LOG_TRACE << "Extracting " << pkg_info.filename << std::endl;

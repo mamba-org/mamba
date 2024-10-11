@@ -23,7 +23,7 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v4
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
@@ -42,7 +42,8 @@ jobs:
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
-            -D BUILD_LIBMAMBAPY=OFF
+            -D BUILD_LIBMAMBAPY=OFF ^
+            -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -74,11 +75,15 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe
+      - name: Run solv-cpp tests
+        shell: bash -elo pipefail {0}
+        run: |
+          ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
       - name: Run libmamba tests
         shell: bash -elo pipefail {0}
         run: |
@@ -99,7 +104,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -127,7 +132,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env

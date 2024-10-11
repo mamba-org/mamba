@@ -154,7 +154,7 @@ namespace cursor
 
 namespace mamba
 {
-    // TODO: bytes sould be size_t and the implementation is wrong
+    // TODO: bytes should be size_t and the implementation is wrong
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
         static constexpr const char* sizes[] = { " B", "kB", "MB", "GB", "TB", "PB" };
@@ -755,7 +755,7 @@ namespace mamba
                                   + postfix.width() + elapsed.width() + 1;
 
         // Add extra whitespaces between fields (prefix, progress,
-        // and elasped fields are assumed always displayed)
+        // and elapsed fields are assumed always displayed)
         if (current)
         {
             total_width += 1;
@@ -836,7 +836,7 @@ namespace mamba
         }
 
         // Redistribute available space
-        // 1: start with the prefix if it was shrinked
+        // 1: start with the prefix if it was shrunk
         if (total_width < max_width && prefix && prefix.width() < prefix_min_width)
         {
             if ((max_width - total_width) < (prefix_min_width - prefix.width()))

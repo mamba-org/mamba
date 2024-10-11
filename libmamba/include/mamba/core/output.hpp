@@ -124,6 +124,7 @@ namespace mamba
         Console& operator=(Console&&) = delete;
 
         static Console& instance();
+        static bool is_available();
         static ConsoleStream stream();
         static bool prompt(std::string_view message, char fallback = '_');
         static bool prompt(std::string_view message, char fallback, std::istream& input_stream);

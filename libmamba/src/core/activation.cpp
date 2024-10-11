@@ -9,6 +9,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
@@ -20,7 +21,7 @@ namespace mamba
         fs::u8path PREFIX_STATE_FILE = fs::u8path("conda-meta") / "state";
         fs::u8path PACKAGE_ENV_VARS_DIR = fs::u8path("etc") / "conda" / "env_vars.d";
         std::string CONDA_ENV_VARS_UNSET_VAR = "***unset***";  // NOLINT(runtime/string)
-    }                                                          // namespace
+    }  // namespace
 
     /****************************
      * Activator implementation *
@@ -227,13 +228,20 @@ namespace mamba
     std::vector<fs::u8path> Activator::get_PATH()
     {
         std::vector<fs::u8path> path;
+        std::vector<std::string> strings{};
+
         if (m_env.find("PATH") != m_env.end())
         {
-            auto strings = util::split(m_env["PATH"], util::pathsep());
-            for (auto& s : strings)
-            {
-                path.push_back(s);
-            }
+            strings = util::split(m_env["PATH"], util::pathsep());
+        }
+        // On Windows, the variable can be Path and not PATH
+        else if (m_env.find("Path") != m_env.end())
+        {
+            strings = util::split(m_env["Path"], util::pathsep());
+        }
+        for (auto& s : strings)
+        {
+            path.push_back(s);
         }
         return path;
     }
@@ -266,7 +274,6 @@ namespace mamba
         std::vector<fs::u8path> final_path = get_path_dirs(prefix);
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-
         std::string result = util::join(util::pathsep(), final_path).string();
         return result;
     }
@@ -713,7 +720,7 @@ namespace mamba
         auto has_prefix = util::get_env("CONDA_PREFIX");
         if (m_context.auto_activate_base && !has_prefix.has_value())
         {
-            builder << "micromamba activate base\n";
+            builder << get_self_exe_path().stem() << " activate base\n";
         }
         builder << hook_postamble() << "\n";
         return builder.str();
@@ -835,7 +842,7 @@ namespace mamba
 
     fs::u8path PosixActivator::hook_source_path()
     {
-        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.sh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "mamba.sh";
     }
 
     /*********************************
@@ -933,7 +940,7 @@ namespace mamba
 
     fs::u8path CshActivator::hook_source_path()
     {
-        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.csh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "mamba.csh";
     }
 
     std::string CmdExeActivator::shell_extension()
@@ -1241,8 +1248,7 @@ namespace mamba
         return "";
     }
 
-    std::pair<std::string, std::string>
-    NuActivator::update_prompt(const std::string& conda_prompt_modifier)
+    std::pair<std::string, std::string> NuActivator::update_prompt(const std::string&)
     {
         // hook is implemented in shell_init.cpp as nushell behaves like a compiled language;
         // one cannot dynamically evaluate strings

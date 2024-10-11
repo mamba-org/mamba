@@ -109,15 +109,15 @@ TEST_SUITE("util::flat_bool_expr_tree")
 
         SUBCASE("empty")
         {
-            parser.finalize();
+            CHECK(parser.finalize());
             const auto& tree = parser.tree();
             CHECK(tree.empty());
         }
 
         SUBCASE("a")
         {
-            parser.push_variable('a');
-            parser.finalize();
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.finalize());
 
             const auto& tree = parser.tree();
             CHECK_EQ(tree.size(), 1);
@@ -129,16 +129,16 @@ TEST_SUITE("util::flat_bool_expr_tree")
         SUBCASE("a b + c d e + * *")
         {
             // Infix:   (a + b) * (c * (d + e))
-            parser.push_variable('a');
-            parser.push_variable('b');
-            parser.push_operator("+");
-            parser.push_variable('c');
-            parser.push_variable('d');
-            parser.push_variable('e');
-            parser.push_operator("+");
-            parser.push_operator("*");
-            parser.push_operator("*");
-            parser.finalize();
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_variable('b'));
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('c'));
+            CHECK(parser.push_variable('d'));
+            CHECK(parser.push_variable('e'));
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_operator("*"));
+            CHECK(parser.push_operator("*"));
+            CHECK(parser.finalize());
 
             const auto& tree = parser.tree();
             CHECK_EQ(tree.size(), 9);
@@ -149,49 +149,31 @@ TEST_SUITE("util::flat_bool_expr_tree")
 
         SUBCASE("a b")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_variable('b');
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_variable('b'));
+            CHECK_FALSE(parser.finalize());
         }
 
         SUBCASE("+")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_operator("+");
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK_FALSE(parser.push_operator("+"));
         }
 
         SUBCASE("a b + *")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_variable('b');
-                parser.push_operator("+");
-                parser.push_operator("*");
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_variable('b'));
+            CHECK(parser.push_operator("+"));
+            CHECK_FALSE(parser.push_operator("*"));
         }
 
         SUBCASE("a b + c")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_variable('b');
-                parser.push_operator("+");
-                parser.push_variable('c');
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_variable('b'));
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('c'));
+            CHECK_FALSE(parser.finalize());
         }
     }
 
@@ -201,21 +183,21 @@ TEST_SUITE("util::flat_bool_expr_tree")
 
         SUBCASE("empty")
         {
-            parser.finalize();
+            CHECK(parser.finalize());
             const auto& tree = parser.tree();
             CHECK(tree.empty());
         }
 
         SUBCASE("(((a)))")
         {
-            parser.push_left_parenthesis();
-            parser.push_left_parenthesis();
-            parser.push_left_parenthesis();
-            parser.push_variable('a');
-            parser.push_right_parenthesis();
-            parser.push_right_parenthesis();
-            parser.push_right_parenthesis();
-            parser.finalize();
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.finalize());
 
             const auto& tree = parser.tree();
             REQUIRE_EQ(tree.size(), 1);
@@ -226,16 +208,16 @@ TEST_SUITE("util::flat_bool_expr_tree")
 
         SUBCASE("(((a)) + b)")
         {
-            parser.push_left_parenthesis();
-            parser.push_left_parenthesis();
-            parser.push_left_parenthesis();
-            parser.push_variable('a');
-            parser.push_right_parenthesis();
-            parser.push_right_parenthesis();
-            parser.push_operator("+");
-            parser.push_variable('b');
-            parser.push_right_parenthesis();
-            parser.finalize();
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('b'));
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.finalize());
 
             const auto& tree = parser.tree();
             REQUIRE_EQ(tree.size(), 3);
@@ -250,22 +232,22 @@ TEST_SUITE("util::flat_bool_expr_tree")
 
         SUBCASE("(a + b) * (c * (d + e))")
         {
-            parser.push_left_parenthesis();
-            parser.push_variable('a');
-            parser.push_operator("+");
-            parser.push_variable('b');
-            parser.push_right_parenthesis();
-            parser.push_operator("*");
-            parser.push_left_parenthesis();
-            parser.push_variable('c');
-            parser.push_operator("*");
-            parser.push_left_parenthesis();
-            parser.push_variable('d');
-            parser.push_operator("+");
-            parser.push_variable('e');
-            parser.push_right_parenthesis();
-            parser.push_right_parenthesis();
-            parser.finalize();
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('b'));
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_operator("*"));
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('c'));
+            CHECK(parser.push_operator("*"));
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('d'));
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('e'));
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.finalize());
 
             const auto& tree = parser.tree();
             CHECK_EQ(tree.size(), 9);
@@ -276,126 +258,72 @@ TEST_SUITE("util::flat_bool_expr_tree")
 
         SUBCASE("(")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_left_parenthesis();
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_left_parenthesis());
+            CHECK_FALSE(parser.finalize());
         }
 
         SUBCASE(")")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_right_parenthesis();
-                // parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK_FALSE(parser.push_right_parenthesis());
         }
 
         SUBCASE("(a+b")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_left_parenthesis();
-                parser.push_variable('a');
-                parser.push_operator("+");
-                parser.push_variable('b');
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('b'));
+            CHECK_FALSE(parser.finalize());
         }
 
-        SUBCASE("a))")
+        SUBCASE("a)")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_right_parenthesis();
-                parser.push_right_parenthesis();
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK_FALSE(parser.push_right_parenthesis());
         }
 
         SUBCASE("+")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_operator("+");
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK_FALSE(parser.push_operator("+"));
         }
 
         SUBCASE("a b +")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_variable('b');
-                parser.push_operator("+");
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK_FALSE(parser.push_variable('b'));
         }
 
         SUBCASE("a + + b")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_operator("+");
-                parser.push_operator("+");
-                parser.push_variable('b');
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_operator("+"));
+            CHECK_FALSE(parser.push_operator("+"));
         }
 
         SUBCASE("a +")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_operator("+");
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_operator("+"));
+            CHECK_FALSE(parser.finalize());
         }
 
         SUBCASE("a + )")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_variable('a');
-                parser.push_operator("+");
-                parser.push_right_parenthesis();
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_operator("+"));
+            CHECK_FALSE(parser.push_right_parenthesis());
         }
         SUBCASE("(((a)) + b (* c")
         {
-            auto bad_parse = [&]()
-            {
-                parser.push_left_parenthesis();
-                parser.push_right_parenthesis();
-                parser.push_left_parenthesis();
-                parser.push_left_parenthesis();
-                parser.push_left_parenthesis();
-                parser.push_variable('a');
-                parser.push_right_parenthesis();
-                parser.push_right_parenthesis();
-                parser.push_operator("+");
-                parser.push_variable('b');
-                parser.push_left_parenthesis();
-                parser.push_operator("*");
-                parser.push_variable('c');
-                parser.finalize();
-            };
-            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_left_parenthesis());
+            CHECK(parser.push_variable('a'));
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_right_parenthesis());
+            CHECK(parser.push_operator("+"));
+            CHECK(parser.push_variable('b'));
+            CHECK_FALSE(parser.push_left_parenthesis());
         }
     }
 
@@ -404,15 +332,15 @@ TEST_SUITE("util::flat_bool_expr_tree")
         // Infix:    (false and false) or (false or (false or true))
         // Postfix:  false true or false or false false and or
         auto parser = PostfixParser<bool, BoolOperator>{};
-        parser.push_variable(false);
-        parser.push_variable(true);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(false);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(false);
-        parser.push_variable(false);
-        parser.push_operator(BoolOperator::logical_and);
-        parser.push_operator(BoolOperator::logical_or);
+        CHECK(parser.push_variable(false));
+        CHECK(parser.push_variable(true));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(false));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(false));
+        CHECK(parser.push_variable(false));
+        CHECK(parser.push_operator(BoolOperator::logical_and));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
         auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
         SUBCASE("Empty")
@@ -468,15 +396,15 @@ TEST_SUITE("util::flat_bool_expr_tree")
         // Infix:     ((x3 or x4) and x2) and (x0 or x1)
         // Postfix:   x0 x1 or x2 x3 x4 or and and
         auto parser = PostfixParser<std::size_t, BoolOperator>{};
-        parser.push_variable(0);
-        parser.push_variable(1);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(2);
-        parser.push_variable(3);
-        parser.push_variable(4);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_operator(BoolOperator::logical_and);
-        parser.push_operator(BoolOperator::logical_and);
+        CHECK(parser.push_variable(0));
+        CHECK(parser.push_variable(1));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(2));
+        CHECK(parser.push_variable(3));
+        CHECK(parser.push_variable(4));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_operator(BoolOperator::logical_and));
+        CHECK(parser.push_operator(BoolOperator::logical_and));
         auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
         static constexpr std::size_t n_vars = 5;
@@ -494,26 +422,26 @@ TEST_SUITE("util::flat_bool_expr_tree")
         { return ((x[0] || x[1]) && (x[2] || x[3] || x[4]) && x[5]) || x[6]; };
         auto parser = InfixParser<std::size_t, BoolOperator>{};
         // Infix:  ((x0 or x1) and (x2 or x3 or x4) and x5) or x6
-        parser.push_left_parenthesis();
-        parser.push_left_parenthesis();
-        parser.push_variable(0);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(1);
-        parser.push_right_parenthesis();
-        parser.push_operator(BoolOperator::logical_and);
-        parser.push_left_parenthesis();
-        parser.push_variable(2);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(3);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(4);
-        parser.push_right_parenthesis();
-        parser.push_operator(BoolOperator::logical_and);
-        parser.push_variable(5);
-        parser.push_right_parenthesis();
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(6);
-        parser.finalize();
+        CHECK(parser.push_left_parenthesis());
+        CHECK(parser.push_left_parenthesis());
+        CHECK(parser.push_variable(0));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(1));
+        CHECK(parser.push_right_parenthesis());
+        CHECK(parser.push_operator(BoolOperator::logical_and));
+        CHECK(parser.push_left_parenthesis());
+        CHECK(parser.push_variable(2));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(3));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(4));
+        CHECK(parser.push_right_parenthesis());
+        CHECK(parser.push_operator(BoolOperator::logical_and));
+        CHECK(parser.push_variable(5));
+        CHECK(parser.push_right_parenthesis());
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(6));
+        CHECK(parser.finalize());
         auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
         static constexpr std::size_t n_vars = 7;
@@ -530,26 +458,26 @@ TEST_SUITE("util::flat_bool_expr_tree")
     {
         auto parser = InfixParser<std::size_t, BoolOperator>{};
         // Infix:  ((x0 or x1) and (x2 or x3 or x4) and x5) or x6
-        parser.push_left_parenthesis();
-        parser.push_left_parenthesis();
-        parser.push_variable(0);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(1);
-        parser.push_right_parenthesis();
-        parser.push_operator(BoolOperator::logical_and);
-        parser.push_left_parenthesis();
-        parser.push_variable(2);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(3);
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(4);
-        parser.push_right_parenthesis();
-        parser.push_operator(BoolOperator::logical_and);
-        parser.push_variable(5);
-        parser.push_right_parenthesis();
-        parser.push_operator(BoolOperator::logical_or);
-        parser.push_variable(6);
-        parser.finalize();
+        CHECK(parser.push_left_parenthesis());
+        CHECK(parser.push_left_parenthesis());
+        CHECK(parser.push_variable(0));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(1));
+        CHECK(parser.push_right_parenthesis());
+        CHECK(parser.push_operator(BoolOperator::logical_and));
+        CHECK(parser.push_left_parenthesis());
+        CHECK(parser.push_variable(2));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(3));
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(4));
+        CHECK(parser.push_right_parenthesis());
+        CHECK(parser.push_operator(BoolOperator::logical_and));
+        CHECK(parser.push_variable(5));
+        CHECK(parser.push_right_parenthesis());
+        CHECK(parser.push_operator(BoolOperator::logical_or));
+        CHECK(parser.push_variable(6));
+        CHECK(parser.finalize());
         auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
         auto result = std::string();

@@ -204,21 +204,12 @@ TEST_SUITE("util::URL")
     {
         SUBCASE("Empty")
         {
-            const URL url = URL::parse("");
-            CHECK_EQ(url.scheme(), URL::https);
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/");
-            CHECK_EQ(url.pretty_path(), "/");
-            CHECK_EQ(url.user(), "");
-            CHECK_EQ(url.password(), "");
-            CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.query(), "");
-            CHECK_EQ(url.fragment(), "");
+            CHECK_FALSE(URL::parse("").has_value());
         }
 
         SUBCASE("mamba.org")
         {
-            const URL url = URL::parse("mamba.org");
+            const URL url = URL::parse("mamba.org").value();
             CHECK_EQ(url.scheme(), URL::https);
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
@@ -232,7 +223,7 @@ TEST_SUITE("util::URL")
 
         SUBCASE("http://mamba.org")
         {
-            const URL url = URL::parse("http://mamba.org");
+            const URL url = URL::parse("http://mamba.org").value();
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
@@ -246,7 +237,7 @@ TEST_SUITE("util::URL")
 
         SUBCASE("s3://userx123:üúßsajd@mamba.org")
         {
-            const URL url = URL::parse("s3://userx123:üúßsajd@mamba.org");
+            const URL url = URL::parse("s3://userx123:üúßsajd@mamba.org").value();
             CHECK_EQ(url.scheme(), "s3");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
@@ -260,7 +251,7 @@ TEST_SUITE("util::URL")
 
         SUBCASE("http://user%40email.com:test@localhost:8000")
         {
-            const URL url = URL::parse("http://user%40email.com:test@localhost:8000");
+            const URL url = URL::parse("http://user%40email.com:test@localhost:8000").value();
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "localhost");
             CHECK_EQ(url.path(), "/");
@@ -276,15 +267,12 @@ TEST_SUITE("util::URL")
         {
             // Fails before "user@email.com" needs to be percent encoded, otherwise parsing is
             // ill defined.
-
-            // Silencing [[nodiscard]] warning
-            auto failure = [](std::string_view str) { [[maybe_unused]] auto url = URL::parse(str); };
-            CHECK_THROWS_AS(failure("http://user@40email.com:test@localhost"), std::invalid_argument);
+            CHECK_FALSE(URL::parse("http://user@40email.com:test@localhost").has_value());
         }
 
         SUBCASE("http://:pass@localhost:8000")
         {
-            const URL url = URL::parse("http://:pass@localhost:8000");
+            const URL url = URL::parse("http://:pass@localhost:8000").value();
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "localhost");
             CHECK_EQ(url.path(), "/");
@@ -300,7 +288,8 @@ TEST_SUITE("util::URL")
         {
             // Not a valid IETF RFC 3986+ URL, but Curl parses it anyways.
             // Undefined behavior, no assumptions are made
-            const URL url = URL::parse("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
+            const URL url = URL::parse("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333")
+                                .value();
             CHECK_NE(url.host(URL::Decode::no), "mamba%f0%9f%86%92%f0%9f%94%ac.org");
         }
 
@@ -308,7 +297,7 @@ TEST_SUITE("util::URL")
         {
             if (on_win)
             {
-                const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
+                const URL url = URL::parse("file://C:/Users/wolfv/test/document.json").value();
                 CHECK_EQ(url.scheme(), "file");
                 CHECK_EQ(url.host(), "");
                 CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
@@ -324,7 +313,7 @@ TEST_SUITE("util::URL")
 
         SUBCASE("file:///home/wolfv/test/document.json")
         {
-            const URL url = URL::parse("file:///home/wolfv/test/document.json");
+            const URL url = URL::parse("file:///home/wolfv/test/document.json").value();
             CHECK_EQ(url.scheme(), "file");
             CHECK_EQ(url.host(), "");
             CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
@@ -340,13 +329,13 @@ TEST_SUITE("util::URL")
         {
             // Not a valid IETF RFC 3986+ URL, but Curl parses it anyways.
             // Undefined behavior, no assumptions are made
-            const URL url = URL::parse("file:///home/great:doc.json");
+            const URL url = URL::parse("file:///home/great:doc.json").value();
             CHECK_NE(url.path(URL::Decode::no), "/home/great%3Adoc.json");
         }
 
         SUBCASE("file:///home/great%3Adoc.json")
         {
-            const URL url = URL::parse("file:///home/great%3Adoc.json");
+            const URL url = URL::parse("file:///home/great%3Adoc.json").value();
             CHECK_EQ(url.scheme(), "file");
             CHECK_EQ(url.host(), "");
             CHECK_EQ(url.path(), "/home/great:doc.json");
@@ -361,7 +350,7 @@ TEST_SUITE("util::URL")
 
         SUBCASE("https://169.254.0.0/page")
         {
-            const URL url = URL::parse("https://169.254.0.0/page");
+            const URL url = URL::parse("https://169.254.0.0/page").value();
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "169.254.0.0");
             CHECK_EQ(url.path(), "/page");
@@ -375,8 +364,8 @@ TEST_SUITE("util::URL")
 
         SUBCASE("ftp://user:pass@[2001:db8:85a3:8d3:1319:0:370:7348]:9999/page")
         {
-            const URL url = URL::parse("ftp://user:pass@[2001:db8:85a3:8d3:1319:0:370:7348]:9999/page"
-            );
+            const URL url = URL::parse("ftp://user:pass@[2001:db8:85a3:8d3:1319:0:370:7348]:9999/page")
+                                .value();
             CHECK_EQ(url.scheme(), "ftp");
             CHECK_EQ(url.host(), "[2001:db8:85a3:8d3:1319:0:370:7348]");
             CHECK_EQ(url.path(), "/page");
@@ -390,7 +379,7 @@ TEST_SUITE("util::URL")
 
         SUBCASE("https://mamba.org/page#the-fragment")
         {
-            const URL url = URL::parse("https://mamba.org/page#the-fragment");
+            const URL url = URL::parse("https://mamba.org/page#the-fragment").value();
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/page");
@@ -432,7 +421,7 @@ TEST_SUITE("util::URL")
             URL url = {};
             url.set_host("mamba.org");
 
-            SUBCASE("defaut scheme")
+            SUBCASE("default scheme")
             {
                 CHECK_EQ(url.pretty_str(URL::StripScheme::no), "https://mamba.org/");
                 CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "mamba.org/");
@@ -672,16 +661,19 @@ TEST_SUITE("util::URL")
     TEST_CASE("Equality")
     {
         CHECK_EQ(URL(), URL());
-        CHECK_EQ(URL::parse("https://169.254.0.0/page"), URL::parse("https://169.254.0.0/page"));
-        CHECK_EQ(URL::parse("mamba.org"), URL::parse("mamba.org/"));
-        CHECK_EQ(URL::parse("mAmba.oRg"), URL::parse("mamba.org/"));
-        CHECK_EQ(URL::parse("localhost/page"), URL::parse("https://localhost/page"));
+        CHECK_EQ(
+            URL::parse("https://169.254.0.0/page").value(),
+            URL::parse("https://169.254.0.0/page").value()
+        );
+        CHECK_EQ(URL::parse("mamba.org").value(), URL::parse("mamba.org/").value());
+        CHECK_EQ(URL::parse("mAmba.oRg").value(), URL::parse("mamba.org/").value());
+        CHECK_EQ(URL::parse("localhost/page").value(), URL::parse("https://localhost/page").value());
 
-        CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/"));
-        CHECK_NE(URL::parse("mamba.org"), URL::parse("mamba.org:9999"));
-        CHECK_NE(URL::parse("user@mamba.org"), URL::parse("mamba.org"));
-        CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/page?q=v"));
-        CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/page#there"));
+        CHECK_NE(URL::parse("mamba.org/page").value(), URL::parse("mamba.org/").value());
+        CHECK_NE(URL::parse("mamba.org").value(), URL::parse("mamba.org:9999").value());
+        CHECK_NE(URL::parse("user@mamba.org").value(), URL::parse("mamba.org").value());
+        CHECK_NE(URL::parse("mamba.org/page").value(), URL::parse("mamba.org/page?q=v").value());
+        CHECK_NE(URL::parse("mamba.org/page").value(), URL::parse("mamba.org/page#there").value());
     }
 
     TEST_CASE("Append path")

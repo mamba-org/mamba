@@ -24,7 +24,7 @@ namespace mamba
     {
         class Channel;
     }
-    class MPool;
+
     class Context;
     class ChannelContext;
     class DownloadMonitor;
@@ -105,7 +105,6 @@ namespace mamba
             ChannelContext& channel_context,
             const specs::Channel& channel,
             const std::string& platform,
-            const std::string& url,
             MultiPackageCache& caches,
             const std::string& repodata_fn = "repodata.json"
         );
@@ -123,6 +122,8 @@ namespace mamba
         void clear_cache();
 
         const std::string& name() const;
+        const std::string& channel_id() const;
+        const std::string& platform() const;
 
         const SubdirMetadata& metadata() const;
 
@@ -136,35 +137,39 @@ namespace mamba
         static expected_t<void> download_indexes(
             std::vector<SubdirData>& subdirs,
             const Context& context,
-            DownloadMonitor* check_monitor = nullptr,
-            DownloadMonitor* download_monitor = nullptr
+            download::Monitor* check_monitor = nullptr,
+            download::Monitor* download_monitor = nullptr
         );
 
     private:
+
+        static std::string get_name(const std::string& channel_id, const std::string& platform);
 
         SubdirData(
             Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
             const std::string& platform,
-            const std::string& url,
             MultiPackageCache& caches,
             const std::string& repodata_fn = "repodata.json"
         );
+
+        std::string repodata_url_path() const;
 
         void
         load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel);
         void load_cache(MultiPackageCache& caches);
         void update_metadata_zst(ChannelContext& context, const specs::Channel& channel);
 
-        MultiDownloadRequest build_check_requests();
-        DownloadRequest build_index_request();
+        download::MultiRequest build_check_requests();
+        download::Request build_index_request();
 
         expected_t<void> use_existing_cache();
         expected_t<void> finalize_transfer(SubdirMetadata::HttpMetadata http_data);
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         bool m_loaded = false;
+        bool m_forbid_cache = false;
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
 
@@ -172,8 +177,10 @@ namespace mamba
         fs::u8path m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
 
-        std::string m_repodata_url;
+        std::string m_channel_id;
+        std::string m_platform;
         std::string m_name;
+        std::string m_repodata_fn;
         std::string m_json_fn;
         std::string m_solv_fn;
         bool m_is_noarch;

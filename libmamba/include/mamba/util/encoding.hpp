@@ -27,7 +27,7 @@ namespace mamba::util
     [[nodiscard]] auto nibble_to_hex(std::byte b) noexcept -> char;
 
     /**
-     * Convert a buffer of bytes to a hexadecimal string written in the @p out paremeter.
+     * Convert a buffer of bytes to a hexadecimal string written in the @p out parameter.
      *
      * The @p out parameter must be allocated with twice the size of the input byte buffer.
      */
@@ -51,14 +51,14 @@ namespace mamba::util
     /**
      * Convert two hexadecimal characters to a byte.
      */
-    [[nodiscard]] auto two_hex_to_byte(char high, char low, EncodingError& error) noexcept
-        -> std::byte;
+    [[nodiscard]] auto
+    two_hex_to_byte(char high, char low, EncodingError& error) noexcept -> std::byte;
 
     /**
      * Convert two hexadecimal characters to a byte.
      */
-    [[nodiscard]] auto two_hex_to_byte(char high, char low) noexcept
-        -> tl::expected<std::byte, EncodingError>;
+    [[nodiscard]] auto
+    two_hex_to_byte(char high, char low) noexcept -> tl::expected<std::byte, EncodingError>;
 
     /**
      * Convert hexadecimal characters to a bytes and write it to the given output.
@@ -74,13 +74,13 @@ namespace mamba::util
      * The number of hexadecimal characters must be even and out must be allocated with half the
      * number of hexadecimal characters.
      */
-    [[nodiscard]] auto hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept
-        -> tl::expected<void, EncodingError>;
+    [[nodiscard]] auto
+    hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept -> tl::expected<void, EncodingError>;
 
     /**
      * Escape reserved URL reserved characters with '%' encoding.
      *
-     * The secons argument can be used to specify characters to exclude from encoding,
+     * The second argument can be used to specify characters to exclude from encoding,
      * so that for instance path can be encoded without splitting them (if they have no '/' other
      * than separators).
      *
@@ -100,13 +100,13 @@ namespace mamba::util
     /**
      * Convert a string to base64 encoding.
      */
-    [[nodiscard]] auto encode_base64(std::string_view input)
-        -> tl::expected<std::string, EncodingError>;
+    [[nodiscard]] auto
+    encode_base64(std::string_view input) -> tl::expected<std::string, EncodingError>;
 
     /**
      * Convert a string from base64 back to its original representation.
      */
-    [[nodiscard]] auto decode_base64(std::string_view input)
-        -> tl::expected<std::string, EncodingError>;
+    [[nodiscard]] auto
+    decode_base64(std::string_view input) -> tl::expected<std::string, EncodingError>;
 }
 #endif

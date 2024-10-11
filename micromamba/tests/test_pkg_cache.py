@@ -22,7 +22,7 @@ def find_cache_archive(cache: Path, pkg_name: str) -> Optional[Path]:
 
 
 def find_pkg_build(cache: Path, name: str) -> str:
-    """Find the build name of a package in the cache from the pacakge name."""
+    """Find the build name of a package in the cache from the package name."""
     matches = [p for p in cache.glob(f"{name}*") if p.is_dir()]
     assert len(matches) == 1
     return matches[0].name
@@ -248,8 +248,13 @@ def same_repodata_json_solv(cache: Path):
 
 
 class TestMultiplePkgCaches:
-    @pytest.mark.parametrize("cache", (pytest.lazy_fixture(("tmp_cache", "tmp_cache_alt"))))
-    def test_different_caches(self, tmp_home, tmp_root_prefix, cache):
+    @pytest.mark.parametrize("which_cache", ["tmp_cache", "tmp_cache_alt"])
+    def test_different_caches(
+        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, which_cache
+    ):
+        # Test parametrization
+        cache = {"tmp_cache": tmp_cache, "tmp_cache_alt": tmp_cache_alt}[which_cache]
+
         os.environ["CONDA_PKGS_DIRS"] = f"{cache}"
         env_name = "some_env"
         res = helpers.create("-n", env_name, "xtensor", "-v", "--json", no_dry_run=True)

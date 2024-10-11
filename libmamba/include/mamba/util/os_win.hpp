@@ -10,6 +10,10 @@
 #include <string>
 #include <string_view>
 
+#include <tl/expected.hpp>
+
+#include "mamba/util/os.hpp"
+
 namespace mamba::util
 {
     enum class WindowsKnowUserFolder
@@ -27,5 +31,7 @@ namespace mamba::util
     [[nodiscard]] auto utf8_to_windows_encoding(const std::string_view utf8_text) -> std::wstring;
 
     [[nodiscard]] auto windows_encoding_to_utf8(std::wstring_view) -> std::string;
+
+    [[nodiscard]] auto windows_version() -> tl::expected<std::string, OSError>;
 }
 #endif

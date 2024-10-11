@@ -22,7 +22,7 @@ extern "C"
 #include <fmt/core.h>
 #include <tl/expected.hpp>
 
-namespace mamba
+namespace mamba::download
 {
     namespace curl
     {
@@ -90,15 +90,15 @@ namespace mamba
 }
 
 template <>
-struct std::hash<mamba::CURLId>
+struct std::hash<mamba::download::CURLId>
 {
-    std::size_t operator()(const mamba::CURLId& arg) const noexcept
+    std::size_t operator()(const mamba::download::CURLId& arg) const noexcept
     {
         return arg.hash();
     }
 };
 
-namespace mamba
+namespace mamba::download
 {
     using proxy_map_type = std::map<std::string, std::string>;
 

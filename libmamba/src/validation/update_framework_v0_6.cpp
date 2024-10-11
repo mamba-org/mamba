@@ -146,8 +146,8 @@ namespace mamba::validation::v0_6
     }
 
     auto
-    RootImpl::upgraded_signature(const nlohmann::json& j, const std::string& pk, const std::byte* sk) const
-        -> RoleSignature
+    RootImpl::upgraded_signature(const nlohmann::json& j, const std::string& pk, const std::byte* sk)
+        const -> RoleSignature
     {
         std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
         sign(j.dump(), sk, sig_bin.data());
@@ -188,7 +188,7 @@ namespace mamba::validation::v0_6
     }
 
     auto RootImpl::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -199,16 +199,20 @@ namespace mamba::validation::v0_6
         auto tmp_dir = TemporaryDirectory();
         auto tmp_metadata_path = tmp_dir.path() / "key_mgr.json";
 
-        const auto url = specs::CondaURL::parse(base_url) / "key_mgr.json";
+        const auto url = specs::CondaURL::parse(base_url)
+                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                             .value()
+                         / "key_mgr.json";
 
-        if (check_resource_exists(url.pretty_str(), context))
+        if (download::check_resource_exists(url.pretty_str(), context))
         {
-            DownloadRequest request(
+            download::Request request(
                 "key_mgr.json",
+                download::MirrorName(""),
                 url.str(util::URL::Credentials::Show),
                 tmp_metadata_path.string()
             );
-            DownloadResult res = download(std::move(request), context);
+            download::Result res = download::download(std::move(request), context.mirrors, context);
             if (res)
             {
                 KeyMgrRole key_mgr = create_key_mgr(tmp_metadata_path);
@@ -348,7 +352,7 @@ namespace mamba::validation::v0_6
     }
 
     auto KeyMgrRole::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -359,12 +363,17 @@ namespace mamba::validation::v0_6
         auto tmp_dir = TemporaryDirectory();
         auto tmp_metadata_path = tmp_dir.path() / "pkg_mgr.json";
 
-        const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json");
+        const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json").value();
 
-        if (check_resource_exists(url.pretty_str(), context))
+        if (download::check_resource_exists(url.pretty_str(), context))
         {
-            DownloadRequest request("pkg_mgr.json", url.pretty_str(), tmp_metadata_path.string());
-            DownloadResult res = download(std::move(request), context);
+            download::Request request(
+                "pkg_mgr.json",
+                download::MirrorName(""),
+                url.pretty_str(),
+                tmp_metadata_path.string()
+            );
+            download::Result res = download::download(std::move(request), context.mirrors, context);
 
             if (res)
             {
@@ -666,7 +675,15 @@ namespace mamba::validation::v0_6
     {
         try
         {
-            check_pkg_signatures(signed_data, signatures);
+            // Libsolv's `repodata.json` parsing returns the signatures alongside other package info
+            // i.e: {"info":{},"signatures":{"public_key":{"signature":"metadata_signature"}}}
+            // But, we are here only interested in the signatures
+            // In the case of parsing using mamba/simdjson, the solvable signatures are set to have
+            // the same format
+            check_pkg_signatures(
+                signed_data,
+                signatures.at("signatures").get<nlohmann::json::object_t>()
+            );
         }
         catch (const threshold_error& e)
         {

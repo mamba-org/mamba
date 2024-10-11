@@ -119,24 +119,40 @@ TEST_SUITE("specs::build_number_spec")
             for (const auto& spec : bad_specs)
             {
                 CAPTURE(spec);
-                // Silence [[nodiscard]] warning
-                auto parse = [](auto s) { return BuildNumberSpec::parse(s); };
-                CHECK_THROWS_AS(parse(spec), std::invalid_argument);
+                CHECK_FALSE(BuildNumberSpec::parse(spec).has_value());
             }
         }
     }
 
     TEST_CASE("BuildNumberSepc::str")
     {
-        CHECK_EQ(BuildNumberSpec::parse("=3").str(), "=3");
-        CHECK_EQ(BuildNumberSpec::parse("<2").str(), "<2");
-        CHECK_EQ(BuildNumberSpec::parse("*").str(), "=*");
+        CHECK_EQ(BuildNumberSpec::parse("=3").value().str(), "=3");
+        CHECK_EQ(BuildNumberSpec::parse("<2").value().str(), "<2");
+        CHECK_EQ(BuildNumberSpec::parse("*").value().str(), "=*");
     }
 
     TEST_CASE("BuildNumberSepc::is_explicitly_free")
     {
-        CHECK(BuildNumberSpec::parse("*").is_explicitly_free());
-        CHECK_FALSE(BuildNumberSpec::parse("=3").is_explicitly_free());
-        CHECK_FALSE(BuildNumberSpec::parse("<2").is_explicitly_free());
+        CHECK(BuildNumberSpec::parse("*").value().is_explicitly_free());
+        CHECK_FALSE(BuildNumberSpec::parse("=3").value().is_explicitly_free());
+        CHECK_FALSE(BuildNumberSpec::parse("<2").value().is_explicitly_free());
+    }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto bn1 = BuildNumberSpec::parse("=3").value();
+        auto bn2 = BuildNumberSpec::parse("3").value();
+        auto bn3 = BuildNumberSpec::parse("*").value();
+
+        CHECK_EQ(bn1, bn2);
+        CHECK_NE(bn1, bn3);
+
+        auto hash_fn = std::hash<BuildNumberSpec>{};
+        auto bn1_hash = hash_fn(bn1);
+        auto bn2_hash = hash_fn(bn2);
+        auto bn3_hash = hash_fn(bn3);
+
+        CHECK_EQ(bn1_hash, bn2_hash);
+        CHECK_NE(bn1_hash, bn3_hash);
     }
 }

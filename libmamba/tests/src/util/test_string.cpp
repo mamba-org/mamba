@@ -402,6 +402,32 @@ namespace
             CHECK_EQ(rsplit_once("hello//my/world", "//"), Out{ "hello", "my/world" });
         }
 
+        TEST_CASE("split_once_on_any")
+        {
+            using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
+
+            CHECK_EQ(split_once_on_any("", "/"), Out{ "", std::nullopt });
+            CHECK_EQ(split_once_on_any("hello,dear world", ", "), Out{ "hello", "dear world" });
+            CHECK_EQ(split_once_on_any("hello dear,world", ", "), Out{ "hello", "dear,world" });
+            CHECK_EQ(split_once_on_any("hello/world", "/"), Out{ "hello", "world" });
+            CHECK_EQ(split_once_on_any("hello//world", "//"), Out{ "hello", "/world" });
+            CHECK_EQ(split_once_on_any("hello/my//world", "/"), Out{ "hello", "my//world" });
+            CHECK_EQ(split_once_on_any("hello/my//world", "//"), Out{ "hello", "my//world" });
+        }
+
+        TEST_CASE("rsplit_once_on_any")
+        {
+            using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
+
+            CHECK_EQ(rsplit_once_on_any("", "/"), Out{ std::nullopt, "" });
+            CHECK_EQ(rsplit_once_on_any("hello,dear world", ", "), Out{ "hello,dear", "world" });
+            CHECK_EQ(rsplit_once_on_any("hello dear,world", ", "), Out{ "hello dear", "world" });
+            CHECK_EQ(rsplit_once_on_any("hello/world", "/"), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once_on_any("hello//world", "//"), Out{ "hello/", "world" });
+            CHECK_EQ(rsplit_once_on_any("hello/my//world", "/"), Out{ "hello/my/", "world" });
+            CHECK_EQ(rsplit_once_on_any("hello/my//world", "//"), Out{ "hello/my/", "world" });
+        }
+
         TEST_CASE("split")
         {
             std::string a = "hello.again.it's.me.mario";

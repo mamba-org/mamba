@@ -104,6 +104,8 @@ namespace
     void set_default_config_options(Configuration& config)
     {
         config.at("use_target_prefix_fallback").set_value(false);
+        config.at("use_default_prefix_fallback").set_value(false);
+        config.at("use_root_prefix_fallback").set_value(false);
         config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
     }
 
@@ -325,7 +327,7 @@ namespace
         subcmd->callback(
             [all_subsubcmds, &config]()
             {
-                bool const got_subsubcmd = std::any_of(
+                const bool got_subsubcmd = std::any_of(
                     all_subsubcmds.cbegin(),
                     all_subsubcmds.cend(),
                     [](auto* subsubcmd) -> bool { return subsubcmd->parsed(); }
@@ -338,7 +340,7 @@ namespace
                     consolidate_prefix_options(config);
                     config.load();
 
-                    auto const get_shell = []() -> std::string
+                    const auto get_shell = []() -> std::string
                     {
                         if constexpr (util::on_win)
                         {

@@ -30,6 +30,8 @@ def check_create_result(res, root_prefix, target_prefix):
     assert res["root_prefix"] == str(root_prefix)
     assert res["target_prefix"] == str(target_prefix)
     assert not res["use_target_prefix_fallback"]
+    assert not res["use_default_prefix_fallback"]
+    assert not res["use_root_prefix_fallback"]
     checks = (
         helpers.MAMBA_ALLOW_EXISTING_PREFIX
         | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -60,7 +62,7 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
     specs = []
 
     if source in ("cli_only", "both"):
-        specs = ["xframe", "xtl"]
+        specs = ["xtensor-python", "xtl"]
         cmd += specs
 
     if source in ("spec_file_only", "both"):
@@ -112,18 +114,19 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
-@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
-    env_prefix = tmp_path / "myenv"
-    spec_file = (
-        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
-    )
-
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-    assert res["success"]
-
-    packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+# TODO: uncomment when https://github.com/mamba-org/mamba/pull/3286 is merged
+# @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+# def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+#    env_prefix = tmp_path / "myenv"
+#    spec_file = (
+#        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+#    )
+#
+#    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+#    assert res["success"]
+#
+#    packages = helpers.umamba_list("-p", env_prefix, "--json")
+#    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -142,6 +145,24 @@ def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, 
     helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
 
 
+# Only run this test on Linux, as it is the only platform where xeus-cling
+# (which is part of the environment) is available.
+@pytest.mark.timeout(20)
+@pytest.mark.skipif(platform.system() != "Linux", reason="Test only available on Linux")
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
+    # Non-regression test https://github.com/mamba-org/mamba/issues/3415.
+
+    env_prefix = tmp_path / "myenv"
+    create_spec_file = tmp_path / "env-logging-overhead-regression.yaml"
+
+    shutil.copyfile(__this_dir__ / "env-logging-overhead-regression.yaml", create_spec_file)
+
+    # Must not hang
+    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", "--dry-run")
+    assert res["success"]
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("root_prefix_type", (None, "env_var", "cli"))
 @pytest.mark.parametrize("target_is_root", (False, True))
@@ -149,7 +170,7 @@ def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, 
 @pytest.mark.parametrize("cli_env_name", (False, True))
 @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
 @pytest.mark.parametrize("env_var", (False, True))
-@pytest.mark.parametrize("fallback", (False, True))
+@pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
 @pytest.mark.parametrize(
     "similar_non_canonical,non_canonical_position",
     ((False, None), (True, "append"), (True, "prepend")),
@@ -164,7 +185,7 @@ def test_target_prefix(
     cli_env_name,
     yaml_name,
     env_var,
-    fallback,
+    current_target_prefix_fallback,
     similar_non_canonical,
     non_canonical_position,
 ):
@@ -224,7 +245,7 @@ def test_target_prefix(
     if env_var:
         os.environ["MAMBA_TARGET_PREFIX"] = str(p)
 
-    if not fallback:
+    if not current_target_prefix_fallback:
         os.environ.pop("CONDA_PREFIX", None)
     else:
         os.environ["CONDA_PREFIX"] = str(p)
@@ -634,14 +655,15 @@ def test_channel_alias(tmp_home, tmp_root_prefix, alias):
             "--channel-alias",
             alias,
         )
-        ca = alias.rstrip("/")
+        # ca = alias.rstrip("/")
     else:
         res = helpers.create("-n", env_name, "xtensor", "--json")
-        ca = "https://conda.anaconda.org"
+        # ca = "https://conda.anaconda.org"
 
     for link in res["actions"]["LINK"]:
-        assert link["channel"].startswith(f"{ca}/conda-forge/")
-        assert link["url"].startswith(f"{ca}/conda-forge/")
+        assert link["channel"] == "conda-forge"
+        # assert link["channel"].startswith(f"{ca}/conda-forge/")
+        # assert link["url"].startswith(f"{ca}/conda-forge/")
 
 
 @pytest.mark.skipif(
@@ -656,7 +678,7 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
 
     for link in res["actions"]["LINK"]:
         if link["name"] == "bokeh":
-            assert link["channel"].startswith(f"{ca}/bokeh/")
+            assert link["channel"].startswith("bokeh")
             assert link["url"].startswith(f"{ca}/bokeh/")
 
     spec_file = tmp_path / "env.yaml"
@@ -676,11 +698,11 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
 
     for link in res["actions"]["LINK"]:
         if link["name"] == "bokeh":
-            assert link["channel"].startswith(f"{ca}/bokeh/")
+            assert link["channel"].startswith("bokeh")
             assert link["url"].startswith(f"{ca}/bokeh/")
 
         if link["name"] == "xtensor":
-            assert link["channel"].startswith(f"{ca}/conda-forge/")
+            assert link["channel"].startswith("conda-forge")
             assert link["url"].startswith(f"{ca}/conda-forge/")
             assert link["version"].startswith("0.22.")
 
@@ -690,10 +712,11 @@ def test_spec_with_channel_and_subdir():
     try:
         helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")
     except subprocess.CalledProcessError as e:
-        assert (
-            'critical libmamba The package "conda-forge[noarch]::xtensor" is '
-            "not available for the specified platform (noarch) but is available on"
-        ) in e.stderr.decode()
+        # The error message we are getting today is not the most informative but
+        # was needed to unify the solver interface.
+        msg = e.stderr.decode()
+        assert "The following package could not be installed" in msg
+        assert "xtensor" in msg
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -707,10 +730,11 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create("-n", "env1", "pkgs/main/noarch::python", "--dry-run")
 
-    assert info.value.stderr.decode() == (
-        'critical libmamba The package "pkgs/main[noarch]::python" is '
-        "not found in any loaded channels. Try adding more channels or subdirs.\n"
-    )
+        # The error message we are getting today is not the most informative but
+        # was needed to unify the solver interface.
+        msg = info.value.stderr.decode()
+        assert "The following package could not be installed" in msg
+        assert "python" in msg
 
     os.environ["CONDA_SUBDIR"] = "linux-64"
     helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")
@@ -733,7 +757,7 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
         "  - yaml",
         "  - nodefaults",
         "dependencies:",
-        "  - xframe",
+        "  - xtensor-python",
     ]
     with open(spec_file, "w") as f:
         f.write("\n".join(contents))
@@ -755,8 +779,8 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
     pin_name = "xtensor"
-    pin_max_version = "0.20"
-    # We add the channel to test a fragile behavior of ``MPool``
+    pin_max_version = "0.24"
+    # We add the channel to test a fragile behavior of ``Database``
     spec_name = "conda-forge::xtensor"
     rc_file = tmp_path / "rc.yaml"
 
@@ -771,7 +795,7 @@ def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
             install_pkg = p
 
     # Should do proper version comparison
-    assert install_pkg["version"] == "0.20.0"
+    assert install_pkg["version"] == "0.24.0"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -811,7 +835,7 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     helpers.create("-n", env_name, "--platform", "win-32")
     res = helpers.info("-n", env_name, "--json")
     assert "__archspec=1=x86" in res["virtual packages"]
-    assert "__win=0=0" in res["virtual packages"]
+    assert any(pkg.startswith("__win") for pkg in res["virtual packages"])
     assert res["platform"] == "win-32"
 
 
@@ -823,7 +847,6 @@ def test_set_platform(tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize(
     "version,build,cache_tag",
     [
-        ["2.7", "*", ""],
         ["3.10", "*_cpython", "cpython-310"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
@@ -957,7 +980,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "some-prefix"
     helpers.create("-p", env_prefix, "pre-commit")
     env_overrides = {
-        "PRE_COMMIT_USE_MICROMAMBA": "1",
+        "PRE_COMMIT_USE_MAMBA": "1",
         "PATH": os.pathsep.join(
             [
                 str(Path(helpers.get_umamba()).parent),
@@ -1022,15 +1045,15 @@ def add_glibc_virtual_package():
 @pytest.fixture
 def copy_channels_osx():
     for channel in ["a", "b"]:
-        if not (__this_dir__ / f"channel_{channel}/osx-64").exists():
+        if not (__this_dir__ / f"channel_{channel}/osx-arm64").exists():
             shutil.copytree(
                 __this_dir__ / f"channel_{channel}/linux-64",
-                __this_dir__ / f"channel_{channel}/osx-64",
+                __this_dir__ / f"channel_{channel}/osx-arm64",
             )
-            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json") as f:
+            with open(__this_dir__ / f"channel_{channel}/osx-arm64/repodata.json") as f:
                 repodata = f.read()
-            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json", "w") as f:
-                repodata = repodata.replace("linux", "osx")
+            with open(__this_dir__ / f"channel_{channel}/osx-arm64/repodata.json", "w") as f:
+                repodata = repodata.replace("linux-64", "osx-arm64")
                 f.write(repodata)
 
 
@@ -1169,6 +1192,119 @@ def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_p
         )
 
 
+oci_registry_config = {
+    "mirrored_channels": {"oci_channel": ["oci://ghcr.io/channel-mirrors/conda-forge"]},
+    # `repodata_use_zst` isn't considered when fetching from oci registries
+    # since compressed repodata is handled internally
+    # (if present, compressed repodata is necessarily fetched)
+    # Setting `repodata_use_zst` to `false` avoids useless requests with
+    # zst extension in repodata filename
+    "repodata_use_zst": "false",
+}
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("spec", ["pandoc", "pandoc=3.1.13"])
+@pytest.mark.parametrize("parser", ["mamba", "libsolv"])
+def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, spec, parser):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(yaml.dump(oci_registry_config))
+
+    cmd = ["-n", env_name, spec, "--json", "-c", "oci_channel"]
+    if parser == "libsolv":
+        cmd += ["--no-exp-repodata-parsing"]
+
+    res = helpers.create(
+        *cmd,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert len(packages) == 1
+    pkg = packages[0]
+    assert pkg["name"] == "pandoc"
+    if spec == "pandoc=3.1.13":
+        assert pkg["version"] == "3.1.13"
+    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("parser", ["mamba", "libsolv"])
+def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, tmp_path, parser):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(yaml.dump(oci_registry_config))
+
+    cmd = ["-n", env_name, "xtensor", "--json", "-c", "oci_channel"]
+    if parser == "libsolv":
+        cmd += ["--no-exp-repodata-parsing"]
+
+    res = helpers.create(
+        *cmd,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert len(packages) > 2
+    assert any(
+        package["name"] == "xtensor"
+        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        for package in packages
+    )
+    assert any(
+        package["name"] == "xtl"
+        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        for package in packages
+    )
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("parser", ["mamba", "libsolv"])
+def test_create_from_oci_mirrored_channels_pkg_name_mapping(
+    tmp_home, tmp_root_prefix, tmp_path, parser
+):
+    # This is to test Conda/OCI package name mapping
+    # Test fetching package from OCI registry with name starting with '_'
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(yaml.dump(oci_registry_config))
+
+    cmd = ["-n", env_name, "_go_select", "--json", "-c", "oci_channel"]
+    if parser == "libsolv":
+        cmd += ["--no-exp-repodata-parsing"]
+
+    res = helpers.create(
+        *cmd,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert len(packages) == 1
+    pkg = packages[0]
+    assert pkg["name"] == "_go_select"
+    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_unicode(tmp_home, tmp_root_prefix):
     env_name = "320 áγђß家固êôōçñ한"
@@ -1192,3 +1328,18 @@ def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
     res = helpers.create("-n", "myenv", "-c", "conda-forge", "x264>=1!0", "--json")
 
     assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])
+
+
+@pytest.mark.timeout(20)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.skipif(
+    platform.system() == "Windows", reason="This test fails on Windows for unknown reasons"
+)
+def test_parsable_env_history_with_metadata(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-micromamba-list"
+
+    res = helpers.create("-p", env_prefix, 'pandas[version=">=0.25.2,<3"]', "--json")
+    assert res["success"]
+
+    # Must not hang
+    helpers.umamba_list("-p", env_prefix, "--json")

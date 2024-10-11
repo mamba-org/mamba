@@ -27,7 +27,7 @@ if (-not $MambaModuleArgs.ContainsKey('ChangePs1')) {
 function Enter-MambaEnvironment {
     begin {
         $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Args | Out-String);
-        Write-Verbose "[micromamba shell activate --shell powershell $Args]`n$activateCommand";
+        Write-Verbose "[mamba shell activate --shell powershell $Args]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }
 
@@ -58,7 +58,7 @@ function Exit-MambaEnvironment {
         if ($deactivateCommand.Trim().Length -eq 0) {
             return;
         }
-        Write-Verbose "[micromamba shell deactivate --shell powershell]`n$deactivateCommand";
+        Write-Verbose "[mamba shell deactivate --shell powershell]`n$deactivateCommand";
         Invoke-Expression -Command $deactivateCommand;
     }
     process {}
@@ -117,7 +117,7 @@ function Invoke-Mamba() {
                 {
                     $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell | Out-String);
                     if ($activateCommand) {
-                        Write-Verbose "[micromamba shell reactivate --shell powershell]`n$activateCommand";
+                        Write-Verbose "[mamba shell reactivate --shell powershell]`n$activateCommand";
                         Invoke-Expression -Command $activateCommand;
                     }
                 }
@@ -128,7 +128,7 @@ function Invoke-Mamba() {
 
 ## TAB COMPLETION ##############################################################
 
-$MicromambaAutocompleteScriptblock = {
+$MambaAutocompleteScriptblock = {
     param($wordToComplete, $commandAst, $cursorPosition)
     $RemainingArgs = $commandAst.ToString().Split()
     $OneRemainingArgs = $RemainingArgs[1..$RemainingArgs.Length]
@@ -171,8 +171,9 @@ if ($MambaModuleArgs.ChangePs1) {
 
 ## ALIASES #####################################################################
 
-New-Alias micromamba Invoke-Mamba -Force
-Register-ArgumentCompleter -Native -CommandName micromamba -ScriptBlock $MicromambaAutocompleteScriptblock
+$__mamba_name = (Split-Path -Path $Env:MAMBA_EXE -Leaf) -replace '\.[^.]+$'
+New-Alias -Name $__mamba_name -Value Invoke-Mamba -Force
+Register-ArgumentCompleter -Native -CommandName $__mamba_name -ScriptBlock $MambaAutocompleteScriptblock
 
 ## EXPORTS ###################################################################
 

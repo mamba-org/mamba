@@ -25,6 +25,28 @@ namespace mamba::solver::libsolv
         Yes = true,
     };
 
+    enum class PackageTypes
+    {
+        CondaOnly,
+        TarBz2Only,
+        CondaAndTarBz2,
+        CondaOrElseTarBz2,
+    };
+
+    enum class VerifyPackages : bool
+    {
+        No = false,
+        Yes = true,
+    };
+
+    enum class LogLevel
+    {
+        Debug,
+        Warning,
+        Error,
+        Fatal,
+    };
+
     struct Priorities
     {
         using value_type = int;

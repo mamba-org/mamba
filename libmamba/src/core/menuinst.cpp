@@ -66,11 +66,10 @@ namespace mamba
             IPersistFile* pPersistFile = nullptr;
 
             HRESULT hres;
-            LOG_DEBUG << "Creating shortcut with "
-                      << "\n  Path: " << path << "\n  Description: " << description
-                      << "\n  Filename: " << filename << "\n  Arguments: " << arguments
-                      << "\n  Workdir: " << work_dir << "\n  Icon Path: " << icon_path
-                      << "\n  Icon Index: " << icon_index;
+            LOG_DEBUG << "Creating shortcut with " << "\n  Path: " << path
+                      << "\n  Description: " << description << "\n  Filename: " << filename
+                      << "\n  Arguments: " << arguments << "\n  Workdir: " << work_dir
+                      << "\n  Icon Path: " << icon_path << "\n  Icon Index: " << icon_index;
             try
             {
                 hres = CoInitialize(nullptr);

@@ -23,7 +23,7 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v4
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
@@ -40,7 +40,8 @@ jobs:
             --preset mamba-unix-shared-${{ inputs.build_type }}  \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -D BUILD_LIBMAMBAPY=OFF
+            -D BUILD_LIBMAMBAPY=OFF \
+            -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           cmake --build build/ --parallel
       - name: Show build cache statistics
         run: sccache --show-stats
@@ -69,10 +70,13 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+      - name: Run solv-cpp tests
+        run: |
+          ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
       - name: Run libmamba tests
         run: |
           unset CONDARC  # Interferes with tests
@@ -92,7 +96,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -119,7 +123,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -160,3 +164,32 @@ jobs:
           unset CONDARC  # Interferes with tests
           python -m pytest micromamba/tests/ \
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}
+
+  verify_pkg_tests:
+    name: mamba-content-trust tests
+    needs: ["build_shared_unix"]
+    runs-on: ${{ inputs.os }}
+    if: startsWith(inputs.os, 'ubuntu')
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+      - name: Run tests using conda-content-trust (server side)
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+          export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
+          unset CONDARC  # Interferes with tests
+          cd micromamba/test-server
+          ./generate_gpg_keys.sh
+          ./testserver_pkg_signing.sh

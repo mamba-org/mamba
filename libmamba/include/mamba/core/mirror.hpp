@@ -104,7 +104,7 @@ namespace mamba
         std::chrono::system_clock::time_point m_next_retry;
         std::chrono::system_clock::duration m_retry_wait_seconds;
         std::size_t m_retry_backoff_factor;
-        // count number of retries (this is not the same as failed transfers, as mutiple
+        // count number of retries (this is not the same as failed transfers, as multiple
         // transfers can be started at the same time, but should all be retried only once)
         std::size_t m_retry_counter;
 

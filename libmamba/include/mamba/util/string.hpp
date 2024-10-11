@@ -103,32 +103,32 @@ namespace mamba::util
     /**
      * Return a view to the input without the prefix if present.
      */
-    [[nodiscard]] auto remove_prefix(std::string_view str, std::string_view prefix)
-        -> std::string_view;
-    [[nodiscard]] auto remove_prefix(std::string_view str, std::string_view::value_type c)
-        -> std::string_view;
+    [[nodiscard]] auto
+    remove_prefix(std::string_view str, std::string_view prefix) -> std::string_view;
+    [[nodiscard]] auto
+    remove_prefix(std::string_view str, std::string_view::value_type c) -> std::string_view;
 
     /**
      * Return a view to prefix if present, and a view to the rest of the input.
      */
-    [[nodiscard]] auto split_prefix(std::string_view str, std::string_view prefix)
-        -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    split_prefix(std::string_view str, std::string_view prefix) -> std::array<std::string_view, 2>;
     [[nodiscard]] auto split_prefix(std::string_view str, std::string_view::value_type c)
         -> std::array<std::string_view, 2>;
 
     /**
      * Return a view to the input without the suffix if present.
      */
-    [[nodiscard]] auto remove_suffix(std::string_view str, std::string_view suffix)
-        -> std::string_view;
-    [[nodiscard]] auto remove_suffix(std::string_view str, std::string_view::value_type c)
-        -> std::string_view;
+    [[nodiscard]] auto
+    remove_suffix(std::string_view str, std::string_view suffix) -> std::string_view;
+    [[nodiscard]] auto
+    remove_suffix(std::string_view str, std::string_view::value_type c) -> std::string_view;
 
     /**
      * Return a view to the head of the input, and a view to suffix if present.
      */
-    [[nodiscard]] auto split_suffix(std::string_view str, std::string_view suffix)
-        -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    split_suffix(std::string_view str, std::string_view suffix) -> std::array<std::string_view, 2>;
     [[nodiscard]] auto split_suffix(std::string_view str, std::string_view::value_type c)
         -> std::array<std::string_view, 2>;
 
@@ -139,24 +139,24 @@ namespace mamba::util
     [[nodiscard]] auto lstrip(std::string_view input) -> std::string_view;
     [[nodiscard]] auto lstrip(std::wstring_view input) -> std::wstring_view;
 
-    [[nodiscard]] auto lstrip_parts(std::string_view input, char c)
-        -> std::array<std::string_view, 2>;
-    [[nodiscard]] auto lstrip_parts(std::wstring_view input, wchar_t c)
-        -> std::array<std::wstring_view, 2>;
-    [[nodiscard]] auto lstrip_parts(std::string_view input, std::string_view chars)
-        -> std::array<std::string_view, 2>;
-    [[nodiscard]] auto lstrip_parts(std::wstring_view input, std::wstring_view chars)
-        -> std::array<std::wstring_view, 2>;
+    [[nodiscard]] auto
+    lstrip_parts(std::string_view input, char c) -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    lstrip_parts(std::wstring_view input, wchar_t c) -> std::array<std::wstring_view, 2>;
+    [[nodiscard]] auto
+    lstrip_parts(std::string_view input, std::string_view chars) -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    lstrip_parts(std::wstring_view input, std::wstring_view chars) -> std::array<std::wstring_view, 2>;
 
     template <typename UnaryFunc>
     [[nodiscard]] auto lstrip_if(std::string_view input, UnaryFunc should_strip) -> std::string_view;
     template <typename UnaryFunc>
-    [[nodiscard]] auto lstrip_if(std::wstring_view input, UnaryFunc should_strip)
-        -> std::wstring_view;
+    [[nodiscard]] auto
+    lstrip_if(std::wstring_view input, UnaryFunc should_strip) -> std::wstring_view;
 
     template <typename UnaryFunc>
-    [[nodiscard]] auto lstrip_if_parts(std::string_view input, UnaryFunc should_strip)
-        -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    lstrip_if_parts(std::string_view input, UnaryFunc should_strip) -> std::array<std::string_view, 2>;
     template <typename UnaryFunc>
     [[nodiscard]] auto lstrip_if_parts(std::wstring_view input, UnaryFunc should_strip)
         -> std::array<std::wstring_view, 2>;
@@ -168,24 +168,24 @@ namespace mamba::util
     [[nodiscard]] auto rstrip(std::string_view input) -> std::string_view;
     [[nodiscard]] auto rstrip(std::wstring_view input) -> std::wstring_view;
 
-    [[nodiscard]] auto rstrip_parts(std::string_view input, char c)
-        -> std::array<std::string_view, 2>;
-    [[nodiscard]] auto rstrip_parts(std::wstring_view input, wchar_t c)
-        -> std::array<std::wstring_view, 2>;
-    [[nodiscard]] auto rstrip_parts(std::string_view input, std::string_view chars)
-        -> std::array<std::string_view, 2>;
-    [[nodiscard]] auto rstrip_parts(std::wstring_view input, std::wstring_view chars)
-        -> std::array<std::wstring_view, 2>;
+    [[nodiscard]] auto
+    rstrip_parts(std::string_view input, char c) -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    rstrip_parts(std::wstring_view input, wchar_t c) -> std::array<std::wstring_view, 2>;
+    [[nodiscard]] auto
+    rstrip_parts(std::string_view input, std::string_view chars) -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    rstrip_parts(std::wstring_view input, std::wstring_view chars) -> std::array<std::wstring_view, 2>;
 
     template <typename UnaryFunc>
     [[nodiscard]] auto rstrip_if(std::string_view input, UnaryFunc should_strip) -> std::string_view;
     template <typename UnaryFunc>
-    [[nodiscard]] auto rstrip_if(std::wstring_view input, UnaryFunc should_strip)
-        -> std::wstring_view;
+    [[nodiscard]] auto
+    rstrip_if(std::wstring_view input, UnaryFunc should_strip) -> std::wstring_view;
 
     template <typename UnaryFunc>
-    [[nodiscard]] auto rstrip_if_parts(std::string_view input, UnaryFunc should_strip)
-        -> std::array<std::string_view, 2>;
+    [[nodiscard]] auto
+    rstrip_if_parts(std::string_view input, UnaryFunc should_strip) -> std::array<std::string_view, 2>;
     template <typename UnaryFunc>
     [[nodiscard]] auto rstrip_if_parts(std::wstring_view input, UnaryFunc should_strip)
         -> std::array<std::wstring_view, 2>;
@@ -198,25 +198,24 @@ namespace mamba::util
     [[nodiscard]] auto strip(std::wstring_view input) -> std::wstring_view;
 
     [[nodiscard]] auto strip_parts(std::string_view input, char c) -> std::array<std::string_view, 3>;
-    [[nodiscard]] auto strip_parts(std::wstring_view input, wchar_t c)
-        -> std::array<std::wstring_view, 3>;
-    [[nodiscard]] auto strip_parts(std::string_view input, std::string_view chars)
-        -> std::array<std::string_view, 3>;
-    [[nodiscard]] auto strip_parts(std::wstring_view input, std::wstring_view chars)
-        -> std::array<std::wstring_view, 3>;
+    [[nodiscard]] auto
+    strip_parts(std::wstring_view input, wchar_t c) -> std::array<std::wstring_view, 3>;
+    [[nodiscard]] auto
+    strip_parts(std::string_view input, std::string_view chars) -> std::array<std::string_view, 3>;
+    [[nodiscard]] auto
+    strip_parts(std::wstring_view input, std::wstring_view chars) -> std::array<std::wstring_view, 3>;
 
     template <typename UnaryFunc>
     [[nodiscard]] auto strip_if(std::string_view input, UnaryFunc should_strip) -> std::string_view;
     template <typename UnaryFunc>
-    [[nodiscard]] auto strip_if(std::wstring_view input, UnaryFunc should_strip)
-        -> std::wstring_view;
+    [[nodiscard]] auto strip_if(std::wstring_view input, UnaryFunc should_strip) -> std::wstring_view;
 
     template <typename UnaryFunc>
-    [[nodiscard]] auto strip_if_parts(std::string_view input, UnaryFunc should_strip)
-        -> std::array<std::string_view, 3>;
+    [[nodiscard]] auto
+    strip_if_parts(std::string_view input, UnaryFunc should_strip) -> std::array<std::string_view, 3>;
     template <typename UnaryFunc>
-    [[nodiscard]] auto strip_if_parts(std::wstring_view input, UnaryFunc should_strip)
-        -> std::array<std::wstring_view, 3>;
+    [[nodiscard]] auto
+    strip_if_parts(std::wstring_view input, UnaryFunc should_strip) -> std::array<std::wstring_view, 3>;
 
     [[nodiscard]] auto split_once(std::string_view str, char sep)
         -> std::tuple<std::string_view, std::optional<std::string_view>>;
@@ -226,6 +225,18 @@ namespace mamba::util
     [[nodiscard]] auto rsplit_once(std::string_view str, char sep)
         -> std::tuple<std::optional<std::string_view>, std::string_view>;
     [[nodiscard]] auto rsplit_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+
+    [[nodiscard]] auto split_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+    template <std::size_t N>
+    [[nodiscard]] auto split_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+
+    [[nodiscard]] auto rsplit_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+    template <std::size_t N>
+    [[nodiscard]] auto rsplit_once_on_any(std::string_view str, std::array<char, N> many_seps)
         -> std::tuple<std::optional<std::string_view>, std::string_view>;
 
     [[nodiscard]] auto
@@ -258,11 +269,10 @@ namespace mamba::util
      * would return "private/channel/label/foo", but "private/chan" and "channel/label/foo"
      * would return the "private/chan/channel/label/foo".
      */
-    [[nodiscard]] auto concat_dedup_splits(std::string_view str1, std::string_view str2, char sep)
-        -> std::string;
     [[nodiscard]] auto
-    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep)
-        -> std::string;
+    concat_dedup_splits(std::string_view str1, std::string_view str2, char sep) -> std::string;
+    [[nodiscard]] auto
+    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep) -> std::string;
 
     void replace_all(std::string& data, std::string_view search, std::string_view replace);
     void replace_all(std::wstring& data, std::wstring_view search, std::wstring_view replace);
@@ -284,8 +294,8 @@ namespace mamba::util
      * separator in between the elements (thus appearing ``n-1`` times).
      */
     template <typename InputIt, typename UnaryFunction, typename Value>
-    auto join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
-        -> UnaryFunction;
+    auto
+    join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep) -> UnaryFunction;
 
     /**
      * Concatenate the elements of the container @p container by interleaving a separator.
@@ -310,7 +320,7 @@ namespace mamba::util
      * defined by iterating through the ``n`` elements of the iterator pair, interleaving the
      * separator in between the elements (thus appearing ``n-1`` times).
      *
-     * @param first The iterator pointing to the begining of the range of elements to join.
+     * @param first The iterator pointing to the beginning of the range of elements to join.
      * @param last The iterator pointing to past the end of the range of elements to join.
      * @param func The unary function to apply to all elements (separation and truncation included).
      * @param sep The separator used in between elements.
@@ -450,15 +460,15 @@ namespace mamba::util
     }
 
     template <typename UnaryFunc>
-    auto lstrip_if_parts(std::string_view input, UnaryFunc should_strip)
-        -> std::array<std::string_view, 2>
+    auto
+    lstrip_if_parts(std::string_view input, UnaryFunc should_strip) -> std::array<std::string_view, 2>
     {
         return detail::lstrip_if_parts_impl(input, std::move(should_strip));
     }
 
     template <typename UnaryFunc>
-    auto lstrip_if_parts(std::wstring_view input, UnaryFunc should_strip)
-        -> std::array<std::wstring_view, 2>
+    auto
+    lstrip_if_parts(std::wstring_view input, UnaryFunc should_strip) -> std::array<std::wstring_view, 2>
     {
         return detail::lstrip_if_parts_impl(input, std::move(should_strip));
     }
@@ -492,15 +502,15 @@ namespace mamba::util
     }
 
     template <typename UnaryFunc>
-    auto rstrip_if_parts(std::string_view input, UnaryFunc should_strip)
-        -> std::array<std::string_view, 2>
+    auto
+    rstrip_if_parts(std::string_view input, UnaryFunc should_strip) -> std::array<std::string_view, 2>
     {
         return detail::rstrip_if_parts_impl(input, std::move(should_strip));
     }
 
     template <typename UnaryFunc>
-    auto rstrip_if_parts(std::wstring_view input, UnaryFunc should_strip)
-        -> std::array<std::wstring_view, 2>
+    auto
+    rstrip_if_parts(std::wstring_view input, UnaryFunc should_strip) -> std::array<std::wstring_view, 2>
     {
         return detail::rstrip_if_parts_impl(input, std::move(should_strip));
     }
@@ -530,17 +540,31 @@ namespace mamba::util
     }
 
     template <typename UnaryFunc>
-    auto strip_if_parts(std::string_view input, UnaryFunc should_strip)
-        -> std::array<std::string_view, 3>
+    auto
+    strip_if_parts(std::string_view input, UnaryFunc should_strip) -> std::array<std::string_view, 3>
     {
         return detail::strip_if_parts_impl(input, std::move(should_strip));
     }
 
     template <typename UnaryFunc>
-    auto strip_if_parts(std::wstring_view input, UnaryFunc should_strip)
-        -> std::array<std::wstring_view, 3>
+    auto
+    strip_if_parts(std::wstring_view input, UnaryFunc should_strip) -> std::array<std::wstring_view, 3>
     {
         return detail::strip_if_parts_impl(input, std::move(should_strip));
+    }
+
+    template <std::size_t N>
+    auto split_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        return split_once_on_any(str, std::string_view{ many_seps.data(), many_seps.size() });
+    }
+
+    template <std::size_t N>
+    auto rsplit_once_on_any(std::string_view str, std::array<char, N> many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        return rsplit_once_on_any(str, std::string_view{ many_seps.data(), many_seps.size() });
     }
 
     /**************************************
@@ -583,8 +607,8 @@ namespace mamba::util
 
     // TODO(C++20) Use ``std::ranges::join_view`` (or ``std::ranges::join``)
     template <typename InputIt, typename UnaryFunction, typename Value>
-    auto join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
-        -> UnaryFunction
+    auto
+    join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep) -> UnaryFunction
     {
         if (first < last)
         {

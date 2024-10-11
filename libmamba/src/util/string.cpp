@@ -285,8 +285,8 @@ namespace mamba::util
      *  Implementation of remove prefix/suffix functions  *
      ******************************************************/
 
-    auto split_prefix(std::string_view str, std::string_view prefix)
-        -> std::array<std::string_view, 2>
+    auto
+    split_prefix(std::string_view str, std::string_view prefix) -> std::array<std::string_view, 2>
     {
         if (starts_with(str, prefix))
         {
@@ -315,8 +315,8 @@ namespace mamba::util
         return std::get<1>(split_prefix(str, c));
     }
 
-    auto split_suffix(std::string_view str, std::string_view suffix)
-        -> std::array<std::string_view, 2>
+    auto
+    split_suffix(std::string_view str, std::string_view suffix) -> std::array<std::string_view, 2>
     {
         if (ends_with(str, suffix))
         {
@@ -478,14 +478,14 @@ namespace mamba::util
         return lstrip_parts_impl(input, c);
     }
 
-    auto lstrip_parts(std::string_view input, std::string_view chars)
-        -> std::array<std::string_view, 2>
+    auto
+    lstrip_parts(std::string_view input, std::string_view chars) -> std::array<std::string_view, 2>
     {
         return lstrip_parts_impl(input, chars);
     }
 
-    auto lstrip_parts(std::wstring_view input, std::wstring_view chars)
-        -> std::array<std::wstring_view, 2>
+    auto
+    lstrip_parts(std::wstring_view input, std::wstring_view chars) -> std::array<std::wstring_view, 2>
     {
         return lstrip_parts_impl(input, chars);
     }
@@ -517,14 +517,14 @@ namespace mamba::util
         return rstrip_parts_impl(input, c);
     }
 
-    auto rstrip_parts(std::string_view input, std::string_view chars)
-        -> std::array<std::string_view, 2>
+    auto
+    rstrip_parts(std::string_view input, std::string_view chars) -> std::array<std::string_view, 2>
     {
         return rstrip_parts_impl(input, chars);
     }
 
-    auto rstrip_parts(std::wstring_view input, std::wstring_view chars)
-        -> std::array<std::wstring_view, 2>
+    auto
+    rstrip_parts(std::wstring_view input, std::wstring_view chars) -> std::array<std::wstring_view, 2>
     {
         return rstrip_parts_impl(input, chars);
     }
@@ -558,14 +558,14 @@ namespace mamba::util
         return strip_parts_impl(input, c);
     }
 
-    auto strip_parts(std::string_view input, std::string_view chars)
-        -> std::array<std::string_view, 3>
+    auto
+    strip_parts(std::string_view input, std::string_view chars) -> std::array<std::string_view, 3>
     {
         return strip_parts_impl(input, chars);
     }
 
-    auto strip_parts(std::wstring_view input, std::wstring_view chars)
-        -> std::array<std::wstring_view, 3>
+    auto
+    strip_parts(std::wstring_view input, std::wstring_view chars) -> std::array<std::wstring_view, 3>
     {
         return strip_parts_impl(input, chars);
     }
@@ -626,6 +626,32 @@ namespace mamba::util
         -> std::tuple<std::optional<std::string_view>, std::string_view>
     {
         return rsplit_once_impl(str, sep);
+    }
+
+    /***************************************************
+     *  Implementation of split_once_on_any functions  *
+     ***************************************************/
+
+    auto split_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        static constexpr auto npos = std::string_view::npos;
+        if (const auto pos = str.find_first_of(many_seps); pos != npos)
+        {
+            return { str.substr(0, pos), str.substr(pos + 1) };
+        }
+        return { str, std::nullopt };
+    }
+
+    auto rsplit_once_on_any(std::string_view str, std::string_view many_seps)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        static constexpr auto npos = std::string_view::npos;
+        if (const auto pos = str.find_last_of(many_seps); pos != npos)
+        {
+            return { str.substr(0, pos), str.substr(pos + 1) };
+        }
+        return { std::nullopt, str };
     }
 
     /***************************************
@@ -741,8 +767,8 @@ namespace mamba::util
     }
 
     // TODO(C++20) lazy_split_view is a range
-    auto split(std::wstring_view input, wchar_t sep, std::size_t max_split)
-        -> std::vector<std::wstring>
+    auto
+    split(std::wstring_view input, wchar_t sep, std::size_t max_split) -> std::vector<std::wstring>
     {
         const auto sep_arr = std::array<wchar_t, 2>{ sep, L'\0' };
         return split<decltype(input)::value_type>(input, sep_arr.data(), max_split);
@@ -770,8 +796,8 @@ namespace mamba::util
     }
 
     // TODO(C++20) lazy_split_view is a range
-    auto rsplit(std::wstring_view input, wchar_t sep, std::size_t max_split)
-        -> std::vector<std::wstring>
+    auto
+    rsplit(std::wstring_view input, wchar_t sep, std::size_t max_split) -> std::vector<std::wstring>
     {
         const auto sep_arr = std::array<wchar_t, 2>{ sep, L'\0' };
         return rsplit<decltype(input)::value_type>(input, sep_arr.data(), max_split);
@@ -871,8 +897,8 @@ namespace mamba::util
         return concat_dedup_splits_impl(str1, str2, sep);
     }
 
-    auto concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep)
-        -> std::string
+    auto
+    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep) -> std::string
     {
         return concat_dedup_splits_impl(str1, str2, sep);
     }

@@ -13,33 +13,51 @@
 
 #include "mamba/api/install.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/solution.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
+    namespace solver
+    {
+        struct Request;
+    }
+
     class ChannelContext;
-    class MSolver;
+    class Context;
 
     class MTransaction
     {
     public:
 
         MTransaction(
-            MPool& pool,
-            const std::vector<specs::MatchSpec>& specs_to_remove,
-            const std::vector<specs::MatchSpec>& specs_to_install,
+            const Context& ctx,
+            solver::libsolv::Database& db,
+            std::vector<specs::PackageInfo> pkgs_to_remove,
+            std::vector<specs::PackageInfo> pkgs_to_install,
             MultiPackageCache& caches
         );
-        MTransaction(MPool& pool, MSolver& solver, MultiPackageCache& caches);
+
+        MTransaction(
+            const Context& ctx,
+            solver::libsolv::Database& db,
+            const solver::Request& request,
+            solver::Solution solution,
+            MultiPackageCache& caches
+        );
 
         // Only use if the packages have been solved previously already.
-        MTransaction(MPool& pool, const std::vector<specs::PackageInfo>& packages, MultiPackageCache& caches);
+        MTransaction(
+            const Context& ctx,
+            solver::libsolv::Database& db,
+            std::vector<specs::PackageInfo> packages,
+            MultiPackageCache& caches
+        );
 
         MTransaction(const MTransaction&) = delete;
         MTransaction(MTransaction&&) = delete;
@@ -53,17 +71,14 @@ namespace mamba
 
         to_conda_type to_conda();
         void log_json();
-        bool fetch_extract_packages();
+        bool fetch_extract_packages(const Context& ctx, ChannelContext& channel_context);
         bool empty();
-        bool prompt();
-        void print();
-        bool execute(PrefixData& prefix);
-
-        [[deprecated]] std::pair<std::string, std::string> py_find_python_version() const;
+        bool prompt(const Context& ctx, ChannelContext& channel_context);
+        void print(const Context& ctx, ChannelContext& channel_context);
+        bool execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix);
 
     private:
 
-        MPool m_pool;
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
@@ -73,18 +88,20 @@ namespace mamba
 
         std::vector<specs::MatchSpec> m_requested_specs;
 
-        MTransaction(MPool&, MultiPackageCache&);
+        MTransaction(const Context& ctx, MultiPackageCache&);
     };
 
     MTransaction create_explicit_transaction_from_urls(
-        MPool& pool,
+        const Context& ctx,
+        solver::libsolv::Database& db,
         const std::vector<std::string>& urls,
         MultiPackageCache& package_caches,
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     );
 
     MTransaction create_explicit_transaction_from_lockfile(
-        MPool& pool,
+        const Context& ctx,
+        solver::libsolv::Database& db,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,

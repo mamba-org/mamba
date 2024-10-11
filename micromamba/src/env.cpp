@@ -6,8 +6,6 @@
 
 #include <string>
 
-#include <solv/solver.h>
-
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/remove.hpp"
@@ -143,8 +141,21 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 for (const auto& record : records)
                 {
-                    using Credentials = typename specs::CondaURL::Credentials;
-                    std::cout << specs::CondaURL::parse(record.package_url).str(Credentials::Remove);
+                    std::cout <<  //
+                        specs::CondaURL::parse(record.package_url)
+                            .transform(
+                                [](specs::CondaURL&& url)
+                                {
+                                    using Credentials = typename specs::CondaURL::Credentials;
+                                    return url.str(Credentials::Remove);
+                                }
+                            )
+                            .or_else(
+                                [&](const auto&) -> specs::expected_parse_t<std::string>
+                                { return record.package_url; }
+                            )
+                            .value();
+
                     if (no_md5 != 1)
                     {
                         std::cout << "#" << record.md5;
@@ -184,9 +195,9 @@ set_env_command(CLI::App* com, Configuration& config)
                         if (channel_subdir)
                         {
                             dependencies
-                                // If the size is not one, it's a custom mutli channel
+                                // If the size is not one, it's a custom multi channel
                                 << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.subdir << "::";
+                                << "/" << v.platform << "::";
                         }
                         dependencies << v.name << "=" << v.version;
                         if (!no_build)
@@ -200,7 +211,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "\n";
                     }
 
-                    for (auto const& chan : chans)
+                    for (const auto& chan : chans)
                     {
                         channels.insert(chan.display_name());
                     }
@@ -225,7 +236,25 @@ set_env_command(CLI::App* com, Configuration& config)
         [&config]
         {
             // Remove specs if exist
-            remove(config, MAMBA_REMOVE_ALL);
+            RemoveResult remove_env_result = remove(config, MAMBA_REMOVE_ALL);
+
+            if (remove_env_result == RemoveResult::NO)
+            {
+                Console::stream() << "The environment was not removed.";
+                return;
+            }
+
+            if (remove_env_result == RemoveResult::EMPTY)
+            {
+                Console::stream() << "No packages to remove from environment.";
+
+                auto res = Console::prompt("Do you want to remove the environment?", 'Y');
+                if (!res)
+                {
+                    Console::stream() << "The environment was not removed.";
+                    return;
+                }
+            }
 
             const auto& ctx = config.context();
             if (!ctx.dry_run)
@@ -273,6 +302,15 @@ set_env_command(CLI::App* com, Configuration& config)
 
     update_subcom->callback(
         [&config]
-        { update(config, /*update_all*/ false, /*prune_deps*/ false, remove_not_specified); }
+        {
+            auto update_params = UpdateParams{
+                UpdateAll::No,
+                PruneDeps::Yes,
+                EnvUpdate::Yes,
+                remove_not_specified ? RemoveNotSpecified::Yes : RemoveNotSpecified::No,
+            };
+
+            update(config, update_params);
+        }
     );
 }

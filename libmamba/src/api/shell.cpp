@@ -23,8 +23,8 @@ namespace mamba
 {
     namespace
     {
-        auto make_activator(const Context& context, std::string_view name)
-            -> std::unique_ptr<Activator>
+        auto
+        make_activator(const Context& context, std::string_view name) -> std::unique_ptr<Activator>
         {
             if (name == "bash" || name == "zsh" || name == "dash" || name == "posix")
             {
@@ -94,7 +94,7 @@ namespace mamba
     void shell_hook(Context& ctx, const std::string& shell_type)
     {
         auto activator = make_activator(ctx, shell_type);
-        // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
+        // TODO do we need to do something with `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
         {
             Console::instance().json_write({ { "success", true },
@@ -135,15 +135,18 @@ namespace mamba
         std::cout << activator->deactivate();
     }
 
+#ifdef _WIN32
     void shell_enable_long_path_support(Palette palette)
     {
-#ifdef _WIN32
         if (const bool success = enable_long_paths_support(/* force= */ true, palette); !success)
         {
             throw std::runtime_error("Error enabling Windows long-path support");
         }
-#else
-        throw std::invalid_argument("Long path support is a Windows only option");
-#endif
     }
+#else
+    void shell_enable_long_path_support(Palette)
+    {
+        throw std::invalid_argument("Long path support is a Windows only option");
+    }
+#endif
 }

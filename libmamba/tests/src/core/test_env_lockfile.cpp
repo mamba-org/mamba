@@ -10,7 +10,9 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/solver/libsolv/database.hpp"
 
 #include "mambatests.hpp"
 
@@ -46,7 +48,7 @@ namespace mamba
             const auto error = maybe_lockfile.error();
             REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
             const auto& error_details = EnvLockFileError::get_details(error);
-            CHECK_EQ(file_parsing_error_code::unsuported_version, error_details.parsing_error_code);
+            CHECK_EQ(file_parsing_error_code::unsupported_version, error_details.parsing_error_code);
         }
 
         TEST_CASE("valid_no_package_succeed")
@@ -126,7 +128,8 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
-            MPool pool{ ctx, channel_context };
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
             mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 
             ctx.platform = "linux-64";
@@ -136,7 +139,8 @@ namespace mamba
             {
                 std::vector<detail::other_pkg_mgr_spec> other_specs;
                 auto transaction = create_explicit_transaction_from_lockfile(
-                    pool,
+                    ctx,
+                    db,
                     lockfile_path,
                     categories,
                     pkg_cache,

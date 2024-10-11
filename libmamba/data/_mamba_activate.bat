@@ -6,7 +6,7 @@
 
 @REM This is the standard user case.  This script is run in root\condabin.
 @REM FOR %%A IN ("%~dp0.") DO @SET _sysp=%%~dpA
-@REM IF NOT EXIST "!_sysp!\Scripts\micromamba.exe" @SET "_sysp=!_sysp!..\"
+@REM IF NOT EXIST "!_sysp!\Scripts\mamba.exe" @SET "_sysp=!_sysp!..\"
 
 @FOR %%A in ("%TMP%") do @SET TMP=%%~sA
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"

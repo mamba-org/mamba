@@ -55,8 +55,8 @@ You can try Mamba now by visiting the installation for
    :maxdepth: 2
    :hidden:
 
-   python_api
    usage/specs
+   usage/solver
 
 .. toctree::
    :caption: API REFERENCE
@@ -64,6 +64,7 @@ You can try Mamba now by visiting the installation for
    :hidden:
 
    api/specs
+   api/solver
 
 .. toctree::
    :caption: DEVELOPER ZONE
@@ -73,3 +74,4 @@ You can try Mamba now by visiting the installation for
    developer_zone/contributing
    developer_zone/dev_environment
    developer_zone/internals
+   developer_zone/changes-2.0

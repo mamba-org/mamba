@@ -27,8 +27,8 @@ namespace mamba
 
     namespace
     {
-        auto create_platforms(const std::vector<std::string>& platforms)
-            -> specs::ChannelResolveParams::platform_list
+        auto create_platforms(const std::vector<std::string>& platforms
+        ) -> specs::ChannelResolveParams::platform_list
         {
             return { platforms.cbegin(), platforms.cend() };
         }
@@ -36,17 +36,30 @@ namespace mamba
         template <typename Param>
         auto make_unique_chan(std::string_view loc, const Param& params) -> specs::Channel
         {
-            auto uc = specs::UnresolvedChannel::parse(loc);
-            auto channels = specs::Channel::resolve(std::move(uc), params);
-            assert(channels.size() == 1);
-            return std::move(channels.front());
+            return specs::UnresolvedChannel::parse(loc)
+                .and_then(  //
+                    [&](specs::UnresolvedChannel&& uc)
+                    { return specs::Channel::resolve(std::move(uc), params); }
+                )
+                .transform(
+                    [](specs::Channel::channel_list&& channels) -> specs::Channel
+                    {
+                        assert(channels.size() == 1);
+                        return std::move(channels.front());
+                    }
+                )
+                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                .value();
         };
 
         auto make_simple_params_base(const Context& ctx) -> specs::ChannelResolveParams
         {
             return specs::ChannelResolveParams{
                 /* .platform= */ create_platforms(ctx.platforms()),
-                /* .channel_alias= */ specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias)),
+                /* .channel_alias= */
+                specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias))
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value(),
                 /* .custom_channels= */ {},
                 /* .custom_multichannels= */ {},
                 /* .authentication_db= */ ctx.authentication_info(),
@@ -164,7 +177,7 @@ namespace mamba
                 params.custom_multichannels.emplace("local", std::move(channels));
             }
 
-            // Called after to guarentee there are no custom multichannels when calling
+            // Called after to guarantee there are no custom multichannels when calling
             // make_unique_chan.
             add_simple_params_custom_multichannel(params, ctx);
         }
@@ -178,8 +191,15 @@ namespace mamba
                 out.reserve(ctx.repodata_has_zst.size());
                 for (const auto& loc : ctx.repodata_has_zst)
                 {
-                    auto uc = specs::UnresolvedChannel::parse(loc);
-                    auto channels = specs::Channel::resolve(std::move(uc), params);
+                    auto channels = specs::UnresolvedChannel::parse(loc)
+                                        .and_then(  //
+                                            [&](specs::UnresolvedChannel&& uc) {
+                                                return specs::Channel::resolve(std::move(uc), params);
+                                            }
+                                        )
+                                        .or_else([](specs::ParseError&& error)
+                                                 { throw std::move(error); })
+                                        .value();
                     for (auto& chan : channels)
                     {
                         out.push_back(std::move(chan));
@@ -225,6 +245,8 @@ namespace mamba
         auto [it, inserted] = m_channel_cache.emplace(
             std::move(str),
             Channel::resolve(std::move(uc), params())
+                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                .value()
         );
         assert(inserted);
         return it->second;
@@ -239,7 +261,13 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             name,
-            Channel::resolve(specs::UnresolvedChannel::parse(name), params())
+            specs::UnresolvedChannel::parse(name)
+                .and_then(  //
+                    [&](specs::UnresolvedChannel&& uc)
+                    { return specs::Channel::resolve(std::move(uc), params()); }
+                )
+                .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                .value()
         );
         assert(inserted);
         return it->second;
@@ -257,7 +285,11 @@ namespace mamba
         mirror_urls.reserve(mirrors.size());
         for (const auto& mirror : mirrors)
         {
-            mirror_urls.push_back(specs::CondaURL::parse(mirror));
+            mirror_urls.push_back(  //
+                specs::CondaURL::parse(mirror)
+                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                    .value()
+            );
         }
         auto [it, inserted] = m_channel_cache.emplace(
             name,

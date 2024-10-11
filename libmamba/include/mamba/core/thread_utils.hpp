@@ -22,6 +22,9 @@ namespace mamba
      * thread interruption *
      ***********************/
 
+
+    using signal_handler_t = void (*)(int);
+
 #ifndef _WIN32
     void set_signal_handler(const std::function<void(sigset_t)>& handler);
 
@@ -31,9 +34,10 @@ namespace mamba
 #endif
 
     void set_default_signal_handler();
+    void restore_previous_signal_handler();
+    signal_handler_t previous_signal_handler();
     bool is_sig_interrupted() noexcept;
     void set_sig_interrupted() noexcept;
-
 
     void interruption_point();
 
@@ -59,7 +63,7 @@ namespace mamba
 
     // Waits until all other threads have finished
     // Must be called by the cleaning thread to ensure
-    // it won't free ressources that could be required
+    // it won't free resources that could be required
     // by threads still active.
     void wait_for_all_threads();
 

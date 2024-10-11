@@ -436,8 +436,7 @@ namespace mamba
         const std::string cwd = path.parent_path().string();
         options.working_directory = cwd.c_str();
 
-        LOG_TRACE << "ENV MAP:"
-                  << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
+        LOG_TRACE << "ENV MAP:" << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
                   << "\n PREFIX: " << envmap["PREFIX"] << "\n PKG_NAME: " << envmap["PKG_NAME"]
                   << "\n PKG_VERSION: " << envmap["PKG_VERSION"]
                   << "\n PKG_BUILDNUM: " << envmap["PKG_BUILDNUM"] << "\n PATH: " << envmap["PATH"]
@@ -744,7 +743,7 @@ namespace mamba
             }
 
 #if defined(__APPLE__)
-            if (binary_changed && m_pkg_info.subdir == "osx-arm64")
+            if (binary_changed && m_pkg_info.platform == "osx-arm64")
             {
                 codesign(dst, m_context->context().output_params.verbosity > 1);
             }

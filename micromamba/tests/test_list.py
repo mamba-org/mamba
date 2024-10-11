@@ -21,6 +21,23 @@ def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_sele
     names = [i["name"] for i in res]
     assert "xtensor" in names
     assert "xtl" in names
+    assert all(
+        i["channel"] == "conda-forge" and i["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for i in res
+    )
+
+
+@pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_name(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
+    helpers.install("xtensor-python")
+    res = helpers.umamba_list("xt", "--json", quiet_flag)
+    names = sorted([i["name"] for i in res])
+    assert names == ["xtensor", "xtensor-python", "xtl"]
+
+    full_res = helpers.umamba_list("xtensor", "--full-name", "--json", quiet_flag)
+    full_names = sorted([i["name"] for i in full_res])
+    assert full_names == ["xtensor"]
 
 
 @pytest.mark.parametrize("env_selector", ["name", "prefix"])

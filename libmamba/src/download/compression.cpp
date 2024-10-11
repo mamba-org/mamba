@@ -10,7 +10,7 @@
 
 #include "compression.hpp"
 
-namespace mamba
+namespace mamba::download
 {
     /*********************
      * CompressionStream *
@@ -195,10 +195,18 @@ namespace mamba
         return base_type::invoke_writer(in, size);
     }
 
-    std::unique_ptr<CompressionStream>
-    make_compression_stream(const std::string& url, CompressionStream::writer&& func)
+    std::unique_ptr<CompressionStream> make_compression_stream(
+        const std::string& url,
+        bool is_repodata_zst_from_oci_reg,
+        CompressionStream::writer&& func
+    )
     {
-        if (util::ends_with(url, ".json.zst"))
+        // In the case of fetching from an OCI registry,
+        // the url doesn't end with `.json.zst` extension.
+        // Compressed repodata is rather handled internally
+        // in OCIMirror implementation, and is reflected
+        // by `is_repodata_zst_from_oci_reg`
+        if (util::ends_with(url, ".json.zst") || is_repodata_zst_from_oci_reg)
         {
             return std::make_unique<ZstdCompressionStream>(std::move(func));
         }

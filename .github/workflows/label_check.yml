@@ -1,0 +1,43 @@
+name: Check release label
+
+on:
+  pull_request:
+    types:
+      - synchronize
+      - opened
+      - reopened
+      - labeled
+      - unlabeled
+
+jobs:
+  label_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check labels
+        run: |
+          NUMBER_OF_LABELS=$(jq '.pull_request.labels | length' "$GITHUB_EVENT_PATH")
+          if [ $NUMBER_OF_LABELS -eq 0 ]; then
+            echo "PR has no labels. Please add at least one label of release type."
+            exit 1
+          fi
+
+          RELEASE_LABELS=("release::enhancements" "release::bug_fixes" "release::ci_docs")
+          PR_LABELS=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+          NB_RELEASE_LABELS=0
+
+          for LABEL in $PR_LABELS; do
+            if [[ " ${RELEASE_LABELS[@]} " =~ " ${LABEL} " ]]; then
+              NB_RELEASE_LABELS=$((NB_RELEASE_LABELS+1))
+            fi
+          done
+
+          if [ $NB_RELEASE_LABELS -eq 0 ]; then
+            echo "PR has no release labels. Please add a label of release type."
+            exit 1
+          elif [ $NB_RELEASE_LABELS -gt 1 ]; then
+            echo "PR has multiple release labels. Please remove all but one label."
+            exit 1
+          fi

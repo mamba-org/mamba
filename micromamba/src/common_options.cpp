@@ -393,16 +393,9 @@ init_install_options(CLI::App* subcom, Configuration& config)
 
     auto& always_copy = config.at("always_copy");
     subcom->add_flag(
-        "--always-copy,!--no-always-copy",
+        "--always-copy,--copy,!--no-always-copy",
         always_copy.get_cli_config<bool>(),
         always_copy.description()
-    );
-
-    auto& extra_safety_checks = config.at("extra_safety_checks");
-    subcom->add_flag(
-        "--extra-safety-checks,!--no-extra-safety-checks",
-        extra_safety_checks.get_cli_config<bool>(),
-        extra_safety_checks.description()
     );
 
     auto& lock_timeout = config.at("lock_timeout");
@@ -431,8 +424,31 @@ init_install_options(CLI::App* subcom, Configuration& config)
         )
         ->transform(CLI::CheckedTransformer(vl_map, CLI::ignore_case));
 
+    auto& extra_safety_checks = config.at("extra_safety_checks");
+    subcom->add_flag(
+        "--extra-safety-checks,!--no-extra-safety-checks",
+        extra_safety_checks.get_cli_config<bool>(),
+        extra_safety_checks.description()
+    );
+
     auto& av = config.at("verify_artifacts");
     subcom->add_flag("--verify-artifacts", av.get_cli_config<bool>(), av.description());
+
+    auto& trusted_channels = config.at("trusted_channels");
+    // Allowing unlimited number of args (may be modified later if needed using `type_size` and
+    // `allow_extra_args`)
+    subcom->add_option(
+        "--trusted-channels",
+        trusted_channels.get_cli_config<string_list>(),
+        trusted_channels.description()
+    );
+
+    auto& repo_parsing = config.at("experimental_repodata_parsing");
+    subcom->add_flag(
+        "--exp-repodata-parsing, !--no-exp-repodata-parsing",
+        repo_parsing.get_cli_config<bool>(),
+        repo_parsing.description()
+    );
 
     auto& platform = config.at("platform");
     subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());

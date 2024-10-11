@@ -1,5 +1,5 @@
 =======================
-Development Envrionment
+Development Environment
 =======================
 
 .. warning::
@@ -12,8 +12,8 @@ Get the code and Mamba
 Clone the repo
 **************
 
-Fork and clone the repository in your prefered manner.
-Refer to Github documentation for how to do so.
+Fork and clone the repository in your preferred manner.
+Refer to GitHub documentation for how to do so.
 
 Install micromamba
 ******************
@@ -28,7 +28,8 @@ Develop using Taskfile
 ======================
 
 Many development operations can be automated and chained using `Taskfile <https://taskfile.dev/>`_.
-You can follow the installation instructions there, or install it via `conda-forge`.
+You can follow the installation instructions there, or install it via ``conda-forge``.
+
 
 .. code:: bash
 
@@ -63,15 +64,15 @@ At the time of writing, the following tasks are available:
    * create-dev-env:        Create a local development mamba environment with all needed dependencies
    * create-test-env:       Create a local test environment with as a copy of the dev environment.
    * install-cpp:           Install C++ targets into the test environment.
-   * install-py:            Install the `libmambapy` Python package inside the test environment.
-   * micromamba:            Run the development `micromamba`.
+   * install-py:            Install the ``libmambapy`` Python package inside the test environment.
+   * micromamba:            Run the development ``micromamba``.
    * pre-commit:            Run linters and code formatters.
    * reconfigure:           Erase all CMake cache entries and run confiiguration again.
    * stubgen:               Regenerate libmambapy typing stubs.
    * test-docs:             Test the documentation, for instance for dead links.
-   * test-libmamba:         Run `libmamba` C++ based tests.
-   * test-libmambapy:       Run `libmambapy` Python based unit tests.
-   * test-micromamba:       Run `micromamba` integration tests.
+   * test-libmamba:         Run ``libmamba`` C++ based tests.
+   * test-libmambapy:       Run ``libmambapy`` Python based unit tests.
+   * test-micromamba:       Run ``micromamba`` integration tests.
 
 For instance to run ``libmamba`` tests, execute:
 
@@ -121,15 +122,15 @@ Running commands manually
    useful commands.
    The CI files in ``.github/workflow`` provide an alternative way of developing Mamba.
 
-Install develoment dependencies
-*******************************
+Install development dependencies
+********************************
 
 .. code:: bash
 
-    micromamba create -n mamba -c conda-forge -f dev/environment.yml
+    micromamba create -n mamba -c conda-forge -f dev/environment-dev.yml
     micromamba activate -n mamba
 
-Compile ``libmmaba`` and other artifacts
+Compile ``libmamba`` and other artifacts
 ****************************************
 
 ``libmamba`` is built using CMake.
@@ -138,6 +139,11 @@ from Conda-Forge.
 
 The first step is to configure the build options.
 A recommended set is already provided as CMake Preset, but feel free to use any variations.
+
+.. note::
+    If you do choose to use the provided CMake Preset, you may need to
+    install ``ccache`` as an extra requirement as specified
+    in ``dev/environment-dev-extra.yml``.
 
 .. note::
     All ``cmake`` commands listed below use ``bash`` multi-line syntax.
@@ -156,7 +162,7 @@ Compilation can then be launched with:
 ``libmamba`` tests
 ******************
 
-The tests for libamba are written in C++.
+The tests for libmamba are written in C++.
 
 .. code:: bash
 
@@ -165,7 +171,7 @@ The tests for libamba are written in C++.
 ``micromamba`` integration tests
 ********************************
 
-Many ``micromamba`` integration tests are written through a Pytest Python wrapper.
+Many ``micromamba`` integration tests are written through a pytest Python wrapper.
 The environment variable ``TEST_MAMBA_EXE`` controls which executable is being tested.
 
 .. code:: bash
@@ -180,7 +186,7 @@ To run the ``libmambapy`` tests, the Python package needs to be properly install
 
 .. warning::
 
-   This needs to be done every time ``libamamba`` changes.
+   This needs to be done every time ``libmamba`` changes.
 
 .. code:: bash
 
@@ -201,9 +207,9 @@ Finally the tests can be run:
 Code Formatting
 ===============
 
-Code formatting is done using Pre Commit hooks.
+Code formatting is done using Pre-Commit hooks.
 Whichever way you decided to install development dependencies, we recommend installing
-Pre Commit hooks with
+Pre-Commit hooks with
 
 .. code:: bash
 

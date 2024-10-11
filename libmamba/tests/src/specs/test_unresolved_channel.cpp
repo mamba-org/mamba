@@ -38,21 +38,30 @@ TEST_SUITE("specs::unresolved_channel")
 
     TEST_CASE("Parsing")
     {
-        SUBCASE("Invalid channels")
+        SUBCASE("Unknown channels")
         {
             for (std::string_view str : { "", "<unknown>", ":///<unknown>", "none" })
             {
                 CAPTURE(str);
-                const auto uc = UnresolvedChannel::parse(str);
+                const auto uc = UnresolvedChannel::parse(str).value();
                 CHECK_EQ(uc.type(), Type::Unknown);
                 CHECK_EQ(uc.location(), "<unknown>");
                 CHECK_EQ(uc.platform_filters(), PlatformSet{});
             }
         }
 
+        SUBCASE("Invalid channels")
+        {
+            for (std::string_view str : { "forgelinux-64]" })
+            {
+                CAPTURE(str);
+                CHECK_FALSE(UnresolvedChannel::parse(str).has_value());
+            }
+        }
+
         SUBCASE("https://repo.anaconda.com/conda-forge")
         {
-            const auto uc = UnresolvedChannel::parse("https://repo.anaconda.com/conda-forge");
+            const auto uc = UnresolvedChannel::parse("https://repo.anaconda.com/conda-forge").value();
             CHECK_EQ(uc.type(), Type::URL);
             CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -60,7 +69,8 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("https://repo.anaconda.com/conda-forge/osx-64")
         {
-            const auto uc = UnresolvedChannel::parse("https://repo.anaconda.com/conda-forge/osx-64");
+            const auto uc = UnresolvedChannel::parse("https://repo.anaconda.com/conda-forge/osx-64")
+                                .value();
             CHECK_EQ(uc.type(), Type::URL);
             CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "osx-64" });
@@ -69,8 +79,9 @@ TEST_SUITE("specs::unresolved_channel")
         SUBCASE("https://repo.anaconda.com/conda-forge[win-64|noarch]")
         {
             const auto uc = UnresolvedChannel::parse(
-                "https://repo.anaconda.com/conda-forge[win-64|noarch]"
-            );
+                                "https://repo.anaconda.com/conda-forge[win-64|noarch]"
+            )
+                                .value();
             CHECK_EQ(uc.type(), Type::URL);
             CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "win-64", "noarch" });
@@ -79,8 +90,9 @@ TEST_SUITE("specs::unresolved_channel")
         SUBCASE("https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda")
         {
             const auto uc = UnresolvedChannel::parse(
-                "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda"
-            );
+                                "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda"
+            )
+                                .value();
             CHECK_EQ(uc.type(), Type::PackageURL);
             CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -88,7 +100,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("file:///Users/name/conda")
         {
-            const auto uc = UnresolvedChannel::parse("file:///Users/name/conda");
+            const auto uc = UnresolvedChannel::parse("file:///Users/name/conda").value();
             CHECK_EQ(uc.type(), Type::Path);
             CHECK_EQ(uc.location(), "file:///Users/name/conda");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -96,7 +108,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("file:///Users/name/conda[linux-64]")
         {
-            const auto uc = UnresolvedChannel::parse("file:///Users/name/conda[linux-64]");
+            const auto uc = UnresolvedChannel::parse("file:///Users/name/conda[linux-64]").value();
             CHECK_EQ(uc.type(), Type::Path);
             CHECK_EQ(uc.location(), "file:///Users/name/conda");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
@@ -106,7 +118,7 @@ TEST_SUITE("specs::unresolved_channel")
         {
             if (util::on_win)
             {
-                const auto uc = UnresolvedChannel::parse("file://C:/Users/name/conda");
+                const auto uc = UnresolvedChannel::parse("file://C:/Users/name/conda").value();
                 CHECK_EQ(uc.type(), Type::Path);
                 CHECK_EQ(uc.location(), "file://C:/Users/name/conda");
                 CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -115,7 +127,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("/Users/name/conda")
         {
-            const auto uc = UnresolvedChannel::parse("/Users/name/conda");
+            const auto uc = UnresolvedChannel::parse("/Users/name/conda").value();
             CHECK_EQ(uc.type(), Type::Path);
             CHECK_EQ(uc.location(), "/Users/name/conda");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -123,7 +135,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("./folder/../folder/.")
         {
-            const auto uc = UnresolvedChannel::parse("./folder/../folder/.");
+            const auto uc = UnresolvedChannel::parse("./folder/../folder/.").value();
             CHECK_EQ(uc.type(), Type::Path);
             CHECK_EQ(uc.location(), "folder");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -131,7 +143,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("~/folder/")
         {
-            const auto uc = UnresolvedChannel::parse("~/folder/");
+            const auto uc = UnresolvedChannel::parse("~/folder/").value();
             CHECK_EQ(uc.type(), Type::Path);
             CHECK_EQ(uc.location(), "~/folder");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -139,7 +151,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("/tmp/pkg-0.0-bld.tar.bz2")
         {
-            const auto uc = UnresolvedChannel::parse("/tmp/pkg-0.0-bld.tar.bz2");
+            const auto uc = UnresolvedChannel::parse("/tmp/pkg-0.0-bld.tar.bz2").value();
             CHECK_EQ(uc.type(), Type::PackagePath);
             CHECK_EQ(uc.location(), "/tmp/pkg-0.0-bld.tar.bz2");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -147,7 +159,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("C:/tmp//pkg-0.0-bld.tar.bz2")
         {
-            const auto uc = UnresolvedChannel::parse("C:/tmp//pkg-0.0-bld.tar.bz2");
+            const auto uc = UnresolvedChannel::parse("C:/tmp//pkg-0.0-bld.tar.bz2").value();
             CHECK_EQ(uc.type(), Type::PackagePath);
             CHECK_EQ(uc.location(), "C:/tmp/pkg-0.0-bld.tar.bz2");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -157,7 +169,7 @@ TEST_SUITE("specs::unresolved_channel")
         {
             if (util::on_win)
             {
-                const auto uc = UnresolvedChannel::parse(R"(C:\tmp\pkg-0.0-bld.tar.bz2)");
+                const auto uc = UnresolvedChannel::parse(R"(C:\tmp\pkg-0.0-bld.tar.bz2)").value();
                 CHECK_EQ(uc.type(), Type::PackagePath);
                 CHECK_EQ(uc.location(), "C:/tmp/pkg-0.0-bld.tar.bz2");
                 CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -166,7 +178,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("conda-forge")
         {
-            const auto uc = UnresolvedChannel::parse("conda-forge");
+            const auto uc = UnresolvedChannel::parse("conda-forge").value();
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
@@ -174,7 +186,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("repo.anaconda.com")
         {
-            const auto uc = UnresolvedChannel::parse("repo.anaconda.com");
+            const auto uc = UnresolvedChannel::parse("repo.anaconda.com").value();
             // Unintuitive but correct type, this is not a URL. Better explicit than clever.
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "repo.anaconda.com");
@@ -183,7 +195,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("conda-forge/linux-64")
         {
-            const auto uc = UnresolvedChannel::parse("conda-forge/linux-64");
+            const auto uc = UnresolvedChannel::parse("conda-forge/linux-64").value();
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
@@ -191,7 +203,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("conda-forge[linux-avx512]")
         {
-            const auto uc = UnresolvedChannel::parse("conda-forge[linux-avx512]");
+            const auto uc = UnresolvedChannel::parse("conda-forge[linux-avx512]").value();
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-avx512" });
@@ -199,7 +211,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("conda-forge[]")
         {
-            const auto uc = UnresolvedChannel::parse("conda-forge[linux-64]");
+            const auto uc = UnresolvedChannel::parse("conda-forge[linux-64]").value();
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "conda-forge");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
@@ -207,7 +219,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("conda-forge/linux-64/label/foo_dev")
         {
-            const auto uc = UnresolvedChannel::parse("conda-forge/linux-64/label/foo_dev");
+            const auto uc = UnresolvedChannel::parse("conda-forge/linux-64/label/foo_dev").value();
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "conda-forge/label/foo_dev");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
@@ -215,7 +227,7 @@ TEST_SUITE("specs::unresolved_channel")
 
         SUBCASE("conda-forge/label/foo_dev[linux-64]")
         {
-            const auto uc = UnresolvedChannel::parse("conda-forge/label/foo_dev[linux-64]");
+            const auto uc = UnresolvedChannel::parse("conda-forge/label/foo_dev[linux-64]").value();
             CHECK_EQ(uc.type(), Type::Name);
             CHECK_EQ(uc.location(), "conda-forge/label/foo_dev");
             CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
@@ -229,5 +241,19 @@ TEST_SUITE("specs::unresolved_channel")
             UnresolvedChannel("location", { "linux-64", "noarch" }, Type::Name).str(),
             "location[linux-64,noarch]"
         );
+    }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto uc1 = UnresolvedChannel::parse("conda-forge").value();
+        auto uc2 = UnresolvedChannel::parse("conda-forge").value();
+        auto uc3 = UnresolvedChannel::parse("conda-forge/linux-64").value();
+
+        CHECK_EQ(uc1, uc2);
+        CHECK_NE(uc1, uc3);
+
+        auto hash_fn = std::hash<UnresolvedChannel>();
+        CHECK_EQ(hash_fn(uc1), hash_fn(uc2));
+        CHECK_NE(hash_fn(uc1), hash_fn(uc3));
     }
 }

@@ -13,6 +13,7 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/error.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 
@@ -23,8 +24,8 @@ namespace mamba::specs
      *
      * Not a static function, it is needed in "channel_spec.cpp".
      */
-    auto find_slash_and_platform(std::string_view path)
-        -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>
+    auto find_slash_and_platform(std::string_view path
+    ) -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>
     {
         static constexpr auto npos = std::string_view::npos;
 
@@ -118,9 +119,13 @@ namespace mamba::specs
         return static_cast<const util::URL&>(*this);
     }
 
-    auto CondaURL::parse(std::string_view url) -> CondaURL
+    auto CondaURL::parse(std::string_view url) -> expected_parse_t<CondaURL>
     {
-        return CondaURL(URL::parse(url));
+        return URL::parse(url)
+            .transform([](URL&& u) { return CondaURL(u); })
+            .transform_error(  //
+                [](URL::ParseError&& err) { return specs::ParseError(std::move(err).what); }
+            );
     }
 
     void CondaURL::set_path(std::string_view path, Encode::yes_type)
@@ -267,7 +272,7 @@ namespace mamba::specs
         return path(Decode::no).size() != old_len;
     }
 
-    auto CondaURL::platform() const -> std::optional<Platform>
+    auto CondaURL::platform() const -> std::optional<KnownPlatform>
     {
         const auto& l_path = path(Decode::no);
         assert(!l_path.empty() && (l_path.front() == '/'));
@@ -300,7 +305,7 @@ namespace mamba::specs
         if (!plat.has_value())
         {
             throw std::invalid_argument(
-                fmt::format(R"(No platform in orignial path "{}")", path(Decode::no))
+                fmt::format(R"(No platform in original path "{}")", path(Decode::no))
             );
         }
         assert(1 < len);
@@ -319,7 +324,7 @@ namespace mamba::specs
         return set_platform_no_check_input(platform);
     }
 
-    void CondaURL::set_platform(Platform platform)
+    void CondaURL::set_platform(KnownPlatform platform)
     {
         return set_platform_no_check_input(specs::platform_name(platform));
     }
@@ -346,7 +351,7 @@ namespace mamba::specs
 
     auto CondaURL::package(Decode::no_type) const -> std::string_view
     {
-        // Must not decode to find the meaningful '/' spearators
+        // Must not decode to find the meaningful '/' separators
         const auto& l_path = path(Decode::no);
         if (has_archive_extension(l_path))
         {
@@ -369,7 +374,7 @@ namespace mamba::specs
                 fmt::format(R"(Invalid CondaURL package "{}", use path_append instead)", pkg)
             );
         }
-        // Must not decode to find the meaningful '/' spearators
+        // Must not decode to find the meaningful '/' separators
         if (has_archive_extension(path(Decode::no)))
         {
             auto l_path = clear_path();
@@ -385,7 +390,7 @@ namespace mamba::specs
 
     auto CondaURL::clear_package() -> bool
     {
-        // Must not decode to find the meaningful '/' spearators
+        // Must not decode to find the meaningful '/' separators
         if (has_archive_extension(path(Decode::no)))
         {
             auto l_path = clear_path();
@@ -529,7 +534,9 @@ namespace mamba::specs
     {
         auto operator""_cu(const char* str, std::size_t len) -> CondaURL
         {
-            return CondaURL::parse({ str, len });
+            return CondaURL::parse({ str, len })
+                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                .value();
         }
     }
 }

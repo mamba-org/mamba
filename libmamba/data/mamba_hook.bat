@@ -7,12 +7,15 @@
 @FOR %%F in ("%~dp0") do @SET "__mambabin_dir=%%~dpF"
 @SET "__mambabin_dir=%__mambabin_dir:~0,-1%"
 @SET "PATH=%__mambabin_dir%;%PATH%"
-@SET "MAMBA_BAT=%__mambabin_dir%\micromamba.bat"
+@SET "MAMBA_BAT=%__mambabin_dir%\mamba.bat"
 @FOR %%F in ("%__mambabin_dir%") do @SET "__mamba_root=%%~dpF"
 __MAMBA_INSERT_MAMBA_EXE__
 @SET __mambabin_dir=
 @SET __mamba_root=
 
-@DOSKEY micromamba="%MAMBA_BAT%" $*
+@REM @DOSKEY does not work with delayed evaluation
+@REM @DOSKEY after the first usage of a macro whose name is defined with a variable
+@REM Therefore no magic here, just grep and replace when generating the final file
+@DOSKEY __MAMBA_INSERT_EXE_NAME__="%MAMBA_BAT%" $*
 
 @SET CONDA_SHLVL=0

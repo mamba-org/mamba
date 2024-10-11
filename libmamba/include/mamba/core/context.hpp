@@ -15,7 +15,9 @@
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
+#include "mamba/download/mirror_map.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/request.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"
@@ -31,13 +33,21 @@ namespace mamba
         Enabled
     };
 
-    struct ValidationOptions
+    struct ValidationParams
     {
         VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
         bool verify_artifacts = false;
-    };
 
+        // TODO Uncomment `conda-forge` or whatever trusted_channels when possible
+        // (i.e server side package signing ready)
+        // Remove "http://127.0.0.1:8000/get/channel0"
+        // (should only be used in integration tests,
+        // this one is for testing with quetz)
+        std::vector<std::string> trusted_channels = {
+            /*"conda-forge", */ "http://127.0.0.1:8000/get/channel0"
+        };
+    };
 
     enum class ChannelPriority
     {
@@ -55,7 +65,8 @@ namespace mamba
 
     struct ContextOptions
     {
-        bool enable_logging_and_signal_handling = false;
+        bool enable_logging = false;
+        bool enable_signal_handling = false;
     };
 
     // Context singleton class
@@ -114,7 +125,8 @@ namespace mamba
             std::string caller_version{ "" };
             std::string conda_version{ "3.8.0" };
             std::string current_command{ "mamba" };
-            bool is_micromamba{ false };
+            /** Is the Context used in a mamba or mamba executable (instead of a lib). */
+            bool is_mamba_exe{ false };
         };
 
         struct ThreadsParams
@@ -161,14 +173,13 @@ namespace mamba
         bool always_softlink = false;
         bool register_envs = true;
 
+        bool show_anaconda_channel_warnings = true;
+
         // solver options
-        bool allow_uninstall = true;
-        bool allow_downgrade = false;
+        solver::Request::Flags solver_flags = {};
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
-
-        ValidationOptions validation_params;
 
         // debug helpers
         bool keep_temp_files = false;
@@ -187,6 +198,7 @@ namespace mamba
         CommandParams command_params;
         ThreadsParams threads_params;
         PrefixParams prefix_params;
+        ValidationParams validation_params;
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
@@ -230,6 +242,11 @@ namespace mamba
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
+        // FIXME: Should not be stored here
+        // Notice that we cannot build this map directly from mirrored_channels,
+        // since we need to add a single "mirror" for non mirrored channels
+        download::mirror_map mirrors;
+
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;
 
@@ -245,10 +262,6 @@ namespace mamba
         Context(const ContextOptions& options = {});
         ~Context();
 
-        // Enables the provided context to drive the logging system and setup signal handling.
-        // This function must be called only for one Context in the lifetime of the program.
-        static void enable_logging_and_signal_handling(Context& context);
-
     private:
 
         // Used internally
@@ -258,9 +271,22 @@ namespace mamba
         specs::AuthenticationDataBase m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
-        std::shared_ptr<Logger> logger;
+        class ScopedLogger;
+        std::vector<ScopedLogger> loggers;
+
+        std::shared_ptr<Logger> main_logger();
+        void add_logger(std::shared_ptr<Logger>);
 
         TaskSynchronizer tasksync;
+
+
+        // Enables the provided context setup signal handling.
+        // This function must be called only for one Context in the lifetime of the program.
+        void enable_signal_handling();
+
+        // Enables the provided context to drive the logging system.
+        // This function must be called only for one Context in the lifetime of the program.
+        void enable_logging();
     };
 
 

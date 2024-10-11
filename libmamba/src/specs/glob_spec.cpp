@@ -25,7 +25,7 @@ namespace mamba::specs
     auto GlobSpec::contains(std::string_view str) const -> bool
     {
         // is_free is not required but returns faster in the default case.
-        return is_free() || util::glob_match(m_pattern, str);
+        return is_free() || util::glob_match(m_pattern, str, glob_pattern);
     }
 
     auto GlobSpec::is_free() const -> bool
@@ -35,7 +35,7 @@ namespace mamba::specs
 
     auto GlobSpec::is_exact() const -> bool
     {
-        return !util::contains(m_pattern, '*');
+        return !util::contains(m_pattern, glob_pattern);
     }
 
     auto GlobSpec::str() const -> const std::string&
@@ -56,8 +56,10 @@ fmt::formatter<mamba::specs::GlobSpec>::parse(format_parse_context& ctx) -> decl
 }
 
 auto
-fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx)
-    -> decltype(ctx.out())
+fmt::formatter<mamba::specs::GlobSpec>::format(
+    const ::mamba::specs::GlobSpec& spec,
+    format_context& ctx
+) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.str());
 }

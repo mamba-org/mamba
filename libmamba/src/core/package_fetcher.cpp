@@ -106,7 +106,8 @@ namespace mamba
             {
                 caches.clear_query_cache(m_package_info);
                 // need to download this file
-                LOG_DEBUG << "Adding '" << name() << "' to download targets from '" << url() << "'";
+                LOG_DEBUG << "Adding '" << name() << "' to download targets from '" << channel()
+                          << "/" << url_path() << "'";
                 m_tarball_path = m_cache_path / filename();
                 m_needs_extract = true;
                 m_needs_download = true;
@@ -133,13 +134,17 @@ namespace mamba
         return m_needs_extract;
     }
 
-    DownloadRequest
+    download::Request
     PackageFetcher::build_download_request(std::optional<post_download_success_t> callback)
     {
-        DownloadRequest request(name(), url(), m_tarball_path.string());
+        // download::Request request(name(), download::MirrorName(""), url(),
+        // m_tarball_path.string());
+        download::Request
+            request(name(), download::MirrorName(channel()), url_path(), m_tarball_path.string());
         request.expected_size = expected_size();
+        request.sha256 = sha256();
 
-        request.on_success = [this, cb = std::move(callback)](const DownloadSuccess& success)
+        request.on_success = [this, cb = std::move(callback)](const download::Success& success)
         {
             LOG_INFO << "Download finished, tarball available at '" << m_tarball_path.string() << "'";
             if (cb.has_value())
@@ -147,10 +152,11 @@ namespace mamba
                 cb.value()(success.transfer.downloaded_size);
             }
             m_needs_download = false;
+            m_downloaded_url = success.transfer.effective_url;
             return expected_t<void>();
         };
 
-        request.on_failure = [](const DownloadError& error)
+        request.on_failure = [](const download::Error& error)
         {
             if (error.transfer.has_value())
             {
@@ -172,8 +178,8 @@ namespace mamba
         return request;
     }
 
-    auto PackageFetcher::validate(std::size_t downloaded_size, progress_callback_t* cb) const
-        -> ValidationResult
+    auto
+    PackageFetcher::validate(std::size_t downloaded_size, progress_callback_t* cb) const -> ValidationResult
     {
         update_monitor(cb, PackageExtractEvent::validate_update);
         ValidationResult res = validate_size(downloaded_size);
@@ -317,9 +323,19 @@ namespace mamba
         return m_package_info.filename;
     }
 
+    std::string PackageFetcher::channel() const
+    {
+        return m_package_info.channel;
+    }
+
+    std::string PackageFetcher::url_path() const
+    {
+        return util::concat(m_package_info.platform, '/', m_package_info.filename);
+    }
+
     const std::string& PackageFetcher::url() const
     {
-        return m_package_info.package_url;
+        return m_downloaded_url;
     }
 
     const std::string& PackageFetcher::sha256() const

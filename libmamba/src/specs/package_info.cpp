@@ -11,6 +11,7 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/archive.hpp"
@@ -23,35 +24,57 @@ namespace mamba::specs
 {
     namespace
     {
-        auto parse_url(std::string_view spec) -> PackageInfo
+        auto parse_extension(std::string_view spec) -> PackageType
         {
-            auto fail_parse = [&]() {
-                throw std::invalid_argument(
-                    util::concat(R"(Fail to parse PackageInfo URL ")", spec, '"')
-                );
-            };
+            if (util::ends_with(spec, ".whl"))
+            {
+                return PackageType::Wheel;
+            }
+            return PackageType::Conda;
+        }
 
+        auto parse_url(std::string_view spec) -> expected_parse_t<PackageInfo>
+        {
             if (!has_archive_extension(spec))
             {
-                fail_parse();
+                return make_unexpected_parse("Missing filename extension.");
             }
 
+
             auto out = PackageInfo();
-            // TODO decide on the bet way to group filename/channel/subdir/package_url all at once
+            // TODO decide on the best way to group filename/channel/subdir/package_url all at once
             out.package_url = util::path_or_url_to_url(spec);
-            auto url = CondaURL::parse(out.package_url);
+
+            auto url = CondaURL();
+            {
+                auto maybe_url = CondaURL::parse(out.package_url);
+                if (!maybe_url)
+                {
+                    return make_unexpected_parse(maybe_url.error());
+                }
+                url = std::move(maybe_url).value();
+            }
+
             out.filename = url.package();
             url.clear_package();
-            out.subdir = url.platform_name();
-            url.clear_platform();
-            out.channel = util::rstrip(url.str(), '/');
+
+            out.package_type = parse_extension(spec);
+            if (out.package_type == PackageType::Conda)
+            {
+                out.platform = url.platform_name();
+                url.clear_platform();
+                out.channel = util::rstrip(url.str(), '/');
+            }
 
             // Build string
             auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
             out.build_string = tail;
+
             if (!head.has_value())
             {
-                fail_parse();
+                return make_unexpected_parse(
+                    fmt::format(R"(Missing name and version in filename "{}".)", out.filename)
+                );
             }
 
             // Version
@@ -59,7 +82,9 @@ namespace mamba::specs
             out.version = tail;
             if (!head.has_value())
             {
-                fail_parse();
+                return make_unexpected_parse(
+                    fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                );
             }
 
             // Name
@@ -72,7 +97,7 @@ namespace mamba::specs
         {
             constexpr auto is_hash_char = [](char c) -> bool
             {
-                auto const lower = util::to_lower(c);
+                const auto lower = util::to_lower(c);
                 return util::is_digit(c) || (lower == 'a') || (lower == 'b') || (lower == 'c')
                        || (lower == 'd') || (lower == 'e') || (lower == 'f');
             };
@@ -80,7 +105,7 @@ namespace mamba::specs
         }
     }
 
-    auto PackageInfo::from_url(std::string_view str) -> PackageInfo
+    auto PackageInfo::from_url(std::string_view str) -> expected_parse_t<PackageInfo>
     {
         str = util::strip(str);
         if (str.empty())
@@ -102,15 +127,20 @@ namespace mamba::specs
             auto hash = str.substr(idx + 1);
             if (has_archive_extension(url))
             {
-                auto out = parse_url(url);
-                if (is_hash(hash))
-                {
-                    out.md5 = hash;
-                }
-                return out;
+                return parse_url(url).transform(
+                    [&](PackageInfo&& pkg) -> PackageInfo
+                    {
+                        if (is_hash(hash))
+                        {
+                            pkg.md5 = hash;
+                        }
+                        return pkg;
+                    }
+                );
             }
         }
-        throw std::invalid_argument(util::concat(R"(Fail to parse PackageInfo URL ")", str, '"'));
+
+        return make_unexpected_parse(fmt::format(R"(Fail to parse PackageInfo URL "{}")", str));
     }
 
     PackageInfo::PackageInfo(std::string n)
@@ -150,21 +180,17 @@ namespace mamba::specs
         // Mandatory keys
         j["name"] = name;
         j["version"] = version;
-        j["subdir"] = subdir;
+        j["subdir"] = platform;
         j["size"] = size;
         j["timestamp"] = timestamp;
         j["build"] = build_string;
         j["build_number"] = build_number;
-        if (noarch != NoArchType::No)
-        {
-            j["noarch"] = noarch;
-        }
         j["license"] = license;
         j["md5"] = md5;
         j["sha256"] = sha256;
 
         // Defaulted keys to empty arrays
-        if (depends.empty())
+        if (dependencies.empty())
         {
             if (!contains(defaulted_keys, "depends"))
             {
@@ -173,16 +199,14 @@ namespace mamba::specs
         }
         else
         {
-            j["depends"] = depends;
+            j["depends"] = dependencies;
         }
-        if (constrains.empty())
-        {
-            if (!contains(defaulted_keys, "constrains"))
-            {
-                j["constrains"] = nlohmann::json::array();
-            }
-        }
-        else
+
+        // NOTE `constrains` is not included in server side (i.e Quetz)
+        // If it is later (or is included within signed metadata even as
+        // an empty array on conda side for example)
+        // => do the same as "depends" above
+        if (!constrains.empty())
         {
             j["constrains"] = constrains;
         }
@@ -269,7 +293,7 @@ namespace mamba::specs
         }
         if (field_name == "subdir")
         {
-            return invoke_field_string(*this, &PackageInfo::subdir);
+            return invoke_field_string(*this, &PackageInfo::platform);
         }
         if (field_name == "fn" || field_name == "filename")
         {
@@ -302,7 +326,7 @@ namespace mamba::specs
                 p.build_number,
                 p.channel,
                 p.package_url,
-                p.subdir,
+                p.platform,
                 p.filename,
                 p.license,
                 p.size,
@@ -310,7 +334,7 @@ namespace mamba::specs
                 p.md5,
                 p.sha256,
                 p.track_features,
-                p.depends,
+                p.dependencies,
                 p.constrains,
                 p.signatures,
                 p.defaulted_keys
@@ -334,7 +358,7 @@ namespace mamba::specs
         j["version"] = pkg.version;
         j["channel"] = pkg.channel;
         j["url"] = pkg.package_url;  // The conda key name
-        j["subdir"] = pkg.subdir;
+        j["subdir"] = pkg.platform;
         j["fn"] = pkg.filename;  // The conda key name
         j["size"] = pkg.size;
         j["timestamp"] = pkg.timestamp;
@@ -355,13 +379,17 @@ namespace mamba::specs
         {
             j["sha256"] = pkg.sha256;
         }
-        if (pkg.depends.empty())
+        if (!pkg.signatures.empty())
+        {
+            j["signatures"] = pkg.signatures;
+        }
+        if (pkg.dependencies.empty())
         {
             j["depends"] = nlohmann::json::array();
         }
         else
         {
-            j["depends"] = pkg.depends;
+            j["depends"] = pkg.dependencies;
         }
 
         if (pkg.constrains.empty())
@@ -380,7 +408,7 @@ namespace mamba::specs
         pkg.version = j.value("version", "");
         pkg.channel = j.value("channel", "");
         pkg.package_url = j.value("url", "");
-        pkg.subdir = j.value("subdir", "");
+        pkg.platform = j.value("subdir", "");
         pkg.filename = j.value("fn", "");
         pkg.size = j.value("size", std::size_t(0));
         pkg.timestamp = j.value("timestamp", std::size_t(0));
@@ -396,6 +424,7 @@ namespace mamba::specs
         pkg.license = j.value("license", "");
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
+        pkg.signatures = j.value("signatures", "");
         if (auto it = j.find("track_features"); it != j.end())
         {
             if (it->is_string() && !it->get<std::string_view>().empty())
@@ -419,7 +448,7 @@ namespace mamba::specs
             pkg.noarch = *it;
         }
 
-        pkg.depends = j.value("depends", std::vector<std::string>());
+        pkg.dependencies = j.value("depends", std::vector<std::string>());
         pkg.constrains = j.value("constrains", std::vector<std::string>());
     }
 }

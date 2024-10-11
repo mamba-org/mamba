@@ -17,24 +17,21 @@ extern "C"
     using Repo = struct s_Repo;
 }
 
-namespace mamba
-{
-    class MPool;
-    class MTransaction;
-}
-
 namespace mamba::solver::libsolv
 {
+    class Database;
+
     /**
      * A libsolv repository descriptor.
      *
-     * In libsolv, most of the data is help in the Pool, and repo are tightly coupled with them.
-     * This repository class is a lightwight description of a repository returned when creating
-     * a new repository in the Pool.
-     * Some modifications to the repo are possible throught the Pool.
-     * @see MPool::add_repo_from_repodata_json
-     * @see MPool::add_repo_from_packages
-     * @see MPool::remove_repo
+     * In libsolv, most of the data is help in the @ref Database, and repo are tightly coupled
+     * with them.
+     * This repository class is a lightweight description of a repository returned when creating
+     * a new repository in the @ref Database.
+     * Some modifications to the repo are possible through the @ref Database.
+     * @see Database::add_repo_from_repodata_json
+     * @see Database::add_repo_from_packages
+     * @see Database::remove_repo
      */
     class RepoInfo
     {
@@ -61,8 +58,7 @@ namespace mamba::solver::libsolv
 
         explicit RepoInfo(::Repo* repo);
 
-        friend class ::mamba::MPool;
-        friend class ::mamba::MTransaction;  // As long as MTransaction leaks libsolv impl
+        friend class Database;
         friend auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool;
     };
 

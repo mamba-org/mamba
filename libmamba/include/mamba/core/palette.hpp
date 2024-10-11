@@ -11,12 +11,11 @@
 
 namespace mamba
 {
-
     struct Palette
     {
-        /** Something that is possible or exsists. */
+        /** Something that is possible or exists. */
         fmt::text_style success;
-        /** Something that is impossible or does not exsist. */
+        /** Something that is impossible or does not exist. */
         fmt::text_style failure;
         /** Refers to external ecosystem. */
         fmt::text_style external;
@@ -26,7 +25,6 @@ namespace mamba
         fmt::text_style safe;
         /** Some action is unsafe or not trusted. */
         fmt::text_style unsafe;
-
 
         /** Reference to some input from the user. */
         fmt::text_style user;
@@ -45,21 +43,21 @@ namespace mamba
         fmt::text_style progress_bar_extracted;
 
         /** A Palette with no colors at all. */
-        static constexpr Palette no_color();
+        static constexpr auto no_color() -> Palette;
         /** A Palette with terminal 4 bit colors. */
-        static constexpr Palette terminal();
+        static constexpr auto terminal() -> Palette;
     };
 
     /*******************************
      *  Implementation of Palette  *
      *******************************/
 
-    inline constexpr Palette Palette::no_color()
+    inline constexpr auto Palette::no_color() -> Palette
     {
         return {};
     }
 
-    inline constexpr Palette Palette::terminal()
+    inline constexpr auto Palette::terminal() -> Palette
     {
         return {
             /* .success= */ fmt::fg(fmt::terminal_color::green),

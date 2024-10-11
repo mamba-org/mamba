@@ -24,6 +24,7 @@ namespace mamba::specs
     public:
 
         inline static constexpr std::string_view free_pattern = "*";
+        inline static constexpr char glob_pattern = '*';
 
         GlobSpec() = default;
         explicit GlobSpec(std::string pattern);
@@ -36,11 +37,22 @@ namespace mamba::specs
         [[nodiscard]] auto is_free() const -> bool;
 
         /**
-         * Return true if the spec will match exaclty one input.
+         * Return true if the spec will match exactly one input.
          */
         [[nodiscard]] auto is_exact() const -> bool;
 
         [[nodiscard]] auto str() const -> const std::string&;
+
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
+        [[nodiscard]] auto operator==(const GlobSpec& other) const -> bool
+        {
+            return m_pattern == other.m_pattern;
+        }
+
+        [[nodiscard]] auto operator!=(const GlobSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
 
     private:
 
@@ -53,7 +65,17 @@ struct fmt::formatter<mamba::specs::GlobSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto
+    format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const -> decltype(ctx.out());
+};
+
+template <>
+struct std::hash<mamba::specs::GlobSpec>
+{
+    auto operator()(const mamba::specs::GlobSpec& spec) const -> std::size_t
+    {
+        return std::hash<std::string>{}(spec.str());
+    }
 };
 
 #endif

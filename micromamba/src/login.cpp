@@ -36,7 +36,7 @@ read_stdin()
 std::string
 get_token_base(const std::string& host)
 {
-    const auto url = mamba::util::URL::parse(host);
+    const auto url = mamba::util::URL::parse(host).value();
 
     std::string maybe_colon_and_port{};
     if (!url.port().empty())

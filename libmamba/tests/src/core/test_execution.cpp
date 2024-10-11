@@ -18,26 +18,34 @@ namespace mamba
     void
     execute_tasks_from_concurrent_threads(std::size_t task_count, std::size_t tasks_per_thread, Func work)
     {
-        std::vector<std::thread> producers;
+        const auto estimated_thread_count = (task_count / tasks_per_thread) * 2;
+        std::vector<std::thread> producers(estimated_thread_count);
+
         std::size_t tasks_left_to_launch = task_count;
+        std::size_t thread_idx = 0;
         while (tasks_left_to_launch > 0)
         {
             const std::size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
-            producers.emplace_back(
-                [=]
-                {
-                    for (std::size_t i = 0; i < tasks_to_generate; ++i)
-                    {
-                        work();
-                    }
-                }
-            );
+            producers[thread_idx] = std::thread{ [=]
+                                                 {
+                                                     for (std::size_t i = 0; i < tasks_to_generate;
+                                                          ++i)
+                                                     {
+                                                         work();
+                                                     }
+                                                 } };
             tasks_left_to_launch -= tasks_to_generate;
+            ++thread_idx;
+            assert(thread_idx < producers.size());
         }
 
+        // Make sure all the producers are finished before continuing.
         for (auto&& t : producers)
         {
-            t.join();  // Make sure all the producers are finished before continuing.
+            if (t.joinable())
+            {
+                t.join();
+            }
         }
     }
 
@@ -46,7 +54,7 @@ namespace mamba
         TEST_CASE("stop_default_always_succeeds")
         {
             MainExecutor::stop_default();  // Make sure no other default main executor is running.
-            MainExecutor::instance();      // Make sure we use the defaut main executor.
+            MainExecutor::instance();      // Make sure we use the default main executor.
             MainExecutor::stop_default();  // Stop the default main executor and make sure it's not
                                            // enabled for the following tests.
             MainExecutor::stop_default();  // However the number of time we call it it should never

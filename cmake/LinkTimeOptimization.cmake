@@ -4,7 +4,7 @@ include(CheckIPOSupported)
 
 # Detect is setting Link Time Optimization is recommended.
 #
-# Currenlty checks if LTO is supported and if the build is a release.
+# Currently checks if LTO is supported and if the build is a release.
 function(mamba_should_lto)
     # Names of option parameters (without arguments)
     set(options)

@@ -25,7 +25,7 @@ namespace mambapy
                 [](const py::dict& py_db)
                 {
                     auto db = Map();
-                    for (auto const& [name, auth] : py_db)
+                    for (const auto& [name, auth] : py_db)
                     {
                         db.emplace(py::cast<key_type>(name), py::cast<mapped_type>(auth));
                     }

@@ -31,6 +31,7 @@ pybind11_add_module(
     # All bindings used to live in a global module
     src/libmambapy/bindings/legacy.cpp
     # Submodules
+    src/libmambapy/bindings/utils.cpp
     src/libmambapy/bindings/specs.cpp
     src/libmambapy/bindings/solver.cpp
     src/libmambapy/bindings/solver_libsolv.cpp

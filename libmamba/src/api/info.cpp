@@ -8,6 +8,7 @@
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -25,6 +26,8 @@ namespace mamba
     void info(Configuration& config)
     {
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
@@ -95,9 +98,12 @@ namespace mamba
 
             items.push_back({ "libmamba version", version() });
 
-            if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
+            if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
             {
-                items.push_back({ "micromamba version", ctx.command_params.caller_version });
+                items.push_back({
+                    fmt::format("{} version", get_self_exe_path().stem().string()),
+                    ctx.command_params.caller_version,
+                });
             }
 
             items.push_back({ "curl version", curl_version() });
@@ -152,7 +158,7 @@ namespace mamba
             items.push_back({ "populated config files", sources });
 
             std::vector<std::string> virtual_pkgs;
-            for (auto pkg : get_virtual_packages(ctx))
+            for (auto pkg : get_virtual_packages(ctx.platform))
             {
                 virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
                 );

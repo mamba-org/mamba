@@ -9,7 +9,7 @@ __MAMBA_INSERT_ROOT_PREFIX__
 @IF [%1]==[activate]   "%~dp0_mamba_activate" %*
 @IF [%1]==[deactivate] "%~dp0_mamba_activate" %*
 
-@CALL %MAMBA_EXE% %*
+@CALL "%MAMBA_EXE%" %*
 
 @IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
 

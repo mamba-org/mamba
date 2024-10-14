@@ -685,6 +685,11 @@ namespace mamba
 
     void init_root_prefix_cmdexe(const Context&, const fs::u8path& root_prefix)
     {
+        if (context.dry_run)
+        {
+            return;
+        }
+
         fs::u8path exe = get_self_exe_path();
         fs::u8path exe_name = exe.stem();
 
@@ -803,6 +808,11 @@ namespace mamba
 
     void init_root_prefix(Context& context, const std::string& shell, const fs::u8path& root_prefix)
     {
+        if (context.dry_run)
+        {
+            return;
+        }
+
         context.prefix_params.root_prefix = root_prefix;
 
         if (!fs::exists(root_prefix))

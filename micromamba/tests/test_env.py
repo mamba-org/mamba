@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import platform
 
 from packaging.version import Version
 from pathlib import Path
@@ -322,6 +323,11 @@ dependencies:
 """
 
 
+# Skip test on macOS because numpy 1.26.4 is not available on conda-forge for arm64-apple-darwin20.0.0 and latest
+# See: https://pypi.org/project/numpy/1.26.4/#files
+@pytest.mark.skipif(
+    platform.system() == "Darwin", reason="numpy 1.26.4 is not available on conda-forge for macOS"
+)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "env-update-pypi-with-conda-forge"

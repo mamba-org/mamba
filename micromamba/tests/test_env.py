@@ -1,7 +1,6 @@
 import os
 import re
 import shutil
-import platform
 
 from packaging.version import Version
 from pathlib import Path
@@ -308,6 +307,8 @@ env_yaml_content_create_pip_pkg_with_version = """
 channels:
 - conda-forge
 dependencies:
+# This version of Python covers all the versions of numpy available on conda-forge and PyPI for all platforms.
+- python 3.12
 - pip
 - pip:
   - numpy==1.26.4
@@ -318,16 +319,10 @@ env_yaml_content_to_update_pip_pkg_version_from_conda_forge = """
 channels:
 - conda-forge
 dependencies:
-- python 3.12  # Numpy has not been released for python >=3.13 yet
 - numpy==2.0.0
 """
 
 
-# Skip test on macOS because numpy 1.26.4 is not available on conda-forge for arm64-apple-darwin20.0.0 and latest
-# See: https://pypi.org/project/numpy/1.26.4/#files
-@pytest.mark.skipif(
-    platform.system() == "Darwin", reason="numpy 1.26.4 is not available on conda-forge for macOS"
-)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "env-update-pypi-with-conda-forge"

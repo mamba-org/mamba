@@ -317,6 +317,7 @@ env_yaml_content_to_update_pip_pkg_version_from_conda_forge = """
 channels:
 - conda-forge
 dependencies:
+- python 3.12  # Numpy has not been released for python >=3.13 yet
 - numpy==2.0.0
 """
 

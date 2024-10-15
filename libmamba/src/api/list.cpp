@@ -96,11 +96,22 @@ namespace mamba
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = strip_from_filename_and_platform(
-                            channels.front().display_name(),
-                            pkg_info.filename,
-                            pkg_info.platform
-                        );
+                        if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
+                        {
+                            obj["channel"] = strip_from_filename_and_platform(
+                                pkg_info.channel,
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
+                        }
+                        else
+                        {
+                            obj["channel"] = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
+                        }
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;
@@ -134,13 +145,24 @@ namespace mamba
                     }
                     else
                     {
-                        auto channels = channel_context.make_channel(package.second.channel);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = strip_from_filename_and_platform(
-                            channels.front().display_name(),
-                            package.second.filename,
-                            package.second.platform
-                        );
+                        if (package.second.package_url.empty() && (package.second.channel == "pypi"))
+                        {
+                            formatted_pkgs.channel = strip_from_filename_and_platform(
+                                package.second.channel,
+                                package.second.filename,
+                                package.second.platform
+                            );
+                        }
+                        else
+                        {
+                            auto channels = channel_context.make_channel(package.second.channel);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            formatted_pkgs.channel = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                package.second.filename,
+                                package.second.platform
+                            );
+                        }
                     }
                     packages.push_back(formatted_pkgs);
                 }

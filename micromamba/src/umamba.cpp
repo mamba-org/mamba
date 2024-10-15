@@ -87,7 +87,7 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
     );
     set_constructor_command(constructor_subcom, config);
 
-    CLI::App* env_subcom = com->add_subcommand("env", "Access information about environments");
+    CLI::App* env_subcom = com->add_subcommand("env", "See `mamba/micromamba env --help`");
     set_env_command(env_subcom, config);
 
     CLI::App* activate_subcom = com->add_subcommand("activate", "Activate an environment");

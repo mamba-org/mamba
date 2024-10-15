@@ -143,7 +143,7 @@ __fish_mamba_complete_subcmds '__fish_mamba_has_command' '
   config                      Configuration of micromamba
   info                        Information about micromamba
   constructor                 Commands to support using micromamba in constructor
-  env                         Access information about environments
+  env                         See `mamba/micromamba env --help`
   activate                    Activate an environment
   run                         Run an executable in an environment
   ps                          Show, inspect or kill running processes

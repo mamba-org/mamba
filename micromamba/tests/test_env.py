@@ -307,6 +307,8 @@ env_yaml_content_create_pip_pkg_with_version = """
 channels:
 - conda-forge
 dependencies:
+# This version of Python covers all the versions of numpy available on conda-forge and PyPI for all platforms.
+- python 3.12
 - pip
 - pip:
   - numpy==1.26.4

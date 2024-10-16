@@ -8,9 +8,9 @@
 #define MAMBA_SOLVER_LIBSOLV_SOLVER_HPP
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
+#include "mamba/solver/unsolvable.hpp"
 
 namespace mamba::solver::libsolv
 {

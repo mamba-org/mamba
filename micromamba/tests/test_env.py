@@ -410,3 +410,31 @@ def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):
         package["name"] == "scikit-learn" and Version(package["version"]) > Version("1.0.0")
         for package in packages
     )
+
+
+env_yaml_content_to_update_empty_base = """
+channels:
+- conda-forge
+dependencies:
+- python
+- xtensor
+"""
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-update-empty-base"
+
+    os.environ["MAMBA_ROOT_PREFIX"] = str(env_prefix)
+
+    env_file_yml = tmp_path / "test_env_empty_base.yaml"
+    env_file_yml.write_text(env_yaml_content_to_update_empty_base)
+
+    cmd = ["update", "-p", env_prefix, f"--file={env_file_yml}", "-y", "--json"]
+
+    res = helpers.run_env(*cmd)
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "xtensor" for package in packages)
+    assert any(package["name"] == "python" for package in packages)

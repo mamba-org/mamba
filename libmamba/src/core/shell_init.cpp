@@ -757,17 +757,29 @@ namespace mamba
         }
 
         // mamba.bat
+        const auto replace_insert_root_prefix = [&](auto& text)
+        {
+            return util::replace_all(
+                text,
+                std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
+                "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
+            );
+        };
+
+        const auto replace_insert_mamba_exe = [&](auto& text)
+        {
+            return util::replace_all(
+                text,
+                std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                "@SET \"MAMBA_EXE=" + run_info().this_exe_path.string() + "\""
+            );
+        };
+
+        static const auto MARKER_INSERT_EXE_NAME = std::string("__MAMBA_INSERT_EXE_NAME__");
+
         std::string mamba_bat_contents(data_mamba_bat);
-        util::replace_all(
-            mamba_bat_contents,
-            std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-            "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
-        );
-        util::replace_all(
-            mamba_bat_contents,
-            std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            "@SET \"MAMBA_EXE=" + run_info().this_exe_path.string() + "\""
-        );
+        replace_insert_root_prefix(mamba_bat_contents);
+        replace_insert_mamba_exe(mamba_bat_contents);
         std::ofstream mamba_bat_f = open_ofstream(paths.mamba_bat);
         mamba_bat_f << mamba_bat_contents;
 
@@ -777,21 +789,9 @@ namespace mamba
 
         // condabin/activate.bat
         std::string activate_bat_contents(data_activate_bat);
-        util::replace_all(
-            activate_bat_contents,
-            std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-            "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
-        );
-        util::replace_all(
-            activate_bat_contents,
-            std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            "@SET \"MAMBA_EXE=" + run_info().this_exe_path.string() + "\""
-        );
-        util::replace_all(
-            activate_bat_contents,
-            std::string("__MAMBA_INSERT_EXE_NAME__"),
-            run_info().this_exe_name
-        );
+        replace_insert_root_prefix(activate_bat_contents);
+        replace_insert_mamba_exe(activate_bat_contents);
+        util::replace_all(activate_bat_contents, MARKER_INSERT_EXE_NAME, run_info().this_exe_name);
         std::ofstream condabin_activate_bat_f = open_ofstream(paths.condabin_activate_bat);
         condabin_activate_bat_f << activate_bat_contents;
 
@@ -801,16 +801,8 @@ namespace mamba
 
         // mamba_hook.bat
         std::string hook_content = data_mamba_hook_bat;
-        util::replace_all(
-            hook_content,
-            std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            "@SET \"MAMBA_EXE=" + run_info().this_exe_path.string() + "\""
-        );
-        util::replace_all(
-            hook_content,
-            std::string("__MAMBA_INSERT_EXE_NAME__"),
-            run_info().this_exe_path.string()
-        );
+        replace_insert_mamba_exe(hook_content);
+        util::replace_all(hook_content, MARKER_INSERT_EXE_NAME, run_info().this_exe_path.string());
 
         std::ofstream mamba_hook_bat_f = open_ofstream(paths.mamba_hook_bat);
         mamba_hook_bat_f << hook_content;
@@ -827,9 +819,8 @@ namespace mamba
 
         for (auto& f : paths.every_generated_files_paths())
         {
-            if (fs::exists(f))
+            if (fs::remove(f))
             {
-                fs::remove(f);
                 LOG_INFO << "Removed " << f << " file.";
             }
             else
@@ -841,10 +832,12 @@ namespace mamba
         // remove condabin and Scripts if empty
         for (auto& d : paths.every_generated_directories_paths())
         {
-            if (fs::exists(d) && fs::is_empty(d))
+            if (fs::is_empty(d))
             {
-                fs::remove(d);
-                LOG_INFO << "Removed " << d << " directory.";
+                if (fs::remove(d))
+                {
+                    LOG_INFO << "Removed " << d << " directory.";
+                }
             }
         }
     }

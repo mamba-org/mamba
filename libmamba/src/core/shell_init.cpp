@@ -756,7 +756,7 @@ namespace mamba
             fs::create_directories(directory, maybe_error);
         }
 
-        // mamba.bat
+
         const auto replace_insert_root_prefix = [&](auto& text)
         {
             return util::replace_all(
@@ -777,6 +777,7 @@ namespace mamba
 
         static const auto MARKER_INSERT_EXE_NAME = std::string("__MAMBA_INSERT_EXE_NAME__");
 
+        // mamba.bat
         std::string mamba_bat_contents(data_mamba_bat);
         replace_insert_root_prefix(mamba_bat_contents);
         replace_insert_mamba_exe(mamba_bat_contents);

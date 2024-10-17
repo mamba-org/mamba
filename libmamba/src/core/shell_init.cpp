@@ -734,7 +734,7 @@ namespace mamba
         util::replace_all(
             activate_bat_contents,
             std::string("__MAMBA_INSERT_EXE_NAME__"),
-            exe_name.string()
+            "mamba"
         );
         std::ofstream condabin_activate_bat_f = open_ofstream(
             root_prefix / "condabin" / "activate.bat"

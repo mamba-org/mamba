@@ -144,7 +144,7 @@ namespace mamba
 
             }
 
-            auto every_generated_files_paths() const -> std::initializer_list<fs::u8path>
+            auto every_generated_files_paths() const -> std::vector<fs::u8path>
             {
                 return { mamba_bat,
                          _mamba_activate_bat,
@@ -154,7 +154,7 @@ namespace mamba
                 };
             }
 
-            auto every_generated_directories_paths() const -> std::initializer_list<fs::u8path>
+            auto every_generated_directories_paths() const -> std::vector<fs::u8path>
             {
                 return { condabin, scripts };
             }
@@ -754,6 +754,11 @@ namespace mamba
             // Maybe the prefix isn't writable. No big deal, just keep going.
             std::error_code maybe_error [[maybe_unused]];
             fs::create_directories(directory, maybe_error);
+            if (maybe_error)
+            {
+                LOG_ERROR << "Failed to create directory '" << directory.string() << "' : "
+                          << maybe_error.message();
+            }
         }
 
 

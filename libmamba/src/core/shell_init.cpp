@@ -139,7 +139,7 @@ namespace mamba
                 , _mamba_activate_bat(condabin / ("_" + run_info().this_exe_name + "_activate.bat"))
                 , condabin_activate_bat(condabin / "activate.bat")
                 , scripts_activate_bat(scripts / "activate.bat")
-                , mamba_hook_bat(condabin / (run_info().this_exe_name + "_hook.bat"))
+                , mamba_hook_bat(condabin / "mamba_hook.bat")
             {
 
             }
@@ -761,7 +761,7 @@ namespace mamba
         {
             return util::replace_all(
                 text,
-                std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
+                std::string("__MAMBA_DEFINE_ROOT_PREFIX__"),
                 "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
             );
         };
@@ -770,20 +770,24 @@ namespace mamba
         {
             return util::replace_all(
                 text,
-                std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                std::string("__MAMBA_DEFINE_MAMBA_EXE__"),
                 "@SET \"MAMBA_EXE=" + run_info().this_exe_path.string() + "\""
             );
         };
 
         static const auto MARKER_INSERT_EXE_NAME = std::string("__MAMBA_INSERT_EXE_NAME__");
-        static const auto MARKER_MAMBA_BAT_NAME = std::string("__MAMBA_BAT_NAME__");
+        static const auto MARKER_INSERT_MAMBA_BAT_NAME = std::string("__MAMBA_INSERT_BAT_NAME__");
 
         // mamba.bat
         std::string mamba_bat_contents(data_mamba_bat);
         replace_insert_root_prefix(mamba_bat_contents);
         replace_insert_mamba_exe(mamba_bat_contents);
-        static const auto MARKER_MAMBA_ACTIVATE_BAT_NAME = std::string("__MAMBA_ACTIVATE_BAT_NAME__");
-        util::replace_all(mamba_bat_contents, MARKER_MAMBA_ACTIVATE_BAT_NAME, paths._mamba_activate_bat.stem().string());
+        static const auto MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME = std::string("__MAMBA_INSERT_ACTIVATE_BAT_NAME__");
+        util::replace_all(
+            mamba_bat_contents,
+            MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME,
+            paths._mamba_activate_bat.stem().string()
+        );
         std::ofstream mamba_bat_f = open_ofstream(paths.mamba_bat);
         mamba_bat_f << mamba_bat_contents;
 
@@ -796,8 +800,12 @@ namespace mamba
         replace_insert_root_prefix(activate_bat_contents);
         replace_insert_mamba_exe(activate_bat_contents);
         util::replace_all(activate_bat_contents, MARKER_INSERT_EXE_NAME, run_info().this_exe_name);
-        static const auto MARKER_MAMBA_HOOK_BAT_NAME = std::string("__MAMBA_HOOK_BAT_NAME__");
-        util::replace_all(activate_bat_contents, MARKER_MAMBA_HOOK_BAT_NAME, paths.mamba_hook_bat.stem().string());
+        static const auto MARKER_MAMBA_INSERT_HOOK_BAT_NAME = std::string("__MAMBA_INSERT_HOOK_BAT_NAME__");
+        util::replace_all(
+            activate_bat_contents,
+            MARKER_MAMBA_INSERT_HOOK_BAT_NAME,
+            paths.mamba_hook_bat.filename().string()
+        );
         std::ofstream condabin_activate_bat_f = open_ofstream(paths.condabin_activate_bat);
         condabin_activate_bat_f << activate_bat_contents;
 
@@ -808,8 +816,12 @@ namespace mamba
         // mamba_hook.bat
         std::string hook_content = data_mamba_hook_bat;
         replace_insert_mamba_exe(hook_content);
-        util::replace_all(hook_content, MARKER_INSERT_EXE_NAME, run_info().this_exe_path.string());
-        util::replace_all(hook_content, MARKER_MAMBA_BAT_NAME, paths.mamba_bat.stem().string());
+        util::replace_all(hook_content, MARKER_INSERT_EXE_NAME, run_info().this_exe_name);
+        util::replace_all(
+            hook_content,
+            MARKER_INSERT_MAMBA_BAT_NAME,
+            paths.mamba_bat.filename().string()
+        );
 
         std::ofstream mamba_hook_bat_f = open_ofstream(paths.mamba_hook_bat);
         mamba_hook_bat_f << hook_content;

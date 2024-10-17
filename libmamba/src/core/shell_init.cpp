@@ -100,9 +100,7 @@ namespace mamba
         return "";
     }
 
-#ifdef _WIN32
-
-    namespace
+    namespace // Windows-specific but must be available for cli on all platforms
     {
         struct RunInfo // FIXME: find a better name
         {
@@ -164,6 +162,8 @@ namespace mamba
 
     }
 
+
+#ifdef _WIN32
 
     std::wstring get_autorun_registry_key(const std::wstring& reg_path)
     {

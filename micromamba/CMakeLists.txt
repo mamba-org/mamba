@@ -57,6 +57,28 @@ find_package(Threads REQUIRED)
 find_package(reproc REQUIRED)
 find_package(reproc++ REQUIRED)
 
+# Conda's binary relocation can result in string changing which can result in errors like:
+#
+# "warning:  command substitution: ignored null byte in input"
+#
+# See: https://github.com/mamba-org/mamba/issues/1517
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-merge-constants")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-merge-constants")
+
+if(APPLE)
+    # Needed for cross-compilation See:
+    # https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY=1")
+
+    # Dependency of libsolv-static missing in CMakeLists.txt
+    set(
+        frameworks_flags
+        "-framework CoreFoundation -framework CoreServices -framework Security -framework Kerberos"
+    )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${frameworks_flags}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${frameworks_flags}")
+endif()
+
 macro(mambaexe_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
     if(NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")

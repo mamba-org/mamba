@@ -70,7 +70,7 @@ if(APPLE)
     # https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY=1")
 
-    # Dependency of libsolv-static missing in CMakeLists.txt
+    # Dependency of libcurl-static missing in CMakeLists.txt
     set(
         frameworks_flags
         "-framework CoreFoundation -framework CoreServices -framework Security -framework Kerberos"

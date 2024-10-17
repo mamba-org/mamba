@@ -199,9 +199,9 @@ namespace mamba
 
     std::wstring get_hook_string(const fs::u8path& conda_prefix)
     {
-        const ShellInitPathsWindowsCmd paths{ conda_prefix }; // FIXME: too expensive
-
-        return fmt::format(L"{:?}", paths.mamba_hook_bat.wstring());
+        const ShellInitPathsWindowsCmd paths{ conda_prefix };
+        auto hook_path = fs::canonical(paths.mamba_hook_bat).std_path();
+        return fmt::format(LR"("{}")", hook_path.make_preferred().wstring());
     }
 
     void
@@ -225,7 +225,11 @@ namespace mamba
         {
             if (!new_value.empty())
             {
-                new_value += L" & " + hook_string;
+                if (new_value.find(hook_string) == std::wstring::npos)
+                {
+                    new_value += L" & " + hook_string;
+                }
+                // else the hook path already exists in the string
             }
             else
             {

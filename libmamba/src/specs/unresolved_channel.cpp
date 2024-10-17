@@ -113,7 +113,14 @@ namespace mamba::specs
 
         auto parse_path(std::string_view str) -> std::string
         {
-            auto out = util::path_to_posix(fs::u8path(str).lexically_normal().string());
+            auto out = fs::u8path(str).lexically_normal().string();
+            // Using `lexically_normal()` removes the information of the relative path
+            // => adding it back if originally there
+            if (str.substr(0, 2) == "./")
+            {
+                out = "./" + out;
+            }
+            out = util::path_to_posix(out);
             out = util::rstrip(out, '/');
             return out;
         }

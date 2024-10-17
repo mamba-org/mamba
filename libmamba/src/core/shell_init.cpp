@@ -100,20 +100,19 @@ namespace mamba
         return "";
     }
 
-    namespace // Windows-specific but must be available for cli on all platforms
+    namespace  // Windows-specific but must be available for cli on all platforms
     {
-        struct RunInfo // FIXME: find a better name
+        struct RunInfo  // FIXME: find a better name
         {
             fs::u8path this_exe_path = get_self_exe_path();
             fs::u8path this_exe_name_path = this_exe_path.stem();
             std::string this_exe_name = this_exe_name_path;
             std::wregex regex_mamba_cmd_hook{ L"(\"[^\"]*?" + this_exe_name_path.wstring()
-                                            + L"[-_] hook\\.bat\")",  // TODO: replace by fmt?
-                                              std::regex_constants::icase
-            };
+                                                  + L"[-_] hook\\.bat\")",  // TODO: replace by fmt?
+                                              std::regex_constants::icase };
         };
 
-        const RunInfo& run_info() // FIXME: find a better name
+        const RunInfo& run_info()  // FIXME: find a better name
         {
             static const RunInfo info;
             return info;
@@ -139,7 +138,6 @@ namespace mamba
                 , scripts_activate_bat(scripts / "activate.bat")
                 , mamba_hook_bat(condabin / "mamba_hook.bat")
             {
-
             }
 
             auto every_generated_files_paths() const -> std::vector<fs::u8path>
@@ -148,15 +146,13 @@ namespace mamba
                          _mamba_activate_bat,
                          condabin_activate_bat,
                          scripts_activate_bat,
-                         mamba_hook_bat
-                };
+                         mamba_hook_bat };
             }
 
             auto every_generated_directories_paths() const -> std::vector<fs::u8path>
             {
                 return { condabin, scripts };
             }
-
         };
 
 
@@ -760,8 +756,8 @@ namespace mamba
             fs::create_directories(directory, maybe_error);
             if (maybe_error)
             {
-                LOG_ERROR << "Failed to create directory '" << directory.string() << "' : "
-                          << maybe_error.message();
+                LOG_ERROR << "Failed to create directory '" << directory.string()
+                          << "' : " << maybe_error.message();
             }
         }
 
@@ -791,7 +787,9 @@ namespace mamba
         std::string mamba_bat_contents(data_mamba_bat);
         replace_insert_root_prefix(mamba_bat_contents);
         replace_insert_mamba_exe(mamba_bat_contents);
-        static const auto MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME = std::string("__MAMBA_INSERT_ACTIVATE_BAT_NAME__");
+        static const auto MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME = std::string(
+            "__MAMBA_INSERT_ACTIVATE_BAT_NAME__"
+        );
         util::replace_all(
             mamba_bat_contents,
             MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME,
@@ -809,7 +807,9 @@ namespace mamba
         replace_insert_root_prefix(activate_bat_contents);
         replace_insert_mamba_exe(activate_bat_contents);
         util::replace_all(activate_bat_contents, MARKER_INSERT_EXE_NAME, run_info().this_exe_name);
-        static const auto MARKER_MAMBA_INSERT_HOOK_BAT_NAME = std::string("__MAMBA_INSERT_HOOK_BAT_NAME__");
+        static const auto MARKER_MAMBA_INSERT_HOOK_BAT_NAME = std::string(
+            "__MAMBA_INSERT_HOOK_BAT_NAME__"
+        );
         util::replace_all(
             activate_bat_contents,
             MARKER_MAMBA_INSERT_HOOK_BAT_NAME,

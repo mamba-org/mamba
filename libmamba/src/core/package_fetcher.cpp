@@ -325,15 +325,11 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        // NOTE `package_type` is only set in `PackageInfo`, and its value is lost
-        // when passing through `make_package_info` from libsolv
-        // So far, the first case never happens?
-        // because `package_type` default value is `specs::PackageType::Unknown`
-        if (m_package_info.package_type == specs::PackageType::Conda)
+        if (!util::starts_with(m_package_info.package_url, "file://"))
         {
             return m_package_info.channel;
         }
-        else
+        else  // local package case
         {
             return "";
         }
@@ -341,15 +337,11 @@ namespace mamba
 
     std::string PackageFetcher::url_path() const
     {
-        // NOTE `package_type` is only set in `PackageInfo`, and its value is lost
-        // when passing through `make_package_info` from libsolv
-        // So far, the first case never happens?
-        // because `package_type` default value is `specs::PackageType::Unknown`
-        if (m_package_info.package_type == specs::PackageType::Conda)
+        if (!util::starts_with(m_package_info.package_url, "file://"))
         {
             return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }
-        else
+        else  // local package case
         {
             return m_package_info.package_url;
         }

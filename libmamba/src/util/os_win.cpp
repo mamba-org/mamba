@@ -218,7 +218,11 @@ namespace mamba::util
         // from python
         static const auto ver_output_regex = std::regex(R"((?:([\w ]+) ([\w.]+) .*\[.* ([\d.]+)\]))");
 
-        if (auto rmatch = std::smatch(); std::regex_match(out, rmatch, ver_output_regex))
+        // The output of the command could contain multiple unrelated lines, so we need to check
+        // every lines, which is why we need to search in a loop until reaching the end of the output.
+        std::smatch rmatch;
+        auto start_it = out.cbegin();
+        while (std::regex_search(start_it, out.cend(), rmatch, ver_output_regex))
         {
             std::string full_version = rmatch[3];
             auto version_elems = util::split(full_version, ".");

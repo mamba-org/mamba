@@ -25,6 +25,9 @@ On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
    brew install micromamba
 
+.. hint::
+
+   (2024-10-03) Homebrew currently only has version 1 of micromamba, not version 2. See https://github.com/mamba-org/mamba/issues/3495 for updates.
 
 Mamba-org releases
 ******************

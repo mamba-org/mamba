@@ -325,12 +325,34 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        return m_package_info.channel;
+        // NOTE `package_type` is only set in `PackageInfo`, and its value is lost
+        // when passing through `make_package_info` from libsolv
+        // So far, the first case never happens?
+        // because `package_type` default value is `specs::PackageType::Unknown`
+        if (m_package_info.package_type == specs::PackageType::Conda)
+        {
+            return m_package_info.channel;
+        }
+        else
+        {
+            return "";
+        }
     }
 
     std::string PackageFetcher::url_path() const
     {
-        return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        // NOTE `package_type` is only set in `PackageInfo`, and its value is lost
+        // when passing through `make_package_info` from libsolv
+        // So far, the first case never happens?
+        // because `package_type` default value is `specs::PackageType::Unknown`
+        if (m_package_info.package_type == specs::PackageType::Conda)
+        {
+            return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        }
+        else
+        {
+            return m_package_info.package_url;
+        }
     }
 
     const std::string& PackageFetcher::url() const

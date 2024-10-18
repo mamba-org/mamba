@@ -1203,6 +1203,7 @@ oci_registry_config = {
 }
 
 
+@pytest.mark.skip(reason="FIXME something changed in the server side? 409 status")
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("spec", ["pandoc", "pandoc=3.1.13"])
 @pytest.mark.parametrize("parser", ["mamba", "libsolv"])

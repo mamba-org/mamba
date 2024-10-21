@@ -140,10 +140,13 @@ namespace mamba
         // Needs to be set system-wide & can only be run as admin ...
 
         const auto win_ver = util::windows_version();
-        LOG_DEBUG << fmt::format("Windows version : {}", win_ver ? win_ver.value() : win_ver.error().message);
+        LOG_DEBUG << fmt::format(
+            "Windows version : {}",
+            win_ver ? win_ver.value() : win_ver.error().message
+        );
 
         static constexpr auto error_message_wrong_version = "Not setting long path registry key;"
-            "Windows version must be at least 10 with the fall 2016 \"Anniversary update\" or newer.";
+                                                            "Windows version must be at least 10 with the fall 2016 \"Anniversary update\" or newer.";
 
         if (!win_ver.has_value())
         {

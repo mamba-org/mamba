@@ -219,7 +219,8 @@ namespace mamba::util
         static const auto ver_output_regex = std::regex(R"((?:([\w ]+) ([\w.]+) .*\[.* ([\d.]+)\]))");
 
         // The output of the command could contain multiple unrelated lines, so we need to check
-        // every lines, which is why we need to search in a loop until reaching the end of the output.
+        // every lines, which is why we need to search in a loop until reaching the end of the
+        // output.
         std::smatch rmatch;
         auto start_it = out.cbegin();
         while (std::regex_search(start_it, out.cend(), rmatch, ver_output_regex))

@@ -102,17 +102,14 @@ namespace mamba
 
     namespace  // Windows-specific but must be available for cli on all platforms
     {
-        struct RunInfo  // FIXME: find a better name
+        struct RunInfo
         {
             fs::u8path this_exe_path = get_self_exe_path();
             fs::u8path this_exe_name_path = this_exe_path.stem();
             std::string this_exe_name = this_exe_name_path;
-            std::wregex regex_mamba_cmd_hook{ L"(\"[^\"]*?" + this_exe_name_path.wstring()
-                                                  + L"[-_] hook\\.bat\")",  // TODO: replace by fmt?
-                                              std::regex_constants::icase };
         };
 
-        const RunInfo& run_info()  // FIXME: find a better name
+        const RunInfo& run_info()
         {
             static const RunInfo info;
             return info;
@@ -160,6 +157,9 @@ namespace mamba
 
 
 #ifdef _WIN32
+
+    static const std::wregex
+        MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
 
     std::wstring get_autorun_registry_key(const std::wstring& reg_path)
     {
@@ -210,7 +210,7 @@ namespace mamba
         std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
         std::wstring replaced_value = std::regex_replace(
             prev_value,
-            run_info().regex_mamba_cmd_hook,
+            MAMBA_CMDEXE_HOOK_REGEX,
             replace_str,
             std::regex_constants::format_first_only
         );
@@ -1410,7 +1410,7 @@ namespace mamba
 #ifdef _WIN32
         // cmd.exe
         const std::wstring reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
-        if (std::regex_match(reg, run_info().regex_mamba_cmd_hook))
+        if (std::regex_match(reg, MAMBA_CMDEXE_HOOK_REGEX))
         {
             result.push_back("cmd.exe");
         }

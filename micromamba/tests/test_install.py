@@ -614,7 +614,11 @@ class TestInstall:
         reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
 
-    def install_local_package(self):
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Set info (e.g 'name') is wrong (to be fixed)",
+    )
+    def test_install_local_package(self):
         """Attempts to install a .tar.bz2 package from a local directory."""
         file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
 

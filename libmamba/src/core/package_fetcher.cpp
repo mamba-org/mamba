@@ -325,12 +325,26 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        return m_package_info.channel;
+        if (!util::starts_with(m_package_info.package_url, "file://"))
+        {
+            return m_package_info.channel;
+        }
+        else  // local package case
+        {
+            return "";
+        }
     }
 
     std::string PackageFetcher::url_path() const
     {
-        return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        if (!util::starts_with(m_package_info.package_url, "file://"))
+        {
+            return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        }
+        else  // local package case
+        {
+            return m_package_info.package_url;
+        }
     }
 
     const std::string& PackageFetcher::url() const

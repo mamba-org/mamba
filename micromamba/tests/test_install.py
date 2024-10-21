@@ -625,6 +625,19 @@ class TestInstall:
         res = helpers.install(f"file://{file_path}", "--json", default_channel=False)
         assert "cph_test_data" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
+    def test_install_local_package_relative_path(self):
+        """Attempts to install a locally built package from a relative local path."""
+        spec = "./micromamba/tests/test-server/repo::test-package"
+        res = helpers.install(spec, "--json", default_channel=False)
+        assert res["success"]
+
+        pkgs = res["actions"]["LINK"]
+        assert len(pkgs) == 1
+        pkg = pkgs[0]
+        assert pkg["name"] == "test-package"
+        assert pkg["version"] == "0.1"
+        assert pkg["url"].startswith("file://")
+
     def test_force_reinstall(self, existing_cache):
         """Force reinstall installs existing package again."""
         res = helpers.install("xtensor", "--json")

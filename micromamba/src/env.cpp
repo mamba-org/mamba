@@ -240,12 +240,13 @@ set_env_command(CLI::App* com, Configuration& config)
                     }
                     std::cout << "  ],\n";
                 }
-                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ]\n";
-                std::cout << "}\n";
+                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
                 std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)
                           << "\",\n";
-                std::cout << "  \"prefix\": \"" << ctx.prefix_params.target_prefix << "\"\n";
+                std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
+
+                std::cout << "}\n";
 
                 std::cout.flush();
             }

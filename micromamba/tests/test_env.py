@@ -73,7 +73,8 @@ def export_env():
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
-def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
+@pytest.mark.parametrize("no_build_flag", [None, "--no-build", "--no-builds"])
+def test_env_export(export_env, no_build_flag, explicit_flag, md5_flag, channel_subdir_flag):
     flags = filter(None, [explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:
@@ -85,7 +86,11 @@ def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
         assert ret["name"] == export_env
         assert "env-create-export" in ret["prefix"]
         assert set(ret["channels"]) == {"conda-forge"}
-        assert "micromamba=0.24.0=0" in str(ret["dependencies"])
+        assert (
+            "micromamba=0.24.0\n"
+            if no_build_flag
+            else "micromamba=0.24.0=0" in str(ret["dependencies"])
+        )
         if md5_flag == "--md5":
             assert re.search(r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
         if channel_subdir_flag:

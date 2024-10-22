@@ -129,6 +129,16 @@ set_env_command(CLI::App* com, Configuration& config)
             config.load();
 
             auto channel_context = mamba::ChannelContext::make_conda_compatible(ctx);
+
+            auto json_format = config.at("json").get_cli_config<bool>();
+
+            // Raise a warning if `--json` and `--explicit` are used together.
+            if (json_format && explicit_format)
+            {
+                std::cerr << "Warning: `--json` and `--explicit` are used together but are incompatible. The `--json` flag will be ignored."
+                          << std::endl;
+            }
+
             if (explicit_format)
             {
                 // TODO: handle error
@@ -163,7 +173,7 @@ set_env_command(CLI::App* com, Configuration& config)
                     std::cout << "\n";
                 }
             }
-            else if (config.at("json").get_cli_config<bool>())
+            else if (json_format)
             {
                 auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
                 History& hist = pd.history();

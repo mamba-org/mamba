@@ -75,6 +75,11 @@ def export_env():
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
 @pytest.mark.parametrize("json_flag", [None, "--json"])
 def test_env_export(export_env, json_flag, explicit_flag, md5_flag, channel_subdir_flag):
+    if explicit_flag and json_flag:
+        # `--explicit` has precedence over `--json`, which is tested bellow.
+        # But we need to omit here to avoid `helpers.run_env` to parse the output as JSON and fail.
+        json_flag = None
+
     flags = filter(None, [json_flag, explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:

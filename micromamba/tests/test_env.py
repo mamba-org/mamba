@@ -73,14 +73,17 @@ def export_env():
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
+@pytest.mark.parametrize("no_build_flag", [None, "--no-build", "--no-builds"])
 @pytest.mark.parametrize("json_flag", [None, "--json"])
-def test_env_export(export_env, json_flag, explicit_flag, md5_flag, channel_subdir_flag):
+def test_env_export(
+    export_env, json_flag, no_build_flag, explicit_flag, md5_flag, channel_subdir_flag
+):
     if explicit_flag and json_flag:
         # `--explicit` has precedence over `--json`, which is tested bellow.
         # But we need to omit here to avoid `helpers.run_env` to parse the output as JSON and fail.
         json_flag = None
 
-    flags = filter(None, [json_flag, explicit_flag, md5_flag, channel_subdir_flag])
+    flags = filter(None, [no_build_flag, json_flag, explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:
         assert "/micromamba-0.24.0-0." in output
@@ -95,13 +98,15 @@ def test_env_export(export_env, json_flag, explicit_flag, md5_flag, channel_subd
         assert ret["name"] == export_env
         assert "env-create-export" in ret["prefix"]
         assert set(ret["channels"]) == {"conda-forge"}
-        assert "micromamba=0.24.0=0" in str(ret["dependencies"])
-        if md5_flag == "--md5":
+        micromamba_spec_prefix = "micromamba=0.24.0" if no_build_flag else "micromamba=0.24.0=0"
+        assert micromamba_spec_prefix in str(ret["dependencies"])
+        if md5_flag == "--md5" and no_build_flag:
+            assert re.search(r"micromamba=0.24.0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
+        if md5_flag == "--md5" and no_build_flag is None:
             assert re.search(r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
+
         if channel_subdir_flag:
-            assert re.search(
-                r"conda-forge/[a-z0-9-]+::micromamba=0.24.0=0", str(ret["dependencies"])
-            )
+            assert re.search(r"conda-forge/[a-z0-9-]+::micromamba=0.24.0", str(ret["dependencies"]))
 
 
 def test_create():

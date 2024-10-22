@@ -169,10 +169,6 @@ set_env_command(CLI::App* com, Configuration& config)
                 History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
-
-                std::cout << "{\n";
-                std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)
-                          << "\",\n";
                 auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
@@ -220,6 +216,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
+                std::cout << "{\n";
 
                 if (!channels.empty())
                 {
@@ -233,10 +230,12 @@ set_env_command(CLI::App* com, Configuration& config)
                     }
                     std::cout << "  ],\n";
                 }
-
-
                 std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ]\n";
                 std::cout << "}\n";
+
+                std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)
+                          << "\",\n";
+                std::cout << "  \"prefix\": \"" << ctx.prefix_params.target_prefix << "\"\n";
 
                 std::cout.flush();
             }

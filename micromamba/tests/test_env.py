@@ -89,6 +89,7 @@ def test_env_export(export_env, json_flag, explicit_flag, md5_flag, channel_subd
         else:
             ret = yaml.safe_load(output)
         assert ret["name"] == export_env
+        assert "env-create-export" in ret["prefix"]
         assert set(ret["channels"]) == {"conda-forge"}
         assert "micromamba=0.24.0=0" in str(ret["dependencies"])
         if md5_flag == "--md5":

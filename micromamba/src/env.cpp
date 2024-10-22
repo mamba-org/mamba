@@ -114,7 +114,8 @@ set_env_command(CLI::App* com, Configuration& config)
 
     export_subcom->add_flag("-e,--explicit", explicit_format, "Use explicit format");
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
-    export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
+    export_subcom
+        ->add_flag("--no-build,--no-builds,!--build", no_build, "Disable the build string in spec");
     export_subcom->add_flag("--channel-subdir", channel_subdir, "Enable channel/subdir in spec");
     export_subcom->add_flag(
         "--from-history",

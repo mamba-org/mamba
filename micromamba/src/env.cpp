@@ -187,7 +187,7 @@ set_env_command(CLI::App* com, Configuration& config)
 
                     if (from_history)
                     {
-                        dependencies << "- " << requested_specs_map[k].str() << "\n";
+                        dependencies << "  - " << requested_specs_map[k].str() << "\n";
                     }
                     else
                     {
@@ -222,6 +222,9 @@ set_env_command(CLI::App* com, Configuration& config)
                     std::cout << "- " << c << "\n";
                 }
                 std::cout << "dependencies:\n" << dependencies.str() << std::endl;
+
+                std::cout << "prefix: " << ctx.prefix_params.target_prefix << std::endl;
+
                 std::cout.flush();
             }
         }

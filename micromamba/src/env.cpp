@@ -163,6 +163,83 @@ set_env_command(CLI::App* com, Configuration& config)
                     std::cout << "\n";
                 }
             }
+            else if (config.at("json").get_cli_config<bool>())
+            {
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
+                History& hist = pd.history();
+
+                const auto& versions_map = pd.records();
+
+                std::cout << "{\n";
+                std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)
+                          << "\",\n";
+                auto requested_specs_map = hist.get_requested_specs_map();
+                std::stringstream dependencies;
+                std::set<std::string> channels;
+
+                for (auto it = versions_map.begin(); it != versions_map.end(); ++it)
+                {
+                    auto k = it->first;
+                    auto v = it->second;
+                    if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    {
+                        continue;
+                    }
+
+                    auto chans = channel_context.make_channel(v.channel);
+
+                    if (from_history)
+                    {
+                        dependencies << "    \"" << requested_specs_map[k].str() << "\",\n";
+                    }
+                    else
+                    {
+                        dependencies << "    \"";
+                        if (channel_subdir)
+                        {
+                            dependencies
+                                // If the size is not one, it's a custom multi channel
+                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
+                                << "/" << v.platform << "::";
+                        }
+                        dependencies << v.name << "=" << v.version;
+                        if (!no_build)
+                        {
+                            dependencies << "=" << v.build_string;
+                        }
+                        if (no_md5 == -1)
+                        {
+                            dependencies << "[md5=" << v.md5 << "]";
+                        }
+                        auto last_dep = std::next(it) == versions_map.end();
+                        dependencies << "\"" << (last_dep ? "" : ",") << "\n";
+                    }
+
+                    for (const auto& chan : chans)
+                    {
+                        channels.insert(chan.display_name());
+                    }
+                }
+
+                if (!channels.empty())
+                {
+                    std::cout << "  \"channels\": [\n";
+                    for (auto channel_it = channels.begin(); channel_it != channels.end();
+                         ++channel_it)
+                    {
+                        auto last_channel = std::next(channel_it) == channels.end();
+                        std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",")
+                                  << "\n";
+                    }
+                    std::cout << "  ],\n";
+                }
+
+
+                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ]\n";
+                std::cout << "}\n";
+
+                std::cout.flush();
+            }
             else
             {
                 auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
@@ -176,6 +253,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
+
                 for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+import json
 
 from . import helpers
 
@@ -73,15 +74,19 @@ def export_env():
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
-def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
-    flags = filter(None, [explicit_flag, md5_flag, channel_subdir_flag])
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export(export_env, json_flag, explicit_flag, md5_flag, channel_subdir_flag):
+    flags = filter(None, [json_flag, explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:
         assert "/micromamba-0.24.0-0." in output
         if md5_flag != "--no-md5":
             assert re.search("#[a-f0-9]{32}$", output.replace("\r", ""))
     else:
-        ret = yaml.safe_load(output)
+        if json_flag:
+            ret = json.loads(output)
+        else:
+            ret = yaml.safe_load(output)
         assert ret["name"] == export_env
         assert set(ret["channels"]) == {"conda-forge"}
         assert "micromamba=0.24.0=0" in str(ret["dependencies"])

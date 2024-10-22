@@ -72,9 +72,8 @@ def export_env():
 
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
-@pytest.mark.parametrize(
-    "explicit_flag, json_flag", [(None, None), ("--explicit", None), (None, "--json")]
-)
+@pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
+@pytest.mark.parametrize("json_flag", [None, "--json"])
 def test_env_export(export_env, json_flag, explicit_flag, md5_flag, channel_subdir_flag):
     flags = filter(None, [json_flag, explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)

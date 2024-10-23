@@ -30,8 +30,12 @@ namespace mamba
             std::string name, version, build, channel;
         };
 
-        bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
+        bool compare_channel_and_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
         {
+            if (a.channel != b.channel)
+            {
+                return a.channel < b.channel;
+            }
             return a.name < b.name;
         }
 
@@ -96,22 +100,16 @@ namespace mamba
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
-                        {
-                            obj["channel"] = strip_from_filename_and_platform(
-                                pkg_info.channel,
-                                pkg_info.filename,
-                                pkg_info.platform
-                            );
-                        }
-                        else
-                        {
-                            obj["channel"] = strip_from_filename_and_platform(
-                                channels.front().display_name(),
-                                pkg_info.filename,
-                                pkg_info.platform
-                            );
-                        }
+                        auto channel_name
+                            = ((pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
+                                   ? pkg_info.channel
+                                   : channels.front().display_name());
+
+                        obj["channel"] = strip_from_filename_and_platform(
+                            channel_name,
+                            pkg_info.filename,
+                            pkg_info.platform
+                        );
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;
@@ -168,7 +166,7 @@ namespace mamba
                 }
             }
 
-            std::sort(packages.begin(), packages.end(), compare_alphabetically);
+            std::sort(packages.begin(), packages.end(), compare_channel_and_alphabetically);
 
             // format and print table
             printers::Table t({ "Name", "Version", "Build", "Channel" });

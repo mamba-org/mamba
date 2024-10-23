@@ -109,6 +109,18 @@ def test_env_export(
             assert re.search(r"conda-forge/[a-z0-9-]+::micromamba=0.24.0", str(ret["dependencies"]))
 
 
+def test_env_export_output_same_as_input():
+    # Create an environment from `export_env` and check that the export is the same as the input
+    env_name = "env-export-consistency"
+    spec_file = __this_dir__ / "env-export-consistency.yaml"
+    helpers.create("-n", env_name, "-f", spec_file)
+
+    output = helpers.run_env("export", "-n", env_name)
+
+    original_spec = spec_file.read_text()
+    assert original_spec == output
+
+
 def test_create():
     """Tests for ``micromamba env create`` can be found in ``test_create.py``.
 

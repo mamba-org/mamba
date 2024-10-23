@@ -262,42 +262,59 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::cout << "channels:\n";
 
                 auto requested_specs_map = hist.get_requested_specs_map();
-                std::stringstream dependencies;
-                std::set<std::string> channels;
 
-                for (const auto& [k, v] : versions_map)
+                std::set<std::string> channels;
+                std::stringstream conda_dependencies;
+                // Keep all the PyPI conda_dependencies for the end
+                std::stringstream pypi_dependencies;
+
+                for (auto it = versions_map.begin(); it != versions_map.end(); ++it)
                 {
+                    auto k = it->first;
+                    auto v = it->second;
+
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
                     {
                         continue;
                     }
 
+                    auto spacing = v.channel == "pypi" ? "    - " : " - ";
                     auto chans = channel_context.make_channel(v.channel);
 
-                    if (from_history)
+                    if (v.channel == "pypi")
                     {
-                        dependencies << "  - " << requested_specs_map[k].str() << "\n";
+                        pypi_dependencies << spacing << v.name << "==" << v.version;
+                        auto last_dep = std::next(it) == versions_map.end();
+                        pypi_dependencies << (last_dep ? "" : "\n");
                     }
                     else
                     {
-                        dependencies << "- ";
-                        if (channel_subdir)
+                        if (from_history)
                         {
-                            dependencies
-                                // If the size is not one, it's a custom multi channel
-                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.platform << "::";
+                            conda_dependencies << spacing << requested_specs_map[k].str() << "\n";
                         }
-                        dependencies << v.name << "=" << v.version;
-                        if (!no_build)
+                        else
                         {
-                            dependencies << "=" << v.build_string;
+                            conda_dependencies << spacing;
+                            if (channel_subdir)
+                            {
+                                conda_dependencies
+                                    // If the size is not one, it's a custom multi channel
+                                    << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
+                                    << "/" << v.platform << "::";
+                            }
+                            conda_dependencies << v.name << "=" << v.version;
+                            if (!no_build)
+                            {
+                                conda_dependencies << "=" << v.build_string;
+                            }
+                            if (no_md5 == -1)
+                            {
+                                conda_dependencies << "[md5=" << v.md5 << "]";
+                            }
+                            auto last_dep = std::next(it) == versions_map.end();
+                            conda_dependencies << (last_dep ? "" : "\n");
                         }
-                        if (no_md5 == -1)
-                        {
-                            dependencies << "[md5=" << v.md5 << "]";
-                        }
-                        dependencies << "\n";
                     }
 
                     for (const auto& chan : chans)
@@ -308,9 +325,18 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 for (const auto& c : channels)
                 {
-                    std::cout << "- " << c << "\n";
+                    if (c != "pypi")
+                    {
+                        std::cout << " - " << c << "\n";
+                    }
                 }
-                std::cout << "dependencies:\n" << dependencies.str() << std::endl;
+                std::cout << "dependencies:\n" << conda_dependencies.str() << std::endl;
+
+                if (pypi_dependencies.str().size() > 0)
+                {
+                    std::cout << " - pip:" << std::endl;
+                    std::cout << pypi_dependencies.str();
+                }
 
                 std::cout << "prefix: " << ctx.prefix_params.target_prefix << std::endl;
 

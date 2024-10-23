@@ -18,7 +18,7 @@
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
 
-#include "pip_utils.hpp"
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -131,6 +131,11 @@ namespace mamba
     {
         auto& ctx = config.context();
 
+        // `env update` case
+        if (update_params.env_update == EnvUpdate::Yes)
+        {
+            config.at("create_base").set_value(true);
+        }
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("use_default_prefix_fallback").set_value(true);
         config.at("use_root_prefix_fallback").set_value(true);
@@ -145,14 +150,7 @@ namespace mamba
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        // add channels from specs
-        for (const auto& s : raw_update_specs)
-        {
-            if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
-            {
-                ctx.channels.push_back(ms->channel()->str());
-            }
-        }
+        populate_context_channels_from_specs(raw_update_specs, ctx);
 
         solver::libsolv::Database db{ channel_context.params() };
         add_spdlog_logger_to_database(db);

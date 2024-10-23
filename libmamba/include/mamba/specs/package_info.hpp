@@ -50,12 +50,17 @@ namespace mamba::specs
         std::vector<std::string> track_features = {};
         std::vector<std::string> dependencies = {};
         std::vector<std::string> constrains = {};
+        // WARNING Be aware that `defaulted_keys` value, if set later,
+        // is not passed when going through `make_package_info` from libsolv
         std::vector<std::string> defaulted_keys = {};
         NoArchType noarch = NoArchType::No;
         std::size_t size = 0;
         std::size_t timestamp = 0;
         // FIXME this is a temporary hack to accommodate Python wheels but wheels and conda
         // PackageInfo, should really be split in different types.
+        // WARNING Be aware that `package_type` value,
+        // if set later to anything other than default (PackageType::Unknown),
+        // will not be passed when going through `make_package_info` from libsolv
         PackageType package_type = PackageType::Unknown;
 
         [[nodiscard]] static auto from_url(std::string_view url) -> expected_parse_t<PackageInfo>;

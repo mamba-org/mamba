@@ -614,12 +614,29 @@ class TestInstall:
         reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
 
-    def install_local_package(self):
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Set info (e.g 'name') is wrong (to be fixed)",
+    )
+    def test_install_local_package(self):
         """Attempts to install a .tar.bz2 package from a local directory."""
         file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
 
         res = helpers.install(f"file://{file_path}", "--json", default_channel=False)
         assert "cph_test_data" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+    def test_install_local_package_relative_path(self):
+        """Attempts to install a locally built package from a relative local path."""
+        spec = "./micromamba/tests/test-server/repo::test-package"
+        res = helpers.install(spec, "--json", default_channel=False)
+        assert res["success"]
+
+        pkgs = res["actions"]["LINK"]
+        assert len(pkgs) == 1
+        pkg = pkgs[0]
+        assert pkg["name"] == "test-package"
+        assert pkg["version"] == "0.1"
+        assert pkg["url"].startswith("file://")
 
     def test_force_reinstall(self, existing_cache):
         """Force reinstall installs existing package again."""
@@ -741,3 +758,30 @@ def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
 
     res = helpers.umamba_run("-n", env_name, "python", "-c", "import pip; print(pip.__version__)")
     assert len(res)
+
+
+env_yaml_content_to_install_empty_base = """
+channels:
+- conda-forge
+dependencies:
+- python
+- xtensor
+"""
+
+
+def test_install_empty_base(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-install-empty-base"
+
+    os.environ["MAMBA_ROOT_PREFIX"] = str(env_prefix)
+
+    env_file_yml = tmp_path / "test_install_env_empty_base.yaml"
+    env_file_yml.write_text(env_yaml_content_to_install_empty_base)
+
+    cmd = ["-p", env_prefix, f"--file={env_file_yml}", "-y", "--json"]
+
+    res = helpers.install(*cmd)
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "xtensor" for package in packages)
+    assert any(package["name"] == "python" for package in packages)

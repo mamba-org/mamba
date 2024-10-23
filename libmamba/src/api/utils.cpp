@@ -19,7 +19,7 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/environment.hpp"
 
-#include "pip_utils.hpp"
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -183,5 +183,27 @@ namespace mamba
         }
 
         return command;
+    }
+
+    void
+    populate_context_channels_from_specs(const std::vector<std::string>& raw_matchspecs, Context& context)
+    {
+        for (const auto& s : raw_matchspecs)
+        {
+            if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
+            {
+                auto channel_name = ms->channel()->str();
+                auto channel_is_absent = std::find(
+                                             context.channels.begin(),
+                                             context.channels.end(),
+                                             channel_name
+                                         )
+                                         == context.channels.end();
+                if (channel_is_absent)
+                {
+                    context.channels.push_back(channel_name);
+                }
+            }
+        }
     }
 }

@@ -73,24 +73,40 @@ def export_env():
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
-def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
-    flags = filter(None, [explicit_flag, md5_flag, channel_subdir_flag])
+@pytest.mark.parametrize("no_build_flag", [None, "--no-build", "--no-builds"])
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export(
+    export_env, json_flag, no_build_flag, explicit_flag, md5_flag, channel_subdir_flag
+):
+    if explicit_flag and json_flag:
+        # `--explicit` has precedence over `--json`, which is tested bellow.
+        # But we need to omit here to avoid `helpers.run_env` to parse the output as JSON and fail.
+        json_flag = None
+
+    flags = filter(None, [no_build_flag, json_flag, explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:
         assert "/micromamba-0.24.0-0." in output
         if md5_flag != "--no-md5":
             assert re.search("#[a-f0-9]{32}$", output.replace("\r", ""))
     else:
-        ret = yaml.safe_load(output)
+        if json_flag:
+            # Already parsed
+            ret = output
+        else:
+            ret = yaml.safe_load(output)
         assert ret["name"] == export_env
+        assert "env-create-export" in ret["prefix"]
         assert set(ret["channels"]) == {"conda-forge"}
-        assert "micromamba=0.24.0=0" in str(ret["dependencies"])
-        if md5_flag == "--md5":
+        micromamba_spec_prefix = "micromamba=0.24.0" if no_build_flag else "micromamba=0.24.0=0"
+        assert micromamba_spec_prefix in str(ret["dependencies"])
+        if md5_flag == "--md5" and no_build_flag:
+            assert re.search(r"micromamba=0.24.0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
+        if md5_flag == "--md5" and no_build_flag is None:
             assert re.search(r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
+
         if channel_subdir_flag:
-            assert re.search(
-                r"conda-forge/[a-z0-9-]+::micromamba=0.24.0=0", str(ret["dependencies"])
-            )
+            assert re.search(r"conda-forge/[a-z0-9-]+::micromamba=0.24.0", str(ret["dependencies"]))
 
 
 def test_create():
@@ -307,6 +323,8 @@ env_yaml_content_create_pip_pkg_with_version = """
 channels:
 - conda-forge
 dependencies:
+# This version of Python covers all the versions of numpy available on conda-forge and PyPI for all platforms.
+- python 3.12
 - pip
 - pip:
   - numpy==1.26.4
@@ -408,3 +426,31 @@ def test_env_create_whitespace(tmp_home, tmp_root_prefix, tmp_path):
         package["name"] == "scikit-learn" and Version(package["version"]) > Version("1.0.0")
         for package in packages
     )
+
+
+env_yaml_content_to_update_empty_base = """
+channels:
+- conda-forge
+dependencies:
+- python
+- xtensor
+"""
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-update-empty-base"
+
+    os.environ["MAMBA_ROOT_PREFIX"] = str(env_prefix)
+
+    env_file_yml = tmp_path / "test_env_empty_base.yaml"
+    env_file_yml.write_text(env_yaml_content_to_update_empty_base)
+
+    cmd = ["update", "-p", env_prefix, f"--file={env_file_yml}", "-y", "--json"]
+
+    res = helpers.run_env(*cmd)
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "xtensor" for package in packages)
+    assert any(package["name"] == "python" for package in packages)

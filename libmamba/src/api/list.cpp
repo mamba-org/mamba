@@ -30,8 +30,12 @@ namespace mamba
             std::string name, version, build, channel;
         };
 
-        bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
+        bool compare_channel_and_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
         {
+            if (a.channel != b.channel)
+            {
+                return a.channel < b.channel;
+            }
             return a.name < b.name;
         }
 
@@ -96,8 +100,13 @@ namespace mamba
                         );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
+                        auto channel_name
+                            = ((pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
+                                   ? pkg_info.channel
+                                   : channels.front().display_name());
+
                         obj["channel"] = strip_from_filename_and_platform(
-                            channels.front().display_name(),
+                            channel_name,
                             pkg_info.filename,
                             pkg_info.platform
                         );
@@ -134,19 +143,30 @@ namespace mamba
                     }
                     else
                     {
-                        auto channels = channel_context.make_channel(package.second.channel);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = strip_from_filename_and_platform(
-                            channels.front().display_name(),
-                            package.second.filename,
-                            package.second.platform
-                        );
+                        if (package.second.package_url.empty() && (package.second.channel == "pypi"))
+                        {
+                            formatted_pkgs.channel = strip_from_filename_and_platform(
+                                package.second.channel,
+                                package.second.filename,
+                                package.second.platform
+                            );
+                        }
+                        else
+                        {
+                            auto channels = channel_context.make_channel(package.second.channel);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+                            formatted_pkgs.channel = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                package.second.filename,
+                                package.second.platform
+                            );
+                        }
                     }
                     packages.push_back(formatted_pkgs);
                 }
             }
 
-            std::sort(packages.begin(), packages.end(), compare_alphabetically);
+            std::sort(packages.begin(), packages.end(), compare_channel_and_alphabetically);
 
             // format and print table
             printers::Table t({ "Name", "Version", "Build", "Channel" });

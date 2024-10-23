@@ -8,6 +8,7 @@
 
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
@@ -620,6 +621,54 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.name().str(), "libblas");
             CHECK_EQ(ms.build_string().str(), "^.*(accelerate|mkl)$");
             CHECK_FALSE(ms.build_string().is_glob());
+        }
+    }
+
+    TEST_CASE("parse_url")
+    {
+        SUBCASE("https://conda.com/pkg-2-bld.conda")
+        {
+            auto ms = MatchSpec::parse_url("https://conda.com/pkg-2-bld.conda").value();
+            CHECK(ms.is_file());
+            CHECK_EQ(ms.name().str(), "pkg");
+            CHECK_EQ(ms.version().str(), "==2");
+            CHECK_EQ(ms.str(), "https://conda.com/pkg-2-bld.conda");
+            CHECK_EQ(ms.build_string().str(), "bld");
+            CHECK_EQ(ms.filename(), "pkg-2-bld.conda");
+        }
+
+        SUBCASE("/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2")
+        {
+            auto ms = MatchSpec::parse_url(
+                          "/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
+            )
+                          .value();
+            CHECK(ms.is_file());
+            CHECK_EQ(ms.name().str(), "cph_test_data");
+            CHECK_EQ(ms.version().str(), "==0.0.1");
+            CHECK_EQ(ms.str(), "/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2");
+            CHECK_EQ(ms.build_string().str(), "0");
+            CHECK_EQ(ms.filename(), "cph_test_data-0.0.1-0.tar.bz2");
+        }
+
+        SUBCASE(R"(D:\a\mamba\mamba\micromamba\tests\data\cph_test_data-0.0.1-0.tar.bz2)")
+        {
+            if (util::on_win)
+            {
+                auto ms = MatchSpec::parse_url(
+                              R"(D:\a\mamba\mamba\micromamba\tests\data\cph_test_data-0.0.1-0.tar.bz2)"
+                )
+                              .value();
+                CHECK(ms.is_file());
+                CHECK_EQ(ms.name().str(), "cph_test_data");
+                CHECK_EQ(ms.version().str(), "==0.0.1");
+                CHECK_EQ(
+                    ms.str(),
+                    "D:/a/mamba/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
+                );
+                CHECK_EQ(ms.build_string().str(), "0");
+                CHECK_EQ(ms.filename(), "cph_test_data-0.0.1-0.tar.bz2");
+            }
         }
     }
 

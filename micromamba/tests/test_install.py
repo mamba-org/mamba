@@ -614,17 +614,6 @@ class TestInstall:
         reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
 
-    @pytest.mark.skipif(
-        sys.platform == "win32",
-        reason="Set info (e.g 'name') is wrong (to be fixed)",
-    )
-    def test_install_local_package(self):
-        """Attempts to install a .tar.bz2 package from a local directory."""
-        file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
-
-        res = helpers.install(f"file://{file_path}", "--json", default_channel=False)
-        assert "cph_test_data" in {pkg["name"] for pkg in res["actions"]["LINK"]}
-
     def test_install_local_package_relative_path(self):
         """Attempts to install a locally built package from a relative local path."""
         spec = "./micromamba/tests/test-server/repo::test-package"
@@ -674,6 +663,28 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "site-packages")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
+
+
+def test_install_local_package(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    tmp_root_prefix / "envs" / env_name
+
+    helpers.create("-n", env_name, default_channel=False)
+
+    """Attempts to install a .tar.bz2 package from a local directory."""
+    file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
+    res = helpers.install("-n", env_name, file_path, "--json", default_channel=False)
+
+    assert len(res["actions"]["LINK"]) == 1
+    pkg = res["actions"]["LINK"][0]
+
+    assert pkg["name"] == "cph_test_data"
+    assert pkg["version"] == "0.0.1"
+    assert pkg["fn"] == "cph_test_data-0.0.1-0.tar.bz2"
+    assert pkg["channel"].startswith("file:///")
+    assert pkg["channel"].endswith("data")
+    assert pkg["url"].startswith("file:///")
+    assert pkg["url"].endswith("cph_test_data-0.0.1-0.tar.bz2")
 
 
 @pytest.mark.skipif(

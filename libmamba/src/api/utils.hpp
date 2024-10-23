@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_PIP_UTILS_HPP
-#define MAMBA_PIP_UTILS_HPP
+#ifndef MAMBA_UTILS_HPP
+#define MAMBA_UTILS_HPP
 
 #include <stdexcept>
 #include <string>
@@ -39,6 +39,9 @@ namespace mamba
         pip::Update update
     );
 
+    void
+    populate_context_channels_from_specs(const std::vector<std::string>& raw_matchspecs, Context& context);
+
 }
 
-#endif  // MAMBA_PIP_UTILS_HPP
+#endif  // MAMBA_UTILS_HPP

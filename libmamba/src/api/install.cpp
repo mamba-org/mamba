@@ -27,7 +27,7 @@
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
-#include "pip_utils.hpp"
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -378,7 +378,7 @@ namespace mamba
             Context& ctx,
             ChannelContext& channel_context,
             const Configuration& config,
-            const std::vector<std::string>& specs,
+            const std::vector<std::string>& raw_specs,
             bool create_env,
             bool remove_prefix_on_failure,
             bool is_retry
@@ -405,26 +405,7 @@ namespace mamba
 
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
-            // add channels from specs
-            for (const auto& s : specs)
-            {
-                if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
-                {
-                    // Only register channels in the context once
-                    // NOTE: ctx.channels could be a `std::unordered_set` but `yaml-cpp` does not
-                    // support it. See: https://github.com/jbeder/yaml-cpp/issues/1322 Hence we
-                    // perform linear scanning: `ctx.channels` is a short `std::vector` in practice
-                    // so linearly searching is reasonable (probably even faster than using an
-                    // `std::unordered_set`).
-                    auto channel_name = ms->channel()->str();
-                    auto channel_is_absent = std::find(ctx.channels.begin(), ctx.channels.end(), channel_name)
-                                             == ctx.channels.end();
-                    if (channel_is_absent)
-                    {
-                        ctx.channels.push_back(channel_name);
-                    }
-                }
-            }
+            populate_context_channels_from_specs(raw_specs, ctx);
 
             if (ctx.channels.empty() && !ctx.offline)
             {
@@ -456,8 +437,8 @@ namespace mamba
             load_installed_packages_in_database(ctx, db, prefix_data);
 
 
-            auto request = create_install_request(prefix_data, specs, freeze_installed);
-            add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
+            auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
+            add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;
 
             {
@@ -485,7 +466,7 @@ namespace mamba
                         ctx,
                         channel_context,
                         config,
-                        specs,
+                        raw_specs,
                         create_env,
                         remove_prefix_on_failure,
                         true

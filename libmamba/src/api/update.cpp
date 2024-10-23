@@ -18,7 +18,7 @@
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
 
-#include "pip_utils.hpp"
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -150,26 +150,7 @@ namespace mamba
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        // add channels from specs
-        for (const auto& s : raw_update_specs)
-        {
-            if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
-            {
-                // Only register channels in the context once
-                // NOTE: ctx.channels could be a `std::unordered_set` but `yaml-cpp` does not
-                // support it. See: https://github.com/jbeder/yaml-cpp/issues/1322 Hence we
-                // perform linear scanning: `ctx.channels` is a short `std::vector` in practice
-                // so linearly searching is reasonable (probably even faster than using an
-                // `std::unordered_set`).
-                auto channel_name = ms->channel()->str();
-                auto channel_is_absent = std::find(ctx.channels.begin(), ctx.channels.end(), channel_name)
-                                         == ctx.channels.end();
-                if (channel_is_absent)
-                {
-                    ctx.channels.push_back(channel_name);
-                }
-            }
-        }
+        populate_context_channels_from_specs(raw_update_specs, ctx);
 
         solver::libsolv::Database db{ channel_context.params() };
         add_spdlog_logger_to_database(db);

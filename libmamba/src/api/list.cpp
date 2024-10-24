@@ -89,18 +89,31 @@ namespace mamba
                     {
                         auto channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = strip_from_filename_and_platform(
-                            channels.front().url().str(specs::CondaURL::Credentials::Remove),
-                            pkg_info.filename,
-                            pkg_info.platform
-                        );
+
+                        if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
+                        {
+                            // TODO Need to correctly set `platform`, which is empty in PyPI case
+                            // Note that this is only a problem when using `--json`
+                            // (otherwise, the missing info is not needed/used)
+                            // cf. `formatted_pkgs` below
+                            obj["base_url"] = "https://pypi.org/";
+                            obj["channel"] = pkg_info.channel;
+                        }
+                        else
+                        {
+                            obj["base_url"] = strip_from_filename_and_platform(
+                                channels.front().url().str(specs::CondaURL::Credentials::Remove),
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
+                            obj["channel"] = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
+                        }
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = strip_from_filename_and_platform(
-                            channels.front().display_name(),
-                            pkg_info.filename,
-                            pkg_info.platform
-                        );
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;
@@ -131,6 +144,10 @@ namespace mamba
                     if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
                     {
                         formatted_pkgs.channel = "";
+                    }
+                    else if (package.second.channel == "pypi")
+                    {
+                        formatted_pkgs.channel = package.second.channel;
                     }
                     else
                     {

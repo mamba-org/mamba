@@ -9,11 +9,14 @@
 #include <unordered_map>
 #include <utility>
 
+#include <reproc++/run.hpp>
+
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
 
@@ -56,6 +59,8 @@ namespace mamba
                 }
             }
         }
+        // Load packages installed with pip
+        load_site_packages();
     }
 
     void PrefixData::add_packages(const std::vector<specs::PackageInfo>& packages)
@@ -166,10 +171,64 @@ namespace mamba
 
         auto channels = m_channel_context.make_channel(prec.channel);
         // If someone wrote multichannel names in repodata_record, we don't know which one is the
-        // correct URL. This is must never happen!
+        // correct URL. This must never happen!
         assert(channels.size() == 1);
         using Credentials = specs::CondaURL::Credentials;
         prec.channel = channels.front().platform_url(prec.platform).str(Credentials::Remove);
         m_package_records.insert({ prec.name, std::move(prec) });
+    }
+
+    // Load python packages installed with pip in the site-packages of the prefix.
+    void PrefixData::load_site_packages()
+    {
+        LOG_INFO << "Loading site packages";
+
+        // Look for `pip` package and return if it doesn't exist
+        auto python_pkg_record = m_package_records.find("pip");
+        if (python_pkg_record == m_package_records.end())
+        {
+            LOG_DEBUG << "`pip` not found";
+            return;
+        }
+
+        // Run `pip freeze`
+        std::string out, err;
+
+        const auto get_python_path = [&]
+        { return util::which_in("python", util::get_path_dirs(m_prefix_path)).string(); };
+
+        const auto args = std::array<std::string, 5>{ get_python_path(),
+                                                      "-m",
+                                                      "pip",
+                                                      "freeze",
+                                                      "--local" };
+        auto [status, ec] = reproc::run(
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
+        if (ec)
+        {
+            throw std::runtime_error(ec.message());
+        }
+
+        // Nothing installed with `pip`
+        if (out.empty())
+        {
+            LOG_DEBUG << "Nothing installed with `pip`";
+            return;
+        }
+
+        auto pkgs_info_list = mamba::util::split(mamba::util::strip(out), "\n");
+        for (auto& pkg_info_line : pkgs_info_list)
+        {
+            if (pkg_info_line.find("==") != std::string::npos)
+            {
+                auto pkg_info = mamba::util::split(mamba::util::strip(pkg_info_line), "==");
+                auto prec = specs::PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
+                m_package_records.insert({ prec.name, std::move(prec) });
+            }
+        }
     }
 }  // namespace mamba

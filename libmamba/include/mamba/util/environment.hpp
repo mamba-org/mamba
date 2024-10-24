@@ -11,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
@@ -92,6 +93,11 @@ namespace mamba::util
      * Return the character use to separate paths.
      */
     [[nodiscard]] constexpr auto pathsep() -> char;
+
+    /**
+     * Return directories of the given prefix path.
+     */
+    [[nodiscard]] auto get_path_dirs(const fs::u8path& prefix) -> std::vector<fs::u8path>;
 
     /**
      * Return the full path of a program from its name.

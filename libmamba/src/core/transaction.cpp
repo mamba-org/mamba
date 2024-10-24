@@ -362,8 +362,6 @@ namespace mamba
     bool
     MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
-        using Solution = solver::Solution;
-
         // JSON output
         // back to the top level if any action was required
         if (!empty())

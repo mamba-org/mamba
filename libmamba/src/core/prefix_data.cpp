@@ -78,6 +78,22 @@ namespace mamba
         return m_package_records;
     }
 
+    const PrefixData::package_map& PrefixData::pip_records() const
+    {
+        return m_pip_package_records;
+    }
+
+    PrefixData::package_map PrefixData::all_pkg_mgr_records() const
+    {
+        PrefixData::package_map merged_records = m_package_records;
+        // Note that if the same key (pkg name) is present in both `m_package_records` and
+        // `m_pip_package_records`, the latter is not considered - and that's exactly what we want
+        // (this may be modified to be completely independent in the future)
+        merged_records.insert(m_pip_package_records.begin(), m_pip_package_records.end());
+
+        return merged_records;
+    }
+
     std::vector<specs::PackageInfo> PrefixData::sorted_records() const
     {
         // TODO add_pip_as_python_dependency
@@ -227,7 +243,7 @@ namespace mamba
             {
                 auto pkg_info = mamba::util::split(mamba::util::strip(pkg_info_line), "==");
                 auto prec = specs::PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
-                m_package_records.insert({ prec.name, std::move(prec) });
+                m_pip_package_records.insert({ prec.name, std::move(prec) });
             }
         }
     }

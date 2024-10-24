@@ -67,14 +67,16 @@ namespace mamba
             {
                 regex = '^' + regex + '$';
             }
+
             std::regex spec_pat(regex);
+            auto all_records = std::move(prefix_data.all_pkg_mgr_records());
 
             if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
 
-                for (const auto& pkg : prefix_data.records())
+                for (const auto& pkg : all_records)
                 {
                     keys.push_back(pkg.first);
                 }
@@ -83,7 +85,7 @@ namespace mamba
                 for (const auto& key : keys)
                 {
                     auto obj = nlohmann::json();
-                    const auto& pkg_info = prefix_data.records().find(key)->second;
+                    const auto& pkg_info = all_records.find(key)->second;
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
@@ -134,7 +136,7 @@ namespace mamba
             auto requested_specs = prefix_data.history().get_requested_specs_map();
 
             // order list of packages from prefix_data by alphabetical order
-            for (const auto& package : prefix_data.records())
+            for (const auto& package : all_records)
             {
                 if (regex.empty() || std::regex_search(package.second.name, spec_pat))
                 {

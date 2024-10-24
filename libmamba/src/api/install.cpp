@@ -23,7 +23,6 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
-#include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 

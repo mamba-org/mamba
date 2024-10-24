@@ -12,8 +12,7 @@
 #include <reproc/reproc.h>
 
 // TODO includes to be removed after moving some functions/structs around
-#include "mamba/api/install.hpp"      // other_pkg_mgr_spec
-#include "mamba/core/activation.hpp"  // get_path_dirs
+#include "mamba/api/install.hpp"  // other_pkg_mgr_spec
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -33,7 +32,7 @@ namespace mamba
         )
         {
             const auto get_python_path = [&]
-            { return util::which_in("python", get_path_dirs(target_prefix)).string(); };
+            { return util::which_in("python", util::get_path_dirs(target_prefix)).string(); };
 
             command_args cmd = { get_python_path(), "-m", "pip", "install" };
             command_args cmd_extension = { "-r", spec_file, "--no-input", "--quiet" };

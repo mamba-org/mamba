@@ -539,7 +539,7 @@ macro(libmamba_create_target target_name linkage output_name)
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
             # For Windows we have a vcpkg based build system right now.
-            find_package(LibArchive CONFIG REQUIRED)
+            find_package(LibArchive MODULE REQUIRED)
             find_package(CURL CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)

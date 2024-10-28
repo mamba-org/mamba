@@ -1,4 +1,6 @@
+import platform
 import subprocess
+import sys
 
 import pytest
 
@@ -68,7 +70,7 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path):
         and package["base_url"] == "https://pypi.org/"
         and package["build_string"] == "pypi_0"
         and package["channel"] == "pypi"
-        and package["platform"] == ""
+        and package["platform"] == sys.platform + "-" + platform.machine()
         for package in res
     )
 

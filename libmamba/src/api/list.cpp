@@ -94,10 +94,6 @@ namespace mamba
 
                         if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
                         {
-                            // TODO Need to correctly set `platform`, which is empty in PyPI case
-                            // Note that this is only a problem when using `--json`
-                            // (otherwise, the missing info is not needed/used)
-                            // cf. `formatted_pkgs` below
                             obj["base_url"] = "https://pypi.org/";
                             obj["channel"] = pkg_info.channel;
                         }

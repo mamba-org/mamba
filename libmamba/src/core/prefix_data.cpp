@@ -87,7 +87,7 @@ namespace mamba
     {
         PrefixData::package_map merged_records = m_package_records;
         // Note that if the same key (pkg name) is present in both `m_package_records` and
-        // `m_pip_package_records`, the latter is not considered - and that's exactly what we want
+        // `m_pip_package_records`, the latter is not considered
         // (this may be modified to be completely independent in the future)
         merged_records.insert(m_pip_package_records.begin(), m_pip_package_records.end());
 
@@ -216,7 +216,7 @@ namespace mamba
         const auto args = std::array<std::string, 5>{ get_python_path(),
                                                       "-m",
                                                       "pip",
-                                                      "freeze",
+                                                      "inspect",
                                                       "--local" };
         auto [status, ec] = reproc::run(
             args,
@@ -236,14 +236,39 @@ namespace mamba
             return;
         }
 
-        auto pkgs_info_list = mamba::util::split(mamba::util::strip(out), "\n");
-        for (auto& pkg_info_line : pkgs_info_list)
+        nlohmann::json j = nlohmann::json::parse(out);
+
+        if (j.contains("installed") && j["installed"].is_array())
         {
-            if (pkg_info_line.find("==") != std::string::npos)
+            for (const auto& package : j["installed"])
             {
-                auto pkg_info = mamba::util::split(mamba::util::strip(pkg_info_line), "==");
-                auto prec = specs::PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
-                m_pip_package_records.insert({ prec.name, std::move(prec) });
+                // Get the package metadata, if requested and installed with `pip`
+                if (package.contains("requested") && package.contains("installer")
+                    && package["requested"] == true && package["installer"] == "pip")
+                {
+                    if (package.contains("metadata"))
+                    {
+                        // NOTE As checking the presence of all used keys in the json object can be
+                        // cumbersome and might affect the code readability, the elements where the
+                        // check with `contains` is skipped are considered mandatory. If a bug is
+                        // ever to occur in the future, checking the relevant key with `contains`
+                        // should be introduced then.
+                        auto prec = specs::PackageInfo(
+                            package["metadata"]["name"],
+                            package["metadata"]["version"],
+                            "pypi_0",
+                            "pypi"
+                        );
+                        // Set platform by concatenating `sys_platform` and `platform_machine` to
+                        // have something equivalent to `conda-forge`
+                        if (j.contains("environment"))
+                        {
+                            prec.platform = j["environment"]["sys_platform"].get<std::string>() + "-"
+                                            + j["environment"]["platform_machine"].get<std::string>();
+                        }
+                        m_pip_package_records.insert({ prec.name, std::move(prec) });
+                    }
+                }
             }
         }
     }

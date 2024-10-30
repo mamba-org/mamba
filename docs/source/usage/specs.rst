@@ -151,11 +151,12 @@ All parameters that influence this resolution must be provided explicitly.
 .. code:: python
 
    import libmambapy.specs as specs
+   import libmambapy.specs.CondaURL as CondaURL
 
    uc = specs.UnresolvedChannel.parse("conda-forge[prius-avx42]")
    chan, *_ = specs.Channel.resolve(
        uc,
-       channel_alias="https://repo.mamba.pm"
+       channel_alias=CondaURL.parse("https://repo.mamba.pm")
        # ...
    )
 
@@ -168,11 +169,12 @@ There are no hard-coded names:
 .. code:: python
 
    import libmambapy.specs as specs
+   import libmambapy.specs.CondaURL as CondaURL
 
    uc = specs.UnresolvedChannel.parse("defaults")
    chan, *_ = specs.Channel.resolve(
        uc,
-       channel_alias="https://repo.mamba.pm"
+       channel_alias=CondaURL.parse("https://repo.mamba.pm")
        # ...
    )
 

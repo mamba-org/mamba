@@ -207,7 +207,7 @@ namespace mamba
             return;
         }
 
-        // Run `pip freeze`
+        // Run `pip inspect`
         std::string out, err;
 
         const auto get_python_path = [&]

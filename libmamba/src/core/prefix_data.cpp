@@ -9,11 +9,14 @@
 #include <unordered_map>
 #include <utility>
 
+#include <reproc++/run.hpp>
+
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
 
@@ -56,6 +59,8 @@ namespace mamba
                 }
             }
         }
+        // Load packages installed with pip
+        load_site_packages();
     }
 
     void PrefixData::add_packages(const std::vector<specs::PackageInfo>& packages)
@@ -71,6 +76,22 @@ namespace mamba
     const PrefixData::package_map& PrefixData::records() const
     {
         return m_package_records;
+    }
+
+    const PrefixData::package_map& PrefixData::pip_records() const
+    {
+        return m_pip_package_records;
+    }
+
+    PrefixData::package_map PrefixData::all_pkg_mgr_records() const
+    {
+        PrefixData::package_map merged_records = m_package_records;
+        // Note that if the same key (pkg name) is present in both `m_package_records` and
+        // `m_pip_package_records`, the latter is not considered
+        // (this may be modified to be completely independent in the future)
+        merged_records.insert(m_pip_package_records.begin(), m_pip_package_records.end());
+
+        return merged_records;
     }
 
     std::vector<specs::PackageInfo> PrefixData::sorted_records() const
@@ -166,10 +187,89 @@ namespace mamba
 
         auto channels = m_channel_context.make_channel(prec.channel);
         // If someone wrote multichannel names in repodata_record, we don't know which one is the
-        // correct URL. This is must never happen!
+        // correct URL. This must never happen!
         assert(channels.size() == 1);
         using Credentials = specs::CondaURL::Credentials;
         prec.channel = channels.front().platform_url(prec.platform).str(Credentials::Remove);
         m_package_records.insert({ prec.name, std::move(prec) });
+    }
+
+    // Load python packages installed with pip in the site-packages of the prefix.
+    void PrefixData::load_site_packages()
+    {
+        LOG_INFO << "Loading site packages";
+
+        // Look for `pip` package and return if it doesn't exist
+        auto python_pkg_record = m_package_records.find("pip");
+        if (python_pkg_record == m_package_records.end())
+        {
+            LOG_DEBUG << "`pip` not found";
+            return;
+        }
+
+        // Run `pip freeze`
+        std::string out, err;
+
+        const auto get_python_path = [&]
+        { return util::which_in("python", util::get_path_dirs(m_prefix_path)).string(); };
+
+        const auto args = std::array<std::string, 5>{ get_python_path(),
+                                                      "-m",
+                                                      "pip",
+                                                      "inspect",
+                                                      "--local" };
+        auto [status, ec] = reproc::run(
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
+        if (ec)
+        {
+            throw std::runtime_error(ec.message());
+        }
+
+        // Nothing installed with `pip`
+        if (out.empty())
+        {
+            LOG_DEBUG << "Nothing installed with `pip`";
+            return;
+        }
+
+        nlohmann::json j = nlohmann::json::parse(out);
+
+        if (j.contains("installed") && j["installed"].is_array())
+        {
+            for (const auto& package : j["installed"])
+            {
+                // Get the package metadata, if requested and installed with `pip`
+                if (package.contains("requested") && package.contains("installer")
+                    && package["requested"] == true && package["installer"] == "pip")
+                {
+                    if (package.contains("metadata"))
+                    {
+                        // NOTE As checking the presence of all used keys in the json object can be
+                        // cumbersome and might affect the code readability, the elements where the
+                        // check with `contains` is skipped are considered mandatory. If a bug is
+                        // ever to occur in the future, checking the relevant key with `contains`
+                        // should be introduced then.
+                        auto prec = specs::PackageInfo(
+                            package["metadata"]["name"],
+                            package["metadata"]["version"],
+                            "pypi_0",
+                            "pypi"
+                        );
+                        // Set platform by concatenating `sys_platform` and `platform_machine` to
+                        // have something equivalent to `conda-forge`
+                        if (j.contains("environment"))
+                        {
+                            prec.platform = j["environment"]["sys_platform"].get<std::string>() + "-"
+                                            + j["environment"]["platform_machine"].get<std::string>();
+                        }
+                        m_pip_package_records.insert({ prec.name, std::move(prec) });
+                    }
+                }
+            }
+        }
     }
 }  // namespace mamba

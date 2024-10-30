@@ -28,8 +28,11 @@ namespace mamba
         create(const fs::u8path& prefix_path, ChannelContext& channel_context);
 
         void add_packages(const std::vector<specs::PackageInfo>& packages);
-        const package_map& records() const;
         void load_single_record(const fs::u8path& path);
+
+        const package_map& records() const;
+        const package_map& pip_records() const;
+        package_map all_pkg_mgr_records() const;
 
         History& history();
         const fs::u8path& path() const;
@@ -44,8 +47,11 @@ namespace mamba
 
         PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context);
 
+        void load_site_packages();
+
         History m_history;
         package_map m_package_records;
+        package_map m_pip_package_records;
         fs::u8path m_prefix_path;
 
         ChannelContext& m_channel_context;

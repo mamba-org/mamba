@@ -68,6 +68,7 @@ namespace mamba::specs
         PackageInfo() = default;
         explicit PackageInfo(std::string name);
         PackageInfo(std::string name, std::string version, std::string build_string, std::size_t build_number);
+        PackageInfo(std::string name, std::string version, std::string build_string, std::string channel);
 
         [[nodiscard]] auto json_signable() const -> nlohmann::json;
         [[nodiscard]] auto str() const -> std::string;

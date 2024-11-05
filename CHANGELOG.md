@@ -1,3 +1,44 @@
+2024.11.05
+==========
+
+Releases: libmamba 2.0.3, libmambapy 2.0.3, micromamba 2.0.3
+
+Enhancements:
+
+- [libmamba, micromamba] pip packages support with `list` by @Hind-M in https://github.com/mamba-org/mamba/pull/3565
+- [libmamba, libmambapy] chore: some CMake cleanup by @henryiii in https://github.com/mamba-org/mamba/pull/3564
+- [libmamba] Replaced rstrip reimplementation with call to remove_suffix by @JohanMabille in https://github.com/mamba-org/mamba/pull/3508
+
+Bug fixes:
+
+- [libmamba] Fix locking error by @Hind-M in https://github.com/mamba-org/mamba/pull/3572
+- [libmamba, micromamba] Fix test on windows by @Hind-M in https://github.com/mamba-org/mamba/pull/3555
+- [libmamba] fix: Only register channels in the context once by @jjerphan in https://github.com/mamba-org/mamba/pull/3521
+- [micromamba] fix: JSON output for environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3559
+- [micromamba] fix: Support `conda env export` `no-builds` flag by @jjerphan in https://github.com/mamba-org/mamba/pull/3563
+- [micromamba] fix: Export the environment prefix in specification by @jjerphan in https://github.com/mamba-org/mamba/pull/3562
+- [libmamba] windows shell init files use executable name by @Klaim in https://github.com/mamba-org/mamba/pull/3546
+- [libmamba, micromamba] Fix relative path in local channel by @Hind-M in https://github.com/mamba-org/mamba/pull/3540
+- [libmamba, micromamba] Correctly rename test to be run by @Hind-M in https://github.com/mamba-org/mamba/pull/3545
+- [libmamba, micromamba] Create empty base prefix with `env update` by @Hind-M in https://github.com/mamba-org/mamba/pull/3519
+- [libmamba, micromamba] fix: Use POSIX-compliant scripts by @jjerphan in https://github.com/mamba-org/mamba/pull/3522
+- [libmamba, micromamba] maint: Clarify `env` subcommand documentation in help menu (cont'd) by @jjerphan in https://github.com/mamba-org/mamba/pull/3539
+- [libmamba] fix: Handle space in `mamba` and `micromamba` executable absolute paths  by @NewUserHa in https://github.com/mamba-org/mamba/pull/3525
+- [libmamba, micromamba] maint: Clarify `env` subcommand documentation in help menu by @jjerphan in https://github.com/mamba-org/mamba/pull/3502
+- [micromamba] fix: Adapt `test_env_update_pypi_with_conda_forge` by @jjerphan in https://github.com/mamba-org/mamba/pull/3537
+- [libmamba] Add recommendation if error with root prefix by @Hind-M in https://github.com/mamba-org/mamba/pull/3513
+- [libmamba] fix: Ignore inline comment in environment specification by @jjerphan in https://github.com/mamba-org/mamba/pull/3512
+- [libmamba] Replace `[System.IO.Path]::GetFileNameWithoutExtension` with `-replace` by @mleistner-bgr in https://github.com/mamba-org/mamba/pull/3510
+- [libmamba] Fix warnings and co by @Hind-M in https://github.com/mamba-org/mamba/pull/3507
+
+CI fixes and doc:
+
+- [all] Fix doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3568
+- [all] [windows-vcpkg] Replace deprecated openssl with crypto feature with latest libarchive by @Hind-M in https://github.com/mamba-org/mamba/pull/3556
+- [all] maint: Unpin libcurl<8.10 by @jjerphan in https://github.com/mamba-org/mamba/pull/3548
+- [all] dev: Remove the use of Taskfile by @jjerphan in https://github.com/mamba-org/mamba/pull/3544
+- [all] Upgraded CI to micromamba 2.0.2 by @JohanMabille in https://github.com/mamba-org/mamba/pull/3497
+
 2024.10.02
 ==========
 

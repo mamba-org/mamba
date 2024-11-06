@@ -77,6 +77,7 @@ namespace mamba::solver::libsolv
         );
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
+        solv.set_python_site_packages_path(pkg.python_site_packages_path);
 
         for (const auto& dep : pkg.dependencies)
         {
@@ -122,6 +123,7 @@ namespace mamba::solver::libsolv
         out.timestamp = s.timestamp();
         out.md5 = s.md5();
         out.sha256 = s.sha256();
+        out.python_site_packages_path = s.python_site_packages_path();
         out.signatures = s.signatures();
 
         const auto dep_to_str = [&pool](solv::DependencyId id)
@@ -286,6 +288,15 @@ namespace mamba::solver::libsolv
             if (auto sha256 = pkg["sha256"]; !sha256.error())
             {
                 solv.set_sha256(std::string(sha256.get_string().value_unsafe()));
+            }
+
+            if (auto python_site_packages_path = pkg["python_site_packages_path"];
+                !python_site_packages_path.error())
+            {
+                auto buffer = std::string(python_site_packages_path.get_string().value_unsafe()
+
+                );
+                solv.set_python_site_packages_path(buffer);
             }
 
             if (auto elem = pkg["noarch"]; !elem.error())

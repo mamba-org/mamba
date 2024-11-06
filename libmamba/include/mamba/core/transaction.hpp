@@ -83,6 +83,7 @@ namespace mamba
         solver::Solution m_solution;
 
         std::pair<std::string, std::string> m_py_versions;
+        std::string m_python_site_packages_path;
         std::vector<specs::MatchSpec> m_requested_specs;
 
         MTransaction(const CommandParams& command_params, MultiPackageCache&);

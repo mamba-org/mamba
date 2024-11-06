@@ -206,6 +206,22 @@ namespace solv
         return set_license(str.c_str());
     }
 
+    auto ObjSolvableViewConst::python_site_packages_path() const -> std::string_view
+    {
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIABASE)
+        );
+    }
+
+    void ObjSolvableView::set_python_site_packages_path(raw_str_view str) const
+    {
+        ::solvable_set_str(raw(), SOLVABLE_MEDIABASE, str);
+    }
+
+    void ObjSolvableView::set_python_site_packages_path(const std::string& str) const
+    {
+        return set_python_site_packages_path(str.c_str());
+    }
+
     auto ObjSolvableViewConst::md5() const -> std::string_view
     {
         ::Id type = 0;

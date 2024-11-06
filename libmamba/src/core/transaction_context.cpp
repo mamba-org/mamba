@@ -9,12 +9,11 @@
 
 #include <reproc++/drain.hpp>
 
-#include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
-#include "./transaction_context.hpp"
+#include "transaction_context.hpp"
 
 extern const char data_compile_pyc_py[];
 
@@ -91,17 +90,28 @@ namespace mamba
         }
     }
 
-    TransactionContext::PythonParams
-    build_python_params(std::pair<std::string, std::string> py_versions)
+    TransactionContext::PythonParams build_python_params(
+        std::pair<std::string, std::string> py_versions,
+        std::string python_site_packages_path
+    )
     {
-        TransactionContext::PythonParams res;
-        if (py_versions.first.size() != 0)
+        if (py_versions.first.empty())
         {
-            res.has_python = true;
-            res.python_version = std::move(py_versions.first);
-            res.old_python_version = std::move(py_versions.second);
-            res.short_python_version = compute_short_python_version(res.python_version);
-            res.python_path = get_python_short_path(res.short_python_version);
+            return {};
+        }
+
+        TransactionContext::PythonParams res;
+        res.has_python = true;
+        res.python_version = std::move(py_versions.first);
+        res.old_python_version = std::move(py_versions.second);
+        res.short_python_version = compute_short_python_version(res.python_version);
+        res.python_path = get_python_short_path(res.short_python_version);
+        if (!python_site_packages_path.empty())
+        {
+            res.site_packages_path = python_site_packages_path;
+        }
+        else
+        {
             res.site_packages_path = get_python_site_packages_short_path(res.short_python_version);
         }
         return res;
@@ -110,10 +120,13 @@ namespace mamba
     TransactionContext::TransactionContext(
         TransactionParams transaction_params,
         std::pair<std::string, std::string> py_versions,
+        std::string python_site_packages_path,
         std::vector<specs::MatchSpec> lrequested_specs
     )
         : m_transaction_params(std::move(transaction_params))
-        , m_python_params(build_python_params(std::move(py_versions)))
+        , m_python_params(
+              build_python_params(std::move(py_versions), std::move(python_site_packages_path))
+          )
         , m_requested_specs(std::move(lrequested_specs))
     {
         if (m_python_params.python_version.size() == 0)

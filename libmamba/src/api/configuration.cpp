@@ -2338,6 +2338,11 @@ namespace mamba
             strStream << inFile.rdbuf();
             std::string s = strStream.str();
             config = YAML::Load(expandvars(s));
+            if (config.IsScalar())
+            {
+                LOG_WARNING << fmt::format("Warning: .condarc file at {} contains only a scalar value. Skipping file.", file.string());
+                return YAML::Node();
+            }
         }
         catch (const std::exception& ex)
         {

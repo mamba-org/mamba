@@ -46,7 +46,7 @@ namespace mamba
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
-                throw std::runtime_error("could not load prefix data");
+                throw std::runtime_error(fmt::format("could not load prefix data: {}", sprefix_data.error().what()));
             }
             PrefixData& prefix_data = sprefix_data.value();
             for (const auto& package : prefix_data.records())

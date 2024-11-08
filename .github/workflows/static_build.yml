@@ -105,8 +105,8 @@ jobs:
           mkdir test_prefix
           ${{ github.workspace }}/artifacts/micromamba --version
           ${{ github.workspace }}/artifacts/micromamba --help
-          PYTHONENCODING='utf-8' ${{ github.workspace }}/artifacts/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
-          PYTHONENCODING='utf-8' ${{ github.workspace }}/artifacts/micromamba list -n testenv -r ./test_prefix --log-level 1
+          ${{ github.workspace }}/artifacts/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
+          ${{ github.workspace }}/artifacts/micromamba list -n testenv -r ./test_prefix --log-level 1
 
       - name: Archive conda-build artifact
         if: failure()
@@ -193,7 +193,6 @@ jobs:
 
       - name: Test basic commands
         run: |
-          $env:PYTHONIOENCODING='UTF-8'
           mkdir test_prefix
           ${{ github.workspace }}/build/micromamba/micromamba.exe --version
           ${{ github.workspace }}/build/micromamba/micromamba.exe --help

@@ -218,9 +218,14 @@ namespace mamba
                                                       "pip",
                                                       "inspect",
                                                       "--local" };
+
+        const std::vector<std::pair<std::string, std::string>> env{ { "PYTHONIOENCODING", "utf-8" } };
+        reproc::options run_options;
+        run_options.env.extra = reproc::env{ env };
+
         auto [status, ec] = reproc::run(
             args,
-            reproc::options{},
+            run_options,
             reproc::sink::string(out),
             reproc::sink::string(err)
         );

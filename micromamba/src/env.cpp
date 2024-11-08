@@ -184,10 +184,9 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::stringstream dependencies;
                 std::set<std::string> channels;
 
-                for (auto it = versions_map.begin(); it != versions_map.end(); ++it)
+                bool first_dependency_to_print = true;
+                for (const auto& [k, v] : versions_map)
                 {
-                    auto k = it->first;
-                    auto v = it->second;
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
                     {
                         continue;
@@ -197,11 +196,14 @@ set_env_command(CLI::App* com, Configuration& config)
 
                     if (from_history)
                     {
-                        dependencies << "    \"" << requested_specs_map[k].str() << "\",\n";
+                        dependencies << (first_dependency_to_print ? "" : ",\n") << "    \""
+                                     << requested_specs_map[k].str() << "\"";
+                        first_dependency_to_print = false;
                     }
                     else
                     {
-                        dependencies << "    \"";
+                        dependencies << (first_dependency_to_print ? "" : ",\n") << "    \"";
+                        first_dependency_to_print = false;
                         if (channel_subdir)
                         {
                             dependencies
@@ -218,8 +220,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         {
                             dependencies << "[md5=" << v.md5 << "]";
                         }
-                        auto last_dep = std::next(it) == versions_map.end();
-                        dependencies << "\"" << (last_dep ? "" : ",") << "\n";
+                        dependencies << "\"";
                     }
 
                     for (const auto& chan : chans)
@@ -227,6 +228,11 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
+                if (!first_dependency_to_print)
+                {
+                    dependencies << '\n';
+                }
+
                 std::cout << "{\n";
 
                 if (!channels.empty())

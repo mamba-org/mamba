@@ -184,7 +184,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::stringstream dependencies;
                 std::set<std::string> channels;
 
-                bool first_dependency_to_print = true;
+                bool first_dependency_printed = false;
                 for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
@@ -196,14 +196,14 @@ set_env_command(CLI::App* com, Configuration& config)
 
                     if (from_history)
                     {
-                        dependencies << (first_dependency_to_print ? "" : ",\n") << "    \""
+                        dependencies << (first_dependency_printed ? ",\n" : "") << "    \""
                                      << requested_specs_map[k].str() << "\"";
-                        first_dependency_to_print = false;
+                        first_dependency_printed = true;
                     }
                     else
                     {
-                        dependencies << (first_dependency_to_print ? "" : ",\n") << "    \"";
-                        first_dependency_to_print = false;
+                        dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
+                        first_dependency_printed = true;
                         if (channel_subdir)
                         {
                             dependencies
@@ -228,10 +228,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
-                if (!first_dependency_to_print)
-                {
-                    dependencies << '\n';
-                }
+                dependencies << (first_dependency_printed ? "\n" : "");
 
                 std::cout << "{\n";
 

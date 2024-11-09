@@ -2340,7 +2340,7 @@ namespace mamba
             config = YAML::Load(expandvars(s));
             if (config.IsScalar())
             {
-                LOG_WARNING << fmt::format("Warning: .condarc file at {} contains only a scalar value. Skipping file.", file.string());
+                LOG_WARNING << fmt::format("The configuration file at {} is misformatted or corrupted. Skipping file.", file.string());
                 return YAML::Node();
             }
         }

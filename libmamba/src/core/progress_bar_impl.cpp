@@ -1902,8 +1902,7 @@ namespace mamba
     {
         for (auto& [label, bars] : m_labels)
         {
-            std::size_t current = 0, total = 0, in_progress = 0, speed = 0, active_count = 0,
-                        total_count = 0;
+            std::size_t current = 0, total = 0, in_progress = 0, speed = 0;
             bool any_spinner = false;
             bool any_started = false;
             std::vector<ProgressBar::time_point_t> start_times = {};
@@ -1916,7 +1915,6 @@ namespace mamba
             {
                 current += bar->current();
                 total += bar->total();
-                ++total_count;
 
                 if (!bar->unset())
                 {
@@ -1926,7 +1924,6 @@ namespace mamba
                 {
                     speed += bar->speed();
                     in_progress += (bar->total() - bar->current());
-                    ++active_count;
                     aggregate_bar_ptr->add_active_task(bar->prefix());
                     any_started = true;
                 }

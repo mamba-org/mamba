@@ -557,9 +557,8 @@ namespace mamba
         static std::vector<std::pair<std::string, log_level>> m_buffer;
     };
 
-    MessageLogger::MessageLogger(const char* file, int line, log_level level)
+    MessageLogger::MessageLogger(const char* file, log_level level)
         : m_file(strip_file_prefix(file))
-        , m_line(line)
         , m_level(level)
         , m_stream()
     {

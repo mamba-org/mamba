@@ -1,3 +1,11 @@
+micromamba 2.0.4alpha1 (November 12, 2024)
+==========================================
+
+Bug fixes:
+
+- fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
+- fix: Correct `mamba env export --json --from-history` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3590
+
 micromamba 2.0.4alpha0 (November 12, 2024)
 ==========================================
 

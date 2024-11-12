@@ -1,3 +1,13 @@
+2024.11.12-0
+============
+
+Releases: libmamba 2.0.4alpha1, libmambapy 2.0.4alpha1, micromamba 2.0.4alpha1
+
+Bug fixes:
+
+- [all] fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
+- [micromamba] fix: Correct `mamba env export --json --from-history` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3590
+
 2024.11.12
 ==========
 

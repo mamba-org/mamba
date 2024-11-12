@@ -77,7 +77,7 @@ def test_env_export_empty(json_flag, empty_env):
     # json is already parsed
     ret = output if json_flag else yaml.safe_load(output)
     assert ret["name"] == empty_env
-    assert "env-empty" in ret["prefix"]
+    assert empty_env in ret["prefix"]
     assert not ret["channels"]
 
 
@@ -126,7 +126,7 @@ def test_env_export(
         # json is already parsed
         ret = output if json_flag else yaml.safe_load(output)
         assert ret["name"] == export_env
-        assert "env-create-export" in ret["prefix"]
+        assert export_env in ret["prefix"]
         assert set(ret["channels"]) == {"conda-forge"}
         micromamba_spec_prefix = "micromamba=0.24.0" if no_build_flag else "micromamba=0.24.0=0"
         assert micromamba_spec_prefix in str(ret["dependencies"])

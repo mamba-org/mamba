@@ -101,7 +101,7 @@ jobs:
           cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
 
       - name: Test basic commands
-        if: ${{ ${{ matrix.arch }} != 'aarch64' && ${{ matrix.arch }} != 'ppc64le' }}
+        if: ${{ matrix.arch != 'aarch64' && matrix.arch != 'ppc64le' }}
         run: |
           mkdir test_prefix
           ${{ github.workspace }}/artifacts/micromamba --version

@@ -1,3 +1,15 @@
+libmamba 2.0.4alpha0 (November 12, 2024)
+========================================
+
+Enhancements:
+
+- Fix: json parsing error due to wrong encoding of Python output by @Klaim in https://github.com/mamba-org/mamba/pull/3584
+- Adds logs clarifying the source of the error "could not load prefix data by @Klaim in https://github.com/mamba-org/mamba/pull/3581
+
+Bug fixes:
+
+- fix: Skip misformatted configuration files by @ChaonengQuan in https://github.com/mamba-org/mamba/pull/3580
+
 libmamba 2.0.3 (November 05, 2024)
 ==================================
 

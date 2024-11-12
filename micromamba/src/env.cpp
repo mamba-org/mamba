@@ -192,18 +192,17 @@ set_env_command(CLI::App* com, Configuration& config)
                         continue;
                     }
 
+                    dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
+                    first_dependency_printed = true;
+
                     auto chans = channel_context.make_channel(v.channel);
 
                     if (from_history)
                     {
-                        dependencies << (first_dependency_printed ? ",\n" : "") << "    \""
-                                     << requested_specs_map[k].str() << "\"";
-                        first_dependency_printed = true;
+                        dependencies << requested_specs_map[k].str() << "\"";
                     }
                     else
                     {
-                        dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
-                        first_dependency_printed = true;
                         if (channel_subdir)
                         {
                             dependencies

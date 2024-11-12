@@ -42,8 +42,8 @@ namespace mamba::validation
     namespace
     {
         template <size_t S, class B>
-        [[nodiscard]] auto
-        hex_to_bytes_arr(const B& buffer, int& error_code) noexcept -> std::array<std::byte, S>
+        [[nodiscard]] auto hex_to_bytes_arr(const B& buffer, int& error_code) noexcept
+            -> std::array<std::byte, S>
         {
             auto out = std::array<std::byte, S>{};
             auto err = util::EncodingError::Ok;
@@ -53,8 +53,8 @@ namespace mamba::validation
         }
 
         template <class B>
-        [[nodiscard]] auto
-        hex_to_bytes_vec(const B& buffer, int& error_code) noexcept -> std::vector<std::byte>
+        [[nodiscard]] auto hex_to_bytes_vec(const B& buffer, int& error_code) noexcept
+            -> std::vector<std::byte>
         {
             auto out = std::vector<std::byte>(buffer.size() / 2);
             auto err = util::EncodingError::Ok;
@@ -133,8 +133,8 @@ namespace mamba::validation
     }
 
     auto generate_ed25519_keypair() -> std::pair<
-                                        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>,
-                                        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>,
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     {
         std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
@@ -288,14 +288,15 @@ namespace mamba::validation
         return verify(data, bin_pk.data(), bin_signature.data());
     }
 
-    auto
-    verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature) -> int
+    auto verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature)
+        -> int
     {
         return verify(data, MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
 
     auto
-    verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature) -> int
+    verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature)
+        -> int
     {
         int error = 0;
         auto data_bin = hex_to_bytes_arr<MAMBA_SHA256_SIZE_BYTES>(data, error);

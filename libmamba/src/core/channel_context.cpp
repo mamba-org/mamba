@@ -27,8 +27,8 @@ namespace mamba
 
     namespace
     {
-        auto create_platforms(const std::vector<std::string>& platforms
-        ) -> specs::ChannelResolveParams::platform_list
+        auto create_platforms(const std::vector<std::string>& platforms)
+            -> specs::ChannelResolveParams::platform_list
         {
             return { platforms.cbegin(), platforms.cend() };
         }
@@ -193,7 +193,8 @@ namespace mamba
                 {
                     auto channels = specs::UnresolvedChannel::parse(loc)
                                         .and_then(  //
-                                            [&](specs::UnresolvedChannel&& uc) {
+                                            [&](specs::UnresolvedChannel&& uc)
+                                            {
                                                 return specs::Channel::resolve(std::move(uc), params);
                                             }
                                         )

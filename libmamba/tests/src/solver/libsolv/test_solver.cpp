@@ -25,7 +25,8 @@ using namespace mamba;
 using namespace mamba::solver;
 
 auto
-find_actions_with_name(const Solution& solution, std::string_view name) -> std::vector<Solution::Action>
+find_actions_with_name(const Solution& solution, std::string_view name)
+    -> std::vector<Solution::Action>
 {
     auto out = std::vector<Solution::Action>();
     for (const auto& action : solution.actions)

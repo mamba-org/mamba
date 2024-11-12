@@ -71,8 +71,8 @@ namespace mamba::specs
         BuildNumberPredicate(BuildNumber ver, BinaryOperator op);
 
         friend auto equal(free_interval, free_interval) -> bool;
-        friend auto
-        operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs) -> bool;
+        friend auto operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs)
+            -> bool;
         friend class ::fmt::formatter<BuildNumberPredicate>;
     };
 

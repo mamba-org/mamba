@@ -178,8 +178,8 @@ namespace mamba
         return request;
     }
 
-    auto
-    PackageFetcher::validate(std::size_t downloaded_size, progress_callback_t* cb) const -> ValidationResult
+    auto PackageFetcher::validate(std::size_t downloaded_size, progress_callback_t* cb) const
+        -> ValidationResult
     {
         update_monitor(cb, PackageExtractEvent::validate_update);
         ValidationResult res = validate_size(downloaded_size);

@@ -213,10 +213,9 @@ namespace mamba::solver
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
-        auto merge_node_indices(
-            const node_type_list<old_node_id_list>& nodes_by_type,
-            CompFunc&& merge_criteria
-        ) -> node_type_list<std::vector<old_node_id_list>>
+        auto
+        merge_node_indices(const node_type_list<old_node_id_list>& nodes_by_type, CompFunc&& merge_criteria)
+            -> node_type_list<std::vector<old_node_id_list>>
         {
             auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
             {
@@ -532,10 +531,9 @@ namespace mamba::solver
          * If two groups contain a node that are respectively in conflicts, then they are in
          * conflicts.
          */
-        auto merge_conflicts(
-            const ProblemsGraph::conflicts_t& old_conflicts,
-            const node_id_mapping& old_to_new
-        ) -> CompressedProblemsGraph::conflicts_t
+        auto
+        merge_conflicts(const ProblemsGraph::conflicts_t& old_conflicts, const node_id_mapping& old_to_new)
+            -> CompressedProblemsGraph::conflicts_t
         {
             auto new_conflicts = CompressedProblemsGraph::conflicts_t();
             for (const auto& [old_from, old_with] : old_conflicts)
@@ -1254,8 +1252,8 @@ namespace mamba::solver
             template <typename Node>
             auto concat_nodes_impl(const std::vector<node_id>& ids) -> Node;
             auto concat_nodes(const std::vector<node_id>& ids) -> node_t;
-            auto
-            concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to) -> edge_t;
+            auto concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to)
+                -> edge_t;
         };
 
         /*************************************
@@ -1313,8 +1311,8 @@ namespace mamba::solver
          * Sort suffices such that if one ends with the other, the longest one is put first.
          */
         template <std::size_t N>
-        constexpr auto
-        sorted_suffix(std::array<std::string_view, N> arr) -> std::array<std::string_view, N>
+        constexpr auto sorted_suffix(std::array<std::string_view, N> arr)
+            -> std::array<std::string_view, N>
         {
             std::sort(
                 arr.begin(),
@@ -1654,8 +1652,8 @@ namespace mamba::solver
         return out;
     }
 
-    auto
-    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format) -> std::string
+    auto problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
+        -> std::string
     {
         std::stringstream ss;
         print_problem_tree_msg(ss, pbs, format);

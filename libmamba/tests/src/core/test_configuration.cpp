@@ -901,6 +901,15 @@ namespace mamba
                 env::unset("MAMBA_CHANNEL_PRIORITY");
             }
 
+            TEST_CASE_FIXTURE(Configuration, "skip_misformatted_config_file")
+            {
+                std::string rc = "invalid_scalar_value";
+                load_test_config(rc);
+                CHECK_EQ(config.sources().size(), 1);
+                CHECK_EQ(config.valid_sources().size(), 0);
+                CHECK_EQ(config.dump(), "");
+            }
+
             TEST_CASE_FIXTURE(Configuration, "pinned_packages")
             {
                 std::string rc1 = unindent(R"(

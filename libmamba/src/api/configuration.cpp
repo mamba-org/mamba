@@ -2338,6 +2338,14 @@ namespace mamba
             strStream << inFile.rdbuf();
             std::string s = strStream.str();
             config = YAML::Load(expandvars(s));
+            if (config.IsScalar())
+            {
+                LOG_WARNING << fmt::format(
+                    "The configuration file at {} is misformatted or corrupted. Skipping file.",
+                    file.string()
+                );
+                return YAML::Node();
+            }
         }
         catch (const std::exception& ex)
         {

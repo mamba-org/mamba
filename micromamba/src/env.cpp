@@ -184,24 +184,25 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::stringstream dependencies;
                 std::set<std::string> channels;
 
-                for (auto it = versions_map.begin(); it != versions_map.end(); ++it)
+                bool first_dependency_printed = false;
+                for (const auto& [k, v] : versions_map)
                 {
-                    auto k = it->first;
-                    auto v = it->second;
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
                     {
                         continue;
                     }
 
+                    dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
+                    first_dependency_printed = true;
+
                     auto chans = channel_context.make_channel(v.channel);
 
                     if (from_history)
                     {
-                        dependencies << "    \"" << requested_specs_map[k].str() << "\",\n";
+                        dependencies << requested_specs_map[k].str() << "\"";
                     }
                     else
                     {
-                        dependencies << "    \"";
                         if (channel_subdir)
                         {
                             dependencies
@@ -218,8 +219,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         {
                             dependencies << "[md5=" << v.md5 << "]";
                         }
-                        auto last_dep = std::next(it) == versions_map.end();
-                        dependencies << "\"" << (last_dep ? "" : ",") << "\n";
+                        dependencies << "\"";
                     }
 
                     for (const auto& chan : chans)
@@ -227,6 +227,8 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
+                dependencies << (first_dependency_printed ? "\n" : "");
+
                 std::cout << "{\n";
 
                 std::cout << "  \"channels\": [\n";

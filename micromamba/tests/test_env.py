@@ -63,14 +63,6 @@ def test_register_new_env(tmp_home, tmp_root_prefix):
 
 
 @pytest.fixture(scope="module")
-def export_env():
-    env_name = "env-create-export"
-    spec_file = __this_dir__ / "env-create-export.yaml"
-    helpers.create("-n", env_name, "-f", spec_file)
-    return env_name
-
-
-@pytest.fixture(scope="module")
 def empty_env():
     env_name = "env-empty"
     helpers.create("-n", env_name)
@@ -78,7 +70,7 @@ def empty_env():
 
 
 @pytest.mark.parametrize("json_flag", [None, "--json"])
-def test_empty_env_export(json_flag, empty_env):
+def test_env_export_empty(json_flag, empty_env):
     flags = filter(None, [json_flag])
     output = helpers.run_env("export", "-n", empty_env, *flags)
 
@@ -87,6 +79,28 @@ def test_empty_env_export(json_flag, empty_env):
     assert ret["name"] == empty_env
     assert "env-empty" in ret["prefix"]
     assert not ret["channels"]
+
+
+@pytest.fixture(scope="module")
+def export_env():
+    env_name = "env-create-export"
+    spec_file = __this_dir__ / "env-create-export.yaml"
+    helpers.create("-n", env_name, "-f", spec_file)
+    return env_name
+
+
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export_from_history(json_flag, export_env):
+    flags = filter(None, [json_flag])
+    output = helpers.run_env("export", "-n", export_env, "--from-history", *flags)
+
+    # json is already parsed
+    ret = output if json_flag else yaml.safe_load(output)
+    assert ret["name"] == export_env
+    assert export_env in ret["prefix"]
+    assert set(ret["channels"]) == {"conda-forge"}
+    micromamba_spec_prefix = "micromamba=0.24.0"
+    assert [micromamba_spec_prefix] == ret["dependencies"]
 
 
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])

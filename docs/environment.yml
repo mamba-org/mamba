@@ -4,7 +4,7 @@ channels:
 dependencies:
   - myst-parser
   - six
-  - sphinx < 7
+  - sphinx=6.*
   - sphinx-book-theme
   - doxygen
   - breathe

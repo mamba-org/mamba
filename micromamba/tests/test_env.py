@@ -70,6 +70,20 @@ def export_env():
     return env_name
 
 
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export_from_history(json_flag, export_env):
+    flags = filter(None, [json_flag])
+    output = helpers.run_env("export", "-n", export_env, "--from-history", *flags)
+
+    # json is already parsed
+    ret = output if json_flag else yaml.safe_load(output)
+    assert ret["name"] == export_env
+    assert export_env in ret["prefix"]
+    assert set(ret["channels"]) == {"conda-forge"}
+    micromamba_spec_prefix = "micromamba=0.24.0"
+    assert [micromamba_spec_prefix] == ret["dependencies"]
+
+
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])

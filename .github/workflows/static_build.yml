@@ -99,6 +99,16 @@ jobs:
             "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
           mkdir -p "${{ github.workspace }}/artifacts"
           cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
+
+      - name: Test basic commands
+        if: ${{ ${{ matrix.arch }} != 'aarch64' && ${{ matrix.arch }} != 'ppc64le' }}
+        run: |
+          mkdir test_prefix
+          ${{ github.workspace }}/artifacts/micromamba --version
+          ${{ github.workspace }}/artifacts/micromamba --help
+          ${{ github.workspace }}/artifacts/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
+          ${{ github.workspace }}/artifacts/micromamba list -n testenv -r ./test_prefix --log-level 1
+
       - name: Archive conda-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
@@ -181,6 +191,15 @@ jobs:
       - name: Archive-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
+
+      - name: Test basic commands
+        run: |
+          mkdir test_prefix
+          ${{ github.workspace }}/build/micromamba/micromamba.exe --version
+          ${{ github.workspace }}/build/micromamba/micromamba.exe --help
+          ${{ github.workspace }}/build/micromamba/micromamba.exe env create -y -n testenv -r ./test_prefix "python<3.13"
+          ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix  --log-level 1
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: failure()

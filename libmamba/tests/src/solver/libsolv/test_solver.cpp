@@ -191,7 +191,7 @@ TEST_SUITE("solver::libsolv::solver")
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
 
 
@@ -207,7 +207,7 @@ TEST_SUITE("solver::libsolv::solver")
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
     }
 
@@ -652,7 +652,7 @@ TEST_SUITE("solver::libsolv::solver")
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            CHECK(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            CHECK(std::holds_alternative<UnSolvable>(outcome.value()));
         }
     }
 
@@ -847,7 +847,7 @@ TEST_SUITE("solver::libsolv::solver")
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                CHECK(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+                CHECK(std::holds_alternative<UnSolvable>(outcome.value()));
             }
 
             SUBCASE("https://conda.anaconda.org/mamba-forge::foo")
@@ -899,7 +899,7 @@ TEST_SUITE("solver::libsolv::solver")
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+                REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
             }
 
             SUBCASE("conda-forge::numpy[subdir=linux-64]")
@@ -1040,7 +1040,7 @@ TEST_SUITE("solver::libsolv::solver")
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<UnSolvable>(outcome.value()));
         }
 
         SUBCASE("foo[build_string=bld]")

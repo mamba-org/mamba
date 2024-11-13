@@ -472,17 +472,6 @@ namespace mamba
         return *(p_data->p_progress_bar_manager);
     }
 
-    std::string strip_file_prefix(const std::string& file)
-    {
-#ifdef _WIN32
-        char sep = '\\';
-#else
-        char sep = '/';
-#endif
-        size_t pos = file.rfind(sep);
-        return pos != std::string::npos ? file.substr(pos + 1, std::string::npos) : file;
-    }
-
     void Console::json_print()
     {
         print(p_data->json_log.unflatten().dump(4), true);
@@ -557,9 +546,8 @@ namespace mamba
         static std::vector<std::pair<std::string, log_level>> m_buffer;
     };
 
-    MessageLogger::MessageLogger(const char* file, log_level level)
-        : m_file(strip_file_prefix(file))
-        , m_level(level)
+    MessageLogger::MessageLogger(log_level level)
+        : m_level(level)
         , m_stream()
     {
     }

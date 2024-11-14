@@ -390,7 +390,7 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     env_file_yml = tmp_path / "test_env_update_pip_pkg_version_with_conda_forge.yaml"
     env_file_yml.write_text(env_yaml_content_to_update_pip_pkg_version_from_conda_forge)
 
-    # Update numpy from conda-forge is not suppposed to be done
+    # Update numpy from conda-forge is not supposed to be done
     res = helpers.run_env("update", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
     assert res["success"]
 

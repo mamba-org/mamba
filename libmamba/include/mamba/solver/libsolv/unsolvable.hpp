@@ -21,7 +21,7 @@ namespace solv
 
 namespace mamba
 {
-    class Palette;
+    struct Palette;
 }
 
 namespace mamba::solver::libsolv

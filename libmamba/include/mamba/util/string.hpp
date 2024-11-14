@@ -314,7 +314,7 @@ namespace mamba::util
      * Execute the function @p func on each element of a tuncated join iteration.
      *
      * The join iteration of an iterator pair (@p first, @p last) with a separator @p sep
-     * and a trunction symbol @p etc is define by the join iteration of either all the elements
+     * and a truncation symbol @p etc is define by the join iteration of either all the elements
      * in the iterator pair if they are less than @p threshold, a limited number of elements, with
      * middle elements represented by @p etc.
      * defined by iterating through the ``n`` elements of the iterator pair, interleaving the

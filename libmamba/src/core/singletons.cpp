@@ -152,7 +152,7 @@ namespace mamba
 
     Console& Console::instance()
     {
-        if (!main_console)  // NOTE: this is a temptative check, not a perfect one, it is possible
+        if (!main_console)  // NOTE: this is a tentative check, not a perfect one, it is possible
                             // `main_console` becomes null after the if scope and before returning.
                             // A perfect check would involve locking a mutex, we want to avoid that
                             // here.

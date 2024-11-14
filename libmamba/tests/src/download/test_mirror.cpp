@@ -58,8 +58,10 @@ namespace mamba::download
         TEST_CASE("PassThroughMirror")
         {
             std::unique_ptr<Mirror> mir = make_mirror("");
-            auto& ref = *mir;
-            CHECK_EQ(typeid(ref), typeid(PassThroughMirror));
+            // `mir_ref` is used here to provide an explicit expression to `typeid`
+            // and avoid expression with side effects evaluation warning
+            auto& mir_ref = *mir;
+            CHECK_EQ(typeid(mir_ref), typeid(PassThroughMirror));
 
             Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
             CHECK_EQ(req_gen.size(), 1);
@@ -76,8 +78,10 @@ namespace mamba::download
             SUBCASE("https")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("https://conda.anaconda.org/conda-forge");
-                auto& ref = *mir;
-                CHECK_EQ(typeid(ref), typeid(HTTPMirror));
+                // `mir_ref` is used here to provide an explicit expression to `typeid`
+                // and avoid expression with side effects evaluation warning
+                auto& mir_ref = *mir;
+                CHECK_EQ(typeid(mir_ref), typeid(HTTPMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 CHECK_EQ(req_gen.size(), 1);
@@ -96,8 +100,10 @@ namespace mamba::download
             SUBCASE("http")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("http://conda.anaconda.org/conda-forge");
-                auto& ref = *mir;
-                CHECK_EQ(typeid(ref), typeid(HTTPMirror));
+                // `mir_ref` is used here to provide an explicit expression to `typeid`
+                // and avoid expression with side effects evaluation warning
+                auto& mir_ref = *mir;
+                CHECK_EQ(typeid(mir_ref), typeid(HTTPMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 CHECK_EQ(req_gen.size(), 1);
@@ -116,8 +122,10 @@ namespace mamba::download
             SUBCASE("file")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("file://channel_path");
-                auto& ref = *mir;
-                CHECK_EQ(typeid(ref), typeid(HTTPMirror));
+                // `mir_ref` is used here to provide an explicit expression to `typeid`
+                // and avoid expression with side effects evaluation warning
+                auto& mir_ref = *mir;
+                CHECK_EQ(typeid(mir_ref), typeid(HTTPMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 CHECK_EQ(req_gen.size(), 1);
@@ -139,8 +147,10 @@ namespace mamba::download
             SUBCASE("Request repodata.json")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("oci://ghcr.io/channel-mirrors/conda-forge");
-                auto& ref = *mir;
-                CHECK_EQ(typeid(ref), typeid(OCIMirror));
+                // `mir_ref` is used here to provide an explicit expression to `typeid`
+                // and avoid expression with side effects evaluation warning
+                auto& mir_ref = *mir;
+                CHECK_EQ(typeid(mir_ref), typeid(OCIMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators(
                     "linux-64/repodata.json",
@@ -169,8 +179,10 @@ namespace mamba::download
             SUBCASE("Request spec with sha")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("oci://ghcr.io/channel-mirrors/conda-forge");
-                auto& ref = *mir;
-                CHECK_EQ(typeid(ref), typeid(OCIMirror));
+                // `mir_ref` is used here to provide an explicit expression to `typeid`
+                // and avoid expression with side effects evaluation warning
+                auto& mir_ref = *mir;
+                CHECK_EQ(typeid(mir_ref), typeid(OCIMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators(
                     "linux-64/pandoc-3.2-ha770c72_0.conda",

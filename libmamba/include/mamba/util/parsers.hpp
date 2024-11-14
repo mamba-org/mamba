@@ -277,11 +277,11 @@ namespace mamba::util
         template <typename T, std::size_t N>
         constexpr auto find(const std::array<T, N>& arr, const T& val) -> std::size_t
         {
-            auto pos = std::size_t(N);
+            std::size_t pos = N;
             for (std::size_t i = 0; i < N; ++i)
             {
-                const bool found = arr[i] == val;
-                pos = static_cast<int>(found) * i + (1 - static_cast<int>(found)) * pos;
+                const auto found = static_cast<std::size_t>(arr[i] == val);
+                pos = found * i + (1 - found) * pos;
             }
             return pos;
         }

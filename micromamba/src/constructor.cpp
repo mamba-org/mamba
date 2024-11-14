@@ -211,7 +211,7 @@ read_binary_from_stdin_and_write_to_file(fs::u8path& filename)
         {
             throw std::runtime_error("Reading from stdin failed.");
         }
-        out_stream.write(buffer.data(), len);
+        out_stream.write(buffer.data(), static_cast<std::streamsize>(len));
     }
     out_stream.close();
 }

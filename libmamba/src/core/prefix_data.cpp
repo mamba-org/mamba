@@ -225,16 +225,20 @@ namespace mamba
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };
 
+        LOG_TRACE << "Running command: "
+                  << fmt::format("{}\n  env options:{}", fmt::join(args, " "), fmt::join(env, " "));
+
         auto [status, ec] = reproc::run(
             args,
             run_options,
             reproc::sink::string(out),
             reproc::sink::string(err)
         );
+
         if (ec)
         {
             const auto message = fmt::format(
-                "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output to parse:\n{}\n\n-> error output:{}",
+                "failed to run python command :\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
                 ec.message(),
                 fmt::join(args, " "),
                 fmt::join(env, " "),
@@ -251,7 +255,24 @@ namespace mamba
             return;
         }
 
-        nlohmann::json j = nlohmann::json::parse(out);
+        LOG_TRACE << "Parsing `pip inspect` output:\n" << out;
+        nlohmann::json j;
+        try
+        {
+            j = nlohmann::json::parse(out);
+        }
+        catch (const std::exception& ec)
+        {
+            const auto message = fmt::format(
+                "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                ec.what(),
+                fmt::join(args, " "),
+                fmt::join(env, " "),
+                out,
+                err
+            );
+            throw mamba_error{ message, mamba_error_code::internal_failure };
+        }
 
         if (j.contains("installed") && j["installed"].is_array())
         {

@@ -1,3 +1,15 @@
+libmambapy 2.0.4alpha2 (November 14, 2024)
+==========================================
+
+
+Bug fixes:
+
+- Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+
+CI fixes and doc:
+
+- Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+
 libmambapy 2.0.4alpha1 (November 12, 2024)
 ==========================================
 

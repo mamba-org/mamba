@@ -1,3 +1,22 @@
+2024.11.14
+==========
+
+Releases: libmamba 2.0.4alpha2, libmambapy 2.0.4alpha2, micromamba 2.0.4alpha2
+
+Enhancements:
+
+- [libmamba] More details in error message when failing to parse json from a python command's output by @Klaim in https://github.com/mamba-org/mamba/pull/3604
+
+Bug fixes:
+
+- [libmamba] Fix some warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3595
+- [all] Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+
+CI fixes and doc:
+
+- [micromamba, libmamba] Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
+- [all] Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+
 2024.11.12-0
 ============
 

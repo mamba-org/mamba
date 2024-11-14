@@ -10,8 +10,10 @@
 #include <utility>
 
 #include <reproc++/run.hpp>
+#include <fmt/ranges.h>
 
 #include "mamba/core/channel_context.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
@@ -231,7 +233,15 @@ namespace mamba
         );
         if (ec)
         {
-            throw std::runtime_error(ec.message());
+            const auto message = fmt::format(
+                "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output to parse:\n{}\n\n-> error output:{}",
+                ec.message(),
+                fmt::join(args, " "),
+                fmt::join(env, " "),
+                out,
+                err
+            );
+            throw mamba_error{ message, mamba_error_code::internal_failure };
         }
 
         // Nothing installed with `pip`

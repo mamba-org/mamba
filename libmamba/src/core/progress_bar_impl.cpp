@@ -1395,7 +1395,7 @@ namespace mamba
     {
         if (!m_is_spinner)
         {
-            auto seed = static_cast<unsigned int>(
+            auto seed = static_cast<typename std::default_random_engine::result_type>(
                 std::chrono::system_clock::now().time_since_epoch().count()
             );
             std::default_random_engine generator(seed);

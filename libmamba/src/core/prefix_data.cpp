@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include <reproc++/run.hpp>
 #include <fmt/ranges.h>
+#include <reproc++/run.hpp>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/error_handling.hpp"

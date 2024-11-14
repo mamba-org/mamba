@@ -962,7 +962,7 @@ namespace mamba::download
         {
             new_mirror = find_mirror(
                 m_mirror_set,
-                [this, iteration](const auto& mirror) {
+                [iteration](const auto& mirror) {
                     return iteration > mirror->failed_transfers()
                            && mirror->can_accept_more_connections();
                 }

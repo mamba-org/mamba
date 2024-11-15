@@ -215,13 +215,19 @@ namespace mamba
         const auto get_python_path = [&]
         { return util::which_in("python", util::get_path_dirs(m_prefix_path)).string(); };
 
-        const auto args = std::array<std::string, 5>{ get_python_path(),
+        const auto args = std::array<std::string, 6>{ get_python_path(),
+                                                      "-q",
                                                       "-m",
                                                       "pip",
                                                       "inspect",
                                                       "--local" };
 
-        const std::vector<std::pair<std::string, std::string>> env{ { "PYTHONIOENCODING", "utf-8" } };
+        const std::vector<std::pair<std::string, std::string>> env{
+            { "PYTHONIOENCODING", "utf-8" },
+            { "NO_COLOR", "1" },
+            { "PIP_NO_COLOR", "1" },
+            { "PIP_NO_PYTHON_VERSION_WARNING", "1" },
+        };
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };
 
@@ -261,11 +267,11 @@ namespace mamba
         {
             j = nlohmann::json::parse(out);
         }
-        catch (const std::exception& exc)
+        catch (const std::exception& parse_error)
         {
             const auto message = fmt::format(
                 "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                exc.what(),
+                parse_error.what(),
                 fmt::join(args, " "),
                 fmt::join(env, " "),
                 out,

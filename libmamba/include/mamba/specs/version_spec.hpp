@@ -110,7 +110,7 @@ namespace mamba::specs
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
-        friend class ::fmt::formatter<VersionPredicate>;
+        friend struct ::fmt::formatter<VersionPredicate>;
     };
 
     auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
@@ -210,7 +210,7 @@ namespace mamba::specs
 
         tree_type m_tree;
 
-        friend class ::fmt::formatter<VersionSpec>;
+        friend struct ::fmt::formatter<VersionSpec>;
     };
 
     namespace version_spec_literals

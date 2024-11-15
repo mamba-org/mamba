@@ -1,3 +1,16 @@
+micromamba 2.0.4alpha2 (November 14, 2024)
+==========================================
+
+
+Bug fixes:
+
+- Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+
+CI fixes and doc:
+
+- Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
+- Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+
 micromamba 2.0.4alpha1 (November 12, 2024)
 ==========================================
 

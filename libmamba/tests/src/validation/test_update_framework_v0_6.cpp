@@ -4,6 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+// There are several `CHECK_THROWS_AS` expressions in this file.
+// Sometimes they call a method marked as `[[nodiscard]]`.
+// This causes compiler warnnings.
+// This doctest flag is designed specifically to prevent this warning from happening.
+// https://github.com/doctest/doctest/blob/master/doc/markdown/configuration.md#doctest_config_void_cast_expressions
+#define DOCTEST_CONFIG_VOID_CAST_EXPRESSIONS
+
 #include <map>
 
 #include <doctest/doctest.h>
@@ -249,7 +256,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
         out_file.close();
 
         // "2.sv1.root.json" is not compatible spec version (spec version N)
-        CHECK_THROWS_AS(v0_6::RootImpl root(p), role_file_error);
+        CHECK_THROWS_AS(v0_6::RootImpl{ p }, role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "update_from_path")

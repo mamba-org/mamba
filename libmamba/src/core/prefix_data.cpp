@@ -261,11 +261,11 @@ namespace mamba
         {
             j = nlohmann::json::parse(out);
         }
-        catch (const std::exception& ec)
+        catch (const std::exception& exc)
         {
             const auto message = fmt::format(
                 "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                ec.what(),
+                exc.what(),
                 fmt::join(args, " "),
                 fmt::join(env, " "),
                 out,

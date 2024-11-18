@@ -17,6 +17,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/graph.hpp"
@@ -231,27 +232,42 @@ namespace mamba
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };
 
-        LOG_TRACE << "Running command: "
-                  << fmt::format("{}\n  env options:{}", fmt::join(args, " "), fmt::join(env, " "));
+        { // Scopped environment changes
 
-        auto [status, ec] = reproc::run(
-            args,
-            run_options,
-            reproc::sink::string(out),
-            reproc::sink::string(err)
-        );
+            // We need FORCE_COLOR to be removed to avoid rich output,
+            // we restore it as soon as the command is run.
+            const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
+            util::unset_env("FORCE_COLOR");
+            on_scope_exit _{[&]{
+                if(maybe_previous_force_color)
+                {
+                    util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
+                }
+            }};
 
-        if (ec)
-        {
-            const auto message = fmt::format(
-                "failed to run python command :\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                ec.message(),
-                fmt::join(args, " "),
-                fmt::join(env, " "),
-                out,
-                err
+            LOG_TRACE << "Running command: "
+                    << fmt::format("{}\n  env options (FORCE_COLOR is unset):{}", fmt::join(args, " "), fmt::join(env, " "));
+
+            auto [status, ec] = reproc::run(
+                args,
+                run_options,
+                reproc::sink::string(out),
+                reproc::sink::string(err)
             );
-            throw mamba_error{ message, mamba_error_code::internal_failure };
+
+            if (ec)
+            {
+                const auto message = fmt::format(
+                    "failed to run python command :\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    ec.message(),
+                    fmt::join(args, " "),
+                    fmt::join(env, " "),
+                    out,
+                    err
+                );
+                throw mamba_error{ message, mamba_error_code::internal_failure };
+            }
+
         }
 
         // Nothing installed with `pip`

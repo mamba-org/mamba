@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <array>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -359,7 +358,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         SUBCASE("numpy 1.0 is installed")
         {
-            const auto installed = db.add_repo_from_packages(std::array{
+            const auto installed = db.add_repo_from_packages(std::vector{
                 specs::PackageInfo("numpy", "1.0.0", "phony", 0),
             });
             db.set_installed_repo(installed);
@@ -423,7 +422,7 @@ TEST_SUITE("solver::libsolv::solver")
         {
             auto pkg_numpy = specs::PackageInfo("numpy", "1.0.0", "phony", 0);
             pkg_numpy.dependencies = { "python=2.0", "foo" };
-            const auto installed = db.add_repo_from_packages(std::array{
+            const auto installed = db.add_repo_from_packages(std::vector{
                 pkg_numpy,
                 specs::PackageInfo("python", "2.0.0", "phony", 0),
                 specs::PackageInfo("foo"),
@@ -548,7 +547,7 @@ TEST_SUITE("solver::libsolv::solver")
             pkg_numpy.dependencies = { "python=4.0", "foo" };
             auto pkg_foo = specs::PackageInfo("foo", "1.0.0", "phony", 0);
             pkg_foo.constrains = { "numpy=1.0.0", "foo" };
-            const auto installed = db.add_repo_from_packages(std::array{
+            const auto installed = db.add_repo_from_packages(std::vector{
                 pkg_numpy,
                 pkg_foo,
                 specs::PackageInfo("python", "4.0.0", "phony", 0),
@@ -614,10 +613,10 @@ TEST_SUITE("solver::libsolv::solver")
     {
         auto db = libsolv::Database({});
 
-        const auto repo1 = db.add_repo_from_packages(std::array{
+        const auto repo1 = db.add_repo_from_packages(std::vector{
             specs::PackageInfo("numpy", "1.0.0", "repo1", 0),
         });
-        const auto repo2 = db.add_repo_from_packages(std::array{
+        const auto repo2 = db.add_repo_from_packages(std::vector{
             specs::PackageInfo("numpy", "2.0.0", "repo2", 0),
         });
         db.set_repo_priority(repo1, { 2, 0 });
@@ -675,7 +674,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         SUBCASE("Pins are respected")
         {
-            db.add_repo_from_packages(std::array{
+            db.add_repo_from_packages(std::vector{
                 mkfoo("1.0.0", 0, { "feat" }, 0),
                 mkfoo("2.0.0", 1, {}, 1),
             });
@@ -698,7 +697,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         SUBCASE("Track features has highest priority")
         {
-            db.add_repo_from_packages(std::array{
+            db.add_repo_from_packages(std::vector{
                 mkfoo("1.0.0", 0, {}, 0),
                 mkfoo("2.0.0", 1, { "feat" }, 1),
             });
@@ -720,7 +719,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         SUBCASE("Version has second highest priority")
         {
-            db.add_repo_from_packages(std::array{
+            db.add_repo_from_packages(std::vector{
                 mkfoo("2.0.0", 0, {}, 0),
                 mkfoo("1.0.0", 1, {}, 1),
             });
@@ -742,7 +741,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         SUBCASE("Build number has third highest priority")
         {
-            db.add_repo_from_packages(std::array{
+            db.add_repo_from_packages(std::vector{
                 mkfoo("2.0.0", 1, {}, 0),
                 mkfoo("2.0.0", 0, {}, 1),
             });
@@ -764,7 +763,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         SUBCASE("Timestamp has lowest priority")
         {
-            db.add_repo_from_packages(std::array{
+            db.add_repo_from_packages(std::vector{
                 mkfoo("2.0.0", 0, {}, 0),
                 mkfoo("2.0.0", 0, {}, 1),
             });
@@ -796,10 +795,10 @@ TEST_SUITE("solver::libsolv::solver")
         {
             auto pkg1 = specs::PackageInfo("foo", "1.0.0", "conda", 0);
             pkg1.package_url = "https://conda.anaconda.org/conda-forge/linux-64/foo-1.0.0-phony.conda";
-            db.add_repo_from_packages(std::array{ pkg1 });
+            db.add_repo_from_packages(std::vector{ pkg1 });
             auto pkg2 = specs::PackageInfo("foo", "1.0.0", "mamba", 0);
             pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
-            db.add_repo_from_packages(std::array{ pkg2 });
+            db.add_repo_from_packages(std::vector{ pkg2 });
 
             SUBCASE("conda-forge::foo")
             {
@@ -938,7 +937,7 @@ TEST_SUITE("solver::libsolv::solver")
             auto pkg2 = PackageInfo("foo");
             pkg2.version = "2.0";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(std::vector{ pkg1, pkg2 });
 
             auto request = Request{
                 /* .flags= */ {},
@@ -969,7 +968,7 @@ TEST_SUITE("solver::libsolv::solver")
             pkg4.version = "2.0";
             pkg4.dependencies = { "foo=2.0" };
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3, pkg4 });
+            db.add_repo_from_packages(std::vector{ pkg1, pkg2, pkg3, pkg4 });
 
             auto request = Request{
                 /* .flags= */ {},
@@ -1006,7 +1005,7 @@ TEST_SUITE("solver::libsolv::solver")
             auto pkg2 = PackageInfo("foo");
             pkg2.md5 = "bad";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(std::vector{ pkg1, pkg2 });
 
             auto request = Request{
                 /* .flags= */ {},
@@ -1031,7 +1030,7 @@ TEST_SUITE("solver::libsolv::solver")
             auto pkg1 = PackageInfo("foo");
             pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
 
-            db.add_repo_from_packages(std::array{ pkg1 });
+            db.add_repo_from_packages(std::vector{ pkg1 });
 
             auto request = Request{
                 /* .flags= */ {},
@@ -1050,7 +1049,7 @@ TEST_SUITE("solver::libsolv::solver")
             auto pkg2 = PackageInfo("foo");
             pkg2.build_string = "bld";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(std::vector{ pkg1, pkg2 });
 
             auto request = Request{
                 /* .flags= */ {},
@@ -1079,7 +1078,7 @@ TEST_SUITE("solver::libsolv::solver")
             pkg3.build_string = "bld";
             pkg3.build_number = 4;
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3 });
+            db.add_repo_from_packages(std::vector{ pkg1, pkg2, pkg3 });
 
             auto request = Request{
                 /* .flags= */ {},

@@ -280,8 +280,8 @@ namespace mamba::util
             std::size_t pos = N;
             for (std::size_t i = 0; i < N; ++i)
             {
-                const auto found = static_cast<std::size_t>(arr[i] == val);
-                pos = found * i + (1 - found) * pos;
+                const bool found = arr[i] == val;
+                pos = found ? i : pos;
             }
             return pos;
         }

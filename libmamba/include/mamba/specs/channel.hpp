@@ -22,61 +22,15 @@
 
 namespace mamba::specs
 {
-    class Channel;
-
-    struct ChannelResolveParams
-    {
-        /**
-         * The weakener for @ref ResolveParams::custom_channels.
-         */
-        struct NameWeakener
-        {
-            /**
-             * Return the key unchanged.
-             */
-            [[nodiscard]] auto make_first_key(std::string_view key) const -> std::string_view;
-
-            /**
-             * Remove the last element of the '/'-separated name.
-             */
-            [[nodiscard]] auto weaken_key(std::string_view key) const
-                -> std::optional<std::string_view>;
-        };
-
-        template <typename Key, typename Value>
-        using name_map = util::weakening_map<std::unordered_map<Key, Value>, NameWeakener>;
-
-        using platform_list = util::flat_set<std::string>;
-        using channel_list = std::vector<Channel>;
-        using channel_map = name_map<std::string, Channel>;
-        using multichannel_map = name_map<std::string, channel_list>;
-
-        platform_list platforms = {};
-        CondaURL channel_alias = {};
-        channel_map custom_channels = {};
-        multichannel_map custom_multichannels = {};
-        AuthenticationDataBase authentication_db = {};
-        std::string home_dir = {};
-        std::string current_working_dir = {};
-    };
-
-    struct ChannelResolveParamsView
-    {
-        const ChannelResolveParams::platform_list& platforms = {};
-        const CondaURL& channel_alias = {};
-        const ChannelResolveParams::channel_map& custom_channels = {};
-        const ChannelResolveParams::multichannel_map& custom_multichannels = {};
-        const AuthenticationDataBase& authentication_db = {};
-        std::string_view home_dir = {};
-        std::string_view current_working_dir = {};
-    };
+    struct ChannelResolveParams;
+    struct ChannelResolveParamsView;
 
     class Channel
     {
     public:
 
-        using platform_list = ChannelResolveParams::platform_list;
-        using channel_list = ChannelResolveParams::channel_list;
+        using platform_list = util::flat_set<std::string>;
+        using channel_list = std::vector<Channel>;
 
         [[nodiscard]] static auto resolve(  //
             UnresolvedChannel uc,
@@ -143,6 +97,53 @@ namespace mamba::specs
         std::string m_display_name;
         std::string m_id;
         util::flat_set<std::string> m_platforms;
+    };
+
+    struct ChannelResolveParams
+    {
+        /**
+         * The weakener for @ref ResolveParams::custom_channels.
+         */
+        struct NameWeakener
+        {
+            /**
+             * Return the key unchanged.
+             */
+            [[nodiscard]] auto make_first_key(std::string_view key) const -> std::string_view;
+
+            /**
+             * Remove the last element of the '/'-separated name.
+             */
+            [[nodiscard]] auto weaken_key(std::string_view key) const
+                -> std::optional<std::string_view>;
+        };
+
+        template <typename Key, typename Value>
+        using name_map = util::weakening_map<std::unordered_map<Key, Value>, NameWeakener>;
+
+        using platform_list = util::flat_set<std::string>;
+        using channel_list = std::vector<Channel>;
+        using channel_map = name_map<std::string, Channel>;
+        using multichannel_map = name_map<std::string, channel_list>;
+
+        platform_list platforms = {};
+        CondaURL channel_alias = {};
+        channel_map custom_channels = {};
+        multichannel_map custom_multichannels = {};
+        AuthenticationDataBase authentication_db = {};
+        std::string home_dir = {};
+        std::string current_working_dir = {};
+    };
+
+    struct ChannelResolveParamsView
+    {
+        const ChannelResolveParams::platform_list& platforms = {};
+        const CondaURL& channel_alias = {};
+        const ChannelResolveParams::channel_map& custom_channels = {};
+        const ChannelResolveParams::multichannel_map& custom_multichannels = {};
+        const AuthenticationDataBase& authentication_db = {};
+        std::string_view home_dir = {};
+        std::string_view current_working_dir = {};
     };
 
     /** Tuple-like equality of all observable members */

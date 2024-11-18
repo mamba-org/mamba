@@ -617,6 +617,9 @@ macro(libmamba_create_target target_name linkage output_name)
                 solv::libsolvext
                 solv::cpp
         )
+        # CMake 3.17 provides a LibArchive::LibArchive target that could be used instead of
+        # LIBRARIES/INCLUDE_DIRS
+        target_include_directories(${target_name} PRIVATE "${LibArchive_INCLUDE_DIRS}")
     endif()
 
     if(WIN32)

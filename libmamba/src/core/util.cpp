@@ -971,6 +971,11 @@ namespace mamba
                       << "'";
         }
 
+// This function is only used in `assert()` expressions
+// That's why it might get reported as unused in Release builds
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+
         bool is_lockfile_locked(const LockFileOwner& lockfile)
         {
 #ifdef _WIN32
@@ -980,6 +985,8 @@ namespace mamba
             return LockFile::is_locked(lockfile.fd());
 #endif
         }
+
+#pragma GCC diagnostic pop
 
         class LockedFilesRegistry
         {

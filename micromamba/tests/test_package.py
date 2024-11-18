@@ -6,7 +6,6 @@ import tarfile
 import zipfile
 from pathlib import Path
 
-import conda_package_handling.conda_fmt
 import pytest
 import zstandard
 from conda_package_handling import api as cph
@@ -149,11 +148,6 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
     assert_sorted(names[: len(info_files)])
 
 
-# Only run this test if zstandard is available.
-@pytest.mark.skipif(
-    not hasattr(conda_package_handling.conda_fmt, "ZSTD_COMPRESS_LEVEL"),
-    reason="zstandard not available (required by conda_package_handling)",
-)
 def test_transmute(cph_test_file: Path, tmp_path: Path):
     (tmp_path / "cph").mkdir(parents=True)
     (tmp_path / "mm").mkdir(parents=True)

@@ -12,7 +12,6 @@
   <tr background="#FFF">
     <td align="center">Package Manager <a href="https://github.com/mamba-org/mamba">mamba</a></td>
     <td align="center">Package Server <a href="https://github.com/mamba-org/quetz">quetz</a></td>
-    <td align="center">Package Builder <a href="https://github.com/mamba-org/boa">boa</a></td>
   </tr>
 </tbody>
 </table>
@@ -31,7 +30,7 @@
 
 At the same time, `mamba` utilizes the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
 
-`mamba` is part of the [conda-forge](https://conda-forge.org/) ecosystem, which also consists of `quetz`, an open source `conda` package server and `boa`, a fast `conda` package builder.
+`mamba` is part of the [conda-forge](https://conda-forge.org/) ecosystem, which also consists of `quetz`, an open source `conda` package server.
 
 You can read our [announcement blog post](https://medium.com/@QuantStack/open-software-packaging-for-science-61cecee7fc23).
 
@@ -42,6 +41,18 @@ You can read our [announcement blog post](https://medium.com/@QuantStack/open-so
 It can be installed as a standalone executable without any dependencies, making it a perfect fit for CI/CD pipelines and containerized environments.
 
 See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for details.
+
+## `mamba` v.s. `micromamba`
+
+`mamba` has to be preferred when:
+  - `libmambapy` or `libmamba` is used by other software in the same environment.
+  - Scenarios where regular updates to libraries are required (especially for security).
+  - Environments are focused on reducing disk space usage for dependencies.
+
+`micromamba` has to be preferred when:
+  - Relying a single self-contained executable is required.
+  - A miniforge distribution is not present.
+  - Usage requires minimal runtime.
 
 ## Installation
 

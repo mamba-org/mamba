@@ -93,10 +93,17 @@ namespace solv
 
     namespace
     {
+// This function is only used in `assert()` expressions
+// That's why it might get reported as unused in Release builds
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+
         auto is_reldep(::Id id) -> bool
         {
             return ISRELDEP(static_cast<std::make_unsigned_t<::Id>>(id)) != 0;
         }
+
+#pragma GCC diagnostic pop
     }
 
     auto ObjPoolView::get_string(StringId id) const -> std::string_view

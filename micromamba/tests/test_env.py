@@ -63,6 +63,25 @@ def test_register_new_env(tmp_home, tmp_root_prefix):
 
 
 @pytest.fixture(scope="module")
+def empty_env():
+    env_name = "env-empty"
+    helpers.create("-n", env_name)
+    return env_name
+
+
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export_empty(json_flag, empty_env):
+    flags = filter(None, [json_flag])
+    output = helpers.run_env("export", "-n", empty_env, *flags)
+
+    # json is already parsed
+    ret = output if json_flag else yaml.safe_load(output)
+    assert ret["name"] == empty_env
+    assert empty_env in ret["prefix"]
+    assert not ret["channels"]
+
+
+@pytest.fixture(scope="module")
 def export_env():
     env_name = "env-create-export"
     spec_file = __this_dir__ / "env-create-export.yaml"
@@ -90,27 +109,24 @@ def test_env_export_from_history(json_flag, export_env):
 @pytest.mark.parametrize("no_build_flag", [None, "--no-build", "--no-builds"])
 @pytest.mark.parametrize("json_flag", [None, "--json"])
 def test_env_export(
-    export_env, json_flag, no_build_flag, explicit_flag, md5_flag, channel_subdir_flag
+    channel_subdir_flag, md5_flag, explicit_flag, no_build_flag, json_flag, export_env
 ):
     if explicit_flag and json_flag:
         # `--explicit` has precedence over `--json`, which is tested bellow.
         # But we need to omit here to avoid `helpers.run_env` to parse the output as JSON and fail.
         json_flag = None
 
-    flags = filter(None, [no_build_flag, json_flag, explicit_flag, md5_flag, channel_subdir_flag])
+    flags = filter(None, [channel_subdir_flag, md5_flag, explicit_flag, no_build_flag, json_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:
         assert "/micromamba-0.24.0-0." in output
         if md5_flag != "--no-md5":
             assert re.search("#[a-f0-9]{32}$", output.replace("\r", ""))
     else:
-        if json_flag:
-            # Already parsed
-            ret = output
-        else:
-            ret = yaml.safe_load(output)
+        # json is already parsed
+        ret = output if json_flag else yaml.safe_load(output)
         assert ret["name"] == export_env
-        assert "env-create-export" in ret["prefix"]
+        assert export_env in ret["prefix"]
         assert set(ret["channels"]) == {"conda-forge"}
         micromamba_spec_prefix = "micromamba=0.24.0" if no_build_flag else "micromamba=0.24.0=0"
         assert micromamba_spec_prefix in str(ret["dependencies"])

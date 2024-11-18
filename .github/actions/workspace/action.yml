@@ -38,7 +38,7 @@ runs:
       with:
         path: ${{ inputs.path }}
         key: ${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}
-        fail-on-cache-miss: true
+        fail-on-cache-miss: false
     - name: Delete workspace
       if: ${{ inputs.action == 'delete' }}
       shell: bash

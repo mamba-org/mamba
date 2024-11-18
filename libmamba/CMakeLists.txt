@@ -269,7 +269,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "App
     # This file uses capturing structured bindings, which was fixed in C++20
     set_source_files_properties(
         ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
-        PROPERTIES COMPILE_FLAGS -Wno-error=c++20-extensions
+        PROPERTIES COMPILE_FLAGS -Wno-c++20-extensions
     )
 endif()
 

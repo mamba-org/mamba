@@ -29,6 +29,25 @@ namespace mamba
 #ifndef _WIN32
     namespace
     {
+// `sigaddset` might be implemented as a macro calling `__sigbits(int)` function
+// At the same time `sigset_t` might be `unsigned int`
+// This causes compiler warning
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+
+        sigset_t get_sigset()
+        {
+            // block signals in this thread and subsequently
+            // spawned threads
+            sigset_t sigset;
+            sigemptyset(&sigset);
+            sigaddset(&sigset, SIGINT);
+            // sigaddset(&sigset, SIGTERM);
+            return sigset;
+        }
+
+#pragma GCC diagnostic pop
+
         std::thread::native_handle_type sig_recv_thread;
         std::atomic<bool> receiver_exists(false);
     }
@@ -74,12 +93,7 @@ namespace mamba
     {
         stop_receiver_thread();
 
-        // block signals in this thread and subsequently
-        // spawned threads
-        sigset_t sigset;
-        sigemptyset(&sigset);
-        sigaddset(&sigset, SIGINT);
-        // sigaddset(&sigset, SIGTERM);
+        sigset_t sigset = get_sigset();
         pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
         std::thread receiver(handler, sigset);
         sig_recv_thread = receiver.native_handle();

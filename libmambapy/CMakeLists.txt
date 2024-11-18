@@ -32,6 +32,14 @@ pybind11_add_module(
     src/libmambapy/bindings/solver.cpp
     src/libmambapy/bindings/solver_libsolv.cpp
 )
+# TODO: remove when `SubdirData::cache_path()` is removed
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    # This file uses capturing structured bindings, which was fixed in C++20
+    set_source_files_properties(
+        src/libmambapy/bindings/legacy.cpp
+        PROPERTIES COMPILE_FLAGS -Wno-error=deprecated-declarations
+    )
+endif()
 
 target_include_directories(bindings PRIVATE src/libmambapy/bindings)
 

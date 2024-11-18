@@ -554,11 +554,11 @@ namespace mamba
         auto conda_environment_env_vars = get_environment_vars(prefix);
 
         // TODO check with conda if that's really what's supposed to happen ...
-        std::remove_if(
+        void(std::remove_if(
             conda_environment_env_vars.begin(),
             conda_environment_env_vars.end(),
             [](auto& el) { return el.second == CONDA_ENV_VARS_UNSET_VAR; }
-        );
+        ));
 
         std::vector<std::string> clobbering_env_vars;
         for (auto& env_var : conda_environment_env_vars)

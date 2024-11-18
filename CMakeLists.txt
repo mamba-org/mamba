@@ -31,7 +31,6 @@ set(
 )
 
 include("cmake/CompilerWarnings.cmake")
-# include("cmake/WrongCompilerOptions.cmake")
 include("cmake/LinkTimeOptimization.cmake")
 include("cmake/Checks.cmake")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")

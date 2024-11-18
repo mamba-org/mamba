@@ -108,6 +108,12 @@ function(mamba_target_add_compile_warnings target)
         # Warn if a variable is used before being initialized
         -Wuninitialized
     )
+    if(APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(
+            clang_warnings
+            ${clang_warnings} -Wno-unused-command-line-argument -Wno-ignored-optimization-argument
+        )
+    endif()
 
     if(${ARG_WARNING_AS_ERROR})
         set(clang_warnings ${clang_warnings} -Werror)

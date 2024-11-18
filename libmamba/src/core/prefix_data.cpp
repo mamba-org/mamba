@@ -216,12 +216,8 @@ namespace mamba
         const auto get_python_path = [&]
         { return util::which_in("python", util::get_path_dirs(m_prefix_path)).string(); };
 
-        const auto args = std::array<std::string, 6>{ get_python_path(),
-                                                      "-q",
-                                                      "-m",
-                                                      "pip",
-                                                      "inspect",
-                                                      "--local" };
+        const auto args = std::array<std::string, 6>{ get_python_path(), "-q",     "-m", "pip",
+                                                      "inspect",         "--local" };
 
         const std::vector<std::pair<std::string, std::string>> env{
             { "PYTHONIOENCODING", "utf-8" },
@@ -232,21 +228,26 @@ namespace mamba
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };
 
-        { // Scopped environment changes
+        {  // Scopped environment changes
 
             // We need FORCE_COLOR to be removed to avoid rich output,
             // we restore it as soon as the command is run.
             const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
             util::unset_env("FORCE_COLOR");
-            on_scope_exit _{[&]{
-                if(maybe_previous_force_color)
-                {
-                    util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                }
-            }};
+            on_scope_exit _{ [&]
+                             {
+                                 if (maybe_previous_force_color)
+                                 {
+                                     util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
+                                 }
+                             } };
 
             LOG_TRACE << "Running command: "
-                    << fmt::format("{}\n  env options (FORCE_COLOR is unset):{}", fmt::join(args, " "), fmt::join(env, " "));
+                      << fmt::format(
+                             "{}\n  env options (FORCE_COLOR is unset):{}",
+                             fmt::join(args, " "),
+                             fmt::join(env, " ")
+                         );
 
             auto [status, ec] = reproc::run(
                 args,
@@ -267,7 +268,6 @@ namespace mamba
                 );
                 throw mamba_error{ message, mamba_error_code::internal_failure };
             }
-
         }
 
         // Nothing installed with `pip`

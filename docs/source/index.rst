@@ -5,11 +5,12 @@ Mamba is a fast, robust, and cross-platform package manager.
 
 It runs on Windows, OS X and Linux (ARM64 and PPC64LE included) and is fully compatible with ``conda`` packages and supports most of conda's commands.
 
-The ``mamba-org`` organization hosts multiple Mamba flavors:
+Mamba is a framework with several components:
 
-- ``mamba``: a Python-based CLI conceived as a *drop-in* replacement for ``conda``, offering higher speed and more reliable environment solutions
-- ``micromamba``: a pure C++-based CLI, self-contained in a single-file executable
-- ``libmamba``: a C++ library exposing low-level and high-level APIs on top of which both ``mamba`` and ``micromamba`` are built
+- ``libmamba``: a C++ library of the domain, exposing low-level and high-level APIs
+- ``mamba``: a ELF as a *drop-in* replacement for ``conda``, built on top of ``libmamba``
+- ``micromamba``: the statically linked version of ``mamba``
+- ``libmambapy``: python bindings of ``libmamba``
 
 .. note::
    In this documentation, ``Mamba`` will refer to all flavors while flavor-specific details will mention ``mamba``, ``micromamba`` or ``libmamba``.

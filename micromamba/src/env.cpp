@@ -231,18 +231,14 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 std::cout << "{\n";
 
-                if (!channels.empty())
+                std::cout << "  \"channels\": [\n";
+                for (auto channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
                 {
-                    std::cout << "  \"channels\": [\n";
-                    for (auto channel_it = channels.begin(); channel_it != channels.end();
-                         ++channel_it)
-                    {
-                        auto last_channel = std::next(channel_it) == channels.end();
-                        std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",")
-                                  << "\n";
-                    }
-                    std::cout << "  ],\n";
+                    auto last_channel = std::next(channel_it) == channels.end();
+                    std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
                 }
+                std::cout << "  ],\n";
+
                 std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
                 std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)

@@ -371,7 +371,8 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
         .def(py::init(
-            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator {
+            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator
+            {
                 throw std::runtime_error("Direct access to libsolv objects is not longer supported.");
             }
         ));
@@ -579,7 +580,8 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& full_url,
                MultiPackageCache& caches,
                const std::string& repodata_fn,
-               const std::string& url) {
+               const std::string& url)
+            {
                 self.create(context, channel_context, channel, platform, full_url, caches, repodata_fn, url);
             },
             py::arg("context"),

@@ -118,8 +118,8 @@ namespace solv
         return (id == 0) ? std::nullopt : std::optional(DependencyId{ id });
     }
 
-    auto
-    ObjPoolView::add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId
+    auto ObjPoolView::add_dependency(StringId name_id, RelationFlag flag, StringId version_id)
+        -> DependencyId
     {
         // Note: libsolv cannot report failure to allocate
         const ::Id id = ::pool_rel2id(
@@ -181,8 +181,8 @@ namespace solv
         return solvables;
     }
 
-    auto
-    ObjPoolView::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const -> ObjQueue
+    auto ObjPoolView::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const
+        -> ObjQueue
     {
         ObjQueue solvables = {};
         ::pool_whatmatchesdep(const_cast<::Pool*>(raw()), key, dep, solvables.raw(), marker);

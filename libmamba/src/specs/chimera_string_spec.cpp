@@ -46,7 +46,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto is_likely_glob(std::string_view pattern) -> bool
         {
-            constexpr auto is_likely_glob_char = [](char c) -> bool {
+            constexpr auto is_likely_glob_char = [](char c) -> bool
+            {
                 return util::is_alphanum(c) || (c == '-') || (c == '_')
                        || (c == GlobSpec::glob_pattern);
             };
@@ -125,8 +126,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::ChimeraStringSpec>::parse(format_parse_context& ctx
-) -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::ChimeraStringSpec>::parse(format_parse_context& ctx)
+    -> decltype(ctx.begin())
 {
     // make sure that range is empty
     if (ctx.begin() != ctx.end() && *ctx.begin() != '}')

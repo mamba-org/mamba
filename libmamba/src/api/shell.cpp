@@ -23,8 +23,8 @@ namespace mamba
 {
     namespace
     {
-        auto
-        make_activator(const Context& context, std::string_view name) -> std::unique_ptr<Activator>
+        auto make_activator(const Context& context, std::string_view name)
+            -> std::unique_ptr<Activator>
         {
             if (name == "bash" || name == "zsh" || name == "dash" || name == "posix")
             {

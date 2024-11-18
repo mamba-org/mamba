@@ -297,10 +297,9 @@ namespace
         );
     }
 
-    auto make_platform_channels(
-        std::vector<std::string>&& channels,
-        const std::vector<std::string>& platforms
-    ) -> std::vector<std::string>
+    auto
+    make_platform_channels(std::vector<std::string>&& channels, const std::vector<std::string>& platforms)
+        -> std::vector<std::string>
     {
         auto add_plat = [&platforms](const auto& chan)
         { return fmt::format("{}[{}]", chan, fmt::join(platforms, ",")); };

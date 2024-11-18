@@ -233,9 +233,8 @@ TEST_SUITE("specs::channel")
     {
         auto make_typical_params = []() -> ChannelResolveParams
         {
-            auto make_channel = [](std::string_view loc, const ChannelResolveParams& params) {
-                return Channel::resolve(UnresolvedChannel::parse(loc).value(), params).value().at(0);
-            };
+            auto make_channel = [](std::string_view loc, const ChannelResolveParams& params)
+            { return Channel::resolve(UnresolvedChannel::parse(loc).value(), params).value().at(0); };
 
             auto params = ChannelResolveParams{};
             params.platforms = { "linux-64", "noarch" };

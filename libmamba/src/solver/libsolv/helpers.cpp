@@ -91,8 +91,8 @@ namespace mamba::solver::libsolv
         solv.add_self_provide();
     }
 
-    auto
-    make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s) -> specs::PackageInfo
+    auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
+        -> specs::PackageInfo
     {
         specs::PackageInfo out = {};
 
@@ -814,11 +814,9 @@ namespace mamba::solver::libsolv
         repo.set_pip_added(true);
     }
 
-    auto make_abused_namespace_dep_args(
-        solv::ObjPool& pool,
-        std::string_view dependency,
-        const MatchFlags& flags
-    ) -> std::pair<solv::StringId, solv::StringId>
+    auto
+    make_abused_namespace_dep_args(solv::ObjPool& pool, std::string_view dependency, const MatchFlags& flags)
+        -> std::pair<solv::StringId, solv::StringId>
     {
         return {
             pool.add_string(dependency),
@@ -1083,8 +1081,8 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto
-    transaction_to_solution_all(const solv::ObjPool& pool, const solv::ObjTransaction& trans) -> Solution
+    auto transaction_to_solution_all(const solv::ObjPool& pool, const solv::ObjTransaction& trans)
+        -> Solution
     {
         return transaction_to_solution_impl(pool, trans, [](const auto&) { return true; });
     }
@@ -1194,7 +1192,8 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name) -> bool
+        auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name)
+            -> bool
         {
             return std::visit(
                 [&](const auto& action)
@@ -1369,7 +1368,8 @@ namespace mamba::solver::libsolv
             {
                 return pool_add_matchspec(pool, job.spec)
                     .transform(
-                        [&](auto id) {
+                        [&](auto id)
+                        {
                             raw_jobs.push_back(
                                 SOLVER_ERASE | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
                                 id

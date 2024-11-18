@@ -32,8 +32,8 @@ namespace mamba::validation::v0_6
         [[nodiscard]] auto json_key() const -> std::string override;
         [[nodiscard]] auto expiration_json_key() const -> std::string override;
 
-        [[nodiscard]] auto
-        signatures(const nlohmann::json& j) const -> std::set<RoleSignature> override;
+        [[nodiscard]] auto signatures(const nlohmann::json& j) const
+            -> std::set<RoleSignature> override;
 
         [[nodiscard]] auto canonicalize(const nlohmann::json& j) const -> std::string override;
         [[nodiscard]] auto upgradable() const -> bool override;

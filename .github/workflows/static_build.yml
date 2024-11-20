@@ -167,18 +167,16 @@ jobs:
         shell: cmd /C call {0}
         run: |
           set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md;%CONDA_PREFIX%\Library
-          cmake -S . ^
-            -B build ^
+          cmake -B build/ -G Ninja ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_STATIC=ON ^
-            -D BUILD_MICROMAMBA=ON ^
-            -G "Ninja"
+            -D BUILD_MICROMAMBA=ON
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake --build build
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
           sccache --show-stats
           if %errorlevel% neq 0 exit /b %errorlevel%

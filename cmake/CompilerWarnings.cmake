@@ -109,8 +109,8 @@ function(mamba_target_add_compile_warnings target)
         -Wuninitialized
     )
 
-    # It seems that these flags are leaked to CXXFLAGS: -framework CoreFoundation -framework
-    # CoreServices -framework Security -framework Kerberos -fno-merge-constants
+    # It seems that these flags are leaked to CXXFLAGS: `-framework CoreFoundation` `-framework
+    # CoreServices` `-framework Security` `-framework Kerberos` `-fno-merge-constants`
     #
     # These flags give compiler warnings/errors: `unused-command-line-argument` and
     # `ignored-optimization-argument` So we disable these warnings/errors for all the files

@@ -29,12 +29,14 @@ namespace mamba
 #ifndef _WIN32
     namespace
     {
-// `sigaddset` might be implemented as a macro calling `__sigbits(int)` function
-// At the same time `sigset_t` might be `unsigned int`
-// This causes compiler warning
+#if defined(__APPLE__) && defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
+        // `sigaddset` might be implemented as a macro calling `__sigbits(int)` function
+        // At the same time `sigset_t` might be `unsigned int`
+        // This causes compiler warning
         sigset_t get_sigset()
         {
             // block signals in this thread and subsequently
@@ -46,7 +48,9 @@ namespace mamba
             return sigset;
         }
 
+#if defined(__APPLE__) && defined(__GNUC__)
 #pragma GCC diagnostic pop
+#endif
 
         std::thread::native_handle_type sig_recv_thread;
         std::atomic<bool> receiver_exists(false);

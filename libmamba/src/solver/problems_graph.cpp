@@ -265,7 +265,7 @@ namespace mamba::solver
         }
 
 // GCC reports dangling reference when using std::invoke with data members
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"
 #endif
@@ -334,7 +334,7 @@ namespace mamba::solver
             }
         }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 

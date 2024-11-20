@@ -87,15 +87,15 @@ std::hash<mamba::specs::BasicHTTPAuthentication>::operator()(
 }
 
 auto
-std::hash<mamba::specs::BearerToken>::operator()(const mamba::specs::BearerToken& auth
-) const -> std::size_t
+std::hash<mamba::specs::BearerToken>::operator()(const mamba::specs::BearerToken& auth) const
+    -> std::size_t
 {
     return std::hash<std::string>{}(auth.token);
 }
 
 auto
-std::hash<mamba::specs::CondaToken>::operator()(const mamba::specs::CondaToken& auth
-) const -> std::size_t
+std::hash<mamba::specs::CondaToken>::operator()(const mamba::specs::CondaToken& auth) const
+    -> std::size_t
 {
     return std::hash<std::string>{}(auth.token);
 }

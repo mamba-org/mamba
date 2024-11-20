@@ -21,8 +21,8 @@ namespace mamba::util
     }
 
     template <class T, typename Hasher = std::hash<T>>
-    constexpr auto
-    hash_combine_val(std::size_t seed, const T& val, const Hasher& hasher = {}) -> std::size_t
+    constexpr auto hash_combine_val(std::size_t seed, const T& val, const Hasher& hasher = {})
+        -> std::size_t
     {
         return hash_combine(seed, hasher(val));
     }

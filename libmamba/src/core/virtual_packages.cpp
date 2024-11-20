@@ -262,7 +262,8 @@ namespace mamba
             {
                 overridable_windows_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(make_virtual_package("__win", platform, std::move(version)));
                         }
                     )
@@ -284,7 +285,8 @@ namespace mamba
 
                 overridable_linux_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(
                                 make_virtual_package("__linux", platform, std::move(version))
                             );
@@ -318,7 +320,8 @@ namespace mamba
 
                 overridable_osx_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(make_virtual_package("__osx", platform, std::move(version)));
                         }
                     )

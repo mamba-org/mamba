@@ -225,12 +225,12 @@ namespace mambapy
                 py::arg("format")
             );
 
-        constexpr auto solver_flags_v2_migrator = [](Solver&, py::args, py::kwargs) {
+        constexpr auto solver_flags_v2_migrator = [](Solver&, py::args, py::kwargs)
+        {
             throw std::runtime_error("All flags need to be passed in the libmambapy.solver.Request.");
         };
-        constexpr auto solver_job_v2_migrator = [](Solver&, py::args, py::kwargs) {
-            throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request.");
-        };
+        constexpr auto solver_job_v2_migrator = [](Solver&, py::args, py::kwargs)
+        { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
 
         py::class_<Solver>(m, "Solver")  //
             .def(py::init())

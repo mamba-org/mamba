@@ -14,10 +14,12 @@ Command Line Executables
 ------------------------
 Mamba (executable)
 ******************
-``mamba``, previously a Python executable mixing ``libmambapy``, ``conda``, and code to bridge both
-project is being replace by a fully C++ executable based on ``libmamba`` solely.
 
-It now presents the same user interface and experience as ``micromamba``.
+``mamba``, previously a Python executable mixing ``libmambapy``, ``conda``, and some specific code logic
+has been entirely replaced by the dynamically linked version of ``micromamba``,
+a statically-linked ELF based on ``libmamba``.
+
+Hence ``mamba``` now has the exact same user interface and experience as ``micromamba``.
 
 .. warning::
 

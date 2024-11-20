@@ -84,8 +84,8 @@ namespace mamba
             return out;
         }
 
-        auto
-        installed_python(const solver::libsolv::Database& db) -> std::optional<specs::PackageInfo>
+        auto installed_python(const solver::libsolv::Database& db)
+            -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();

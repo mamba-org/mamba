@@ -18,25 +18,27 @@
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
 
+#include "utils.hpp"
+
 namespace mamba
 {
     namespace
     {
+        using command_args = std::vector<std::string>;
+
         auto create_update_request(
             PrefixData& prefix_data,
             std::vector<std::string> specs,
-            bool update_all,
-            bool prune_deps,
-            bool remove_not_specified
+            const UpdateParams& update_params
         ) -> solver::Request
         {
             using Request = solver::Request;
 
             auto request = Request();
 
-            if (update_all)
+            if (update_params.update_all == UpdateAll::Yes)
             {
-                if (prune_deps)
+                if (update_params.prune_deps == PruneDeps::Yes)
                 {
                     auto hist_map = prefix_data.history().get_requested_specs_map();
                     request.jobs.reserve(hist_map.size() + 1);
@@ -55,31 +57,69 @@ namespace mamba
             else
             {
                 request.jobs.reserve(specs.size());
-                if (remove_not_specified)
+                if (update_params.env_update == EnvUpdate::Yes)
                 {
-                    auto hist_map = prefix_data.history().get_requested_specs_map();
-                    for (auto& it : hist_map)
+                    if (update_params.remove_not_specified == RemoveNotSpecified::Yes)
                     {
-                        if (std::find(specs.begin(), specs.end(), it.second.name().str())
-                            == specs.end())
+                        auto hist_map = prefix_data.history().get_requested_specs_map();
+                        for (auto& it : hist_map)
                         {
-                            request.jobs.emplace_back(Request::Remove{
-                                specs::MatchSpec::parse(it.second.name().str())
-                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                    .value(),
-                                /* .clean_dependencies= */ true,
-                            });
+                            // We use `spec_names` here because `specs` contain more info than just
+                            // the spec name.
+                            // Therefore, the search later and comparison (using `specs`) with
+                            // MatchSpec.name().str() in `hist_map` second elements wouldn't be
+                            // relevant
+                            std::vector<std::string> spec_names;
+                            spec_names.reserve(specs.size());
+                            std::transform(
+                                specs.begin(),
+                                specs.end(),
+                                std::back_inserter(spec_names),
+                                [](const std::string& spec)
+                                {
+                                    return specs::MatchSpec::parse(spec)
+                                        .or_else([](specs::ParseError&& err)
+                                                 { throw std::move(err); })
+                                        .value()
+                                        .name()
+                                        .str();
+                                }
+                            );
+
+                            if (std::find(spec_names.begin(), spec_names.end(), it.second.name().str())
+                                == spec_names.end())
+                            {
+                                request.jobs.emplace_back(Request::Remove{
+                                    specs::MatchSpec::parse(it.second.name().str())
+                                        .or_else([](specs::ParseError&& err)
+                                                 { throw std::move(err); })
+                                        .value(),
+                                    /* .clean_dependencies= */ true,
+                                });
+                            }
                         }
                     }
-                }
 
-                for (const auto& raw_ms : specs)
+                    // Install/update everything in specs
+                    for (const auto& raw_ms : specs)
+                    {
+                        request.jobs.emplace_back(Request::Install{
+                            specs::MatchSpec::parse(raw_ms)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value(),
+                        });
+                    }
+                }
+                else
                 {
-                    request.jobs.emplace_back(Request::Update{
-                        specs::MatchSpec::parse(raw_ms)
-                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                            .value(),
-                    });
+                    for (const auto& raw_ms : specs)
+                    {
+                        request.jobs.emplace_back(Request::Update{
+                            specs::MatchSpec::parse(raw_ms)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value(),
+                        });
+                    }
                 }
             }
 
@@ -87,11 +127,18 @@ namespace mamba
         }
     }
 
-    void update(Configuration& config, bool update_all, bool prune_deps, bool remove_not_specified)
+    void update(Configuration& config, const UpdateParams& update_params)
     {
         auto& ctx = config.context();
 
+        // `env update` case
+        if (update_params.env_update == EnvUpdate::Yes)
+        {
+            config.at("create_base").set_value(true);
+        }
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -103,14 +150,7 @@ namespace mamba
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        // add channels from specs
-        for (const auto& s : raw_update_specs)
-        {
-            if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
-            {
-                ctx.channels.push_back(ms->channel()->str());
-            }
-        }
+        populate_context_channels_from_specs(raw_update_specs, ctx);
 
         solver::libsolv::Database db{ channel_context.params() };
         add_spdlog_logger_to_database(db);
@@ -139,13 +179,7 @@ namespace mamba
 
         load_installed_packages_in_database(ctx, db, prefix_data);
 
-        auto request = create_update_request(
-            prefix_data,
-            raw_update_specs,
-            /* update_all= */ update_all,
-            /* prune_deps= */ prune_deps,
-            /* remove_not_specified= */ remove_not_specified
-        );
+        auto request = create_update_request(prefix_data, raw_update_specs, update_params);
         add_pins_to_request(
             request,
             ctx,
@@ -187,20 +221,25 @@ namespace mamba
         );
 
 
-        auto execute_transaction = [&](MTransaction& transaction)
+        auto execute_transaction = [&](MTransaction& trans)
         {
             if (ctx.output_params.json)
             {
-                transaction.log_json();
+                trans.log_json();
             }
 
-            bool yes = transaction.prompt(ctx, channel_context);
+            bool yes = trans.prompt(ctx, channel_context);
             if (yes)
             {
-                transaction.execute(ctx, channel_context, prefix_data);
+                trans.execute(ctx, channel_context, prefix_data);
             }
         };
 
         execute_transaction(transaction);
+        for (auto other_spec :
+             config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
+        {
+            install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
+        }
     }
 }

@@ -4,19 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <stdexcept>
-
-#include <fmt/color.h>
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <fmt/ranges.h>
-#include <reproc++/run.hpp>
-#include <reproc/reproc.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/activation.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/env_lockfile.hpp"
@@ -33,139 +26,10 @@
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
+#include "utils.hpp"
+
 namespace mamba
 {
-    namespace
-    {
-        using command_args = std::vector<std::string>;
-
-        tl::expected<command_args, std::runtime_error> get_other_pkg_mgr_install_instructions(
-            const std::string& name,
-            const std::string& target_prefix,
-            const fs::u8path& spec_file
-        )
-        {
-            const auto get_python_path = [&]
-            { return util::which_in("python", get_path_dirs(target_prefix)).string(); };
-
-            const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
-                { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } },
-                { "pip --no-deps",
-                  { get_python_path(), "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input" } }
-            };
-
-            auto found_it = other_pkg_mgr_install_instructions.find(name);
-            if (found_it != other_pkg_mgr_install_instructions.end())
-            {
-                return found_it->second;
-            }
-            else
-            {
-                return tl::unexpected(std::runtime_error(
-                    fmt::format("no install instruction found for package manager '{}'", name)
-                ));
-            }
-        }
-
-    }
-
-    bool reproc_killed(int status)
-    {
-        return status == REPROC_SIGKILL;
-    }
-
-    bool reproc_terminated(int status)
-    {
-        return status == REPROC_SIGTERM;
-    }
-
-    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec)
-    {
-        bool killed_not_an_err = (options.stop.first.action == reproc::stop::kill)
-                                 || (options.stop.second.action == reproc::stop::kill)
-                                 || (options.stop.third.action == reproc::stop::kill);
-
-        bool terminated_not_an_err = (options.stop.first.action == reproc::stop::terminate)
-                                     || (options.stop.second.action == reproc::stop::terminate)
-                                     || (options.stop.third.action == reproc::stop::terminate);
-
-        if (ec || (!killed_not_an_err && reproc_killed(status))
-            || (!terminated_not_an_err && reproc_terminated(status)))
-        {
-            if (ec)
-            {
-                LOG_ERROR << "Subprocess call failed: " << ec.message();
-            }
-            else if (reproc_killed(status))
-            {
-                LOG_ERROR << "Subprocess call failed (killed)";
-            }
-            else
-            {
-                LOG_ERROR << "Subprocess call failed (terminated)";
-            }
-            throw std::runtime_error("Subprocess call failed. Aborting.");
-        }
-    }
-
-    auto install_for_other_pkgmgr(const Context& ctx, const detail::other_pkg_mgr_spec& other_spec)
-    {
-        const auto& pkg_mgr = other_spec.pkg_mgr;
-        const auto& deps = other_spec.deps;
-        const auto& cwd = other_spec.cwd;
-
-        TemporaryFile specs("mambaf", "", cwd);
-        {
-            std::ofstream specs_f = open_ofstream(specs.path());
-            for (auto& d : deps)
-            {
-                specs_f << d.c_str() << '\n';
-            }
-        }
-
-        command_args install_instructions = [&]
-        {
-            const auto maybe_instructions = get_other_pkg_mgr_install_instructions(
-                pkg_mgr,
-                ctx.prefix_params.target_prefix.string(),
-                specs.path()
-            );
-            if (maybe_instructions)
-            {
-                return maybe_instructions.value();
-            }
-            else
-            {
-                throw maybe_instructions.error();
-            }
-        }();
-
-        auto [wrapped_command, tmpfile] = prepare_wrapped_call(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            install_instructions
-        );
-
-        reproc::options options;
-        options.redirect.parent = true;
-        options.working_directory = cwd.c_str();
-
-        Console::stream() << fmt::format(
-            ctx.graphics_params.palette.external,
-            "\nInstalling {} packages: {}",
-            pkg_mgr,
-            fmt::join(deps, ", ")
-        );
-        fmt::print(LOG_INFO, "Calling: {}", fmt::join(install_instructions, " "));
-
-        auto [status, ec] = reproc::run(wrapped_command, options);
-        assert_reproc_success(options, status, ec);
-        if (status != 0)
-        {
-            throw std::runtime_error("pip failed to install packages");
-        }
-    }
 
     const auto& truthy_values(const std::string platform)
     {
@@ -356,6 +220,8 @@ namespace mamba
 
         config.at("create_base").set_value(true);
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -511,7 +377,7 @@ namespace mamba
             Context& ctx,
             ChannelContext& channel_context,
             const Configuration& config,
-            const std::vector<std::string>& specs,
+            const std::vector<std::string>& raw_specs,
             bool create_env,
             bool remove_prefix_on_failure,
             bool is_retry
@@ -538,14 +404,7 @@ namespace mamba
 
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
-            // add channels from specs
-            for (const auto& s : specs)
-            {
-                if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
-                {
-                    ctx.channels.push_back(ms->channel()->str());
-                }
-            }
+            populate_context_channels_from_specs(raw_specs, ctx);
 
             if (ctx.channels.empty() && !ctx.offline)
             {
@@ -577,8 +436,8 @@ namespace mamba
             load_installed_packages_in_database(ctx, db, prefix_data);
 
 
-            auto request = create_install_request(prefix_data, specs, freeze_installed);
-            add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
+            auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
+            add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;
 
             {
@@ -606,7 +465,7 @@ namespace mamba
                         ctx,
                         channel_context,
                         config,
-                        specs,
+                        raw_specs,
                         create_env,
                         remove_prefix_on_failure,
                         true
@@ -675,7 +534,7 @@ namespace mamba
                 for (auto other_spec : config.at("others_pkg_mgrs_specs")
                                            .value<std::vector<detail::other_pkg_mgr_spec>>())
                 {
-                    install_for_other_pkgmgr(ctx, other_spec);
+                    install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
                 }
             }
             else
@@ -737,7 +596,9 @@ namespace mamba
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
-                throw std::runtime_error("could not load prefix data");
+                throw std::runtime_error(
+                    fmt::format("could not load prefix data: {}", exp_prefix_data.error().what())
+                );
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
@@ -773,7 +634,7 @@ namespace mamba
 
                 for (auto other_spec : others)
                 {
-                    install_for_other_pkgmgr(ctx, other_spec);
+                    install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
                 }
             }
             else

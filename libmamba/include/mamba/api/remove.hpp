@@ -18,11 +18,18 @@ namespace mamba
     class ChannelContext;
     class Configuration;
 
-    void remove(Configuration& config, int flags = MAMBA_REMOVE_PRUNE);
+    enum class RemoveResult : int
+    {
+        YES = 0,
+        NO = 1,
+        EMPTY = 2,
+    };
+
+    RemoveResult remove(Configuration& config, int flags = MAMBA_REMOVE_PRUNE);
 
     namespace detail
     {
-        void remove_specs(
+        bool remove_specs(
             Context& ctx,
             ChannelContext& channel_context,
             const std::vector<std::string>& specs,

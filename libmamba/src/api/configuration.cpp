@@ -567,10 +567,33 @@ namespace mamba
 
         void target_prefix_hook(Configuration& config, fs::u8path& prefix)
         {
+            // Fall back to environment specified in CONDA_PREFIX
+            bool use_target_prefix_fallback = config.at("use_target_prefix_fallback").value<bool>();
+            if (prefix.empty() && use_target_prefix_fallback)
+            {
+                // CONDA_PREFIX is always a complete path
+                prefix = util::get_env("CONDA_PREFIX").value_or("");
+            }
+
+            // Fall back to environment specified in CONDA_DEFAULT_ENV
+            bool use_default_prefix_fallback = config.at("use_default_prefix_fallback").value<bool>();
+            if (prefix.empty() && use_default_prefix_fallback)
+            {
+                prefix = util::get_env("CONDA_DEFAULT_ENV").value_or("");
+            }
+
+            // Fall back to base environment
+            bool use_root_prefix_fallback = config.at("use_root_prefix_fallback").value<bool>();
+            if (prefix.empty() && use_root_prefix_fallback)
+            {
+                prefix = config.at("root_prefix").value<fs::u8path>();
+            }
+
             auto& root_prefix = config.at("root_prefix").value<fs::u8path>();
 
             if (!prefix.empty())
             {
+                // Prefix can be an environment name rather than a full path
                 if (prefix.string().find_first_of("/\\") == std::string::npos)
                 {
                     std::string old_prefix = prefix.string();
@@ -584,14 +607,6 @@ namespace mamba
                                     If 'target_prefix' is expressed as a relative directory to
                                     the current working directory, use './some_prefix')")
                                                 .c_str());
-                }
-            }
-            else
-            {
-                bool use_fallback = config.at("use_target_prefix_fallback").value<bool>();
-                if (use_fallback)
-                {
-                    prefix = util::get_env("CONDA_PREFIX").value_or("");
                 }
             }
 
@@ -614,6 +629,21 @@ namespace mamba
             }
         }
 
+        auto get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path)
+            -> expected_t<fs::u8path>
+        {
+            if (mamba_bin_path.empty())
+            {
+                return make_unexpected(
+                    "`mamba` binary not found.\nPlease set `MAMBA_ROOT_PREFIX`.",
+                    mamba_error_code::incorrect_usage
+                );
+            }
+            // In linux and osx, the install path would be install_prefix/bin/mamba
+            // In windows, install_prefix/Scripts/mamba.exe
+            return { fs::weakly_canonical(mamba_bin_path.parent_path().parent_path()) };
+        }
+
         auto validate_existing_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
         {
             auto prefix = fs::u8path(util::expand_home(candidate.string()));
@@ -628,7 +658,12 @@ namespace mamba
                 && !fs::exists(prefix / "envs"))
             {
                 return make_unexpected(
-                    fmt::format(R"(Path "{}" is not an existing root prefix.)", prefix.string()),
+                    fmt::format(
+                        R"(Path "{}" is not an existing root prefix.)"
+                        R"( Please set explicitly `MAMBA_ROOT_PREFIX` to "{}" to skip this error.)",
+                        prefix.string(),
+                        prefix.string()
+                    ),
                     mamba_error_code::incorrect_usage
                 );
             }
@@ -658,7 +693,9 @@ namespace mamba
                     return make_unexpected(
                         fmt::format(
                             R"(Could not use default root_prefix "{}":)"
-                            R"( Directory exists, is not empty and not a conda prefix.)",
+                            R"( Directory exists, is not empty and not a conda prefix.)"
+                            R"( Please set explicitly `MAMBA_ROOT_PREFIX` to "{}" to skip this error.)",
+                            prefix.string(),
                             prefix.string()
                         ),
                         mamba_error_code::incorrect_usage
@@ -709,11 +746,20 @@ namespace mamba
                 }
                 else
                 {
+#ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
+                    // mamba case
+                    // set the root prefix as the mamba installation path
+                    get_root_prefix_from_mamba_bin(util::which("mamba"))
+                        .transform([&](fs::u8path&& p) { prefix = std::move(p); })
+                        .or_else([](mamba_error&& error) { throw std::move(error); });
+#else
+                    // micromamba case
                     validate_existing_root_prefix(default_root_prefix_v1())
                         .or_else([](const auto& /* error */)
                                  { return validate_root_prefix(default_root_prefix_v2()); })
                         .transform([&](fs::u8path&& p) { prefix = std::move(p); })
                         .or_else([](mamba_error&& error) { throw std::move(error); });
+#endif
                 }
 
                 if (env_name.configured())
@@ -1194,7 +1240,9 @@ namespace mamba
                             "envs_dirs",
                             "env_name",
                             "spec_file_env_name",
-                            "use_target_prefix_fallback" })
+                            "use_target_prefix_fallback",
+                            "use_default_prefix_fallback",
+                            "use_root_prefix_fallback" })
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
                    .set_post_merge_hook<fs::u8path>(
@@ -1214,6 +1262,18 @@ namespace mamba
                    .group("Basic")
                    .set_single_op_lifetime()
                    .description("Fallback to the current target prefix or not"));
+
+        insert(Configurable("use_root_prefix_fallback", true)
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description("Fallback to the root prefix or not"));
+
+        insert(Configurable("use_default_prefix_fallback", true)
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description(
+                       "Fallback to the prefix specified with environment variable CONDA_DEFAULT_ENV or not"
+                   ));
 
         insert(Configurable("target_prefix_checks", MAMBA_NO_PREFIX_CHECK)
                    .group("Basic")
@@ -1495,7 +1555,8 @@ namespace mamba
                         previous versions of conda, this parameter was configured as either
                         True or False. True is now an alias to 'flexible'.)"))
                    .set_post_merge_hook<ChannelPriority>(
-                       [&](ChannelPriority& value) {
+                       [&](ChannelPriority& value)
+                       {
                            m_context.solver_flags.strict_repo_priority = (value == ChannelPriority::Strict);
                        }
                    ));
@@ -1647,6 +1708,12 @@ namespace mamba
                         package cache from where the package is being linked.
                         !WARNING: Using this option can result in corruption of long-lived
                         environments due to broken links (deleted cache).)")));
+
+        insert(Configurable("show_anaconda_channel_warnings", &m_context.show_anaconda_channel_warnings)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "MAMBA_SHOW_ANACONDA_CHANNEL_WARNINGS" })
+                   .description("Show the warning when the Anaconda official channels are used"));
 
         insert(Configurable("shortcuts", &m_context.shortcuts)
                    .group("Extract, Link & Install")
@@ -2272,6 +2339,14 @@ namespace mamba
             strStream << inFile.rdbuf();
             std::string s = strStream.str();
             config = YAML::Load(expandvars(s));
+            if (config.IsScalar())
+            {
+                LOG_WARNING << fmt::format(
+                    "The configuration file at {} is misformatted or corrupted. Skipping file.",
+                    file.string()
+                );
+                return YAML::Node();
+            }
         }
         catch (const std::exception& ex)
         {

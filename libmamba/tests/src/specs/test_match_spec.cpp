@@ -8,6 +8,7 @@
 
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
@@ -45,6 +46,79 @@ TEST_SUITE("specs::match_spec")
             CHECK(ms.build_string().is_explicitly_free());
             CHECK(ms.build_number().is_explicitly_free());
             CHECK_EQ(ms.str(), "xtensor>=0.12.3");
+        }
+
+        SUBCASE("python > 3.11")
+        {
+            auto ms = MatchSpec::parse("python > 3.11").value();
+            CHECK_EQ(ms.name().str(), "python");
+            CHECK_EQ(ms.version().str(), ">3.11");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "python>3.11");
+        }
+
+        SUBCASE("numpy < 2.0")
+        {
+            auto ms = MatchSpec::parse("numpy < 2.0").value();
+            CHECK_EQ(ms.name().str(), "numpy");
+            CHECK_EQ(ms.version().str(), "<2.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "numpy<2.0");
+        }
+
+        SUBCASE("pytorch-cpu = 1.13.0")
+        {
+            auto ms = MatchSpec::parse("pytorch-cpu = 1.13.0").value();
+            CHECK_EQ(ms.name().str(), "pytorch-cpu");
+            CHECK_EQ(ms.version().str(), "=1.13.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "pytorch-cpu=1.13.0");
+        }
+
+        SUBCASE("scipy   >=    1.5.0,  < 2.0.0")
+        {
+            auto ms = MatchSpec::parse("scipy   >=    1.5.0,  < 2.0.0").value();
+            CHECK_EQ(ms.name().str(), "scipy");
+            CHECK_EQ(ms.version().str(), ">=1.5.0,<2.0.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "scipy[version=\">=1.5.0,<2.0.0\"]");
+        }
+
+        SUBCASE("scikit-learn >1.0.0")
+        {
+            auto ms = MatchSpec::parse("scikit-learn >1.0.0").value();
+            CHECK_EQ(ms.name().str(), "scikit-learn");
+            CHECK_EQ(ms.version().str(), ">1.0.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "scikit-learn>1.0.0");
+        }
+
+        SUBCASE("kytea >=0.1.4, 0.2.0")
+        {
+            auto ms = MatchSpec::parse("kytea >=0.1.4, 0.2.0").value();
+            CHECK_EQ(ms.name().str(), "kytea");
+            CHECK_EQ(ms.version().str(), ">=0.1.4,==0.2.0");
+            CHECK(ms.build_string().is_explicitly_free());
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "kytea[version=\">=0.1.4,==0.2.0\"]");
+        }
+
+        // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+        // which is currently supported but which must not.
+        SUBCASE("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
+        {
+            auto ms = MatchSpec::parse("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
+                          .value();
+            CHECK_EQ(ms.name().str(), "mingw-w64-ucrt-x86_64-crt-git");
+            CHECK_EQ(ms.version().str(), "==0v12.0.0.0r2.0ggc561118da");
+            CHECK_EQ(ms.build_string().str(), "h707e725_0");
+            CHECK(ms.build_number().is_explicitly_free());
+            CHECK_EQ(ms.str(), "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
         }
 
         SUBCASE("_libgcc_mutex 0.1 conda_forge")
@@ -107,6 +181,15 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("foo V0.9.24");
             CHECK_FALSE(ms.has_value());
             CHECK_EQ(std::string(ms.error().what()), "Found invalid version predicate in \"V0.9.24\"");
+        }
+
+        SUBCASE("importlib-metadata  # drop this when dropping Python 3.8")
+        {
+            auto ms = MatchSpec::parse("importlib-metadata  # drop this when dropping Python 3.8")
+                          .value();
+            CHECK_EQ(ms.name().str(), "importlib-metadata");
+            CHECK(ms.version().is_explicitly_free());
+            CHECK_EQ(ms.str(), "importlib-metadata");
         }
 
         SUBCASE("foo=V0.9.24")
@@ -373,9 +456,28 @@ TEST_SUITE("specs::match_spec")
         {
             auto ms = MatchSpec::parse(R"(numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0)").value();
             CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), ">1.8,((<2|==1.7),(!=1.9,~=1.7))");
+            CHECK_EQ(ms.version().str(), ">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))");
             CHECK_EQ(ms.build_string().str(), "py34_0");
-            CHECK_EQ(ms.str(), R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,~=1.7))",build="py34_0"])ms");
+            CHECK_EQ(
+                ms.str(),
+                R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))",build="py34_0"])ms"
+            );
+        }
+
+        SUBCASE("python-graphviz~=0.20")
+        {
+            auto ms = MatchSpec::parse("python-graphviz~=0.20").value();
+            CHECK_EQ(ms.name().str(), "python-graphviz");
+            CHECK_EQ(ms.version().str(), ">=0.20,=0");
+            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
+        }
+
+        SUBCASE("python-graphviz  ~=      0.20")
+        {
+            auto ms = MatchSpec::parse("python-graphviz  ~=      0.20").value();
+            CHECK_EQ(ms.name().str(), "python-graphviz");
+            CHECK_EQ(ms.version().str(), ">=0.20,=0");
+            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
         SUBCASE("*[md5=fewjaflknd]")
@@ -519,6 +621,54 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.name().str(), "libblas");
             CHECK_EQ(ms.build_string().str(), "^.*(accelerate|mkl)$");
             CHECK_FALSE(ms.build_string().is_glob());
+        }
+    }
+
+    TEST_CASE("parse_url")
+    {
+        SUBCASE("https://conda.com/pkg-2-bld.conda")
+        {
+            auto ms = MatchSpec::parse_url("https://conda.com/pkg-2-bld.conda").value();
+            CHECK(ms.is_file());
+            CHECK_EQ(ms.name().str(), "pkg");
+            CHECK_EQ(ms.version().str(), "==2");
+            CHECK_EQ(ms.str(), "https://conda.com/pkg-2-bld.conda");
+            CHECK_EQ(ms.build_string().str(), "bld");
+            CHECK_EQ(ms.filename(), "pkg-2-bld.conda");
+        }
+
+        SUBCASE("/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2")
+        {
+            auto ms = MatchSpec::parse_url(
+                          "/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
+            )
+                          .value();
+            CHECK(ms.is_file());
+            CHECK_EQ(ms.name().str(), "cph_test_data");
+            CHECK_EQ(ms.version().str(), "==0.0.1");
+            CHECK_EQ(ms.str(), "/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2");
+            CHECK_EQ(ms.build_string().str(), "0");
+            CHECK_EQ(ms.filename(), "cph_test_data-0.0.1-0.tar.bz2");
+        }
+
+        SUBCASE(R"(D:\a\mamba\mamba\micromamba\tests\data\cph_test_data-0.0.1-0.tar.bz2)")
+        {
+            if (util::on_win)
+            {
+                auto ms = MatchSpec::parse_url(
+                              R"(D:\a\mamba\mamba\micromamba\tests\data\cph_test_data-0.0.1-0.tar.bz2)"
+                )
+                              .value();
+                CHECK(ms.is_file());
+                CHECK_EQ(ms.name().str(), "cph_test_data");
+                CHECK_EQ(ms.version().str(), "==0.0.1");
+                CHECK_EQ(
+                    ms.str(),
+                    "D:/a/mamba/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
+                );
+                CHECK_EQ(ms.build_string().str(), "0");
+                CHECK_EQ(ms.filename(), "cph_test_data-0.0.1-0.tar.bz2");
+            }
         }
     }
 

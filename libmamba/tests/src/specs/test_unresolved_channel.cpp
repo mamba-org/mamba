@@ -137,7 +137,15 @@ TEST_SUITE("specs::unresolved_channel")
         {
             const auto uc = UnresolvedChannel::parse("./folder/../folder/.").value();
             CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "folder");
+            CHECK_EQ(uc.location(), "./folder");
+            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE("./folder/subfolder/")
+        {
+            const auto uc = UnresolvedChannel::parse("./folder/subfolder/").value();
+            CHECK_EQ(uc.type(), Type::Path);
+            CHECK_EQ(uc.location(), "./folder/subfolder");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
         }
 

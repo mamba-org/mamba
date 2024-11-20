@@ -208,33 +208,23 @@ namespace mamba
         }
     }
 
-    std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix)
-    {
-        if (util::on_win)
-        {
-            return { prefix,
-                     prefix / "Library" / "mingw-w64" / "bin",
-                     prefix / "Library" / "usr" / "bin",
-                     prefix / "Library" / "bin",
-                     prefix / "Scripts",
-                     prefix / "bin" };
-        }
-        else
-        {
-            return { prefix / "bin" };
-        }
-    }
-
     std::vector<fs::u8path> Activator::get_PATH()
     {
         std::vector<fs::u8path> path;
+        std::vector<std::string> strings{};
+
         if (m_env.find("PATH") != m_env.end())
         {
-            auto strings = util::split(m_env["PATH"], util::pathsep());
-            for (auto& s : strings)
-            {
-                path.push_back(s);
-            }
+            strings = util::split(m_env["PATH"], util::pathsep());
+        }
+        // On Windows, the variable can be Path and not PATH
+        else if (m_env.find("Path") != m_env.end())
+        {
+            strings = util::split(m_env["Path"], util::pathsep());
+        }
+        for (auto& s : strings)
+        {
+            path.push_back(s);
         }
         return path;
     }
@@ -264,10 +254,9 @@ namespace mamba
 
         // TODO check if path_conversion does something useful here.
         // path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
-        std::vector<fs::u8path> final_path = get_path_dirs(prefix);
+        std::vector<fs::u8path> final_path = util::get_path_dirs(prefix);
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-
         std::string result = util::join(util::pathsep(), final_path).string();
         return result;
     }
@@ -279,7 +268,7 @@ namespace mamba
         std::vector<fs::u8path> current_path = get_PATH();
         assert(!old_prefix.empty());
 
-        std::vector<fs::u8path> old_prefix_dirs = get_path_dirs(old_prefix);
+        std::vector<fs::u8path> old_prefix_dirs = util::get_path_dirs(old_prefix);
 
         // remove all old paths
         std::vector<fs::u8path> cleaned_path;
@@ -306,7 +295,7 @@ namespace mamba
         std::vector<fs::u8path> final_path;
         if (!new_prefix.empty())
         {
-            final_path = get_path_dirs(new_prefix);
+            final_path = util::get_path_dirs(new_prefix);
             final_path.insert(final_path.end(), current_path.begin(), current_path.end());
 
             // remove duplicates

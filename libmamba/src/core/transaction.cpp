@@ -30,6 +30,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
 #include "solver/helpers.hpp"
@@ -83,8 +84,8 @@ namespace mamba
             return out;
         }
 
-        auto
-        installed_python(const solver::libsolv::Database& db) -> std::optional<specs::PackageInfo>
+        auto installed_python(const solver::libsolv::Database& db)
+            -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
@@ -361,8 +362,6 @@ namespace mamba
     bool
     MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
-        using Solution = solver::Solution;
-
         // JSON output
         // back to the top level if any action was required
         if (!empty())
@@ -398,59 +397,37 @@ namespace mamba
 
         TransactionRollback rollback;
 
-        const auto execute_action = [&](const auto& act)
-        {
-            using Action = std::decay_t<decltype(act)>;
-
-            const auto link = [&](const specs::PackageInfo& pkg)
-            {
-                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
-                LinkPackage lp(pkg, cache_path, &m_transaction_context);
-                lp.execute();
-                rollback.record(lp);
-                m_history_entry.link_dists.push_back(pkg.long_str());
-            };
-            const auto unlink = [&](const specs::PackageInfo& pkg)
-            {
-                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
-                UnlinkPackage up(pkg, cache_path, &m_transaction_context);
-                up.execute();
-                rollback.record(up);
-                m_history_entry.unlink_dists.push_back(pkg.long_str());
-            };
-
-            if constexpr (std::is_same_v<Action, Solution::Reinstall>)
-            {
-                Console::stream() << "Reinstalling " << act.what.str();
-                unlink(act.what);
-                link(act.what);
-            }
-            else if constexpr (Solution::has_remove_v<Action> && Solution::has_install_v<Action>)
-            {
-                Console::stream() << "Changing " << act.remove.str() << " ==> " << act.install.str();
-                unlink(act.remove);
-                link(act.install);
-            }
-            else if constexpr (Solution::has_remove_v<Action>)
-            {
-                Console::stream() << "Unlinking " << act.remove.str();
-                unlink(act.remove);
-            }
-            else if constexpr (Solution::has_install_v<Action>)
-            {
-                Console::stream() << "Linking " << act.install.str();
-                link(act.install);
-            }
-        };
-
-        for (const auto& action : m_solution.actions)
+        const auto link = [&](const specs::PackageInfo& pkg)
         {
             if (is_sig_interrupted())
             {
-                break;
+                return util::LoopControl::Break;
             }
-            std::visit(execute_action, action);
-        }
+            Console::stream() << "Linking " << pkg.str();
+            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+            LinkPackage lp(pkg, cache_path, &m_transaction_context);
+            lp.execute();
+            rollback.record(lp);
+            m_history_entry.link_dists.push_back(pkg.long_str());
+            return util::LoopControl::Continue;
+        };
+        const auto unlink = [&](const specs::PackageInfo& pkg)
+        {
+            if (is_sig_interrupted())
+            {
+                return util::LoopControl::Break;
+            }
+            Console::stream() << "Unlinking " << pkg.str();
+            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
+            UnlinkPackage up(pkg, cache_path, &m_transaction_context);
+            up.execute();
+            rollback.record(up);
+            m_history_entry.unlink_dists.push_back(pkg.long_str());
+            return util::LoopControl::Continue;
+        };
+
+        for_each_to_remove(m_solution.actions, unlink);
+        for_each_to_install(m_solution.actions, link);
 
         if (is_sig_interrupted())
         {
@@ -467,19 +444,27 @@ namespace mamba
         // Get the name of the environment
         const auto environment = env_name(ctx);
 
-        Console::stream() << "\nTransaction finished\n\n"
-                             "To activate this environment, use:\n\n"
-                             "    "
-                          << executable << " activate " << environment
-                          << "\n\n"
-                             "Or to execute a single command in this environment, use:\n\n"
-                             "    "
-                          << executable
-                          << " run "
-                          // Use -n or -p depending on if the env_name is a full prefix or just
-                          // a name.
-                          << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                          << environment << " mycommand\n";
+        // Check if the target prefix is active
+        if (util::get_env("CONDA_PREFIX") == ctx.prefix_params.target_prefix)
+        {
+            Console::stream() << "\nTransaction finished\n";
+        }
+        else
+        {
+            Console::stream() << "\nTransaction finished\n\n"
+                                 "To activate this environment, use:\n\n"
+                                 "    "
+                              << executable << " activate " << environment
+                              << "\n\n"
+                                 "Or to execute a single command in this environment, use:\n\n"
+                                 "    "
+                              << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just
+                              // a name.
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
+        }
 
         prefix.history().add_entry(m_history_entry);
         return true;

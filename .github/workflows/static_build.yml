@@ -38,6 +38,11 @@ jobs:
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
+      - name: Disable output validation
+        if: ${{ matrix.platform == 'osx' }}
+        run: |
+          cd micromamba-feedstock/
+          sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
       - name: Checkout mamba branch
         uses: actions/checkout@v4
         with:
@@ -50,7 +55,7 @@ jobs:
           mv mamba/ micromamba-feedstock/source
           # Prevent irrelevant file permission error
           git -C micromamba-feedstock/ config --local --add safe.directory '*'
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: mambabuild
           create-args: python boa
@@ -94,6 +99,16 @@ jobs:
             "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
           mkdir -p "${{ github.workspace }}/artifacts"
           cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
+
+      - name: Test basic commands
+        if: ${{ matrix.arch != 'aarch64' && matrix.arch != 'ppc64le' }}
+        run: |
+          mkdir test_prefix
+          ${{ github.workspace }}/artifacts/micromamba --version
+          ${{ github.workspace }}/artifacts/micromamba --help
+          ${{ github.workspace }}/artifacts/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
+          ${{ github.workspace }}/artifacts/micromamba list -n testenv -r ./test_prefix --log-level 1
+
       - name: Archive conda-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
@@ -132,40 +147,36 @@ jobs:
           key: sccache-${{ github.job }}-win-64
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: mambabuild
           init-shell: bash cmd.exe
+          # Constraint on fmt is due to an issue with 11.0.2 (to be fixed in next version)
+          # cf. https://github.com/fmtlib/fmt/issues/4091
           create-args: >-
             cli11>=2.2,<3
             cpp-expected
             nlohmann_json
             simdjson-static>=3.3.0
             spdlog
-            fmt
+            fmt<=11.0.1
             yaml-cpp-static>=0.8.0
             libsolv-static>=0.7.24
             reproc-cpp-static>=14.2.4.post0
       - name: build micromamba
         shell: cmd /C call {0}
-        # Using D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR is a workaround to fix CI failure on win-64
-        # after updating runners to 20240603.1 image
-        # (cf. https://github.com/actions/runner-images/issues/10004#issuecomment-2153445161)
         run: |
           set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md;%CONDA_PREFIX%\Library
-          cmake -S . ^
-            -B build ^
+          cmake -B build/ -G Ninja ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
-            -D CMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_STATIC=ON ^
-            -D BUILD_MICROMAMBA=ON ^
-            -G "Ninja"
+            -D BUILD_MICROMAMBA=ON
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake --build build
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
           sccache --show-stats
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -178,6 +189,15 @@ jobs:
       - name: Archive-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
+
+      - name: Test basic commands
+        run: |
+          mkdir test_prefix
+          ${{ github.workspace }}/build/micromamba/micromamba.exe --version
+          ${{ github.workspace }}/build/micromamba/micromamba.exe --help
+          ${{ github.workspace }}/build/micromamba/micromamba.exe env create -y -n testenv -r ./test_prefix "python<3.13"
+          ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix  --log-level 1
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: failure()

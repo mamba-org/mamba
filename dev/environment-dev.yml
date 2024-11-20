@@ -29,6 +29,7 @@ dependencies:
   - mitmproxy
   - pytest >=7.3.0
   - pytest-asyncio
+  - pytest-timeout
   - pytest-xprocess
   - requests
   - sel(win): pywin32
@@ -39,7 +40,6 @@ dependencies:
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build
-  - build
   - pybind11-stubgen <1.0
   # libmambapy dependencies
   - python

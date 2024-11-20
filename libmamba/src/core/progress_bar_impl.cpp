@@ -1395,7 +1395,7 @@ namespace mamba
     {
         if (!m_is_spinner)
         {
-            auto seed = static_cast<std::size_t>(
+            auto seed = static_cast<typename std::default_random_engine::result_type>(
                 std::chrono::system_clock::now().time_since_epoch().count()
             );
             std::default_random_engine generator(seed);
@@ -1902,8 +1902,7 @@ namespace mamba
     {
         for (auto& [label, bars] : m_labels)
         {
-            std::size_t current = 0, total = 0, in_progress = 0, speed = 0, active_count = 0,
-                        total_count = 0;
+            std::size_t current = 0, total = 0, in_progress = 0, speed = 0;
             bool any_spinner = false;
             bool any_started = false;
             std::vector<ProgressBar::time_point_t> start_times = {};
@@ -1916,7 +1915,6 @@ namespace mamba
             {
                 current += bar->current();
                 total += bar->total();
-                ++total_count;
 
                 if (!bar->unset())
                 {
@@ -1926,7 +1924,6 @@ namespace mamba
                 {
                     speed += bar->speed();
                     in_progress += (bar->total() - bar->current());
-                    ++active_count;
                     aggregate_bar_ptr->add_active_task(bar->prefix());
                     any_started = true;
                 }

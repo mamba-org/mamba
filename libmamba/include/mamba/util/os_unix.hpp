@@ -16,7 +16,7 @@
 
 namespace mamba::util
 {
-    [[nodiscard]] auto
-    unix_name_version() -> tl::expected<std::pair<std::string, std::string>, OSError>;
+    [[nodiscard]] auto unix_name_version()
+        -> tl::expected<std::pair<std::string, std::string>, OSError>;
 }
 #endif

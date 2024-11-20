@@ -1,0 +1,8 @@
+export MAMBA_ROOT_PREFIX="@CMAKE_INSTALL_PREFIX@"
+__mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell posix 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias mamba="@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba"  # Fallback on help from mamba activate
+fi
+unset __mamba_setup

@@ -174,21 +174,21 @@ namespace mamba
                 && __builtin_cpu_supports("avx512cd") && __builtin_cpu_supports("avx512dq")
                 && __builtin_cpu_supports("avx512vl"))
             {
-                return "x86_64-v4";
+                return "x86_64_v4";
             }
             /* if (__builtin_cpu_supports ("x86-64-v3")) */
             if (__builtin_cpu_supports("avx") && __builtin_cpu_supports("avx2")
                 && __builtin_cpu_supports("bmi") && __builtin_cpu_supports("bmi2")
                 && __builtin_cpu_supports("fma"))
             {
-                return "x86_64-v3";
+                return "x86_64_v3";
             }
             /* if (__builtin_cpu_supports ("x86-64-v2")) */
             if (__builtin_cpu_supports("popcnt") && __builtin_cpu_supports("sse3")
                 && __builtin_cpu_supports("ssse3") && __builtin_cpu_supports("sse4.1")
                 && __builtin_cpu_supports("sse4.2"))
             {
-                return "x86_64-v2";
+                return "x86_64_v2";
             }
 #endif
             return "x86_64";
@@ -262,7 +262,8 @@ namespace mamba
             {
                 overridable_windows_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(make_virtual_package("__win", platform, std::move(version)));
                         }
                     )
@@ -284,7 +285,8 @@ namespace mamba
 
                 overridable_linux_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(
                                 make_virtual_package("__linux", platform, std::move(version))
                             );
@@ -318,7 +320,8 @@ namespace mamba
 
                 overridable_osx_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(make_virtual_package("__osx", platform, std::move(version)));
                         }
                     )

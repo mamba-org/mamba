@@ -209,7 +209,18 @@ set_update_command(CLI::App* subcom, Configuration& config)
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    subcom->callback([&] { return update(config, update_all, prune_deps); });
+    subcom->callback(
+        [&]
+        {
+            auto update_params = UpdateParams{
+                update_all ? UpdateAll::Yes : UpdateAll::No,
+                prune_deps ? PruneDeps::Yes : PruneDeps::No,
+                EnvUpdate::No,
+                RemoveNotSpecified::No,
+            };
+            return update(config, update_params);
+        }
+    );
 }
 
 void

@@ -53,11 +53,11 @@ namespace mamba::specs
         return static_cast<std::size_t>(KnownPlatform::count_);
     }
 
-    [[nodiscard]] constexpr auto
-    known_platforms() -> std::array<KnownPlatform, known_platforms_count()>;
+    [[nodiscard]] constexpr auto known_platforms()
+        -> std::array<KnownPlatform, known_platforms_count()>;
 
-    [[nodiscard]] constexpr auto
-    known_platform_names() -> std::array<std::string_view, known_platforms_count()>;
+    [[nodiscard]] constexpr auto known_platform_names()
+        -> std::array<std::string_view, known_platforms_count()>;
 
     /**
      * Convert the enumeration to its conda string.

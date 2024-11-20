@@ -180,7 +180,8 @@ namespace mamba::specs
         {
             return util::strip_if(
                 str,
-                [](char c) -> bool {
+                [](char c) -> bool
+                {
                     return !util::is_graphic(c) || (c == MatchSpec::preferred_quote)
                            || (c == MatchSpec::alt_quote);
                 }
@@ -312,8 +313,8 @@ namespace mamba::specs
                 );
         }
 
-        [[nodiscard]] auto split_attribute_val(std::string_view key_val
-        ) -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
+        [[nodiscard]] auto split_attribute_val(std::string_view key_val)
+            -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
         {
             // Forbid known ambiguity
             if (util::starts_with(key_val, "version"))
@@ -427,7 +428,8 @@ namespace mamba::specs
                         assert(start < end);
                         return set_matchspec_attributes(spec, str.substr(start + 1, end - start - 1))
                             .and_then(  //
-                                [&]() {
+                                [&]()
+                                {
                                     return rparse_and_set_matchspec_attributes(
                                         spec,
                                         str.substr(0, start_end.first)
@@ -438,8 +440,8 @@ namespace mamba::specs
                 );
         }
 
-        auto split_version_and_build(std::string_view str
-        ) -> std::pair<std::string_view, std::string_view>
+        auto split_version_and_build(std::string_view str)
+            -> std::pair<std::string_view, std::string_view>
         {
             str = util::strip(str);
 
@@ -502,32 +504,112 @@ namespace mamba::specs
 
     auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
-        auto parse_error = [&str](std::string_view err) -> tl::unexpected<ParseError>
+        // Remove comments, i.e. everything after ` #` (space included)
+        if (const auto idx = str.find('#'); idx != std::string::npos && str[idx - 1] == ' ')
         {
-            return tl::make_unexpected(
-                ParseError(fmt::format(R"(Error parsing MatchSpec "{}": {}")", str, err))
-            );
+            str = str.substr(0, idx);
+        }
+
+        // Remove trailing whitespaces
+        str = util::rstrip(str);
+
+        std::string raw_match_spec_str = std::string(str);
+        raw_match_spec_str = util::strip(raw_match_spec_str);
+
+        // Those are temporary adaptations to handle some instances of `MatchSpec` which is not
+        // yet formally specified.
+        // For a tentative formulation of the MatchSpec see: https://github.com/conda/ceps/pull/82
+
+        // Remove any with space after binary operators, such as:
+        //  - `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit >= 10.2"
+        //  - `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
+        //  `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
+        //  - `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or
+        //  `dep`: ">=4.5.2"
+        //  - `infokonoha-4.6.3-pyhd8ed1ab_0.tar.bz2`'s `kytea >=0.1.4, 0.2.0` -> `kytea
+        //  >=0.1.4,0.2.0`
+        // TODO: this solution reallocates memory several times potentially, but the
+        //  number of operators is small and the strings are short, so it must be fine.
+        //  If needed it can be optimized so that the string is only copied once.
+        const auto op_array = std::array<std::string, 9>{ ">=", "<=", ">",  "<", "!=",
+                                                          "=",  "==", "~=", "," };
+        for (const std::string& op : op_array)
+        {
+            const std::string bad_op = op + " ";
+            while (raw_match_spec_str.find(bad_op) != std::string::npos)
+            {
+                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(bad_op)) + op
+                                     + raw_match_spec_str.substr(
+                                         raw_match_spec_str.find(bad_op) + bad_op.size()
+                                     );
+            }
+        }
+
+        // Handle PEP 440 "Compatible release" specification
+        // See: https://peps.python.org/pep-0440/#compatible-release
+        //
+        // Find a general replacement of the encoding of `~=` with `>=,.*` to be able to parse it
+        // properly.
+        //
+        // For instance:
+        //
+        //     "~=x.y" must be replaced to ">=x.y,x.*" where `x` and `y` are positive integers.
+        //
+        // This solution must handle the case where the version is encoded with `~=` within the
+        // specification for instance:
+        //
+        //                     ">1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0"
+        //
+        // must be replaced with:
+        //
+        //                     ">1.8,<2|==1.7,!=1.9,>=1.7.1,1.7.* py34_0"
+        //
+        while (raw_match_spec_str.find("~=") != std::string::npos)
+        {
+            // Extract the string before the `~=` operator (">1.8,<2|==1.7,!=1.9," for the above
+            // example)
+            const auto before = raw_match_spec_str.substr(0, str.find("~="));
+            // Extract the string after the `~=` operator (include `~=` in it) and the next operator
+            // space or end of the string ("~=1.7.1 py34_0" for the above example)
+            const auto after = raw_match_spec_str.substr(str.find("~="));
+            // Extract the version part after the `~=` operator ("1.7.1" for the above example)
+            const auto version = after.substr(2, after.find_first_of(" ,") - 2);
+            // Extract the version part without the last segment ("1.7" for the above example)
+            const auto version_without_last_segment = version.substr(0, version.find_last_of('.'));
+            // Extract the build part after the version part (" py34_0" for the above example) if
+            // present
+            const auto build = after.find(" ") != std::string::npos ? after.substr(after.find(" "))
+                                                                    : "";
+            raw_match_spec_str = before + ">=" + version + "," + version_without_last_segment + ".*"
+                                 + build;
+        }
+
+        auto parse_error = [&raw_match_spec_str](std::string_view err) -> tl::unexpected<ParseError>
+        {
+            return tl::make_unexpected(ParseError(
+                fmt::format(R"(Error parsing MatchSpec "{}": {}")", raw_match_spec_str, err)
+            ));
         };
 
         static constexpr auto npos = std::string_view::npos;
-        str = util::strip(str);
-        if (str.empty())
+        raw_match_spec_str = util::strip(raw_match_spec_str);
+        if (raw_match_spec_str.empty())
         {
             return {};
         }
 
         // A plain URL like https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda
-        if (has_archive_extension(str))
+        if (has_archive_extension(raw_match_spec_str))
         {
-            return MatchSpec::parse_url(str);
+            return MatchSpec::parse_url(raw_match_spec_str);
         }
 
         // A URL with hash, generated by `mamba env export --explicit` like
         // https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0
-        if (const auto idx = str.rfind(url_md5_sep); idx != npos)
+        if (const auto idx = raw_match_spec_str.rfind(url_md5_sep); idx != npos)
         {
-            auto url = str.substr(0, idx);
-            auto hash = str.substr(idx + 1);
+            auto url = raw_match_spec_str.substr(0, idx);
+            auto hash = raw_match_spec_str.substr(idx + 1);
             if (has_archive_extension(url))
             {
                 return MatchSpec::parse_url(url).transform(
@@ -535,7 +617,7 @@ namespace mamba::specs
                     {
                         if (is_hash(hash))
                         {
-                            ms.set_md5(std::string(hash));
+                            ms.set_md5(hash);
                         }
                         return ms;
                     }
@@ -552,7 +634,7 @@ namespace mamba::specs
         //   - ``namespace``
         //   - ``spec >=3 [attr="val", ...]``
         {
-            auto maybe_chan_ns_spec = split_channel_namespace_spec(str);
+            auto maybe_chan_ns_spec = split_channel_namespace_spec(raw_match_spec_str);
             if (!maybe_chan_ns_spec)
             {
                 return parse_error(maybe_chan_ns_spec.error().what());
@@ -572,7 +654,7 @@ namespace mamba::specs
                 out.m_channel = std::move(maybe_chan).value();
             }
 
-            str = spec_str;
+            raw_match_spec_str = spec_str;
         }
 
         // Parse and apply bracket attributes ``attr="val"`` in ``pkg >=3 =mkl [attr="val", ...]``.
@@ -581,7 +663,7 @@ namespace mamba::specs
         auto ver_str = std::string_view();
         auto bld_str = std::string_view();
         {
-            auto maybe_pkg_ver_bld = rparse_and_set_matchspec_attributes(out, str);
+            auto maybe_pkg_ver_bld = rparse_and_set_matchspec_attributes(out, raw_match_spec_str);
             if (!maybe_pkg_ver_bld)
             {
                 return parse_error(maybe_pkg_ver_bld.error().what());

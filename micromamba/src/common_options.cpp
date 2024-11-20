@@ -393,7 +393,7 @@ init_install_options(CLI::App* subcom, Configuration& config)
 
     auto& always_copy = config.at("always_copy");
     subcom->add_flag(
-        "--always-copy,!--no-always-copy",
+        "--always-copy,--copy,!--no-always-copy",
         always_copy.get_cli_config<bool>(),
         always_copy.description()
     );

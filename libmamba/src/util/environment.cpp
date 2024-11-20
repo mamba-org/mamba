@@ -408,6 +408,23 @@ namespace mamba::util
         }
     }
 
+    auto get_path_dirs(const fs::u8path& prefix) -> std::vector<fs::u8path>
+    {
+        if (on_win)
+        {
+            return { prefix,
+                     prefix / "Library" / "mingw-w64" / "bin",
+                     prefix / "Library" / "usr" / "bin",
+                     prefix / "Library" / "bin",
+                     prefix / "Scripts",
+                     prefix / "bin" };
+        }
+        else
+        {
+            return { prefix / "bin" };
+        }
+    }
+
     auto which(std::string_view exe) -> fs::u8path
     {
         if (auto paths = get_env("PATH"))

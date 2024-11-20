@@ -7,7 +7,7 @@ Mamba Installation
 Fresh install (recommended)
 ***************************
 
-We recommend that you start with the `Miniforge distribution <https://github.com/conda-forge/miniforge>`_ >= ``Miniforge3-22.3.1-0``.
+We recommend that you start with the `Miniforge distribution <https://github.com/conda-forge/miniforge>`_ >= ``Miniforge3-23.3.1-0``.
 If you need an older version of Mamba, please use the Mambaforge distribution.
 Miniforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
 

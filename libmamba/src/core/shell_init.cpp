@@ -13,6 +13,7 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/xchar.h>
 #include <reproc++/run.hpp>
 #ifdef _WIN32
 #include <WinReg.hpp>
@@ -42,9 +43,6 @@ namespace mamba
         static const std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
                                                              "([\\s\\S]*?)"
                                                              "#endregion(?:\n|\r\n)?");
-        static const std::wregex
-            MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
-
     }
 
     std::string guess_shell()
@@ -102,7 +100,67 @@ namespace mamba
         return "";
     }
 
+    namespace  // Windows-specific but must be available for cli on all platforms
+    {
+        struct RunInfo
+        {
+            fs::u8path this_exe_path = get_self_exe_path();
+            fs::u8path this_exe_name_path = this_exe_path.stem();
+            std::string this_exe_name = this_exe_name_path;
+        };
+
+        const RunInfo& run_info()
+        {
+            static const RunInfo info;
+            return info;
+        }
+
+        struct ShellInitPathsWindowsCmd
+        {
+            fs::u8path condabin;
+            fs::u8path scripts;
+
+            fs::u8path mamba_bat;
+            fs::u8path _mamba_activate_bat;
+            fs::u8path condabin_activate_bat;
+            fs::u8path scripts_activate_bat;
+            fs::u8path mamba_hook_bat;
+
+            explicit ShellInitPathsWindowsCmd(fs::u8path root_prefix)
+                : condabin(root_prefix / "condabin")
+                , scripts(root_prefix / "Scripts")
+                , mamba_bat(condabin / (run_info().this_exe_name + ".bat"))
+                , _mamba_activate_bat(condabin / ("_" + run_info().this_exe_name + "_activate.bat"))
+                , condabin_activate_bat(condabin / "activate.bat")
+                , scripts_activate_bat(scripts / "activate.bat")
+                , mamba_hook_bat(condabin / "mamba_hook.bat")
+            {
+            }
+
+            auto every_generated_files_paths() const -> std::vector<fs::u8path>
+            {
+                return { mamba_bat,
+                         _mamba_activate_bat,
+                         condabin_activate_bat,
+                         scripts_activate_bat,
+                         mamba_hook_bat };
+            }
+
+            auto every_generated_directories_paths() const -> std::vector<fs::u8path>
+            {
+                return { condabin, scripts };
+            }
+        };
+
+
+    }
+
+
 #ifdef _WIN32
+
+    static const std::wregex
+        MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
+
     std::wstring get_autorun_registry_key(const std::wstring& reg_path)
     {
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
@@ -137,9 +195,9 @@ namespace mamba
 
     std::wstring get_hook_string(const fs::u8path& conda_prefix)
     {
-        // '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
-        return std::wstring(L"\"") + (conda_prefix / "condabin" / "mamba_hook.bat").wstring()
-               + std::wstring(L"\"");
+        const ShellInitPathsWindowsCmd paths{ conda_prefix };
+        auto hook_path = fs::canonical(paths.mamba_hook_bat).std_path();
+        return fmt::format(LR"("{}")", hook_path.make_preferred().wstring());
     }
 
     void
@@ -163,7 +221,11 @@ namespace mamba
         {
             if (!new_value.empty())
             {
-                new_value += L" & " + hook_string;
+                if (new_value.find(hook_string) == std::wstring::npos)
+                {
+                    new_value += L" & " + hook_string;
+                }
+                // else the hook path already exists in the string
             }
             else
             {
@@ -464,8 +526,8 @@ namespace mamba
             load-env {$keyValue.0.key: $keyValue.0.value}
           }
     }
-    # update prompt
-    $env.PROMPT_COMMAND = $env.PROMPT_COMMAND
+    # reset prompt
+    $env.PROMPT_COMMAND = $env.PROMPT_COMMAND_BK
   }
 })###" << "\n";
         content << "# <<< mamba initialize <<<\n";
@@ -685,67 +747,92 @@ namespace mamba
 
     void init_root_prefix_cmdexe(const Context&, const fs::u8path& root_prefix)
     {
-        fs::u8path exe = get_self_exe_path();
+        const ShellInitPathsWindowsCmd paths{ root_prefix };
 
-        try
-        {
-            fs::create_directories(root_prefix / "condabin");
-            fs::create_directories(root_prefix / "Scripts");
-        }
-        catch (...)
+        for (const auto& directory : paths.every_generated_directories_paths())
         {
             // Maybe the prefix isn't writable. No big deal, just keep going.
+            std::error_code maybe_error [[maybe_unused]];
+            fs::create_directories(directory, maybe_error);
+            if (maybe_error)
+            {
+                LOG_ERROR << "Failed to create directory '" << directory.string()
+                          << "' : " << maybe_error.message();
+            }
         }
 
-        std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "mamba.bat");
-        std::string mamba_bat_contents(data_mamba_bat);
-        util::replace_all(
-            mamba_bat_contents,
-            std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-            "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
-        );
-        util::replace_all(
-            mamba_bat_contents,
-            std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            "@SET \"MAMBA_EXE=" + exe.string() + "\""
-        );
 
-        mamba_bat_f << mamba_bat_contents;
-        std::ofstream _mamba_activate_bat_f = open_ofstream(
-            root_prefix / "condabin" / "_mamba_activate.bat"
+        const auto replace_insert_root_prefix = [&](auto& text)
+        {
+            return util::replace_all(
+                text,
+                std::string("__MAMBA_DEFINE_ROOT_PREFIX__"),
+                "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
+            );
+        };
+
+        const auto replace_insert_mamba_exe = [&](auto& text)
+        {
+            return util::replace_all(
+                text,
+                std::string("__MAMBA_DEFINE_MAMBA_EXE__"),
+                "@SET \"MAMBA_EXE=" + run_info().this_exe_path.string() + "\""
+            );
+        };
+
+        static const auto MARKER_INSERT_EXE_NAME = std::string("__MAMBA_INSERT_EXE_NAME__");
+        static const auto MARKER_INSERT_MAMBA_BAT_NAME = std::string("__MAMBA_INSERT_BAT_NAME__");
+
+        // mamba.bat
+        std::string mamba_bat_contents(data_mamba_bat);
+        replace_insert_root_prefix(mamba_bat_contents);
+        replace_insert_mamba_exe(mamba_bat_contents);
+        static const auto MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME = std::string(
+            "__MAMBA_INSERT_ACTIVATE_BAT_NAME__"
         );
+        util::replace_all(
+            mamba_bat_contents,
+            MARKER_MAMBA_INSERT_ACTIVATE_BAT_NAME,
+            paths._mamba_activate_bat.stem().string()
+        );
+        std::ofstream mamba_bat_f = open_ofstream(paths.mamba_bat);
+        mamba_bat_f << mamba_bat_contents;
+
+        // _mamba_activate.bat
+        std::ofstream _mamba_activate_bat_f = open_ofstream(paths._mamba_activate_bat);
         _mamba_activate_bat_f << data__mamba_activate_bat;
 
-
+        // condabin/activate.bat
         std::string activate_bat_contents(data_activate_bat);
-        util::replace_all(
-            activate_bat_contents,
-            std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-            "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
+        replace_insert_root_prefix(activate_bat_contents);
+        replace_insert_mamba_exe(activate_bat_contents);
+        util::replace_all(activate_bat_contents, MARKER_INSERT_EXE_NAME, run_info().this_exe_name);
+        static const auto MARKER_MAMBA_INSERT_HOOK_BAT_NAME = std::string(
+            "__MAMBA_INSERT_HOOK_BAT_NAME__"
         );
         util::replace_all(
             activate_bat_contents,
-            std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            "@SET \"MAMBA_EXE=" + exe.string() + "\""
+            MARKER_MAMBA_INSERT_HOOK_BAT_NAME,
+            paths.mamba_hook_bat.filename().string()
         );
-
-
-        std::ofstream condabin_activate_bat_f = open_ofstream(
-            root_prefix / "condabin" / "activate.bat"
-        );
+        std::ofstream condabin_activate_bat_f = open_ofstream(paths.condabin_activate_bat);
         condabin_activate_bat_f << activate_bat_contents;
 
-        std::ofstream scripts_activate_bat_f = open_ofstream(root_prefix / "Scripts" / "activate.bat");
+        // Scripts/activate.bat
+        std::ofstream scripts_activate_bat_f = open_ofstream(paths.scripts_activate_bat);
         scripts_activate_bat_f << activate_bat_contents;
 
+        // mamba_hook.bat
         std::string hook_content = data_mamba_hook_bat;
+        replace_insert_mamba_exe(hook_content);
+        util::replace_all(hook_content, MARKER_INSERT_EXE_NAME, run_info().this_exe_name);
         util::replace_all(
             hook_content,
-            std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            "@SET \"MAMBA_EXE=" + exe.string() + "\""
+            MARKER_INSERT_MAMBA_BAT_NAME,
+            paths.mamba_bat.filename().string()
         );
 
-        std::ofstream mamba_hook_bat_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.bat");
+        std::ofstream mamba_hook_bat_f = open_ofstream(paths.mamba_hook_bat);
         mamba_hook_bat_f << hook_content;
     }
 
@@ -756,21 +843,12 @@ namespace mamba
             return;
         }
 
-        auto mamba_bat = root_prefix / "condabin" / "mamba.bat";
-        auto _mamba_activate_bat = root_prefix / "condabin" / "_mamba_activate.bat";
-        auto condabin_activate_bat = root_prefix / "condabin" / "activate.bat";
-        auto scripts_activate_bat = root_prefix / "Scripts" / "activate.bat";
-        auto mamba_hook_bat = root_prefix / "condabin" / "mamba_hook.bat";
+        const ShellInitPathsWindowsCmd paths{ root_prefix };
 
-        for (auto& f : { mamba_bat,
-                         _mamba_activate_bat,
-                         condabin_activate_bat,
-                         scripts_activate_bat,
-                         mamba_hook_bat })
+        for (auto& f : paths.every_generated_files_paths())
         {
-            if (fs::exists(f))
+            if (fs::remove(f))
             {
-                fs::remove(f);
                 LOG_INFO << "Removed " << f << " file.";
             }
             else
@@ -780,14 +858,14 @@ namespace mamba
         }
 
         // remove condabin and Scripts if empty
-        auto condabin = root_prefix / "condabin";
-        auto scripts = root_prefix / "Scripts";
-        for (auto& d : { condabin, scripts })
+        for (auto& d : paths.every_generated_directories_paths())
         {
-            if (fs::exists(d) && fs::is_empty(d))
+            if (fs::is_empty(d))
             {
-                fs::remove(d);
-                LOG_INFO << "Removed " << d << " directory.";
+                if (fs::remove(d))
+                {
+                    LOG_INFO << "Removed " << d << " directory.";
+                }
             }
         }
     }
@@ -1331,7 +1409,7 @@ namespace mamba
 
 #ifdef _WIN32
         // cmd.exe
-        std::wstring reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
+        const std::wstring reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
         if (std::regex_match(reg, MAMBA_CMDEXE_HOOK_REGEX))
         {
             result.push_back("cmd.exe");

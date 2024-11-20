@@ -109,9 +109,14 @@ function(mamba_target_add_compile_warnings target)
         -Wuninitialized
     )
 
-    # It seems that there are some wrong flags added to CXXFLAGS during `conda-build`. And then
-    # these flags are used to compile our source code. It might be a bug in
-    # https://github.com/conda-forge/clang-compiler-activation-feedstock.
+    # It seems that these flags are leaked to CXXFLAGS: -framework CoreFoundation -framework
+    # CoreServices -framework Security -framework Kerberos -fno-merge-constants
+    #
+    # These flags give compiler warnings/errors: `unused-command-line-argument` and
+    # `ignored-optimization-argument` So we disable these warnings/errors for all the files
+    #
+    # This might be happening during `conda-build` and might be a bug in
+    # https://github.com/conda-forge/clang-compiler-activation-feedstock
     if(APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set(
             clang_warnings

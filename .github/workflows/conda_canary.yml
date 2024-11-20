@@ -31,7 +31,7 @@ jobs:
         with:
           ref: '1.x'  # Conda latest is on 1.x version
       - name: create mamba build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: build_env
           environment-file: ./mamba/environment-dev.yml

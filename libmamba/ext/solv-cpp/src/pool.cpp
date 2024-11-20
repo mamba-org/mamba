@@ -95,9 +95,9 @@ namespace solv
     {
 // This function is only used in `assert()` expressions
 // That's why it might get reported as unused in Release builds
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
         auto is_reldep(::Id id) -> bool
@@ -105,8 +105,8 @@ namespace solv
             return ISRELDEP(static_cast<std::make_unsigned_t<::Id>>(id)) != 0;
         }
 
-#if defined(__clang__)
-#pragma clang diagnostic pop
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
     }
 

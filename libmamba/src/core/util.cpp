@@ -973,7 +973,7 @@ namespace mamba
 
 // This function is only used in `assert()` expressions
 // That's why it might get reported as unused in Release builds
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
@@ -988,7 +988,7 @@ namespace mamba
 #endif
         }
 
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
 

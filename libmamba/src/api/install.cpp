@@ -4,12 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <stdexcept>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/activation.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/env_lockfile.hpp"
@@ -26,7 +26,7 @@
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
-#include "pip_utils.hpp"
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -377,7 +377,7 @@ namespace mamba
             Context& ctx,
             ChannelContext& channel_context,
             const Configuration& config,
-            const std::vector<std::string>& specs,
+            const std::vector<std::string>& raw_specs,
             bool create_env,
             bool remove_prefix_on_failure,
             bool is_retry
@@ -404,14 +404,7 @@ namespace mamba
 
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
-            // add channels from specs
-            for (const auto& s : specs)
-            {
-                if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
-                {
-                    ctx.channels.push_back(ms->channel()->str());
-                }
-            }
+            populate_context_channels_from_specs(raw_specs, ctx);
 
             if (ctx.channels.empty() && !ctx.offline)
             {
@@ -443,8 +436,8 @@ namespace mamba
             load_installed_packages_in_database(ctx, db, prefix_data);
 
 
-            auto request = create_install_request(prefix_data, specs, freeze_installed);
-            add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
+            auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
+            add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;
 
             {
@@ -472,7 +465,7 @@ namespace mamba
                         ctx,
                         channel_context,
                         config,
-                        specs,
+                        raw_specs,
                         create_env,
                         remove_prefix_on_failure,
                         true
@@ -603,7 +596,9 @@ namespace mamba
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
-                throw std::runtime_error("could not load prefix data");
+                throw std::runtime_error(
+                    fmt::format("could not load prefix data: {}", exp_prefix_data.error().what())
+                );
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 

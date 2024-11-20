@@ -100,11 +100,9 @@ namespace mamba::solver::libsolv
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
 
-        auto native_serialize_repo(
-            const RepoInfo& repo,
-            const fs::u8path& path,
-            const RepodataOrigin& metadata
-        ) -> expected_t<RepoInfo>;
+        auto
+        native_serialize_repo(const RepoInfo& repo, const fs::u8path& path, const RepodataOrigin& metadata)
+            -> expected_t<RepoInfo>;
 
         [[nodiscard]] auto installed_repo() const -> std::optional<RepoInfo>;
 
@@ -162,11 +160,11 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto packages_in_repo(RepoInfo repo) const -> std::vector<PackageId>;
 
-        [[nodiscard]] auto
-        packages_matching_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>;
+        [[nodiscard]] auto packages_matching_ids(const specs::MatchSpec& ms)
+            -> std::vector<PackageId>;
 
-        [[nodiscard]] auto
-        packages_depending_on_ids(const specs::MatchSpec& ms) -> std::vector<PackageId>;
+        [[nodiscard]] auto packages_depending_on_ids(const specs::MatchSpec& ms)
+            -> std::vector<PackageId>;
     };
 
     /********************
@@ -191,11 +189,9 @@ namespace mamba::solver::libsolv
     }
 
     template <typename Range>
-    auto Database::add_repo_from_packages(
-        const Range& packages,
-        std::string_view name,
-        PipAsPythonDependency add
-    ) -> RepoInfo
+    auto
+    Database::add_repo_from_packages(const Range& packages, std::string_view name, PipAsPythonDependency add)
+        -> RepoInfo
     {
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
     }

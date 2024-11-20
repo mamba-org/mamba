@@ -52,18 +52,16 @@ jobs:
           restore-keys: conda-canary-
       - name: build libmamba Python bindings
         run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-                   -DBUILD_LIBMAMBAPY=ON \
-                   -DBUILD_LIBMAMBA=ON \
-                   -DBUILD_SHARED=ON \
-                   -DBUILD_MAMBA_PACKAGE=ON \
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                   -GNinja
-          ninja
-          ninja install
+          cmake -B build/ -G Ninja \
+            -D CMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+            -D BUILD_LIBMAMBAPY=ON \
+            -D BUILD_LIBMAMBA=ON \
+            -D BUILD_SHARED=ON \
+            -D BUILD_MAMBA_PACKAGE=ON \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache
+          cmake --build build/ --parallel
+          cmake --install build/
       - name: install libmambapy
         run: pip install -e ./libmambapy/ --no-deps
       - name: build cache statistics

@@ -563,8 +563,8 @@ namespace mamba::solver::libsolv
         return out;
     }
 
-    auto
-    UnSolvable::explain_problems(Database& pool, const ProblemsMessageFormat& format) const -> std::string
+    auto UnSolvable::explain_problems(Database& pool, const ProblemsMessageFormat& format) const
+        -> std::string
 
     {
         std::stringstream ss;

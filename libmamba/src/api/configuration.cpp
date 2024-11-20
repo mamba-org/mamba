@@ -629,8 +629,8 @@ namespace mamba
             }
         }
 
-        auto
-        get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path) -> expected_t<fs::u8path>
+        auto get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path)
+            -> expected_t<fs::u8path>
         {
             if (mamba_bin_path.empty())
             {
@@ -1555,7 +1555,8 @@ namespace mamba
                         previous versions of conda, this parameter was configured as either
                         True or False. True is now an alias to 'flexible'.)"))
                    .set_post_merge_hook<ChannelPriority>(
-                       [&](ChannelPriority& value) {
+                       [&](ChannelPriority& value)
+                       {
                            m_context.solver_flags.strict_repo_priority = (value == ChannelPriority::Strict);
                        }
                    ));
@@ -2338,6 +2339,14 @@ namespace mamba
             strStream << inFile.rdbuf();
             std::string s = strStream.str();
             config = YAML::Load(expandvars(s));
+            if (config.IsScalar())
+            {
+                LOG_WARNING << fmt::format(
+                    "The configuration file at {} is misformatted or corrupted. Skipping file.",
+                    file.string()
+                );
+                return YAML::Node();
+            }
         }
         catch (const std::exception& ex)
         {

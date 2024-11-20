@@ -82,7 +82,7 @@ namespace mamba::validation
 
     RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_, const std::size_t& threshold_)
         : keys(keys_)
-        , threshold(threshold_){};
+        , threshold(threshold_) {};
 
     auto RoleFullKeys::to_keys() const -> std::map<std::string, Key>
     {

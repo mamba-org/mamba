@@ -84,8 +84,8 @@ namespace mamba
             return out;
         }
 
-        auto
-        installed_python(const solver::libsolv::Database& db) -> std::optional<specs::PackageInfo>
+        auto installed_python(const solver::libsolv::Database& db)
+            -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
@@ -362,8 +362,6 @@ namespace mamba
     bool
     MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
-        using Solution = solver::Solution;
-
         // JSON output
         // back to the top level if any action was required
         if (!empty())

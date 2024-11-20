@@ -11,7 +11,7 @@ dependencies:
   - cpp-expected
   - fmt
   - libarchive
-  - libcurl >=7.86,<8.10
+  - libcurl >=7.86
   - libsodium
   - libsolv >=0.7.18
   - nlohmann_json

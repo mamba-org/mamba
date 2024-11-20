@@ -258,8 +258,6 @@ namespace mamba
         fs::u8path hook_source_path() override;
     };
 
-    std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix);
-
 }  // namespace mamba
 
 #endif

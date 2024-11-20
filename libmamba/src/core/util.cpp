@@ -722,9 +722,18 @@ namespace mamba
         , m_locked(false)
     {
         std::error_code ec;
+
+        // Check if `path` exists
         if (!fs::exists(path, ec))
         {
-            throw_lock_error(fmt::format("Could not lock non-existing path '{}'", path.string()));
+            // If `path` doesn't exist, consider creating the directory
+            // (and its parents if they don't exist)
+            if (!fs::create_directories(path, ec))
+            {
+                throw_lock_error(
+                    fmt::format("Could not create directory '{}': {}", path.string(), ec.message())
+                );
+            }
         }
 
         if (fs::is_directory(path))

@@ -25,6 +25,9 @@ On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
    brew install micromamba
 
+.. hint::
+
+   (2024-10-03) Homebrew currently only has version 1 of micromamba, not version 2. See https://github.com/mamba-org/mamba/issues/3495 for updates.
 
 Mamba-org releases
 ******************
@@ -208,7 +211,7 @@ To build from source, install the development dependencies, using a Conda compat
 .. code-block:: bash
 
   micromamba create -n mamba --file dev/environment-micromamba-static.yml
-  micromamba activate -n mamba
+  micromamba activate mamba
 
 Use CMake from this environment to drive the build:
 

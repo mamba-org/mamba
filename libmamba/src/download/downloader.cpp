@@ -962,7 +962,8 @@ namespace mamba::download
         {
             new_mirror = find_mirror(
                 m_mirror_set,
-                [this, iteration](const auto& mirror) {
+                [iteration](const auto& mirror)
+                {
                     return iteration > mirror->failed_transfers()
                            && mirror->can_accept_more_connections();
                 }
@@ -1016,7 +1017,8 @@ namespace mamba::download
             m_requests.begin(),
             m_requests.end(),
             std::back_inserter(m_trackers),
-            [tracker_options, this](const Request& req) {
+            [tracker_options, this](const Request& req)
+            {
                 return DownloadTracker(req, p_mirrors->get_mirrors(req.mirror_name), tracker_options);
             }
         );

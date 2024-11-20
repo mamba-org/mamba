@@ -65,8 +65,8 @@ struct fmt::formatter<mamba::specs::GlobSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto
-    format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const -> decltype(ctx.out());
+    auto format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const
+        -> decltype(ctx.out());
 };
 
 template <>

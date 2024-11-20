@@ -41,8 +41,10 @@ The first way to add a repository is from a list of |PackageInfo| using
 
    import libmambapy
 
+   channel_alias = libmambapy.specs.CondaURL.parse("https://conda.anaconda.org")
+
    db = libmambapy.solver.libsolv.Database(
-       libmambapy.specs.ChannelResolveParams(channel_alias="https://conda.anaconda.org")
+       libmambapy.specs.ChannelResolveParams(channel_alias=channel_alias)
    )
 
    repo1 = db.add_repo_from_packages(

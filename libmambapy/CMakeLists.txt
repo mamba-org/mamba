@@ -7,20 +7,16 @@ cmake_minimum_required(VERSION 3.18.2)
 
 include("../cmake/CompilerWarnings.cmake")
 
-cmake_policy(SET CMP0025 NEW)
-cmake_policy(SET CMP0077 NEW)
-cmake_policy(SET CMP0057 NEW)
-
 project(libmambapy)
 
 if(NOT TARGET mamba::libmamba)
-    find_package(libmamba REQUIRED)
+    find_package(libmamba CONFIG REQUIRED)
     set(libmamba_target mamba::libmamba-dyn)
 else()
     set(libmamba_target mamba::libmamba)
 endif()
 
-find_package(Python COMPONENTS Interpreter Development)
+find_package(Python COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
@@ -49,7 +45,7 @@ target_compile_features(bindings PRIVATE cxx_std_17)
 if(SKBUILD)
     install(TARGETS bindings DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR})
 else()
-    # WARNING: this default should probably not be used as it is but set extranlly by a proper
+    # WARNING: this default should probably not be used as it is but set externally by a proper
     # Python packager tool
     set(
         MAMBA_INSTALL_PYTHON_EXT_LIBDIR

@@ -141,7 +141,7 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
 Channel
 -------
 The |Channel| are represented by a |CondaURL| and a set of platform filters.
-A display name is also available, but is not considered a stable identifiaction form of the
+A display name is also available, but is not considered a stable identification form of the
 channel, since it depends on the many configuration parameters, such as the channel alias.
 
 We construct a |Channel| by *resolving* a |UnresolvedChannel|.
@@ -151,11 +151,12 @@ All parameters that influence this resolution must be provided explicitly.
 .. code:: python
 
    import libmambapy.specs as specs
+   import libmambapy.specs.CondaURL as CondaURL
 
    uc = specs.UnresolvedChannel.parse("conda-forge[prius-avx42]")
    chan, *_ = specs.Channel.resolve(
        uc,
-       channel_alias="https://repo.mamba.pm"
+       channel_alias=CondaURL.parse("https://repo.mamba.pm"),
        # ...
    )
 
@@ -168,11 +169,12 @@ There are no hard-coded names:
 .. code:: python
 
    import libmambapy.specs as specs
+   import libmambapy.specs.CondaURL as CondaURL
 
    uc = specs.UnresolvedChannel.parse("defaults")
    chan, *_ = specs.Channel.resolve(
        uc,
-       channel_alias="https://repo.mamba.pm"
+       channel_alias=CondaURL.parse("https://repo.mamba.pm"),
        # ...
    )
 

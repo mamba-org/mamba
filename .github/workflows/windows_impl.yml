@@ -38,7 +38,7 @@ jobs:
       - name: Build mamba
         run: |
           cmake -B build/ -G Ninja ^
-            --preset mamba-win-shared-${{ inputs.build_type }}  ^
+            --preset mamba-win-shared-${{ inputs.build_type }} ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^

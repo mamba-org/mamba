@@ -51,13 +51,22 @@ __mamba_wrap() {
 # There is no way to register it dynamically without relying on hacks or eval.
 __exe_name="$(basename "${MAMBA_EXE}")"
 __exe_name="${__exe_name%.*}"
-if [[ "${__exe_name}" == "micromamba" ]]; then
-    micromamba() { __mamba_wrap "${@}"; }
-elif [[ "${__exe_name}" == "mamba" ]]; then
-    mamba() { __mamba_wrap "${@}"; }
-else
-    echo "Error unknow MAMBA_EXE: \"${MAMBA_EXE}\", filename must be mamba or micromamba" 1>&2
-fi
+
+case "${__exe_name}" in
+    micromamba)
+        micromamba() {
+            __mamba_wrap "$@"
+        }
+        ;;
+    mamba)
+        mamba() {
+            __mamba_wrap "$@"
+        }
+        ;;
+    *)
+        echo "Error unknown MAMBA_EXE: \"${MAMBA_EXE}\", filename must be mamba or micromamba" 1>&2
+        ;;
+esac
 
 
 if [ -z "${CONDA_SHLVL+x}" ]; then

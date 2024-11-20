@@ -257,8 +257,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/info.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
-    ${LIBMAMBA_SOURCE_DIR}/api/pip_utils.cpp
-    ${LIBMAMBA_SOURCE_DIR}/api/pip_utils.hpp
+    ${LIBMAMBA_SOURCE_DIR}/api/utils.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/utils.hpp
     ${LIBMAMBA_SOURCE_DIR}/api/remove.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/repoquery.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
@@ -405,15 +405,15 @@ set(
 # Targets and link
 # ================
 
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(tl-expected REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(simdjson REQUIRED)
-find_package(yaml-cpp REQUIRED)
-find_package(reproc REQUIRED)
-find_package(reproc++ REQUIRED)
-find_package(Libsolv REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(tl-expected CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(simdjson CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
+find_package(reproc CONFIG REQUIRED)
+find_package(reproc++ CONFIG REQUIRED)
+find_package(Libsolv MODULE REQUIRED)
 add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
@@ -539,7 +539,7 @@ macro(libmamba_create_target target_name linkage output_name)
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
             # For Windows we have a vcpkg based build system right now.
-            find_package(LibArchive REQUIRED)
+            find_package(LibArchive MODULE REQUIRED)
             find_package(CURL CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)

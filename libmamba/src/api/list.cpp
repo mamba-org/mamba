@@ -59,7 +59,9 @@ namespace mamba
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
-                throw std::runtime_error("could not load prefix data");
+                throw std::runtime_error(
+                    fmt::format("could not load prefix data: {}", sprefix_data.error().what())
+                );
             }
             PrefixData& prefix_data = sprefix_data.value();
 
@@ -67,14 +69,16 @@ namespace mamba
             {
                 regex = '^' + regex + '$';
             }
+
             std::regex spec_pat(regex);
+            auto all_records = prefix_data.all_pkg_mgr_records();
 
             if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
 
-                for (const auto& pkg : prefix_data.records())
+                for (const auto& pkg : all_records)
                 {
                     keys.push_back(pkg.first);
                 }
@@ -83,24 +87,33 @@ namespace mamba
                 for (const auto& key : keys)
                 {
                     auto obj = nlohmann::json();
-                    const auto& pkg_info = prefix_data.records().find(key)->second;
+                    const auto& pkg_info = all_records.find(key)->second;
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
                         auto channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        obj["base_url"] = strip_from_filename_and_platform(
-                            channels.front().url().str(specs::CondaURL::Credentials::Remove),
-                            pkg_info.filename,
-                            pkg_info.platform
-                        );
+
+                        if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
+                        {
+                            obj["base_url"] = "https://pypi.org/";
+                            obj["channel"] = pkg_info.channel;
+                        }
+                        else
+                        {
+                            obj["base_url"] = strip_from_filename_and_platform(
+                                channels.front().url().str(specs::CondaURL::Credentials::Remove),
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
+                            obj["channel"] = strip_from_filename_and_platform(
+                                channels.front().display_name(),
+                                pkg_info.filename,
+                                pkg_info.platform
+                            );
+                        }
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = strip_from_filename_and_platform(
-                            channels.front().display_name(),
-                            pkg_info.filename,
-                            pkg_info.platform
-                        );
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.platform;
@@ -121,7 +134,7 @@ namespace mamba
             auto requested_specs = prefix_data.history().get_requested_specs_map();
 
             // order list of packages from prefix_data by alphabetical order
-            for (const auto& package : prefix_data.records())
+            for (const auto& package : all_records)
             {
                 if (regex.empty() || std::regex_search(package.second.name, spec_pat))
                 {
@@ -131,6 +144,10 @@ namespace mamba
                     if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
                     {
                         formatted_pkgs.channel = "";
+                    }
+                    else if (package.second.channel == "pypi")
+                    {
+                        formatted_pkgs.channel = package.second.channel;
                     }
                     else
                     {

@@ -1322,6 +1322,8 @@ namespace mamba::solver
             return arr;
         }
 
+        // TODO Remove or comment if tests pass (move the comments related to the function call here
+        // as well)
         auto rstrip_excessive_free(std::string_view str) -> std::string_view
         {
             str = util::rstrip(str);
@@ -1352,7 +1354,7 @@ namespace mamba::solver
                 // ``python =* *`` so we strip all this.
                 // Best would be to handle this with a richer NamedList that contains
                 // ``VersionSpecs`` to avoid flaky reliance on string modification.
-                const auto relevant_vers_builds_trunc = rstrip_excessive_free(vers_builds_trunc);
+                const auto relevant_vers_builds_trunc = vers_builds_trunc;
                 if (relevant_vers_builds_trunc.empty())
                 {
                     write(fmt::format(style, "{}", edges.name()));

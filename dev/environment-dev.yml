@@ -21,6 +21,7 @@ dependencies:
   - yaml-cpp >=0.8.0
   - sel(win): winreg
   # libmamba test dependencies
+  - catch2
   - doctest
   # micromamba dependencies
   - cli11 >=2.2

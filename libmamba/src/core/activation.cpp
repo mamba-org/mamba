@@ -554,6 +554,7 @@ namespace mamba
         auto conda_environment_env_vars = get_environment_vars(prefix);
 
         // TODO check with conda if that's really what's supposed to happen ...
+        // TODO: C++20 replace by `std::erase_if`
         conda_environment_env_vars.erase(
             std::remove_if(
                 conda_environment_env_vars.begin(),

@@ -265,8 +265,10 @@ namespace mamba::solver
         }
 
 // GCC reports dangling reference when using std::invoke with data members
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
 
         template <typename T>
         auto invoke_version(T&& e) -> decltype(auto)
@@ -332,7 +334,9 @@ namespace mamba::solver
             }
         }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
         /**
          * Detect if a type has a ``name`` member (function).

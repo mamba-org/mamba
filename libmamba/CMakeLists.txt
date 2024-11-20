@@ -273,14 +273,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "App
     )
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # GCC reports dangling reference when using std::invoke with data members
-    set_source_files_properties(
-        ${LIBMAMBA_SOURCE_DIR}/solver/problems_graph.cpp
-        PROPERTIES COMPILE_FLAGS -Wno-error=dangling-reference
-    )
-endif()
-
 foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
 endforeach()

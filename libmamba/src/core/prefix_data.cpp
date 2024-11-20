@@ -228,7 +228,7 @@ namespace mamba
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };
 
-        {  // Scopped environment changes
+        {  // Scoped environment changes
 
             // We need FORCE_COLOR to be removed to avoid rich output,
             // we restore it as soon as the command is run.

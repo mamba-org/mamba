@@ -484,3 +484,33 @@ def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path):
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     assert any(package["name"] == "xtensor" for package in packages)
     assert any(package["name"] == "python" for package in packages)
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export_with_pip(tmp_home, tmp_root_prefix, tmp_path, json_flag):
+    env_name = "env-list_with_pip"
+    tmp_root_prefix / "envs" / env_name
+
+    env_file_yml = tmp_path / "test_env_yaml_content_to_install_numpy_with_pip.yaml"
+    env_file_yml.write_text(env_yaml_content_create_pip_pkg_with_version)
+
+    flags = list(filter(None, [json_flag]))
+    helpers.create("-n", env_name, *flags, no_dry_run=True)
+    helpers.install("-n", env_name, "-f", env_file_yml, *flags, no_dry_run=True)
+
+    ret = helpers.run_env("export", "-n", env_name, *flags)
+
+    # JSON is already parsed
+    ret = yaml.unsafe_load(ret) if json_flag is None else ret
+
+    assert ret["name"] == env_name
+    assert env_name in ret["prefix"]
+    assert set(ret["channels"]) == {"conda-forge"}
+    assert any("pip" in dep for dep in ret["dependencies"])
+
+    # Check there's a dictionary with a `pip` entry in `dependencies` and that numpy is part of it.
+    pip_section_index = next(
+        i for i, dep in enumerate(ret["dependencies"]) if isinstance(dep, dict) and "pip" in dep
+    )
+    assert ret["dependencies"][pip_section_index] == {"pip": ["numpy==1.26.4"]}

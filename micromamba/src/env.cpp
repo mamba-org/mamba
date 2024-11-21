@@ -230,7 +230,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 }
 
                 // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
-                if (!pip_versions_map.empty() > 0)
+                if (!pip_versions_map.empty())
                 {
                     dependencies << (first_dependency_printed ? ",\n" : "") << "     { \"pip\": [\n";
                     first_dependency_printed = false;
@@ -321,7 +321,7 @@ set_env_command(CLI::App* com, Configuration& config)
                     }
                 }
                 // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
-                if (!pip_versions_map.empty() > 0)
+                if (!pip_versions_map.empty())
                 {
                     dependencies << "  - pip:\n";
                     for (const auto& [k, v] : pip_versions_map)

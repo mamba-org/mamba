@@ -81,21 +81,21 @@ namespace
         TEST_CASE("split_prefix")
         {
             using PrefixTail = decltype(split_prefix("", ""));
-            REQUIRE(split_prefix("", ""), PrefixTail{ "" == "" });
-            REQUIRE(split_prefix("hello", ""), PrefixTail{ "" == "hello" });
-            REQUIRE(split_prefix("hello", "hello"), PrefixTail{ "hello" == "" });
-            REQUIRE(split_prefix("", "hello"), PrefixTail{ "" == "" });
+            REQUIRE(split_prefix("", "") == PrefixTail{ "", "" });
+            REQUIRE(split_prefix("hello", "") == PrefixTail{ "", "hello" });
+            REQUIRE(split_prefix("hello", "hello") == PrefixTail{ "hello", "" });
+            REQUIRE(split_prefix("", "hello") == PrefixTail{ "", "" });
             REQUIRE(
                 split_prefix("https://localhost", "https://") == PrefixTail{ "https://", "localhost" }
             );
             REQUIRE(
                 split_prefix("https://localhost", "http://") == PrefixTail{ "", "https://localhost" }
             );
-            REQUIRE(split_prefix("aabb", "a"), PrefixTail{ "a" == "abb" });
-            REQUIRE(split_prefix("", 'a'), PrefixTail{ "" == "" });
-            REQUIRE(split_prefix("a", 'a'), PrefixTail{ "a" == "" });
-            REQUIRE(split_prefix("aaa", 'a'), PrefixTail{ "a" == "aa" });
-            REQUIRE(split_prefix("aabb", 'b'), PrefixTail{ "" == "aabb" });
+            REQUIRE(split_prefix("aabb", "a") == PrefixTail{ "a", "abb" });
+            REQUIRE(split_prefix("", 'a') == PrefixTail{ "", "" });
+            REQUIRE(split_prefix("a", 'a') == PrefixTail{ "a", "" });
+            REQUIRE(split_prefix("aaa", 'a') == PrefixTail{ "a", "aa" });
+            REQUIRE(split_prefix("aabb", 'b') == PrefixTail{ "", "aabb" });
         }
 
         TEST_CASE("remove_prefix")
@@ -116,17 +116,17 @@ namespace
         TEST_CASE("split_suffix")
         {
             using HeadSuffix = decltype(split_suffix("", ""));
-            REQUIRE(split_suffix("", ""), HeadSuffix{ "" == "" });
-            REQUIRE(split_suffix("hello", ""), HeadSuffix{ "hello" == "" });
-            REQUIRE(split_suffix("hello", "hello"), HeadSuffix{ "" == "hello" });
-            REQUIRE(split_suffix("", "hello"), HeadSuffix{ "" == "" });
-            REQUIRE(split_suffix("localhost:8080", ":8080"), HeadSuffix{ "localhost" == ":8080" });
-            REQUIRE(split_suffix("localhost:8080", ":80"), HeadSuffix{ "localhost:8080" == "" });
-            REQUIRE(split_suffix("aabb", "b"), HeadSuffix{ "aab" == "b" });
-            REQUIRE(split_suffix("", 'b'), HeadSuffix{ "" == "" });
-            REQUIRE(split_suffix("b", 'b'), HeadSuffix{ "" == "b" });
-            REQUIRE(split_suffix("bbb", 'b'), HeadSuffix{ "bb" == "b" });
-            REQUIRE(split_suffix("aabb", 'a'), HeadSuffix{ "aabb" == "" });
+            REQUIRE(split_suffix("", "") == HeadSuffix{ "", "" });
+            REQUIRE(split_suffix("hello", "") == HeadSuffix{ "hello", "" });
+            REQUIRE(split_suffix("hello", "hello") == HeadSuffix{ "", "hello" });
+            REQUIRE(split_suffix("", "hello") == HeadSuffix{ "", "" });
+            REQUIRE(split_suffix("localhost:8080", ":8080") == HeadSuffix{ "localhost", ":8080" });
+            REQUIRE(split_suffix("localhost:8080", ":80") == HeadSuffix{ "localhost:8080", "" });
+            REQUIRE(split_suffix("aabb", "b") == HeadSuffix{ "aab", "b" });
+            REQUIRE(split_suffix("", 'b') == HeadSuffix{ "", "" });
+            REQUIRE(split_suffix("b", 'b') == HeadSuffix{ "", "b" });
+            REQUIRE(split_suffix("bbb", 'b') == HeadSuffix{ "bb", "b" });
+            REQUIRE(split_suffix("aabb", 'a') == HeadSuffix{ "aabb", "" });
         }
 
         TEST_CASE("remove_suffix")
@@ -374,60 +374,60 @@ namespace
         {
             using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
 
-            REQUIRE(split_once("", '/'), Out{ "" == std::nullopt });
-            REQUIRE(split_once("/", '/'), Out{ "" == "" });
-            REQUIRE(split_once("hello/world", '/'), Out{ "hello" == "world" });
-            REQUIRE(split_once("hello/my/world", '/'), Out{ "hello" == "my/world" });
-            REQUIRE(split_once("/hello/world", '/'), Out{ "" == "hello/world" });
+            REQUIRE(split_once("", '/') == Out{ "", std::nullopt });
+            REQUIRE(split_once("/", '/') == Out{ "", "" });
+            REQUIRE(split_once("hello/world", '/') == Out{ "hello", "world" });
+            REQUIRE(split_once("hello/my/world", '/') == Out{ "hello", "my/world" });
+            REQUIRE(split_once("/hello/world", '/') == Out{ "", "hello/world" });
 
-            REQUIRE(split_once("", "/"), Out{ "" == std::nullopt });
-            REQUIRE(split_once("hello/world", "/"), Out{ "hello" == "world" });
-            REQUIRE(split_once("hello//world", "//"), Out{ "hello" == "world" });
-            REQUIRE(split_once("hello/my//world", "/"), Out{ "hello" == "my//world" });
-            REQUIRE(split_once("hello/my//world", "//"), Out{ "hello/my" == "world" });
+            REQUIRE(split_once("", "/") == Out{ "", std::nullopt });
+            REQUIRE(split_once("hello/world", "/") == Out{ "hello", "world" });
+            REQUIRE(split_once("hello//world", "//") == Out{ "hello", "world" });
+            REQUIRE(split_once("hello/my//world", "/") == Out{ "hello", "my//world" });
+            REQUIRE(split_once("hello/my//world", "//") == Out{ "hello/my", "world" });
         }
 
         TEST_CASE("rsplit_once")
         {
             using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
 
-            REQUIRE(rsplit_once("", '/'), Out{ std::nullopt == "" });
-            REQUIRE(rsplit_once("/", '/'), Out{ "" == "" });
-            REQUIRE(rsplit_once("hello/world", '/'), Out{ "hello" == "world" });
-            REQUIRE(rsplit_once("hello/my/world", '/'), Out{ "hello/my" == "world" });
-            REQUIRE(rsplit_once("hello/world/", '/'), Out{ "hello/world" == "" });
+            REQUIRE(rsplit_once("", '/') == Out{ std::nullopt, "" });
+            REQUIRE(rsplit_once("/", '/') == Out{ "", "" });
+            REQUIRE(rsplit_once("hello/world", '/') == Out{ "hello", "world" });
+            REQUIRE(rsplit_once("hello/my/world", '/') == Out{ "hello/my", "world" });
+            REQUIRE(rsplit_once("hello/world/", '/') == Out{ "hello/world", "" });
 
-            REQUIRE(rsplit_once("", "/"), Out{ std::nullopt == "" });
-            REQUIRE(rsplit_once("hello/world", "/"), Out{ "hello" == "world" });
-            REQUIRE(rsplit_once("hello//world", "//"), Out{ "hello" == "world" });
-            REQUIRE(rsplit_once("hello//my/world", "/"), Out{ "hello//my" == "world" });
-            REQUIRE(rsplit_once("hello//my/world", "//"), Out{ "hello" == "my/world" });
+            REQUIRE(rsplit_once("", "/") == Out{ std::nullopt, "" });
+            REQUIRE(rsplit_once("hello/world", "/") == Out{ "hello", "world" });
+            REQUIRE(rsplit_once("hello//world", "//") == Out{ "hello", "world" });
+            REQUIRE(rsplit_once("hello//my/world", "/") == Out{ "hello//my", "world" });
+            REQUIRE(rsplit_once("hello//my/world", "//") == Out{ "hello", "my/world" });
         }
 
         TEST_CASE("split_once_on_any")
         {
             using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
 
-            REQUIRE(split_once_on_any("", "/"), Out{ "" == std::nullopt });
-            REQUIRE(split_once_on_any("hello,dear world", ", "), Out{ "hello" == "dear world" });
-            CHECK_EQ(split_once_on_any("hello dear,world", ", "), Out{ "hello", "dear,world" });
-            REQUIRE(split_once_on_any("hello/world", "/"), Out{ "hello" == "world" });
-            REQUIRE(split_once_on_any("hello//world", "//"), Out{ "hello" == "/world" });
-            REQUIRE(split_once_on_any("hello/my//world", "/"), Out{ "hello" == "my//world" });
-            REQUIRE(split_once_on_any("hello/my//world", "//"), Out{ "hello" == "my//world" });
+            REQUIRE(split_once_on_any("", "/") == Out{ "", std::nullopt });
+            REQUIRE(split_once_on_any("hello,dear world", ", ") == Out{ "hello", "dear world" });
+            REQUIRE(split_once_on_any("hello dear,world", ", ") == Out{ "hello", "dear,world" });
+            REQUIRE(split_once_on_any("hello/world", "/") == Out{ "hello", "world" });
+            REQUIRE(split_once_on_any("hello//world", "//") == Out{ "hello", "/world" });
+            REQUIRE(split_once_on_any("hello/my//world", "/") == Out{ "hello", "my//world" });
+            REQUIRE(split_once_on_any("hello/my//world", "//") == Out{ "hello", "my//world" });
         }
 
         TEST_CASE("rsplit_once_on_any")
         {
             using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
 
-            REQUIRE(rsplit_once_on_any("", "/"), Out{ std::nullopt == "" });
-            REQUIRE(rsplit_once_on_any("hello,dear world", ", "), Out{ "hello,dear" == "world" });
-            REQUIRE(rsplit_once_on_any("hello dear,world", ", "), Out{ "hello dear" == "world" });
-            REQUIRE(rsplit_once_on_any("hello/world", "/"), Out{ "hello" == "world" });
-            REQUIRE(rsplit_once_on_any("hello//world", "//"), Out{ "hello/" == "world" });
-            REQUIRE(rsplit_once_on_any("hello/my//world", "/"), Out{ "hello/my/" == "world" });
-            REQUIRE(rsplit_once_on_any("hello/my//world", "//"), Out{ "hello/my/" == "world" });
+            REQUIRE(rsplit_once_on_any("", "/") == Out{ std::nullopt, "" });
+            REQUIRE(rsplit_once_on_any("hello,dear world", ", ") == Out{ "hello,dear", "world" });
+            REQUIRE(rsplit_once_on_any("hello dear,world", ", ") == Out{ "hello dear", "world" });
+            REQUIRE(rsplit_once_on_any("hello/world", "/") == Out{ "hello", "world" });
+            REQUIRE(rsplit_once_on_any("hello//world", "//") == Out{ "hello/", "world" });
+            REQUIRE(rsplit_once_on_any("hello/my//world", "/") == Out{ "hello/my/", "world" });
+            REQUIRE(rsplit_once_on_any("hello/my//world", "//") == Out{ "hello/my/", "world" });
         }
 
         TEST_CASE("split")

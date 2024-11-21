@@ -125,10 +125,9 @@ namespace mamba
 
                 REQUIRE(!MAMBA_ALLOW_EXISTING_PREFIX == MAMBA_NOT_ALLOW_EXISTING_PREFIX);
 
-                CHECK_EQ(
+                REQUIRE(
                     MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                        | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX,
-                    0
+                    | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX == 0
                 );
             }
 
@@ -588,19 +587,19 @@ namespace mamba
 #else
                 std::string extra_cache = "";
 #endif
-                CHECK_EQ(
+                REQUIRE(
                     config.dump(
                         MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS,
                         { "pkgs_dirs" }
-                    ),
-                    unindent((R"(
+                    )
+                    == unindent((R"(
                                     pkgs_dirs:
                                       - )"
-                              + (fs::u8path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
+                                 + (fs::u8path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
                                       - )"
-                              + (fs::u8path(util::user_home_dir()) / ".mamba" / "pkgs").string()
-                              + R"(  # 'fallback')" + extra_cache)
-                                 .c_str())
+                                 + (fs::u8path(util::user_home_dir()) / ".mamba" / "pkgs").string()
+                                 + R"(  # 'fallback')" + extra_cache)
+                                    .c_str())
                 );
                 REQUIRE(ctx.pkgs_dirs == config.at("pkgs_dirs").value<std::vector<fs::u8path>>());
 

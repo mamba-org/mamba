@@ -329,7 +329,7 @@ namespace
         auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
 
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
-        REQUIRE_NE(testing_root, nullptr);
+        REQUIRE(testing_root != nullptr);
         REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("1.0.17");
         REQUIRE(testing_root->version() == 2);
         REQUIRE(testing_root->expires() < root.expires();
@@ -397,7 +397,7 @@ namespace
                         ])"_json;
         auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
-        REQUIRE_NE(testing_root, nullptr);
+        REQUIRE(testing_root != nullptr);
         REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("1.0.0");
 
         // "2.sv2.root.json" is not upgradable spec version (spec version N+1)

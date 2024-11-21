@@ -26,7 +26,7 @@ namespace
                 opt.emplace(3);
                 REQUIRE(opt.has_value());
                 REQUIRE(opt);
-                REQUIRE_NE(opt.get(), nullptr);
+                REQUIRE(opt.get() != nullptr);
                 REQUIRE(*opt == 3);
             }
 
@@ -65,7 +65,7 @@ namespace
 
             REQUIRE(opt.has_value());
             REQUIRE(opt);
-            REQUIRE_NE(opt.get(), nullptr);
+            REQUIRE(opt.get() != nullptr);
             REQUIRE(*opt == "hello");
             REQUIRE(opt->size() == 5);
 
@@ -74,7 +74,7 @@ namespace
                 opt.emplace("bonjour");
                 REQUIRE(opt.has_value());
                 REQUIRE(opt);
-                REQUIRE_NE(opt.get(), nullptr);
+                REQUIRE(opt.get() != nullptr);
                 REQUIRE(*opt == "bonjour");
                 REQUIRE(opt->size() == 7);
             }
@@ -110,7 +110,7 @@ namespace
 
             REQUIRE(opt.has_value());
             REQUIRE(opt);
-            REQUIRE_NE(opt.get(), nullptr);
+            REQUIRE(opt.get() != nullptr);
             REQUIRE(**opt == 3);
             REQUIRE(*(opt->get()) == 3);
 
@@ -119,7 +119,7 @@ namespace
                 opt.emplace(std::make_unique<int>(5));
                 REQUIRE(opt.has_value());
                 REQUIRE(opt);
-                REQUIRE_NE(opt.get(), nullptr);
+                REQUIRE(opt.get() != nullptr);
                 REQUIRE(**opt == 5);
                 REQUIRE(*(opt->get()) == 5);
             }

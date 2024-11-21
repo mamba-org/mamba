@@ -484,3 +484,38 @@ def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path):
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     assert any(package["name"] == "xtensor" for package in packages)
     assert any(package["name"] == "python" for package in packages)
+
+
+env_yaml_content_env_export_with_pip = """
+channels:
+- conda-forge
+dependencies:
+- pip
+- pip:
+  - requests==2.32.3
+"""
+
+
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export_with_pip(tmp_path, json_flag):
+    env_name = "env_export_with_pip"
+
+    env_file_yml = tmp_path / "test_env_yaml_content_to_install_requests_with_pip.yaml"
+    env_file_yml.write_text(env_yaml_content_env_export_with_pip)
+
+    flags = list(filter(None, [json_flag]))
+    helpers.create("-n", env_name, "-f", env_file_yml, no_dry_run=True)
+
+    output = helpers.run_env("export", "-n", env_name, *flags)
+
+    # JSON is already parsed
+    ret = output if json_flag else yaml.safe_load(output)
+
+    assert ret["name"] == env_name
+    assert env_name in ret["prefix"]
+    assert set(ret["channels"]) == {"conda-forge"}
+
+    pip_section = next(
+        dep for dep in ret["dependencies"] if isinstance(dep, dict) and ["pip"] == [*dep]
+    )
+    assert pip_section["pip"] == ["requests==2.32.3"]

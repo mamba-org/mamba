@@ -290,7 +290,7 @@ namespace
             REQUIRE(rfind_not_in_parentheses("(a, string)", ',', opens, closes) == npos);
         }
 
-        SECTION("Single char and similar open/close pair")
+        SECTION("Single char and similar open/close pair rfind")
         {
             REQUIRE(rfind_not_in_parentheses(R"("some, csv")", ',', '"', '"') == npos);
             REQUIRE(rfind_not_in_parentheses(R"("some, csv","some, value")", ',', '"', '"') == 11);

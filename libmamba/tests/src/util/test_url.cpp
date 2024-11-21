@@ -660,10 +660,10 @@ namespace
 
     TEST_CASE("Equality")
     {
-        REQUIRE(URL() == URL();
+        REQUIRE(URL() == URL());
         REQUIRE(
-            URL::parse("https://169.254.0.0/page").value() ==
             URL::parse("https://169.254.0.0/page").value()
+            == URL::parse("https://169.254.0.0/page").value()
         );
         REQUIRE(URL::parse("mamba.org").value() == URL::parse("mamba.org/").value());
         REQUIRE(URL::parse("mAmba.oRg").value() == URL::parse("mamba.org/").value());

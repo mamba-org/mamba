@@ -13,7 +13,6 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
-#include "doctest-printer/array.hpp"
 #include "doctest-printer/optional.hpp"
 
 using namespace mamba::util;
@@ -181,12 +180,12 @@ namespace
         TEST_CASE("lstrip_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(lstrip_parts(":::hello%:%", ":%"), StrPair({ ":::", "hello%:%" }));
-            CHECK_EQ(lstrip_parts(":::hello%:%", ':'), StrPair({ ":::", "hello%:%" }));
-            CHECK_EQ(lstrip_parts(":::hello%:%", '%'), StrPair({ "", ":::hello%:%" }));
-            CHECK_EQ(lstrip_parts("", '%'), StrPair({ "", "" }));
-            CHECK_EQ(lstrip_parts("aaa", 'a'), StrPair({ "aaa", "" }));
-            CHECK_EQ(lstrip_parts("aaa", 'b'), StrPair({ "", "aaa" }));
+            REQUIRE(lstrip_parts(":::hello%:%", ":%") == StrPair({ ":::", "hello%:%" }));
+            REQUIRE(lstrip_parts(":::hello%:%", ':') == StrPair({ ":::", "hello%:%" }));
+            REQUIRE(lstrip_parts(":::hello%:%", '%') == StrPair({ "", ":::hello%:%" }));
+            REQUIRE(lstrip_parts("", '%') == StrPair({ "", "" }));
+            REQUIRE(lstrip_parts("aaa", 'a') == StrPair({ "aaa", "" }));
+            REQUIRE(lstrip_parts("aaa", 'b') == StrPair({ "", "aaa" }));
         }
 
         TEST_CASE("lstrip_if")
@@ -203,9 +202,9 @@ namespace
         TEST_CASE("lstrip_if_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(lstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
-            CHECK_EQ(lstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "hello", "" }));
-            CHECK_EQ(lstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "", "hello" }));
+            REQUIRE(lstrip_if_parts("", [](auto) { return true; }) == StrPair({ "", "" }));
+            REQUIRE(lstrip_if_parts("hello", [](auto) { return true; }) == StrPair({ "hello", "" }));
+            REQUIRE(lstrip_if_parts("hello", [](auto) { return false; }) == StrPair({ "", "hello" }));
             REQUIRE(
                 lstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); })
                 == StrPair({ "\n \t", "hello \t\n" })
@@ -230,12 +229,12 @@ namespace
         TEST_CASE("rstrip_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(rstrip_parts(":::hello%:%", '%'), StrPair({ ":::hello%:", "%" }));
-            CHECK_EQ(rstrip_parts(":::hello%:%", ":%"), StrPair({ ":::hello", "%:%" }));
-            CHECK_EQ(rstrip_parts(":::hello%:%", ':'), StrPair({ ":::hello%:%", "" }));
-            CHECK_EQ(rstrip_parts("", '%'), StrPair({ "", "" }));
-            CHECK_EQ(rstrip_parts("aaa", 'a'), StrPair({ "", "aaa" }));
-            CHECK_EQ(rstrip_parts("aaa", 'b'), StrPair({ "aaa", "" }));
+            REQUIRE(rstrip_parts(":::hello%:%", '%') == StrPair({ ":::hello%:", "%" }));
+            REQUIRE(rstrip_parts(":::hello%:%", ":%") == StrPair({ ":::hello", "%:%" }));
+            REQUIRE(rstrip_parts(":::hello%:%", ':') == StrPair({ ":::hello%:%", "" }));
+            REQUIRE(rstrip_parts("", '%') == StrPair({ "", "" }));
+            REQUIRE(rstrip_parts("aaa", 'a') == StrPair({ "", "aaa" }));
+            REQUIRE(rstrip_parts("aaa", 'b') == StrPair({ "aaa", "" }));
         }
 
         TEST_CASE("rstrip_if")
@@ -252,9 +251,9 @@ namespace
         TEST_CASE("rstrip_if_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(rstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
-            CHECK_EQ(rstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "", "hello" }));
-            CHECK_EQ(rstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "hello", "" }));
+            REQUIRE(rstrip_if_parts("", [](auto) { return true; }) == StrPair({ "", "" }));
+            REQUIRE(rstrip_if_parts("hello", [](auto) { return true; }) == StrPair({ "", "hello" }));
+            REQUIRE(rstrip_if_parts("hello", [](auto) { return false; }) == StrPair({ "hello", "" }));
             REQUIRE(
                 rstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); })
                 == StrPair({ "\n \thello", " \t\n" })
@@ -278,11 +277,11 @@ namespace
         TEST_CASE("strip_parts")
         {
             using StrTrio = std::array<std::string_view, 3>;
-            CHECK_EQ(strip_parts(":::hello%:%", ":%"), StrTrio({ ":::", "hello", "%:%" }));
-            CHECK_EQ(strip_parts(":::hello%:%", ':'), StrTrio({ ":::", "hello%:%", "" }));
-            CHECK_EQ(strip_parts("", '%'), StrTrio({ "", "", "" }));
-            CHECK_EQ(strip_parts("aaa", 'a'), StrTrio({ "aaa", "", "" }));
-            CHECK_EQ(strip_parts("aaa", 'b'), StrTrio({ "", "aaa", "" }));
+            REQUIRE(strip_parts(":::hello%:%", ":%") == StrTrio({ ":::", "hello", "%:%" }));
+            REQUIRE(strip_parts(":::hello%:%", ':') == StrTrio({ ":::", "hello%:%", "" }));
+            REQUIRE(strip_parts("", '%') == StrTrio({ "", "", "" }));
+            REQUIRE(strip_parts("aaa", 'a') == StrTrio({ "aaa", "", "" }));
+            REQUIRE(strip_parts("aaa", 'b') == StrTrio({ "", "aaa", "" }));
         }
 
         TEST_CASE("strip_if")
@@ -297,9 +296,11 @@ namespace
         TEST_CASE("strip_if_parts")
         {
             using StrTrio = std::array<std::string_view, 3>;
-            CHECK_EQ(strip_if_parts("", [](auto) { return true; }), StrTrio({ "", "", "" }));
-            CHECK_EQ(strip_if_parts("hello", [](auto) { return true; }), StrTrio({ "hello", "", "" }));
-            CHECK_EQ(strip_if_parts("hello", [](auto) { return false; }), StrTrio({ "", "hello", "" }));
+            REQUIRE(strip_if_parts("", [](auto) { return true; }) == StrTrio({ "", "", "" }));
+            REQUIRE(strip_if_parts("hello", [](auto) { return true; }) == StrTrio({ "hello", "", "" }));
+            REQUIRE(
+                strip_if_parts("hello", [](auto) { return false; }) == StrTrio({ "", "hello", "" })
+            );
             REQUIRE(
                 strip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); })
                 == StrTrio({ "\n \t", "hello", " \t\n" })
@@ -490,9 +491,9 @@ namespace
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
             }
             REQUIRE(join_trunc(to_join, "-", "..", 5, { 2, 1 }) == "a-bc-d-e-f");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 2, 1 }), "a,bc,..,f");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 0, 1 }), "..,f");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 2, 0 }), "a,bc,..");
+            REQUIRE(join_trunc(to_join, ",", "..", 4, { 2, 1 }) == "a,bc,..,f");
+            REQUIRE(join_trunc(to_join, ",", "..", 4, { 0, 1 }) == "..,f");
+            REQUIRE(join_trunc(to_join, ",", "..", 4, { 2, 0 }) == "a,bc,..");
             REQUIRE(join_trunc(to_join, ",", "..", 4, { 0, 0 }) == "..");
             REQUIRE(join_trunc(std::vector<std::string>()) == "");
         }
@@ -550,7 +551,7 @@ namespace
                     concat_dedup_splits("test", fmt::format("test{}chan", sep), sep)
                     == fmt::format("test{}chan", sep)
                 );
-                CHECK_EQ(concat_dedup_splits("test", "chan", sep), fmt::format("test{}chan", sep));
+                REQUIRE(concat_dedup_splits("test", "chan", sep) == fmt::format("test{}chan", sep));
                 REQUIRE(
                     concat_dedup_splits(fmt::format("test{}chan", sep), "chan", sep)
                     == fmt::format("test{}chan", sep)
@@ -559,37 +560,33 @@ namespace
                     concat_dedup_splits(fmt::format("test{}chan", sep), fmt::format("chan{}foo", sep), sep)
                     == fmt::format("test{}chan{}foo", sep, sep)
                 );
-                CHECK_EQ(
+                REQUIRE(
                     concat_dedup_splits(
                         fmt::format("test{}chan-foo", sep),
                         fmt::format("foo{}bar", sep),
                         sep
-                    ),
-                    fmt::format("test{}chan-foo{}foo{}bar", sep, sep, sep, sep)
+                    )
+                    == fmt::format("test{}chan-foo{}foo{}bar", sep, sep, sep, sep)
                 );
-                CHECK_EQ(
+                REQUIRE(
                     concat_dedup_splits(
                         fmt::format("ab{}test{}chan", sep, sep),
                         fmt::format("chan{}foo{}ab", sep, sep),
                         sep
-                    ),
-                    fmt::format("ab{}test{}chan{}foo{}ab", sep, sep, sep, sep)
+                    )
+                    == fmt::format("ab{}test{}chan{}foo{}ab", sep, sep, sep, sep)
                 );
-                CHECK_EQ(
+                REQUIRE(
                     concat_dedup_splits(
                         fmt::format("{}test{}chan", sep, sep),
                         fmt::format("chan{}foo{}", sep, sep),
                         sep
-                    ),
-                    fmt::format("{}test{}chan{}foo{}", sep, sep, sep, sep)
+                    )
+                    == fmt::format("{}test{}chan{}foo{}", sep, sep, sep, sep)
                 );
-                CHECK_EQ(
-                    concat_dedup_splits(
-                        fmt::format("test{}chan", sep),
-                        fmt::format("chan{}test", sep),
-                        sep
-                    ),
-                    fmt::format("test{}chan{}test", sep, sep)
+                REQUIRE(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), fmt::format("chan{}test", sep), sep)
+                    == fmt::format("test{}chan{}test", sep, sep)
                 );
             }
 

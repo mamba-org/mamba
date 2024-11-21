@@ -500,7 +500,9 @@ namespace
             SECTION("Default platforms")
             {
                 auto params = ChannelResolveParams{ /* .platform= */ { "rainbow-37", "noarch" } };
-                CHECK_EQ(Channel::resolve(uc, params).value().at(0).platforms(), uc.platform_filters());
+                REQUIRE(
+                    Channel::resolve(uc, params).value().at(0).platforms() == uc.platform_filters()
+                );
 
                 uc.clear_platform_filters();
                 REQUIRE(Channel::resolve(uc, params).value().at(0).platforms() == params.platforms);

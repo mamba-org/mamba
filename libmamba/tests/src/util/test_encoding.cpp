@@ -12,8 +12,6 @@
 
 #include "mamba/util/encoding.hpp"
 
-#include "doctest-printer/array.hpp"
-
 using namespace mamba::util;
 
 namespace

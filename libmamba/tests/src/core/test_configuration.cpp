@@ -308,7 +308,7 @@ namespace mamba
 
                 std::string res = config.dump();
                 // Unexpected/handled keys are dropped
-                CHECK_EQ(res, unindent(R"(
+                REQUIRE(res == unindent(R"(
                                     channels:
                                       - test1
                                       - https://repo.mamba.pm/conda-forge
@@ -1224,7 +1224,7 @@ namespace mamba
                 print_map_node(out, node, node_src, true);
 
                 std::string res = out.c_str();
-                CHECK_EQ(res, unindent(R"(
+                REQUIRE(res == unindent(R"(
                                     foo: bar  # '/some/source1'
                                     bar: baz  # '/some/source2')"));
 
@@ -1262,7 +1262,7 @@ namespace mamba
                 print_seq_node(out, node, node_src, true);
 
                 std::string res = out.c_str();
-                CHECK_EQ(res, unindent(R"(
+                REQUIRE(res == unindent(R"(
                                       - foo  # '/some/source1'
                                       - bar  # '/some/source2')"));
 

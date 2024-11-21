@@ -70,16 +70,16 @@ namespace
         auto v = Version(0, { { { 1, "post" } } });
         REQUIRE(v.version().size() == 1);
         REQUIRE(v.version().front().size() == 1);
-        REQUIRE_EQ(v.version().front().front(), VersionPartAtom(1, "post"));
+        REQUIRE(v.version().front().front() == VersionPartAtom(1, "post"));
 
         // Same empty 0!1post version
-        CHECK_EQ(Version(0, { { { 1, "post" } } }), Version(0, { { { 1, "post" } } }));
+        REQUIRE(Version(0, { { { 1, "post" } } }) == Version(0, { { { 1, "post" } } }));
         // Empty trailing atom 0!1a == 0!1a0""
-        CHECK_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" }, {} } }));
+        REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" }, {} } }));
         // Empty trailing part 0!1a == 0!1a.0""
-        CHECK_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" } }, { {} } }));
+        REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" } }, { {} } }));
         // Mixed 0!1a0""0"" == 0!1a.0""
-        CHECK_EQ(Version(0, { { { 1, "a" }, {}, {} } }), Version(0, { { { 1, "a" } }, { {} } }));
+        REQUIRE(Version(0, { { { 1, "a" }, {}, {} } }) == Version(0, { { { 1, "a" } }, { {} } }));
 
         // Different epoch 0!2post < 1!1dev
         REQUIRE(Version(0, { { { 2, "post" } } }) < Version(1, { { { 1, "dev" } } }));
@@ -418,18 +418,18 @@ namespace
         ));
 
         // Default constructed
-        REQUIRE(Version::parse("0.0").value() == Version();
+        REQUIRE(Version::parse("0.0").value() == Version());
 
         // Lowercase and strip
-        REQUIRE(Version::parse("0.4.1.rc").value() == Version::parse("  0.4.1.RC  ");
-        REQUIRE(Version::parse("  0.4.1.RC  ").value() == Version::parse("0.4.1.rc");
+        REQUIRE(Version::parse("0.4.1.rc").value() == Version::parse("  0.4.1.RC  "));
+        REQUIRE(Version::parse("  0.4.1.RC  ").value() == Version::parse("0.4.1.rc"));
 
         // Functional assertions
-        REQUIRE(Version::parse("  0.4.rc  ").value() == Version::parse("0.4.RC");
-        REQUIRE(Version::parse("0.4").value() == Version::parse("0.4.0");
-        REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1");
-        REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1");
-        REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1");
+        REQUIRE(Version::parse("  0.4.rc  ").value() == Version::parse("0.4.RC"));
+        REQUIRE(Version::parse("0.4").value() == Version::parse("0.4.0"));
+        REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1"));
+        REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1"));
+        REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1"));
     }
 
     TEST_CASE("parse_invalid")

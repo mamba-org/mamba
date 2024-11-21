@@ -138,7 +138,7 @@ namespace
             REQUIRE(path_concat("some/folder", "file") == "some/folder/file");
             if (on_win)
             {
-                CHECK_EQ(path_concat(R"(D:\some\folder)", "file"), R"(D:\some\folder\file)");
+                REQUIRE(path_concat(R"(D:\some\folder)", "file") == R"(D:\some\folder\file)");
             }
         }
     }

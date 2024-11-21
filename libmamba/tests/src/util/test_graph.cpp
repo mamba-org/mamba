@@ -147,14 +147,14 @@ namespace
                 { { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 }, { 3, 3.5 }, { 4, 4.5 }, { 5, 5.5 }, { 6, 6.5 } }
             )
         );
-        CHECK_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
-        CHECK_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
-        CHECK_EQ(g.successors(2u), node_id_list({ 3u, 5u }));
+        REQUIRE(g.successors(0u) == node_id_list({ 1u, 2u }));
+        REQUIRE(g.successors(1u) == node_id_list({ 3u, 4u }));
+        REQUIRE(g.successors(2u) == node_id_list({ 3u, 5u }));
         REQUIRE(g.successors(3u) == node_id_list({ 6u });
         REQUIRE(g.predecessors(0u) == node_id_list();
         REQUIRE(g.predecessors(1u) == node_id_list({ 0u });
         REQUIRE(g.predecessors(2u) == node_id_list({ 0u });
-        CHECK_EQ(g.predecessors(3u), node_id_list({ 1u, 2u }));
+        REQUIRE(g.predecessors(3u) == node_id_list({ 1u, 2u }));
     }
 
     TEST_CASE("build_edge_data")

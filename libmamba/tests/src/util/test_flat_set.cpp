@@ -202,12 +202,12 @@ namespace
             {
                 for (const auto& v : { s1, s2, s3 })
                 {
-                    CHECK_EQ(
+                    REQUIRE(
                         set_union(
                             set_difference(u, v),
                             set_union(set_difference(v, u), set_intersection(u, v))
-                        ),
-                        set_union(u, v)
+                        )
+                        == set_union(u, v)
                     );
                     REQUIRE(
                         set_union(set_symmetric_difference(u, v), set_intersection(u, v))

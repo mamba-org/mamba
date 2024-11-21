@@ -14,8 +14,6 @@
 
 #include "mamba/util/flat_bool_expr_tree.hpp"
 
-#include "doctest-printer/array.hpp"
-
 using namespace mamba::util;
 
 namespace

@@ -12,7 +12,6 @@
 #include "mamba/core/util.hpp"
 #include "mamba/util/cryptography.hpp"
 
-#include "doctest-printer/array.hpp"
 #include "doctest-printer/optional.hpp"
 
 using namespace mamba::util;

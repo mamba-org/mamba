@@ -86,7 +86,7 @@ namespace
         REQUIRE(q.at(1) == q[1]);
         REQUIRE(q.at(2) == q[2]);
         auto use_at = [&]() { [[maybe_unused]] const auto& x = q.at(q.size()); };
-        CHECK_THROWS_AS(use_at(), std::out_of_range);
+        REQUIRE_THROWS_AS(use_at(), std::out_of_range);
     }
 
     TEST_CASE("clear", "[solv::ObjQueue]")

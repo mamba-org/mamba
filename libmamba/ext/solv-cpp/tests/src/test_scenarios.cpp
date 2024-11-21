@@ -200,7 +200,7 @@ namespace
                 );
 
                 auto solver = ObjSolver(pool);
-                CHECK_THROWS_AS(
+                REQUIRE_THROWS_AS(
                     [&] { return solver.solve(pool, { SOLVER_INSTALL, dep_id }); }(),
                     std::runtime_error
                 );
@@ -266,7 +266,7 @@ namespace
                 );
 
                 auto solver = ObjSolver(pool);
-                CHECK_THROWS_AS(
+                REQUIRE_THROWS_AS(
                     [&] { return solver.solve(pool, { SOLVER_INSTALL, job_id }); }(),
                     std::runtime_error
                 );

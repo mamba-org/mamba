@@ -238,7 +238,7 @@ namespace
 
                     SECTION("Without creating the whatprovides index is an error")
                     {
-                        CHECK_THROWS_AS(
+                        REQUIRE_THROWS_AS(
                             pool.for_each_whatprovides_id(dep_id, [&](auto) {}),
                             std::runtime_error
                         );
@@ -286,7 +286,7 @@ namespace
 
                     SECTION("Without creating the whatprovides index is an error")
                     {
-                        CHECK_THROWS_AS(
+                        REQUIRE_THROWS_AS(
                             pool.add_to_whatprovides(dep_id, pool.add_to_whatprovides_data({ id1 })),
                             std::runtime_error
                         );

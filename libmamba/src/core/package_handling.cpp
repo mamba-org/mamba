@@ -73,7 +73,7 @@ namespace mamba
     public:
 
         scoped_archive_read()
-            : scoped_archive_read(archive_read_new()){};
+            : scoped_archive_read(archive_read_new()) {};
 
         static scoped_archive_read read_disk()
         {
@@ -450,7 +450,8 @@ namespace mamba
                 zstd,
                 compression_level,
                 compression_threads,
-                [](const fs::u8path& p) -> bool {
+                [](const fs::u8path& p) -> bool
+                {
                     return p.std_path().begin() != p.std_path().end()
                            && *p.std_path().begin() != "info";
                 }
@@ -461,7 +462,8 @@ namespace mamba
                 zstd,
                 compression_level,
                 compression_threads,
-                [](const fs::u8path& p) -> bool {
+                [](const fs::u8path& p) -> bool
+                {
                     return p.std_path().begin() != p.std_path().end()
                            && *p.std_path().begin() == "info";
                 }

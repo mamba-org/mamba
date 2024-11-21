@@ -84,8 +84,8 @@ namespace mamba
             return out;
         }
 
-        auto
-        installed_python(const solver::libsolv::Database& db) -> std::optional<specs::PackageInfo>
+        auto installed_python(const solver::libsolv::Database& db)
+            -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
@@ -698,7 +698,8 @@ namespace mamba
                  it != extract_tasks.end();
                  ++it)
             {
-                std::packaged_task task{ [=] { return it->run(); } };
+                std::packaged_task<mamba::PackageExtractTask::Result()> task{ [=]
+                                                                              { return it->run(); } };
                 extract_trackers.push_back(task.get_future());
                 MainExecutor::instance().schedule(std::move(task));
             }

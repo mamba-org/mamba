@@ -749,7 +749,7 @@ namespace mamba
     {
         const ShellInitPathsWindowsCmd paths{ root_prefix };
 
-        for (const auto directory : paths.every_generated_directories_paths())
+        for (const auto& directory : paths.every_generated_directories_paths())
         {
             // Maybe the prefix isn't writable. No big deal, just keep going.
             std::error_code maybe_error [[maybe_unused]];

@@ -25,6 +25,9 @@ On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
    brew install micromamba
 
+.. hint::
+
+   (2024-10-03) Homebrew currently only has version 1 of micromamba, not version 2. See https://github.com/mamba-org/mamba/issues/3495 for updates.
 
 Mamba-org releases
 ******************
@@ -51,6 +54,11 @@ On Windows Powershell, use
 .. code :: powershell
 
    Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
+
+A specific micromamba release can be installed by setting the ``VERSION`` environment variable.
+The release versions contain a build number in addition to the micromamba version.
+
+Micromamba releases can be found on Github: https://github.com/mamba-org/micromamba-releases/releases
 
 Self updates
 ^^^^^^^^^^^^

@@ -1,3 +1,60 @@
+libmamba 2.0.4alpha3 (November 21, 2024)
+========================================
+
+
+Bug fixes:
+
+- Fix build trailing `*` display by @Hind-M in https://github.com/mamba-org/mamba/pull/3619
+- fixed: incorrect erasing of env vars by @Klaim in https://github.com/mamba-org/mamba/pull/3622
+- Prevent pip "rich" ouput by @Klaim in https://github.com/mamba-org/mamba/pull/3607
+- maint: Address compiler warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3605
+
+CI fixes and doc:
+
+- doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+- maint: Update clang-format to v19 by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3600
+
+libmamba 2.0.4alpha2 (November 14, 2024)
+========================================
+
+Enhancements:
+
+- More details in error message when failing to parse json from a python command's output by @Klaim in https://github.com/mamba-org/mamba/pull/3604
+
+Bug fixes:
+
+- Fix some warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3595
+- Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+
+CI fixes and doc:
+
+- Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
+- Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+
+libmamba 2.0.4alpha1 (November 12, 2024)
+========================================
+
+Bug fixes:
+
+- fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
+
+libmamba 2.0.4alpha0 (November 12, 2024)
+========================================
+
+Enhancements:
+
+- Fix: json parsing error due to wrong encoding of Python output by @Klaim in https://github.com/mamba-org/mamba/pull/3584
+- Adds logs clarifying the source of the error "could not load prefix data by @Klaim in https://github.com/mamba-org/mamba/pull/3581
+
+Bug fixes:
+
+- fix: Skip misformatted configuration files by @ChaonengQuan in https://github.com/mamba-org/mamba/pull/3580
+
 libmamba 2.0.3 (November 05, 2024)
 ==================================
 

@@ -61,8 +61,8 @@ namespace mamba::util
         return rng;
     }
 
-    extern template auto
-    local_random_generator<default_random_generator>() -> default_random_generator&;
+    extern template auto local_random_generator<default_random_generator>()
+        -> default_random_generator&;
 
     template <typename T, typename Generator>
     auto random_int(T min, T max, Generator& generator) -> T

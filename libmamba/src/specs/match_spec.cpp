@@ -180,7 +180,8 @@ namespace mamba::specs
         {
             return util::strip_if(
                 str,
-                [](char c) -> bool {
+                [](char c) -> bool
+                {
                     return !util::is_graphic(c) || (c == MatchSpec::preferred_quote)
                            || (c == MatchSpec::alt_quote);
                 }
@@ -312,8 +313,8 @@ namespace mamba::specs
                 );
         }
 
-        [[nodiscard]] auto split_attribute_val(std::string_view key_val
-        ) -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
+        [[nodiscard]] auto split_attribute_val(std::string_view key_val)
+            -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
         {
             // Forbid known ambiguity
             if (util::starts_with(key_val, "version"))
@@ -427,7 +428,8 @@ namespace mamba::specs
                         assert(start < end);
                         return set_matchspec_attributes(spec, str.substr(start + 1, end - start - 1))
                             .and_then(  //
-                                [&]() {
+                                [&]()
+                                {
                                     return rparse_and_set_matchspec_attributes(
                                         spec,
                                         str.substr(0, start_end.first)
@@ -438,8 +440,8 @@ namespace mamba::specs
                 );
         }
 
-        auto split_version_and_build(std::string_view str
-        ) -> std::pair<std::string_view, std::string_view>
+        auto split_version_and_build(std::string_view str)
+            -> std::pair<std::string_view, std::string_view>
         {
             str = util::strip(str);
 

@@ -1,3 +1,73 @@
+2024.11.21
+==========
+
+Releases: libmamba 2.0.4alpha3, libmambapy 2.0.4alpha3, micromamba 2.0.4alpha3
+
+Enhancements:
+
+- [micromamba] feat: List PyPI packages in environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3623
+
+Bug fixes:
+
+- [libmamba] Fix build trailing `*` display by @Hind-M in https://github.com/mamba-org/mamba/pull/3619
+- [libmamba] fixed: incorrect erasing of env vars by @Klaim in https://github.com/mamba-org/mamba/pull/3622
+- [libmamba] Prevent pip "rich" ouput by @Klaim in https://github.com/mamba-org/mamba/pull/3607
+- [micromamba, libmamba] maint: Address compiler warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3605
+- [micromamba] fix: Export `'channels'` as part of environments' export by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3587
+
+CI fixes and doc:
+
+- [all] doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- [all] Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- [all] doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- [all] maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- [all] maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- [all] docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+- [libmambapy, libmamba] maint: Update clang-format to v19 by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3600
+
+2024.11.14
+==========
+
+Releases: libmamba 2.0.4alpha2, libmambapy 2.0.4alpha2, micromamba 2.0.4alpha2
+
+Enhancements:
+
+- [libmamba] More details in error message when failing to parse json from a python command's output by @Klaim in https://github.com/mamba-org/mamba/pull/3604
+
+Bug fixes:
+
+- [libmamba] Fix some warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3595
+- [all] Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+
+CI fixes and doc:
+
+- [micromamba, libmamba] Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
+- [all] Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+
+2024.11.12-0
+============
+
+Releases: libmamba 2.0.4alpha1, libmambapy 2.0.4alpha1, micromamba 2.0.4alpha1
+
+Bug fixes:
+
+- [all] fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
+- [micromamba] fix: Correct `mamba env export --json --from-history` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3590
+
+2024.11.12
+==========
+
+Releases: libmamba 2.0.4alpha0, libmambapy 2.0.4alpha0, micromamba 2.0.4alpha0
+
+Enhancements:
+
+- [libmamba] Fix: json parsing error due to wrong encoding of Python output by @Klaim in https://github.com/mamba-org/mamba/pull/3584
+- [libmamba] Adds logs clarifying the source of the error "could not load prefix data by @Klaim in https://github.com/mamba-org/mamba/pull/3581
+
+Bug fixes:
+
+- [libmamba] fix: Skip misformatted configuration files by @ChaonengQuan in https://github.com/mamba-org/mamba/pull/3580
+
 2024.11.05
 ==========
 

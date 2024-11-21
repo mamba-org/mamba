@@ -37,8 +37,8 @@ namespace mamba::specs
         [[nodiscard]] static auto make_less_equal(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
-        [[nodiscard]] static auto
-        make_compatible_with(Version ver, std::size_t level) -> VersionPredicate;
+        [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
+            -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -110,7 +110,7 @@ namespace mamba::specs
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
-        friend class ::fmt::formatter<VersionPredicate>;
+        friend struct ::fmt::formatter<VersionPredicate>;
     };
 
     auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
@@ -210,7 +210,7 @@ namespace mamba::specs
 
         tree_type m_tree;
 
-        friend class ::fmt::formatter<VersionSpec>;
+        friend struct ::fmt::formatter<VersionSpec>;
     };
 
     namespace version_spec_literals
@@ -243,8 +243,8 @@ struct fmt::formatter<mamba::specs::VersionSpec>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto
-    format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) const -> decltype(ctx.out());
+    auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) const
+        -> decltype(ctx.out());
 };
 
 template <>

@@ -29,8 +29,8 @@ namespace mamba::specs
         return true;
     }
 
-    auto
-    VersionPredicate::starts_with::operator()(const Version& point, const Version& prefix) const -> bool
+    auto VersionPredicate::starts_with::operator()(const Version& point, const Version& prefix) const
+        -> bool
     {
         return point.starts_with(prefix);
     }
@@ -41,7 +41,8 @@ namespace mamba::specs
     }
 
     auto
-    VersionPredicate::not_starts_with::operator()(const Version& point, const Version& prefix) const -> bool
+    VersionPredicate::not_starts_with::operator()(const Version& point, const Version& prefix) const
+        -> bool
     {
         return !point.starts_with(prefix);
     }
@@ -52,13 +53,14 @@ namespace mamba::specs
     }
 
     auto
-    VersionPredicate::compatible_with::operator()(const Version& point, const Version& older) const -> bool
+    VersionPredicate::compatible_with::operator()(const Version& point, const Version& older) const
+        -> bool
     {
         return point.compatible_with(older, level);
     }
 
-    auto
-    operator==(VersionPredicate::compatible_with lhs, VersionPredicate::compatible_with rhs) -> bool
+    auto operator==(VersionPredicate::compatible_with lhs, VersionPredicate::compatible_with rhs)
+        -> bool
     {
         return lhs.level == rhs.level;
     }
@@ -180,8 +182,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::VersionPredicate>::parse(format_parse_context& ctx
-) -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::VersionPredicate>::parse(format_parse_context& ctx)
+    -> decltype(ctx.begin())
 {
     if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
     {

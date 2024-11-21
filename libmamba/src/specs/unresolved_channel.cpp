@@ -26,8 +26,8 @@
 namespace mamba::specs
 {
     // Defined in  conda_url.cpp
-    [[nodiscard]] auto find_slash_and_platform(std::string_view path
-    ) -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>;
+    [[nodiscard]] auto find_slash_and_platform(std::string_view path)
+        -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>;
 
     auto UnresolvedChannel::parse_platform_list(std::string_view plats) -> platform_set
     {
@@ -68,8 +68,8 @@ namespace mamba::specs
             return { {}, {} };
         }
 
-        auto split_location_platform(std::string_view str
-        ) -> expected_parse_t<std::pair<std::string, dynamic_platform_set>>
+        auto split_location_platform(std::string_view str)
+            -> expected_parse_t<std::pair<std::string, dynamic_platform_set>>
         {
             if (util::ends_with(str, ']'))
             {
@@ -247,10 +247,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::UnresolvedChannel>::format(
-    const UnresolvedChannel& uc,
-    format_context& ctx
-) const -> format_context::iterator
+fmt::formatter<mamba::specs::UnresolvedChannel>::format(const UnresolvedChannel& uc, format_context& ctx) const
+    -> format_context::iterator
 {
     auto out = fmt::format_to(ctx.out(), "{}", uc.location());
     if (!uc.platform_filters().empty())

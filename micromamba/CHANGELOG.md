@@ -1,3 +1,49 @@
+micromamba 2.0.4alpha3 (November 21, 2024)
+==========================================
+
+Enhancements:
+
+- feat: List PyPI packages in environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3623
+
+Bug fixes:
+
+- maint: Address compiler warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3605
+- fix: Export `'channels'` as part of environments' export by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3587
+
+CI fixes and doc:
+
+- doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+
+micromamba 2.0.4alpha2 (November 14, 2024)
+==========================================
+
+
+Bug fixes:
+
+- Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+
+CI fixes and doc:
+
+- Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
+- Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+
+micromamba 2.0.4alpha1 (November 12, 2024)
+==========================================
+
+Bug fixes:
+
+- fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
+- fix: Correct `mamba env export --json --from-history` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3590
+
+micromamba 2.0.4alpha0 (November 12, 2024)
+==========================================
+
+
 micromamba 2.0.3 (November 05, 2024)
 ====================================
 

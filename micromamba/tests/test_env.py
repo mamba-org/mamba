@@ -500,7 +500,7 @@ dependencies:
 def test_env_export_with_pip(tmp_path, json_flag):
     env_name = "env_export_with_pip"
 
-    env_file_yml = tmp_path / "test_env_yaml_content_to_install_numpy_with_pip.yaml"
+    env_file_yml = tmp_path / "test_env_yaml_content_to_install_requests_with_pip.yaml"
     env_file_yml.write_text(env_yaml_content_env_export_with_pip)
 
     flags = list(filter(None, [json_flag]))

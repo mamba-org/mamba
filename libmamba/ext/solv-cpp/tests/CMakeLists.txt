@@ -22,3 +22,6 @@ add_executable(
 target_include_directories(test_solv_cpp PRIVATE src/)
 find_package(Catch2 REQUIRED)
 target_link_libraries(test_solv_cpp PRIVATE Catch2::Catch2WithMain solv::cpp)
+set_target_properties(
+    test_solv_cpp PROPERTIES COMPILE_DEFINITIONS CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
+)

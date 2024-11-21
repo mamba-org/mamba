@@ -74,7 +74,7 @@ namespace mamba
                     REQUIRE(pkgs.size() == 3);
                     REQUIRE(pkgs[0].name == "__unix");
                     REQUIRE(pkgs[1].name == "__osx");
-                    REQUIRE(Version::parse(pkgs[1].version).value() > Version());
+                    CHECK(Version::parse(pkgs[1].version).value() > Version());
                 }
 #if __x86_64__ || defined(_WIN64)
                 REQUIRE(pkgs.back().name == "__archspec");

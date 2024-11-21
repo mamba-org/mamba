@@ -1,0 +1,47 @@
+name: Homebrew and Linuxbrew toolchains
+
+on:
+  workflow_call:
+
+jobs:
+  build_linuxbrew:
+    name: Build on linuxbrew
+    runs-on: ubuntu-latest
+    container:
+      image: homebrew/brew:latest
+
+    steps:
+      # v1 required due to permissions error
+      - name: Checkout mamba repository
+        uses: actions/checkout@v1
+
+      - name: Correct the creation permissions
+        run: sudo chown -R linuxbrew .
+
+      - name: Install host and build dependencies
+        run: brew install fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd cmake cli11 nlohmann-json spdlog tl-expected curl pkgconfig python bzip2 krb5 zlib
+
+      - name: Configure to build mamba
+        run: cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
+
+      - name: Build mamba
+        run: cmake --build build -j4
+
+  build_homebrew:
+    name: Build on homebrew
+    runs-on: macos-13
+
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+
+      - name: Install host and build dependencies
+        run: brew install fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd cmake cli11 nlohmann-json spdlog tl-expected pkgconfig python
+
+      - name: Configure to build mamba
+        run: >
+          cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
+          -DLibArchive_ROOT=$(brew --prefix libarchive)
+
+      - name: Build mamba
+        run: cmake --build build -j4

@@ -13,6 +13,8 @@
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/url_manip.hpp"
 
+#include "catch-printer/conda_url.hpp"
+
 #include "mambatests.hpp"
 
 namespace

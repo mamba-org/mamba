@@ -264,6 +264,14 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
+# TODO: remove when switch to C++20
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    # This file uses capturing structured bindings, which was fixed in C++20
+    set_source_files_properties(
+        ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
+        PROPERTIES COMPILE_FLAGS -Wno-c++20-extensions
+    )
+endif()
 
 foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)

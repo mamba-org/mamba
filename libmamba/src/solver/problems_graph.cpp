@@ -264,6 +264,12 @@ namespace mamba::solver
             return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
         }
 
+// GCC reports dangling reference when using std::invoke with data members
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
+
         template <typename T>
         auto invoke_version(T&& e) -> decltype(auto)
         {
@@ -327,6 +333,10 @@ namespace mamba::solver
                 return name;
             }
         }
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
         /**
          * Detect if a type has a ``name`` member (function).

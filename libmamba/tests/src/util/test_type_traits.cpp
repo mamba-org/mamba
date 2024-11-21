@@ -12,23 +12,21 @@
 
 using namespace mamba::util;
 
-namespace
+struct NotOStreamable
 {
-    struct NotOStreamable
-    {
-    };
+};
 
-    struct OStreamable
-    {
-    };
+struct OStreamable
+{
+};
 
-    auto operator<<(std::ostream& s, const OStreamable&) -> std::ostream&;
+auto
+operator<<(std::ostream& s, const OStreamable&) -> std::ostream&;
 
-    TEST_CASE("ostreamable")
-    {
-        REQUIRE(is_ostreamable_v<int>);
-        REQUIRE(is_ostreamable_v<std::string>);
-        REQUIRE_FALSE(is_ostreamable_v<NotOStreamable>);
-        REQUIRE(is_ostreamable_v<OStreamable>);
-    }
+TEST_CASE("ostreamable")
+{
+    REQUIRE(is_ostreamable_v<int>);
+    REQUIRE(is_ostreamable_v<std::string>);
+    REQUIRE_FALSE(is_ostreamable_v<NotOStreamable>);
+    REQUIRE(is_ostreamable_v<OStreamable>);
 }

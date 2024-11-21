@@ -23,10 +23,10 @@ namespace
         // Hash collision are hard to predict, but this is so trivial it is likely a bug if it
         // fails.
         const auto t2 = std::tuple{ 0, std::string("hello") };
-        REQUIRE(hash_tuple(t1) != hash_tuple(t2);
+        REQUIRE(hash_tuple(t1) != hash_tuple(t2));
 
         const auto t3 = std::tuple{ std::string("hello"), 33 };
-        REQUIRE(hash_tuple(t1) != hash_tuple(t3);
+        REQUIRE(hash_tuple(t1) != hash_tuple(t3));
     }
 
     TEST_CASE("hash_combine_val_range")

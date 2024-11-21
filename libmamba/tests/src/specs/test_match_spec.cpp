@@ -265,7 +265,7 @@ namespace
         {
             auto ms = MatchSpec::parse(R"(blas[track_features="mkl avx"])").value();
             REQUIRE(ms.name().str() == "blas");
-            REQUIRE(ms.track_features().value().get(), MatchSpec::string_set{ "avx" == "mkl" });
+            REQUIRE(ms.track_features().value().get() == MatchSpec::string_set{ "avx", "mkl" });
             REQUIRE(ms.str() == R"(blas[track_features="avx mkl"])");
         }
 

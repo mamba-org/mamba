@@ -44,32 +44,41 @@ using OverflowLowestTypes = std::tuple<
 
 namespace
 {
-    TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_widen", T, cast_widen)
+    template <typename T>
+    void check_exact_num_cast_widen()
     {
         using From = typename T::first_type;
         using To = typename T::second_type;
         static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
         static constexpr auto from_max = std::numeric_limits<From>::max();
 
-        REQUIRE(safe_num_cast<To>(From(0)) == To(0);
-        REQUIRE(safe_num_cast<To>(From(1)) == To(1);
-        REQUIRE(safe_num_cast<To>(from_lowest) == static_cast<To>(from_lowest);
-        REQUIRE(safe_num_cast<To>(from_max) == static_cast<To>(from_max);
+        REQUIRE(safe_num_cast<To>(From(0)) == To(0));
+        REQUIRE(safe_num_cast<To>(From(1)) == To(1));
+        REQUIRE(safe_num_cast<To>(from_lowest) == static_cast<To>(from_lowest));
+        REQUIRE(safe_num_cast<To>(from_max) == static_cast<To>(from_max));
     }
 
-    TEST_CASE_TEMPLATE_APPLY(cast_widen, WidenTypes);
+    TEMPLATE_LIST_TEST_CASE("Exact num cast widen", "", WidenTypes)
+    {
+        check_exact_num_cast_widen<TestType>();
+    }
 
-    TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_narrow", T, cast_narrow)
+    template <typename T>
+    void check_exact_num_cast_narrow()
     {
         using From = typename T::second_type;  // inversed
         using To = typename T::first_type;     // inversed
-        REQUIRE(safe_num_cast<To>(From(0)) == To(0);
-        REQUIRE(safe_num_cast<To>(From(1)) == To(1);
+        REQUIRE(safe_num_cast<To>(From(0)) == To(0));
+        REQUIRE(safe_num_cast<To>(From(1)) == To(1));
     }
 
-    TEST_CASE_TEMPLATE_APPLY(cast_narrow, WidenTypes);
+    TEMPLATE_LIST_TEST_CASE("Exact num cast narrow", "", WidenTypes)
+    {
+        check_exact_num_cast_narrow<TestType>();
+    }
 
-    TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_overflow", T, cast_overflow)
+    template <typename T>
+    void check_exact_num_cast_overflow()
     {
         using From = typename T::first_type;
         using To = typename T::second_type;
@@ -78,7 +87,10 @@ namespace
         REQUIRE_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
     }
 
-    TEST_CASE_TEMPLATE_APPLY(cast_overflow, OverflowLowestTypes);
+    TEMPLATE_LIST_TEST_CASE("Exact num cast overflow", "", OverflowLowestTypes)
+    {
+        check_exact_num_cast_overflow<TestType>();
+    }
 
     TEST_CASE("precision")
     {

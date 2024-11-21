@@ -171,8 +171,7 @@ namespace
                 == 24
             );
             REQUIRE(
-                find_not_in_parentheses("('hello', ']world,) welcome, here],", ',', opens == closes)
-                    .error()
+                find_not_in_parentheses("('hello', ']world,) welcome, here],", ',', opens, closes).error()
                 == ParseError::InvalidInput
             );
         }
@@ -243,7 +242,7 @@ namespace
                 == 43
             );
             REQUIRE(
-                find_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens == closes)
+                find_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens, closes)
                     .error()
                 == ParseError::InvalidInput
             );
@@ -312,8 +311,7 @@ namespace
                 == 16
             );
             REQUIRE(
-                rfind_not_in_parentheses(",('hello', ']world,) welcome, here]", ',', opens == closes)
-                    .error()
+                rfind_not_in_parentheses(",('hello', ']world,) welcome, here]", ',', opens, closes).error()
                 == ParseError::InvalidInput
             );
         }
@@ -353,8 +351,7 @@ namespace
                 == 3
             );
             REQUIRE(
-                rfind_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens == closes)
-                    .error()
+                rfind_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens, closes).error()
                 == ParseError::InvalidInput
             );
         }
@@ -386,7 +383,7 @@ namespace
                 == 3
             );
             REQUIRE(
-                rfind_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens == closes)
+                rfind_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens, closes)
                     .error()
                 == ParseError::InvalidInput
             );

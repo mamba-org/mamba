@@ -12,7 +12,7 @@ using namespace mamba::specs;
 
 namespace
 {
-    TEST_CASE("Free")
+    TEST_CASE("RegexSpec Free")
     {
         auto spec = RegexSpec();
 
@@ -24,7 +24,7 @@ namespace
         REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("mkl")
+    TEST_CASE("RegexSpec mkl")
     {
         auto spec = RegexSpec::parse("mkl").value();
 
@@ -38,7 +38,7 @@ namespace
         REQUIRE(spec.is_exact());
     }
 
-    TEST_CASE("py.*")
+    TEST_CASE("RegexSpec py.*")
     {
         auto spec = RegexSpec::parse("py.*").value();
 
@@ -53,7 +53,7 @@ namespace
         REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("^.*(accelerate|mkl)$")
+    TEST_CASE("RegexSpec ^.*(accelerate|mkl)$")
     {
         auto spec = RegexSpec::parse("^.*(accelerate|mkl)$").value();
 
@@ -67,7 +67,7 @@ namespace
         REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("RegexSpec Comparability and hashability")
     {
         auto spec1 = RegexSpec::parse("pyth*").value();
         auto spec2 = RegexSpec::parse("pyth*").value();

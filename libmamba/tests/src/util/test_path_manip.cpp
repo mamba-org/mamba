@@ -65,7 +65,7 @@ namespace
         REQUIRE(path_win_to_posix("C:/folder/file") == "C:/folder/file");
     }
 
-    TEST_CASE("path_win_to_posix")
+    TEST_CASE("path_posix_to_win")
     {
         REQUIRE(path_posix_to_win("") == "");
         REQUIRE(path_posix_to_win("file") == "file");

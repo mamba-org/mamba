@@ -445,7 +445,7 @@ namespace
         REQUIRE_FALSE(VersionSpec::parse("=2.3,<3.0").value().is_explicitly_free());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("VersionSpec Comparability and hashability")
     {
         auto spec1 = VersionSpec::parse("*").value();
         auto spec2 = VersionSpec::parse("*").value();

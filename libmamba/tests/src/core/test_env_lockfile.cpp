@@ -186,7 +186,7 @@ namespace mamba
 
     namespace
     {
-        TEST_CASE("basics")
+        TEST_CASE("is_env_lockfile_name")
         {
             REQUIRE(is_env_lockfile_name("something-lock.yaml"));
             REQUIRE(is_env_lockfile_name("something-lock.yml"));

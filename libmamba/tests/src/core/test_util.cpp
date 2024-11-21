@@ -32,7 +32,7 @@ namespace mamba
 
     namespace
     {
-        TEST_CASE("basics")
+        TEST_CASE("is_yaml_file_name")
         {
             REQUIRE(is_yaml_file_name("something.yaml"));
             REQUIRE(is_yaml_file_name("something.yml"));

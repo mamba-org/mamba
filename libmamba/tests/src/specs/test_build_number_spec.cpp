@@ -138,7 +138,7 @@ namespace
         REQUIRE_FALSE(BuildNumberSpec::parse("<2").value().is_explicitly_free());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("BuildNumberSpec Comparability and hashability")
     {
         auto bn1 = BuildNumberSpec::parse("=3").value();
         auto bn2 = BuildNumberSpec::parse("3").value();

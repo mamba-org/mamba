@@ -321,7 +321,7 @@ namespace
         }
     }
 
-    TEST_CASE("str options")
+    TEST_CASE("CondaURL str options")
     {
         CondaURL url = {};
 
@@ -359,7 +359,7 @@ namespace
         }
     }
 
-    TEST_CASE("pretty_str options")
+    TEST_CASE("CondaURL pretty_str options")
     {
         SECTION("scheme option")
         {

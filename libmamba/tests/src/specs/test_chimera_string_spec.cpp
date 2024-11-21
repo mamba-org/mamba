@@ -12,7 +12,7 @@ using namespace mamba::specs;
 
 namespace
 {
-    TEST_CASE("Free")
+    TEST_CASE("ChimeraStringSpec Free")
     {
         auto spec = ChimeraStringSpec();
 
@@ -25,7 +25,7 @@ namespace
         REQUIRE(spec.is_glob());
     }
 
-    TEST_CASE("mkl")
+    TEST_CASE("ChimeraStringSpec mkl")
     {
         auto spec = ChimeraStringSpec::parse("mkl").value();
 
@@ -40,7 +40,7 @@ namespace
         REQUIRE(spec.is_glob());
     }
 
-    TEST_CASE("py.*")
+    TEST_CASE("ChimeraStringSpec py.*")
     {
         auto spec = ChimeraStringSpec::parse("py.*").value();
 
@@ -56,7 +56,7 @@ namespace
         REQUIRE_FALSE(spec.is_glob());
     }
 
-    TEST_CASE("^.*(accelerate|mkl)$")
+    TEST_CASE("ChimeraStringSpec ^.*(accelerate|mkl)$")
     {
         auto spec = ChimeraStringSpec::parse("^.*(accelerate|mkl)$").value();
 
@@ -71,7 +71,7 @@ namespace
         REQUIRE_FALSE(spec.is_glob());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("ChimeraStringSpec Comparability and hashability")
     {
         auto spec1 = ChimeraStringSpec::parse("mkl").value();
         auto spec2 = ChimeraStringSpec::parse("mkl").value();

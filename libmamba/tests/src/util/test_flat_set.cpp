@@ -12,8 +12,6 @@
 
 #include "mamba/util/flat_set.hpp"
 
-#include "doctest-printer/flat_set.hpp"
-
 using namespace mamba::util;
 
 namespace
@@ -87,7 +85,7 @@ namespace
         REQUIRE(s == flat_set<int>({ 2, 3 }));
     }
 
-    TEST_CASE("contains")
+    TEST_CASE("set_contains")
     {
         const auto s = flat_set<int>({ 1, 3, 4, 5 });
         REQUIRE_FALSE(s.contains(0));

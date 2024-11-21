@@ -14,7 +14,7 @@ namespace
 {
     // See also test_parser for Glob matcher tests
 
-    TEST_CASE("Free")
+    TEST_CASE("GlobSpec Free")
     {
         auto spec = GlobSpec();
 
@@ -56,7 +56,7 @@ namespace
         REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("GlobSpec Comparability and hashability")
     {
         auto spec1 = GlobSpec("py*");
         auto spec2 = GlobSpec("py*");

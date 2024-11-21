@@ -14,7 +14,6 @@
 #include "mamba/util/url_manip.hpp"
 
 #include "doctest-printer/conda_url.hpp"
-#include "doctest-printer/flat_set.hpp"
 
 #include "mambatests.hpp"
 

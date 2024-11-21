@@ -13,7 +13,6 @@
 #include "mamba/util/string.hpp"
 
 #include "doctest-printer/conda_url.hpp"
-#include "doctest-printer/flat_set.hpp"
 
 namespace
 {

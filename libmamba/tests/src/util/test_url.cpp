@@ -200,7 +200,7 @@ namespace
         }
     }
 
-    TEST_CASE("parse")
+    TEST_CASE("UTL parse")
     {
         SECTION("Empty")
         {
@@ -392,7 +392,7 @@ namespace
         }
     }
 
-    TEST_CASE("str options")
+    TEST_CASE("URL str options")
     {
         URL url = {};
 
@@ -414,7 +414,7 @@ namespace
         }
     }
 
-    TEST_CASE("pretty_str options")
+    TEST_CASE("URL pretty_str options")
     {
         SECTION("scheme option")
         {

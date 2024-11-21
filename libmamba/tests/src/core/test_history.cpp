@@ -28,7 +28,7 @@ namespace mamba
 {
     namespace
     {
-        TEST_CASE("parse")
+        TEST_CASE("History parse")
         {
             static const auto history_file_path = fs::absolute(
                 mambatests::test_data_dir / "history/parse/conda-meta/history"

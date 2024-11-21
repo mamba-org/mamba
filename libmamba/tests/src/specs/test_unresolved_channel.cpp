@@ -253,7 +253,7 @@ namespace
         );
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("UnresolvedChannel Comparability and hashability")
     {
         auto uc1 = UnresolvedChannel::parse("conda-forge").value();
         auto uc2 = UnresolvedChannel::parse("conda-forge").value();

@@ -63,7 +63,7 @@ namespace
             REQUIRE(ends_with("áäáœ©gþhëb®hüghœ©®xb", "©®xb"));
         }
 
-        TEST_CASE("contains")
+        TEST_CASE("string_contains")
         {
             REQUIRE(contains('c', 'c'));
             REQUIRE_FALSE(contains('c', 'a'));

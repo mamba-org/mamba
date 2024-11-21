@@ -12,8 +12,6 @@
 
 #include "mamba/specs/package_info.hpp"
 
-#include "doctest-printer/vector.hpp"
-
 namespace nl = nlohmann;
 using namespace mamba::specs;
 

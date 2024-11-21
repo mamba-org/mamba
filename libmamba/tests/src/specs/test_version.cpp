@@ -97,7 +97,7 @@ namespace
         REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) >= Version(0, { { { 2 }, { 0 } } }));
     }
 
-    TEST_CASE("starts_with")
+    TEST_CASE("Version starts_with")
     {
         SECTION("positive")
         {
@@ -346,7 +346,7 @@ namespace
      *
      * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
      */
-    TEST_CASE("parse")
+    TEST_CASE("Version parse")
     {
         // clang-format off
             auto sorted_version = std::vector<std::pair<std::string_view, Version>>{

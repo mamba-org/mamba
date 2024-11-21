@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_tostring.hpp>
 
 #include "mamba/specs/conda_url.hpp"
 

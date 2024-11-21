@@ -18,7 +18,7 @@ namespace
 {
     using PlatformSet = typename util::flat_set<std::string>;
 
-    TEST_CASE("parse")
+    TEST_CASE("MatchSpec parse")
     {
         SECTION("<empty>")
         {

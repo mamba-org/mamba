@@ -51,7 +51,7 @@ struct TmpDir
 
 namespace
 {
-    TEST_CASE("Construct a repo", "[solv::ObjRepo]")
+    TEST_CASE("Construct a repo")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("test-forge");

@@ -17,7 +17,7 @@ using namespace solv::test;
 
 namespace
 {
-    TEST_CASE("Create a solver", "[solv::ObjSolver]")
+    TEST_CASE("Create a solver")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("forge");

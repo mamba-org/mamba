@@ -19,7 +19,7 @@ using namespace solv::test;
 
 namespace
 {
-    TEST_CASE("Solving", "[solv::scenarios]")
+    TEST_CASE("Solving")
     {
         auto pool = ObjPool();
 
@@ -142,7 +142,7 @@ namespace
         }
     }
 
-    TEST_CASE("Resolve namespace dependencies", "[solv::scenarios]")
+    TEST_CASE("Resolve namespace dependencies")
     {
         auto pool = ObjPool();
 

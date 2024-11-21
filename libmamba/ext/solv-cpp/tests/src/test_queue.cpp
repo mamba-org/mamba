@@ -16,7 +16,7 @@ using namespace solv;
 
 namespace
 {
-    TEST_CASE("constructor", "[solv::ObjQueue]")
+    TEST_CASE("constructor")
     {
         auto q1 = ObjQueue();
         REQUIRE(q1.size() == 0);
@@ -43,7 +43,7 @@ namespace
         REQUIRE(q1.data() == q4_data);
     }
 
-    TEST_CASE("swap", "[solv::ObjQueue]")
+    TEST_CASE("swap")
     {
         auto q1 = ObjQueue();
         const auto q1_data = q1.data();
@@ -60,7 +60,7 @@ namespace
         REQUIRE(q2.data() == q1_data);
     }
 
-    TEST_CASE("push_back", "[solv::ObjQueue]")
+    TEST_CASE("push_back")
     {
         auto q = ObjQueue();
         q.push_back(1);
@@ -71,7 +71,7 @@ namespace
         REQUIRE(q.back() == 3);
     }
 
-    TEST_CASE("element", "[solv::ObjQueue]")
+    TEST_CASE("element")
     {
         auto q = ObjQueue{ 3, 2, 1 };
         REQUIRE(q[0] == 3);
@@ -79,7 +79,7 @@ namespace
         REQUIRE(q[2] == 1);
     }
 
-    TEST_CASE("at", "[solv::ObjQueue]")
+    TEST_CASE("at")
     {
         auto q = ObjQueue{ 3, 2, 1 };
         REQUIRE(q.at(0) == q[0]);
@@ -89,14 +89,14 @@ namespace
         REQUIRE_THROWS_AS(use_at(), std::out_of_range);
     }
 
-    TEST_CASE("clear", "[solv::ObjQueue]")
+    TEST_CASE("clear")
     {
         auto q = ObjQueue{ 3, 2, 1 };
         q.clear();
         REQUIRE(q.empty());
     }
 
-    TEST_CASE("iterator", "[solv::ObjQueue]")
+    TEST_CASE("iterator")
     {
         const auto q = ObjQueue{ 3, 2, 1 };
         std::size_t n = 0;
@@ -111,7 +111,7 @@ namespace
         REQUIRE(l == l_expected);
     }
 
-    TEST_CASE("reverse_iterator", "[solv::ObjQueue]")
+    TEST_CASE("reverse_iterator")
     {
         const auto q = ObjQueue{ 3, 2, 1 };
 
@@ -120,7 +120,7 @@ namespace
         REQUIRE(v.back() == q.front());
     }
 
-    TEST_CASE("insert_one", "[solv::ObjQueue]")
+    TEST_CASE("insert_one")
     {
         auto q = ObjQueue();
         auto iter = q.insert(q.cbegin(), 4);
@@ -128,7 +128,7 @@ namespace
         REQUIRE(q.front() == 4);
     }
 
-    TEST_CASE("insert_span", "[solv::ObjQueue]")
+    TEST_CASE("insert_span")
     {
         auto q = ObjQueue();
 
@@ -152,7 +152,7 @@ namespace
         REQUIRE(q[0] == 4);
     }
 
-    TEST_CASE("insert_range", "[solv::ObjQueue]")
+    TEST_CASE("insert_range")
     {
         auto q = ObjQueue();
 
@@ -175,7 +175,7 @@ namespace
         REQUIRE(q[0] == 4);
     }
 
-    TEST_CASE("erase", "[solv::ObjQueue]")
+    TEST_CASE("erase")
     {
         auto q = ObjQueue{ 3, 2, 1 };
         const auto iter = q.erase(q.cbegin() + 1);
@@ -183,7 +183,7 @@ namespace
         REQUIRE(q.size() == 2);
     }
 
-    TEST_CASE("capacity", "[solv::ObjQueue]")
+    TEST_CASE("capacity")
     {
         auto q = ObjQueue();
         q.reserve(10);
@@ -191,7 +191,7 @@ namespace
         REQUIRE(q.capacity() >= 10);
     }
 
-    TEST_CASE("comparison", "[solv::ObjQueue]")
+    TEST_CASE("comparison")
     {
         REQUIRE(ObjQueue{} == ObjQueue{});
 
@@ -206,7 +206,7 @@ namespace
         REQUIRE(q1 == q2);
     }
 
-    TEST_CASE("contains", "[solv::ObjQueue]")
+    TEST_CASE("contains")
     {
         const auto q = ObjQueue{ 1, 9, 3 };
         REQUIRE(q.contains(3));

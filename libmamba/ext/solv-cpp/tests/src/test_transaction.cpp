@@ -22,7 +22,7 @@ using namespace solv::test;
 
 namespace
 {
-    TEST_CASE("Create a transaction", "[solv::ObjTransaction]")
+    TEST_CASE("Create a transaction")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("forge");

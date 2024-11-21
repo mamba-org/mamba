@@ -20,7 +20,7 @@ using namespace solv;
 
 namespace
 {
-    TEST_CASE("Construct a pool", "[solv::ObjPool]")
+    TEST_CASE("Construct a pool")
     {
         auto pool = ObjPool();
 
@@ -344,7 +344,7 @@ namespace
         }
     }
 
-    TEST_CASE("Query Pool", "[solv::ObjPool]")
+    TEST_CASE("Query Pool")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("repo");

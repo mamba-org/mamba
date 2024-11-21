@@ -12,8 +12,11 @@ set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     src/test_main.cpp
+    # Catch utils
+    src/catch-utils/conda_url.hpp
+    src/catch-utils/msvc_catch_byte.cpp
+    src/catch-utils/msvc_catch_string_view.cpp
     # Utility library
-    src/util/msvc_catch_byte.cpp
     src/util/test_cast.cpp
     src/util/test_compare.cpp
     src/util/test_cryptography.cpp

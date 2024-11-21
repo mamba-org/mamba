@@ -12,7 +12,7 @@
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
-#include "catch-printer/conda_url.hpp"
+#include "catch-utils/conda_url.hpp"
 
 namespace
 {

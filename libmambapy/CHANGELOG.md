@@ -1,3 +1,17 @@
+libmambapy 2.0.4alpha3 (November 21, 2024)
+==========================================
+
+
+CI fixes and doc:
+
+- doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+- maint: Update clang-format to v19 by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3600
+
 libmambapy 2.0.4alpha2 (November 14, 2024)
 ==========================================
 

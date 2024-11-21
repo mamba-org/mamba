@@ -1322,18 +1322,28 @@ namespace mamba::solver
             return arr;
         }
 
-        auto rstrip_excessive_free(std::string_view str) -> std::string_view
-        {
-            str = util::rstrip(str);
-            str = util::remove_suffix(str, specs::GlobSpec::free_pattern);
-            str = util::rstrip(str);
-            for (const auto& suffix : sorted_suffix(specs::VersionSpec::all_free_strs))
-            {
-                str = util::remove_suffix(str, suffix);
-            }
-            str = util::rstrip(str);
-            return str;
-        }
+        // Single dependency with only name constraint often end up looking like
+        // ``python =* *`` so `rstrip_excessive_free` was used to strip all this.
+        // Best would be to handle this with a richer NamedList that contains
+        // ``VersionSpecs`` to avoid flaky reliance on string modification.
+
+        // As `rstrip_excessive_free` side effect was to strip `*` from a regex,
+        // (which is not wanted and confusing when trying to understand the
+        // unsolvability problems), it is not used anymore on `vers_builds_trunc`.
+        // But we still keep it uncommented for a while (in case we need to
+        // restore it later).
+        // auto rstrip_excessive_free(std::string_view str) -> std::string_view
+        // {
+        //     str = util::rstrip(str);
+        //     str = util::remove_suffix(str, specs::GlobSpec::free_pattern);
+        //     str = util::rstrip(str);
+        //     for (const auto& suffix : sorted_suffix(specs::VersionSpec::all_free_strs))
+        //     {
+        //         str = util::remove_suffix(str, suffix);
+        //     }
+        //     str = util::rstrip(str);
+        //     return str;
+        // }
 
         void TreeExplainer::write_pkg_dep(const TreeNode& tn)
         {
@@ -1348,11 +1358,7 @@ namespace mamba::solver
             }
             else
             {
-                // Single dependency with only name constraint often end up looking like
-                // ``python =* *`` so we strip all this.
-                // Best would be to handle this with a richer NamedList that contains
-                // ``VersionSpecs`` to avoid flaky reliance on string modification.
-                const auto relevant_vers_builds_trunc = rstrip_excessive_free(vers_builds_trunc);
+                const auto relevant_vers_builds_trunc = vers_builds_trunc;
                 if (relevant_vers_builds_trunc.empty())
                 {
                     write(fmt::format(style, "{}", edges.name()));

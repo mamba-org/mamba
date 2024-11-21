@@ -1097,5 +1097,33 @@ TEST_SUITE("solver::libsolv::solver")
             CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
             CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_number, 4);
         }
+
+        SUBCASE("foo[version='=*,=*', build='pyhd*']")
+        {
+            auto pkg = PackageInfo("foo");
+            pkg.version = "=*,=*";
+            pkg.build_string = "pyhd*";
+
+            db.add_repo_from_packages(std::array{ pkg });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "foo[version='=*,=*', build='pyhd*']"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+
+            const auto& unsolvable = std::get<libsolv::UnSolvable>(outcome.value());
+            const auto problems_explained = unsolvable.explain_problems(db, {});
+            // To avoid mismatch due to color formatting, we perform the check by splitting the
+            // output following the format
+            CHECK(util::contains(problems_explained, "foo =*,=* pyhd*"));
+            CHECK(util::contains(
+                problems_explained,
+                "does not exist (perhaps a typo or a missing channel)."
+            ));
+        }
     }
 }

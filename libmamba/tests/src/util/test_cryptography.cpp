@@ -12,8 +12,6 @@
 #include "mamba/core/util.hpp"
 #include "mamba/util/cryptography.hpp"
 
-#include "doctest-printer/optional.hpp"
-
 using namespace mamba::util;
 
 namespace

@@ -13,8 +13,6 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
-#include "doctest-printer/optional.hpp"
-
 using namespace mamba::util;
 
 namespace

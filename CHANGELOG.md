@@ -1,3 +1,20 @@
+2024.11.21
+==========
+
+Releases:  libmamba 1.5.11, libmambapy 1.5.11, mamba 1.5.11, micromamba 1.5.11
+
+Bug fixes:
+
+- [libmamba, libmambapy, mamba, micromamba] Backport of #3580: Skip misformatted configuration files by @jjerphan in https://github.com/mamba-org/mamba/pull/3593
+- [micromamba] Add missing dependencies to micromamba's environment specification by @jjerphan in https://github.com/mamba-org/mamba/pull/3603
+- [micromamba] Backport of #3436: Fixed micromamba static build after cctools and ld64 upgrade on conda-forge by @Hind-M in https://github.com/mamba-org/mamba/pull/3465
+- [libmamba, libmambapy, mamba, micromamba] Ignore SOLV writing exceptions by @jaimergp in https://github.com/mamba-org/mamba/pull/3313
+- [libmamba, libmambapy, mamba, micromamba] Apply feedstock patches by @Hind-M in https://github.com/mamba-org/mamba/pull/3466
+
+CI:
+
+- [libmamba, libmambapy, mamba, micromamba] Upgraded to setup-micromamba v2 by @JohanMabille in https://github.com/mamba-org/mamba/pull/3504
+
 2024.09.20
 ==========
 

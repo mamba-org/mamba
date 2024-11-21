@@ -1,3 +1,16 @@
+mamba 1.5.11 (November 21, 2024)
+================================
+
+Bug fixes:
+
+- Backport of #3580: Skip misformatted configuration files by @jjerphan in https://github.com/mamba-org/mamba/pull/3593
+- Ignore SOLV writing exceptions by @jaimergp in https://github.com/mamba-org/mamba/pull/3313
+- Apply feedstock patches by @Hind-M in https://github.com/mamba-org/mamba/pull/3466
+
+CI:
+
+- Upgraded to setup-micromamba v2 by @JohanMabille in https://github.com/mamba-org/mamba/pull/3504
+
 mamba 1.5.10 (September 20, 2024)
 =================================
 

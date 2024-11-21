@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.16)
 add_executable(
     test_solv_cpp
     src/main.cpp
-    src/msvc_string_maker.cpp
+    src/msvc_catch_string_view.cpp
     src/pool_data.cpp
     src/test_pool.cpp
     src/test_queue.cpp

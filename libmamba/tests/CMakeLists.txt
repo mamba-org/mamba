@@ -13,6 +13,7 @@ set(
     include/mambatests.hpp
     src/test_main.cpp
     # Utility library
+    src/util/msvc_catch_byte.cpp
     src/util/test_cast.cpp
     src/util/test_compare.cpp
     src/util/test_cryptography.cpp
@@ -27,14 +28,14 @@ set(
     src/util/test_os_osx.cpp
     src/util/test_os_unix.cpp
     src/util/test_os_win.cpp
-    src/util/test_path_manip.cpp
     src/util/test_parsers.cpp
+    src/util/test_path_manip.cpp
     src/util/test_random.cpp
     src/util/test_string.cpp
     src/util/test_tuple_hash.cpp
     src/util/test_type_traits.cpp
-    src/util/test_url.cpp
     src/util/test_url_manip.cpp
+    src/util/test_url.cpp
     src/util/test_weakening_map.cpp
     # Implementation of version and matching specs
     src/specs/test_archive.cpp

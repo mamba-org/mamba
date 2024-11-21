@@ -90,7 +90,7 @@ namespace mamba
             }
             history_file.close();
 
-            REQUIRE(updated_history_buffer.str() == check_buffer.str();
+            REQUIRE(updated_history_buffer.str() == check_buffer.str());
         }
 
         TEST_CASE("parse_metadata")

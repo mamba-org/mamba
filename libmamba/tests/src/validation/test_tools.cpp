@@ -47,7 +47,7 @@ namespace
         int error = 0;
         auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
         REQUIRE(error == 0);
-        REQUIRE(pk_hex == hex_str(pk_bytes);
+        REQUIRE(pk_hex == hex_str(pk_bytes));
 
         spdlog::set_level(spdlog::level::debug);
 
@@ -78,7 +78,7 @@ namespace
         auto sig_hex = hex_str(sig);
         auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
         REQUIRE(error == 0);
-        REQUIRE(sig_hex == hex_str(sig_bytes);
+        REQUIRE(sig_hex == hex_str(sig_bytes));
 
         spdlog::set_level(spdlog::level::debug);
 
@@ -117,12 +117,12 @@ protected:
 
 namespace
 {
-    TEST_CASE_FIXTURE(VerifyMsg, "from_bytes")
+    TEST_CASE_METHOD(VerifyMsg, "from_bytes")
     {
         REQUIRE(verify("Some text.", pk.data(), signature.data()) == 1);
     }
 
-    TEST_CASE_FIXTURE(VerifyMsg, "from_hex")
+    TEST_CASE_METHOD(VerifyMsg, "from_hex")
     {
         auto signature_hex = hex_str(signature);
         auto pk_hex = hex_str(pk);
@@ -130,7 +130,7 @@ namespace
         REQUIRE(verify("Some text.", pk_hex, signature_hex) == 1);
     }
 
-    TEST_CASE_FIXTURE(VerifyMsg, "wrong_signature")
+    TEST_CASE_METHOD(VerifyMsg, "wrong_signature")
     {
         spdlog::set_level(spdlog::level::debug);
         auto pk_hex = hex_str(pk);
@@ -139,7 +139,7 @@ namespace
         spdlog::set_level(spdlog::level::info);
     }
 
-    TEST_CASE_FIXTURE(VerifyMsg, "wrong_public_key")
+    TEST_CASE_METHOD(VerifyMsg, "wrong_public_key")
     {
         spdlog::set_level(spdlog::level::debug);
         auto signature_hex = hex_str(signature);
@@ -190,7 +190,7 @@ protected:
 
 namespace
 {
-    TEST_CASE_FIXTURE(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
+    TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
     {
         int error = 0;
         auto bin_signature = ed25519_sig_hex_to_bytes(signature, error);
@@ -201,12 +201,12 @@ namespace
         REQUIRE(verify_gpg_hashed_msg(hash, bin_pk.data(), bin_signature.data()) == 1);
     }
 
-    TEST_CASE_FIXTURE(VerifyGPGMsg, "verify_gpg_hashed_msg_from_hex")
+    TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg_hashed_msg_from_hex")
     {
         REQUIRE(verify_gpg_hashed_msg(hash, pk, signature) == 1);
     }
 
-    TEST_CASE_FIXTURE(VerifyGPGMsg, "verify_gpg")
+    TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg")
     {
         REQUIRE(verify_gpg(data, trailer, pk, signature) == 1);
     }

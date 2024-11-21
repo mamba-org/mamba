@@ -175,11 +175,11 @@ namespace
                 j["track_features"] = "python";
                 REQUIRE(j.get<PackageInfo>().track_features == StrVec{ "python" });
                 j["track_features"] = "python,mkl";
-                REQUIRE(j.get<PackageInfo>().track_features, StrVec{ "python" == "mkl" });
+                REQUIRE(j.get<PackageInfo>().track_features == StrVec{ "python", "mkl" });
                 j.erase("track_features");
                 REQUIRE(j.get<PackageInfo>().track_features == StrVec{});
                 j["track_features"] = nl::json::array({ "py", "malloc" });
-                REQUIRE(j.get<PackageInfo>().track_features, StrVec{ "py" == "malloc" });
+                REQUIRE(j.get<PackageInfo>().track_features == StrVec{ "py", "malloc" });
             }
 
             SECTION("equality_operator")
@@ -218,13 +218,13 @@ namespace
             auto hash_fn = std::hash<PackageInfo>{};
 
             REQUIRE(pkg == pkg2);
-            REQUIRE(hash_fn(pkg) == hash_fn(pkg2);
+            REQUIRE(hash_fn(pkg) == hash_fn(pkg2));
 
 
             pkg2.md5[0] = '0';
 
             REQUIRE(pkg != pkg2);
-            REQUIRE(hash_fn(pkg) != hash_fn(pkg2);
+            REQUIRE(hash_fn(pkg) != hash_fn(pkg2));
         }
     }
 }

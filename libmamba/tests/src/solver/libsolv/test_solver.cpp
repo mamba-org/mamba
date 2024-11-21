@@ -96,7 +96,7 @@ namespace
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
             REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
-            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+            REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE(python_actions.size() == 1);
@@ -121,7 +121,7 @@ namespace
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
             REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
-            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+            REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE(python_actions.size() == 1);
@@ -147,7 +147,7 @@ namespace
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
             REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
-            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+            REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE(python_actions.size() == 1);
@@ -173,7 +173,7 @@ namespace
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Omit>(solution.actions.back()));
             REQUIRE(std::get<Solution::Omit>(solution.actions.back()).what.name == "numpy");
-            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+            REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE(python_actions.size() == 1);
@@ -241,7 +241,7 @@ namespace
             // Numpy is first because of topological sort
             REQUIRE(std::holds_alternative<Solution::Remove>(solution.actions.front()));
             REQUIRE(std::get<Solution::Remove>(solution.actions.front()).remove.name == "numpy");
-            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+            REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
 
             // Python is not removed because it is needed by pip which is installed
             REQUIRE(find_actions_with_name(solution, "pip").empty());
@@ -287,7 +287,7 @@ namespace
             REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Remove>(solution.actions.front()));
             REQUIRE(std::get<Solution::Remove>(solution.actions.front()).remove.name == "numpy");
-            REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+            REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
         }
 
         SECTION("Removing non-existing package is a no-op")
@@ -399,7 +399,7 @@ namespace
                     std::get<Solution::Upgrade>(solution.actions.back()).install.version == "1.26.4"
                 );
                 REQUIRE(std::get<Solution::Upgrade>(solution.actions.back()).remove.version == "1.0.0");
-                REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
+                REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
 
                 // Python needs to be installed
                 const auto python_actions = find_actions_with_name(solution, "python");

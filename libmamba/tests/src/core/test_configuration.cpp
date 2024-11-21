@@ -116,22 +116,23 @@ namespace mamba
 
         namespace
         {
-            TEST_CASE_FIXTURE(Configuration, "target_prefix_options")
+            TEST_CASE_METHOD(Configuration, "target_prefix_options")
             {
-                REQUIRE(!MAMBA_ALLOW_EXISTING_PREFIX == 0);
-                REQUIRE(!MAMBA_ALLOW_MISSING_PREFIX == 0);
-                REQUIRE(!MAMBA_ALLOW_NOT_ENV_PREFIX == 0);
-                REQUIRE(!MAMBA_EXPECT_EXISTING_PREFIX == 0);
+                REQUIRE((!MAMBA_ALLOW_EXISTING_PREFIX) == 0);
+                REQUIRE((!MAMBA_ALLOW_MISSING_PREFIX) == 0);
+                REQUIRE((!MAMBA_ALLOW_NOT_ENV_PREFIX) == 0);
+                REQUIRE((!MAMBA_EXPECT_EXISTING_PREFIX) == 0);
 
-                REQUIRE(!MAMBA_ALLOW_EXISTING_PREFIX == MAMBA_NOT_ALLOW_EXISTING_PREFIX);
+                REQUIRE((!MAMBA_ALLOW_EXISTING_PREFIX) == MAMBA_NOT_ALLOW_EXISTING_PREFIX);
 
                 REQUIRE(
-                    MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                    | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX == 0
+                    (MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                     | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX)
+                    == 0
                 );
             }
 
-            TEST_CASE_FIXTURE(Configuration, "load_rc_file")
+            TEST_CASE_METHOD(Configuration, "load_rc_file")
             {
                 std::string rc = unindent(R"(
                     channels:
@@ -161,7 +162,7 @@ namespace mamba
             }
 
             // Regression test for https://github.com/mamba-org/mamba/issues/2934
-            TEST_CASE_FIXTURE(Configuration, "parse_condarc")
+            TEST_CASE_METHOD(Configuration, "parse_condarc")
             {
                 std::vector<fs::u8path> possible_rc_paths = {
                     mambatests::test_data_dir / "config/.condarc",
@@ -170,7 +171,7 @@ namespace mamba
                 config.set_rc_values(possible_rc_paths, RCConfigLevel::kTargetPrefix);
             };
 
-            TEST_CASE_FIXTURE(Configuration, "load_rc_files")
+            TEST_CASE_METHOD(Configuration, "load_rc_files")
             {
                 std::string rc1 = unindent(R"(
                     channels:
@@ -282,7 +283,7 @@ namespace mamba
                 );
             }
 
-            TEST_CASE_FIXTURE(Configuration, "dump")
+            TEST_CASE_METHOD(Configuration, "dump")
             {
                 std::string rc1 = unindent(R"(
                     channels:
@@ -335,7 +336,7 @@ namespace mamba
                 );
             }
 
-            TEST_CASE_FIXTURE(Configuration, "channels")
+            TEST_CASE_METHOD(Configuration, "channels")
             {
                 std::string rc1 = unindent(R"(
                     channels:
@@ -406,7 +407,7 @@ namespace mamba
                 util::unset_env("CONDA_CHANNELS");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "default_channels")
+            TEST_CASE_METHOD(Configuration, "default_channels")
             {
                 std::string rc1 = unindent(R"(
                     default_channels:
@@ -482,7 +483,7 @@ namespace mamba
                 util::unset_env("MAMBA_DEFAULT_CHANNELS");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "channel_alias")
+            TEST_CASE_METHOD(Configuration, "channel_alias")
             {
                 std::string rc1 = "channel_alias: http://repo.mamba.pm/";
                 std::string rc2 = "channel_alias: https://conda.anaconda.org/";
@@ -518,7 +519,7 @@ namespace mamba
                 util::unset_env("MAMBA_CHANNEL_ALIAS");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "mirrored_channels")
+            TEST_CASE_METHOD(Configuration, "mirrored_channels")
             {
                 std::string rc1 = unindent(R"(
                     mirrored_channels:
@@ -537,7 +538,7 @@ namespace mamba
                               - https://repo.mamba.pm/conda-forge)"));
             }
 
-            TEST_CASE_FIXTURE(Configuration, "pkgs_dirs")
+            TEST_CASE_METHOD(Configuration, "pkgs_dirs")
             {
                 std::string cache1 = util::path_concat(util::user_home_dir(), "foo");
                 std::string cache2 = util::path_concat(util::user_home_dir(), "bar");
@@ -620,7 +621,7 @@ namespace mamba
                 config.clear_values();
             }
 
-            TEST_CASE_FIXTURE(Configuration, "ssl_verify")
+            TEST_CASE_METHOD(Configuration, "ssl_verify")
             {
                 // Default empty string value
                 ctx.remote_fetch_params.ssl_verify = "";
@@ -693,7 +694,7 @@ namespace mamba
 
 #undef EXPECT_CA_EQUAL
 
-            TEST_CASE_FIXTURE(Configuration, "cacert_path")
+            TEST_CASE_METHOD(Configuration, "cacert_path")
             {
                 std::string rc = "ssl_verify: /foo/bar/baz\ncacert_path: /other/foo/bar/baz";
                 load_test_config(rc);
@@ -747,7 +748,7 @@ namespace mamba
                 load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
             }
 
-            TEST_CASE_FIXTURE(Configuration, "proxy_servers")
+            TEST_CASE_METHOD(Configuration, "proxy_servers")
             {
                 std::string rc = unindent(R"(
                     proxy_servers:
@@ -765,7 +766,7 @@ namespace mamba
                 REQUIRE(config.dump() == "proxy_servers:\n  http: foo\n  https: bar");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "platform")
+            TEST_CASE_METHOD(Configuration, "platform")
             {
                 REQUIRE(ctx.platform == ctx.host_platform);
 
@@ -800,7 +801,7 @@ namespace mamba
             }
 
 #define TEST_BOOL_CONFIGURABLE(NAME, CTX)                                                           \
-    TEST_CASE_FIXTURE(Configuration, #NAME)                                                         \
+    TEST_CASE_METHOD(Configuration, #NAME)                                                          \
     {                                                                                               \
         std::string rc1 = std::string(#NAME) + ": true";                                            \
         std::string rc2 = std::string(#NAME) + ": false";                                           \
@@ -863,7 +864,7 @@ namespace mamba
 
             TEST_BOOL_CONFIGURABLE(auto_activate_base, ctx.auto_activate_base);
 
-            TEST_CASE_FIXTURE(Configuration, "channel_priority")
+            TEST_CASE_METHOD(Configuration, "channel_priority")
             {
                 std::string rc1 = "channel_priority: flexible";
                 std::string rc2 = "channel_priority: strict";
@@ -919,7 +920,7 @@ namespace mamba
                 util::unset_env("MAMBA_CHANNEL_PRIORITY");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "skip_misformatted_config_file")
+            TEST_CASE_METHOD(Configuration, "skip_misformatted_config_file")
             {
                 std::string rc = "invalid_scalar_value";
                 load_test_config(rc);
@@ -928,7 +929,7 @@ namespace mamba
                 REQUIRE(config.dump() == "");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "pinned_packages")
+            TEST_CASE_METHOD(Configuration, "pinned_packages")
             {
                 std::string rc1 = unindent(R"(
                     pinned_packages:
@@ -1026,7 +1027,7 @@ namespace mamba
 
             TEST_BOOL_CONFIGURABLE(always_copy, ctx.always_copy);
 
-            TEST_CASE_FIXTURE(Configuration, "always_softlink_and_copy")
+            TEST_CASE_METHOD(Configuration, "always_softlink_and_copy")
             {
                 util::set_env("MAMBA_ALWAYS_COPY", "true");
                 REQUIRE_THROWS_AS(load_test_config("always_softlink: true"), std::runtime_error);
@@ -1039,7 +1040,7 @@ namespace mamba
                 load_test_config("always_softlink: false\nalways_copy: false");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "safety_checks")
+            TEST_CASE_METHOD(Configuration, "safety_checks")
             {
                 std::string rc1 = "safety_checks: enabled";
                 std::string rc2 = "safety_checks: warn";
@@ -1100,7 +1101,7 @@ namespace mamba
 
 #undef TEST_BOOL_CONFIGURABLE
 
-            TEST_CASE_FIXTURE(Configuration, "has_config_name")
+            TEST_CASE_METHOD(Configuration, "has_config_name")
             {
                 using namespace detail;
 
@@ -1121,7 +1122,7 @@ namespace mamba
                 REQUIRE(has_config_name("config.yml"));
             }
 
-            TEST_CASE_FIXTURE(Configuration, "is_config_file")
+            TEST_CASE_METHOD(Configuration, "is_config_file")
             {
                 using namespace detail;
 
@@ -1143,7 +1144,7 @@ namespace mamba
             }
 
             // Regression test for https://github.com/mamba-org/mamba/issues/2704
-            TEST_CASE_FIXTURE(Configuration, "deduplicate_rc_files")
+            TEST_CASE_METHOD(Configuration, "deduplicate_rc_files")
             {
                 using namespace detail;
 
@@ -1175,7 +1176,7 @@ namespace mamba
                 REQUIRE(config.at("channel_alias").value<std::string>() == "http://inner.com");
             }
 
-            TEST_CASE_FIXTURE(Configuration, "print_scalar_node")
+            TEST_CASE_METHOD(Configuration, "print_scalar_node")
             {
                 using namespace detail;
 
@@ -1209,7 +1210,7 @@ namespace mamba
                 */
             }
 
-            TEST_CASE_FIXTURE(Configuration, "print_map_node")
+            TEST_CASE_METHOD(Configuration, "print_map_node")
             {
                 using namespace detail;
 
@@ -1245,7 +1246,7 @@ namespace mamba
                 REQUIRE_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);*/
             }
 
-            TEST_CASE_FIXTURE(Configuration, "print_seq_node")
+            TEST_CASE_METHOD(Configuration, "print_seq_node")
             {
                 using namespace detail;
 

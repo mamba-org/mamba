@@ -22,7 +22,7 @@ namespace mamba
             std::filesystem::path x{ value };
             const auto y = fs::normalized_separators(x);
 #if defined(_WIN32)
-            REQUIRE_EQ(y.u8string(), u8R"(a\b\c)");
+            REQUIRE(y.u8string() == u8R"(a\b\c)");
 #else
             REQUIRE(y.u8string() == value);
 #endif
@@ -86,7 +86,7 @@ namespace mamba
                 const auto path_to_search_from = file_dir.parent_path();
                 fs::recursive_directory_iterator it{ path_to_search_from };
                 auto first_entry = *it;
-                REQUIRE(first_entry.path() == file_path.parent_path();
+                REQUIRE(first_entry.path() == file_path.parent_path());
                 auto secibd_entry = *(++it);
                 REQUIRE(secibd_entry.path() == file_path);
             }

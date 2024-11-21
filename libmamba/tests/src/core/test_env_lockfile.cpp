@@ -25,13 +25,13 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile("this/file/does/not/exists");
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
-            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
+            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code());
 
             const auto& error_details = EnvLockFileError::get_details(error);
             REQUIRE(file_parsing_error_code::parsing_failure == error_details.parsing_error_code);
             REQUIRE(error_details.yaml_error_type);
             const std::type_index bad_file_error_id{ typeid(YAML::BadFile) };
-            REQUIRE(bad_file_error_id == error_details.yaml_error_type.value();
+            REQUIRE(bad_file_error_id == error_details.yaml_error_type.value());
 
             // NOTE: one could attempt to check if opening a file which is not an YAML file
             //       would fail. Unfortunately YAML parsers will accept any kind of file,
@@ -46,7 +46,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(invalid_version_lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
-            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
+            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code());
             const auto& error_details = EnvLockFileError::get_details(error);
             REQUIRE(file_parsing_error_code::unsupported_version == error_details.parsing_error_code);
         }
@@ -56,7 +56,11 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_no_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
-            REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
+            if (!maybe_lockfile)
+            {
+                INFO(maybe_lockfile.error().what());
+                FAIL();
+            }
             const auto lockfile = maybe_lockfile.value();
             REQUIRE(lockfile.get_all_packages().empty());
         }
@@ -68,7 +72,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
-            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
+            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code());
             const auto& error_details = EnvLockFileError::get_details(error);
             REQUIRE(file_parsing_error_code::parsing_failure == error_details.parsing_error_code);
         }
@@ -78,7 +82,11 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_one_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
-            REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
+            if (!maybe_lockfile)
+            {
+                INFO(maybe_lockfile.error().what());
+                FAIL();
+            }
             const auto lockfile = maybe_lockfile.value();
             REQUIRE(lockfile.get_all_packages().size() == 1);
         }
@@ -89,7 +97,11 @@ namespace mamba
                 mambatests::test_data_dir / "env_lockfile/good_one_package_missing_category-lock.yaml"
             };
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
-            REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
+            if (!maybe_lockfile)
+            {
+                INFO(maybe_lockfile.error().what());
+                FAIL();
+            }
             const auto lockfile = maybe_lockfile.value();
             REQUIRE(lockfile.get_all_packages().size() == 1);
         }
@@ -99,7 +111,11 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
-            REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
+            if (!maybe_lockfile)
+            {
+                INFO(maybe_lockfile.error().what());
+                FAIL();
+            }
             const auto lockfile = maybe_lockfile.value();
             REQUIRE(lockfile.get_all_packages().size() > 1);
         }

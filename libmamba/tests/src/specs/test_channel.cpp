@@ -276,7 +276,7 @@ namespace
                 const auto& chan = channels.front();
                 const auto url = "file:///path/to/libmamba-1.4.2-hcea66bb_0.conda"sv;
                 REQUIRE(chan.url() == CondaURL::parse(url).value());
-                REQUIRE(chan.platforms() == platform_list();  // Empty because package
+                REQUIRE(chan.platforms() == platform_list());  // Empty because package
                 REQUIRE(chan.display_name() == url);
             }
         }
@@ -294,7 +294,7 @@ namespace
                 const auto& chan = channels.front();
                 const auto url = "file:///home/conda-bld/win-64/libmamba-1.4.2-hcea66bb_0.conda"sv;
                 REQUIRE(chan.url() == CondaURL::parse(url).value());
-                REQUIRE(chan.platforms() == platform_list();  // Empty because package
+                REQUIRE(chan.platforms() == platform_list());  // Empty because package
                 REQUIRE(chan.display_name() == url);
             }
 
@@ -347,7 +347,7 @@ namespace
                 const auto& chan = channels.front();
                 const auto url = "file:///cwd/path/to/libmamba-1.4.2-hcea66bb_0.conda"sv;
                 REQUIRE(chan.url() == CondaURL::parse(url).value());
-                REQUIRE(chan.platforms() == platform_list();  // Empty because package
+                REQUIRE(chan.platforms() == platform_list());  // Empty because package
                 REQUIRE(chan.display_name() == url);
             }
         }
@@ -413,7 +413,7 @@ namespace
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
                 const auto url = "file:///cwd/other/folder"sv;
-                REQUIRE(chan.url() == CondaURL::parse(url);
+                REQUIRE(chan.url() == CondaURL::parse(url));
                 REQUIRE(chan.platforms() == params.platforms);
                 REQUIRE(chan.display_name() == url);
             }
@@ -430,8 +430,8 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
-                REQUIRE(chan.platforms() == platform_list();  // Empty because package
+                REQUIRE(chan.url() == CondaURL::parse(url));
+                REQUIRE(chan.platforms() == platform_list());  // Empty because package
                 REQUIRE(chan.display_name() == url);
             }
         }
@@ -450,8 +450,8 @@ namespace
                 auto channels = Channel::resolve(uc, ChannelResolveParams{}).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
-                REQUIRE(chan.platforms() == uc.platform_filters();
+                REQUIRE(chan.url() == CondaURL::parse(url));
+                REQUIRE(chan.platforms() == uc.platform_filters());
                 REQUIRE(chan.display_name() == url);
             }
 
@@ -461,8 +461,8 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
-                REQUIRE(chan.platforms() == uc.platform_filters();
+                REQUIRE(chan.url() == CondaURL::parse(url));
+                REQUIRE(chan.platforms() == uc.platform_filters());
                 REQUIRE(chan.display_name() == url);
             }
         }
@@ -481,8 +481,8 @@ namespace
                 auto channels = Channel::resolve(uc, ChannelResolveParams{}).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
-                REQUIRE(chan.platforms() == uc.platform_filters();
+                REQUIRE(chan.url() == CondaURL::parse(url));
+                REQUIRE(chan.platforms() == uc.platform_filters());
                 REQUIRE(chan.display_name() == url);
             }
 
@@ -492,8 +492,8 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
-                REQUIRE(chan.platforms() == uc.platform_filters();
+                REQUIRE(chan.url() == CondaURL::parse(url));
+                REQUIRE(chan.platforms() == uc.platform_filters());
                 REQUIRE(chan.display_name() == url);
             }
 
@@ -640,7 +640,7 @@ namespace
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
                 // Higher precedence
-                REQUIRE(chan.url() == CondaURL::parse("https://user:pass@repo.mamba.pm/conda-forge");
+                REQUIRE(chan.url() == CondaURL::parse("https://user:pass@repo.mamba.pm/conda-forge"));
                 REQUIRE(chan.display_name() == "https://repo.mamba.pm/conda-forge");
             }
         }
@@ -656,7 +656,7 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
+                REQUIRE(chan.url() == CondaURL::parse(url));
                 REQUIRE(chan.platforms() == params.platforms);
                 REQUIRE(chan.display_name() == "pkgs/main");
             }
@@ -671,7 +671,7 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
+                REQUIRE(chan.url() == CondaURL::parse(url));
                 REQUIRE(chan.display_name() == "pkgs/main");
             }
         }
@@ -730,7 +730,7 @@ namespace
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
                 // Higher precedence.
-                REQUIRE(chan.url() == CondaURL::parse("ftp://mydomain.net/conda");
+                REQUIRE(chan.url() == CondaURL::parse("ftp://mydomain.net/conda"));
                 REQUIRE(chan.display_name() == name);
                 REQUIRE(chan.platforms() == params.platforms);
             }
@@ -747,7 +747,7 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main");
+                REQUIRE(chan.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
                 REQUIRE(chan.platforms() == params.platforms);
                 REQUIRE(chan.display_name() == name);
             }
@@ -764,7 +764,7 @@ namespace
                 auto channels = Channel::resolve(specs, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main/label/dev");
+                REQUIRE(chan.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main/label/dev"));
                 REQUIRE(chan.platforms() == params.platforms);
                 REQUIRE(chan.display_name() == name);
             }
@@ -831,7 +831,7 @@ namespace
             auto channels = Channel::resolve(uc, params).value();
             REQUIRE(channels.size() == 1);
             const auto& chan = channels.front();
-            REQUIRE(chan.url() == CondaURL::parse("https://ali.as/prefix-and-more");
+            REQUIRE(chan.url() == CondaURL::parse("https://ali.as/prefix-and-more"));
             REQUIRE(chan.display_name() == name);
             REQUIRE(chan.platforms() == params.platforms);
         }
@@ -850,7 +850,7 @@ namespace
                 auto found_names = util::flat_set<std::string>();
                 for (const auto& chan : channels)
                 {
-                    REQUIRE(chan.platforms() == uc.platform_filters();  // Overridden
+                    REQUIRE(chan.platforms() == uc.platform_filters());  // Overridden
                     found_names.insert(chan.display_name());
                 }
                 REQUIRE(
@@ -865,8 +865,8 @@ namespace
             auto channels = Channel::resolve(uc, ChannelResolveParams{}).value();
             REQUIRE(channels.size() == 1);
             const auto& chan = channels.front();
-            REQUIRE(chan.url() == CondaURL();
-            REQUIRE(chan.platforms() == platform_list();
+            REQUIRE(chan.url() == CondaURL());
+            REQUIRE(chan.platforms() == platform_list());
             REQUIRE(chan.display_name() == "<unknown>");
         }
 
@@ -882,9 +882,11 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                REQUIRE(chan.url() == CondaURL::parse(url);
-                REQUIRE(chan.platforms() == platform_list();  // Empty because package
-                REQUIRE(chan.display_name() == "conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2");
+                REQUIRE(chan.url() == CondaURL::parse(url));
+                REQUIRE(chan.platforms() == platform_list());  // Empty because package
+                REQUIRE(
+                    chan.display_name() == "conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+                );
             }
         }
     }

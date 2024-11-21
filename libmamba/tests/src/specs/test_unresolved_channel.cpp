@@ -84,7 +84,7 @@ namespace
                                 .value();
             REQUIRE(uc.type() == Type::URL);
             REQUIRE(uc.location() == "https://repo.anaconda.com/conda-forge");
-            REQUIRE(uc.platform_filters(), PlatformSet{ "win-64" == "noarch" });
+            REQUIRE(uc.platform_filters() == PlatformSet{ "win-64", "noarch" });
         }
 
         SECTION("https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda")
@@ -263,7 +263,7 @@ namespace
         REQUIRE(uc1 != uc3);
 
         auto hash_fn = std::hash<UnresolvedChannel>();
-        REQUIRE(hash_fn(uc1) == hash_fn(uc2);
-        REQUIRE(hash_fn(uc1) != hash_fn(uc3);
+        REQUIRE(hash_fn(uc1) == hash_fn(uc2));
+        REQUIRE(hash_fn(uc1) != hash_fn(uc3));
     }
 }

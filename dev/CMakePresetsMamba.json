@@ -45,7 +45,7 @@
     },
     {
       "cacheVariables": {
-        "CMAKE_COLOR_DIAGNOSTICS": "ON",
+        "CMAKE_COLOR_DIAGNOSTICS": "OFF",
         "CMAKE_COLOR_MAKEFILE": "ON",
         "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
         "CMAKE_CXX_EXTENSIONS": "OFF",

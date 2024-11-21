@@ -150,10 +150,10 @@ namespace
         REQUIRE(g.successors(0u) == node_id_list({ 1u, 2u }));
         REQUIRE(g.successors(1u) == node_id_list({ 3u, 4u }));
         REQUIRE(g.successors(2u) == node_id_list({ 3u, 5u }));
-        REQUIRE(g.successors(3u) == node_id_list({ 6u });
-        REQUIRE(g.predecessors(0u) == node_id_list();
-        REQUIRE(g.predecessors(1u) == node_id_list({ 0u });
-        REQUIRE(g.predecessors(2u) == node_id_list({ 0u });
+        REQUIRE(g.successors(3u) == node_id_list({ 6u }));
+        REQUIRE(g.predecessors(0u) == node_id_list());
+        REQUIRE(g.predecessors(1u) == node_id_list({ 0u }));
+        REQUIRE(g.predecessors(2u) == node_id_list({ 0u }));
         REQUIRE(g.predecessors(3u) == node_id_list({ 1u, 2u }));
     }
 
@@ -165,12 +165,12 @@ namespace
         REQUIRE(g.number_of_nodes() == 3ul);
         REQUIRE(g.number_of_edges() == 2ul);
         REQUIRE(g.nodes() == node_map({ { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 } }));
-        REQUIRE(g.successors(0ul) == node_id_list({ 1ul });
-        REQUIRE(g.successors(1ul) == node_id_list({ 2ul });
-        REQUIRE(g.successors(2ul) == node_id_list();
-        REQUIRE(g.predecessors(0ul) == node_id_list();
-        REQUIRE(g.predecessors(1ul) == node_id_list({ 0ul });
-        REQUIRE(g.predecessors(2ul) == node_id_list({ 1ul });
+        REQUIRE(g.successors(0ul) == node_id_list({ 1ul }));
+        REQUIRE(g.successors(1ul) == node_id_list({ 2ul }));
+        REQUIRE(g.successors(2ul) == node_id_list());
+        REQUIRE(g.predecessors(0ul) == node_id_list());
+        REQUIRE(g.predecessors(1ul) == node_id_list({ 0ul }));
+        REQUIRE(g.predecessors(2ul) == node_id_list({ 1ul }));
 
         using edge_map = decltype(g)::edge_map;
         REQUIRE(g.edges() == edge_map({ { { 0ul, 1ul }, "n0->n1" }, { { 1ul, 2ul }, "n1->n2" } }));
@@ -285,7 +285,7 @@ namespace
                 ++n_nodes;
             }
         );
-        REQUIRE(n_nodes == g.number_of_nodes();
+        REQUIRE(n_nodes == g.number_of_nodes());
     }
 
     TEST_CASE("for_each_edge")
@@ -300,7 +300,7 @@ namespace
                 ++n_edges;
             }
         );
-        REQUIRE(n_edges == g.number_of_edges();
+        REQUIRE(n_edges == g.number_of_edges());
     }
 
     TEST_CASE("for_each_leaf")
@@ -330,7 +330,7 @@ namespace
         using node_id_list = decltype(g)::node_id_list;
         auto roots = node_id_list();
         g.for_each_root_id([&roots](node_id root) { roots.insert(root); });
-        REQUIRE(roots == node_id_list({ 0ul });
+        REQUIRE(roots == node_id_list({ 0ul }));
     }
 
     TEST_CASE("for_each_root_from")
@@ -340,7 +340,7 @@ namespace
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
         g.for_each_root_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
-        REQUIRE(leaves == node_id_list({ 0ul });
+        REQUIRE(leaves == node_id_list({ 0ul }));
     }
 
     TEST_CASE("depth_first_search")
@@ -357,9 +357,9 @@ namespace
         REQUIRE_FALSE(start_node_list.empty());
         REQUIRE_FALSE(finish_node_list.empty());
         const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
-        REQUIRE(start_node_list.size() == start_node_set.size();  // uniqueness
+        REQUIRE(start_node_list.size() == start_node_set.size());  // uniqueness
         const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
-        REQUIRE(finish_node_list.size() == finish_node_set.size();  // uniqueness
+        REQUIRE(finish_node_list.size() == finish_node_set.size());  // uniqueness
         REQUIRE(start_node_set == finish_node_set);
     }
 
@@ -493,10 +493,10 @@ namespace
                 CAPTURE(std::pair(g.node(from), g.node(to)));
                 const auto from_pos = std::find(sorted.cbegin(), sorted.cend(), from);
                 // Must be true given the permutation assumption
-                REQUIRE_LT(from_pos, sorted.cend());
+                REQUIRE(from_pos < sorted.cend());
                 const auto to_pos = std::find(sorted.cbegin(), sorted.cend(), to);
                 // Must be true given the permutation assumption
-                REQUIRE_LT(to_pos, sorted.cend());
+                REQUIRE(to_pos < sorted.cend());
                 // The topological sort property
                 REQUIRE(from_pos < to_pos);
             }

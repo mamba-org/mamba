@@ -50,6 +50,6 @@ namespace
         // fails.
         REQUIRE(hash_range(hello) != 0);
         REQUIRE(hash_range(world) != 0);
-        REQUIRE(hash_range(hello) != hash_range(world);
+        REQUIRE(hash_range(hello) != hash_range(world));
     }
 }

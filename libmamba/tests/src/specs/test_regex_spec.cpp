@@ -77,7 +77,7 @@ namespace
         REQUIRE(spec1 != spec3);
 
         auto hash_fn = std::hash<RegexSpec>();
-        REQUIRE(hash_fn(spec1) == hash_fn(spec2);
-        REQUIRE(hash_fn(spec1) != hash_fn(spec3);
+        REQUIRE(hash_fn(spec1) == hash_fn(spec2));
+        REQUIRE(hash_fn(spec1) != hash_fn(spec3));
     }
 }

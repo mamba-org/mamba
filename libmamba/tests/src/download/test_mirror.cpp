@@ -61,7 +61,7 @@ namespace mamba::download
             // `mir_ref` is used here to provide an explicit expression to `typeid`
             // and avoid expression with side effects evaluation warning
             auto& mir_ref = *mir;
-            REQUIRE(typeid(mir_ref) == typeid(PassThroughMirror);
+            REQUIRE(typeid(mir_ref) == typeid(PassThroughMirror));
 
             Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
             REQUIRE(req_gen.size() == 1);
@@ -81,7 +81,7 @@ namespace mamba::download
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror);
+                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 REQUIRE(req_gen.size() == 1);
@@ -103,7 +103,7 @@ namespace mamba::download
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror);
+                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 REQUIRE(req_gen.size() == 1);
@@ -125,7 +125,7 @@ namespace mamba::download
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror);
+                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 REQUIRE(req_gen.size() == 1);
@@ -150,7 +150,7 @@ namespace mamba::download
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                REQUIRE(typeid(mir_ref) == typeid(OCIMirror);
+                REQUIRE(typeid(mir_ref) == typeid(OCIMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators(
                     "linux-64/repodata.json",
@@ -167,8 +167,8 @@ namespace mamba::download
 
                 REQUIRE(mir_req.name == "repodata_request");
                 REQUIRE(
-                    mir_req.url ==
-                    "https://ghcr.io/token?scope=repository:channel-mirrors/conda-forge/linux-64/repodata.json:pull"
+                    mir_req.url
+                    == "https://ghcr.io/token?scope=repository:channel-mirrors/conda-forge/linux-64/repodata.json:pull"
                 );
 
                 // Empty token leads to throwing an exception
@@ -182,7 +182,7 @@ namespace mamba::download
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                REQUIRE(typeid(mir_ref) == typeid(OCIMirror);
+                REQUIRE(typeid(mir_ref) == typeid(OCIMirror));
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators(
                     "linux-64/pandoc-3.2-ha770c72_0.conda",
@@ -199,8 +199,8 @@ namespace mamba::download
 
                 REQUIRE(mir_req.name == "pandoc_request");
                 REQUIRE(
-                    mir_req.url ==
-                    "https://ghcr.io/token?scope=repository:channel-mirrors/conda-forge/linux-64/pandoc:pull"
+                    mir_req.url
+                    == "https://ghcr.io/token?scope=repository:channel-mirrors/conda-forge/linux-64/pandoc:pull"
                 );
 
                 // Empty token leads to throwing an exception

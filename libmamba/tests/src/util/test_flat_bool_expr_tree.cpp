@@ -142,7 +142,7 @@ namespace
             REQUIRE(tree.size() == 9);
 
             const auto visited = visit_all_once_no_cycle(tree);
-            REQUIRE(visited.size() == tree.size();
+            REQUIRE(visited.size() == tree.size());
         }
 
         SECTION("a b")
@@ -251,7 +251,7 @@ namespace
             REQUIRE(tree.size() == 9);
 
             const auto visited = visit_all_once_no_cycle(tree);
-            REQUIRE(visited.size() == tree.size();
+            REQUIRE(visited.size() == tree.size());
         }
 
         SECTION("(")
@@ -379,8 +379,8 @@ namespace
 
     TEST_CASE("Test exponential boolean cross-product")
     {
-        REQUIRE(integer_to_bools<5>(0b00000), std::array{ false, false, false, false == false });
-        REQUIRE(integer_to_bools<4>(0b1111), std::array{ true, true, true == true });
+        REQUIRE(integer_to_bools<5>(0b00000) == std::array{ false, false, false, false, false });
+        REQUIRE(integer_to_bools<4>(0b1111) == std::array{ true, true, true, true });
         REQUIRE(
             integer_to_bools<7>(0b1001101) == std::array{ true, false, true, true, false, false, true }
         );
@@ -409,7 +409,7 @@ namespace
         {
             const auto values = integer_to_bools<n_vars>(x);
             const auto eval = [&values](std::size_t idx) { return values[idx]; };
-            REQUIRE(tree.evaluate(eval) == reference_eval(values);
+            REQUIRE(tree.evaluate(eval) == reference_eval(values));
         }
     }
 
@@ -447,7 +447,7 @@ namespace
             const auto values = integer_to_bools<n_vars>(x);
             CAPTURE(values);
             const auto eval = [&values](std::size_t idx) { return values[idx]; };
-            REQUIRE(tree.evaluate(eval) == reference_eval(values);
+            REQUIRE(tree.evaluate(eval) == reference_eval(values));
         }
     }
 

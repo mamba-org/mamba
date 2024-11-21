@@ -355,21 +355,21 @@ namespace mamba
             auto mq = SubdirMetadata::read(cache_folder / "test_1.json");
             REQUIRE(mq.has_value());
             auto j = mq.value();
-            REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
+            REQUIRE(j.last_modified() == "Fri == 11 Feb 2022 13:52:44 GMT");
             REQUIRE(
                 j.url()
                 == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
             j = SubdirMetadata::read(cache_folder / "test_2.json").value();
-            REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
+            REQUIRE(j.last_modified() == "Fri == 11 Feb 2022 13:52:44 GMT");
             REQUIRE(
                 j.url()
                 == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
             j = SubdirMetadata::read(cache_folder / "test_5.json").value();
-            REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
+            REQUIRE(j.last_modified() == "Fri == 11 Feb 2022 13:52:44 GMT");
             REQUIRE(
                 j.url()
                 == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
@@ -378,7 +378,7 @@ namespace mamba
             j = SubdirMetadata::read(cache_folder / "test_4.json").value();
             REQUIRE(j.cache_control() == "{{}}\",,,\"");
             REQUIRE(j.etag() == "\n\n\"\"randome ecx,,ssd\n,,\"");
-            REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
+            REQUIRE(j.last_modified() == "Fri == 11 Feb 2022 13:52:44 GMT");
             REQUIRE(
                 j.url()
                 == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
@@ -388,7 +388,7 @@ namespace mamba
             REQUIRE(mq.has_value() == false);
 
             j = SubdirMetadata::read(cache_folder / "test_6.json").value();
-            REQUIRE(j.last_modified(), "Thu == 02 Apr 2020 20:21:27 GMT");
+            REQUIRE(j.last_modified() == "Thu == 02 Apr 2020 20:21:27 GMT");
             REQUIRE(j.url() == "https://conda.anaconda.org/intake/osx-arm64");
 
             auto state_file = cache_folder / "test_7.state.json";
@@ -423,7 +423,7 @@ namespace mamba
             j = SubdirMetadata::read(cache_folder / "test_7.json").value();
             REQUIRE(j.cache_control() == "something");
             REQUIRE(j.etag() == "something else");
-            REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
+            REQUIRE(j.last_modified() == "Fri == 11 Feb 2022 13:52:44 GMT");
             REQUIRE(j.url() == "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
             REQUIRE(j.has_zst() == false);
         }

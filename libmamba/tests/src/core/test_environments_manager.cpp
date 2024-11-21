@@ -25,7 +25,7 @@ namespace mamba
             auto new_prefixes = e.list_all_known_prefixes();
             // the prefix should be cleaned out, because it doesn't have the
             // `conda-meta/history` file
-            REQUIRE(new_prefixes.size() == prefixes.size();
+            REQUIRE(new_prefixes.size() == prefixes.size());
 
             // Create an env containing `conda-meta/history` file
             // and test register/unregister
@@ -38,7 +38,7 @@ namespace mamba
 
             e.unregister_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
-            REQUIRE(new_prefixes.size() == prefixes.size();
+            REQUIRE(new_prefixes.size() == prefixes.size());
 
             // Add another file in addition to `conda-meta/history`
             // and test register/unregister

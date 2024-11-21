@@ -48,7 +48,7 @@ namespace mamba
 
     namespace
     {
-        TEST_CASE_FIXTURE(progress_bar, "print")
+        TEST_CASE_METHOD(progress_bar, "print")
         {
             auto& r = proxy.repr();
 
@@ -90,7 +90,7 @@ namespace mamba
             ostream.str("");
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_no_resize")
+        TEST_CASE_METHOD(progress_bar, "print_no_resize")
         {
             auto& r = proxy.repr();
 
@@ -114,7 +114,7 @@ namespace mamba
             REQUIRE(r.elapsed.width() == 5);
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_reduce_bar")
+        TEST_CASE_METHOD(progress_bar, "print_reduce_bar")
         {
             auto& r = proxy.repr();
 
@@ -159,7 +159,7 @@ namespace mamba
             REQUIRE(r.elapsed.width() == 5);
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_remove_total_sep")
+        TEST_CASE_METHOD(progress_bar, "print_remove_total_sep")
         {
             auto& r = proxy.repr();
 
@@ -202,7 +202,7 @@ namespace mamba
             REQUIRE(r.elapsed.width() == 5);
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_remove_speed")
+        TEST_CASE_METHOD(progress_bar, "print_remove_speed")
         {
             auto& r = proxy.repr();
 
@@ -242,7 +242,7 @@ namespace mamba
             REQUIRE(r.elapsed.width() == 5);
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_remove_postfix")
+        TEST_CASE_METHOD(progress_bar, "print_remove_postfix")
         {
             auto& r = proxy.repr();
 
@@ -280,7 +280,7 @@ namespace mamba
             REQUIRE(r.elapsed.width() == 5);
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_truncate_prefix")
+        TEST_CASE_METHOD(progress_bar, "print_truncate_prefix")
         {
             auto& r = proxy.repr();
             proxy.set_prefix("some_very_very_long_prefix");
@@ -318,7 +318,7 @@ namespace mamba
             REQUIRE(r.elapsed.width() == 5);
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_without_bar")
+        TEST_CASE_METHOD(progress_bar, "print_without_bar")
         {
             auto& r = proxy.repr();
 
@@ -348,7 +348,7 @@ namespace mamba
             ostream.str("");
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_remove_current")
+        TEST_CASE_METHOD(progress_bar, "print_remove_current")
         {
             auto& r = proxy.repr();
 
@@ -366,7 +366,7 @@ namespace mamba
             ostream.str("");
         }
 
-        TEST_CASE_FIXTURE(progress_bar, "print_remove_elapsed")
+        TEST_CASE_METHOD(progress_bar, "print_remove_elapsed")
         {
             auto& r = proxy.repr();
 

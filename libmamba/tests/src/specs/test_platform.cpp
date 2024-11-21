@@ -38,7 +38,7 @@ namespace
                 "win-arm64",     "zos-z",
 
             };
-            REQUIRE(expected == known_platform_names();
+            REQUIRE(expected == known_platform_names());
         }
     }
 
@@ -94,7 +94,7 @@ namespace
         SECTION("known_noarch")
         {
             static constexpr decltype(known_noarch_names()) expected{ "no", "generic", "python" };
-            REQUIRE(expected == known_noarch_names();
+            REQUIRE(expected == known_noarch_names());
         }
     }
 }

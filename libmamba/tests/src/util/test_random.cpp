@@ -27,7 +27,7 @@ namespace
             REQUIRE(&a == &c);
 
             auto& d = local_random_generator<std::mt19937_64>();
-            REQUIRE(static_cast<void*>(&a) != static_cast<void*>(&d);
+            REQUIRE(static_cast<void*>(&a) != static_cast<void*>(&d));
 
             return &a;
         };

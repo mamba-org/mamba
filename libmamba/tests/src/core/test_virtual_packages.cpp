@@ -127,7 +127,7 @@ namespace mamba
                 util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
                 const auto& context = mambatests::context();
                 auto pkgs = get_virtual_packages(context.platform);
-                int pkgs_count;
+                size_t pkgs_count;
 
                 if (util::on_win)
                 {

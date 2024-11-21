@@ -135,8 +135,8 @@ test_random_access_api(Seq& input, const Seq& res, Pred pred)
     REQUIRE(iter_end - iter == static_cast<std::ptrdiff_t>(res.size()));
     REQUIRE(citer_end - citer == static_cast<std::ptrdiff_t>(res.size()));
 
-    REQUIRE(*(iter + 2) == *(res_iter + 2);
-    REQUIRE(*(citer + 2) == *(res_iter + 2);
+    REQUIRE(*(iter + 2) == *(res_iter + 2));
+    REQUIRE(*(citer + 2) == *(res_iter + 2));
     iter += 2, res_iter += 2, citer += 2;
     REQUIRE(*iter == *res_iter);
     REQUIRE(*citer == *res_iter);

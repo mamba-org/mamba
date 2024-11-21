@@ -185,7 +185,7 @@ namespace mamba
             const auto end_time = std::chrono::high_resolution_clock::now();
 
             REQUIRE(sequence == "ABCDEF");
-            REQUIRE_GE(end_time - begin_time, unlock_duration);
+            REQUIRE(end_time - begin_time >= unlock_duration);
         }
 
         TEST_CASE("throwing_task_never_block_join")

@@ -58,7 +58,7 @@ namespace mamba
 
         namespace
         {
-            TEST_CASE_FIXTURE(LockDirTest, "basics")
+            TEST_CASE_METHOD(LockDirTest, "basics")
             {
                 mamba::LockFile lock{ tempdir_path };
                 REQUIRE(lock);
@@ -70,7 +70,7 @@ namespace mamba
                 REQUIRE_FALSE(lock);
             }
 
-            TEST_CASE_FIXTURE(LockDirTest, "disable_locking")
+            TEST_CASE_METHOD(LockDirTest, "disable_locking")
             {
                 {
                     auto _ = on_scope_exit([] { mamba::allow_file_locking(true); });
@@ -86,7 +86,7 @@ namespace mamba
                 }
             }
 
-            TEST_CASE_FIXTURE(LockDirTest, "same_pid")
+            TEST_CASE_METHOD(LockDirTest, "same_pid")
             {
                 {
                     auto lock = LockFile(tempdir_path);
@@ -115,7 +115,7 @@ namespace mamba
                 }
             }
 
-            TEST_CASE_FIXTURE(LockDirTest, "different_pid")
+            TEST_CASE_METHOD(LockDirTest, "different_pid")
             {
                 const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
                 std::string out, err;
@@ -216,7 +216,7 @@ namespace mamba
 
         namespace
         {
-            TEST_CASE_FIXTURE(LockFileTest, "same_pid")
+            TEST_CASE_METHOD(LockFileTest, "same_pid")
             {
                 {
                     LockFile lock{ tempfile_path };
@@ -239,7 +239,7 @@ namespace mamba
                 REQUIRE_FALSE(fs::exists(tempfile_path.string() + ".lock"));
             }
 
-            TEST_CASE_FIXTURE(LockFileTest, "different_pid")
+            TEST_CASE_METHOD(LockFileTest, "different_pid")
             {
                 const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
                 std::string out, err;

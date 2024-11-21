@@ -43,15 +43,15 @@ namespace
             const auto& custom = chan_ctx.params().custom_channels;
 
             const auto& main = custom.at("pkgs/main");
-            REQUIRE(main.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main");
+            REQUIRE(main.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
             REQUIRE(main.display_name() == "pkgs/main");
 
             const auto& pro = custom.at("pkgs/pro");
-            REQUIRE(pro.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/pro");
+            REQUIRE(pro.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/pro"));
             REQUIRE(pro.display_name() == "pkgs/pro");
 
             const auto& r = custom.at("pkgs/r");
-            REQUIRE(r.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/r");
+            REQUIRE(r.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/r"));
             REQUIRE(r.display_name() == "pkgs/r");
         }
 
@@ -123,17 +123,17 @@ namespace
             const auto& custom = chan_ctx.params().custom_channels;
 
             const auto& chan1 = custom.at("chan1");
-            REQUIRE(chan1.url() == CondaURL::parse("https://repo.mamba.pm/chan1");
+            REQUIRE(chan1.url() == CondaURL::parse("https://repo.mamba.pm/chan1"));
             REQUIRE(chan1.display_name() == "chan1");
 
             // Conda behaviour that URL ending must match name
             const auto& chan2 = custom.at("chan2");
-            REQUIRE(chan2.url() == CondaURL::parse("https://repo.mamba.pm/chan2");
+            REQUIRE(chan2.url() == CondaURL::parse("https://repo.mamba.pm/chan2"));
             REQUIRE(chan2.display_name() == "chan2");
 
             // Explicit override
             const auto& main = custom.at("pkgs/main");
-            REQUIRE(main.url() == CondaURL::parse("https://repo.mamba.pm/pkgs/main");
+            REQUIRE(main.url() == CondaURL::parse("https://repo.mamba.pm/pkgs/main"));
             REQUIRE(main.display_name() == "pkgs/main");
         }
 
@@ -297,17 +297,17 @@ namespace
             const auto& custom = chan_ctx.params().custom_channels;
 
             const auto& chan1 = custom.at("chan1");
-            REQUIRE(chan1.url() == CondaURL::parse("https://repo.mamba.pm/chan1");
+            REQUIRE(chan1.url() == CondaURL::parse("https://repo.mamba.pm/chan1"));
             REQUIRE(chan1.display_name() == "chan1");
 
             // Different from Conda behaviour
             const auto& chan2 = custom.at("chan2");
-            REQUIRE(chan2.url() == CondaURL::parse("https://repo.mamba.pm/");
+            REQUIRE(chan2.url() == CondaURL::parse("https://repo.mamba.pm/"));
             REQUIRE(chan2.display_name() == "chan2");
 
             // Explicitly created
             const auto& main = custom.at("pkgs/main");
-            REQUIRE(main.url() == CondaURL::parse("https://repo.mamba.pm/pkgs/main");
+            REQUIRE(main.url() == CondaURL::parse("https://repo.mamba.pm/pkgs/main"));
             REQUIRE(main.display_name() == "pkgs/main");
         }
 
@@ -316,14 +316,14 @@ namespace
             auto chan_ctx = ChannelContext::make_simple(ctx);
 
             const auto& custom = chan_ctx.params().custom_multichannels;
-            REQUIRE(custom.find("pkgs/main") == custom.cend();
-            REQUIRE(custom.find("pkgs/r") == custom.cend();
-            REQUIRE(custom.find("pkgs/pro") == custom.cend();
-            REQUIRE(custom.find("pkgs/msys2") == custom.cend();
+            REQUIRE(custom.find("pkgs/main") == custom.cend());
+            REQUIRE(custom.find("pkgs/r") == custom.cend());
+            REQUIRE(custom.find("pkgs/pro") == custom.cend());
+            REQUIRE(custom.find("pkgs/msys2") == custom.cend());
 
             const auto& custom_multi = chan_ctx.params().custom_multichannels;
-            REQUIRE(custom_multi.find("defaults") == custom_multi.cend();
-            REQUIRE(custom_multi.find("local") == custom_multi.cend();
+            REQUIRE(custom_multi.find("defaults") == custom_multi.cend());
+            REQUIRE(custom_multi.find("local") == custom_multi.cend());
         }
 
         SECTION("Custom multi channels")

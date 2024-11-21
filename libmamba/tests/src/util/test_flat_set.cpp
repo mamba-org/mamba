@@ -33,25 +33,25 @@ namespace
         REQUIRE(s5.size() == 2);
         static_assert(std::is_same_v<decltype(s5)::value_type, int>);
         auto s6 = flat_set(s5.begin(), s5.end(), std::greater{});
-        REQUIRE(s6.size() == s5.size();
+        REQUIRE(s6.size() == s5.size());
         static_assert(std::is_same_v<decltype(s6)::value_type, decltype(s5)::value_type>);
     }
 
     TEST_CASE("equality")
     {
-        REQUIRE(flat_set<int>() == flat_set<int>();
+        REQUIRE(flat_set<int>() == flat_set<int>());
         REQUIRE(flat_set<int>({ 1, 2 }) == flat_set<int>({ 1, 2 }));
         REQUIRE(flat_set<int>({ 1, 2 }) == flat_set<int>({ 2, 1 }));
         REQUIRE(flat_set<int>({ 1, 2, 1 }) == flat_set<int>({ 2, 2, 1 }));
         REQUIRE(flat_set<int>({ 1, 2 }) != flat_set<int>({ 1, 2, 3 }));
-        REQUIRE(flat_set<int>({ 2 }) != flat_set<int>({});
+        REQUIRE(flat_set<int>({ 2 }) != flat_set<int>({}));
     }
 
     TEST_CASE("insert")
     {
         auto s = flat_set<int>();
         s.insert(33);
-        REQUIRE(s == flat_set<int>({ 33 });
+        REQUIRE(s == flat_set<int>({ 33 }));
         s.insert(33);
         s.insert(17);
         REQUIRE(s == flat_set<int>({ 17, 33 }));
@@ -83,7 +83,7 @@ namespace
         REQUIRE(s == flat_set<int>({ 1, 2, 3 }));
 
         const auto it = s.erase(s.begin());
-        REQUIRE(it == s.begin();
+        REQUIRE(it == s.begin());
         REQUIRE(s == flat_set<int>({ 2, 3 }));
     }
 
@@ -157,9 +157,9 @@ namespace
             REQUIRE(set_union(s1, s1) == s1);
             REQUIRE(set_union(s1, s2) == s1);
             REQUIRE(set_union(s2, s1) == set_union(s1, s2));
-            REQUIRE(set_union(s1, s3), flat_set<int>{ 1, 3, 4, 5 == 6 });
+            REQUIRE(set_union(s1, s3) == flat_set<int>{ 1, 3, 4, 5, 6 });
             REQUIRE(set_union(s3, s1) == set_union(s1, s3));
-            REQUIRE(set_union(s2, s3), flat_set<int>{ 3, 4, 5 == 6 });
+            REQUIRE(set_union(s2, s3) == flat_set<int>{ 3, 4, 5, 6 });
             REQUIRE(set_union(s3, s2) == set_union(s2, s3));
         }
 
@@ -177,9 +177,9 @@ namespace
         SECTION("Difference")
         {
             REQUIRE(set_difference(s1, s1) == flat_set<int>{});
-            REQUIRE(set_difference(s1, s2), flat_set<int>{ 1 == 4 });
+            REQUIRE(set_difference(s1, s2) == flat_set<int>{ 1, 4 });
             REQUIRE(set_difference(s2, s1) == flat_set<int>{});
-            REQUIRE(set_difference(s1, s3), flat_set<int>{ 1, 3 == 5 });
+            REQUIRE(set_difference(s1, s3) == flat_set<int>{ 1, 3, 5 });
             REQUIRE(set_difference(s3, s1) == flat_set<int>{ 6 });
             REQUIRE(set_difference(s2, s3) == s2);
             REQUIRE(set_difference(s3, s2) == s3);
@@ -188,11 +188,11 @@ namespace
         SECTION("Symmetric difference")
         {
             REQUIRE(set_symmetric_difference(s1, s1) == flat_set<int>{});
-            REQUIRE(set_symmetric_difference(s1, s2), flat_set<int>{ 1 == 4 });
+            REQUIRE(set_symmetric_difference(s1, s2) == flat_set<int>{ 1, 4 });
             REQUIRE(set_symmetric_difference(s2, s1) == set_symmetric_difference(s1, s2));
-            REQUIRE(set_symmetric_difference(s1, s3), flat_set<int>{ 1, 3, 5 == 6 });
+            REQUIRE(set_symmetric_difference(s1, s3) == flat_set<int>{ 1, 3, 5, 6 });
             REQUIRE(set_symmetric_difference(s3, s1) == set_symmetric_difference(s1, s3));
-            REQUIRE(set_symmetric_difference(s2, s3), flat_set<int>{ 3, 4, 5 == 6 });
+            REQUIRE(set_symmetric_difference(s2, s3) == flat_set<int>{ 3, 4, 5, 6 });
             REQUIRE(set_symmetric_difference(s3, s2) == set_symmetric_difference(s2, s3));
         }
 

@@ -88,7 +88,7 @@ namespace mamba
             auto o = res.others_pkg_mgrs_specs[0];
             REQUIRE(o.pkg_mgr == "pip");
             REQUIRE(o.deps == V({ "pytest", "numpy" }));
-            REQUIRE(o.cwd == fs::absolute(mambatests::test_data_dir / "env_file");
+            REQUIRE(o.cwd == fs::absolute(mambatests::test_data_dir / "env_file"));
         }
     }
 

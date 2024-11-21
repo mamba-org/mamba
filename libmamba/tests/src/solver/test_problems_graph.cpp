@@ -79,8 +79,6 @@ namespace
 }
 
 namespace
-
-    namespace
 {
     using namespace mamba::specs::match_spec_literals;
     using Request = solver::Request;
@@ -630,7 +628,7 @@ TEST_CASE("Create problem graph")
         const auto pbs_init = unsolvable.problems_graph(db);
         const auto& graph_init = pbs_init.graph();
 
-        REQUIRE_GE(graph_init.number_of_nodes(), 1);
+        REQUIRE(graph_init.number_of_nodes() >= 1);
         graph_init.for_each_node_id(
             [&](auto id)
             {
@@ -643,7 +641,7 @@ TEST_CASE("Create problem graph")
                     if (graph_init.in_degree(id) == 0)
                     {
                         // Only one root node
-                        REQUIRE(id == pbs_init.root_node();
+                        REQUIRE(id == pbs_init.root_node());
                         REQUIRE(std::holds_alternative<PbGr::RootNode>(node));
                     }
                     else if (graph_init.out_degree(id) == 0)
@@ -673,8 +671,8 @@ TEST_CASE("Create problem graph")
             const auto& pbs_simplified = simplify_conflicts(pbs_init);
             const auto& graph_simplified = pbs_simplified.graph();
 
-            REQUIRE_GE(graph_simplified.number_of_nodes(), 1);
-            REQUIRE_LE(graph_simplified.number_of_nodes(), pbs_init.graph().number_of_nodes());
+            REQUIRE(graph_simplified.number_of_nodes() >= 1);
+            REQUIRE(graph_simplified.number_of_nodes() <= pbs_init.graph().number_of_nodes());
 
             for (const auto& [id, _] : pbs_simplified.conflicts())
             {
@@ -696,8 +694,8 @@ TEST_CASE("Create problem graph")
                 const auto pbs_comp = CpPbGr::from_problems_graph(pbs_simplified);
                 const auto& graph_comp = pbs_comp.graph();
 
-                REQUIRE_GE(pbs_init.graph().number_of_nodes(), graph_comp.number_of_nodes());
-                REQUIRE_GE(graph_comp.number_of_nodes(), 1);
+                REQUIRE(pbs_init.graph().number_of_nodes() >= graph_comp.number_of_nodes());
+                REQUIRE(graph_comp.number_of_nodes() >= 1);
                 graph_comp.for_each_node_id(
                     [&](auto id)
                     {
@@ -710,7 +708,7 @@ TEST_CASE("Create problem graph")
                             if (graph_comp.in_degree(id) == 0)
                             {
                                 // Only one root node
-                                REQUIRE(id == pbs_init.root_node();
+                                REQUIRE(id == pbs_init.root_node());
                                 REQUIRE(std::holds_alternative<CpPbGr::RootNode>(node));
                             }
                             else if (graph_comp.out_degree(id) == 0)
@@ -760,5 +758,3 @@ TEST_CASE("Create problem graph")
         }
     }
 }
-
-namespace

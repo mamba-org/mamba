@@ -1,3 +1,30 @@
+2024.11.21
+==========
+
+Releases: libmamba 2.0.4alpha3, libmambapy 2.0.4alpha3, micromamba 2.0.4alpha3
+
+Enhancements:
+
+- [micromamba] feat: List PyPI packages in environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3623
+
+Bug fixes:
+
+- [libmamba] Fix build trailing `*` display by @Hind-M in https://github.com/mamba-org/mamba/pull/3619
+- [libmamba] fixed: incorrect erasing of env vars by @Klaim in https://github.com/mamba-org/mamba/pull/3622
+- [libmamba] Prevent pip "rich" ouput by @Klaim in https://github.com/mamba-org/mamba/pull/3607
+- [micromamba, libmamba] maint: Address compiler warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3605
+- [micromamba] fix: Export `'channels'` as part of environments' export by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3587
+
+CI fixes and doc:
+
+- [all] doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- [all] Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- [all] doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- [all] maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- [all] maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- [all] docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+- [libmambapy, libmamba] maint: Update clang-format to v19 by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3600
+
 2024.11.14
 ==========
 

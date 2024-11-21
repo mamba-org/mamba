@@ -6,7 +6,7 @@
 
 #include <utility>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 
 namespace doctest

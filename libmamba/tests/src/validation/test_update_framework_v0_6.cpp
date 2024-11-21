@@ -13,7 +13,7 @@
 
 #include <map>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -195,7 +195,7 @@ protected:
     }
 };
 
-TEST_SUITE("validation::v0_6::RootImpl")
+namespace
 {
     TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_path")
     {
@@ -203,7 +203,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -213,7 +213,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -223,7 +223,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -233,7 +233,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -243,7 +243,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -274,7 +274,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
         auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
         CHECK_EQ(testing_root->type(), "root");
         CHECK_EQ(testing_root->file_ext(), "json");
-        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(testing_root->version(), 2);
     }
 
@@ -300,9 +300,9 @@ TEST_SUITE("validation::v0_6::RootImpl")
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
         auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
-        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("0.6.1"));
+        REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("0.6.1");
         CHECK_EQ(testing_root->version(), 2);
-        CHECK_EQ(testing_root->expires(), root.expires());
+        REQUIRE(testing_root->expires() == root.expires();
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "upgraded_spec_version")
@@ -330,9 +330,9 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
         REQUIRE_NE(testing_root, nullptr);
-        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("1.0.17"));
+        REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("1.0.17");
         CHECK_EQ(testing_root->version(), 2);
-        CHECK_LT(testing_root->expires(), root.expires());
+        REQUIRE(testing_root->expires() < root.expires();
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "equivalent_upgraded_spec_version")
@@ -346,7 +346,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
                         ])"_json;
         v1::RootImpl updated_root(upgrade_to_v1(root, signable_patch));
 
-        CHECK_EQ(updated_root.spec_version(), v1::SpecImpl("1.0.17"));
+        REQUIRE(updated_root.spec_version() == v1::SpecImpl("1.0.17");
         CHECK_EQ(updated_root.version(), 1);
     }
 
@@ -398,7 +398,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
         auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
         REQUIRE_NE(testing_root, nullptr);
-        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("1.0.0"));
+        REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("1.0.0");
 
         // "2.sv2.root.json" is not upgradable spec version (spec version N+1)
         nl::json patch = R"([
@@ -511,6 +511,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
+
     /*
     TEST_CASE_FIXTURE(RootImplT_v06, mirrors_role)
     {
@@ -523,7 +524,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         RootImpl root(create_root_update("2.root.json", patch));
         bool mirrors_role_found = (root.roles().find("mirrors") != root.roles().end());
-        CHECK(mirrors_role_found);
+        REQUIRE(mirrors_role_found);
     }
     */
     TEST_CASE_FIXTURE(RootImplT_v0_6, "threshold_not_met")
@@ -544,10 +545,10 @@ TEST_SUITE("validation::v0_6::RootImpl")
 
         // expiration is set to now+3600s in 'sign_root'
         TimeRef time_ref;
-        CHECK_FALSE(root.expired(time_ref));
+        REQUIRE_FALSE(root.expired(time_ref));
 
         time_ref.set(utc_time_now() + 7200);
-        CHECK(root.expired(time_ref));
+        REQUIRE(root.expired(time_ref));
 
         nl::json patch = nl::json::parse(
             R"([
@@ -559,7 +560,7 @@ TEST_SUITE("validation::v0_6::RootImpl")
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
         auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
-        CHECK_FALSE(testing_root->expired(time_ref));
+        REQUIRE_FALSE(testing_root->expired(time_ref));
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "timestamp")
@@ -592,20 +593,20 @@ TEST_SUITE("validation::v0_6::RootImpl")
         v0_6::RootImpl root(root1_json);
 
         auto update_f = root.possible_update_files();
-        CHECK(update_f[0].string().c_str() == doctest::Contains("2.sv1.root.json"));
-        CHECK(update_f[1].string().c_str() == doctest::Contains("2.sv0.7.root.json"));
-        CHECK(update_f[2].string().c_str() == doctest::Contains("2.sv0.6.root.json"));
-        CHECK(update_f[3].string().c_str() == doctest::Contains("2.root.json"));
+        REQUIRE(update_f[0].string().c_str() == doctest::Contains("2.sv1.root.json"));
+        REQUIRE(update_f[1].string().c_str() == doctest::Contains("2.sv0.7.root.json"));
+        REQUIRE(update_f[2].string().c_str() == doctest::Contains("2.sv0.6.root.json"));
+        REQUIRE(update_f[3].string().c_str() == doctest::Contains("2.root.json"));
 
         nl::json patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
         auto updated_root = root.update(create_root_update("2.root.json", patch));
         update_f = updated_root->possible_update_files();
-        CHECK(update_f[0].string().c_str() == doctest::Contains("3.sv1.root.json"));
-        CHECK(update_f[1].string().c_str() == doctest::Contains("3.sv0.7.root.json"));
-        CHECK(update_f[2].string().c_str() == doctest::Contains("3.sv0.6.root.json"));
-        CHECK(update_f[3].string().c_str() == doctest::Contains("3.root.json"));
+        REQUIRE(update_f[0].string().c_str() == doctest::Contains("3.sv1.root.json"));
+        REQUIRE(update_f[1].string().c_str() == doctest::Contains("3.sv0.7.root.json"));
+        REQUIRE(update_f[2].string().c_str() == doctest::Contains("3.sv0.6.root.json"));
+        REQUIRE(update_f[3].string().c_str() == doctest::Contains("3.root.json"));
     }
 }
 
@@ -620,7 +621,7 @@ protected:
     v0_6::SpecImpl spec;
 };
 
-TEST_SUITE("validation::v0_6::SpecImpl")
+namespace
 {
     TEST_CASE_FIXTURE(SpecImplT_v06, "ctor")
     {
@@ -635,34 +636,34 @@ TEST_SUITE("validation::v0_6::SpecImpl")
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "is_compatible")
     {
-        CHECK(spec.is_compatible(std::string("0.6.0")));
-        CHECK(spec.is_compatible(std::string("0.6.1")));
-        CHECK(spec.is_compatible(std::string("0.6.10")));
+        REQUIRE(spec.is_compatible(std::string("0.6.0")));
+        REQUIRE(spec.is_compatible(std::string("0.6.1")));
+        REQUIRE(spec.is_compatible(std::string("0.6.10")));
 
         // minor version change with major version '0' may be
         // backward incompatible
-        CHECK_FALSE(spec.is_compatible(std::string("0.7.0")));
-        CHECK_FALSE(spec.is_compatible(std::string("1.0.0")));
-        CHECK_FALSE(spec.is_compatible(std::string("2.0.0")));
+        REQUIRE_FALSE(spec.is_compatible(std::string("0.7.0")));
+        REQUIRE_FALSE(spec.is_compatible(std::string("1.0.0")));
+        REQUIRE_FALSE(spec.is_compatible(std::string("2.0.0")));
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "is_upgrade")
     {
-        CHECK(spec.is_upgrade(std::string("0.7.0")));
-        CHECK(spec.is_upgrade(std::string("1.0.0")));
-        CHECK(spec.is_upgrade(std::string("1.1.0")));
-        CHECK(spec.is_upgrade(std::string("1.0.17")));
+        REQUIRE(spec.is_upgrade(std::string("0.7.0")));
+        REQUIRE(spec.is_upgrade(std::string("1.0.0")));
+        REQUIRE(spec.is_upgrade(std::string("1.1.0")));
+        REQUIRE(spec.is_upgrade(std::string("1.0.17")));
 
         // 2 possible backward incompatible updates
-        CHECK_FALSE(spec.is_upgrade(std::string("0.8.0")));
-        CHECK_FALSE(spec.is_upgrade(std::string("2.0.0")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("0.8.0")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("2.0.0")));
         // not an upgrade, compatible version
-        CHECK_FALSE(spec.is_upgrade(std::string("0.6.1")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("0.6.1")));
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "upgradable")
     {
-        CHECK(spec.upgradable());
+        REQUIRE(spec.upgradable());
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "compatible_prefix")
@@ -672,8 +673,8 @@ TEST_SUITE("validation::v0_6::SpecImpl")
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "upgrade_prefix")
     {
-        CHECK(spec.upgrade_prefix()[0].c_str() == doctest::Contains("1"));
-        CHECK(spec.upgrade_prefix()[1].c_str() == doctest::Contains("0.7"));
+        REQUIRE(spec.upgrade_prefix()[0].c_str() == doctest::Contains("1"));
+        REQUIRE(spec.upgrade_prefix()[1].c_str() == doctest::Contains("0.7"));
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "json_key")
@@ -791,14 +792,14 @@ protected:
     }
 };
 
-TEST_SUITE("validation::v0_6::KeyMgr")
+namespace
 {
     TEST_CASE_FIXTURE(KeyMgrT_v06, "ctor_from_json")
     {
         v0_6::RootImpl root(root1_json);
         auto key_mgr = root.create_key_mgr(key_mgr_json);
 
-        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(key_mgr.version(), 1);
     }
 
@@ -811,7 +812,7 @@ TEST_SUITE("validation::v0_6::KeyMgr")
             std::make_shared<v0_6::SpecImpl>(v0_6::SpecImpl())
         );
 
-        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(key_mgr.version(), 1);
     }
 
@@ -825,7 +826,7 @@ TEST_SUITE("validation::v0_6::KeyMgr")
                         ])"_json;
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
-            CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+            REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
             CHECK_EQ(key_mgr.version(), 2);
         }
 
@@ -835,7 +836,7 @@ TEST_SUITE("validation::v0_6::KeyMgr")
                         ])"_json;
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
-            CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+            REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
             CHECK_EQ(key_mgr.version(), 20);
         }
     }
@@ -850,7 +851,7 @@ TEST_SUITE("validation::v0_6::KeyMgr")
                         ])"_json;
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
-            CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+            REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
             CHECK_EQ(key_mgr.version(), 1);
         }
 
@@ -879,12 +880,12 @@ TEST_SUITE("validation::v0_6::KeyMgr")
         v0_6::RootImpl root(root1_json);
 
         auto key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json));
-        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(key_mgr.version(), 1);
 
         // TODO: enforce consistency between spec version in filename and metadata
         key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json, "20.sv0.6.key_mgr.json"));
-        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
+        REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
         CHECK_EQ(key_mgr.version(), 1);
 
 
@@ -913,12 +914,12 @@ TEST_SUITE("validation::v0_6::KeyMgr")
 
         // expiration is set to now+3600s in 'sign_key_mgr'
         TimeRef time_ref;
-        CHECK_FALSE(key_mgr.expired(time_ref));
-        CHECK_FALSE(root.expired(time_ref));
+        REQUIRE_FALSE(key_mgr.expired(time_ref));
+        REQUIRE_FALSE(root.expired(time_ref));
 
         time_ref.set(utc_time_now() + 7200);
-        CHECK(key_mgr.expired(time_ref));
-        CHECK(root.expired(time_ref));
+        REQUIRE(key_mgr.expired(time_ref));
+        REQUIRE(root.expired(time_ref));
 
         nl::json patch = nl::json::parse(
             R"([
@@ -928,8 +929,8 @@ TEST_SUITE("validation::v0_6::KeyMgr")
         );
 
         key_mgr = root.create_key_mgr(patched_key_mgr_json(patch));
-        CHECK_FALSE(key_mgr.expired(time_ref));
-        CHECK(root.expired(time_ref));
+        REQUIRE_FALSE(key_mgr.expired(time_ref));
+        REQUIRE(root.expired(time_ref));
     }
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "timestamp")
@@ -1114,7 +1115,7 @@ protected:
     }
 };
 
-TEST_SUITE("validation::v0_6::PkgMgr")
+namespace
 {
     TEST_CASE_FIXTURE(PkgMgrT_v06, "verify_index")
     {
@@ -1192,7 +1193,7 @@ protected:
     }
 };
 
-TEST_SUITE("validation::v0_6::RepoChecker")
+namespace
 {
     TEST_CASE_FIXTURE(RepoCheckerT, "ctor")
     {

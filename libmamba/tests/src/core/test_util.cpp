@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
@@ -17,54 +17,54 @@
 
 namespace mamba
 {
-    TEST_SUITE("on_scope_exit")
+    namespace
     {
         TEST_CASE("basics")
         {
             bool executed = false;
             {
                 on_scope_exit _{ [&] { executed = true; } };
-                CHECK_FALSE(executed);
+                REQUIRE_FALSE(executed);
             }
-            CHECK(executed);
+            REQUIRE(executed);
         }
     }
 
-    TEST_SUITE("is_yaml_file_name")
+    namespace
     {
         TEST_CASE("basics")
         {
-            CHECK(is_yaml_file_name("something.yaml"));
-            CHECK(is_yaml_file_name("something.yml"));
-            CHECK(is_yaml_file_name("something-lock.yaml"));
-            CHECK(is_yaml_file_name("something-lock.yml"));
-            CHECK(is_yaml_file_name("/some/dir/something.yaml"));
-            CHECK(is_yaml_file_name("/some/dir/something.yaml"));
-            CHECK(is_yaml_file_name("../../some/dir/something.yml"));
-            CHECK(is_yaml_file_name("../../some/dir/something.yml"));
+            REQUIRE(is_yaml_file_name("something.yaml"));
+            REQUIRE(is_yaml_file_name("something.yml"));
+            REQUIRE(is_yaml_file_name("something-lock.yaml"));
+            REQUIRE(is_yaml_file_name("something-lock.yml"));
+            REQUIRE(is_yaml_file_name("/some/dir/something.yaml"));
+            REQUIRE(is_yaml_file_name("/some/dir/something.yaml"));
+            REQUIRE(is_yaml_file_name("../../some/dir/something.yml"));
+            REQUIRE(is_yaml_file_name("../../some/dir/something.yml"));
 
-            CHECK(is_yaml_file_name(fs::u8path{ "something.yaml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "something.yml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "something-lock.yaml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "something-lock.yml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "/some/dir/something.yaml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "/some/dir/something.yml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yaml" }.string()));
-            CHECK(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "something.yaml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "something.yml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "something-lock.yaml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "something-lock.yml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yaml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yaml" }.string()));
+            REQUIRE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yml" }.string()));
 
-            CHECK_FALSE(is_yaml_file_name("something"));
-            CHECK_FALSE(is_yaml_file_name("something-lock"));
-            CHECK_FALSE(is_yaml_file_name("/some/dir/something"));
-            CHECK_FALSE(is_yaml_file_name("../../some/dir/something"));
+            REQUIRE_FALSE(is_yaml_file_name("something"));
+            REQUIRE_FALSE(is_yaml_file_name("something-lock"));
+            REQUIRE_FALSE(is_yaml_file_name("/some/dir/something"));
+            REQUIRE_FALSE(is_yaml_file_name("../../some/dir/something"));
 
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "something" }.string()));
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "something-lock" }.string()));
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "/some/dir/something" }.string()));
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "../../some/dir/something" }.string()));
+            REQUIRE_FALSE(is_yaml_file_name(fs::u8path{ "something" }.string()));
+            REQUIRE_FALSE(is_yaml_file_name(fs::u8path{ "something-lock" }.string()));
+            REQUIRE_FALSE(is_yaml_file_name(fs::u8path{ "/some/dir/something" }.string()));
+            REQUIRE_FALSE(is_yaml_file_name(fs::u8path{ "../../some/dir/something" }.string()));
         }
     }
 
-    TEST_SUITE("fsutils")
+    namespace
     {
         TEST_CASE("is_writable")
         {
@@ -76,19 +76,19 @@ namespace mamba
                                  fs::remove_all(test_dir_path);
                              } };
 
-            CHECK(path::is_writable(test_dir_path));
+            REQUIRE(path::is_writable(test_dir_path));
             fs::permissions(test_dir_path, fs::perms::none);
-            CHECK_FALSE(path::is_writable(test_dir_path));
+            REQUIRE_FALSE(path::is_writable(test_dir_path));
             fs::permissions(test_dir_path, fs::perms::all);
-            CHECK(path::is_writable(test_dir_path));
+            REQUIRE(path::is_writable(test_dir_path));
 
-            CHECK(path::is_writable(test_dir_path / "non-existing-writable-test-delete-me.txt"));
-            CHECK(path::is_writable(
+            REQUIRE(path::is_writable(test_dir_path / "non-existing-writable-test-delete-me.txt"));
+            REQUIRE(path::is_writable(
                 util::expand_home("~/.libmamba-non-existing-writable-test-delete-me.txt")
             ));
 
-            CHECK(path::is_writable(test_dir_path / "non-existing-subfolder"));
-            CHECK_FALSE(fs::exists(test_dir_path / "non-existing-subfolder"));
+            REQUIRE(path::is_writable(test_dir_path / "non-existing-subfolder"));
+            REQUIRE_FALSE(fs::exists(test_dir_path / "non-existing-subfolder"));
 
             {
                 const auto existing_file_path = test_dir_path
@@ -98,16 +98,16 @@ namespace mamba
                     REQUIRE(temp_file.is_open());
                     temp_file << "delete me" << std::endl;
                 }
-                CHECK(path::is_writable(existing_file_path));
+                REQUIRE(path::is_writable(existing_file_path));
                 fs::permissions(existing_file_path, fs::perms::none);
-                CHECK_FALSE(path::is_writable(existing_file_path));
+                REQUIRE_FALSE(path::is_writable(existing_file_path));
                 fs::permissions(existing_file_path, fs::perms::all);
-                CHECK(path::is_writable(existing_file_path));
+                REQUIRE(path::is_writable(existing_file_path));
             }
         }
     }
 
-    TEST_SUITE("utils")
+    namespace
     {
         TEST_CASE("proxy_match")
         {
@@ -134,11 +134,11 @@ namespace mamba
                                                           { "https://example.net", "foobar" },
                                                           { "all://example.net", "baz" } };
 
-            CHECK_FALSE(proxy_match_with_context("ftp://example.org").has_value());
+            REQUIRE_FALSE(proxy_match_with_context("ftp://example.org").has_value());
 
             context.remote_fetch_params.proxy_servers = {};
 
-            CHECK_FALSE(proxy_match_with_context("http://example.com/channel").has_value());
+            REQUIRE_FALSE(proxy_match_with_context("http://example.com/channel").has_value());
         }
     }
 }

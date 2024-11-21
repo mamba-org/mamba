@@ -4,13 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/parsers.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::parsers")
+namespace
 {
     inline static constexpr auto npos = std::string_view::npos;
 
@@ -18,7 +18,7 @@ TEST_SUITE("util::parsers")
     {
         using Slice = std::pair<std::size_t, std::size_t>;
 
-        SUBCASE("Different open/close pair")
+        SECTION("Different open/close pair")
         {
             CHECK_EQ(find_matching_parentheses(""), Slice(npos, npos));
             CHECK_EQ(find_matching_parentheses("Nothing to see here"), Slice(npos, npos));
@@ -39,7 +39,7 @@ TEST_SUITE("util::parsers")
             CHECK_EQ(find_matching_parentheses("(hello)[hello]", opens, closes), Slice(0, 6));
         }
 
-        SUBCASE("Similar open/close pair")
+        SECTION("Similar open/close pair")
         {
             CHECK_EQ(find_matching_parentheses(R"("")", '"', '"'), Slice(0, 1));
             CHECK_EQ(find_matching_parentheses(R"("hello")", '"', '"'), Slice(0, 6));
@@ -60,7 +60,7 @@ TEST_SUITE("util::parsers")
     {
         using Slice = std::pair<std::size_t, std::size_t>;
 
-        SUBCASE("Different open/close pair")
+        SECTION("Different open/close pair")
         {
             CHECK_EQ(rfind_matching_parentheses(""), Slice(npos, npos));
             CHECK_EQ(rfind_matching_parentheses("Nothing to see here"), Slice(npos, npos));
@@ -84,7 +84,7 @@ TEST_SUITE("util::parsers")
             CHECK_EQ(rfind_matching_parentheses("(hello)[hello]", opens, closes), Slice(7, 13));
         }
 
-        SUBCASE("Similar open/close pair")
+        SECTION("Similar open/close pair")
         {
             CHECK_EQ(rfind_matching_parentheses(R"("")", '"', '"'), Slice(0, 1));
             CHECK_EQ(rfind_matching_parentheses(R"("hello")", '"', '"'), Slice(0, 6));
@@ -103,7 +103,7 @@ TEST_SUITE("util::parsers")
 
     TEST_CASE("find_not_in_parentheses")
     {
-        SUBCASE("Single char and different open/close pair")
+        SECTION("Single char and different open/close pair")
         {
             CHECK_EQ(find_not_in_parentheses("", ','), npos);
             CHECK_EQ(find_not_in_parentheses("Nothing to see here", ','), npos);
@@ -142,7 +142,7 @@ TEST_SUITE("util::parsers")
             // );
         }
 
-        SUBCASE("Single char and similar open/close pair")
+        SECTION("Single char and similar open/close pair")
         {
             CHECK_EQ(find_not_in_parentheses(R"("some, csv")", ',', '"', '"'), npos);
 
@@ -171,7 +171,7 @@ TEST_SUITE("util::parsers")
             );
         }
 
-        SUBCASE("Substring and different open/close pair")
+        SECTION("Substring and different open/close pair")
         {
             CHECK_EQ(find_not_in_parentheses("", "::"), npos);
             CHECK_EQ(find_not_in_parentheses("Nothing to see here", "::"), npos);
@@ -207,7 +207,7 @@ TEST_SUITE("util::parsers")
             );
         }
 
-        SUBCASE("Substring and similar open/close pair")
+        SECTION("Substring and similar open/close pair")
         {
             CHECK_EQ(find_not_in_parentheses(R"("some::csv")", "::", '"', '"'), npos);
 
@@ -249,7 +249,7 @@ TEST_SUITE("util::parsers")
 
     TEST_CASE("rfind_not_in_parentheses")
     {
-        SUBCASE("Single char and different open/close pair")
+        SECTION("Single char and different open/close pair")
         {
             CHECK_EQ(rfind_not_in_parentheses("", ','), npos);
             CHECK_EQ(rfind_not_in_parentheses("Nothing to see here", ','), npos);
@@ -286,7 +286,7 @@ TEST_SUITE("util::parsers")
             CHECK_EQ(rfind_not_in_parentheses("(a, string)", ',', opens, closes), npos);
         }
 
-        SUBCASE("Single char and similar open/close pair")
+        SECTION("Single char and similar open/close pair")
         {
             CHECK_EQ(rfind_not_in_parentheses(R"("some, csv")", ',', '"', '"'), npos);
             CHECK_EQ(rfind_not_in_parentheses(R"("some, csv","some, value")", ',', '"', '"'), 11);
@@ -314,7 +314,7 @@ TEST_SUITE("util::parsers")
             );
         }
 
-        SUBCASE("Substring and different open/close pair")
+        SECTION("Substring and different open/close pair")
         {
             CHECK_EQ(rfind_not_in_parentheses("", "::"), npos);
             CHECK_EQ(rfind_not_in_parentheses("Nothing to see here", "::"), npos);
@@ -353,7 +353,7 @@ TEST_SUITE("util::parsers")
             );
         }
 
-        SUBCASE("Substring and similar open/close pair")
+        SECTION("Substring and similar open/close pair")
         {
             CHECK_EQ(rfind_not_in_parentheses(R"("some::csv")", "::", '"', '"'), npos);
             CHECK_EQ(rfind_not_in_parentheses(R"("some::csv"::"some::value")", "::", '"', '"'), 11);
@@ -389,38 +389,38 @@ TEST_SUITE("util::parsers")
 
     TEST_CASE("glob_match")
     {
-        CHECK(glob_match("python", "python"));
-        CHECK_FALSE(glob_match("cpython", "python"));
-        CHECK_FALSE(glob_match("python", "cpython"));
-        CHECK_FALSE(glob_match("python", ""));
+        REQUIRE(glob_match("python", "python"));
+        REQUIRE_FALSE(glob_match("cpython", "python"));
+        REQUIRE_FALSE(glob_match("python", "cpython"));
+        REQUIRE_FALSE(glob_match("python", ""));
 
-        CHECK(glob_match("py*", "py"));
-        CHECK(glob_match("py*", "py"));
-        CHECK(glob_match("py*", "python"));
-        CHECK_FALSE(glob_match("py*", "cpython"));
-        CHECK_FALSE(glob_match("py*", ""));
+        REQUIRE(glob_match("py*", "py"));
+        REQUIRE(glob_match("py*", "py"));
+        REQUIRE(glob_match("py*", "python"));
+        REQUIRE_FALSE(glob_match("py*", "cpython"));
+        REQUIRE_FALSE(glob_match("py*", ""));
 
-        CHECK(glob_match("*37", "python37"));
-        CHECK(glob_match("*37", "37"));
-        CHECK_FALSE(glob_match("*37", "python37-linux64"));
-        CHECK_FALSE(glob_match("*37", ""));
+        REQUIRE(glob_match("*37", "python37"));
+        REQUIRE(glob_match("*37", "37"));
+        REQUIRE_FALSE(glob_match("*37", "python37-linux64"));
+        REQUIRE_FALSE(glob_match("*37", ""));
 
-        CHECK(glob_match("*py*", "python"));
-        CHECK(glob_match("*py*", "cpython"));
-        CHECK(glob_match("*py*", "cpy"));
-        CHECK_FALSE(glob_match("*py*", "linux"));
-        CHECK_FALSE(glob_match("*py*", ""));
+        REQUIRE(glob_match("*py*", "python"));
+        REQUIRE(glob_match("*py*", "cpython"));
+        REQUIRE(glob_match("*py*", "cpy"));
+        REQUIRE_FALSE(glob_match("*py*", "linux"));
+        REQUIRE_FALSE(glob_match("*py*", ""));
 
-        CHECK(glob_match("*py*-3*-*-64", "cpython-37-linux-64"));
-        CHECK(glob_match("*py*-3*-*-64", "python-37-more-linux-64"));
-        CHECK_FALSE(glob_match("*py*-3*-*-64", "cpython-37-linux-64-more"));
-        CHECK_FALSE(glob_match("*py*-3*-*-64", ""));
+        REQUIRE(glob_match("*py*-3*-*-64", "cpython-37-linux-64"));
+        REQUIRE(glob_match("*py*-3*-*-64", "python-37-more-linux-64"));
+        REQUIRE_FALSE(glob_match("*py*-3*-*-64", "cpython-37-linux-64-more"));
+        REQUIRE_FALSE(glob_match("*py*-3*-*-64", ""));
 
-        CHECK(glob_match("py**", "python"));
-        CHECK_FALSE(glob_match("py**", "cpython"));
-        CHECK(glob_match("**37", "python37"));
-        CHECK_FALSE(glob_match("**37", "python37-linux64"));
-        CHECK(glob_match("**py**", "python"));
-        CHECK_FALSE(glob_match("**py**", "linux"));
+        REQUIRE(glob_match("py**", "python"));
+        REQUIRE_FALSE(glob_match("py**", "cpython"));
+        REQUIRE(glob_match("**37", "python37"));
+        REQUIRE_FALSE(glob_match("**37", "python37-linux64"));
+        REQUIRE(glob_match("**py**", "python"));
+        REQUIRE_FALSE(glob_match("**py**", "linux"));
     }
 }

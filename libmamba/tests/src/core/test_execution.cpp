@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/execution.hpp"
 
@@ -49,7 +49,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("execution")
+    namespace
     {
         TEST_CASE("stop_default_always_succeeds")
         {

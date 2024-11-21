@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
@@ -114,7 +114,7 @@ namespace mamba
             mambatests::EnvironmentCleaner restore = { mambatests::CleanMambaEnv() };
         };
 
-        TEST_SUITE("Configuration")
+        namespace
         {
             TEST_CASE_FIXTURE(Configuration, "target_prefix_options")
             {
@@ -170,7 +170,6 @@ namespace mamba
 
                 config.set_rc_values(possible_rc_paths, RCConfigLevel::kTargetPrefix);
             };
-
 
             TEST_CASE_FIXTURE(Configuration, "load_rc_files")
             {
@@ -691,6 +690,7 @@ namespace mamba
 
                 util::unset_env("MAMBA_SSL_VERIFY");
             }
+
 #undef EXPECT_CA_EQUAL
 
             TEST_CASE_FIXTURE(Configuration, "cacert_path")
@@ -807,12 +807,12 @@ namespace mamba
         if (config.at(#NAME).rc_configurable())                                                     \
         {                                                                                           \
             load_test_config({ rc1, rc2 });                                                         \
-            CHECK(config.at(#NAME).value<bool>());                                                  \
-            CHECK(CTX);                                                                             \
+            REQUIRE(config.at(#NAME).value<bool>());                                                \
+            REQUIRE(CTX);                                                                           \
                                                                                                     \
             load_test_config({ rc2, rc1 });                                                         \
-            CHECK_FALSE(config.at(#NAME).value<bool>());                                            \
-            CHECK_FALSE(CTX);                                                                       \
+            REQUIRE_FALSE(config.at(#NAME).value<bool>());                                          \
+            REQUIRE_FALSE(CTX);                                                                     \
         }                                                                                           \
                                                                                                     \
         std::string env_name = "MAMBA_" + util::to_upper(#NAME);                                    \
@@ -834,8 +834,8 @@ namespace mamba
         }                                                                                           \
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS;                          \
         CHECK_EQ((config.dump(dump_opts, { #NAME })), expected);                                    \
-        CHECK(config.at(#NAME).value<bool>());                                                      \
-        CHECK(CTX);                                                                                 \
+        REQUIRE(config.at(#NAME).value<bool>());                                                    \
+        REQUIRE(CTX);                                                                               \
                                                                                                     \
         if (config.at(#NAME).rc_configurable())                                                     \
         {                                                                                           \
@@ -847,8 +847,8 @@ namespace mamba
         }                                                                                           \
         config.at(#NAME).set_yaml_value("true").compute();                                          \
         CHECK_EQ((config.dump(dump_opts, { #NAME })), expected);                                    \
-        CHECK(config.at(#NAME).value<bool>());                                                      \
-        CHECK(CTX);                                                                                 \
+        REQUIRE(config.at(#NAME).value<bool>());                                                    \
+        REQUIRE(CTX);                                                                               \
                                                                                                     \
         util::set_env(env_name, "yeap");                                                            \
         REQUIRE_THROWS_AS(load_test_config(rc2), YAML::Exception);                                  \
@@ -874,18 +874,18 @@ namespace mamba
                     config.at("channel_priority").value<ChannelPriority>(),
                     ChannelPriority::Flexible
                 );
-                CHECK(ctx.channel_priority == ChannelPriority::Flexible);
+                REQUIRE(ctx.channel_priority == ChannelPriority::Flexible);
 
                 load_test_config({ rc3, rc1, rc2 });
                 CHECK_EQ(
                     config.at("channel_priority").value<ChannelPriority>(),
                     ChannelPriority::Disabled
                 );
-                CHECK(ctx.channel_priority == ChannelPriority::Disabled);
+                REQUIRE(ctx.channel_priority == ChannelPriority::Disabled);
 
                 load_test_config({ rc2, rc1, rc3 });
                 CHECK_EQ(config.at("channel_priority").value<ChannelPriority>(), ChannelPriority::Strict);
-                CHECK(ctx.channel_priority == ChannelPriority::Strict);
+                REQUIRE(ctx.channel_priority == ChannelPriority::Strict);
 
                 util::set_env("MAMBA_CHANNEL_PRIORITY", "strict");
                 load_test_config(rc3);
@@ -1015,7 +1015,6 @@ namespace mamba
                 util::unset_env("MAMBA_PINNED_PACKAGES");
             }
 
-
             TEST_BOOL_CONFIGURABLE(no_pin, config.at("no_pin").value<bool>());
 
             TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
@@ -1103,21 +1102,21 @@ namespace mamba
             {
                 using namespace detail;
 
-                CHECK_FALSE(has_config_name(""));
-                CHECK_FALSE(has_config_name("conf"));
-                CHECK_FALSE(has_config_name("config"));
-                CHECK_FALSE(has_config_name("config.conda"));
-                CHECK_FALSE(has_config_name("conf.condarc"));
-                CHECK_FALSE(has_config_name("conf.mambarc"));
+                REQUIRE_FALSE(has_config_name(""));
+                REQUIRE_FALSE(has_config_name("conf"));
+                REQUIRE_FALSE(has_config_name("config"));
+                REQUIRE_FALSE(has_config_name("config.conda"));
+                REQUIRE_FALSE(has_config_name("conf.condarc"));
+                REQUIRE_FALSE(has_config_name("conf.mambarc"));
 
-                CHECK(has_config_name("condarc"));
-                CHECK(has_config_name("mambarc"));
-                CHECK(has_config_name(".condarc"));
-                CHECK(has_config_name(".mambarc"));
-                CHECK(has_config_name(".yaml"));
-                CHECK(has_config_name(".yml"));
-                CHECK(has_config_name("conf.yaml"));
-                CHECK(has_config_name("config.yml"));
+                REQUIRE(has_config_name("condarc"));
+                REQUIRE(has_config_name("mambarc"));
+                REQUIRE(has_config_name(".condarc"));
+                REQUIRE(has_config_name(".mambarc"));
+                REQUIRE(has_config_name(".yaml"));
+                REQUIRE(has_config_name(".yml"));
+                REQUIRE(has_config_name("conf.yaml"));
+                REQUIRE(has_config_name("config.yml"));
             }
 
             TEST_CASE_FIXTURE(Configuration, "is_config_file")
@@ -1133,11 +1132,11 @@ namespace mamba
                     mambatests::test_data_dir / "history/conda-meta/history",
                 };
 
-                CHECK(is_config_file(p));
+                REQUIRE(is_config_file(p));
 
                 for (const fs::u8path& wp : wrong_paths)
                 {
-                    CHECK_FALSE(is_config_file(wp));
+                    REQUIRE_FALSE(is_config_file(wp));
                 }
             }
 

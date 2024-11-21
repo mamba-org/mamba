@@ -6,56 +6,56 @@
 
 #include <array>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/build_number_spec.hpp"
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::build_number_spec")
+namespace
 {
     TEST_CASE("BuildNumberPredicate")
     {
         const auto free = BuildNumberPredicate::make_free();
-        CHECK(free.contains(0));
-        CHECK(free.contains(1));
-        CHECK(free.contains(2));
+        REQUIRE(free.contains(0));
+        REQUIRE(free.contains(1));
+        REQUIRE(free.contains(2));
         CHECK_EQ(free.str(), "=*");
 
         const auto eq = BuildNumberPredicate::make_equal_to(1);
-        CHECK_FALSE(eq.contains(0));
-        CHECK(eq.contains(1));
-        CHECK_FALSE(eq.contains(2));
+        REQUIRE_FALSE(eq.contains(0));
+        REQUIRE(eq.contains(1));
+        REQUIRE_FALSE(eq.contains(2));
         CHECK_EQ(eq.str(), "=1");
 
         const auto ne = BuildNumberPredicate::make_not_equal_to(1);
-        CHECK(ne.contains(0));
-        CHECK_FALSE(ne.contains(1));
-        CHECK(ne.contains(2));
+        REQUIRE(ne.contains(0));
+        REQUIRE_FALSE(ne.contains(1));
+        REQUIRE(ne.contains(2));
         CHECK_EQ(ne.str(), "!=1");
 
         const auto gt = BuildNumberPredicate::make_greater(1);
-        CHECK_FALSE(gt.contains(0));
-        CHECK_FALSE(gt.contains(1));
-        CHECK(gt.contains(2));
+        REQUIRE_FALSE(gt.contains(0));
+        REQUIRE_FALSE(gt.contains(1));
+        REQUIRE(gt.contains(2));
         CHECK_EQ(gt.str(), ">1");
 
         const auto ge = BuildNumberPredicate::make_greater_equal(1);
-        CHECK_FALSE(ge.contains(0));
-        CHECK(ge.contains(1));
-        CHECK(ge.contains(2));
+        REQUIRE_FALSE(ge.contains(0));
+        REQUIRE(ge.contains(1));
+        REQUIRE(ge.contains(2));
         CHECK_EQ(ge.str(), ">=1");
 
         const auto lt = BuildNumberPredicate::make_less(1);
-        CHECK(lt.contains(0));
-        CHECK_FALSE(lt.contains(1));
-        CHECK_FALSE(lt.contains(2));
+        REQUIRE(lt.contains(0));
+        REQUIRE_FALSE(lt.contains(1));
+        REQUIRE_FALSE(lt.contains(2));
         CHECK_EQ(lt.str(), "<1");
 
         const auto le = BuildNumberPredicate::make_less_equal(1);
-        CHECK(le.contains(0));
-        CHECK(le.contains(1));
-        CHECK_FALSE(le.contains(2));
+        REQUIRE(le.contains(0));
+        REQUIRE(le.contains(1));
+        REQUIRE_FALSE(le.contains(2));
         CHECK_EQ(le.str(), "<=1");
 
         const auto predicates = std::array{ free, eq, ne, lt, le, gt, ge };
@@ -73,42 +73,42 @@ TEST_SUITE("specs::build_number_spec")
     {
         using namespace mamba::specs::build_number_spec_literals;
 
-        SUBCASE("Successful")
+        SECTION("Successful")
         {
-            CHECK(""_bs.contains(0));
-            CHECK(""_bs.contains(1));
-            CHECK("*"_bs.contains(1));
-            CHECK("=*"_bs.contains(1));
+            REQUIRE(""_bs.contains(0));
+            REQUIRE(""_bs.contains(1));
+            REQUIRE("*"_bs.contains(1));
+            REQUIRE("=*"_bs.contains(1));
 
-            CHECK("1"_bs.contains(1));
-            CHECK("=1"_bs.contains(1));
-            CHECK_FALSE("1"_bs.contains(2));
-            CHECK_FALSE("=1"_bs.contains(2));
+            REQUIRE("1"_bs.contains(1));
+            REQUIRE("=1"_bs.contains(1));
+            REQUIRE_FALSE("1"_bs.contains(2));
+            REQUIRE_FALSE("=1"_bs.contains(2));
 
-            CHECK("!=1"_bs.contains(0));
-            CHECK_FALSE("!=1"_bs.contains(1));
-            CHECK("!=1"_bs.contains(2));
+            REQUIRE("!=1"_bs.contains(0));
+            REQUIRE_FALSE("!=1"_bs.contains(1));
+            REQUIRE("!=1"_bs.contains(2));
 
-            CHECK_FALSE(">1"_bs.contains(0));
-            CHECK_FALSE(">1"_bs.contains(1));
-            CHECK(">1"_bs.contains(2));
+            REQUIRE_FALSE(">1"_bs.contains(0));
+            REQUIRE_FALSE(">1"_bs.contains(1));
+            REQUIRE(">1"_bs.contains(2));
 
-            CHECK_FALSE(">=1"_bs.contains(0));
-            CHECK(">=1"_bs.contains(1));
-            CHECK(">=1"_bs.contains(2));
+            REQUIRE_FALSE(">=1"_bs.contains(0));
+            REQUIRE(">=1"_bs.contains(1));
+            REQUIRE(">=1"_bs.contains(2));
 
-            CHECK("<1"_bs.contains(0));
-            CHECK_FALSE("<1"_bs.contains(1));
-            CHECK_FALSE("<1"_bs.contains(2));
+            REQUIRE("<1"_bs.contains(0));
+            REQUIRE_FALSE("<1"_bs.contains(1));
+            REQUIRE_FALSE("<1"_bs.contains(2));
 
-            CHECK("<=1"_bs.contains(0));
-            CHECK("<=1"_bs.contains(1));
-            CHECK_FALSE("<=1"_bs.contains(2));
+            REQUIRE("<=1"_bs.contains(0));
+            REQUIRE("<=1"_bs.contains(1));
+            REQUIRE_FALSE("<=1"_bs.contains(2));
 
-            CHECK(" <= 1 "_bs.contains(0));
+            REQUIRE(" <= 1 "_bs.contains(0));
         }
 
-        SUBCASE("Unsuccessful")
+        SECTION("Unsuccessful")
         {
             using namespace std::literals::string_view_literals;
 
@@ -119,7 +119,7 @@ TEST_SUITE("specs::build_number_spec")
             for (const auto& spec : bad_specs)
             {
                 CAPTURE(spec);
-                CHECK_FALSE(BuildNumberSpec::parse(spec).has_value());
+                REQUIRE_FALSE(BuildNumberSpec::parse(spec).has_value());
             }
         }
     }
@@ -133,9 +133,9 @@ TEST_SUITE("specs::build_number_spec")
 
     TEST_CASE("BuildNumberSepc::is_explicitly_free")
     {
-        CHECK(BuildNumberSpec::parse("*").value().is_explicitly_free());
-        CHECK_FALSE(BuildNumberSpec::parse("=3").value().is_explicitly_free());
-        CHECK_FALSE(BuildNumberSpec::parse("<2").value().is_explicitly_free());
+        REQUIRE(BuildNumberSpec::parse("*").value().is_explicitly_free());
+        REQUIRE_FALSE(BuildNumberSpec::parse("=3").value().is_explicitly_free());
+        REQUIRE_FALSE(BuildNumberSpec::parse("<2").value().is_explicitly_free());
     }
 
     TEST_CASE("Comparability and hashability")

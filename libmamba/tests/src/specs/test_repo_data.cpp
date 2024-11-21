@@ -6,7 +6,7 @@
 
 #include <fstream>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/repo_data.hpp"
@@ -15,7 +15,7 @@
 using namespace mamba::specs;
 namespace nl = nlohmann;
 
-TEST_SUITE("specs::repo_data")
+namespace
 {
     TEST_CASE("RepoDataPackage_to_json")
     {
@@ -30,12 +30,12 @@ TEST_SUITE("specs::repo_data")
 
         const nl::json j = p;
         CHECK_EQ(j.at("name"), p.name);
-        CHECK_EQ(j.at("version"), p.version.str());
+        REQUIRE(j.at("version") == p.version.str();
         CHECK_EQ(j.at("build"), p.build_string);
         CHECK_EQ(j.at("build_number"), p.build_number);
         CHECK_EQ(j.at("subdir"), p.subdir);
         CHECK_EQ(j.at("md5"), p.md5);
-        CHECK(j.at("sha256").is_null());
+        REQUIRE(j.at("sha256").is_null());
         CHECK_EQ(j.at("noarch"), "python");
     }
 
@@ -53,18 +53,18 @@ TEST_SUITE("specs::repo_data")
         j["track_features"] = nl::json::array();
         {
             const auto p = j.get<RepoDataPackage>();
-            CHECK_EQ(p.name, j.at("name"));
+            REQUIRE(p.name == j.at("name");
             // Note Version::parse is not injective
-            CHECK_EQ(p.version.str(), j.at("version"));
-            CHECK_EQ(p.build_string, j.at("build"));
-            CHECK_EQ(p.build_number, j.at("build_number"));
-            CHECK_EQ(p.subdir, j.at("subdir"));
-            CHECK_FALSE(p.md5.has_value());
-            CHECK_FALSE(p.platform.has_value());
+            REQUIRE(p.version.str() == j.at("version");
+            REQUIRE(p.build_string == j.at("build");
+            REQUIRE(p.build_number == j.at("build_number");
+            REQUIRE(p.subdir == j.at("subdir");
+            REQUIRE_FALSE(p.md5.has_value());
+            REQUIRE_FALSE(p.platform.has_value());
             CHECK_EQ(p.depends, decltype(p.depends){ "libsolv>=1.0" });
-            CHECK(p.constrains.empty());
-            CHECK(p.track_features.empty());
-            CHECK_FALSE(p.noarch.has_value());
+            REQUIRE(p.constrains.empty());
+            REQUIRE(p.track_features.empty());
+            REQUIRE_FALSE(p.noarch.has_value());
         }
         j["noarch"] = "python";
         {
@@ -80,7 +80,7 @@ TEST_SUITE("specs::repo_data")
         j["noarch"] = false;
         {
             const auto p = j.get<RepoDataPackage>();
-            CHECK_FALSE(p.noarch.has_value());
+            REQUIRE_FALSE(p.noarch.has_value());
         }
     }
 
@@ -132,12 +132,12 @@ TEST_SUITE("specs::repo_data")
         REQUIRE(data.version.has_value());
         CHECK_EQ(data.version, j["version"]);
         REQUIRE(data.info.has_value());
-        CHECK_EQ(platform_name(data.info.value().subdir), j["info"]["subdir"].get<std::string_view>());
+        REQUIRE(platform_name(data.info.value().subdir) == j["info"]["subdir"].get<std::string_view>();
         CHECK_EQ(
             data.packages.at("mamba-1.0-h12345.tar.bz2").name,
             j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]
         );
-        CHECK(data.conda_packages.empty());
+        REQUIRE(data.conda_packages.empty());
         CHECK_EQ(data.removed, j["removed"]);
     }
 

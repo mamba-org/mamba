@@ -6,13 +6,13 @@
 
 #include <string>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/type_traits.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::type_traits")
+namespace
 {
     struct NotOStreamable
     {
@@ -22,13 +22,13 @@ TEST_SUITE("util::type_traits")
     {
     };
 
-    auto operator<<(std::ostream& s, const OStreamable&)->std::ostream&;
+    auto operator<<(std::ostream& s, const OStreamable&) -> std::ostream&;
 
     TEST_CASE("ostreamable")
     {
-        CHECK(is_ostreamable_v<int>);
-        CHECK(is_ostreamable_v<std::string>);
-        CHECK_FALSE(is_ostreamable_v<NotOStreamable>);
-        CHECK(is_ostreamable_v<OStreamable>);
+        REQUIRE(is_ostreamable_v<int>);
+        REQUIRE(is_ostreamable_v<std::string>);
+        REQUIRE_FALSE(is_ostreamable_v<NotOStreamable>);
+        REQUIRE(is_ostreamable_v<OStreamable>);
     }
 }

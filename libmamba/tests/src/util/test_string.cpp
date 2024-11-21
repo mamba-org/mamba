@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
@@ -20,7 +20,7 @@ using namespace mamba::util;
 
 namespace
 {
-    TEST_SUITE("util::string")
+    namespace
     {
         TEST_CASE("to_lower")
         {
@@ -38,44 +38,44 @@ namespace
 
         TEST_CASE("starts_with")
         {
-            CHECK(starts_with("", ""));
-            CHECK_FALSE(starts_with("", ":"));
-            CHECK_FALSE(starts_with("", ':'));
-            CHECK(starts_with(":hello", ""));
-            CHECK(starts_with(":hello", ":"));
-            CHECK(starts_with(":hello", ':'));
-            CHECK(starts_with(":hello", ":h"));
-            CHECK(starts_with(":hello", ":hello"));
-            CHECK_FALSE(starts_with(":hello", "lo"));
-            CHECK(starts_with("áäáœ©gþhëb®hüghœ©®xb", "áäáœ©"));
+            REQUIRE(starts_with("", ""));
+            REQUIRE_FALSE(starts_with("", ":"));
+            REQUIRE_FALSE(starts_with("", ':'));
+            REQUIRE(starts_with(":hello", ""));
+            REQUIRE(starts_with(":hello", ":"));
+            REQUIRE(starts_with(":hello", ':'));
+            REQUIRE(starts_with(":hello", ":h"));
+            REQUIRE(starts_with(":hello", ":hello"));
+            REQUIRE_FALSE(starts_with(":hello", "lo"));
+            REQUIRE(starts_with("áäáœ©gþhëb®hüghœ©®xb", "áäáœ©"));
         }
 
         TEST_CASE("ends_with")
         {
-            CHECK(ends_with("", ""));
-            CHECK_FALSE(ends_with("", "&"));
-            CHECK_FALSE(ends_with("", '&'));
-            CHECK(ends_with("hello&", ""));
-            CHECK(ends_with("hello&", "&"));
-            CHECK(ends_with("hello&", '&'));
-            CHECK(ends_with("hello&", "o&"));
-            CHECK(ends_with("hello&", "hello&"));
-            CHECK_FALSE(ends_with("hello&", "he"));
-            CHECK(ends_with("áäáœ©gþhëb®hüghœ©®xb", "©®xb"));
+            REQUIRE(ends_with("", ""));
+            REQUIRE_FALSE(ends_with("", "&"));
+            REQUIRE_FALSE(ends_with("", '&'));
+            REQUIRE(ends_with("hello&", ""));
+            REQUIRE(ends_with("hello&", "&"));
+            REQUIRE(ends_with("hello&", '&'));
+            REQUIRE(ends_with("hello&", "o&"));
+            REQUIRE(ends_with("hello&", "hello&"));
+            REQUIRE_FALSE(ends_with("hello&", "he"));
+            REQUIRE(ends_with("áäáœ©gþhëb®hüghœ©®xb", "©®xb"));
         }
 
         TEST_CASE("contains")
         {
-            CHECK(contains('c', 'c'));
-            CHECK_FALSE(contains('c', 'a'));
-            CHECK(contains(":hello&", ""));
-            CHECK(contains(":hello&", '&'));
-            CHECK(contains(":hello&", ':'));
-            CHECK(contains(":hello&", "ll"));
-            CHECK_FALSE(contains(":hello&", "eo"));
-            CHECK(contains("áäáœ©gþhëb®hüghœ©®xb", "ëb®"));
-            CHECK_FALSE(contains("", "ab"));
-            CHECK(contains("", ""));  // same as Python ``"" in ""``
+            REQUIRE(contains('c', 'c'));
+            REQUIRE_FALSE(contains('c', 'a'));
+            REQUIRE(contains(":hello&", ""));
+            REQUIRE(contains(":hello&", '&'));
+            REQUIRE(contains(":hello&", ':'));
+            REQUIRE(contains(":hello&", "ll"));
+            REQUIRE_FALSE(contains(":hello&", "eo"));
+            REQUIRE(contains("áäáœ©gþhëb®hüghœ©®xb", "ëb®"));
+            REQUIRE_FALSE(contains("", "ab"));
+            REQUIRE(contains("", ""));  // same as Python ``"" in ""``
         }
 
         TEST_CASE("split_prefix")
@@ -149,24 +149,24 @@ namespace
         TEST_CASE("any_starts_with")
         {
             using StrVec = std::vector<std::string_view>;
-            CHECK_FALSE(any_starts_with(StrVec{}, { "not" }));
-            CHECK_FALSE(any_starts_with(StrVec{}, ""));
-            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ""));
-            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ":"));
-            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ":h"));
-            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ":hello"));
-            CHECK_FALSE(any_starts_with(StrVec{ ":hello", "world" }, "orld"));
-            CHECK(any_starts_with(StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }, "áäá"));
+            REQUIRE_FALSE(any_starts_with(StrVec{}, { "not" }));
+            REQUIRE_FALSE(any_starts_with(StrVec{}, ""));
+            REQUIRE(any_starts_with(StrVec{ ":hello", "world" }, ""));
+            REQUIRE(any_starts_with(StrVec{ ":hello", "world" }, ":"));
+            REQUIRE(any_starts_with(StrVec{ ":hello", "world" }, ":h"));
+            REQUIRE(any_starts_with(StrVec{ ":hello", "world" }, ":hello"));
+            REQUIRE_FALSE(any_starts_with(StrVec{ ":hello", "world" }, "orld"));
+            REQUIRE(any_starts_with(StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }, "áäá"));
         }
 
         TEST_CASE("starts_with_any")
         {
             using StrVec = std::vector<std::string_view>;
-            CHECK(starts_with_any(":hello", StrVec{ "", "not" }));
-            CHECK(starts_with_any(":hello", StrVec{ ":hello", "not" }));
-            CHECK_FALSE(starts_with_any(":hello", StrVec{}));
-            CHECK_FALSE(starts_with_any(":hello", StrVec{ "not", "any" }));
-            CHECK(starts_with_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }));
+            REQUIRE(starts_with_any(":hello", StrVec{ "", "not" }));
+            REQUIRE(starts_with_any(":hello", StrVec{ ":hello", "not" }));
+            REQUIRE_FALSE(starts_with_any(":hello", StrVec{}));
+            REQUIRE_FALSE(starts_with_any(":hello", StrVec{ "not", "any" }));
+            REQUIRE(starts_with_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }));
         }
 
         TEST_CASE("lstrip")
@@ -508,7 +508,7 @@ namespace
             std::string prefix = "/I/am/a/PREFIX\n\nabcdefg\nxyz";
 
             replace_all(prefix, "/I/am/a/PREFIX", "/Yes/Thats/great/");
-            CHECK(starts_with(prefix, "/Yes/Thats/great/\n"));
+            REQUIRE(starts_with(prefix, "/Yes/Thats/great/\n"));
 
             std::string testbuf2 = "this is another test wow";
             replace_all(testbuf2, "", "somereplacement");

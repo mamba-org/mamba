@@ -7,7 +7,7 @@
 #include <array>
 #include <functional>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -33,17 +33,17 @@ namespace
     }
 }
 
-TEST_SUITE("solver::libsolv::database")
+namespace
 {
     using PackageInfo = specs::PackageInfo;
 
     TEST_CASE("Create a database")
     {
         auto db = libsolv::Database({});
-        CHECK(std::is_move_constructible_v<libsolv::Database>);
+        REQUIRE(std::is_move_constructible_v<libsolv::Database>);
         CHECK_EQ(db.repo_count(), 0);
 
-        SUBCASE("Add repo from packages")
+        SECTION("Add repo from packages")
         {
             auto pkgs = std::array{
                 mkpkg("x", "1.0"),
@@ -55,22 +55,22 @@ TEST_SUITE("solver::libsolv::database")
             CHECK_EQ(db.package_count(), 3);
             CHECK_EQ(repo1.package_count(), 3);
 
-            SUBCASE("Mark as installed repo")
+            SECTION("Mark as installed repo")
             {
-                CHECK_FALSE(db.installed_repo().has_value());
+                REQUIRE_FALSE(db.installed_repo().has_value());
                 db.set_installed_repo(repo1);
                 CHECK_EQ(db.installed_repo().value(), repo1);
 
-                SUBCASE("Remove repo")
+                SECTION("Remove repo")
                 {
                     db.remove_repo(repo1);
                     CHECK_EQ(db.repo_count(), 0);
-                    CHECK_FALSE(db.installed_repo().has_value());
+                    REQUIRE_FALSE(db.installed_repo().has_value());
                     CHECK_EQ(db.package_count(), 0);
                 }
             }
 
-            SUBCASE("Serialize repo")
+            SECTION("Serialize repo")
             {
                 auto tmp_dir = TemporaryDirectory();
                 auto solv_file = tmp_dir.path() / "repo1.solv";
@@ -83,17 +83,17 @@ TEST_SUITE("solver::libsolv::database")
                 auto repo1_copy = db.native_serialize_repo(repo1, solv_file, origin);
                 CHECK_EQ(repo1_copy, repo1);
 
-                SUBCASE("Read serialized repo")
+                SECTION("Read serialized repo")
                 {
                     auto repo2 = db.add_repo_from_native_serialization(solv_file, origin, "conda-forge")
                                      .value();
                     CHECK_EQ(repo2.name(), origin.url);
-                    CHECK_EQ(repo2.package_count(), repo1.package_count());
+                    REQUIRE(repo2.package_count() == repo1.package_count();
                     CHECK_NE(repo2, repo1);
                     CHECK_EQ(db.package_count(), repo1.package_count() + repo2.package_count());
                 }
 
-                SUBCASE("Fail reading outdated repo")
+                SECTION("Fail reading outdated repo")
                 {
                     for (auto attr : {
                              &libsolv::RepodataOrigin::url,
@@ -108,16 +108,16 @@ TEST_SUITE("solver::libsolv::database")
                             expected,
                             "conda-forge"
                         );
-                        CHECK_FALSE(maybe.has_value());
+                        REQUIRE_FALSE(maybe.has_value());
                     }
                 }
             }
 
-            SUBCASE("Iterate over packages")
+            SECTION("Iterate over packages")
             {
                 auto repo2 = db.add_repo_from_packages(std::array{ mkpkg("z", "2.0") }, "repo1");
 
-                SUBCASE("In a given repo")
+                SECTION("In a given repo")
                 {
                     std::size_t count = 0;
                     db.for_each_package_in_repo(
@@ -132,7 +132,7 @@ TEST_SUITE("solver::libsolv::database")
                     CHECK_EQ(count, 1);
                 }
 
-                SUBCASE("Matching a MatchSpec in multiple repos")
+                SECTION("Matching a MatchSpec in multiple repos")
                 {
                     std::size_t count = 0;
                     db.for_each_package_matching(
@@ -146,7 +146,7 @@ TEST_SUITE("solver::libsolv::database")
                     CHECK_EQ(count, 2);
                 }
 
-                SUBCASE("Matching a strict MatchSpec")
+                SECTION("Matching a strict MatchSpec")
                 {
                     std::size_t count = 0;
                     db.for_each_package_matching(
@@ -160,7 +160,7 @@ TEST_SUITE("solver::libsolv::database")
                     CHECK_EQ(count, 1);
                 }
 
-                SUBCASE("Depending on a given dependency")
+                SECTION("Depending on a given dependency")
                 {
                     std::size_t count = 0;
                     db.for_each_package_depending_on(
@@ -168,7 +168,7 @@ TEST_SUITE("solver::libsolv::database")
                         [&](const auto& p)
                         {
                             count++;
-                            CHECK(util::any_starts_with(p.dependencies, "x"));
+                            REQUIRE(util::any_starts_with(p.dependencies, "x"));
                         }
                     );
                     CHECK_EQ(count, 1);
@@ -176,7 +176,7 @@ TEST_SUITE("solver::libsolv::database")
             }
         }
 
-        SUBCASE("Add repo from repodata with no extra pip")
+        SECTION("Add repo from repodata with no extra pip")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
@@ -198,14 +198,14 @@ TEST_SUITE("solver::libsolv::database")
                     found_python = true;
                     for (const auto& dep : pkg.dependencies)
                     {
-                        CHECK_FALSE(util::contains(dep, "pip"));
+                        REQUIRE_FALSE(util::contains(dep, "pip"));
                     }
                 }
             );
-            CHECK(found_python);
+            REQUIRE(found_python);
         }
 
-        SUBCASE("Add repo from repodata with extra pip")
+        SECTION("Add repo from repodata with extra pip")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
@@ -230,13 +230,13 @@ TEST_SUITE("solver::libsolv::database")
                     {
                         found_pip |= util::contains(dep, "pip");
                     }
-                    CHECK(found_pip);
+                    REQUIRE(found_pip);
                 }
             );
-            CHECK(found_python);
+            REQUIRE(found_python);
         }
 
-        SUBCASE("Add repo from repodata only .tar.bz2")
+        SECTION("Add repo from repodata only .tar.bz2")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
@@ -251,7 +251,7 @@ TEST_SUITE("solver::libsolv::database")
             CHECK_EQ(repo1->package_count(), 4);
         }
 
-        SUBCASE("Add repo from repodata only .conda")
+        SECTION("Add repo from repodata only .conda")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
@@ -266,7 +266,7 @@ TEST_SUITE("solver::libsolv::database")
             CHECK_EQ(repo1->package_count(), 30);
         }
 
-        SUBCASE("Add repo from repodata .conda and .tar.bz2")
+        SECTION("Add repo from repodata .conda and .tar.bz2")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
@@ -281,7 +281,7 @@ TEST_SUITE("solver::libsolv::database")
             CHECK_EQ(repo1->package_count(), 34);
         }
 
-        SUBCASE("Add repo from repodata .conda or else .tar.bz2")
+        SECTION("Add repo from repodata .conda or else .tar.bz2")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
@@ -296,11 +296,11 @@ TEST_SUITE("solver::libsolv::database")
             CHECK_EQ(repo1->package_count(), 33);
         }
 
-        SUBCASE("Add repo from repodata with verifying packages signatures")
+        SECTION("Add repo from repodata with verifying packages signatures")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
-            SUBCASE("Using mamba parser")
+            SECTION("Using mamba parser")
             {
                 auto repo1 = db.add_repo_from_repodata_json(
                     repodata,
@@ -340,7 +340,7 @@ TEST_SUITE("solver::libsolv::database")
                 );
             }
 
-            SUBCASE("Using libsolv parser")
+            SECTION("Using libsolv parser")
             {
                 auto repo1 = db.add_repo_from_repodata_json(
                     repodata,
@@ -360,7 +360,7 @@ TEST_SUITE("solver::libsolv::database")
                     {
                         if (p.name == "_libgcc_mutex")
                         {
-                            CHECK(
+                            REQUIRE(
                                 p.signatures.c_str()
                                 == doctest::Contains(
                                     R"("signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}})"
@@ -369,7 +369,7 @@ TEST_SUITE("solver::libsolv::database")
                         }
                         else if (p.name == "bzip2")
                         {
-                            CHECK(
+                            REQUIRE(
                                 p.signatures.c_str()
                                 == doctest::Contains(
                                     R"("signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}})"
@@ -385,11 +385,11 @@ TEST_SUITE("solver::libsolv::database")
             }
         }
 
-        SUBCASE("Add repo from repodata without verifying packages signatures")
+        SECTION("Add repo from repodata without verifying packages signatures")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-numpy-linux-64.json";
-            SUBCASE("Using mamba parser")
+            SECTION("Using mamba parser")
             {
                 auto repo1 = db.add_repo_from_repodata_json(
                     repodata,
@@ -409,7 +409,7 @@ TEST_SUITE("solver::libsolv::database")
                 );
             }
 
-            SUBCASE("Using libsolv parser")
+            SECTION("Using libsolv parser")
             {
                 auto repo1 = db.add_repo_from_repodata_json(
                     repodata,
@@ -430,7 +430,7 @@ TEST_SUITE("solver::libsolv::database")
             }
         }
 
-        SUBCASE("Add repo from repodata with repodata_version 2")
+        SECTION("Add repo from repodata with repodata_version 2")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-repodata-version-2.json";
@@ -466,7 +466,7 @@ TEST_SUITE("solver::libsolv::database")
             );
         }
 
-        SUBCASE("Add repo from repodata with repodata_version 2 with missing base_url")
+        SECTION("Add repo from repodata with repodata_version 2 with missing base_url")
         {
             const auto repodata = mambatests::test_data_dir
                                   / "repodata/conda-forge-repodata-version-2-missing-base_url.json";

@@ -6,7 +6,7 @@
 
 #include <sstream>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/progress_bar.hpp"
 
@@ -46,37 +46,37 @@ namespace mamba
         std::ostringstream ostream;
     };
 
-    TEST_SUITE("progress_bar")
+    namespace
     {
         TEST_CASE_FIXTURE(progress_bar, "print")
         {
             auto& r = proxy.repr();
 
-            CHECK(r.prefix.active());
+            REQUIRE(r.prefix.active());
             CHECK_EQ(r.prefix.value(), "conda-forge");
             CHECK_EQ(r.prefix.width(), 11);
 
-            CHECK(r.progress);
+            REQUIRE(r.progress);
             CHECK_EQ(r.progress.value(), "??");
             CHECK_EQ(r.progress.width(), 2);
 
-            CHECK(r.separator);
+            REQUIRE(r.separator);
             CHECK_EQ(r.separator.value(), "-");
             CHECK_EQ(r.separator.width(), 1);
 
-            CHECK(r.total);
+            REQUIRE(r.total);
             CHECK_EQ(r.total.value(), "bar");
             CHECK_EQ(r.total.width(), 3);
 
-            CHECK(r.speed);
+            REQUIRE(r.speed);
             CHECK_EQ(r.speed.value(), "@10");
             CHECK_EQ(r.speed.width(), 3);
 
-            CHECK(r.postfix.active());
+            REQUIRE(r.postfix.active());
             CHECK_EQ(r.postfix.value(), "downloading");
             CHECK_EQ(r.postfix.width(), 11);
 
-            CHECK(r.elapsed.active());
+            REQUIRE(r.elapsed.active());
             CHECK_EQ(r.elapsed.value(), "0.1s");
             CHECK_EQ(r.elapsed.width(), 4);
 
@@ -96,14 +96,14 @@ namespace mamba
 
             r.set_width(150);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK(r.separator);
-            CHECK(r.total);
-            CHECK(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE(r.separator);
+            REQUIRE(r.total);
+            REQUIRE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 106);
             CHECK_EQ(r.current.width(), 3);
@@ -120,14 +120,14 @@ namespace mamba
 
             r.set_width(84);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK(r.separator);
-            CHECK(r.total);
-            CHECK(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE(r.separator);
+            REQUIRE(r.total);
+            REQUIRE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 40);
             CHECK_EQ(r.current.width(), 3);
@@ -141,14 +141,14 @@ namespace mamba
             // available space redistributed to the bar
             r.set_width(83);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK(r.separator);
-            CHECK(r.total);
-            CHECK(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE(r.separator);
+            REQUIRE(r.total);
+            REQUIRE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 39);
             CHECK_EQ(r.current.width(), 3);
@@ -165,14 +165,14 @@ namespace mamba
 
             r.set_width(59);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK(r.separator);
-            CHECK(r.total);
-            CHECK(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE(r.separator);
+            REQUIRE(r.total);
+            REQUIRE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 15);
             CHECK_EQ(r.current.width(), 3);
@@ -186,14 +186,14 @@ namespace mamba
             // available space redistributed to the bar
             r.set_width(58);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 20);
             CHECK_EQ(r.current.width(), 3);
@@ -208,14 +208,14 @@ namespace mamba
 
             r.set_width(53);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 15);
             CHECK_EQ(r.current.width(), 3);
@@ -227,14 +227,14 @@ namespace mamba
             // available space redistributed to the bar
             r.set_width(52);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 18);
             CHECK_EQ(r.current.width(), 3);
@@ -248,14 +248,14 @@ namespace mamba
 
             r.set_width(49);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 15);
             CHECK_EQ(r.current.width(), 3);
@@ -266,14 +266,14 @@ namespace mamba
             // available space redistributed to the bar
             r.set_width(48);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK_FALSE(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE_FALSE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 26);
             CHECK_EQ(r.current.width(), 3);
@@ -287,14 +287,14 @@ namespace mamba
 
             r.set_width(52);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK_FALSE(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE_FALSE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 26);
             CHECK_EQ(r.progress.width(), 15);
             CHECK_EQ(r.current.width(), 3);
@@ -304,14 +304,14 @@ namespace mamba
             // available space redistributed to the prefix
             r.set_width(51);
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK_FALSE(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE_FALSE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 25);
             CHECK_EQ(r.progress.width(), 15);
             CHECK_EQ(r.current.width(), 3);
@@ -324,20 +324,20 @@ namespace mamba
 
             r.set_width(34).reset_fields();
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK_FALSE(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE_FALSE(r.postfix);
+            REQUIRE(r.elapsed);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 12);
             CHECK_EQ(r.current.width(), 3);
             // This fails because of invisible ANSI escape codes introduced with
             // https://github.com/mamba-org/mamba/pull/2085/
-            // CHECK(r.progress.overflow());
+            // REQUIRE(r.progress.overflow());
             CHECK_EQ(r.elapsed.width(), 5);
 
             // 6: display progress without a bar
@@ -372,14 +372,14 @@ namespace mamba
 
             r.set_width(22).reset_fields();
             proxy.update_repr();
-            CHECK(r.prefix);
-            CHECK(r.progress);
-            CHECK_FALSE(r.current);
-            CHECK_FALSE(r.separator);
-            CHECK_FALSE(r.total);
-            CHECK_FALSE(r.speed);
-            CHECK_FALSE(r.postfix);
-            CHECK(r.elapsed);
+            REQUIRE(r.prefix);
+            REQUIRE(r.progress);
+            REQUIRE_FALSE(r.current);
+            REQUIRE_FALSE(r.separator);
+            REQUIRE_FALSE(r.total);
+            REQUIRE_FALSE(r.speed);
+            REQUIRE_FALSE(r.postfix);
+            REQUIRE(r.elapsed);
             proxy.print(ostream, 0, false);
             CHECK_EQ(r.prefix.width(), 11);
             CHECK_EQ(r.progress.width(), 4);

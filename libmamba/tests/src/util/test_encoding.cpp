@@ -8,7 +8,7 @@
 #include <array>
 #include <string_view>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/encoding.hpp"
 
@@ -16,11 +16,11 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("util::encoding")
+namespace
 {
     TEST_CASE("Hexadecimal")
     {
-        SUBCASE("nibble_to_hex")
+        SECTION("nibble_to_hex")
         {
             CHECK_EQ(nibble_to_hex(std::byte{ 0x00 }), '0');
             CHECK_EQ(nibble_to_hex(std::byte{ 0x10 }), '0');  // high ignored
@@ -28,7 +28,7 @@ TEST_SUITE("util::encoding")
             CHECK_EQ(nibble_to_hex(std::byte{ 0x0D }), 'd');
         }
 
-        SUBCASE("bytes_to_hex_to")
+        SECTION("bytes_to_hex_to")
         {
             constexpr auto bytes = std::array{
                 std::byte{ 0x00 }, std::byte{ 0x01 }, std::byte{ 0x03 }, std::byte{ 0x09 },
@@ -44,20 +44,20 @@ TEST_SUITE("util::encoding")
             );
         }
 
-        SUBCASE("hex_to_nibble")
+        SECTION("hex_to_nibble")
         {
             CHECK_EQ(hex_to_nibble('0').value(), std::byte{ 0x00 });
             CHECK_EQ(hex_to_nibble('a').value(), std::byte{ 0x0A });
             CHECK_EQ(hex_to_nibble('f').value(), std::byte{ 0x0F });
             CHECK_EQ(hex_to_nibble('B').value(), std::byte{ 0x0B });
 
-            CHECK_FALSE(hex_to_nibble('x').has_value());
-            CHECK_FALSE(hex_to_nibble('*').has_value());
-            CHECK_FALSE(hex_to_nibble('\0').has_value());
-            CHECK_FALSE(hex_to_nibble('~').has_value());
+            REQUIRE_FALSE(hex_to_nibble('x').has_value());
+            REQUIRE_FALSE(hex_to_nibble('*').has_value());
+            REQUIRE_FALSE(hex_to_nibble('\0').has_value());
+            REQUIRE_FALSE(hex_to_nibble('~').has_value());
         }
 
-        SUBCASE("two_hex_to_byte")
+        SECTION("two_hex_to_byte")
         {
             CHECK_EQ(two_hex_to_byte('0', '0').value(), std::byte{ 0x00 });
             CHECK_EQ(two_hex_to_byte('0', '4').value(), std::byte{ 0x04 });
@@ -66,16 +66,16 @@ TEST_SUITE("util::encoding")
             CHECK_EQ(two_hex_to_byte('0', 'A').value(), std::byte{ 0x0A });
             CHECK_EQ(two_hex_to_byte('b', '8').value(), std::byte{ 0xB8 });
 
-            CHECK_FALSE(two_hex_to_byte('b', 'x').has_value());
-            CHECK_FALSE(two_hex_to_byte('!', 'b').has_value());
-            CHECK_FALSE(two_hex_to_byte(' ', '~').has_value());
+            REQUIRE_FALSE(two_hex_to_byte('b', 'x').has_value());
+            REQUIRE_FALSE(two_hex_to_byte('!', 'b').has_value());
+            REQUIRE_FALSE(two_hex_to_byte(' ', '~').has_value());
         }
 
-        SUBCASE("hex_to_bytes")
+        SECTION("hex_to_bytes")
         {
             using bytes = std::vector<std::byte>;
 
-            SUBCASE("1234")
+            SECTION("1234")
             {
                 auto str = std::string_view("1234");
                 auto b = bytes(str.size() / 2);
@@ -83,7 +83,7 @@ TEST_SUITE("util::encoding")
                 CHECK_EQ(b, bytes{ std::byte{ 0x12 }, std::byte{ 0x34 } });
             }
 
-            SUBCASE("1f4DaB")
+            SECTION("1f4DaB")
             {
                 auto str = std::string_view("1f4DaB");
                 auto b = bytes(str.size() / 2);
@@ -91,7 +91,7 @@ TEST_SUITE("util::encoding")
                 CHECK_EQ(b, bytes{ std::byte{ 0x1F }, std::byte{ 0x4D }, std::byte{ 0xAB } });
             }
 
-            SUBCASE("1f4Da")
+            SECTION("1f4Da")
             {
                 // Odd number
                 auto str = std::string_view("1f4Da");
@@ -99,7 +99,7 @@ TEST_SUITE("util::encoding")
                 REQUIRE_FALSE(hex_to_bytes_to(str, b.data()).has_value());
             }
 
-            SUBCASE("1fx4")
+            SECTION("1fx4")
             {
                 // Bad hex
                 auto str = std::string_view("1fx4");
@@ -111,7 +111,7 @@ TEST_SUITE("util::encoding")
 
     TEST_CASE("percent")
     {
-        SUBCASE("encode")
+        SECTION("encode")
         {
             CHECK_EQ(encode_percent(""), "");
             CHECK_EQ(encode_percent("page"), "page");
@@ -128,7 +128,7 @@ TEST_SUITE("util::encoding")
             CHECK_EQ(encode_percent(" /word%", '/'), "%20/word%25");
         }
 
-        SUBCASE("decode")
+        SECTION("decode")
         {
             CHECK_EQ(decode_percent(""), "");
             CHECK_EQ(decode_percent("page"), "page");
@@ -145,7 +145,7 @@ TEST_SUITE("util::encoding")
 
     TEST_CASE("base64")
     {
-        SUBCASE("encode")
+        SECTION("encode")
         {
             CHECK_EQ(encode_base64("Hello").value(), "SGVsbG8=");
             CHECK_EQ(encode_base64("Hello World!").value(), "SGVsbG8gV29ybGQh");
@@ -157,7 +157,7 @@ TEST_SUITE("util::encoding")
             CHECK_EQ(encode_base64("xyzpass").value(), "eHl6cGFzcw==");
         }
 
-        SUBCASE("decode")
+        SECTION("decode")
         {
             CHECK_EQ(decode_base64("SGVsbG8=").value(), "Hello");
             CHECK_EQ(decode_base64("SGVsbG8gV29ybGQh").value(), "Hello World!");

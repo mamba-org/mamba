@@ -9,7 +9,7 @@
 #include <thread>
 #include <type_traits>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/tasksync.hpp"
 
@@ -38,7 +38,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("task_synchronizer")
+    namespace
     {
         TEST_CASE("sync_types_never_move")
         {
@@ -57,26 +57,26 @@ namespace mamba
         TEST_CASE("tasks_are_joined_after_join_not_after_reset")
         {
             TaskSynchronizer task_sync;
-            CHECK_FALSE(task_sync.is_joined());
+            REQUIRE_FALSE(task_sync.is_joined());
 
             task_sync.join_tasks();
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
 
             task_sync.reset();
-            CHECK_FALSE(task_sync.is_joined());
+            REQUIRE_FALSE(task_sync.is_joined());
 
             task_sync.join_tasks();
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
         }
 
         TEST_CASE("once_joined_tasks_are_noop")
         {
             TaskSynchronizer task_sync;
             task_sync.join_tasks();
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
 
             task_sync.join_tasks();  // nothing happen if we call it twice
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
 
             auto no_op = task_sync.synchronized([] { fail_now(); });
             no_op();

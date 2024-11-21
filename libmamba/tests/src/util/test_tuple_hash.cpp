@@ -7,13 +7,13 @@
 #include <string>
 #include <tuple>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/tuple_hash.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::tuple_hash")
+namespace
 {
     TEST_CASE("hash_tuple")
     {
@@ -23,10 +23,10 @@ TEST_SUITE("util::tuple_hash")
         // Hash collision are hard to predict, but this is so trivial it is likely a bug if it
         // fails.
         const auto t2 = std::tuple{ 0, std::string("hello") };
-        CHECK_NE(hash_tuple(t1), hash_tuple(t2));
+        REQUIRE(hash_tuple(t1) != hash_tuple(t2);
 
         const auto t3 = std::tuple{ std::string("hello"), 33 };
-        CHECK_NE(hash_tuple(t1), hash_tuple(t3));
+        REQUIRE(hash_tuple(t1) != hash_tuple(t3);
     }
 
     TEST_CASE("hash_combine_val_range")
@@ -50,6 +50,6 @@ TEST_SUITE("util::tuple_hash")
         // fails.
         CHECK_NE(hash_range(hello), 0);
         CHECK_NE(hash_range(world), 0);
-        CHECK_NE(hash_range(hello), hash_range(world));
+        REQUIRE(hash_range(hello) != hash_range(world);
     }
 }

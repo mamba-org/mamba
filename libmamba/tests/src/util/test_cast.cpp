@@ -8,7 +8,7 @@
 #include <limits>
 #include <utility>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/cast.hpp"
 
@@ -42,7 +42,7 @@ using OverflowLowestTypes = std::tuple<
     std::pair<double, int>,
     std::pair<float, char>>;
 
-TEST_SUITE("util::cast")
+namespace
 {
     TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_widen", T, cast_widen)
     {
@@ -51,20 +51,22 @@ TEST_SUITE("util::cast")
         static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
         static constexpr auto from_max = std::numeric_limits<From>::max();
 
-        CHECK_EQ(safe_num_cast<To>(From(0)), To(0));
-        CHECK_EQ(safe_num_cast<To>(From(1)), To(1));
-        CHECK_EQ(safe_num_cast<To>(from_lowest), static_cast<To>(from_lowest));
-        CHECK_EQ(safe_num_cast<To>(from_max), static_cast<To>(from_max));
+        REQUIRE(safe_num_cast<To>(From(0)) == To(0);
+        REQUIRE(safe_num_cast<To>(From(1)) == To(1);
+        REQUIRE(safe_num_cast<To>(from_lowest) == static_cast<To>(from_lowest);
+        REQUIRE(safe_num_cast<To>(from_max) == static_cast<To>(from_max);
     }
+
     TEST_CASE_TEMPLATE_APPLY(cast_widen, WidenTypes);
 
     TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_narrow", T, cast_narrow)
     {
         using From = typename T::second_type;  // inversed
         using To = typename T::first_type;     // inversed
-        CHECK_EQ(safe_num_cast<To>(From(0)), To(0));
-        CHECK_EQ(safe_num_cast<To>(From(1)), To(1));
+        REQUIRE(safe_num_cast<To>(From(0)) == To(0);
+        REQUIRE(safe_num_cast<To>(From(1)) == To(1);
     }
+
     TEST_CASE_TEMPLATE_APPLY(cast_narrow, WidenTypes);
 
     TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_overflow", T, cast_overflow)
@@ -75,6 +77,7 @@ TEST_SUITE("util::cast")
 
         CHECK_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
     }
+
     TEST_CASE_TEMPLATE_APPLY(cast_overflow, OverflowLowestTypes);
 
     TEST_CASE("precision")

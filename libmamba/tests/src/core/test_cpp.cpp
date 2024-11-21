@@ -8,7 +8,7 @@
 #include <sstream>
 #include <tuple>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -46,7 +46,7 @@ namespace mamba
     //     lp.execute();
     // }
 
-    TEST_SUITE("history")
+    namespace
     {
         TEST_CASE("user_request")
         {
@@ -57,7 +57,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("output")
+    namespace
     {
         TEST_CASE("hide_secrets")
         {
@@ -119,7 +119,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("context")
+    namespace
     {
         TEST_CASE("env_name")
         {
@@ -143,7 +143,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("fsutil")
+    namespace
     {
         TEST_CASE("starts_with_home")
         {
@@ -161,12 +161,12 @@ namespace mamba
             if (util::on_linux)
             {
                 path::touch("/tmp/dir/file.txt", true);
-                CHECK(fs::exists("/tmp/dir/file.txt"));
+                REQUIRE(fs::exists("/tmp/dir/file.txt"));
             }
         }
     }
 
-    TEST_SUITE("link")
+    namespace
     {
         TEST_CASE("replace_long_shebang")
         {
@@ -238,7 +238,7 @@ namespace mamba
             std::string shebang = "#!/simple/shebang";
             std::smatch s;
             auto match = std::regex_match(shebang, s, shebang_regex);
-            CHECK(match);
+            REQUIRE(match);
             CHECK_EQ(s[0].str(), "#!/simple/shebang");
             CHECK_EQ(s[1].str(), "#!/simple/shebang");
             CHECK_EQ(s[2].str(), "/simple/shebang");
@@ -247,7 +247,7 @@ namespace mamba
             // // with spaces
             shebang = "#!    /simple/shebang";
             match = std::regex_match(shebang, s, shebang_regex);
-            CHECK(match);
+            REQUIRE(match);
             CHECK_EQ(s[0].str(), "#!    /simple/shebang");
             CHECK_EQ(s[1].str(), "#!    /simple/shebang");
             CHECK_EQ(s[2].str(), "/simple/shebang");
@@ -256,7 +256,7 @@ namespace mamba
             // with escaped spaces and flags
             shebang = "#!/simple/shebang/escaped\\ space --and --flags -x";
             match = std::regex_match(shebang, s, shebang_regex);
-            CHECK(match);
+            REQUIRE(match);
             CHECK_EQ(s[0].str(), "#!/simple/shebang/escaped\\ space --and --flags -x");
             CHECK_EQ(s[1].str(), "#!/simple/shebang/escaped\\ space --and --flags -x");
             CHECK_EQ(s[2].str(), "/simple/shebang/escaped\\ space");
@@ -264,7 +264,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("utils")
+    namespace
     {
         TEST_CASE("quote_for_shell")
         {
@@ -305,32 +305,32 @@ namespace mamba
         TEST_CASE("lexists")
         {
             fs::create_symlink("empty_target", "nonexistinglink");
-            CHECK_FALSE(fs::exists("nonexistinglink"));
-            CHECK(lexists("nonexistinglink"));
+            REQUIRE_FALSE(fs::exists("nonexistinglink"));
+            REQUIRE(lexists("nonexistinglink"));
             fs::remove("nonexistinglink");
-            CHECK_FALSE(fs::exists("nonexistinglink"));
-            CHECK_FALSE(lexists("nonexistinglink"));
+            REQUIRE_FALSE(fs::exists("nonexistinglink"));
+            REQUIRE_FALSE(lexists("nonexistinglink"));
 
             path::touch("emptytestfile");
-            CHECK(fs::exists("emptytestfile"));
-            CHECK(lexists("emptytestfile"));
+            REQUIRE(fs::exists("emptytestfile"));
+            REQUIRE(lexists("emptytestfile"));
             fs::create_symlink("emptytestfile", "existinglink");
-            CHECK(fs::exists("existinglink"));
-            CHECK(lexists("existinglink"));
+            REQUIRE(fs::exists("existinglink"));
+            REQUIRE(lexists("existinglink"));
 
             fs::remove("existinglink");
-            CHECK_FALSE(fs::exists("existinglink"));
-            CHECK_FALSE(lexists("existinglink"));
+            REQUIRE_FALSE(fs::exists("existinglink"));
+            REQUIRE_FALSE(lexists("existinglink"));
             fs::remove("emptytestfile");
-            CHECK_FALSE(fs::exists("emptytestfile"));
-            CHECK_FALSE(lexists("emptytestfile"));
+            REQUIRE_FALSE(fs::exists("emptytestfile"));
+            REQUIRE_FALSE(lexists("emptytestfile"));
 
             std::error_code ec;
-            CHECK_FALSE(lexists("completelyinexistent", ec));
-            CHECK_FALSE(ec);
+            REQUIRE_FALSE(lexists("completelyinexistent", ec));
+            REQUIRE_FALSE(ec);
 
-            CHECK_FALSE(fs::exists("completelyinexistent", ec));
-            CHECK_FALSE(ec);
+            REQUIRE_FALSE(fs::exists("completelyinexistent", ec));
+            REQUIRE_FALSE(ec);
         }
     }
 
@@ -347,13 +347,13 @@ namespace mamba
     }
 #endif
 
-    TEST_SUITE("subdirdata")
+    namespace
     {
         TEST_CASE("parse_last_modified_etag")
         {
             fs::u8path cache_folder = fs::u8path{ mambatests::test_data_dir / "repodata_json_cache" };
             auto mq = SubdirMetadata::read(cache_folder / "test_1.json");
-            CHECK(mq.has_value());
+            REQUIRE(mq.has_value());
             auto j = mq.value();
             CHECK_EQ(j.last_modified(), "Fri, 11 Feb 2022 13:52:44 GMT");
             CHECK_EQ(
@@ -385,7 +385,7 @@ namespace mamba
             );
 
             mq = SubdirMetadata::read(cache_folder / "test_3.json");
-            CHECK(mq.has_value() == false);
+            REQUIRE(mq.has_value() == false);
 
             j = SubdirMetadata::read(cache_folder / "test_6.json").value();
             CHECK_EQ(j.last_modified(), "Thu, 02 Apr 2020 20:21:27 GMT");

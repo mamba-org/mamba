@@ -22,7 +22,6 @@ dependencies:
   - sel(win): winreg
   # libmamba test dependencies
   - catch2
-  - doctest
   # micromamba dependencies
   - cli11 >=2.2
   # micromamba test dependencies

@@ -103,13 +103,13 @@ target_include_directories(
         "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
-find_package(doctest REQUIRED)
+find_package(Catch2 REQUIRED)
 find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE doctest::doctest Threads::Threads
+    PRIVATE Catch2::Catch2WithMain Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications

@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -23,7 +23,7 @@ hex_str(const std::array<std::byte, size>& bytes)
     return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
 }
 
-TEST_SUITE("validation::tools")
+namespace
 {
     TEST_CASE("sha256sum")
     {
@@ -47,7 +47,7 @@ TEST_SUITE("validation::tools")
         int error = 0;
         auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
         REQUIRE_EQ(error, 0);
-        CHECK_EQ(pk_hex, hex_str(pk_bytes));
+        REQUIRE(pk_hex == hex_str(pk_bytes);
 
         spdlog::set_level(spdlog::level::debug);
 
@@ -55,13 +55,13 @@ TEST_SUITE("validation::tools")
         pk_hex = hex_str(not_even_key);
         pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
         REQUIRE_EQ(error, 0);
-        CHECK_FALSE(pk_hex == hex_str(pk_bytes));
+        REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
 
         std::array<std::byte, 6> wrong_size_key;
         pk_hex = hex_str(wrong_size_key);
         pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
         REQUIRE_EQ(error, 0);
-        CHECK_FALSE(pk_hex == hex_str(pk_bytes));
+        REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
 
         spdlog::set_level(spdlog::level::info);
     }
@@ -78,7 +78,7 @@ TEST_SUITE("validation::tools")
         auto sig_hex = hex_str(sig);
         auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
         REQUIRE_EQ(error, 0);
-        CHECK_EQ(sig_hex, hex_str(sig_bytes));
+        REQUIRE(sig_hex == hex_str(sig_bytes);
 
         spdlog::set_level(spdlog::level::debug);
 
@@ -86,13 +86,13 @@ TEST_SUITE("validation::tools")
         sig_hex = hex_str(not_even_sig);
         sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
         REQUIRE_EQ(error, 0);
-        CHECK_FALSE(sig_hex == hex_str(sig_bytes));
+        REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
 
         std::array<std::byte, 6> wrong_size_sig;
         sig_hex = hex_str(wrong_size_sig);
         sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
         REQUIRE_EQ(error, 0);
-        CHECK_FALSE(sig_hex == hex_str(sig_bytes));
+        REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
 
         spdlog::set_level(spdlog::level::info);
     }
@@ -115,7 +115,7 @@ protected:
     std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> signature;
 };
 
-TEST_SUITE("validation::VerifyMsg")
+namespace
 {
     TEST_CASE_FIXTURE(VerifyMsg, "from_bytes")
     {
@@ -188,7 +188,7 @@ protected:
     std::string data;
 };
 
-TEST_SUITE("validation::VerifyGPGMsg")
+namespace
 {
     TEST_CASE_FIXTURE(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
     {

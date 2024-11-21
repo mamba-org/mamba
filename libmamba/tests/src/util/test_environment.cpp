@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
@@ -13,21 +13,21 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("util::environment")
+namespace
 {
     TEST_CASE("get_env")
     {
         const auto restore = mambatests::EnvironmentCleaner();
 
-        CHECK_FALSE(get_env("VAR_THAT_DOES_NOT_EXIST_XYZ").has_value());
-        CHECK(get_env("PATH").has_value());
+        REQUIRE_FALSE(get_env("VAR_THAT_DOES_NOT_EXIST_XYZ").has_value());
+        REQUIRE(get_env("PATH").has_value());
     }
 
     TEST_CASE("set_env")
     {
         const auto restore = mambatests::EnvironmentCleaner();
 
-        SUBCASE("ASCII")
+        SECTION("ASCII")
         {
             const auto key = std::string(u8"VAR_THAT_DOES_NOT_EXIST_XYZ");
             const auto value1 = std::string(u8"VALUE");
@@ -38,7 +38,7 @@ TEST_SUITE("util::environment")
             CHECK_EQ(get_env(key), value2);
         }
 
-        SUBCASE("UTF-8")
+        SECTION("UTF-8")
         {
             const auto key = std::string(u8"VAR_私のにほんごわへたです");
             const auto value1 = std::string(u8"😀");
@@ -55,13 +55,13 @@ TEST_SUITE("util::environment")
         const auto restore = mambatests::EnvironmentCleaner();
 
         const auto key = std::string(u8"VAR_THAT_DOES_NOT_EXIST_ABC_😀");
-        CHECK_FALSE(get_env(key).has_value());
+        REQUIRE_FALSE(get_env(key).has_value());
         unset_env(key);
-        CHECK_FALSE(get_env(key).has_value());
+        REQUIRE_FALSE(get_env(key).has_value());
         set_env(key, "VALUE");
-        CHECK(get_env(key).has_value());
+        REQUIRE(get_env(key).has_value());
         unset_env(key);
-        CHECK_FALSE(get_env(key).has_value());
+        REQUIRE_FALSE(get_env(key).has_value());
     }
 
     TEST_CASE("get_env_map")
@@ -88,9 +88,9 @@ TEST_SUITE("util::environment")
         const auto key_unchanged = std::string(u8"MAMBA😀");
         const auto key_changed = std::string(u8"PIXI😀");
 
-        CHECK_FALSE(get_env(key_inexistent).has_value());
-        CHECK_FALSE(get_env(key_unchanged).has_value());
-        CHECK_FALSE(get_env(key_changed).has_value());
+        REQUIRE_FALSE(get_env(key_inexistent).has_value());
+        REQUIRE_FALSE(get_env(key_unchanged).has_value());
+        REQUIRE_FALSE(get_env(key_changed).has_value());
 
         const auto val_set_1 = std::string(u8"a😀");
         update_env_map({ { key_changed, val_set_1 }, { key_unchanged, val_set_1 } });
@@ -113,9 +113,9 @@ TEST_SUITE("util::environment")
         const auto key_unchanged = std::string(u8"MAMBA🤗");
         const auto key_changed = std::string(u8"PIXI🤗");
 
-        CHECK_FALSE(get_env(key_inexistent).has_value());
-        CHECK_FALSE(get_env(key_unchanged).has_value());
-        CHECK_FALSE(get_env(key_changed).has_value());
+        REQUIRE_FALSE(get_env(key_inexistent).has_value());
+        REQUIRE_FALSE(get_env(key_unchanged).has_value());
+        REQUIRE_FALSE(get_env(key_changed).has_value());
 
         const auto val_set_1 = std::string(u8"a😀");
         set_env_map({ { key_changed, val_set_1 }, { key_unchanged, val_set_1 } });
@@ -134,7 +134,7 @@ TEST_SUITE("util::environment")
     {
         const auto restore = mambatests::EnvironmentCleaner();
 
-        SUBCASE("default")
+        SECTION("default")
         {
             [[maybe_unused]] const auto home = user_home_dir();  // Must not raise error
 
@@ -145,7 +145,7 @@ TEST_SUITE("util::environment")
             }
         }
 
-        SUBCASE("explicit")
+        SECTION("explicit")
         {
             if (on_win)
             {
@@ -169,7 +169,7 @@ TEST_SUITE("util::environment")
     {
         const auto restore = mambatests::EnvironmentCleaner();
 
-        SUBCASE("XDG environment variables")
+        SECTION("XDG environment variables")
         {
             update_env_map({
                 { "XDG_CONFIG_HOME", "xconfig" },
@@ -181,7 +181,7 @@ TEST_SUITE("util::environment")
             CHECK_EQ(user_cache_dir(), "xcache");
         }
 
-        SUBCASE("Defaults")
+        SECTION("Defaults")
         {
             if (!on_win)
             {
@@ -195,22 +195,22 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("which_in")
     {
-        SUBCASE("Inexistent search dirs")
+        SECTION("Inexistent search dirs")
         {
             CHECK_EQ(which_in("echo", "/obviously/does/not/exist"), "");
         }
 
-        SUBCASE("testing_libmamba_lock")
+        SECTION("testing_libmamba_lock")
         {
             const auto test_exe = which_in(
                 "testing_libmamba_lock",
                 mambatests::testing_libmamba_lock_exe.parent_path()
             );
             CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
-            CHECK(mamba::fs::exists(test_exe));
+            REQUIRE(mamba::fs::exists(test_exe));
         }
 
-        SUBCASE("testing_libmamba_lock.exe")
+        SECTION("testing_libmamba_lock.exe")
         {
             if (on_win)
             {
@@ -219,18 +219,18 @@ TEST_SUITE("util::environment")
                     mambatests::testing_libmamba_lock_exe.parent_path()
                 );
                 CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
-                CHECK(mamba::fs::exists(test_exe));
+                REQUIRE(mamba::fs::exists(test_exe));
             }
         }
     }
 
     TEST_CASE("which")
     {
-        SUBCASE("echo")
+        SECTION("echo")
         {
             const auto echo = which("echo");
             CHECK_EQ(echo.stem(), "echo");
-            CHECK(mamba::fs::exists(echo));
+            REQUIRE(mamba::fs::exists(echo));
 
             if (!on_win)
             {
@@ -241,21 +241,21 @@ TEST_SUITE("util::environment")
                     "/usr/bin",
                     "/usr/sbin",
                 };
-                CHECK(starts_with_any(echo.string(), reasonable_locations));
+                REQUIRE(starts_with_any(echo.string(), reasonable_locations));
             }
         }
 
-        SUBCASE("echo.exe")
+        SECTION("echo.exe")
         {
             if (on_win)
             {
                 const auto echo = which("echo.exe");
                 CHECK_EQ(echo.stem(), "echo");
-                CHECK(mamba::fs::exists(echo));
+                REQUIRE(mamba::fs::exists(echo));
             }
         }
 
-        SUBCASE("Inexistent path")
+        SECTION("Inexistent path")
         {
             CHECK_EQ(which("obviously-does-not-exist"), "");
         }

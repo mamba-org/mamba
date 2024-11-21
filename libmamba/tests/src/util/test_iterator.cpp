@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/iterator.hpp"
 
@@ -77,10 +77,10 @@ test_forward_api(Seq& input, const Seq& res, Pred p)
     }
     CHECK_EQ(iter, iter_end);
     CHECK_EQ(citer, citer_end);
-    CHECK(iter == iter_end);
+    REQUIRE(iter == iter_end);
 
     CHECK_EQ(iter2.operator->(), (++input.begin()).operator->());
-    CHECK(iter2++ != ++iter3);
+    REQUIRE(iter2++ != ++iter3);
 }
 
 template <class Seq, class Pred>
@@ -111,7 +111,7 @@ test_bidirectional_api(Seq& input, const Seq& res, Pred pred)
     --iter_end, --citer_end;
 
     CHECK_EQ(iter2.operator->(), input.end().operator->());
-    CHECK(iter2-- != --iter3);
+    REQUIRE(iter2-- != --iter3);
 }
 
 template <class Seq, class Pred>
@@ -135,8 +135,8 @@ test_random_access_api(Seq& input, const Seq& res, Pred pred)
     CHECK_EQ(iter_end - iter, static_cast<std::ptrdiff_t>(res.size()));
     CHECK_EQ(citer_end - citer, static_cast<std::ptrdiff_t>(res.size()));
 
-    CHECK_EQ(*(iter + 2), *(res_iter + 2));
-    CHECK_EQ(*(citer + 2), *(res_iter + 2));
+    REQUIRE(*(iter + 2) == *(res_iter + 2);
+    REQUIRE(*(citer + 2) == *(res_iter + 2);
     iter += 2, res_iter += 2, citer += 2;
     CHECK_EQ(*iter, *res_iter);
     CHECK_EQ(*citer, *res_iter);
@@ -145,7 +145,7 @@ test_random_access_api(Seq& input, const Seq& res, Pred pred)
     CHECK_EQ(citer2[1], res_iter2[1]);
 }
 
-TEST_SUITE("util::filter_iterator")
+namespace
 {
     TEST_CASE("forward_iterator_api")
     {

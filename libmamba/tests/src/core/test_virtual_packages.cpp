@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -30,7 +30,7 @@ namespace mamba
             }
         };
 
-        TEST_SUITE("virtual_packages")
+        namespace
         {
             TEST_CASE("make_virtual_package")
             {

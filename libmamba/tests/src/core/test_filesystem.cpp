@@ -6,7 +6,7 @@
 
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
@@ -14,7 +14,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("u8path")
+    namespace
     {
         TEST_CASE("normalized_separators")
         {
@@ -86,7 +86,7 @@ namespace mamba
                 const auto path_to_search_from = file_dir.parent_path();
                 fs::recursive_directory_iterator it{ path_to_search_from };
                 auto first_entry = *it;
-                CHECK_EQ(first_entry.path(), file_path.parent_path());
+                REQUIRE(first_entry.path() == file_path.parent_path();
                 auto secibd_entry = *(++it);
                 CHECK_EQ(secibd_entry.path(), file_path);
             }
@@ -178,7 +178,7 @@ namespace mamba
 #endif
     }
 
-    TEST_SUITE("filesystem")
+    namespace
     {
         TEST_CASE("remove_readonly_file")
         {
@@ -211,9 +211,9 @@ namespace mamba
             );
 
             // removing should still work.
-            CHECK(fs::exists(readonly_file_path));
+            REQUIRE(fs::exists(readonly_file_path));
             fs::remove(readonly_file_path);
-            CHECK_FALSE(fs::exists(readonly_file_path));
+            REQUIRE_FALSE(fs::exists(readonly_file_path));
         }
 
         TEST_CASE("remove_all_readonly_files")
@@ -283,9 +283,9 @@ namespace mamba
                 create_readonly_files(dir_path);
             }
 
-            CHECK(fs::exists(tmp_dir));
+            REQUIRE(fs::exists(tmp_dir));
             fs::remove_all(tmp_dir);
-            CHECK_FALSE(fs::exists(tmp_dir));
+            REQUIRE_FALSE(fs::exists(tmp_dir));
         }
     }
 

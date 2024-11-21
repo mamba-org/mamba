@@ -4,14 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/archive.hpp"
 
 using namespace mamba;
 using namespace mamba::specs;
 
-TEST_SUITE("specs::archive")
+namespace
 {
     TEST_CASE("has_archive_extension")
     {
@@ -24,8 +24,8 @@ TEST_SUITE("specs::archive")
              })
         {
             CAPTURE(std::string_view(no_ext_path));
-            CHECK_FALSE(has_archive_extension(no_ext_path));
-            CHECK_FALSE(has_archive_extension(fs::u8path(no_ext_path)));
+            REQUIRE_FALSE(has_archive_extension(no_ext_path));
+            REQUIRE_FALSE(has_archive_extension(fs::u8path(no_ext_path)));
         }
 
         for (const auto& ext_path : {
@@ -34,8 +34,8 @@ TEST_SUITE("specs::archive")
              })
         {
             CAPTURE(std::string_view(ext_path));
-            CHECK(has_archive_extension(ext_path));
-            CHECK(has_archive_extension(fs::u8path(ext_path)));
+            REQUIRE(has_archive_extension(ext_path));
+            REQUIRE(has_archive_extension(fs::u8path(ext_path)));
         }
     }
 

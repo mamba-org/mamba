@@ -6,7 +6,7 @@
 
 #include <regex>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/os_osx.hpp"
@@ -14,7 +14,7 @@
 using namespace mamba;
 using namespace mamba::util;
 
-TEST_SUITE("util::os_osx")
+namespace
 {
     TEST_CASE("osx_version")
     {
@@ -26,11 +26,11 @@ TEST_SUITE("util::os_osx")
             // 'x.x' or 'x.x.x'
             // with 'x' matching one or more digits
             static const auto version_regex = std::regex(R"r(\d+\.\d+(\.\d+)?)r");
-            CHECK(std ::regex_match(maybe_version.value(), version_regex));
+            REQUIRE(std ::regex_match(maybe_version.value(), version_regex));
         }
         else
         {
-            CHECK_FALSE(maybe_version.has_value());
+            REQUIRE_FALSE(maybe_version.has_value());
         }
     }
 }

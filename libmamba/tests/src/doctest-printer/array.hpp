@@ -6,7 +6,7 @@
 
 #include <array>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 

@@ -9,7 +9,7 @@
 #include <variant>
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -63,7 +63,7 @@ find_actions_with_name(const Solution& solution, std::string_view name)
     return out;
 }
 
-TEST_SUITE("solver::libsolv::solver")
+namespace
 {
     using namespace specs::match_spec_literals;
 
@@ -80,7 +80,7 @@ TEST_SUITE("solver::libsolv::solver")
         );
         REQUIRE(repo.has_value());
 
-        SUBCASE("Install numpy")
+        SECTION("Install numpy")
         {
             const auto request = Request{
                 /* .flags= */ {},
@@ -94,16 +94,16 @@ TEST_SUITE("solver::libsolv::solver")
 
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
-            CHECK(std::holds_alternative<Solution::Install>(solution.actions.back()));
+            REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
             CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE_EQ(python_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
         }
 
-        SUBCASE("Force reinstall not installed numpy")
+        SECTION("Force reinstall not installed numpy")
         {
             auto flags = Request::Flags();
             flags.force_reinstall = true;
@@ -119,16 +119,16 @@ TEST_SUITE("solver::libsolv::solver")
 
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
-            CHECK(std::holds_alternative<Solution::Install>(solution.actions.back()));
+            REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
             CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE_EQ(python_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
         }
 
-        SUBCASE("Install numpy without dependencies")
+        SECTION("Install numpy without dependencies")
         {
             const auto request = Request{
                 /* .flags= */ {
@@ -145,16 +145,16 @@ TEST_SUITE("solver::libsolv::solver")
 
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
-            CHECK(std::holds_alternative<Solution::Install>(solution.actions.back()));
+            REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
             CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE_EQ(python_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Omit>(python_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Omit>(python_actions.front()));
         }
 
-        SUBCASE("Install numpy dependencies only")
+        SECTION("Install numpy dependencies only")
         {
             const auto request = Request{
                 /* .flags= */ {
@@ -171,19 +171,19 @@ TEST_SUITE("solver::libsolv::solver")
 
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
-            CHECK(std::holds_alternative<Solution::Omit>(solution.actions.back()));
+            REQUIRE(std::holds_alternative<Solution::Omit>(solution.actions.back()));
             CHECK_EQ(std::get<Solution::Omit>(solution.actions.back()).what.name, "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE_EQ(python_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
 
             // Pip is not a dependency of numpy (or python here)
-            CHECK(find_actions_with_name(solution, "pip").empty());
+            REQUIRE(find_actions_with_name(solution, "pip").empty());
         }
 
-        SUBCASE("Fail to install missing package")
+        SECTION("Fail to install missing package")
         {
             const auto request = Request{
                 /* .flags= */ {},
@@ -196,7 +196,7 @@ TEST_SUITE("solver::libsolv::solver")
         }
 
 
-        SUBCASE("Fail to install conflicting dependencies")
+        SECTION("Fail to install conflicting dependencies")
         {
             const auto request = Request{
                 /* .flags= */ {
@@ -225,7 +225,7 @@ TEST_SUITE("solver::libsolv::solver")
         REQUIRE(repo.has_value());
         db.set_installed_repo(repo.value());
 
-        SUBCASE("Remove numpy and dependencies")
+        SECTION("Remove numpy and dependencies")
         {
             const auto request = Request{
                 /* .flags= */ {},
@@ -239,15 +239,15 @@ TEST_SUITE("solver::libsolv::solver")
 
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is first because of topological sort
-            CHECK(std::holds_alternative<Solution::Remove>(solution.actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Remove>(solution.actions.front()));
             CHECK_EQ(std::get<Solution::Remove>(solution.actions.front()).remove.name, "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             // Python is not removed because it is needed by pip which is installed
-            CHECK(find_actions_with_name(solution, "pip").empty());
+            REQUIRE(find_actions_with_name(solution, "pip").empty());
         }
 
-        SUBCASE("Remove numpy and pip and dependencies")
+        SECTION("Remove numpy and pip and dependencies")
         {
             const auto request = Request{
                 /* .flags= */ {},
@@ -261,18 +261,18 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto numpy_actions = find_actions_with_name(solution, "numpy");
             REQUIRE_EQ(numpy_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Remove>(numpy_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Remove>(numpy_actions.front()));
 
             const auto pip_actions = find_actions_with_name(solution, "pip");
             REQUIRE_EQ(pip_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Remove>(pip_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Remove>(pip_actions.front()));
 
             const auto python_actions = find_actions_with_name(solution, "python");
             REQUIRE_EQ(python_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Remove>(python_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Remove>(python_actions.front()));
         }
 
-        SUBCASE("Remove numpy without dependencies")
+        SECTION("Remove numpy without dependencies")
         {
             const auto request = Request{
                 /* .flags= */ {},
@@ -285,12 +285,12 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             REQUIRE_EQ(solution.actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Remove>(solution.actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Remove>(solution.actions.front()));
             CHECK_EQ(std::get<Solution::Remove>(solution.actions.front()).remove.name, "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
         }
 
-        SUBCASE("Removing non-existing package is a no-op")
+        SECTION("Removing non-existing package is a no-op")
         {
             const auto request = Request{
                 /* .flags= */ {},
@@ -302,7 +302,7 @@ TEST_SUITE("solver::libsolv::solver")
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            CHECK(solution.actions.empty());
+            REQUIRE(solution.actions.empty());
         }
     }
 
@@ -325,7 +325,7 @@ TEST_SUITE("solver::libsolv::solver")
         );
         REQUIRE(repo.has_value());
 
-        SUBCASE("Force reinstall numpy resinstalls it")
+        SECTION("Force reinstall numpy resinstalls it")
         {
             auto flags = Request::Flags();
             flags.force_reinstall = true;
@@ -340,7 +340,7 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             REQUIRE_EQ(solution.actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Reinstall>(solution.actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Reinstall>(solution.actions.front()));
             CHECK_EQ(std::get<Solution::Reinstall>(solution.actions.front()).what.name, "numpy");
         }
     }
@@ -358,14 +358,14 @@ TEST_SUITE("solver::libsolv::solver")
         );
         REQUIRE(repo.has_value());
 
-        SUBCASE("numpy 1.0 is installed")
+        SECTION("numpy 1.0 is installed")
         {
             const auto installed = db.add_repo_from_packages(std::array{
                 specs::PackageInfo("numpy", "1.0.0", "phony", 0),
             });
             db.set_installed_repo(installed);
 
-            SUBCASE("Installing numpy does not upgrade")
+            SECTION("Installing numpy does not upgrade")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -376,10 +376,10 @@ TEST_SUITE("solver::libsolv::solver")
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
                 const auto& solution = std::get<Solution>(outcome.value());
-                CHECK(solution.actions.empty());
+                REQUIRE(solution.actions.empty());
             }
 
-            SUBCASE("Upgrade numpy")
+            SECTION("Upgrade numpy")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -393,7 +393,7 @@ TEST_SUITE("solver::libsolv::solver")
 
                 REQUIRE_FALSE(solution.actions.empty());
                 // Numpy is last because of topological sort
-                CHECK(std::holds_alternative<Solution::Upgrade>(solution.actions.back()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(solution.actions.back()));
                 CHECK_EQ(std::get<Solution::Upgrade>(solution.actions.back()).install.name, "numpy");
                 CHECK_EQ(std::get<Solution::Upgrade>(solution.actions.back()).install.version, "1.26.4");
                 CHECK_EQ(std::get<Solution::Upgrade>(solution.actions.back()).remove.version, "1.0.0");
@@ -402,10 +402,10 @@ TEST_SUITE("solver::libsolv::solver")
                 // Python needs to be installed
                 const auto python_actions = find_actions_with_name(solution, "python");
                 REQUIRE_EQ(python_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(python_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
             }
 
-            SUBCASE("Update numpy to no better solution is a no-op")
+            SECTION("Update numpy to no better solution is a no-op")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -416,11 +416,11 @@ TEST_SUITE("solver::libsolv::solver")
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
                 const auto& solution = std::get<Solution>(outcome.value());
-                CHECK(solution.actions.empty());
+                REQUIRE(solution.actions.empty());
             }
         }
 
-        SUBCASE("numpy 1.0 is installed with python 2.0 and foo")
+        SECTION("numpy 1.0 is installed with python 2.0 and foo")
         {
             auto pkg_numpy = specs::PackageInfo("numpy", "1.0.0", "phony", 0);
             pkg_numpy.dependencies = { "python=2.0", "foo" };
@@ -431,7 +431,7 @@ TEST_SUITE("solver::libsolv::solver")
             });
             db.set_installed_repo(installed);
 
-            SUBCASE("numpy is upgraded with cleaning dependencies")
+            SECTION("numpy is upgraded with cleaning dependencies")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -445,22 +445,22 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
                 REQUIRE_EQ(numpy_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
                 REQUIRE_EQ(python_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
 
                 const auto foo_actions = find_actions_with_name(solution, "foo");
                 REQUIRE_EQ(foo_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Remove>(foo_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Remove>(foo_actions.front()));
             }
 
-            SUBCASE("numpy is upgraded with cleaning dependencies and a user keep")
+            SECTION("numpy is upgraded with cleaning dependencies and a user keep")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -474,21 +474,21 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
                 REQUIRE_EQ(numpy_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
                 REQUIRE_EQ(python_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
 
                 // foo is left unchanged in the installed repository because of Keep job
-                CHECK(find_actions_with_name(solution, "foo").empty());
+                REQUIRE(find_actions_with_name(solution, "foo").empty());
             }
 
-            SUBCASE("numpy is upgraded without cleaning dependencies")
+            SECTION("numpy is upgraded without cleaning dependencies")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -502,20 +502,20 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
                 REQUIRE_EQ(numpy_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
                 REQUIRE_EQ(python_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
 
-                CHECK(find_actions_with_name(solution, "foo").empty());
+                REQUIRE(find_actions_with_name(solution, "foo").empty());
             }
 
-            SUBCASE("python upgrade leads to numpy upgrade")
+            SECTION("python upgrade leads to numpy upgrade")
             {
                 const auto request = Request{
                     /* .flags= */ {},
@@ -529,21 +529,21 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
                 REQUIRE_EQ(numpy_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
                 REQUIRE_EQ(python_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
                 CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
 
-                CHECK(find_actions_with_name(solution, "foo").empty());
+                REQUIRE(find_actions_with_name(solution, "foo").empty());
             }
         }
 
-        SUBCASE("numpy 1.0 is installed with python 4.0 and constrained foo")
+        SECTION("numpy 1.0 is installed with python 4.0 and constrained foo")
         {
             auto pkg_numpy = specs::PackageInfo("numpy", "1.0.0", "phony", 0);
             pkg_numpy.dependencies = { "python=4.0", "foo" };
@@ -556,7 +556,7 @@ TEST_SUITE("solver::libsolv::solver")
             });
             db.set_installed_repo(installed);
 
-            SUBCASE("numpy upgrade lead to allowed python downgrade")
+            SECTION("numpy upgrade lead to allowed python downgrade")
             {
                 const auto request = Request{
                     /* .flags= */ {
@@ -576,18 +576,18 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
                 REQUIRE_EQ(numpy_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
                 CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
                 REQUIRE_EQ(python_actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Downgrade>(python_actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Downgrade>(python_actions.front()));
                 CHECK_EQ(std::get<Solution::Downgrade>(python_actions.front()).install.version, "3.12.1");
                 CHECK_EQ(std::get<Solution::Downgrade>(python_actions.front()).remove.version, "4.0.0");
             }
 
-            SUBCASE("no numpy upgrade without allowing downgrading other packages")
+            SECTION("no numpy upgrade without allowing downgrading other packages")
             {
                 const auto request = Request{
                     /* .flags= */ {
@@ -606,7 +606,7 @@ TEST_SUITE("solver::libsolv::solver")
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 // No possible changes
-                CHECK(solution.actions.empty());
+                REQUIRE(solution.actions.empty());
             }
         }
     }
@@ -624,7 +624,7 @@ TEST_SUITE("solver::libsolv::solver")
         db.set_repo_priority(repo1, { 2, 0 });
         db.set_repo_priority(repo2, { 1, 0 });
 
-        SUBCASE("All repos considered without strict repo priority")
+        SECTION("All repos considered without strict repo priority")
         {
             auto request = Request{
                 /* .flags= */ {},
@@ -639,11 +639,11 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto numpy_actions = find_actions_with_name(solution, "numpy");
             REQUIRE_EQ(numpy_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(numpy_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(numpy_actions.front()));
             CHECK_EQ(std::get<Solution::Install>(numpy_actions.front()).install.version, "2.0.0");
         }
 
-        SUBCASE("Fail to get package from non priority repo with strict repo priority")
+        SECTION("Fail to get package from non priority repo with strict repo priority")
         {
             auto request = Request{
                 /* .flags= */ {},
@@ -653,7 +653,7 @@ TEST_SUITE("solver::libsolv::solver")
             const auto outcome = libsolv::Solver().solve(db, request);
 
             REQUIRE(outcome.has_value());
-            CHECK(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
         }
     }
 
@@ -674,7 +674,7 @@ TEST_SUITE("solver::libsolv::solver")
             return out;
         };
 
-        SUBCASE("Pins are respected")
+        SECTION("Pins are respected")
         {
             db.add_repo_from_packages(std::array{
                 mkfoo("1.0.0", 0, { "feat" }, 0),
@@ -693,11 +693,11 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
             CHECK_EQ(std::get<Solution::Install>(actions.front()).install.version, "1.0.0");
         }
 
-        SUBCASE("Track features has highest priority")
+        SECTION("Track features has highest priority")
         {
             db.add_repo_from_packages(std::array{
                 mkfoo("1.0.0", 0, {}, 0),
@@ -715,11 +715,11 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
             CHECK_EQ(std::get<Solution::Install>(actions.front()).install.version, "1.0.0");
         }
 
-        SUBCASE("Version has second highest priority")
+        SECTION("Version has second highest priority")
         {
             db.add_repo_from_packages(std::array{
                 mkfoo("2.0.0", 0, {}, 0),
@@ -737,11 +737,11 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
             CHECK_EQ(std::get<Solution::Install>(actions.front()).install.version, "2.0.0");
         }
 
-        SUBCASE("Build number has third highest priority")
+        SECTION("Build number has third highest priority")
         {
             db.add_repo_from_packages(std::array{
                 mkfoo("2.0.0", 1, {}, 0),
@@ -759,11 +759,11 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
             CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_number, 1);
         }
 
-        SUBCASE("Timestamp has lowest priority")
+        SECTION("Timestamp has lowest priority")
         {
             db.add_repo_from_packages(std::array{
                 mkfoo("2.0.0", 0, {}, 0),
@@ -781,7 +781,7 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
             CHECK_EQ(std::get<Solution::Install>(actions.front()).install.timestamp, 1);
         }
     }
@@ -793,7 +793,7 @@ TEST_SUITE("solver::libsolv::solver")
             /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
         });
 
-        SUBCASE("Different channels")
+        SECTION("Different channels")
         {
             auto pkg1 = specs::PackageInfo("foo", "1.0.0", "conda", 0);
             pkg1.package_url = "https://conda.anaconda.org/conda-forge/linux-64/foo-1.0.0-phony.conda";
@@ -802,7 +802,7 @@ TEST_SUITE("solver::libsolv::solver")
             pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
             db.add_repo_from_packages(std::array{ pkg2 });
 
-            SUBCASE("conda-forge::foo")
+            SECTION("conda-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -816,11 +816,11 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto actions = find_actions_with_name(solution, "foo");
                 REQUIRE_EQ(actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "conda");
             }
 
-            SUBCASE("mamba-forge::foo")
+            SECTION("mamba-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -834,11 +834,11 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto actions = find_actions_with_name(solution, "foo");
                 REQUIRE_EQ(actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
             }
 
-            SUBCASE("pixi-forge::foo")
+            SECTION("pixi-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -848,10 +848,10 @@ TEST_SUITE("solver::libsolv::solver")
                 const auto outcome = libsolv::Solver().solve(db, request);
 
                 REQUIRE(outcome.has_value());
-                CHECK(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+                REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
             }
 
-            SUBCASE("https://conda.anaconda.org/mamba-forge::foo")
+            SECTION("https://conda.anaconda.org/mamba-forge::foo")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -865,12 +865,12 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto actions = find_actions_with_name(solution, "foo");
                 REQUIRE_EQ(actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
+                REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
                 CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
             }
         }
 
-        SUBCASE("Different subdirs")
+        SECTION("Different subdirs")
         {
             const auto repo_linux = db.add_repo_from_repodata_json(
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
@@ -891,7 +891,7 @@ TEST_SUITE("solver::libsolv::solver")
             );
             REQUIRE(repo_noarch.has_value());
 
-            SUBCASE("conda-forge/win-64::numpy")
+            SECTION("conda-forge/win-64::numpy")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -903,7 +903,7 @@ TEST_SUITE("solver::libsolv::solver")
                 REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
             }
 
-            SUBCASE("conda-forge::numpy[subdir=linux-64]")
+            SECTION("conda-forge::numpy[subdir=linux-64]")
             {
                 auto request = Request{
                     /* .flags= */ {},
@@ -917,8 +917,8 @@ TEST_SUITE("solver::libsolv::solver")
 
                 const auto actions = find_actions_with_name(solution, "numpy");
                 REQUIRE_EQ(actions.size(), 1);
-                CHECK(std::holds_alternative<Solution::Install>(actions.front()));
-                CHECK(util::contains(
+                REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
+                REQUIRE(util::contains(
                     std::get<Solution::Install>(actions.front()).install.package_url,
                     "linux-64"
                 ));
@@ -932,7 +932,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         auto db = libsolv::Database({});
 
-        SUBCASE("Respect pins through direct dependencies")
+        SECTION("Respect pins through direct dependencies")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.version = "1.0";
@@ -953,11 +953,11 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto foo_actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(foo_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(foo_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(foo_actions.front()));
             CHECK_EQ(std::get<Solution::Install>(foo_actions.front()).install.version, "1.0");
         }
 
-        SUBCASE("Respect pins through indirect dependencies")
+        SECTION("Respect pins through indirect dependencies")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.version = "1.0";
@@ -984,12 +984,12 @@ TEST_SUITE("solver::libsolv::solver")
 
             const auto foo_actions = find_actions_with_name(solution, "foo");
             REQUIRE_EQ(foo_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(foo_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(foo_actions.front()));
             CHECK_EQ(std::get<Solution::Install>(foo_actions.front()).install.version, "1.0");
 
             const auto bar_actions = find_actions_with_name(solution, "bar");
             REQUIRE_EQ(bar_actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(bar_actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(bar_actions.front()));
             CHECK_EQ(std::get<Solution::Install>(bar_actions.front()).install.version, "1.0");
         }
     }
@@ -1000,7 +1000,7 @@ TEST_SUITE("solver::libsolv::solver")
 
         auto db = libsolv::Database({});
 
-        SUBCASE("*[md5=0bab699354cbd66959550eb9b9866620]")
+        SECTION("*[md5=0bab699354cbd66959550eb9b9866620]")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
@@ -1020,14 +1020,14 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             REQUIRE_EQ(solution.actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
             CHECK_EQ(
                 std::get<Solution::Install>(solution.actions.front()).install.md5,
                 "0bab699354cbd66959550eb9b9866620"
             );
         }
 
-        SUBCASE("foo[md5=notreallymd5]")
+        SECTION("foo[md5=notreallymd5]")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
@@ -1044,7 +1044,7 @@ TEST_SUITE("solver::libsolv::solver")
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
         }
 
-        SUBCASE("foo[build_string=bld]")
+        SECTION("foo[build_string=bld]")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.build_string = "bad";
@@ -1064,11 +1064,11 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             REQUIRE_EQ(solution.actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
             CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
         }
 
-        SUBCASE("foo[build_string=bld, build_number='>2']")
+        SECTION("foo[build_string=bld, build_number='>2']")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.build_string = "bad";
@@ -1093,12 +1093,12 @@ TEST_SUITE("solver::libsolv::solver")
             const auto& solution = std::get<Solution>(outcome.value());
 
             REQUIRE_EQ(solution.actions.size(), 1);
-            CHECK(std::holds_alternative<Solution::Install>(solution.actions.front()));
+            REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
             CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
             CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_number, 4);
         }
 
-        SUBCASE("foo[version='=*,=*', build='pyhd*']")
+        SECTION("foo[version='=*,=*', build='pyhd*']")
         {
             auto pkg = PackageInfo("foo");
             pkg.version = "=*,=*";
@@ -1119,8 +1119,8 @@ TEST_SUITE("solver::libsolv::solver")
             const auto problems_explained = unsolvable.explain_problems(db, {});
             // To avoid mismatch due to color formatting, we perform the check by splitting the
             // output following the format
-            CHECK(util::contains(problems_explained, "foo =*,=* pyhd*"));
-            CHECK(util::contains(
+            REQUIRE(util::contains(problems_explained, "foo =*,=* pyhd*"));
+            REQUIRE(util::contains(
                 problems_explained,
                 "does not exist (perhaps a typo or a missing channel)."
             ));

@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/pinning.hpp"
@@ -17,7 +17,7 @@ namespace mamba
 {
     namespace testing
     {
-        TEST_SUITE("pinning")
+        namespace
         {
             TEST_CASE("python_pin")
             {

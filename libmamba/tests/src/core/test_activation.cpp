@@ -1,4 +1,4 @@
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
@@ -7,7 +7,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("activation")
+    namespace
     {
         TEST_CASE("activation")
         {

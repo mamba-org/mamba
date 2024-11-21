@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
@@ -65,7 +65,7 @@ namespace mamba
         return res;
     }
 
-    TEST_SUITE("thread_utils")
+    namespace
     {
         TEST_CASE("interrupt")
         {

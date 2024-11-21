@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <yaml-cpp/exceptions.h>
 
 #include "mamba/core/channel_context.hpp"
@@ -18,20 +18,20 @@
 
 namespace mamba
 {
-    TEST_SUITE("env_lockfile")
+    namespace
     {
         TEST_CASE("absent_file_fails")
         {
             const auto maybe_lockfile = read_environment_lockfile("this/file/does/not/exists");
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
-            REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
+            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
 
             const auto& error_details = EnvLockFileError::get_details(error);
             CHECK_EQ(file_parsing_error_code::parsing_failure, error_details.parsing_error_code);
             REQUIRE(error_details.yaml_error_type);
             const std::type_index bad_file_error_id{ typeid(YAML::BadFile) };
-            CHECK_EQ(bad_file_error_id, error_details.yaml_error_type.value());
+            REQUIRE(bad_file_error_id == error_details.yaml_error_type.value();
 
             // NOTE: one could attempt to check if opening a file which is not an YAML file
             //       would fail. Unfortunately YAML parsers will accept any kind of file,
@@ -46,7 +46,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(invalid_version_lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
-            REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
+            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
             const auto& error_details = EnvLockFileError::get_details(error);
             CHECK_EQ(file_parsing_error_code::unsupported_version, error_details.parsing_error_code);
         }
@@ -58,7 +58,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
-            CHECK(lockfile.get_all_packages().empty());
+            REQUIRE(lockfile.get_all_packages().empty());
         }
 
         TEST_CASE("invalid_package_fails")
@@ -68,7 +68,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
-            REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
+            REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
             const auto& error_details = EnvLockFileError::get_details(error);
             CHECK_EQ(file_parsing_error_code::parsing_failure, error_details.parsing_error_code);
         }
@@ -109,15 +109,15 @@ namespace mamba
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto lockfile = read_environment_lockfile(lockfile_path).value();
-            CHECK(lockfile.get_packages_for("", "", "").empty());
+            REQUIRE(lockfile.get_packages_for("", "", "").empty());
             {
                 const auto packages = lockfile.get_packages_for("main", "linux-64", "conda");
-                CHECK_FALSE(packages.empty());
+                REQUIRE_FALSE(packages.empty());
                 CHECK_GT(packages.size(), 4);
             }
             {
                 const auto packages = lockfile.get_packages_for("main", "linux-64", "pip");
-                CHECK_FALSE(packages.empty());
+                REQUIRE_FALSE(packages.empty());
                 CHECK_EQ(packages.size(), 2);
             }
         }
@@ -168,40 +168,40 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("is_env_lockfile_name")
+    namespace
     {
         TEST_CASE("basics")
         {
-            CHECK(is_env_lockfile_name("something-lock.yaml"));
-            CHECK(is_env_lockfile_name("something-lock.yml"));
-            CHECK(is_env_lockfile_name("/some/dir/something-lock.yaml"));
-            CHECK(is_env_lockfile_name("/some/dir/something-lock.yml"));
-            CHECK(is_env_lockfile_name("../../some/dir/something-lock.yaml"));
-            CHECK(is_env_lockfile_name("../../some/dir/something-lock.yml"));
+            REQUIRE(is_env_lockfile_name("something-lock.yaml"));
+            REQUIRE(is_env_lockfile_name("something-lock.yml"));
+            REQUIRE(is_env_lockfile_name("/some/dir/something-lock.yaml"));
+            REQUIRE(is_env_lockfile_name("/some/dir/something-lock.yml"));
+            REQUIRE(is_env_lockfile_name("../../some/dir/something-lock.yaml"));
+            REQUIRE(is_env_lockfile_name("../../some/dir/something-lock.yml"));
 
-            CHECK(is_env_lockfile_name(fs::u8path{ "something-lock.yaml" }.string()));
-            CHECK(is_env_lockfile_name(fs::u8path{ "something-lock.yml" }.string()));
-            CHECK(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yaml" }.string()));
-            CHECK(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yml" }.string()));
-            CHECK(is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yaml" }.string()));
-            CHECK(is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yml" }.string()));
+            REQUIRE(is_env_lockfile_name(fs::u8path{ "something-lock.yaml" }.string()));
+            REQUIRE(is_env_lockfile_name(fs::u8path{ "something-lock.yml" }.string()));
+            REQUIRE(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yaml" }.string()));
+            REQUIRE(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yml" }.string()));
+            REQUIRE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yaml" }.string()));
+            REQUIRE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yml" }.string()));
 
-            CHECK_FALSE(is_env_lockfile_name("something"));
-            CHECK_FALSE(is_env_lockfile_name("something-lock"));
-            CHECK_FALSE(is_env_lockfile_name("/some/dir/something"));
-            CHECK_FALSE(is_env_lockfile_name("../../some/dir/something"));
+            REQUIRE_FALSE(is_env_lockfile_name("something"));
+            REQUIRE_FALSE(is_env_lockfile_name("something-lock"));
+            REQUIRE_FALSE(is_env_lockfile_name("/some/dir/something"));
+            REQUIRE_FALSE(is_env_lockfile_name("../../some/dir/something"));
 
-            CHECK_FALSE(is_env_lockfile_name("something.yaml"));
-            CHECK_FALSE(is_env_lockfile_name("something.yml"));
-            CHECK_FALSE(is_env_lockfile_name("/some/dir/something.yaml"));
-            CHECK_FALSE(is_env_lockfile_name("/some/dir/something.yml"));
-            CHECK_FALSE(is_env_lockfile_name("../../some/dir/something.yaml"));
-            CHECK_FALSE(is_env_lockfile_name("../../some/dir/something.yml"));
+            REQUIRE_FALSE(is_env_lockfile_name("something.yaml"));
+            REQUIRE_FALSE(is_env_lockfile_name("something.yml"));
+            REQUIRE_FALSE(is_env_lockfile_name("/some/dir/something.yaml"));
+            REQUIRE_FALSE(is_env_lockfile_name("/some/dir/something.yml"));
+            REQUIRE_FALSE(is_env_lockfile_name("../../some/dir/something.yaml"));
+            REQUIRE_FALSE(is_env_lockfile_name("../../some/dir/something.yml"));
 
-            CHECK_FALSE(is_env_lockfile_name(fs::u8path{ "something" }.string()));
-            CHECK_FALSE(is_env_lockfile_name(fs::u8path{ "something-lock" }.string()));
-            CHECK_FALSE(is_env_lockfile_name(fs::u8path{ "/some/dir/something" }.string()));
-            CHECK_FALSE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something" }.string()));
+            REQUIRE_FALSE(is_env_lockfile_name(fs::u8path{ "something" }.string()));
+            REQUIRE_FALSE(is_env_lockfile_name(fs::u8path{ "something-lock" }.string()));
+            REQUIRE_FALSE(is_env_lockfile_name(fs::u8path{ "/some/dir/something" }.string()));
+            REQUIRE_FALSE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something" }.string()));
         }
     }
 

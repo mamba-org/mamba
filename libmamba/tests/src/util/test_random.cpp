@@ -6,14 +6,14 @@
 
 #include <thread>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::random")
+namespace
 {
     TEST_CASE("local_random_generator")
     {
@@ -27,7 +27,7 @@ TEST_SUITE("util::random")
             CHECK_EQ(&a, &c);
 
             auto& d = local_random_generator<std::mt19937_64>();
-            CHECK_NE(static_cast<void*>(&a), static_cast<void*>(&d));
+            REQUIRE(static_cast<void*>(&a) != static_cast<void*>(&d);
 
             return &a;
         };
@@ -60,7 +60,7 @@ TEST_SUITE("util::random")
         {
             const auto value = generate_random_alphanumeric_string(i);
             CHECK_EQ(value.size(), i);
-            CHECK(std::all_of(
+            REQUIRE(std::all_of(
                 value.cbegin(),
                 value.cend(),
                 [](char c) { return is_digit(c) || is_alpha(c); }

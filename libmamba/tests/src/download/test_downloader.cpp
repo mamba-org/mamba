@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/download/downloader.hpp"
 
@@ -12,7 +12,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("downloader")
+    namespace
     {
         TEST_CASE("file_does_not_exist")
         {
@@ -31,9 +31,9 @@ namespace mamba
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
             context.output_params.quiet = true;
             download::MultiResult res = download::download(dl_request, context.mirrors, context);
-            CHECK_EQ(res.size(), std::size_t(1));
-            CHECK(!res[0]);
-            CHECK_EQ(res[0].error().attempt_number, std::size_t(1));
+            REQUIRE(res.size() == std::size_t(1);
+            REQUIRE(!res[0]);
+            REQUIRE(res[0].error().attempt_number == std::size_t(1);
         }
 
         TEST_CASE("file_does_not_exist_throw")

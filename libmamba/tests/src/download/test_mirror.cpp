@@ -6,7 +6,7 @@
 
 #include <typeinfo>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "../src/download/mirror_impl.hpp"
 
@@ -16,7 +16,7 @@ namespace mamba::download
     {
         std::pair<std::string, std::string> split_path_tag(const std::string& path);
 
-        TEST_SUITE("split_path_tag")
+        namespace
         {
             TEST_CASE("tar_bz2_extension")
             {
@@ -53,7 +53,7 @@ namespace mamba::download
         }
     }
 
-    TEST_SUITE("mirrors")
+    namespace
     {
         TEST_CASE("PassThroughMirror")
         {
@@ -61,7 +61,7 @@ namespace mamba::download
             // `mir_ref` is used here to provide an explicit expression to `typeid`
             // and avoid expression with side effects evaluation warning
             auto& mir_ref = *mir;
-            CHECK_EQ(typeid(mir_ref), typeid(PassThroughMirror));
+            REQUIRE(typeid(mir_ref) == typeid(PassThroughMirror);
 
             Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
             CHECK_EQ(req_gen.size(), 1);
@@ -75,13 +75,13 @@ namespace mamba::download
 
         TEST_CASE("HTTPMirror")
         {
-            SUBCASE("https")
+            SECTION("https")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("https://conda.anaconda.org/conda-forge");
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                CHECK_EQ(typeid(mir_ref), typeid(HTTPMirror));
+                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror);
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 CHECK_EQ(req_gen.size(), 1);
@@ -97,13 +97,13 @@ namespace mamba::download
                 CHECK_EQ(mir_req.url, "https://conda.anaconda.org/conda-forge/linux-64/repodata.json");
             }
 
-            SUBCASE("http")
+            SECTION("http")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("http://conda.anaconda.org/conda-forge");
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                CHECK_EQ(typeid(mir_ref), typeid(HTTPMirror));
+                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror);
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 CHECK_EQ(req_gen.size(), 1);
@@ -119,13 +119,13 @@ namespace mamba::download
                 CHECK_EQ(mir_req.url, "http://conda.anaconda.org/conda-forge/linux-64/repodata.json");
             }
 
-            SUBCASE("file")
+            SECTION("file")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("file://channel_path");
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                CHECK_EQ(typeid(mir_ref), typeid(HTTPMirror));
+                REQUIRE(typeid(mir_ref) == typeid(HTTPMirror);
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators("", "");
                 CHECK_EQ(req_gen.size(), 1);
@@ -144,13 +144,13 @@ namespace mamba::download
 
         TEST_CASE("OCIMirror")
         {
-            SUBCASE("Request repodata.json")
+            SECTION("Request repodata.json")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("oci://ghcr.io/channel-mirrors/conda-forge");
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                CHECK_EQ(typeid(mir_ref), typeid(OCIMirror));
+                REQUIRE(typeid(mir_ref) == typeid(OCIMirror);
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators(
                     "linux-64/repodata.json",
@@ -176,13 +176,13 @@ namespace mamba::download
                 CHECK_THROWS_AS(req_gen[2](req_repodata, nullptr), std::invalid_argument);
             }
 
-            SUBCASE("Request spec with sha")
+            SECTION("Request spec with sha")
             {
                 std::unique_ptr<Mirror> mir = make_mirror("oci://ghcr.io/channel-mirrors/conda-forge");
                 // `mir_ref` is used here to provide an explicit expression to `typeid`
                 // and avoid expression with side effects evaluation warning
                 auto& mir_ref = *mir;
-                CHECK_EQ(typeid(mir_ref), typeid(OCIMirror));
+                REQUIRE(typeid(mir_ref) == typeid(OCIMirror);
 
                 Mirror::request_generator_list req_gen = mir->get_request_generators(
                     "linux-64/pandoc-3.2-ha770c72_0.conda",

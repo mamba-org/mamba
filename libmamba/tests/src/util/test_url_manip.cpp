@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
@@ -17,16 +17,16 @@
 using namespace mamba;
 using namespace mamba::util;
 
-TEST_SUITE("util::url_manip")
+namespace
 {
     TEST_CASE("abs_path_to_url")
     {
-        SUBCASE("/users/test/miniconda3")
+        SECTION("/users/test/miniconda3")
         {
             CHECK_EQ(abs_path_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
         }
 
-        SUBCASE(R"(D:\users\test\miniconda3)")
+        SECTION(R"(D:\users\test\miniconda3)")
         {
             if (on_win)
             {
@@ -37,7 +37,7 @@ TEST_SUITE("util::url_manip")
             }
         }
 
-        SUBCASE("/tmp/foo bar")
+        SECTION("/tmp/foo bar")
         {
             CHECK_EQ(abs_path_to_url("/tmp/foo bar"), "file:///tmp/foo%20bar");
         }
@@ -45,12 +45,12 @@ TEST_SUITE("util::url_manip")
 
     TEST_CASE("abs_path_or_url_to_url")
     {
-        SUBCASE("/users/test/miniconda3")
+        SECTION("/users/test/miniconda3")
         {
             CHECK_EQ(abs_path_or_url_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
         }
 
-        SUBCASE("file:///tmp/bar")
+        SECTION("file:///tmp/bar")
         {
             CHECK_EQ(abs_path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
         }
@@ -60,7 +60,7 @@ TEST_SUITE("util::url_manip")
     {
         const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
 
-        SUBCASE("/users/test/miniconda3")
+        SECTION("/users/test/miniconda3")
         {
             auto url = path_to_url("/users/test/miniconda3");
             if (on_win)
@@ -73,7 +73,7 @@ TEST_SUITE("util::url_manip")
             }
         }
 
-        SUBCASE(R"(D:\users\test\miniconda3)")
+        SECTION(R"(D:\users\test\miniconda3)")
         {
             if (on_win)
             {
@@ -81,7 +81,7 @@ TEST_SUITE("util::url_manip")
             }
         }
 
-        SUBCASE("/tmp/foo bar")
+        SECTION("/tmp/foo bar")
         {
             auto url = path_to_url("/tmp/foo bar");
             if (on_win)
@@ -94,13 +94,13 @@ TEST_SUITE("util::url_manip")
             }
         }
 
-        SUBCASE("./folder/./../folder")
+        SECTION("./folder/./../folder")
         {
             auto url = path_to_url("./folder/./../folder");
             if (on_win)
             {
-                CHECK(starts_with(url, concat("file://", win_drive, ":/")));
-                CHECK(ends_with(url, "/folder"));
+                REQUIRE(starts_with(url, concat("file://", win_drive, ":/")));
+                REQUIRE(ends_with(url, "/folder"));
             }
             else
             {
@@ -114,7 +114,7 @@ TEST_SUITE("util::url_manip")
     {
         const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
 
-        SUBCASE("/tmp/foo bar")
+        SECTION("/tmp/foo bar")
         {
             auto url = path_or_url_to_url("/tmp/foo bar");
             if (on_win)
@@ -127,7 +127,7 @@ TEST_SUITE("util::url_manip")
             }
         }
 
-        SUBCASE("file:///tmp/bar")
+        SECTION("file:///tmp/bar")
         {
             CHECK_EQ(path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
         }
@@ -183,12 +183,12 @@ TEST_SUITE("util::url_manip")
 
     TEST_CASE("url_has_scheme")
     {
-        CHECK(url_has_scheme("http://mamba.org"));
-        CHECK(url_has_scheme("file:///folder/file.txt"));
-        CHECK(url_has_scheme("s3://bucket/file.txt"));
-        CHECK_FALSE(url_has_scheme("mamba.org"));
-        CHECK_FALSE(url_has_scheme("://"));
-        CHECK_FALSE(url_has_scheme("f#gre://"));
-        CHECK_FALSE(url_has_scheme(""));
+        REQUIRE(url_has_scheme("http://mamba.org"));
+        REQUIRE(url_has_scheme("file:///folder/file.txt"));
+        REQUIRE(url_has_scheme("s3://bucket/file.txt"));
+        REQUIRE_FALSE(url_has_scheme("mamba.org"));
+        REQUIRE_FALSE(url_has_scheme("://"));
+        REQUIRE_FALSE(url_has_scheme("f#gre://"));
+        REQUIRE_FALSE(url_has_scheme(""));
     }
 }

@@ -6,7 +6,7 @@
 
 #include <map>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -152,7 +152,7 @@ protected:
     }
 };
 
-TEST_SUITE("validation::v1::RootImpl")
+namespace
 {
     TEST_CASE_FIXTURE(RootImplT_v1, "ctor_from_path")
     {
@@ -160,7 +160,7 @@ TEST_SUITE("validation::v1::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v1::SpecImpl("1.0.17"));
+        REQUIRE(root.spec_version() == v1::SpecImpl("1.0.17");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -170,7 +170,7 @@ TEST_SUITE("validation::v1::RootImpl")
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v1::SpecImpl("1.0.17"));
+        REQUIRE(root.spec_version() == v1::SpecImpl("1.0.17");
         CHECK_EQ(root.version(), 1);
     }
 
@@ -188,7 +188,7 @@ TEST_SUITE("validation::v1::RootImpl")
         auto testing_root = static_cast<v1::RootImpl*>(updated_root.get());
         CHECK_EQ(testing_root->type(), "root");
         CHECK_EQ(testing_root->file_ext(), "json");
-        CHECK_EQ(testing_root->spec_version(), v1::SpecImpl("1.0.17"));
+        REQUIRE(testing_root->spec_version() == v1::SpecImpl("1.0.17");
         CHECK_EQ(testing_root->version(), 2);
     }
 
@@ -227,7 +227,7 @@ TEST_SUITE("validation::v1::RootImpl")
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
         auto testing_root = static_cast<v1::RootImpl*>(updated_root.get());
-        CHECK_EQ(testing_root->spec_version(), v1::SpecImpl("1.30.10"));
+        REQUIRE(testing_root->spec_version() == v1::SpecImpl("1.30.10");
         CHECK_EQ(testing_root->version(), 2);
     }
 
@@ -410,7 +410,7 @@ TEST_SUITE("validation::v1::RootImpl")
 
         const v1::RootImpl root(create_root_update("2.root.json", patch));
         const bool mirrors_role_found = root.roles().find("mirrors") != root.roles().cend();
-        CHECK(mirrors_role_found);
+        REQUIRE(mirrors_role_found);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "threshold_not_met")
@@ -431,10 +431,10 @@ TEST_SUITE("validation::v1::RootImpl")
 
         // expiration is set to now+3600s in 'sign_root'
         TimeRef time_ref;
-        CHECK_FALSE(root.expired(time_ref));
+        REQUIRE_FALSE(root.expired(time_ref));
 
         time_ref.set(utc_time_now() + 7200);
-        CHECK(root.expired(time_ref));
+        REQUIRE(root.expired(time_ref));
 
         nl::json patch = nl::json::parse(
             R"([
@@ -446,7 +446,7 @@ TEST_SUITE("validation::v1::RootImpl")
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
         auto testing_root = static_cast<v1::RootImpl*>(updated_root.get());
-        CHECK_FALSE(testing_root->expired(time_ref));
+        REQUIRE_FALSE(testing_root->expired(time_ref));
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09+0030" },
@@ -472,18 +472,18 @@ TEST_SUITE("validation::v1::RootImpl")
         v1::RootImpl root(root1_json);
 
         auto update_f = root.possible_update_files();
-        CHECK(update_f[0].string().c_str() == doctest::Contains("2.sv2.root.json"));
-        CHECK(update_f[1].string().c_str() == doctest::Contains("2.sv1.root.json"));
-        CHECK(update_f[2].string().c_str() == doctest::Contains("2.root.json"));
+        REQUIRE(update_f[0].string().c_str() == doctest::Contains("2.sv2.root.json"));
+        REQUIRE(update_f[1].string().c_str() == doctest::Contains("2.sv1.root.json"));
+        REQUIRE(update_f[2].string().c_str() == doctest::Contains("2.root.json"));
 
         nl::json patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
         auto updated_root = root.update(create_root_update("2.root.json", patch));
         update_f = updated_root->possible_update_files();
-        CHECK(update_f[0].string().c_str() == doctest::Contains("3.sv2.root.json"));
-        CHECK(update_f[1].string().c_str() == doctest::Contains("3.sv1.root.json"));
-        CHECK(update_f[2].string().c_str() == doctest::Contains("3.root.json"));
+        REQUIRE(update_f[0].string().c_str() == doctest::Contains("3.sv2.root.json"));
+        REQUIRE(update_f[1].string().c_str() == doctest::Contains("3.sv1.root.json"));
+        REQUIRE(update_f[2].string().c_str() == doctest::Contains("3.root.json"));
     }
 }
 
@@ -498,7 +498,7 @@ protected:
     v1::SpecImpl spec;
 };
 
-TEST_SUITE("validation::v1::SpecImpl")
+namespace
 {
     TEST_CASE_FIXTURE(SpecImplT_v1, "ctore")
     {
@@ -513,30 +513,30 @@ TEST_SUITE("validation::v1::SpecImpl")
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "is_compatible")
     {
-        CHECK(spec.is_compatible(std::string("1.0.0")));
-        CHECK(spec.is_compatible(std::string("1.0.17")));
-        CHECK(spec.is_compatible(std::string("1.25.10")));
+        REQUIRE(spec.is_compatible(std::string("1.0.0")));
+        REQUIRE(spec.is_compatible(std::string("1.0.17")));
+        REQUIRE(spec.is_compatible(std::string("1.25.10")));
 
-        CHECK_FALSE(spec.is_compatible(std::string("2.0.0")));
-        CHECK_FALSE(spec.is_compatible(std::string("2.0.17")));
-        CHECK_FALSE(spec.is_compatible(std::string("0.6.0")));
+        REQUIRE_FALSE(spec.is_compatible(std::string("2.0.0")));
+        REQUIRE_FALSE(spec.is_compatible(std::string("2.0.17")));
+        REQUIRE_FALSE(spec.is_compatible(std::string("0.6.0")));
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "is_upgrade")
     {
-        CHECK(spec.is_upgrade(std::string("2.0.0")));
-        CHECK(spec.is_upgrade(std::string("2.1.10")));
+        REQUIRE(spec.is_upgrade(std::string("2.0.0")));
+        REQUIRE(spec.is_upgrade(std::string("2.1.10")));
 
-        CHECK_FALSE(spec.is_upgrade(std::string("0.6.0")));
-        CHECK_FALSE(spec.is_upgrade(std::string("3.0.0")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("0.6.0")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("3.0.0")));
         // not an upgrade, compatible version
-        CHECK_FALSE(spec.is_upgrade(std::string("1.0.17")));
-        CHECK_FALSE(spec.is_upgrade(std::string("1.0.0")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("1.0.17")));
+        REQUIRE_FALSE(spec.is_upgrade(std::string("1.0.0")));
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "upgradable")
     {
-        CHECK_FALSE(spec.upgradable());
+        REQUIRE_FALSE(spec.upgradable());
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "compatible_prefix")
@@ -546,7 +546,7 @@ TEST_SUITE("validation::v1::SpecImpl")
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "upgrade_prefix")
     {
-        CHECK(spec.upgrade_prefix()[0].c_str() == doctest::Contains("2"));
+        REQUIRE(spec.upgrade_prefix()[0].c_str() == doctest::Contains("2"));
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "json_key")
@@ -584,17 +584,17 @@ TEST_SUITE("validation::v1::SpecImpl")
     }
 }
 
-TEST_SUITE("validation::v1::RoleSignature")
+namespace
 {
     // Test serialization/deserialization
     TEST_CASE("to_json")
     {
         RoleSignature s{ "some_key_id", "some_signature", "" };
         nl::json j = R"({"keyid": "some_key_id", "sig": "some_signature"})"_json;
-        CHECK_EQ(j, nl::json(s));
+        REQUIRE(j == nl::json(s);
 
         s = { "some_key_id", "some_signature", "some_pgp_trailer" };
         j = R"({"keyid": "some_key_id", "other_headers": "some_pgp_trailer", "sig": "some_signature"})"_json;
-        CHECK_EQ(j, nl::json(s));
+        REQUIRE(j == nl::json(s);
     }
 }

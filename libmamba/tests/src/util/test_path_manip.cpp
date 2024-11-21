@@ -5,43 +5,43 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::path_manip")
+namespace
 {
     TEST_CASE("is_explicit_path")
     {
-        CHECK(is_explicit_path("."));
-        CHECK(is_explicit_path("./"));
-        CHECK(is_explicit_path("./folder/file.txt"));
-        CHECK(is_explicit_path(".."));
-        CHECK(is_explicit_path("../file.txt"));
-        CHECK(is_explicit_path("~"));
-        CHECK(is_explicit_path("~/there"));
-        CHECK(is_explicit_path("/"));
-        CHECK(is_explicit_path("/asset"));
+        REQUIRE(is_explicit_path("."));
+        REQUIRE(is_explicit_path("./"));
+        REQUIRE(is_explicit_path("./folder/file.txt"));
+        REQUIRE(is_explicit_path(".."));
+        REQUIRE(is_explicit_path("../file.txt"));
+        REQUIRE(is_explicit_path("~"));
+        REQUIRE(is_explicit_path("~/there"));
+        REQUIRE(is_explicit_path("/"));
+        REQUIRE(is_explicit_path("/asset"));
 
-        CHECK_FALSE(is_explicit_path(""));
-        CHECK_FALSE(is_explicit_path("name"));
-        CHECK_FALSE(is_explicit_path("folder/file.txt"));
-        CHECK_FALSE(is_explicit_path("file://makefile"));
+        REQUIRE_FALSE(is_explicit_path(""));
+        REQUIRE_FALSE(is_explicit_path("name"));
+        REQUIRE_FALSE(is_explicit_path("folder/file.txt"));
+        REQUIRE_FALSE(is_explicit_path("file://makefile"));
     }
 
     TEST_CASE("path_has_drive_letter")
     {
-        CHECK(path_has_drive_letter("C:/folder/file"));
+        REQUIRE(path_has_drive_letter("C:/folder/file"));
         CHECK_EQ(path_get_drive_letter("C:/folder/file"), 'C');
-        CHECK(path_has_drive_letter(R"(C:\folder\file)"));
+        REQUIRE(path_has_drive_letter(R"(C:\folder\file)"));
         CHECK_EQ(path_get_drive_letter(R"(C:\folder\file)"), 'C');
-        CHECK_FALSE(path_has_drive_letter("/folder/file"));
-        CHECK_FALSE(path_has_drive_letter("folder/file"));
-        CHECK_FALSE(path_has_drive_letter(R"(\folder\file)"));
-        CHECK_FALSE(path_has_drive_letter(R"(folder\file)"));
+        REQUIRE_FALSE(path_has_drive_letter("/folder/file"));
+        REQUIRE_FALSE(path_has_drive_letter("folder/file"));
+        REQUIRE_FALSE(path_has_drive_letter(R"(\folder\file)"));
+        REQUIRE_FALSE(path_has_drive_letter(R"(folder\file)"));
     }
 
     TEST_CASE("path_win_detect_sep")
@@ -93,36 +93,36 @@ TEST_SUITE("util::path_manip")
 
     TEST_CASE("path_is_prefix")
     {
-        CHECK(path_is_prefix("", ""));
-        CHECK(path_is_prefix("", "folder"));
+        REQUIRE(path_is_prefix("", ""));
+        REQUIRE(path_is_prefix("", "folder"));
 
-        CHECK(path_is_prefix("folder", "folder"));
-        CHECK(path_is_prefix("/", "/folder"));
-        CHECK(path_is_prefix("/folder", "/folder"));
-        CHECK(path_is_prefix("/folder/", "/folder/"));
-        CHECK(path_is_prefix("/folder", "/folder/"));
-        CHECK(path_is_prefix("/folder/", "/folder/"));
-        CHECK(path_is_prefix("/folder", "/folder/file.txt"));
-        CHECK(path_is_prefix("/folder/", "/folder/file.txt"));
-        CHECK(path_is_prefix("/folder", "/folder/more/file.txt"));
-        CHECK(path_is_prefix("/folder/", "/folder/more/file.txt"));
-        CHECK(path_is_prefix("/folder/file.txt", "/folder/file.txt"));
-        CHECK(path_is_prefix("folder/file.txt", "folder/file.txt"));
+        REQUIRE(path_is_prefix("folder", "folder"));
+        REQUIRE(path_is_prefix("/", "/folder"));
+        REQUIRE(path_is_prefix("/folder", "/folder"));
+        REQUIRE(path_is_prefix("/folder/", "/folder/"));
+        REQUIRE(path_is_prefix("/folder", "/folder/"));
+        REQUIRE(path_is_prefix("/folder/", "/folder/"));
+        REQUIRE(path_is_prefix("/folder", "/folder/file.txt"));
+        REQUIRE(path_is_prefix("/folder/", "/folder/file.txt"));
+        REQUIRE(path_is_prefix("/folder", "/folder/more/file.txt"));
+        REQUIRE(path_is_prefix("/folder/", "/folder/more/file.txt"));
+        REQUIRE(path_is_prefix("/folder/file.txt", "/folder/file.txt"));
+        REQUIRE(path_is_prefix("folder/file.txt", "folder/file.txt"));
 
-        CHECK_FALSE(path_is_prefix("/folder", "/"));
-        CHECK_FALSE(path_is_prefix("/folder/file", "/folder"));
-        CHECK_FALSE(path_is_prefix("/folder", "/folder-more"));
-        CHECK_FALSE(path_is_prefix("/folder/file.json", "/folder/file.txt"));
-        CHECK_FALSE(path_is_prefix("folder/file.json", "folder/file.txt"));
+        REQUIRE_FALSE(path_is_prefix("/folder", "/"));
+        REQUIRE_FALSE(path_is_prefix("/folder/file", "/folder"));
+        REQUIRE_FALSE(path_is_prefix("/folder", "/folder-more"));
+        REQUIRE_FALSE(path_is_prefix("/folder/file.json", "/folder/file.txt"));
+        REQUIRE_FALSE(path_is_prefix("folder/file.json", "folder/file.txt"));
 
         // Debatable "folder/" interpreted as ["folder", ""] in term of splits.
-        CHECK_FALSE(path_is_prefix("folder/", "folder"));
-        CHECK_FALSE(path_is_prefix("/folder/", "/folder"));
+        REQUIRE_FALSE(path_is_prefix("folder/", "folder"));
+        REQUIRE_FALSE(path_is_prefix("/folder/", "/folder"));
     }
 
     TEST_CASE("path_concat")
     {
-        SUBCASE("proper concatenation")
+        SECTION("proper concatenation")
         {
             CHECK_EQ(path_concat("", "file", '/'), "file");
             CHECK_EQ(path_concat("some/folder", "", '/'), "some/folder");
@@ -133,7 +133,7 @@ TEST_SUITE("util::path_manip")
             CHECK_EQ(path_concat("some/folder/", "/file", '/'), "some/folder/file");
         }
 
-        SUBCASE("Separator detection")
+        SECTION("Separator detection")
         {
             CHECK_EQ(path_concat("some/folder", "file"), "some/folder/file");
             if (on_win)

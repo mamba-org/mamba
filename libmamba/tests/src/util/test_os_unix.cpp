@@ -6,7 +6,7 @@
 
 #include <regex>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/os_unix.hpp"
@@ -14,7 +14,7 @@
 using namespace mamba;
 using namespace mamba::util;
 
-TEST_SUITE("util::os_unix")
+namespace
 {
     TEST_CASE("unix_name_version")
     {
@@ -24,18 +24,18 @@ TEST_SUITE("util::os_unix")
             REQUIRE(maybe_name_version.has_value());
             CHECK_EQ(maybe_name_version.value().first, "Linux");
             static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
-            CHECK(std ::regex_match(maybe_name_version.value().second, version_regex));
+            REQUIRE(std ::regex_match(maybe_name_version.value().second, version_regex));
         }
         else if (util::on_mac)
         {
             REQUIRE(maybe_name_version.has_value());
             CHECK_EQ(maybe_name_version.value().first, "Darwin");
             static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
-            CHECK(std ::regex_match(maybe_name_version.value().second, version_regex));
+            REQUIRE(std ::regex_match(maybe_name_version.value().second, version_regex));
         }
         else
         {
-            CHECK_FALSE(maybe_name_version.has_value());
+            REQUIRE_FALSE(maybe_name_version.has_value());
         }
     }
 }

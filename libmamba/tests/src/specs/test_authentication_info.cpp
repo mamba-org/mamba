@@ -18,25 +18,25 @@ namespace
 
         SECTION("mamba.org/private/chan")
         {
-            CHECK_EQ(weakener.make_first_key("mamba.org/private/chan"), "mamba.org/private/chan/");
+            REQUIRE(weakener.make_first_key("mamba.org/private/chan") == "mamba.org/private/chan/");
 
             auto maybe_key = weakener.weaken_key("mamba.org/private/chan/");
-            CHECK_EQ(maybe_key, "mamba.org/private/chan");
+            REQUIRE(maybe_key == "mamba.org/private/chan");
             maybe_key = weakener.weaken_key(maybe_key.value());
-            CHECK_EQ(maybe_key, "mamba.org/private/");
+            REQUIRE(maybe_key == "mamba.org/private/");
             maybe_key = weakener.weaken_key(maybe_key.value());
-            CHECK_EQ(maybe_key, "mamba.org/private");
+            REQUIRE(maybe_key == "mamba.org/private");
             maybe_key = weakener.weaken_key(maybe_key.value());
-            CHECK_EQ(maybe_key, "mamba.org/");
+            REQUIRE(maybe_key == "mamba.org/");
             maybe_key = weakener.weaken_key(maybe_key.value());
-            CHECK_EQ(maybe_key, "mamba.org");
+            REQUIRE(maybe_key == "mamba.org");
             maybe_key = weakener.weaken_key(maybe_key.value());
-            CHECK_EQ(maybe_key, std::nullopt);
+            REQUIRE(maybe_key == std::nullopt);
         }
 
         SECTION("mamba.org/private/chan/")
         {
-            CHECK_EQ(weakener.make_first_key("mamba.org/private/chan"), "mamba.org/private/chan/");
+            REQUIRE(weakener.make_first_key("mamba.org/private/chan") == "mamba.org/private/chan/");
         }
     }
 

@@ -56,20 +56,20 @@ namespace
         // Strict ordering
         REQUIRE(std::is_sorted(sorted_atoms.cbegin(), sorted_atoms.cend()));
         // None compare equal (given the is_sorted assumption)
-        CHECK_EQ(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()), sorted_atoms.cend());
+        REQUIRE(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()) == sorted_atoms.cend());
     }
 
     TEST_CASE("atom_format")
     {
-        CHECK_EQ(VersionPartAtom(1, "dev").str(), "1dev");
-        CHECK_EQ(VersionPartAtom(2).str(), "2");
+        REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
+        REQUIRE(VersionPartAtom(2).str() == "2");
     }
 
     TEST_CASE("version_comparison")
     {
         auto v = Version(0, { { { 1, "post" } } });
-        REQUIRE_EQ(v.version().size(), 1);
-        REQUIRE_EQ(v.version().front().size(), 1);
+        REQUIRE(v.version().size() == 1);
+        REQUIRE(v.version().front().size() == 1);
         REQUIRE_EQ(v.version().front().front(), VersionPartAtom(1, "post"));
 
         // Same empty 0!1post version
@@ -82,19 +82,19 @@ namespace
         CHECK_EQ(Version(0, { { { 1, "a" }, {}, {} } }), Version(0, { { { 1, "a" } }, { {} } }));
 
         // Different epoch 0!2post < 1!1dev
-        CHECK_LT(Version(0, { { { 2, "post" } } }), Version(1, { { { 1, "dev" } } }));
-        CHECK_GE(Version(1, { { { 1, "dev" } } }), Version(0, { { { 2, "post" } } }));
+        REQUIRE(Version(0, { { { 2, "post" } } }) < Version(1, { { { 1, "dev" } } }));
+        REQUIRE(Version(1, { { { 1, "dev" } } }) >= Version(0, { { { 2, "post" } } }));
         // Different length with dev
-        CHECK_LT(Version(0, { { { 1 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
-        CHECK_LT(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
+        REQUIRE(Version(0, { { { 1 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
+        REQUIRE(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
         // Different major 0!1post < 0!2dev
-        CHECK_LT(Version(0, { { { 1, "post" } } }), Version(0, { { { 2, "dev" } } }));
+        REQUIRE(Version(0, { { { 1, "post" } } }) < Version(0, { { { 2, "dev" } } }));
         // Different length 0!2"".0"" < 0!11"".0"".0post all operator
-        CHECK_NE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        CHECK_LT(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        CHECK_LE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        CHECK_GT(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
-        CHECK_GE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
+        REQUIRE(Version(0, { { { 2 }, { 0 } } }) != Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        REQUIRE(Version(0, { { { 2 }, { 0 } } }) < Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        REQUIRE(Version(0, { { { 2 }, { 0 } } }) <= Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) > Version(0, { { { 2 }, { 0 } } }));
+        REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) >= Version(0, { { { 2 }, { 0 } } }));
     }
 
     TEST_CASE("starts_with")
@@ -308,22 +308,22 @@ namespace
         SECTION("11a0post.3.4dev")
         {
             auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
-            CHECK_EQ(v.str(), "11a0post.3.4dev");
-            CHECK_EQ(v.str(1), "11a0post");
-            CHECK_EQ(v.str(2), "11a0post.3");
-            CHECK_EQ(v.str(3), "11a0post.3.4dev");
-            CHECK_EQ(v.str(4), "11a0post.3.4dev.0");
-            CHECK_EQ(v.str(5), "11a0post.3.4dev.0.0");
+            REQUIRE(v.str() == "11a0post.3.4dev");
+            REQUIRE(v.str(1) == "11a0post");
+            REQUIRE(v.str(2) == "11a0post.3");
+            REQUIRE(v.str(3) == "11a0post.3.4dev");
+            REQUIRE(v.str(4) == "11a0post.3.4dev.0");
+            REQUIRE(v.str(5) == "11a0post.3.4dev.0.0");
         }
 
         SECTION("1!11a0.3.4dev")
         {
             auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
-            CHECK_EQ(v.str(), "1!11a0.3.4dev");
-            CHECK_EQ(v.str(1), "1!11a0");
-            CHECK_EQ(v.str(2), "1!11a0.3");
-            CHECK_EQ(v.str(3), "1!11a0.3.4dev");
-            CHECK_EQ(v.str(4), "1!11a0.3.4dev.0");
+            REQUIRE(v.str() == "1!11a0.3.4dev");
+            REQUIRE(v.str(1) == "1!11a0");
+            REQUIRE(v.str(2) == "1!11a0.3");
+            REQUIRE(v.str(3) == "1!11a0.3.4dev");
+            REQUIRE(v.str(4) == "1!11a0.3.4dev.0");
         }
 
         SECTION("1!11a0.3.4dev+1.2")
@@ -333,11 +333,11 @@ namespace
                 { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
                 { { { 1 } }, { { 2 } } }
             );
-            CHECK_EQ(v.str(), "1!11a0.3.4dev+1.2");
-            CHECK_EQ(v.str(1), "1!11a0+1");
-            CHECK_EQ(v.str(2), "1!11a0.3+1.2");
-            CHECK_EQ(v.str(3), "1!11a0.3.4dev+1.2.0");
-            CHECK_EQ(v.str(4), "1!11a0.3.4dev.0+1.2.0.0");
+            REQUIRE(v.str() == "1!11a0.3.4dev+1.2");
+            REQUIRE(v.str(1) == "1!11a0+1");
+            REQUIRE(v.str(2) == "1!11a0.3+1.2");
+            REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
+            REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
         }
     }
 
@@ -408,7 +408,7 @@ namespace
         // clang-format on
         for (const auto& [raw, expected] : sorted_version)
         {
-            CHECK_EQ(Version::parse(raw), expected);
+            REQUIRE(Version::parse(raw) == expected);
         }
 
         REQUIRE(std::is_sorted(
@@ -508,7 +508,7 @@ namespace
         // Strict ordering
         REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
         // None compare equal (given the is_sorted assumption)
-        CHECK_EQ(std::adjacent_find(versions.cbegin(), versions.cend()), versions.cend());
+        REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
     }
 
     /**
@@ -580,6 +580,6 @@ namespace
         // Strict ordering
         REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
         // None compare equal (given the is_sorted assumption)
-        CHECK_EQ(std::adjacent_find(versions.cbegin(), versions.cend()), versions.cend());
+        REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
     }
 }

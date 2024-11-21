@@ -19,7 +19,7 @@ namespace
             auto opt = heap_optional<int>();
             REQUIRE_FALSE(opt.has_value());
             REQUIRE_FALSE(opt);
-            CHECK_EQ(opt.get(), nullptr);
+            REQUIRE(opt.get() == nullptr);
 
             SECTION("Emplace data")
             {
@@ -27,7 +27,7 @@ namespace
                 REQUIRE(opt.has_value());
                 REQUIRE(opt);
                 REQUIRE_NE(opt.get(), nullptr);
-                CHECK_EQ(*opt, 3);
+                REQUIRE(*opt == 3);
             }
 
             SECTION("Reset")
@@ -35,25 +35,25 @@ namespace
                 opt.reset();
                 REQUIRE_FALSE(opt.has_value());
                 REQUIRE_FALSE(opt);
-                CHECK_EQ(opt.get(), nullptr);
+                REQUIRE(opt.get() == nullptr);
             }
 
             SECTION("Value")
             {
                 // Silence [[nodiscard]] warnings
                 auto lref = [](heap_optional<int>& o) { return o.value(); };
-                CHECK_THROWS_AS(lref(opt), std::bad_optional_access);
+                REQUIRE_THROWS_AS(lref(opt), std::bad_optional_access);
                 auto clref = [](const heap_optional<int>& o) { return o.value(); };
-                CHECK_THROWS_AS(clref(opt), std::bad_optional_access);
+                REQUIRE_THROWS_AS(clref(opt), std::bad_optional_access);
                 auto rref = [](heap_optional<int>& o) { return std::move(o).value(); };
-                CHECK_THROWS_AS(rref(opt), std::bad_optional_access);
+                REQUIRE_THROWS_AS(rref(opt), std::bad_optional_access);
             }
 
             SECTION("Value Or")
             {
-                CHECK_EQ(opt.value_or(42), 42);
-                CHECK_EQ(const_cast<const heap_optional<int>&>(opt).value_or(42), 42);
-                CHECK_EQ(std::move(opt).value_or(42), 42);
+                REQUIRE(opt.value_or(42) == 42);
+                REQUIRE(const_cast<const heap_optional<int>&>(opt).value_or(42) == 42);
+                REQUIRE(std::move(opt).value_or(42) == 42);
             }
         }
 
@@ -66,8 +66,8 @@ namespace
             REQUIRE(opt.has_value());
             REQUIRE(opt);
             REQUIRE_NE(opt.get(), nullptr);
-            CHECK_EQ(*opt, "hello");
-            CHECK_EQ(opt->size(), 5);
+            REQUIRE(*opt == "hello");
+            REQUIRE(opt->size() == 5);
 
             SECTION("Emplace data")
             {
@@ -75,8 +75,8 @@ namespace
                 REQUIRE(opt.has_value());
                 REQUIRE(opt);
                 REQUIRE_NE(opt.get(), nullptr);
-                CHECK_EQ(*opt, "bonjour");
-                CHECK_EQ(opt->size(), 7);
+                REQUIRE(*opt == "bonjour");
+                REQUIRE(opt->size() == 7);
             }
 
             SECTION("Reset")
@@ -84,21 +84,21 @@ namespace
                 opt.reset();
                 REQUIRE_FALSE(opt.has_value());
                 REQUIRE_FALSE(opt);
-                CHECK_EQ(opt.get(), nullptr);
+                REQUIRE(opt.get() == nullptr);
             }
 
             SECTION("Value")
             {
-                CHECK_EQ(opt.value(), "hello");
-                CHECK_EQ(const_cast<const Opt&>(opt).value(), "hello");
-                CHECK_EQ(std::move(opt).value(), "hello");
+                REQUIRE(opt.value() == "hello");
+                REQUIRE(const_cast<const Opt&>(opt).value() == "hello");
+                REQUIRE(std::move(opt).value() == "hello");
             }
 
             SECTION("Value Or")
             {
-                CHECK_EQ(opt.value_or("world"), "hello");
-                CHECK_EQ(const_cast<const Opt&>(opt).value_or("world"), "hello");
-                CHECK_EQ(std::move(opt).value_or("world"), "hello");
+                REQUIRE(opt.value_or("world") == "hello");
+                REQUIRE(const_cast<const Opt&>(opt).value_or("world") == "hello");
+                REQUIRE(std::move(opt).value_or("world") == "hello");
             }
         }
 
@@ -111,8 +111,8 @@ namespace
             REQUIRE(opt.has_value());
             REQUIRE(opt);
             REQUIRE_NE(opt.get(), nullptr);
-            CHECK_EQ(**opt, 3);
-            CHECK_EQ(*(opt->get()), 3);
+            REQUIRE(**opt == 3);
+            REQUIRE(*(opt->get()) == 3);
 
             SECTION("Emplace data")
             {
@@ -120,8 +120,8 @@ namespace
                 REQUIRE(opt.has_value());
                 REQUIRE(opt);
                 REQUIRE_NE(opt.get(), nullptr);
-                CHECK_EQ(**opt, 5);
-                CHECK_EQ(*(opt->get()), 5);
+                REQUIRE(**opt == 5);
+                REQUIRE(*(opt->get()) == 5);
             }
 
             SECTION("Reset")
@@ -129,19 +129,19 @@ namespace
                 opt.reset();
                 REQUIRE_FALSE(opt.has_value());
                 REQUIRE_FALSE(opt);
-                CHECK_EQ(opt.get(), nullptr);
+                REQUIRE(opt.get() == nullptr);
             }
 
             SECTION("Value")
             {
-                CHECK_EQ(*(opt.value()), 3);
-                CHECK_EQ(*(const_cast<const Opt&>(opt).value()), 3);
-                CHECK_EQ(*(std::move(opt).value()), 3);
+                REQUIRE(*(opt.value()) == 3);
+                REQUIRE(*(const_cast<const Opt&>(opt).value()) == 3);
+                REQUIRE(*(std::move(opt).value()) == 3);
             }
 
             SECTION("Value Or")
             {
-                CHECK_EQ(*(std::move(opt).value_or(std::make_unique<int>(5))), 3);
+                REQUIRE(*(std::move(opt).value_or(std::make_unique<int>(5))) == 3);
             }
         }
     }

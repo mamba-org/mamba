@@ -24,7 +24,7 @@ namespace mamba
 #if defined(_WIN32)
             REQUIRE_EQ(y.u8string(), u8R"(a\b\c)");
 #else
-            REQUIRE_EQ(y.u8string(), value);
+            REQUIRE(y.u8string() == value);
 #endif
         }
 
@@ -32,9 +32,9 @@ namespace mamba
         {
             static constexpr auto value = u8"日本語";
             const std::filesystem::path x = fs::from_utf8(value);
-            REQUIRE_EQ(x.u8string(), u8"日本語");  // check assumption
+            REQUIRE(x.u8string() == u8"日本語");  // check assumption
             const auto y = fs::normalized_separators(x);
-            REQUIRE_EQ(y.u8string(), u8"日本語");
+            REQUIRE(y.u8string() == u8"日本語");
         }
 
         TEST_CASE("consistent_encoding")
@@ -42,13 +42,13 @@ namespace mamba
             const auto utf8_string = u8"日本語";
             const fs::u8path filename(utf8_string);
             const auto str = filename.string();
-            CHECK_EQ(str, utf8_string);
+            REQUIRE(str == utf8_string);
 
             const fs::u8path file_path = fs::temp_directory_path() / filename;
-            CHECK_EQ(file_path.filename().string(), utf8_string);
+            REQUIRE(file_path.filename().string() == utf8_string);
 
             const auto std_path = file_path.std_path();
-            CHECK_EQ(std_path.filename().u8string(), utf8_string);
+            REQUIRE(std_path.filename().u8string() == utf8_string);
         }
 
         TEST_CASE("string_stream_encoding")
@@ -59,12 +59,12 @@ namespace mamba
             const fs::u8path filename(utf8_string);
             std::stringstream stream;
             stream << filename;
-            CHECK_EQ(stream.str(), quoted_utf8_string);
+            REQUIRE(stream.str() == quoted_utf8_string);
 
             fs::u8path path_read;
             stream.seekg(0);
             stream >> path_read;
-            CHECK_EQ(path_read.string(), utf8_string);
+            REQUIRE(path_read.string() == utf8_string);
         }
 
         TEST_CASE("directory_iteration")
@@ -88,7 +88,7 @@ namespace mamba
                 auto first_entry = *it;
                 REQUIRE(first_entry.path() == file_path.parent_path();
                 auto secibd_entry = *(++it);
-                CHECK_EQ(secibd_entry.path(), file_path);
+                REQUIRE(secibd_entry.path() == file_path);
             }
 
             {
@@ -105,7 +105,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -122,7 +122,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path().string());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -136,7 +136,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -150,7 +150,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path().string());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
         }
 
@@ -173,7 +173,7 @@ namespace mamba
         {
             const fs::u8path path = u8R"(a/b/c/d)";
             const auto path_1 = path / u8R"(e\f\g)";
-            CHECK_EQ(path_1.string(), u8R"(a\b\c\d\e\f\g)");
+            REQUIRE(path_1.string() == u8R"(a\b\c\d\e\f\g)");
         }
 #endif
     }

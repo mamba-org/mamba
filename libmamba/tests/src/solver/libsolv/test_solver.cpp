@@ -95,11 +95,11 @@ namespace
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
-            CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
+            REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
-            REQUIRE_EQ(python_actions.size(), 1);
+            REQUIRE(python_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
         }
 
@@ -120,11 +120,11 @@ namespace
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
-            CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
+            REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
-            REQUIRE_EQ(python_actions.size(), 1);
+            REQUIRE(python_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
         }
 
@@ -146,11 +146,11 @@ namespace
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
-            CHECK_EQ(std::get<Solution::Install>(solution.actions.back()).install.name, "numpy");
+            REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
-            REQUIRE_EQ(python_actions.size(), 1);
+            REQUIRE(python_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Omit>(python_actions.front()));
         }
 
@@ -172,11 +172,11 @@ namespace
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is last because of topological sort
             REQUIRE(std::holds_alternative<Solution::Omit>(solution.actions.back()));
-            CHECK_EQ(std::get<Solution::Omit>(solution.actions.back()).what.name, "numpy");
+            REQUIRE(std::get<Solution::Omit>(solution.actions.back()).what.name == "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             const auto python_actions = find_actions_with_name(solution, "python");
-            REQUIRE_EQ(python_actions.size(), 1);
+            REQUIRE(python_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
 
             // Pip is not a dependency of numpy (or python here)
@@ -240,7 +240,7 @@ namespace
             REQUIRE_FALSE(solution.actions.empty());
             // Numpy is first because of topological sort
             REQUIRE(std::holds_alternative<Solution::Remove>(solution.actions.front()));
-            CHECK_EQ(std::get<Solution::Remove>(solution.actions.front()).remove.name, "numpy");
+            REQUIRE(std::get<Solution::Remove>(solution.actions.front()).remove.name == "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
             // Python is not removed because it is needed by pip which is installed
@@ -260,15 +260,15 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto numpy_actions = find_actions_with_name(solution, "numpy");
-            REQUIRE_EQ(numpy_actions.size(), 1);
+            REQUIRE(numpy_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Remove>(numpy_actions.front()));
 
             const auto pip_actions = find_actions_with_name(solution, "pip");
-            REQUIRE_EQ(pip_actions.size(), 1);
+            REQUIRE(pip_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Remove>(pip_actions.front()));
 
             const auto python_actions = find_actions_with_name(solution, "python");
-            REQUIRE_EQ(python_actions.size(), 1);
+            REQUIRE(python_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Remove>(python_actions.front()));
         }
 
@@ -284,9 +284,9 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            REQUIRE_EQ(solution.actions.size(), 1);
+            REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Remove>(solution.actions.front()));
-            CHECK_EQ(std::get<Solution::Remove>(solution.actions.front()).remove.name, "numpy");
+            REQUIRE(std::get<Solution::Remove>(solution.actions.front()).remove.name == "numpy");
             REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
         }
 
@@ -339,9 +339,9 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            REQUIRE_EQ(solution.actions.size(), 1);
+            REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Reinstall>(solution.actions.front()));
-            CHECK_EQ(std::get<Solution::Reinstall>(solution.actions.front()).what.name, "numpy");
+            REQUIRE(std::get<Solution::Reinstall>(solution.actions.front()).what.name == "numpy");
         }
     }
 
@@ -394,14 +394,16 @@ namespace
                 REQUIRE_FALSE(solution.actions.empty());
                 // Numpy is last because of topological sort
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(solution.actions.back()));
-                CHECK_EQ(std::get<Solution::Upgrade>(solution.actions.back()).install.name, "numpy");
-                CHECK_EQ(std::get<Solution::Upgrade>(solution.actions.back()).install.version, "1.26.4");
-                CHECK_EQ(std::get<Solution::Upgrade>(solution.actions.back()).remove.version, "1.0.0");
+                REQUIRE(std::get<Solution::Upgrade>(solution.actions.back()).install.name == "numpy");
+                REQUIRE(
+                    std::get<Solution::Upgrade>(solution.actions.back()).install.version == "1.26.4"
+                );
+                REQUIRE(std::get<Solution::Upgrade>(solution.actions.back()).remove.version == "1.0.0");
                 REQUIRE_EQ(find_actions_with_name(solution, "numpy").size(), 1);
 
                 // Python needs to be installed
                 const auto python_actions = find_actions_with_name(solution, "python");
-                REQUIRE_EQ(python_actions.size(), 1);
+                REQUIRE(python_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
             }
 
@@ -444,19 +446,21 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(numpy_actions.size(), 1);
+                REQUIRE(numpy_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).install.version == "1.26.4");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version == "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
-                REQUIRE_EQ(python_actions.size(), 1);
+                REQUIRE(python_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
+                REQUIRE(
+                    std::get<Solution::Upgrade>(python_actions.front()).install.version == "3.12.1"
+                );
+                REQUIRE(std::get<Solution::Upgrade>(python_actions.front()).remove.version == "2.0.0");
 
                 const auto foo_actions = find_actions_with_name(solution, "foo");
-                REQUIRE_EQ(foo_actions.size(), 1);
+                REQUIRE(foo_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Remove>(foo_actions.front()));
             }
 
@@ -473,16 +477,18 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(numpy_actions.size(), 1);
+                REQUIRE(numpy_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).install.version == "1.26.4");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version == "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
-                REQUIRE_EQ(python_actions.size(), 1);
+                REQUIRE(python_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
+                REQUIRE(
+                    std::get<Solution::Upgrade>(python_actions.front()).install.version == "3.12.1"
+                );
+                REQUIRE(std::get<Solution::Upgrade>(python_actions.front()).remove.version == "2.0.0");
 
                 // foo is left unchanged in the installed repository because of Keep job
                 REQUIRE(find_actions_with_name(solution, "foo").empty());
@@ -501,16 +507,18 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(numpy_actions.size(), 1);
+                REQUIRE(numpy_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).install.version == "1.26.4");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version == "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
-                REQUIRE_EQ(python_actions.size(), 1);
+                REQUIRE(python_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
+                REQUIRE(
+                    std::get<Solution::Upgrade>(python_actions.front()).install.version == "3.12.1"
+                );
+                REQUIRE(std::get<Solution::Upgrade>(python_actions.front()).remove.version == "2.0.0");
 
                 REQUIRE(find_actions_with_name(solution, "foo").empty());
             }
@@ -528,16 +536,18 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(numpy_actions.size(), 1);
+                REQUIRE(numpy_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).install.version == "1.26.4");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version == "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
-                REQUIRE_EQ(python_actions.size(), 1);
+                REQUIRE(python_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(python_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).install.version, "3.12.1");
-                CHECK_EQ(std::get<Solution::Upgrade>(python_actions.front()).remove.version, "2.0.0");
+                REQUIRE(
+                    std::get<Solution::Upgrade>(python_actions.front()).install.version == "3.12.1"
+                );
+                REQUIRE(std::get<Solution::Upgrade>(python_actions.front()).remove.version == "2.0.0");
 
                 REQUIRE(find_actions_with_name(solution, "foo").empty());
             }
@@ -575,16 +585,20 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto numpy_actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(numpy_actions.size(), 1);
+                REQUIRE(numpy_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Upgrade>(numpy_actions.front()));
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).install.version, "1.26.4");
-                CHECK_EQ(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version, "1.0.0");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).install.version == "1.26.4");
+                REQUIRE(std::get<Solution::Upgrade>(numpy_actions.front()).remove.version == "1.0.0");
 
                 const auto python_actions = find_actions_with_name(solution, "python");
-                REQUIRE_EQ(python_actions.size(), 1);
+                REQUIRE(python_actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Downgrade>(python_actions.front()));
-                CHECK_EQ(std::get<Solution::Downgrade>(python_actions.front()).install.version, "3.12.1");
-                CHECK_EQ(std::get<Solution::Downgrade>(python_actions.front()).remove.version, "4.0.0");
+                REQUIRE(
+                    std::get<Solution::Downgrade>(python_actions.front()).install.version == "3.12.1"
+                );
+                REQUIRE(
+                    std::get<Solution::Downgrade>(python_actions.front()).remove.version == "4.0.0"
+                );
             }
 
             SECTION("no numpy upgrade without allowing downgrading other packages")
@@ -638,9 +652,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto numpy_actions = find_actions_with_name(solution, "numpy");
-            REQUIRE_EQ(numpy_actions.size(), 1);
+            REQUIRE(numpy_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(numpy_actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(numpy_actions.front()).install.version, "2.0.0");
+            REQUIRE(std::get<Solution::Install>(numpy_actions.front()).install.version == "2.0.0");
         }
 
         SECTION("Fail to get package from non priority repo with strict repo priority")
@@ -692,9 +706,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(actions.size(), 1);
+            REQUIRE(actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(actions.front()).install.version, "1.0.0");
+            REQUIRE(std::get<Solution::Install>(actions.front()).install.version == "1.0.0");
         }
 
         SECTION("Track features has highest priority")
@@ -714,9 +728,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(actions.size(), 1);
+            REQUIRE(actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(actions.front()).install.version, "1.0.0");
+            REQUIRE(std::get<Solution::Install>(actions.front()).install.version == "1.0.0");
         }
 
         SECTION("Version has second highest priority")
@@ -736,9 +750,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(actions.size(), 1);
+            REQUIRE(actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(actions.front()).install.version, "2.0.0");
+            REQUIRE(std::get<Solution::Install>(actions.front()).install.version == "2.0.0");
         }
 
         SECTION("Build number has third highest priority")
@@ -758,9 +772,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(actions.size(), 1);
+            REQUIRE(actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_number, 1);
+            REQUIRE(std::get<Solution::Install>(actions.front()).install.build_number == 1);
         }
 
         SECTION("Timestamp has lowest priority")
@@ -780,9 +794,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(actions.size(), 1);
+            REQUIRE(actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(actions.front()).install.timestamp, 1);
+            REQUIRE(std::get<Solution::Install>(actions.front()).install.timestamp == 1);
         }
     }
 
@@ -815,9 +829,9 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto actions = find_actions_with_name(solution, "foo");
-                REQUIRE_EQ(actions.size(), 1);
+                REQUIRE(actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-                CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "conda");
+                REQUIRE(std::get<Solution::Install>(actions.front()).install.build_string == "conda");
             }
 
             SECTION("mamba-forge::foo")
@@ -833,9 +847,9 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto actions = find_actions_with_name(solution, "foo");
-                REQUIRE_EQ(actions.size(), 1);
+                REQUIRE(actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-                CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
+                REQUIRE(std::get<Solution::Install>(actions.front()).install.build_string == "mamba");
             }
 
             SECTION("pixi-forge::foo")
@@ -864,9 +878,9 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto actions = find_actions_with_name(solution, "foo");
-                REQUIRE_EQ(actions.size(), 1);
+                REQUIRE(actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-                CHECK_EQ(std::get<Solution::Install>(actions.front()).install.build_string, "mamba");
+                REQUIRE(std::get<Solution::Install>(actions.front()).install.build_string == "mamba");
             }
         }
 
@@ -916,7 +930,7 @@ namespace
                 const auto& solution = std::get<Solution>(outcome.value());
 
                 const auto actions = find_actions_with_name(solution, "numpy");
-                REQUIRE_EQ(actions.size(), 1);
+                REQUIRE(actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
                 REQUIRE(util::contains(
                     std::get<Solution::Install>(actions.front()).install.package_url,
@@ -952,9 +966,9 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto foo_actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(foo_actions.size(), 1);
+            REQUIRE(foo_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(foo_actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(foo_actions.front()).install.version, "1.0");
+            REQUIRE(std::get<Solution::Install>(foo_actions.front()).install.version == "1.0");
         }
 
         SECTION("Respect pins through indirect dependencies")
@@ -983,14 +997,14 @@ namespace
             const auto& solution = std::get<Solution>(outcome.value());
 
             const auto foo_actions = find_actions_with_name(solution, "foo");
-            REQUIRE_EQ(foo_actions.size(), 1);
+            REQUIRE(foo_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(foo_actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(foo_actions.front()).install.version, "1.0");
+            REQUIRE(std::get<Solution::Install>(foo_actions.front()).install.version == "1.0");
 
             const auto bar_actions = find_actions_with_name(solution, "bar");
-            REQUIRE_EQ(bar_actions.size(), 1);
+            REQUIRE(bar_actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(bar_actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(bar_actions.front()).install.version, "1.0");
+            REQUIRE(std::get<Solution::Install>(bar_actions.front()).install.version == "1.0");
         }
     }
 
@@ -1019,7 +1033,7 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            REQUIRE_EQ(solution.actions.size(), 1);
+            REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
             CHECK_EQ(
                 std::get<Solution::Install>(solution.actions.front()).install.md5,
@@ -1063,9 +1077,11 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            REQUIRE_EQ(solution.actions.size(), 1);
+            REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
+            REQUIRE(
+                std::get<Solution::Install>(solution.actions.front()).install.build_string == "bld"
+            );
         }
 
         SECTION("foo[build_string=bld, build_number='>2']")
@@ -1092,10 +1108,12 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            REQUIRE_EQ(solution.actions.size(), 1);
+            REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
-            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_string, "bld");
-            CHECK_EQ(std::get<Solution::Install>(solution.actions.front()).install.build_number, 4);
+            REQUIRE(
+                std::get<Solution::Install>(solution.actions.front()).install.build_string == "bld"
+            );
+            REQUIRE(std::get<Solution::Install>(solution.actions.front()).install.build_number == 4);
         }
 
         SECTION("foo[version='=*,=*', build='pyhd*']")

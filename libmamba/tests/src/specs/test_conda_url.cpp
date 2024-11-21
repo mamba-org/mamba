@@ -23,54 +23,54 @@ namespace
         {
             url.set_path("/folder/file.txt");
             REQUIRE_FALSE(url.has_token());
-            CHECK_EQ(url.token(), "");
-            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
+            REQUIRE(url.token() == "");
+            REQUIRE(url.path_without_token() == "/folder/file.txt");
 
             url.set_token("mytoken");
             REQUIRE(url.has_token());
-            CHECK_EQ(url.token(), "mytoken");
-            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
-            CHECK_EQ(url.path(), "/t/mytoken/folder/file.txt");
+            REQUIRE(url.token() == "mytoken");
+            REQUIRE(url.path_without_token() == "/folder/file.txt");
+            REQUIRE(url.path() == "/t/mytoken/folder/file.txt");
 
             REQUIRE(url.clear_token());
             REQUIRE_FALSE(url.has_token());
-            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
-            CHECK_EQ(url.path(), "/folder/file.txt");
+            REQUIRE(url.path_without_token() == "/folder/file.txt");
+            REQUIRE(url.path() == "/folder/file.txt");
         }
 
         SECTION("https://repo.mamba.pm/t/xy-12345678-1234/conda-forge/linux-64")
         {
             url.set_path("/t/xy-12345678-1234/conda-forge/linux-64");
             REQUIRE(url.has_token());
-            CHECK_EQ(url.token(), "xy-12345678-1234");
-            CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
+            REQUIRE(url.token() == "xy-12345678-1234");
+            REQUIRE(url.path_without_token() == "/conda-forge/linux-64");
 
             SECTION("Cannot set invalid token")
             {
-                CHECK_THROWS_AS(url.set_token(""), std::invalid_argument);
-                CHECK_THROWS_AS(url.set_token("?fds:g"), std::invalid_argument);
+                REQUIRE_THROWS_AS(url.set_token(""), std::invalid_argument);
+                REQUIRE_THROWS_AS(url.set_token("?fds:g"), std::invalid_argument);
                 REQUIRE(url.has_token());
-                CHECK_EQ(url.token(), "xy-12345678-1234");
-                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
-                CHECK_EQ(url.path(), "/t/xy-12345678-1234/conda-forge/linux-64");
+                REQUIRE(url.token() == "xy-12345678-1234");
+                REQUIRE(url.path_without_token() == "/conda-forge/linux-64");
+                REQUIRE(url.path() == "/t/xy-12345678-1234/conda-forge/linux-64");
             }
 
             SECTION("Clear token")
             {
                 REQUIRE(url.clear_token());
                 REQUIRE_FALSE(url.has_token());
-                CHECK_EQ(url.token(), "");
-                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
-                CHECK_EQ(url.path(), "/conda-forge/linux-64");
+                REQUIRE(url.token() == "");
+                REQUIRE(url.path_without_token() == "/conda-forge/linux-64");
+                REQUIRE(url.path() == "/conda-forge/linux-64");
             }
 
             SECTION("Set token")
             {
                 url.set_token("abcd");
                 REQUIRE(url.has_token());
-                CHECK_EQ(url.token(), "abcd");
-                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
-                CHECK_EQ(url.path(), "/t/abcd/conda-forge/linux-64");
+                REQUIRE(url.token() == "abcd");
+                REQUIRE(url.path_without_token() == "/conda-forge/linux-64");
+                REQUIRE(url.path() == "/t/abcd/conda-forge/linux-64");
             }
         }
 
@@ -78,36 +78,36 @@ namespace
         {
             url.set_path("/t/xy-12345678-1234-1234-1234-123456789012");
             REQUIRE(url.has_token());
-            CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
+            REQUIRE(url.token() == "xy-12345678-1234-1234-1234-123456789012");
 
             url.set_token("abcd");
             REQUIRE(url.has_token());
-            CHECK_EQ(url.token(), "abcd");
-            CHECK_EQ(url.path_without_token(), "/");
-            CHECK_EQ(url.path(), "/t/abcd/");
+            REQUIRE(url.token() == "abcd");
+            REQUIRE(url.path_without_token() == "/");
+            REQUIRE(url.path() == "/t/abcd/");
 
             REQUIRE(url.clear_token());
             REQUIRE_FALSE(url.has_token());
-            CHECK_EQ(url.token(), "");
-            CHECK_EQ(url.path_without_token(), "/");
-            CHECK_EQ(url.path(), "/");
+            REQUIRE(url.token() == "");
+            REQUIRE(url.path_without_token() == "/");
+            REQUIRE(url.path() == "/");
         }
 
         SECTION("https://repo.mamba.pm/bar/t/xy-12345678-1234-1234-1234-123456789012/")
         {
             url.set_path("/bar/t/xy-12345678-1234-1234-1234-123456789012/");
             REQUIRE_FALSE(url.has_token());
-            CHECK_EQ(url.token(), "");  // Not at beginning of path
+            REQUIRE(url.token() == "");  // Not at beginning of path
 
             url.set_token("abcd");
             REQUIRE(url.has_token());
-            CHECK_EQ(url.token(), "abcd");
-            CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
-            CHECK_EQ(url.path(), "/t/abcd/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            REQUIRE(url.token() == "abcd");
+            REQUIRE(url.path_without_token() == "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            REQUIRE(url.path() == "/t/abcd/bar/t/xy-12345678-1234-1234-1234-123456789012/");
 
             REQUIRE(url.clear_token());
-            CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
-            CHECK_EQ(url.path(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            REQUIRE(url.path_without_token() == "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            REQUIRE(url.path() == "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
         }
     }
 
@@ -120,20 +120,20 @@ namespace
         SECTION("Setters")
         {
             url.set_path_without_token("foo");
-            CHECK_EQ(url.path_without_token(), "/foo");
+            REQUIRE(url.path_without_token() == "/foo");
             url.set_token("mytoken");
-            CHECK_EQ(url.path_without_token(), "/foo");
+            REQUIRE(url.path_without_token() == "/foo");
             REQUIRE(url.clear_path_without_token());
-            CHECK_EQ(url.path_without_token(), "/");
+            REQUIRE(url.path_without_token() == "/");
         }
 
         SECTION("Parse")
         {
             url = CondaURL::parse("mamba.org/t/xy-12345678-1234-1234-1234-123456789012").value();
             REQUIRE(url.has_token());
-            CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
-            CHECK_EQ(url.path_without_token(), "/");
-            CHECK_EQ(url.path(), "/t/xy-12345678-1234-1234-1234-123456789012/");
+            REQUIRE(url.token() == "xy-12345678-1234-1234-1234-123456789012");
+            REQUIRE(url.path_without_token() == "/");
+            REQUIRE(url.path() == "/t/xy-12345678-1234-1234-1234-123456789012/");
         }
 
         SECTION("Encoding")
@@ -143,15 +143,15 @@ namespace
             SECTION("Encode")
             {
                 url.set_path_without_token("some / weird/path %");
-                CHECK_EQ(url.path_without_token(), "/some / weird/path %");
-                CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
+                REQUIRE(url.path_without_token() == "/some / weird/path %");
+                REQUIRE(url.path_without_token(CondaURL::Decode::no) == "/some%20/%20weird/path%20%25");
             }
 
             SECTION("Encoded")
             {
                 url.set_path_without_token("/some%20/%20weird/path%20%25", CondaURL::Encode::no);
-                CHECK_EQ(url.path_without_token(), "/some / weird/path %");
-                CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
+                REQUIRE(url.path_without_token() == "/some / weird/path %");
+                REQUIRE(url.path_without_token(CondaURL::Decode::no) == "/some%20/%20weird/path%20%25");
             }
         }
     }
@@ -165,14 +165,14 @@ namespace
         SECTION("https://repo.mamba.pm/")
         {
             REQUIRE_FALSE(url.platform().has_value());
-            CHECK_EQ(url.platform_name(), "");
+            REQUIRE(url.platform_name() == "");
 
-            CHECK_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
-            CHECK_EQ(url.path_without_token(), "/");
-            CHECK_EQ(url.path(), "/");
+            REQUIRE_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
+            REQUIRE(url.path_without_token() == "/");
+            REQUIRE(url.path() == "/");
 
             REQUIRE_FALSE(url.clear_platform());
-            CHECK_EQ(url.path(), "/");
+            REQUIRE(url.path() == "/");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge")
@@ -180,13 +180,13 @@ namespace
             url.set_path("conda-forge");
 
             REQUIRE_FALSE(url.platform().has_value());
-            CHECK_EQ(url.platform_name(), "");
+            REQUIRE(url.platform_name() == "");
 
-            CHECK_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
-            CHECK_EQ(url.path(), "/conda-forge");
+            REQUIRE_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
+            REQUIRE(url.path() == "/conda-forge");
 
             REQUIRE_FALSE(url.clear_platform());
-            CHECK_EQ(url.path(), "/conda-forge");
+            REQUIRE(url.path() == "/conda-forge");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge/")
@@ -194,58 +194,58 @@ namespace
             url.set_path("conda-forge/");
 
             REQUIRE_FALSE(url.platform().has_value());
-            CHECK_EQ(url.platform_name(), "");
+            REQUIRE(url.platform_name() == "");
 
-            CHECK_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
-            CHECK_EQ(url.path(), "/conda-forge/");
+            REQUIRE_THROWS_AS(url.set_platform(KnownPlatform::linux_64), std::invalid_argument);
+            REQUIRE(url.path() == "/conda-forge/");
 
             REQUIRE_FALSE(url.clear_platform());
-            CHECK_EQ(url.path(), "/conda-forge/");
+            REQUIRE(url.path() == "/conda-forge/");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge/win-64")
         {
             url.set_path("conda-forge/win-64");
 
-            CHECK_EQ(url.platform(), KnownPlatform::win_64);
-            CHECK_EQ(url.platform_name(), "win-64");
+            REQUIRE(url.platform() == KnownPlatform::win_64);
+            REQUIRE(url.platform_name() == "win-64");
 
             url.set_platform(KnownPlatform::linux_64);
-            CHECK_EQ(url.platform(), KnownPlatform::linux_64);
-            CHECK_EQ(url.path(), "/conda-forge/linux-64");
+            REQUIRE(url.platform() == KnownPlatform::linux_64);
+            REQUIRE(url.path() == "/conda-forge/linux-64");
 
             REQUIRE(url.clear_platform());
-            CHECK_EQ(url.path(), "/conda-forge");
+            REQUIRE(url.path() == "/conda-forge");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge/OSX-64/")
         {
             url.set_path("conda-forge/OSX-64");
 
-            CHECK_EQ(url.platform(), KnownPlatform::osx_64);
-            CHECK_EQ(url.platform_name(), "OSX-64");  // Capitalization not changed
+            REQUIRE(url.platform() == KnownPlatform::osx_64);
+            REQUIRE(url.platform_name() == "OSX-64");  // Capitalization not changed
 
             url.set_platform("Win-64");
-            CHECK_EQ(url.platform(), KnownPlatform::win_64);
-            CHECK_EQ(url.path(), "/conda-forge/Win-64");  // Capitalization not changed
+            REQUIRE(url.platform() == KnownPlatform::win_64);
+            REQUIRE(url.path() == "/conda-forge/Win-64");  // Capitalization not changed
 
             REQUIRE(url.clear_platform());
-            CHECK_EQ(url.path(), "/conda-forge");
+            REQUIRE(url.path() == "/conda-forge");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2")
         {
             url.set_path("/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2");
 
-            CHECK_EQ(url.platform(), KnownPlatform::linux_64);
-            CHECK_EQ(url.platform_name(), "linux-64");
+            REQUIRE(url.platform() == KnownPlatform::linux_64);
+            REQUIRE(url.platform_name() == "linux-64");
 
             url.set_platform("osx-64");
-            CHECK_EQ(url.platform(), KnownPlatform::osx_64);
-            CHECK_EQ(url.path(), "/conda-forge/osx-64/micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.platform() == KnownPlatform::osx_64);
+            REQUIRE(url.path() == "/conda-forge/osx-64/micromamba-1.5.1-0.tar.bz2");
 
             REQUIRE(url.clear_platform());
-            CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.path() == "/conda-forge/micromamba-1.5.1-0.tar.bz2");
         }
     }
 
@@ -257,67 +257,67 @@ namespace
 
         SECTION("https://repo.mamba.pm/")
         {
-            CHECK_EQ(url.package(), "");
+            REQUIRE(url.package() == "");
 
-            CHECK_THROWS_AS(url.set_package("not-package/"), std::invalid_argument);
-            CHECK_EQ(url.path(), "/");
+            REQUIRE_THROWS_AS(url.set_package("not-package/"), std::invalid_argument);
+            REQUIRE(url.path() == "/");
 
             REQUIRE_FALSE(url.clear_package());
-            CHECK_EQ(url.package(), "");
-            CHECK_EQ(url.path(), "/");
+            REQUIRE(url.package() == "");
+            REQUIRE(url.path() == "/");
 
             url.set_package("micromamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.path(), "/micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.package() == "micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.path() == "/micromamba-1.5.1-0.tar.bz2");
 
             REQUIRE(url.clear_package());
-            CHECK_EQ(url.package(), "");
-            CHECK_EQ(url.path(), "/");
+            REQUIRE(url.package() == "");
+            REQUIRE(url.path() == "/");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge")
         {
             url.set_path("conda-forge");
 
-            CHECK_EQ(url.package(), "");
+            REQUIRE(url.package() == "");
 
             url.set_package("micromamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.package() == "micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.path() == "/conda-forge/micromamba-1.5.1-0.tar.bz2");
 
             REQUIRE(url.clear_package());
-            CHECK_EQ(url.package(), "");
-            CHECK_EQ(url.path(), "/conda-forge");
+            REQUIRE(url.package() == "");
+            REQUIRE(url.path() == "/conda-forge");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge/")
         {
             url.set_path("conda-forge/");
 
-            CHECK_EQ(url.package(), "");
+            REQUIRE(url.package() == "");
 
             url.set_package("micromamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.package() == "micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.path() == "/conda-forge/micromamba-1.5.1-0.tar.bz2");
 
             REQUIRE(url.clear_package());
-            CHECK_EQ(url.package(), "");
-            CHECK_EQ(url.path(), "/conda-forge");
+            REQUIRE(url.package() == "");
+            REQUIRE(url.path() == "/conda-forge");
         }
 
         SECTION("https://repo.mamba.pm/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2")
         {
             url.set_path("/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2");
 
-            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.package() == "micromamba-1.5.1-0.tar.bz2");
 
             url.set_package("mamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.package(), "mamba-1.5.1-0.tar.bz2");
-            CHECK_EQ(url.path(), "/conda-forge/linux-64/mamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.package() == "mamba-1.5.1-0.tar.bz2");
+            REQUIRE(url.path() == "/conda-forge/linux-64/mamba-1.5.1-0.tar.bz2");
 
             REQUIRE(url.clear_package());
-            CHECK_EQ(url.package(), "");
-            CHECK_EQ(url.path(), "/conda-forge/linux-64");
+            REQUIRE(url.package() == "");
+            REQUIRE(url.path() == "/conda-forge/linux-64");
         }
     }
 
@@ -327,9 +327,9 @@ namespace
 
         SECTION("without credentials")
         {
-            CHECK_EQ(url.str(CondaURL::Credentials::Show), "https://localhost/");
-            CHECK_EQ(url.str(CondaURL::Credentials::Hide), "https://localhost/");
-            CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/");
+            REQUIRE(url.str(CondaURL::Credentials::Show) == "https://localhost/");
+            REQUIRE(url.str(CondaURL::Credentials::Hide) == "https://localhost/");
+            REQUIRE(url.str(CondaURL::Credentials::Remove) == "https://localhost/");
         }
 
         SECTION("with some credentials")
@@ -337,9 +337,11 @@ namespace
             url.set_user("user@mamba.org");
             url.set_password("pass");
 
-            CHECK_EQ(url.str(CondaURL::Credentials::Show), "https://user%40mamba.org:pass@localhost/");
-            CHECK_EQ(url.str(CondaURL::Credentials::Hide), "https://user%40mamba.org:*****@localhost/");
-            CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/");
+            REQUIRE(url.str(CondaURL::Credentials::Show) == "https://user%40mamba.org:pass@localhost/");
+            REQUIRE(
+                url.str(CondaURL::Credentials::Hide) == "https://user%40mamba.org:*****@localhost/"
+            );
+            REQUIRE(url.str(CondaURL::Credentials::Remove) == "https://localhost/");
 
             SECTION("and token")
             {
@@ -352,7 +354,7 @@ namespace
                     url.str(CondaURL::Credentials::Hide),
                     "https://user%40mamba.org:*****@localhost/t/*****/linux-64"
                 );
-                CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/linux-64");
+                REQUIRE(url.str(CondaURL::Credentials::Remove) == "https://localhost/linux-64");
             }
         }
     }
@@ -366,15 +368,15 @@ namespace
 
             SECTION("default scheme")
             {
-                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no), "https://mamba.org/");
-                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::yes), "mamba.org/");
+                REQUIRE(url.pretty_str(CondaURL::StripScheme::no) == "https://mamba.org/");
+                REQUIRE(url.pretty_str(CondaURL::StripScheme::yes) == "mamba.org/");
             }
 
             SECTION("ftp scheme")
             {
                 url.set_scheme("ftp");
-                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no), "ftp://mamba.org/");
-                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::yes), "mamba.org/");
+                REQUIRE(url.pretty_str(CondaURL::StripScheme::no) == "ftp://mamba.org/");
+                REQUIRE(url.pretty_str(CondaURL::StripScheme::yes) == "mamba.org/");
             }
         }
 
@@ -382,11 +384,11 @@ namespace
         {
             CondaURL url = {};
             url.set_host("mamba.org");
-            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, 0), "https://mamba.org/");
-            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org");
+            REQUIRE(url.pretty_str(CondaURL::StripScheme::no, 0) == "https://mamba.org/");
+            REQUIRE(url.pretty_str(CondaURL::StripScheme::no, '/') == "https://mamba.org");
             url.set_path("/page/");
-            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, ':'), "https://mamba.org/page/");
-            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org/page");
+            REQUIRE(url.pretty_str(CondaURL::StripScheme::no, ':') == "https://mamba.org/page/");
+            REQUIRE(url.pretty_str(CondaURL::StripScheme::no, '/') == "https://mamba.org/page");
         }
 
         SECTION("Credential option")
@@ -479,12 +481,12 @@ namespace
             url.set_user("user@email.com");
             url.set_password("pw%rd");
             url.set_path("/some /path$/");
-            CHECK_EQ(url.str(), "https://user%40email.com:*****@mamba.org/some%20/path%24/");
+            REQUIRE(url.str() == "https://user%40email.com:*****@mamba.org/some%20/path%24/");
             CHECK_EQ(
                 url.str(CondaURL::Credentials::Show),
                 "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
             );
-            CHECK_EQ(url.pretty_str(), "https://user@email.com:*****@mamba.org/some /path$/");
+            REQUIRE(url.pretty_str() == "https://user@email.com:*****@mamba.org/some /path$/");
         }
     }
 }

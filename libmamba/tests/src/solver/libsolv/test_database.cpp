@@ -41,7 +41,7 @@ namespace
     {
         auto db = libsolv::Database({});
         REQUIRE(std::is_move_constructible_v<libsolv::Database>);
-        CHECK_EQ(db.repo_count(), 0);
+        REQUIRE(db.repo_count() == 0);
 
         SECTION("Add repo from packages")
         {
@@ -51,22 +51,22 @@ namespace
                 mkpkg("z", "1.0", { "x>=1.0" }),
             };
             auto repo1 = db.add_repo_from_packages(pkgs, "repo1");
-            CHECK_EQ(db.repo_count(), 1);
-            CHECK_EQ(db.package_count(), 3);
-            CHECK_EQ(repo1.package_count(), 3);
+            REQUIRE(db.repo_count() == 1);
+            REQUIRE(db.package_count() == 3);
+            REQUIRE(repo1.package_count() == 3);
 
             SECTION("Mark as installed repo")
             {
                 REQUIRE_FALSE(db.installed_repo().has_value());
                 db.set_installed_repo(repo1);
-                CHECK_EQ(db.installed_repo().value(), repo1);
+                REQUIRE(db.installed_repo().value() == repo1);
 
                 SECTION("Remove repo")
                 {
                     db.remove_repo(repo1);
-                    CHECK_EQ(db.repo_count(), 0);
+                    REQUIRE(db.repo_count() == 0);
                     REQUIRE_FALSE(db.installed_repo().has_value());
-                    CHECK_EQ(db.package_count(), 0);
+                    REQUIRE(db.package_count() == 0);
                 }
             }
 
@@ -81,16 +81,16 @@ namespace
                     /* .mod= */ "Fri, 11 Feb 2022 13:52:44 GMT",
                 };
                 auto repo1_copy = db.native_serialize_repo(repo1, solv_file, origin);
-                CHECK_EQ(repo1_copy, repo1);
+                REQUIRE(repo1_copy == repo1);
 
                 SECTION("Read serialized repo")
                 {
                     auto repo2 = db.add_repo_from_native_serialization(solv_file, origin, "conda-forge")
                                      .value();
-                    CHECK_EQ(repo2.name(), origin.url);
+                    REQUIRE(repo2.name() == origin.url);
                     REQUIRE(repo2.package_count() == repo1.package_count();
-                    CHECK_NE(repo2, repo1);
-                    CHECK_EQ(db.package_count(), repo1.package_count() + repo2.package_count());
+                    REQUIRE(repo2 != repo1);
+                    REQUIRE(db.package_count() == repo1.package_count() + repo2.package_count());
                 }
 
                 SECTION("Fail reading outdated repo")
@@ -125,11 +125,11 @@ namespace
                         [&](const auto& p)
                         {
                             count++;
-                            CHECK_EQ(p.name, "z");
-                            CHECK_EQ(p.version, "2.0");
+                            REQUIRE(p.name == "z");
+                            REQUIRE(p.version == "2.0");
                         }
                     );
-                    CHECK_EQ(count, 1);
+                    REQUIRE(count == 1);
                 }
 
                 SECTION("Matching a MatchSpec in multiple repos")
@@ -140,10 +140,10 @@ namespace
                         [&](const auto& p)
                         {
                             count++;
-                            CHECK_EQ(p.name, "z");
+                            REQUIRE(p.name == "z");
                         }
                     );
-                    CHECK_EQ(count, 2);
+                    REQUIRE(count == 2);
                 }
 
                 SECTION("Matching a strict MatchSpec")
@@ -154,10 +154,10 @@ namespace
                         [&](const auto& p)
                         {
                             count++;
-                            CHECK_EQ(p.name, "z");
+                            REQUIRE(p.name == "z");
                         }
                     );
-                    CHECK_EQ(count, 1);
+                    REQUIRE(count == 1);
                 }
 
                 SECTION("Depending on a given dependency")
@@ -171,7 +171,7 @@ namespace
                             REQUIRE(util::any_starts_with(p.dependencies, "x"));
                         }
                     );
-                    CHECK_EQ(count, 1);
+                    REQUIRE(count == 1);
                 }
             }
         }
@@ -188,7 +188,7 @@ namespace
             );
             REQUIRE(repo1.has_value());
 
-            CHECK_EQ(repo1->package_count(), 33);
+            REQUIRE(repo1->package_count() == 33);
 
             auto found_python = false;
             db.for_each_package_matching(
@@ -217,7 +217,7 @@ namespace
             );
             REQUIRE(repo1.has_value());
 
-            CHECK_EQ(repo1->package_count(), 33);
+            REQUIRE(repo1->package_count() == 33);
 
             auto found_python = false;
             db.for_each_package_matching(
@@ -248,7 +248,7 @@ namespace
                 libsolv::PackageTypes::TarBz2Only
             );
             REQUIRE(repo1.has_value());
-            CHECK_EQ(repo1->package_count(), 4);
+            REQUIRE(repo1->package_count() == 4);
         }
 
         SECTION("Add repo from repodata only .conda")
@@ -263,7 +263,7 @@ namespace
                 libsolv::PackageTypes::CondaOnly
             );
             REQUIRE(repo1.has_value());
-            CHECK_EQ(repo1->package_count(), 30);
+            REQUIRE(repo1->package_count() == 30);
         }
 
         SECTION("Add repo from repodata .conda and .tar.bz2")
@@ -278,7 +278,7 @@ namespace
                 libsolv::PackageTypes::CondaAndTarBz2
             );
             REQUIRE(repo1.has_value());
-            CHECK_EQ(repo1->package_count(), 34);
+            REQUIRE(repo1->package_count() == 34);
         }
 
         SECTION("Add repo from repodata .conda or else .tar.bz2")
@@ -293,7 +293,7 @@ namespace
                 libsolv::PackageTypes::CondaOrElseTarBz2
             );
             REQUIRE(repo1.has_value());
-            CHECK_EQ(repo1->package_count(), 33);
+            REQUIRE(repo1->package_count() == 33);
         }
 
         SECTION("Add repo from repodata with verifying packages signatures")
@@ -312,7 +312,7 @@ namespace
                     libsolv::RepodataParser::Mamba
                 );
                 REQUIRE(repo1.has_value());
-                CHECK_EQ(repo1->package_count(), 33);
+                REQUIRE(repo1->package_count() == 33);
 
                 db.for_each_package_in_repo(
                     repo1.value(),
@@ -334,7 +334,7 @@ namespace
                         }
                         else
                         {
-                            CHECK_EQ(p.signatures, "");
+                            REQUIRE(p.signatures == "");
                         }
                     }
                 );
@@ -352,7 +352,7 @@ namespace
                     libsolv::RepodataParser::Libsolv
                 );
                 REQUIRE(repo1.has_value());
-                CHECK_EQ(repo1->package_count(), 33);
+                REQUIRE(repo1->package_count() == 33);
 
                 db.for_each_package_in_repo(
                     repo1.value(),
@@ -378,7 +378,7 @@ namespace
                         }
                         else
                         {
-                            CHECK_EQ(p.signatures, "");
+                            REQUIRE(p.signatures == "");
                         }
                     }
                 );
@@ -401,11 +401,11 @@ namespace
                     libsolv::RepodataParser::Mamba
                 );
                 REQUIRE(repo1.has_value());
-                CHECK_EQ(repo1->package_count(), 33);
+                REQUIRE(repo1->package_count() == 33);
 
                 db.for_each_package_in_repo(
                     repo1.value(),
-                    [&](const auto& p) { CHECK_EQ(p.signatures, ""); }
+                    [&](const auto& p) { REQUIRE(p.signatures == ""); }
                 );
             }
 
@@ -421,11 +421,11 @@ namespace
                     libsolv::RepodataParser::Libsolv
                 );
                 REQUIRE(repo1.has_value());
-                CHECK_EQ(repo1->package_count(), 33);
+                REQUIRE(repo1->package_count() == 33);
 
                 db.for_each_package_in_repo(
                     repo1.value(),
-                    [&](const auto& p) { CHECK_EQ(p.signatures, ""); }
+                    [&](const auto& p) { REQUIRE(p.signatures == ""); }
                 );
             }
         }
@@ -442,7 +442,7 @@ namespace
                 libsolv::PackageTypes::CondaOrElseTarBz2
             );
             REQUIRE(repo1.has_value());
-            CHECK_EQ(repo1->package_count(), 2);
+            REQUIRE(repo1->package_count() == 2);
 
             db.for_each_package_in_repo(
                 repo1.value(),
@@ -478,7 +478,7 @@ namespace
                 libsolv::PackageTypes::CondaOrElseTarBz2
             );
             REQUIRE(repo1.has_value());
-            CHECK_EQ(repo1->package_count(), 2);
+            REQUIRE(repo1->package_count() == 2);
 
             db.for_each_package_in_repo(
                 repo1.value(),

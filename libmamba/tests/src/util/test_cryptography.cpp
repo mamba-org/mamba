@@ -66,9 +66,9 @@ namespace
                 auto reused_hasher = Sha256Hasher();
                 for (auto [data, hash] : known_sha256)
                 {
-                    CHECK_EQ(reused_hasher.str_hex_str(data), hash);
+                    REQUIRE(reused_hasher.str_hex_str(data) == hash);
                     auto new_hasher = Sha256Hasher();
-                    CHECK_EQ(new_hasher.str_hex_str(data), hash);
+                    REQUIRE(new_hasher.str_hex_str(data) == hash);
                 }
             }
 
@@ -77,9 +77,9 @@ namespace
                 auto reused_hasher = Md5Hasher();
                 for (auto [data, hash] : known_md5)
                 {
-                    CHECK_EQ(reused_hasher.str_hex_str(data), hash);
+                    REQUIRE(reused_hasher.str_hex_str(data) == hash);
                     auto new_hasher = Md5Hasher();
-                    CHECK_EQ(new_hasher.str_hex_str(data), hash);
+                    REQUIRE(new_hasher.str_hex_str(data) == hash);
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace
                     }
                     auto file = std::ifstream(tmp.path().std_path());
                     REQUIRE(file.good());
-                    CHECK_EQ(hasher.file_hex_str(file), hash);
+                    REQUIRE(hasher.file_hex_str(file) == hash);
                 }
             }
 
@@ -118,7 +118,7 @@ namespace
                     }
                     auto file = std::ifstream(tmp.path().std_path());
                     REQUIRE(file.good());
-                    CHECK_EQ(hasher.file_hex_str(file), hash);
+                    REQUIRE(hasher.file_hex_str(file) == hash);
                 }
             }
         }

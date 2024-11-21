@@ -16,17 +16,17 @@ namespace
     {
         SECTION("name")
         {
-            CHECK_EQ(platform_name(KnownPlatform::linux_riscv32), "linux-riscv32");
-            CHECK_EQ(platform_name(KnownPlatform::osx_arm64), "osx-arm64");
-            CHECK_EQ(platform_name(KnownPlatform::win_64), "win-64");
+            REQUIRE(platform_name(KnownPlatform::linux_riscv32) == "linux-riscv32");
+            REQUIRE(platform_name(KnownPlatform::osx_arm64) == "osx-arm64");
+            REQUIRE(platform_name(KnownPlatform::win_64) == "win-64");
         }
 
         SECTION("parse")
         {
-            CHECK_EQ(platform_parse("linux-armv6l"), KnownPlatform::linux_armv6l);
-            CHECK_EQ(platform_parse(" win-32 "), KnownPlatform::win_32);
-            CHECK_EQ(platform_parse(" OSX-64"), KnownPlatform::osx_64);
-            CHECK_EQ(platform_parse("linus-46"), std::nullopt);
+            REQUIRE(platform_parse("linux-armv6l") == KnownPlatform::linux_armv6l);
+            REQUIRE(platform_parse(" win-32 ") == KnownPlatform::win_32);
+            REQUIRE(platform_parse(" OSX-64") == KnownPlatform::osx_64);
+            REQUIRE(platform_parse("linus-46") == std::nullopt);
         }
 
         SECTION("known_platform")
@@ -78,17 +78,17 @@ namespace
     {
         SECTION("name")
         {
-            CHECK_EQ(noarch_name(NoArchType::No), "no");
-            CHECK_EQ(noarch_name(NoArchType::Generic), "generic");
-            CHECK_EQ(noarch_name(NoArchType::Python), "python");
+            REQUIRE(noarch_name(NoArchType::No) == "no");
+            REQUIRE(noarch_name(NoArchType::Generic) == "generic");
+            REQUIRE(noarch_name(NoArchType::Python) == "python");
         }
 
         SECTION("parse")
         {
-            CHECK_EQ(noarch_parse(""), std::nullopt);
-            CHECK_EQ(noarch_parse(" Python "), NoArchType::Python);
-            CHECK_EQ(noarch_parse(" geNeric"), NoArchType::Generic);
-            CHECK_EQ(noarch_parse("Nothing we know"), std::nullopt);
+            REQUIRE(noarch_parse("") == std::nullopt);
+            REQUIRE(noarch_parse(" Python ") == NoArchType::Python);
+            REQUIRE(noarch_parse(" geNeric") == NoArchType::Generic);
+            REQUIRE(noarch_parse("Nothing we know") == std::nullopt);
         }
 
         SECTION("known_noarch")

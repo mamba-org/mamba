@@ -36,7 +36,7 @@ namespace
         {
             auto count_install = std::size_t(0);
             for_each_of<Request::Install>(request, [&](const Request::Install&) { count_install++; });
-            CHECK_EQ(count_install, 2);
+            REQUIRE(count_install == 2);
         }
 
         SECTION("Iterate over different elements")
@@ -59,8 +59,8 @@ namespace
                 }
             );
 
-            CHECK_EQ(count_install, 2);
-            CHECK_EQ(count_remove, 1);
+            REQUIRE(count_install == 2);
+            REQUIRE(count_remove == 1);
         }
 
         SECTION("Iterate over elements and break loop")
@@ -74,7 +74,7 @@ namespace
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(count_install, 1);
+            REQUIRE(count_install == 1);
         }
     }
 }

@@ -31,49 +31,49 @@ namespace
         REQUIRE(free.contains(v2));
         REQUIRE(free.contains(v3));
         REQUIRE(free.contains(v4));
-        CHECK_EQ(free.str(), "=*");
+        REQUIRE(free.str() == "=*");
 
         const auto eq = VersionPredicate::make_equal_to(v2);
         REQUIRE_FALSE(eq.contains(v1));
         REQUIRE(eq.contains(v2));
         REQUIRE_FALSE(eq.contains(v3));
         REQUIRE_FALSE(eq.contains(v4));
-        CHECK_EQ(eq.str(), "==2.0");
+        REQUIRE(eq.str() == "==2.0");
 
         const auto ne = VersionPredicate::make_not_equal_to(v2);
         REQUIRE(ne.contains(v1));
         REQUIRE_FALSE(ne.contains(v2));
         REQUIRE(ne.contains(v3));
         REQUIRE(ne.contains(v4));
-        CHECK_EQ(ne.str(), "!=2.0");
+        REQUIRE(ne.str() == "!=2.0");
 
         const auto gt = VersionPredicate::make_greater(v2);
         REQUIRE_FALSE(gt.contains(v1));
         REQUIRE_FALSE(gt.contains(v2));
         REQUIRE(gt.contains(v3));
         REQUIRE(gt.contains(v4));
-        CHECK_EQ(gt.str(), ">2.0");
+        REQUIRE(gt.str() == ">2.0");
 
         const auto ge = VersionPredicate::make_greater_equal(v2);
         REQUIRE_FALSE(ge.contains(v1));
         REQUIRE(ge.contains(v2));
         REQUIRE(ge.contains(v3));
         REQUIRE(ge.contains(v4));
-        CHECK_EQ(ge.str(), ">=2.0");
+        REQUIRE(ge.str() == ">=2.0");
 
         const auto lt = VersionPredicate::make_less(v2);
         REQUIRE(lt.contains(v1));
         REQUIRE_FALSE(lt.contains(v2));
         REQUIRE_FALSE(lt.contains(v3));
         REQUIRE_FALSE(lt.contains(v4));
-        CHECK_EQ(lt.str(), "<2.0");
+        REQUIRE(lt.str() == "<2.0");
 
         const auto le = VersionPredicate::make_less_equal(v2);
         REQUIRE(le.contains(v1));
         REQUIRE(le.contains(v2));
         REQUIRE_FALSE(le.contains(v3));
         REQUIRE_FALSE(le.contains(v4));
-        CHECK_EQ(le.str(), "<=2.0");
+        REQUIRE(le.str() == "<=2.0");
 
         const auto sw = VersionPredicate::make_starts_with(v2);
         REQUIRE_FALSE(sw.contains(v1));
@@ -81,8 +81,8 @@ namespace
         REQUIRE(sw.contains(v201));
         REQUIRE_FALSE(sw.contains(v3));
         REQUIRE_FALSE(sw.contains(v4));
-        CHECK_EQ(sw.str(), "=2.0");
-        CHECK_EQ(sw.str_conda_build(), "2.0.*");
+        REQUIRE(sw.str() == "=2.0");
+        REQUIRE(sw.str_conda_build() == "2.0.*");
 
         const auto nsw = VersionPredicate::make_not_starts_with(v2);
         REQUIRE(nsw.contains(v1));
@@ -90,7 +90,7 @@ namespace
         REQUIRE_FALSE(nsw.contains(v201));
         REQUIRE(nsw.contains(v3));
         REQUIRE(nsw.contains(v4));
-        CHECK_EQ(nsw.str(), "!=2.0.*");
+        REQUIRE(nsw.str() == "!=2.0.*");
 
         const auto cp2 = VersionPredicate::make_compatible_with(v2, 2);
         REQUIRE_FALSE(cp2.contains(v1));
@@ -98,7 +98,7 @@ namespace
         REQUIRE(cp2.contains(v201));
         REQUIRE_FALSE(cp2.contains(v3));
         REQUIRE_FALSE(cp2.contains(v4));
-        CHECK_EQ(cp2.str(), "~=2.0");
+        REQUIRE(cp2.str() == "~=2.0");
 
         const auto cp3 = VersionPredicate::make_compatible_with(v2, 3);
         REQUIRE_FALSE(cp3.contains(v1));
@@ -106,15 +106,15 @@ namespace
         REQUIRE_FALSE(cp3.contains(v201));
         REQUIRE_FALSE(cp3.contains(v3));
         REQUIRE_FALSE(cp3.contains(v4));
-        CHECK_EQ(cp3.str(), "~=2.0.0");
+        REQUIRE(cp3.str() == "~=2.0.0");
 
         const auto predicates = std::array{ free, eq, ne, lt, le, gt, ge, sw, cp2, cp3 };
         for (std::size_t i = 0; i < predicates.size(); ++i)
         {
-            CHECK_EQ(predicates[i], predicates[i]);
+            REQUIRE(predicates[i] == predicates[i]);
             for (std::size_t j = i + 1; j < predicates.size(); ++j)
             {
-                CHECK_NE(predicates[i], predicates[j]);
+                REQUIRE(predicates[i] != predicates[j]);
             }
         }
     }
@@ -125,7 +125,7 @@ namespace
         {
             auto spec = VersionSpec();
             REQUIRE(spec.contains(Version()));
-            CHECK_EQ(spec.str(), "=*");
+            REQUIRE(spec.str() == "=*");
         }
 
         SECTION("from_predicate")
@@ -135,7 +135,7 @@ namespace
             auto spec = VersionSpec::from_predicate(VersionPredicate::make_equal_to(v1));
             REQUIRE(spec.contains(v1));
             REQUIRE_FALSE(spec.contains(v2));
-            CHECK_EQ(spec.str(), "==1.0");
+            REQUIRE(spec.str() == "==1.0");
         }
 
         SECTION("<2.0|(>2.3,<=2.8.0)")
@@ -168,7 +168,7 @@ namespace
 
             // Note this won't always be the same as the parsed string because of the tree
             // serialization
-            CHECK_EQ(spec.str(), "<2.0|(>2.3,<=2.8.0)");
+            REQUIRE(spec.str() == "<2.0|(>2.3,<=2.8.0)");
         }
     }
 
@@ -412,15 +412,15 @@ namespace
         SECTION("2.3")
         {
             auto vs = VersionSpec::parse("2.3").value();
-            CHECK_EQ(vs.str(), "==2.3");
-            CHECK_EQ(vs.str_conda_build(), "==2.3");
+            REQUIRE(vs.str() == "==2.3");
+            REQUIRE(vs.str_conda_build() == "==2.3");
         }
 
         SECTION("=2.3,<3.0")
         {
             auto vs = VersionSpec::parse("=2.3,<3.0").value();
-            CHECK_EQ(vs.str(), "=2.3,<3.0");
-            CHECK_EQ(vs.str_conda_build(), "2.3.*,<3.0");
+            REQUIRE(vs.str() == "=2.3,<3.0");
+            REQUIRE(vs.str_conda_build() == "2.3.*,<3.0");
         }
     }
 
@@ -451,8 +451,8 @@ namespace
         auto spec2 = VersionSpec::parse("*").value();
         auto spec3 = VersionSpec::parse("=2.4").value();
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         auto hash_fn = std::hash<VersionSpec>();
         REQUIRE(hash_fn(spec1) == hash_fn(spec2);

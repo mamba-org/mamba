@@ -22,10 +22,10 @@ namespace
     {
         SECTION("nibble_to_hex")
         {
-            CHECK_EQ(nibble_to_hex(std::byte{ 0x00 }), '0');
-            CHECK_EQ(nibble_to_hex(std::byte{ 0x10 }), '0');  // high ignored
-            CHECK_EQ(nibble_to_hex(std::byte{ 0x01 }), '1');
-            CHECK_EQ(nibble_to_hex(std::byte{ 0x0D }), 'd');
+            REQUIRE(nibble_to_hex(std::byte{ 0x00 }) == '0');
+            REQUIRE(nibble_to_hex(std::byte{ 0x10 }) == '0');  // high ignored
+            REQUIRE(nibble_to_hex(std::byte{ 0x01 }) == '1');
+            REQUIRE(nibble_to_hex(std::byte{ 0x0D }) == 'd');
         }
 
         SECTION("bytes_to_hex_to")
@@ -46,10 +46,10 @@ namespace
 
         SECTION("hex_to_nibble")
         {
-            CHECK_EQ(hex_to_nibble('0').value(), std::byte{ 0x00 });
-            CHECK_EQ(hex_to_nibble('a').value(), std::byte{ 0x0A });
-            CHECK_EQ(hex_to_nibble('f').value(), std::byte{ 0x0F });
-            CHECK_EQ(hex_to_nibble('B').value(), std::byte{ 0x0B });
+            REQUIRE(hex_to_nibble('0').value() == std::byte{ 0x00 });
+            REQUIRE(hex_to_nibble('a').value() == std::byte{ 0x0A });
+            REQUIRE(hex_to_nibble('f').value() == std::byte{ 0x0F });
+            REQUIRE(hex_to_nibble('B').value() == std::byte{ 0x0B });
 
             REQUIRE_FALSE(hex_to_nibble('x').has_value());
             REQUIRE_FALSE(hex_to_nibble('*').has_value());
@@ -59,12 +59,12 @@ namespace
 
         SECTION("two_hex_to_byte")
         {
-            CHECK_EQ(two_hex_to_byte('0', '0').value(), std::byte{ 0x00 });
-            CHECK_EQ(two_hex_to_byte('0', '4').value(), std::byte{ 0x04 });
-            CHECK_EQ(two_hex_to_byte('5', '0').value(), std::byte{ 0x50 });
-            CHECK_EQ(two_hex_to_byte('F', 'F').value(), std::byte{ 0xFF });
-            CHECK_EQ(two_hex_to_byte('0', 'A').value(), std::byte{ 0x0A });
-            CHECK_EQ(two_hex_to_byte('b', '8').value(), std::byte{ 0xB8 });
+            REQUIRE(two_hex_to_byte('0', '0').value() == std::byte{ 0x00 });
+            REQUIRE(two_hex_to_byte('0', '4').value() == std::byte{ 0x04 });
+            REQUIRE(two_hex_to_byte('5', '0').value() == std::byte{ 0x50 });
+            REQUIRE(two_hex_to_byte('F', 'F').value() == std::byte{ 0xFF });
+            REQUIRE(two_hex_to_byte('0', 'A').value() == std::byte{ 0x0A });
+            REQUIRE(two_hex_to_byte('b', '8').value() == std::byte{ 0xB8 });
 
             REQUIRE_FALSE(two_hex_to_byte('b', 'x').has_value());
             REQUIRE_FALSE(two_hex_to_byte('!', 'b').has_value());
@@ -80,7 +80,7 @@ namespace
                 auto str = std::string_view("1234");
                 auto b = bytes(str.size() / 2);
                 REQUIRE(hex_to_bytes_to(str, b.data()).has_value());
-                CHECK_EQ(b, bytes{ std::byte{ 0x12 }, std::byte{ 0x34 } });
+                REQUIRE(b == bytes{ std::byte{ 0x12 }, std::byte{ 0x34 } });
             }
 
             SECTION("1f4DaB")
@@ -88,7 +88,7 @@ namespace
                 auto str = std::string_view("1f4DaB");
                 auto b = bytes(str.size() / 2);
                 REQUIRE(hex_to_bytes_to(str, b.data()).has_value());
-                CHECK_EQ(b, bytes{ std::byte{ 0x1F }, std::byte{ 0x4D }, std::byte{ 0xAB } });
+                REQUIRE(b == bytes{ std::byte{ 0x1F }, std::byte{ 0x4D }, std::byte{ 0xAB } });
             }
 
             SECTION("1f4Da")
@@ -113,29 +113,29 @@ namespace
     {
         SECTION("encode")
         {
-            CHECK_EQ(encode_percent(""), "");
-            CHECK_EQ(encode_percent("page"), "page");
-            CHECK_EQ(encode_percent(" /word%"), "%20%2Fword%25");
-            CHECK_EQ(encode_percent("user@email.com"), "user%40email.com");
+            REQUIRE(encode_percent("") == "");
+            REQUIRE(encode_percent("page") == "page");
+            REQUIRE(encode_percent(" /word%") == "%20%2Fword%25");
+            REQUIRE(encode_percent("user@email.com") == "user%40email.com");
             CHECK_EQ(
                 encode_percent(R"(#!$&'"(ab23)*+,/:;=?@[])"),
                 "%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
             );
             // Does NOT parse URL
-            CHECK_EQ(encode_percent("https://foo/"), "https%3A%2F%2Ffoo%2F");
+            REQUIRE(encode_percent("https://foo/") == "https%3A%2F%2Ffoo%2F");
 
             // Exclude characters
-            CHECK_EQ(encode_percent(" /word%", '/'), "%20/word%25");
+            REQUIRE(encode_percent(" /word%", '/') == "%20/word%25");
         }
 
         SECTION("decode")
         {
-            CHECK_EQ(decode_percent(""), "");
-            CHECK_EQ(decode_percent("page"), "page");
-            CHECK_EQ(decode_percent("%20%2Fword%25"), " /word%");
-            CHECK_EQ(decode_percent(" /word%25"), " /word%");
-            CHECK_EQ(decode_percent("user%40email.com"), "user@email.com");
-            CHECK_EQ(decode_percent("https%3A%2F%2Ffoo%2F"), "https://foo/");
+            REQUIRE(decode_percent("") == "");
+            REQUIRE(decode_percent("page") == "page");
+            REQUIRE(decode_percent("%20%2Fword%25") == " /word%");
+            REQUIRE(decode_percent(" /word%25") == " /word%");
+            REQUIRE(decode_percent("user%40email.com") == "user@email.com");
+            REQUIRE(decode_percent("https%3A%2F%2Ffoo%2F") == "https://foo/");
             CHECK_EQ(
                 decode_percent("%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"),
                 R"(#!$&'"(ab23)*+,/:;=?@[])"
@@ -147,26 +147,26 @@ namespace
     {
         SECTION("encode")
         {
-            CHECK_EQ(encode_base64("Hello").value(), "SGVsbG8=");
-            CHECK_EQ(encode_base64("Hello World!").value(), "SGVsbG8gV29ybGQh");
-            CHECK_EQ(encode_base64("!@#$%^U&I*O").value(), "IUAjJCVeVSZJKk8=");
+            REQUIRE(encode_base64("Hello").value() == "SGVsbG8=");
+            REQUIRE(encode_base64("Hello World!").value() == "SGVsbG8gV29ybGQh");
+            REQUIRE(encode_base64("!@#$%^U&I*O").value() == "IUAjJCVeVSZJKk8=");
             CHECK_EQ(
                 encode_base64(u8"_私のにほHelloわへたです").value(),
                 "X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ"
             );
-            CHECK_EQ(encode_base64("xyzpass").value(), "eHl6cGFzcw==");
+            REQUIRE(encode_base64("xyzpass").value() == "eHl6cGFzcw==");
         }
 
         SECTION("decode")
         {
-            CHECK_EQ(decode_base64("SGVsbG8=").value(), "Hello");
-            CHECK_EQ(decode_base64("SGVsbG8gV29ybGQh").value(), "Hello World!");
-            CHECK_EQ(decode_base64("IUAjJCVeVSZJKk8=").value(), "!@#$%^U&I*O");
+            REQUIRE(decode_base64("SGVsbG8=").value() == "Hello");
+            REQUIRE(decode_base64("SGVsbG8gV29ybGQh").value() == "Hello World!");
+            REQUIRE(decode_base64("IUAjJCVeVSZJKk8=").value() == "!@#$%^U&I*O");
             CHECK_EQ(
                 decode_base64(u8"X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ").value(),
                 "_私のにほHelloわへたです"
             );
-            CHECK_EQ(decode_base64("eHl6cGFzcw==").value(), "xyzpass");
+            REQUIRE(decode_base64("eHl6cGFzcw==").value() == "xyzpass");
         }
     }
 }

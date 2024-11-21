@@ -27,7 +27,7 @@ namespace mamba
         int res = 0;
         // Ensures the compiler doe snot optimize away mambatests::context()
         std::string current_command = mambatests::context().command_params.current_command;
-        CHECK_EQ(current_command, "mamba");
+        REQUIRE(current_command == "mamba");
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
         {
             interruption_guard g(
@@ -70,29 +70,29 @@ namespace mamba
         TEST_CASE("interrupt")
         {
             int res = test_interruption_guard(true);
-            CHECK_EQ(res, -95);
+            REQUIRE(res == -95);
         }
 
         TEST_CASE("no_interrupt")
         {
             int res = test_interruption_guard(false);
-            CHECK_EQ(res, 5);
+            REQUIRE(res == 5);
         }
 
         TEST_CASE("no_interrupt_then_interrupt")
         {
             int res = test_interruption_guard(false);
-            CHECK_EQ(res, 5);
+            REQUIRE(res == 5);
             int res2 = test_interruption_guard(true);
-            CHECK_EQ(res2, -95);
+            REQUIRE(res2 == -95);
         }
 
         TEST_CASE("no_interrupt_sequence")
         {
             int res = test_interruption_guard(false);
-            CHECK_EQ(res, 5);
+            REQUIRE(res == 5);
             int res2 = test_interruption_guard(false);
-            CHECK_EQ(res2, 5);
+            REQUIRE(res2 == 5);
         }
     }
 #endif

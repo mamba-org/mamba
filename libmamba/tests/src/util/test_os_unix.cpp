@@ -22,14 +22,14 @@ namespace
         if (util::on_linux)
         {
             REQUIRE(maybe_name_version.has_value());
-            CHECK_EQ(maybe_name_version.value().first, "Linux");
+            REQUIRE(maybe_name_version.value().first == "Linux");
             static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
             REQUIRE(std ::regex_match(maybe_name_version.value().second, version_regex));
         }
         else if (util::on_mac)
         {
             REQUIRE(maybe_name_version.has_value());
-            CHECK_EQ(maybe_name_version.value().first, "Darwin");
+            REQUIRE(maybe_name_version.value().first == "Darwin");
             static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
             REQUIRE(std ::regex_match(maybe_name_version.value().second, version_regex));
         }

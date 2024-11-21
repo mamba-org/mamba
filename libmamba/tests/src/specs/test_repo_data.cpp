@@ -29,14 +29,14 @@ namespace
         p.noarch = NoArchType::Python;
 
         const nl::json j = p;
-        CHECK_EQ(j.at("name"), p.name);
+        REQUIRE(j.at("name") == p.name);
         REQUIRE(j.at("version") == p.version.str();
-        CHECK_EQ(j.at("build"), p.build_string);
-        CHECK_EQ(j.at("build_number"), p.build_number);
-        CHECK_EQ(j.at("subdir"), p.subdir);
-        CHECK_EQ(j.at("md5"), p.md5);
+        REQUIRE(j.at("build") == p.build_string);
+        REQUIRE(j.at("build_number") == p.build_number);
+        REQUIRE(j.at("subdir") == p.subdir);
+        REQUIRE(j.at("md5") == p.md5);
         REQUIRE(j.at("sha256").is_null());
-        CHECK_EQ(j.at("noarch"), "python");
+        REQUIRE(j.at("noarch") == "python");
     }
 
     TEST_CASE("RepoDataPackage_from_json")
@@ -61,7 +61,7 @@ namespace
             REQUIRE(p.subdir == j.at("subdir");
             REQUIRE_FALSE(p.md5.has_value());
             REQUIRE_FALSE(p.platform.has_value());
-            CHECK_EQ(p.depends, decltype(p.depends){ "libsolv>=1.0" });
+            REQUIRE(p.depends == decltype(p.depends){ "libsolv>=1.0" });
             REQUIRE(p.constrains.empty());
             REQUIRE(p.track_features.empty());
             REQUIRE_FALSE(p.noarch.has_value());
@@ -69,13 +69,13 @@ namespace
         j["noarch"] = "python";
         {
             const auto p = j.get<RepoDataPackage>();
-            CHECK_EQ(p.noarch, NoArchType::Python);
+            REQUIRE(p.noarch == NoArchType::Python);
         }
         // Old beahiour
         j["noarch"] = true;
         {
             const auto p = j.get<RepoDataPackage>();
-            CHECK_EQ(p.noarch, NoArchType::Generic);
+            REQUIRE(p.noarch == NoArchType::Generic);
         }
         j["noarch"] = false;
         {
@@ -96,7 +96,7 @@ namespace
         data.removed = { "bad-package-1" };
 
         const nl::json j = data;
-        CHECK_EQ(j.at("version"), data.version);
+        REQUIRE(j.at("version") == data.version);
         CHECK_EQ(
             j.at("info").at("subdir").get<std::string_view>(),
             platform_name(data.info.value().subdir)
@@ -109,7 +109,7 @@ namespace
             j.at("packages").at("conda-1.0-h54321.tar.bz2"),
             data.packages.at("conda-1.0-h54321.tar.bz2")
         );
-        CHECK_EQ(j.at("removed"), std::vector{ "bad-package-1" });
+        REQUIRE(j.at("removed") == std::vector{ "bad-package-1" });
     }
 
     TEST_CASE("RepoData_from_json")
@@ -130,7 +130,7 @@ namespace
 
         const auto data = j.get<RepoData>();
         REQUIRE(data.version.has_value());
-        CHECK_EQ(data.version, j["version"]);
+        REQUIRE(data.version == j["version"]);
         REQUIRE(data.info.has_value());
         REQUIRE(platform_name(data.info.value().subdir) == j["info"]["subdir"].get<std::string_view>();
         CHECK_EQ(
@@ -138,7 +138,7 @@ namespace
             j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]
         );
         REQUIRE(data.conda_packages.empty());
-        CHECK_EQ(data.removed, j["removed"]);
+        REQUIRE(data.removed == j["removed"]);
     }
 
     TEST_CASE("repodata_json")

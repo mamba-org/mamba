@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-// There are several `CHECK_THROWS_AS` expressions in this file.
+// There are several `REQUIRE_THROWS_AS` expressions in this file.
 // Sometimes they call a method marked as `[[nodiscard]]`.
 // This causes compiler warnnings.
 // This doctest flag is designed specifically to prevent this warning from happening.
@@ -201,50 +201,50 @@ namespace
     {
         v0_6::RootImpl root(trusted_root_file_raw_key());
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_path_pgp_signed")
     {
         v0_6::RootImpl root(trusted_root_file_pgp());
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_json")
     {
         v0_6::RootImpl root(root1_json);
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_json_str")
     {
         v0_6::RootImpl root(root1_json.dump());
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_json_pgp_signed")
     {
         v0_6::RootImpl root(root1_pgp_json);
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_wrong_filename_spec_version")
@@ -256,7 +256,7 @@ namespace
         out_file.close();
 
         // "2.sv1.root.json" is not compatible spec version (spec version N)
-        CHECK_THROWS_AS(v0_6::RootImpl{ p }, role_file_error);
+        REQUIRE_THROWS_AS(v0_6::RootImpl{ p }, role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "update_from_path")
@@ -272,10 +272,10 @@ namespace
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
         auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
-        CHECK_EQ(testing_root->type(), "root");
-        CHECK_EQ(testing_root->file_ext(), "json");
+        REQUIRE(testing_root->type() == "root");
+        REQUIRE(testing_root->file_ext() == "json");
         REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(testing_root->version(), 2);
+        REQUIRE(testing_root->version() == 2);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_version")
@@ -286,7 +286,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 3 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "spec_version")
@@ -301,7 +301,7 @@ namespace
 
         auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
         REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("0.6.1");
-        CHECK_EQ(testing_root->version(), 2);
+        REQUIRE(testing_root->version() == 2);
         REQUIRE(testing_root->expires() == root.expires();
     }
 
@@ -314,7 +314,7 @@ namespace
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "1.0.0" }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
 
         nl::json signable_patch = nl::json::parse(
             R"([
@@ -331,7 +331,7 @@ namespace
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
         REQUIRE_NE(testing_root, nullptr);
         REQUIRE(testing_root->spec_version() == v0_6::SpecImpl("1.0.17");
-        CHECK_EQ(testing_root->version(), 2);
+        REQUIRE(testing_root->version() == 2);
         REQUIRE(testing_root->expires() < root.expires();
     }
 
@@ -347,7 +347,7 @@ namespace
         v1::RootImpl updated_root(upgrade_to_v1(root, signable_patch));
 
         REQUIRE(updated_root.spec_version() == v1::SpecImpl("1.0.17");
-        CHECK_EQ(updated_root.version(), 1);
+        REQUIRE(updated_root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_spec_version")
@@ -359,28 +359,28 @@ namespace
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "1.0.0" }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
 
         patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "wrong" }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_filename_role")
     {
         v0_6::RootImpl root(root1_json);
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.rooot.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.rooot.json")), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_filename_version")
     {
         v0_6::RootImpl root(root1_json);
 
-        CHECK_THROWS_AS(root.update(create_root_update("3.root.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("3.root.json")), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_filename_spec_version")
@@ -404,16 +404,16 @@ namespace
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
-        CHECK_THROWS_AS(root.update(create_root_update("2.sv2.root.json", patch)), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.sv2.root.json", patch)), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "illformed_filename_version")
     {
         v0_6::RootImpl root(root1_json);
 
-        CHECK_THROWS_AS(root.update(create_root_update("wrong.root.json")), role_file_error);
-        CHECK_THROWS_AS(root.update(create_root_update("2..root.json")), role_file_error);
-        CHECK_THROWS_AS(root.update(create_root_update("2.sv04.root.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("wrong.root.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2..root.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.sv04.root.json")), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "rollback_attack")
@@ -424,7 +424,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), rollback_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), rollback_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_type")
@@ -436,7 +436,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "missing_type")
@@ -448,7 +448,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "missing_delegations")
@@ -460,7 +460,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "missing_delegation")
@@ -472,7 +472,7 @@ namespace
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "empty_delegation_pubkeys")
@@ -484,7 +484,7 @@ namespace
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "null_role_threshold")
@@ -496,7 +496,7 @@ namespace
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "extra_roles")
@@ -509,7 +509,7 @@ namespace
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     /*
@@ -536,7 +536,7 @@ namespace
                         { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "expires")
@@ -573,19 +573,19 @@ namespace
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09+0030" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09D" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09.000" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v0_6, "possible_update_files")
@@ -626,12 +626,12 @@ namespace
     TEST_CASE_FIXTURE(SpecImplT_v06, "ctor")
     {
         v0_6::SpecImpl new_spec("0.6.1");
-        CHECK_EQ(new_spec.version_str(), "0.6.1");
+        REQUIRE(new_spec.version_str() == "0.6.1");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "version_str")
     {
-        CHECK_EQ(spec.version_str(), "0.6.0");
+        REQUIRE(spec.version_str() == "0.6.0");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "is_compatible")
@@ -668,7 +668,7 @@ namespace
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "compatible_prefix")
     {
-        CHECK_EQ(spec.compatible_prefix(), "0.6");
+        REQUIRE(spec.compatible_prefix() == "0.6");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "upgrade_prefix")
@@ -679,17 +679,17 @@ namespace
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "json_key")
     {
-        CHECK_EQ(spec.json_key(), "metadata_spec_version");
+        REQUIRE(spec.json_key() == "metadata_spec_version");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "expiration_json_key")
     {
-        CHECK_EQ(spec.expiration_json_key(), "expiration");
+        REQUIRE(spec.expiration_json_key() == "expiration");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "canonicalize")
     {
-        CHECK_EQ(spec.canonicalize(R"({"foo":"bar"})"_json), "{\n  \"foo\": \"bar\"\n}");
+        REQUIRE(spec.canonicalize(R"({"foo":"bar"})"_json) == "{\n  \"foo\": \"bar\"\n}");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v06, "signatures")
@@ -705,10 +705,10 @@ namespace
                                     }
                                 })"_json;
         auto sigs = spec.signatures(j);
-        CHECK_EQ(sigs.size(), 1);
-        CHECK_EQ(sigs.begin()->keyid, "foo");
-        CHECK_EQ(sigs.begin()->sig, "baz");
-        CHECK_EQ(sigs.begin()->pgp_trailer, "bar");
+        REQUIRE(sigs.size() == 1);
+        REQUIRE(sigs.begin()->keyid == "foo");
+        REQUIRE(sigs.begin()->sig == "baz");
+        REQUIRE(sigs.begin()->pgp_trailer == "bar");
     }
 }
 
@@ -800,7 +800,7 @@ namespace
         auto key_mgr = root.create_key_mgr(key_mgr_json);
 
         REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(key_mgr.version(), 1);
+        REQUIRE(key_mgr.version() == 1);
     }
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "ctor_from_json_str")
@@ -813,7 +813,7 @@ namespace
         );
 
         REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(key_mgr.version(), 1);
+        REQUIRE(key_mgr.version() == 1);
     }
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "version")
@@ -827,7 +827,7 @@ namespace
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
             REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-            CHECK_EQ(key_mgr.version(), 2);
+            REQUIRE(key_mgr.version() == 2);
         }
 
         {  // Any version is valid, without chaining required
@@ -837,7 +837,7 @@ namespace
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
             REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-            CHECK_EQ(key_mgr.version(), 20);
+            REQUIRE(key_mgr.version() == 20);
         }
     }
 
@@ -852,7 +852,7 @@ namespace
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
             REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-            CHECK_EQ(key_mgr.version(), 1);
+            REQUIRE(key_mgr.version() == 1);
         }
 
         {  // is compatible but not strictly the same as 'root' one
@@ -860,7 +860,10 @@ namespace
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.1" }
                         ])"_json;
 
-            CHECK_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(key_mgr_patch)), spec_version_error);
+            REQUIRE_THROWS_AS(
+                root.create_key_mgr(patched_key_mgr_json(key_mgr_patch)),
+                spec_version_error
+            );
         }
 
         {  // wrong type
@@ -868,7 +871,7 @@ namespace
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": 0.6 }
                         ])"_json;
 
-            CHECK_THROWS_AS(
+            REQUIRE_THROWS_AS(
                 root.create_key_mgr(patched_key_mgr_json(key_mgr_patch)),
                 role_metadata_error
             );
@@ -881,27 +884,27 @@ namespace
 
         auto key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json));
         REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(key_mgr.version(), 1);
+        REQUIRE(key_mgr.version() == 1);
 
         // TODO: enforce consistency between spec version in filename and metadata
         key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json, "20.sv0.6.key_mgr.json"));
         REQUIRE(key_mgr.spec_version() == v0_6::SpecImpl("0.6.0");
-        CHECK_EQ(key_mgr.version(), 1);
+        REQUIRE(key_mgr.version() == 1);
 
 
-        CHECK_THROWS_AS(root.create_key_mgr(fs::u8path("not_existing")), role_file_error);
+        REQUIRE_THROWS_AS(root.create_key_mgr(fs::u8path("not_existing")), role_file_error);
 
-        CHECK_THROWS_AS(
+        REQUIRE_THROWS_AS(
             root.create_key_mgr(write_key_mgr_file(key_mgr_json, "wrong.json")),
             role_file_error
         );
 
-        CHECK_THROWS_AS(
+        REQUIRE_THROWS_AS(
             root.create_key_mgr(write_key_mgr_file(key_mgr_json, "sv1.key_mgr.json")),
             role_file_error
         );
 
-        CHECK_THROWS_AS(
+        REQUIRE_THROWS_AS(
             root.create_key_mgr(write_key_mgr_file(key_mgr_json, "wrong.sv0.6.key_mgr.json")),
             role_file_error
         );
@@ -944,19 +947,19 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])");
 
-        CHECK_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09D" },
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])");
-        CHECK_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09.000" },
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])");
-        CHECK_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
     }
 }
 
@@ -1133,7 +1136,10 @@ namespace
         nl::json wrong_pkg_patch = R"([
                                 { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
                                 ])"_json;
-        CHECK_THROWS_AS(pkg_mgr.verify_index(signed_repodata_json.patch(wrong_pkg_patch)), package_error);
+        REQUIRE_THROWS_AS(
+            pkg_mgr.verify_index(signed_repodata_json.patch(wrong_pkg_patch)),
+            package_error
+        );
     }
 
     TEST_CASE_FIXTURE(PkgMgrT_v06, "illformed_repodata")
@@ -1144,7 +1150,7 @@ namespace
         nl::json illformed_pkg_patch = R"([
                                 { "op": "remove", "path": "/signatures"}
                                 ])"_json;
-        CHECK_THROWS_AS(
+        REQUIRE_THROWS_AS(
             pkg_mgr.verify_index(signed_repodata_json.patch(illformed_pkg_patch)),
             index_error
         );
@@ -1199,7 +1205,7 @@ namespace
     {
         RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
         checker.generate_index_checker();
-        CHECK_EQ(checker.root_version(), 2);
+        REQUIRE(checker.root_version() == 2);
     }
 
     TEST_CASE_FIXTURE(RepoCheckerT, "verify_index")
@@ -1220,7 +1226,7 @@ namespace
         );
         write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
         RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
-        CHECK_THROWS_AS(checker.generate_index_checker(), freeze_error);
+        REQUIRE_THROWS_AS(checker.generate_index_checker(), freeze_error);
     }
 
     TEST_CASE_FIXTURE(RepoCheckerT, "key_mgr_freeze_attack")
@@ -1233,14 +1239,14 @@ namespace
         );
         write_role(patched_key_mgr_json(patch), channel_dir->path() / "key_mgr.json");
         RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
-        CHECK_THROWS_AS(checker.generate_index_checker(), freeze_error);
+        REQUIRE_THROWS_AS(checker.generate_index_checker(), freeze_error);
     }
 
     TEST_CASE_FIXTURE(RepoCheckerT, "missing_key_mgr_file")
     {
         fs::remove(channel_dir->path() / "key_mgr.json");
         RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
-        CHECK_THROWS_AS(checker.generate_index_checker(), fetching_error);
+        REQUIRE_THROWS_AS(checker.generate_index_checker(), fetching_error);
     }
 
     TEST_CASE_FIXTURE(RepoCheckerT, "corrupted_repodata")
@@ -1251,7 +1257,10 @@ namespace
                                 { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
                                 ])"_json;
         checker.generate_index_checker();
-        CHECK_THROWS_AS(checker.verify_index(signed_repodata_json.patch(wrong_pkg_patch)), package_error);
+        REQUIRE_THROWS_AS(
+            checker.verify_index(signed_repodata_json.patch(wrong_pkg_patch)),
+            package_error
+        );
     }
 
     TEST_CASE_FIXTURE(RepoCheckerT, "illformed_repodata")
@@ -1262,7 +1271,7 @@ namespace
                                 { "op": "remove", "path": "/signatures"}
                                 ])"_json;
         checker.generate_index_checker();
-        CHECK_THROWS_AS(
+        REQUIRE_THROWS_AS(
             checker.verify_index(signed_repodata_json.patch(illformed_pkg_patch)),
             index_error
         );

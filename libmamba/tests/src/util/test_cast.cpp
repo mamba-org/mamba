@@ -75,14 +75,14 @@ namespace
         using To = typename T::second_type;
         static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
 
-        CHECK_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
+        REQUIRE_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
     }
 
     TEST_CASE_TEMPLATE_APPLY(cast_overflow, OverflowLowestTypes);
 
     TEST_CASE("precision")
     {
-        CHECK_THROWS_AS(safe_num_cast<int>(1.1), std::runtime_error);
-        CHECK_THROWS_AS(safe_num_cast<float>(std::nextafter(double(1), 2)), std::runtime_error);
+        REQUIRE_THROWS_AS(safe_num_cast<int>(1.1), std::runtime_error);
+        REQUIRE_THROWS_AS(safe_num_cast<float>(std::nextafter(double(1), 2)), std::runtime_error);
     }
 }

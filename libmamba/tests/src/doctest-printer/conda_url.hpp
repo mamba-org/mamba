@@ -4,18 +4,20 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <string>
+
 #include <catch2/catch_all.hpp>
 
 #include "mamba/specs/conda_url.hpp"
 
-namespace doctest
+namespace Catch
 {
     template <>
     struct StringMaker<mamba::specs::CondaURL>
     {
-        static auto convert(const mamba::specs::CondaURL& value) -> String
+        static std::string convert(const mamba::specs::CondaURL& value)
         {
-            return { value.str().c_str() };
+            return value.str();
         }
     };
 }

@@ -24,16 +24,16 @@ namespace
     {
         TEST_CASE("to_lower")
         {
-            CHECK_EQ(to_lower('A'), 'a');
-            CHECK_EQ(to_lower('b'), 'b');
-            CHECK_EQ(to_lower("ThisIsARandomTTTeeesssT"), "thisisarandomttteeessst");
+            REQUIRE(to_lower('A') == 'a');
+            REQUIRE(to_lower('b') == 'b');
+            REQUIRE(to_lower("ThisIsARandomTTTeeesssT") == "thisisarandomttteeessst");
         }
 
         TEST_CASE("to_upper")
         {
-            CHECK_EQ(to_upper('a'), 'A');
-            CHECK_EQ(to_upper('B'), 'B');
-            CHECK_EQ(to_upper("ThisIsARandomTTTeeesssT"), "THISISARANDOMTTTEEESSST");
+            REQUIRE(to_upper('a') == 'A');
+            REQUIRE(to_upper('B') == 'B');
+            REQUIRE(to_upper("ThisIsARandomTTTeeesssT") == "THISISARANDOMTTTEEESSST");
         }
 
         TEST_CASE("starts_with")
@@ -81,10 +81,10 @@ namespace
         TEST_CASE("split_prefix")
         {
             using PrefixTail = decltype(split_prefix("", ""));
-            CHECK_EQ(split_prefix("", ""), PrefixTail{ "", "" });
-            CHECK_EQ(split_prefix("hello", ""), PrefixTail{ "", "hello" });
-            CHECK_EQ(split_prefix("hello", "hello"), PrefixTail{ "hello", "" });
-            CHECK_EQ(split_prefix("", "hello"), PrefixTail{ "", "" });
+            REQUIRE(split_prefix("", ""), PrefixTail{ "" == "" });
+            REQUIRE(split_prefix("hello", ""), PrefixTail{ "" == "hello" });
+            REQUIRE(split_prefix("hello", "hello"), PrefixTail{ "hello" == "" });
+            REQUIRE(split_prefix("", "hello"), PrefixTail{ "" == "" });
             CHECK_EQ(
                 split_prefix("https://localhost", "https://"),
                 PrefixTail{ "https://", "localhost" }
@@ -93,57 +93,57 @@ namespace
                 split_prefix("https://localhost", "http://"),
                 PrefixTail{ "", "https://localhost" }
             );
-            CHECK_EQ(split_prefix("aabb", "a"), PrefixTail{ "a", "abb" });
-            CHECK_EQ(split_prefix("", 'a'), PrefixTail{ "", "" });
-            CHECK_EQ(split_prefix("a", 'a'), PrefixTail{ "a", "" });
-            CHECK_EQ(split_prefix("aaa", 'a'), PrefixTail{ "a", "aa" });
-            CHECK_EQ(split_prefix("aabb", 'b'), PrefixTail{ "", "aabb" });
+            REQUIRE(split_prefix("aabb", "a"), PrefixTail{ "a" == "abb" });
+            REQUIRE(split_prefix("", 'a'), PrefixTail{ "" == "" });
+            REQUIRE(split_prefix("a", 'a'), PrefixTail{ "a" == "" });
+            REQUIRE(split_prefix("aaa", 'a'), PrefixTail{ "a" == "aa" });
+            REQUIRE(split_prefix("aabb", 'b'), PrefixTail{ "" == "aabb" });
         }
 
         TEST_CASE("remove_prefix")
         {
-            CHECK_EQ(remove_prefix("", ""), "");
-            CHECK_EQ(remove_prefix("hello", ""), "hello");
-            CHECK_EQ(remove_prefix("hello", "hello"), "");
-            CHECK_EQ(remove_prefix("", "hello"), "");
-            CHECK_EQ(remove_prefix("https://localhost", "https://"), "localhost");
-            CHECK_EQ(remove_prefix("https://localhost", "http://"), "https://localhost");
-            CHECK_EQ(remove_prefix("aabb", "a"), "abb");
-            CHECK_EQ(remove_prefix("", 'a'), "");
-            CHECK_EQ(remove_prefix("a", 'a'), "");
-            CHECK_EQ(remove_prefix("aaa", 'a'), "aa");
-            CHECK_EQ(remove_prefix("aabb", 'b'), "aabb");
+            REQUIRE(remove_prefix("", "") == "");
+            REQUIRE(remove_prefix("hello", "") == "hello");
+            REQUIRE(remove_prefix("hello", "hello") == "");
+            REQUIRE(remove_prefix("", "hello") == "");
+            REQUIRE(remove_prefix("https://localhost", "https://") == "localhost");
+            REQUIRE(remove_prefix("https://localhost", "http://") == "https://localhost");
+            REQUIRE(remove_prefix("aabb", "a") == "abb");
+            REQUIRE(remove_prefix("", 'a') == "");
+            REQUIRE(remove_prefix("a", 'a') == "");
+            REQUIRE(remove_prefix("aaa", 'a') == "aa");
+            REQUIRE(remove_prefix("aabb", 'b') == "aabb");
         }
 
         TEST_CASE("split_suffix")
         {
             using HeadSuffix = decltype(split_suffix("", ""));
-            CHECK_EQ(split_suffix("", ""), HeadSuffix{ "", "" });
-            CHECK_EQ(split_suffix("hello", ""), HeadSuffix{ "hello", "" });
-            CHECK_EQ(split_suffix("hello", "hello"), HeadSuffix{ "", "hello" });
-            CHECK_EQ(split_suffix("", "hello"), HeadSuffix{ "", "" });
-            CHECK_EQ(split_suffix("localhost:8080", ":8080"), HeadSuffix{ "localhost", ":8080" });
-            CHECK_EQ(split_suffix("localhost:8080", ":80"), HeadSuffix{ "localhost:8080", "" });
-            CHECK_EQ(split_suffix("aabb", "b"), HeadSuffix{ "aab", "b" });
-            CHECK_EQ(split_suffix("", 'b'), HeadSuffix{ "", "" });
-            CHECK_EQ(split_suffix("b", 'b'), HeadSuffix{ "", "b" });
-            CHECK_EQ(split_suffix("bbb", 'b'), HeadSuffix{ "bb", "b" });
-            CHECK_EQ(split_suffix("aabb", 'a'), HeadSuffix{ "aabb", "" });
+            REQUIRE(split_suffix("", ""), HeadSuffix{ "" == "" });
+            REQUIRE(split_suffix("hello", ""), HeadSuffix{ "hello" == "" });
+            REQUIRE(split_suffix("hello", "hello"), HeadSuffix{ "" == "hello" });
+            REQUIRE(split_suffix("", "hello"), HeadSuffix{ "" == "" });
+            REQUIRE(split_suffix("localhost:8080", ":8080"), HeadSuffix{ "localhost" == ":8080" });
+            REQUIRE(split_suffix("localhost:8080", ":80"), HeadSuffix{ "localhost:8080" == "" });
+            REQUIRE(split_suffix("aabb", "b"), HeadSuffix{ "aab" == "b" });
+            REQUIRE(split_suffix("", 'b'), HeadSuffix{ "" == "" });
+            REQUIRE(split_suffix("b", 'b'), HeadSuffix{ "" == "b" });
+            REQUIRE(split_suffix("bbb", 'b'), HeadSuffix{ "bb" == "b" });
+            REQUIRE(split_suffix("aabb", 'a'), HeadSuffix{ "aabb" == "" });
         }
 
         TEST_CASE("remove_suffix")
         {
-            CHECK_EQ(remove_suffix("", ""), "");
-            CHECK_EQ(remove_suffix("hello", ""), "hello");
-            CHECK_EQ(remove_suffix("hello", "hello"), "");
-            CHECK_EQ(remove_suffix("", "hello"), "");
-            CHECK_EQ(remove_suffix("localhost:8080", ":8080"), "localhost");
-            CHECK_EQ(remove_suffix("localhost:8080", ":80"), "localhost:8080");
-            CHECK_EQ(remove_suffix("aabb", "b"), "aab");
-            CHECK_EQ(remove_suffix("", 'b'), "");
-            CHECK_EQ(remove_suffix("b", 'b'), "");
-            CHECK_EQ(remove_suffix("bbb", 'b'), "bb");
-            CHECK_EQ(remove_suffix("aabb", 'a'), "aabb");
+            REQUIRE(remove_suffix("", "") == "");
+            REQUIRE(remove_suffix("hello", "") == "hello");
+            REQUIRE(remove_suffix("hello", "hello") == "");
+            REQUIRE(remove_suffix("", "hello") == "");
+            REQUIRE(remove_suffix("localhost:8080", ":8080") == "localhost");
+            REQUIRE(remove_suffix("localhost:8080", ":80") == "localhost:8080");
+            REQUIRE(remove_suffix("aabb", "b") == "aab");
+            REQUIRE(remove_suffix("", 'b') == "");
+            REQUIRE(remove_suffix("b", 'b') == "");
+            REQUIRE(remove_suffix("bbb", 'b') == "bb");
+            REQUIRE(remove_suffix("aabb", 'a') == "aabb");
         }
 
         TEST_CASE("any_starts_with")
@@ -171,13 +171,13 @@ namespace
 
         TEST_CASE("lstrip")
         {
-            CHECK_EQ(lstrip("\n \thello \t\n"), "hello \t\n");
-            CHECK_EQ(lstrip(":::hello%:%", ":%"), "hello%:%");
-            CHECK_EQ(lstrip(":::hello%:%", ':'), "hello%:%");
-            CHECK_EQ(lstrip(":::hello%:%", '%'), ":::hello%:%");
-            CHECK_EQ(lstrip("", '%'), "");
-            CHECK_EQ(lstrip("aaa", 'a'), "");
-            CHECK_EQ(lstrip("aaa", 'b'), "aaa");
+            REQUIRE(lstrip("\n \thello \t\n") == "hello \t\n");
+            REQUIRE(lstrip(":::hello%:%", ":%") == "hello%:%");
+            REQUIRE(lstrip(":::hello%:%", ':') == "hello%:%");
+            REQUIRE(lstrip(":::hello%:%", '%') == ":::hello%:%");
+            REQUIRE(lstrip("", '%') == "");
+            REQUIRE(lstrip("aaa", 'a') == "");
+            REQUIRE(lstrip("aaa", 'b') == "aaa");
         }
 
         TEST_CASE("lstrip_parts")
@@ -193,11 +193,13 @@ namespace
 
         TEST_CASE("lstrip_if")
         {
-            CHECK_EQ(lstrip_if("", [](auto) { return true; }), "");
-            CHECK_EQ(lstrip_if("hello", [](auto) { return true; }), "");
-            CHECK_EQ(lstrip_if("hello", [](auto) { return false; }), "hello");
-            CHECK_EQ(lstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello \t\n");
-            CHECK_EQ(lstrip_if("123hello456", [](auto c) { return is_digit(c); }), "hello456");
+            REQUIRE(lstrip_if("", [](auto) { return true; }) == "");
+            REQUIRE(lstrip_if("hello", [](auto) { return true; }) == "");
+            REQUIRE(lstrip_if("hello", [](auto) { return false; }) == "hello");
+            REQUIRE(
+                lstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }) == "hello \t\n"
+            );
+            REQUIRE(lstrip_if("123hello456", [](auto c) { return is_digit(c); }) == "hello456");
         }
 
         TEST_CASE("lstrip_if_parts")
@@ -218,13 +220,13 @@ namespace
 
         TEST_CASE("rstrip")
         {
-            CHECK_EQ(rstrip("\n \thello \t\n"), "\n \thello");
-            CHECK_EQ(rstrip(":::hello%:%", '%'), ":::hello%:");
-            CHECK_EQ(rstrip(":::hello%:%", ":%"), ":::hello");
-            CHECK_EQ(rstrip(":::hello%:%", ':'), ":::hello%:%");
-            CHECK_EQ(rstrip("", '%'), "");
-            CHECK_EQ(rstrip("aaa", 'a'), "");
-            CHECK_EQ(rstrip("aaa", 'b'), "aaa");
+            REQUIRE(rstrip("\n \thello \t\n") == "\n \thello");
+            REQUIRE(rstrip(":::hello%:%", '%') == ":::hello%:");
+            REQUIRE(rstrip(":::hello%:%", ":%") == ":::hello");
+            REQUIRE(rstrip(":::hello%:%", ':') == ":::hello%:%");
+            REQUIRE(rstrip("", '%') == "");
+            REQUIRE(rstrip("aaa", 'a') == "");
+            REQUIRE(rstrip("aaa", 'b') == "aaa");
         }
 
         TEST_CASE("rstrip_parts")
@@ -240,11 +242,13 @@ namespace
 
         TEST_CASE("rstrip_if")
         {
-            CHECK_EQ(rstrip_if("", [](auto) { return true; }), "");
-            CHECK_EQ(rstrip_if("hello", [](auto) { return true; }), "");
-            CHECK_EQ(rstrip_if("hello", [](auto) { return false; }), "hello");
-            CHECK_EQ(rstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "\n \thello");
-            CHECK_EQ(rstrip_if("123hello456", [](auto c) { return is_digit(c); }), "123hello");
+            REQUIRE(rstrip_if("", [](auto) { return true; }) == "");
+            REQUIRE(rstrip_if("hello", [](auto) { return true; }) == "");
+            REQUIRE(rstrip_if("hello", [](auto) { return false; }) == "hello");
+            REQUIRE(
+                rstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }) == "\n \thello"
+            );
+            REQUIRE(rstrip_if("123hello456", [](auto c) { return is_digit(c); }) == "123hello");
         }
 
         TEST_CASE("rstrip_if_parts")
@@ -265,12 +269,12 @@ namespace
 
         TEST_CASE("strip")
         {
-            CHECK_EQ(strip("  hello \t\n"), "hello");
-            CHECK_EQ(strip(":::hello%:%", ":%"), "hello");
-            CHECK_EQ(strip(":::hello%:%", ':'), "hello%:%");
-            CHECK_EQ(strip("", '%'), "");
-            CHECK_EQ(strip("aaa", 'a'), "");
-            CHECK_EQ(strip("aaa", 'b'), "aaa");
+            REQUIRE(strip("  hello \t\n") == "hello");
+            REQUIRE(strip(":::hello%:%", ":%") == "hello");
+            REQUIRE(strip(":::hello%:%", ':') == "hello%:%");
+            REQUIRE(strip("", '%') == "");
+            REQUIRE(strip("aaa", 'a') == "");
+            REQUIRE(strip("aaa", 'b') == "aaa");
         }
 
         TEST_CASE("strip_parts")
@@ -285,11 +289,11 @@ namespace
 
         TEST_CASE("strip_if")
         {
-            CHECK_EQ(strip_if("", [](auto) { return true; }), "");
-            CHECK_EQ(strip_if("hello", [](auto) { return true; }), "");
-            CHECK_EQ(strip_if("hello", [](auto) { return false; }), "hello");
-            CHECK_EQ(strip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello");
-            CHECK_EQ(strip_if("123hello456", [](auto c) { return is_digit(c); }), "hello");
+            REQUIRE(strip_if("", [](auto) { return true; }) == "");
+            REQUIRE(strip_if("hello", [](auto) { return true; }) == "");
+            REQUIRE(strip_if("hello", [](auto) { return false; }) == "hello");
+            REQUIRE(strip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }) == "hello");
+            REQUIRE(strip_if("123hello456", [](auto c) { return is_digit(c); }) == "hello");
         }
 
         TEST_CASE("strip_if_parts")
@@ -312,59 +316,59 @@ namespace
         {
             {
                 std::string x(strip("   testwhitespacestrip  "));
-                CHECK_EQ(x, "testwhitespacestrip");
+                REQUIRE(x == "testwhitespacestrip");
                 std::string y(rstrip("   testwhitespacestrip  "));
-                CHECK_EQ(y, "   testwhitespacestrip");
+                REQUIRE(y == "   testwhitespacestrip");
                 std::string z(lstrip("   testwhitespacestrip  "));
-                CHECK_EQ(z, "testwhitespacestrip  ");
+                REQUIRE(z == "testwhitespacestrip  ");
             }
             {
                 std::string x(strip("    "));
-                CHECK_EQ(x, "");
+                REQUIRE(x == "");
                 std::string y(rstrip("    "));
-                CHECK_EQ(y, "");
+                REQUIRE(y == "");
                 std::string z(lstrip("    "));
-                CHECK_EQ(z, "");
+                REQUIRE(z == "");
             }
             {
                 std::string x(strip("a"));
-                CHECK_EQ(x, "a");
+                REQUIRE(x == "a");
                 std::string y(rstrip("a"));
-                CHECK_EQ(y, "a");
+                REQUIRE(y == "a");
                 std::string z(lstrip("a"));
-                CHECK_EQ(z, "a");
+                REQUIRE(z == "a");
             }
             {
                 std::string x(strip("  a   "));
-                CHECK_EQ(x, "a");
+                REQUIRE(x == "a");
                 std::string y(rstrip(" a  "));
-                CHECK_EQ(y, " a");
+                REQUIRE(y == " a");
                 std::string z(lstrip("  a   "));
-                CHECK_EQ(z, "a   ");
+                REQUIRE(z == "a   ");
             }
             {
                 std::string x(strip("abc"));
-                CHECK_EQ(x, "abc");
+                REQUIRE(x == "abc");
                 std::string y(rstrip("abc"));
-                CHECK_EQ(y, "abc");
+                REQUIRE(y == "abc");
                 std::string z(lstrip("abc"));
-                CHECK_EQ(z, "abc");
+                REQUIRE(z == "abc");
             }
             {
                 std::string x(strip(" \r \t  \n   "));
-                CHECK_EQ(x, "");
+                REQUIRE(x == "");
                 std::string y(rstrip("  \r \t  \n  "));
-                CHECK_EQ(y, "");
+                REQUIRE(y == "");
                 std::string z(lstrip("   \r \t  \n "));
-                CHECK_EQ(z, "");
+                REQUIRE(z == "");
             }
             {
                 std::string x(strip("\r \t  \n testwhitespacestrip  \r \t  \n"));
-                CHECK_EQ(x, "testwhitespacestrip");
+                REQUIRE(x == "testwhitespacestrip");
                 std::string y(rstrip("  \r \t  \n testwhitespacestrip  \r \t  \n"));
-                CHECK_EQ(y, "  \r \t  \n testwhitespacestrip");
+                REQUIRE(y == "  \r \t  \n testwhitespacestrip");
                 std::string z(lstrip("  \r \t  \n testwhitespacestrip \r \t  \n "));
-                CHECK_EQ(z, "testwhitespacestrip \r \t  \n ");
+                REQUIRE(z == "testwhitespacestrip \r \t  \n ");
             }
         }
 
@@ -372,93 +376,93 @@ namespace
         {
             using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
 
-            CHECK_EQ(split_once("", '/'), Out{ "", std::nullopt });
-            CHECK_EQ(split_once("/", '/'), Out{ "", "" });
-            CHECK_EQ(split_once("hello/world", '/'), Out{ "hello", "world" });
-            CHECK_EQ(split_once("hello/my/world", '/'), Out{ "hello", "my/world" });
-            CHECK_EQ(split_once("/hello/world", '/'), Out{ "", "hello/world" });
+            REQUIRE(split_once("", '/'), Out{ "" == std::nullopt });
+            REQUIRE(split_once("/", '/'), Out{ "" == "" });
+            REQUIRE(split_once("hello/world", '/'), Out{ "hello" == "world" });
+            REQUIRE(split_once("hello/my/world", '/'), Out{ "hello" == "my/world" });
+            REQUIRE(split_once("/hello/world", '/'), Out{ "" == "hello/world" });
 
-            CHECK_EQ(split_once("", "/"), Out{ "", std::nullopt });
-            CHECK_EQ(split_once("hello/world", "/"), Out{ "hello", "world" });
-            CHECK_EQ(split_once("hello//world", "//"), Out{ "hello", "world" });
-            CHECK_EQ(split_once("hello/my//world", "/"), Out{ "hello", "my//world" });
-            CHECK_EQ(split_once("hello/my//world", "//"), Out{ "hello/my", "world" });
+            REQUIRE(split_once("", "/"), Out{ "" == std::nullopt });
+            REQUIRE(split_once("hello/world", "/"), Out{ "hello" == "world" });
+            REQUIRE(split_once("hello//world", "//"), Out{ "hello" == "world" });
+            REQUIRE(split_once("hello/my//world", "/"), Out{ "hello" == "my//world" });
+            REQUIRE(split_once("hello/my//world", "//"), Out{ "hello/my" == "world" });
         }
 
         TEST_CASE("rsplit_once")
         {
             using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
 
-            CHECK_EQ(rsplit_once("", '/'), Out{ std::nullopt, "" });
-            CHECK_EQ(rsplit_once("/", '/'), Out{ "", "" });
-            CHECK_EQ(rsplit_once("hello/world", '/'), Out{ "hello", "world" });
-            CHECK_EQ(rsplit_once("hello/my/world", '/'), Out{ "hello/my", "world" });
-            CHECK_EQ(rsplit_once("hello/world/", '/'), Out{ "hello/world", "" });
+            REQUIRE(rsplit_once("", '/'), Out{ std::nullopt == "" });
+            REQUIRE(rsplit_once("/", '/'), Out{ "" == "" });
+            REQUIRE(rsplit_once("hello/world", '/'), Out{ "hello" == "world" });
+            REQUIRE(rsplit_once("hello/my/world", '/'), Out{ "hello/my" == "world" });
+            REQUIRE(rsplit_once("hello/world/", '/'), Out{ "hello/world" == "" });
 
-            CHECK_EQ(rsplit_once("", "/"), Out{ std::nullopt, "" });
-            CHECK_EQ(rsplit_once("hello/world", "/"), Out{ "hello", "world" });
-            CHECK_EQ(rsplit_once("hello//world", "//"), Out{ "hello", "world" });
-            CHECK_EQ(rsplit_once("hello//my/world", "/"), Out{ "hello//my", "world" });
-            CHECK_EQ(rsplit_once("hello//my/world", "//"), Out{ "hello", "my/world" });
+            REQUIRE(rsplit_once("", "/"), Out{ std::nullopt == "" });
+            REQUIRE(rsplit_once("hello/world", "/"), Out{ "hello" == "world" });
+            REQUIRE(rsplit_once("hello//world", "//"), Out{ "hello" == "world" });
+            REQUIRE(rsplit_once("hello//my/world", "/"), Out{ "hello//my" == "world" });
+            REQUIRE(rsplit_once("hello//my/world", "//"), Out{ "hello" == "my/world" });
         }
 
         TEST_CASE("split_once_on_any")
         {
             using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
 
-            CHECK_EQ(split_once_on_any("", "/"), Out{ "", std::nullopt });
-            CHECK_EQ(split_once_on_any("hello,dear world", ", "), Out{ "hello", "dear world" });
+            REQUIRE(split_once_on_any("", "/"), Out{ "" == std::nullopt });
+            REQUIRE(split_once_on_any("hello,dear world", ", "), Out{ "hello" == "dear world" });
             CHECK_EQ(split_once_on_any("hello dear,world", ", "), Out{ "hello", "dear,world" });
-            CHECK_EQ(split_once_on_any("hello/world", "/"), Out{ "hello", "world" });
-            CHECK_EQ(split_once_on_any("hello//world", "//"), Out{ "hello", "/world" });
-            CHECK_EQ(split_once_on_any("hello/my//world", "/"), Out{ "hello", "my//world" });
-            CHECK_EQ(split_once_on_any("hello/my//world", "//"), Out{ "hello", "my//world" });
+            REQUIRE(split_once_on_any("hello/world", "/"), Out{ "hello" == "world" });
+            REQUIRE(split_once_on_any("hello//world", "//"), Out{ "hello" == "/world" });
+            REQUIRE(split_once_on_any("hello/my//world", "/"), Out{ "hello" == "my//world" });
+            REQUIRE(split_once_on_any("hello/my//world", "//"), Out{ "hello" == "my//world" });
         }
 
         TEST_CASE("rsplit_once_on_any")
         {
             using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
 
-            CHECK_EQ(rsplit_once_on_any("", "/"), Out{ std::nullopt, "" });
-            CHECK_EQ(rsplit_once_on_any("hello,dear world", ", "), Out{ "hello,dear", "world" });
-            CHECK_EQ(rsplit_once_on_any("hello dear,world", ", "), Out{ "hello dear", "world" });
-            CHECK_EQ(rsplit_once_on_any("hello/world", "/"), Out{ "hello", "world" });
-            CHECK_EQ(rsplit_once_on_any("hello//world", "//"), Out{ "hello/", "world" });
-            CHECK_EQ(rsplit_once_on_any("hello/my//world", "/"), Out{ "hello/my/", "world" });
-            CHECK_EQ(rsplit_once_on_any("hello/my//world", "//"), Out{ "hello/my/", "world" });
+            REQUIRE(rsplit_once_on_any("", "/"), Out{ std::nullopt == "" });
+            REQUIRE(rsplit_once_on_any("hello,dear world", ", "), Out{ "hello,dear" == "world" });
+            REQUIRE(rsplit_once_on_any("hello dear,world", ", "), Out{ "hello dear" == "world" });
+            REQUIRE(rsplit_once_on_any("hello/world", "/"), Out{ "hello" == "world" });
+            REQUIRE(rsplit_once_on_any("hello//world", "//"), Out{ "hello/" == "world" });
+            REQUIRE(rsplit_once_on_any("hello/my//world", "/"), Out{ "hello/my/" == "world" });
+            REQUIRE(rsplit_once_on_any("hello/my//world", "//"), Out{ "hello/my/" == "world" });
         }
 
         TEST_CASE("split")
         {
             std::string a = "hello.again.it's.me.mario";
             std::vector<std::string> e1 = { "hello", "again", "it's", "me", "mario" };
-            CHECK_EQ(split(a, "."), e1);
+            REQUIRE(split(a, ".") == e1);
 
             std::vector<std::string> s2 = { "hello", "again", "it's.me.mario" };
-            CHECK_EQ(split(a, ".", 2), s2);
+            REQUIRE(split(a, ".", 2) == s2);
 
-            CHECK_EQ(rsplit(a, "."), e1);
+            REQUIRE(rsplit(a, ".") == e1);
             std::vector<std::string> r2 = { "hello.again.it's", "me", "mario" };
-            CHECK_EQ(rsplit(a, ".", 2), r2);
+            REQUIRE(rsplit(a, ".", 2) == r2);
 
             std::string b = "...";
             auto es1 = std::vector<std::string>{ "", "", "", "" };
             auto es2 = std::vector<std::string>{ "", ".." };
-            CHECK_EQ(split(b, "."), es1);
-            CHECK_EQ(split(b, ".", 1), es2);
+            REQUIRE(split(b, ".") == es1);
+            REQUIRE(split(b, ".", 1) == es2);
 
             std::vector<std::string> v = { "xtensor==0.12.3" };
-            CHECK_EQ(split(v[0], ":"), v);
-            CHECK_EQ(rsplit(v[0], ":"), v);
-            CHECK_EQ(split(v[0], ":", 2), v);
-            CHECK_EQ(rsplit(v[0], ":", 2), v);
+            REQUIRE(split(v[0], ":") == v);
+            REQUIRE(rsplit(v[0], ":") == v);
+            REQUIRE(split(v[0], ":", 2) == v);
+            REQUIRE(rsplit(v[0], ":", 2) == v);
 
             std::vector<std::string> v2 = { "conda-forge/linux64", "", "xtensor==0.12.3" };
-            CHECK_EQ(split("conda-forge/linux64::xtensor==0.12.3", ":", 2), v2);
-            CHECK_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 2), v2);
+            REQUIRE(split("conda-forge/linux64::xtensor==0.12.3", ":", 2) == v2);
+            REQUIRE(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 2) == v2);
             std::vector<std::string> v21 = { "conda-forge/linux64:", "xtensor==0.12.3" };
 
-            CHECK_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1), v21);
+            REQUIRE(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1) == v21);
         }
 
         TEST_CASE("join")
@@ -467,16 +471,16 @@ namespace
                 std::vector<std::string> to_join = { "a", "bc", "d" };
                 auto joined = join("-", to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
-                CHECK_EQ(joined, "a-bc-d");
+                REQUIRE(joined == "a-bc-d");
             }
             {
                 std::vector<mamba::fs::u8path> to_join = { "/a", "bc", "d" };
                 auto joined = join("/", to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
-                CHECK_EQ(joined, "/a/bc/d");
+                REQUIRE(joined == "/a/bc/d");
             }
             {
-                CHECK_EQ(join(",", std::vector<std::string>()), "");
+                REQUIRE(join(",", std::vector<std::string>()) == "");
             }
         }
 
@@ -487,12 +491,12 @@ namespace
                 auto joined = join_trunc(to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
             }
-            CHECK_EQ(join_trunc(to_join, "-", "..", 5, { 2, 1 }), "a-bc-d-e-f");
+            REQUIRE(join_trunc(to_join, "-", "..", 5, { 2, 1 }) == "a-bc-d-e-f");
             CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 2, 1 }), "a,bc,..,f");
             CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 0, 1 }), "..,f");
             CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 2, 0 }), "a,bc,..");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 0, 0 }), "..");
-            CHECK_EQ(join_trunc(std::vector<std::string>()), "");
+            REQUIRE(join_trunc(to_join, ",", "..", 4, { 0, 0 }) == "..");
+            REQUIRE(join_trunc(std::vector<std::string>()) == "");
         }
 
         TEST_CASE("replace_all")
@@ -500,11 +504,11 @@ namespace
             std::string testbuf = "this is just a test a just a a abc bca";
 
             replace_all(testbuf, "just", "JU");
-            CHECK_EQ(testbuf, "this is JU a test a JU a a abc bca");
+            REQUIRE(testbuf == "this is JU a test a JU a a abc bca");
             replace_all(testbuf, "a", "MAMBA");
-            CHECK_EQ(testbuf, "this is JU MAMBA test MAMBA JU MAMBA MAMBA MAMBAbc bcMAMBA");
+            REQUIRE(testbuf == "this is JU MAMBA test MAMBA JU MAMBA MAMBA MAMBAbc bcMAMBA");
             replace_all(testbuf, " ", "");
-            CHECK_EQ(testbuf, "thisisJUMAMBAtestMAMBAJUMAMBAMAMBAMAMBAbcbcMAMBA");
+            REQUIRE(testbuf == "thisisJUMAMBAtestMAMBAJUMAMBAMAMBAMAMBAbcbcMAMBA");
             std::string prefix = "/I/am/a/PREFIX\n\nabcdefg\nxyz";
 
             replace_all(prefix, "/I/am/a/PREFIX", "/Yes/Thats/great/");
@@ -512,7 +516,7 @@ namespace
 
             std::string testbuf2 = "this is another test wow";
             replace_all(testbuf2, "", "somereplacement");
-            CHECK_EQ(testbuf2, "this is another test wow");
+            REQUIRE(testbuf2 == "this is another test wow");
 
             std::string prefix_unicode = "/I/am/Dörteæœ©æ©fðgb®/PREFIX\n\nabcdefg\nxyz";
             replace_all(
@@ -520,12 +524,12 @@ namespace
                 "/I/am/Dörteæœ©æ©fðgb®/PREFIX",
                 "/home/åéäáßðæœ©ðfßfáðß/123123123"
             );
-            CHECK_EQ(prefix_unicode, "/home/åéäáßðæœ©ðfßfáðß/123123123\n\nabcdefg\nxyz");
+            REQUIRE(prefix_unicode == "/home/åéäáßðæœ©ðfßfáðß/123123123\n\nabcdefg\nxyz");
         }
 
         TEST_CASE("concat")
         {
-            CHECK_EQ(concat("aa", std::string("bb"), std::string_view("cc"), 'd'), "aabbccd");
+            REQUIRE(concat("aa", std::string("bb"), std::string_view("cc"), 'd') == "aabbccd");
         }
 
         TEST_CASE("concat_dedup_splits")
@@ -534,7 +538,7 @@ namespace
             {
                 CAPTURE(sep);
 
-                CHECK_EQ(concat_dedup_splits("", "", sep), "");
+                REQUIRE(concat_dedup_splits("", "", sep) == "");
 
                 CHECK_EQ(
                     concat_dedup_splits(fmt::format("test{}chan", sep), "", sep),
@@ -591,8 +595,8 @@ namespace
                 );
             }
 
-            CHECK_EQ(concat_dedup_splits("test/chan", "chan/foo", "//"), "test/chan//chan/foo");
-            CHECK_EQ(concat_dedup_splits("test/chan", "chan/foo", '/'), "test/chan/foo");
+            REQUIRE(concat_dedup_splits("test/chan", "chan/foo", "//") == "test/chan//chan/foo");
+            REQUIRE(concat_dedup_splits("test/chan", "chan/foo", '/') == "test/chan/foo");
         }
     }
 }  // namespace mamba

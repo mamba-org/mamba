@@ -27,85 +27,85 @@ namespace
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "*");
+            REQUIRE(ms.str() == "*");
         }
 
         SECTION("xtensor==0.12.3")
         {
             auto ms = MatchSpec::parse("xtensor==0.12.3").value();
-            CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.version().str(), "==0.12.3");
-            CHECK_EQ(ms.str(), "xtensor==0.12.3");
+            REQUIRE(ms.name().str() == "xtensor");
+            REQUIRE(ms.version().str() == "==0.12.3");
+            REQUIRE(ms.str() == "xtensor==0.12.3");
         }
 
         SECTION("xtensor      >=       0.12.3")
         {
             auto ms = MatchSpec::parse("xtensor      >=       0.12.3").value();
-            CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.version().str(), ">=0.12.3");
+            REQUIRE(ms.name().str() == "xtensor");
+            REQUIRE(ms.version().str() == ">=0.12.3");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "xtensor>=0.12.3");
+            REQUIRE(ms.str() == "xtensor>=0.12.3");
         }
 
         SECTION("python > 3.11")
         {
             auto ms = MatchSpec::parse("python > 3.11").value();
-            CHECK_EQ(ms.name().str(), "python");
-            CHECK_EQ(ms.version().str(), ">3.11");
+            REQUIRE(ms.name().str() == "python");
+            REQUIRE(ms.version().str() == ">3.11");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "python>3.11");
+            REQUIRE(ms.str() == "python>3.11");
         }
 
         SECTION("numpy < 2.0")
         {
             auto ms = MatchSpec::parse("numpy < 2.0").value();
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), "<2.0");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == "<2.0");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "numpy<2.0");
+            REQUIRE(ms.str() == "numpy<2.0");
         }
 
         SECTION("pytorch-cpu = 1.13.0")
         {
             auto ms = MatchSpec::parse("pytorch-cpu = 1.13.0").value();
-            CHECK_EQ(ms.name().str(), "pytorch-cpu");
-            CHECK_EQ(ms.version().str(), "=1.13.0");
+            REQUIRE(ms.name().str() == "pytorch-cpu");
+            REQUIRE(ms.version().str() == "=1.13.0");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "pytorch-cpu=1.13.0");
+            REQUIRE(ms.str() == "pytorch-cpu=1.13.0");
         }
 
         SECTION("scipy   >=    1.5.0,  < 2.0.0")
         {
             auto ms = MatchSpec::parse("scipy   >=    1.5.0,  < 2.0.0").value();
-            CHECK_EQ(ms.name().str(), "scipy");
-            CHECK_EQ(ms.version().str(), ">=1.5.0,<2.0.0");
+            REQUIRE(ms.name().str() == "scipy");
+            REQUIRE(ms.version().str() == ">=1.5.0,<2.0.0");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "scipy[version=\">=1.5.0,<2.0.0\"]");
+            REQUIRE(ms.str() == "scipy[version=\">=1.5.0,<2.0.0\"]");
         }
 
         SECTION("scikit-learn >1.0.0")
         {
             auto ms = MatchSpec::parse("scikit-learn >1.0.0").value();
-            CHECK_EQ(ms.name().str(), "scikit-learn");
-            CHECK_EQ(ms.version().str(), ">1.0.0");
+            REQUIRE(ms.name().str() == "scikit-learn");
+            REQUIRE(ms.version().str() == ">1.0.0");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "scikit-learn>1.0.0");
+            REQUIRE(ms.str() == "scikit-learn>1.0.0");
         }
 
         SECTION("kytea >=0.1.4, 0.2.0")
         {
             auto ms = MatchSpec::parse("kytea >=0.1.4, 0.2.0").value();
-            CHECK_EQ(ms.name().str(), "kytea");
-            CHECK_EQ(ms.version().str(), ">=0.1.4,==0.2.0");
+            REQUIRE(ms.name().str() == "kytea");
+            REQUIRE(ms.version().str() == ">=0.1.4,==0.2.0");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "kytea[version=\">=0.1.4,==0.2.0\"]");
+            REQUIRE(ms.str() == "kytea[version=\">=0.1.4,==0.2.0\"]");
         }
 
         // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
@@ -114,167 +114,167 @@ namespace
         {
             auto ms = MatchSpec::parse("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
                           .value();
-            CHECK_EQ(ms.name().str(), "mingw-w64-ucrt-x86_64-crt-git");
-            CHECK_EQ(ms.version().str(), "==0v12.0.0.0r2.0ggc561118da");
-            CHECK_EQ(ms.build_string().str(), "h707e725_0");
+            REQUIRE(ms.name().str() == "mingw-w64-ucrt-x86_64-crt-git");
+            REQUIRE(ms.version().str() == "==0v12.0.0.0r2.0ggc561118da");
+            REQUIRE(ms.build_string().str() == "h707e725_0");
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
+            REQUIRE(ms.str() == "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
         }
 
         SECTION("_libgcc_mutex 0.1 conda_forge")
         {
             auto ms = MatchSpec::parse("_libgcc_mutex 0.1 conda_forge").value();
-            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
-            CHECK_EQ(ms.version().str(), "==0.1");
-            CHECK_EQ(ms.build_string().str(), "conda_forge");
+            REQUIRE(ms.name().str() == "_libgcc_mutex");
+            REQUIRE(ms.version().str() == "==0.1");
+            REQUIRE(ms.build_string().str() == "conda_forge");
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "_libgcc_mutex==0.1=conda_forge");
+            REQUIRE(ms.str() == "_libgcc_mutex==0.1=conda_forge");
         }
 
         SECTION("_libgcc_mutex    0.1       conda_forge     ")
         {
             auto ms = MatchSpec::parse("_libgcc_mutex    0.1       conda_forge     ").value();
-            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
-            CHECK_EQ(ms.version().str(), "==0.1");
-            CHECK_EQ(ms.build_string().str(), "conda_forge");
+            REQUIRE(ms.name().str() == "_libgcc_mutex");
+            REQUIRE(ms.version().str() == "==0.1");
+            REQUIRE(ms.build_string().str() == "conda_forge");
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "_libgcc_mutex==0.1=conda_forge");
+            REQUIRE(ms.str() == "_libgcc_mutex==0.1=conda_forge");
         }
 
         SECTION("ipykernel")
         {
             auto ms = MatchSpec::parse("ipykernel").value();
-            CHECK_EQ(ms.name().str(), "ipykernel");
+            REQUIRE(ms.name().str() == "ipykernel");
             REQUIRE(ms.version().is_explicitly_free());
-            CHECK_EQ(ms.str(), "ipykernel");
+            REQUIRE(ms.str() == "ipykernel");
         }
 
         SECTION("ipykernel ")
         {
             auto ms = MatchSpec::parse("ipykernel ").value();
-            CHECK_EQ(ms.name().str(), "ipykernel");
+            REQUIRE(ms.name().str() == "ipykernel");
             REQUIRE(ms.version().is_explicitly_free());
         }
 
         SECTION("disperse=v0.9.24")
         {
             auto ms = MatchSpec::parse("disperse=v0.9.24").value();
-            CHECK_EQ(ms.name().str(), "disperse");
-            CHECK_EQ(ms.version().str(), "=0v0.9.24");
+            REQUIRE(ms.name().str() == "disperse");
+            REQUIRE(ms.version().str() == "=0v0.9.24");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "disperse=0v0.9.24");
+            REQUIRE(ms.str() == "disperse=0v0.9.24");
         }
 
         SECTION("disperse v0.9.24")
         {
             auto ms = MatchSpec::parse("disperse v0.9.24").value();
-            CHECK_EQ(ms.name().str(), "disperse");
-            CHECK_EQ(ms.version().str(), "==0v0.9.24");
+            REQUIRE(ms.name().str() == "disperse");
+            REQUIRE(ms.version().str() == "==0v0.9.24");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "disperse==0v0.9.24");
+            REQUIRE(ms.str() == "disperse==0v0.9.24");
         }
 
         SECTION("foo V0.9.24")
         {
             auto ms = MatchSpec::parse("foo V0.9.24");
             REQUIRE_FALSE(ms.has_value());
-            CHECK_EQ(std::string(ms.error().what()), "Found invalid version predicate in \"V0.9.24\"");
+            REQUIRE(std::string(ms.error().what()) == "Found invalid version predicate in \"V0.9.24\"");
         }
 
         SECTION("importlib-metadata  # drop this when dropping Python 3.8")
         {
             auto ms = MatchSpec::parse("importlib-metadata  # drop this when dropping Python 3.8")
                           .value();
-            CHECK_EQ(ms.name().str(), "importlib-metadata");
+            REQUIRE(ms.name().str() == "importlib-metadata");
             REQUIRE(ms.version().is_explicitly_free());
-            CHECK_EQ(ms.str(), "importlib-metadata");
+            REQUIRE(ms.str() == "importlib-metadata");
         }
 
         SECTION("foo=V0.9.24")
         {
             auto ms = MatchSpec::parse("foo=V0.9.24").value();
-            CHECK_EQ(ms.name().str(), "foo");
-            CHECK_EQ(ms.version().str(), "=0v0.9.24");
+            REQUIRE(ms.name().str() == "foo");
+            REQUIRE(ms.version().str() == "=0v0.9.24");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            CHECK_EQ(ms.str(), "foo=0v0.9.24");
+            REQUIRE(ms.str() == "foo=0v0.9.24");
         }
 
         SECTION("numpy 1.7*")
         {
             auto ms = MatchSpec::parse("numpy 1.7*").value();
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), "=1.7");
-            CHECK_EQ(ms.conda_build_form(), "numpy 1.7.*");
-            CHECK_EQ(ms.str(), "numpy=1.7");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == "=1.7");
+            REQUIRE(ms.conda_build_form() == "numpy 1.7.*");
+            REQUIRE(ms.str() == "numpy=1.7");
         }
 
         SECTION("conda-forge:pypi:xtensor==0.12.3")
         {
             auto ms = MatchSpec::parse("conda-forge:pypi:xtensor==0.12.3").value();
-            CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.version().str(), "==0.12.3");
-            CHECK_EQ(ms.channel().value().str(), "conda-forge");
-            CHECK_EQ(ms.name_space(), "pypi");
-            CHECK_EQ(ms.str(), "conda-forge:pypi:xtensor==0.12.3");
+            REQUIRE(ms.name().str() == "xtensor");
+            REQUIRE(ms.version().str() == "==0.12.3");
+            REQUIRE(ms.channel().value().str() == "conda-forge");
+            REQUIRE(ms.name_space() == "pypi");
+            REQUIRE(ms.str() == "conda-forge:pypi:xtensor==0.12.3");
         }
 
         SECTION("conda-forge/linux-64::xtensor==0.12.3")
         {
             auto ms = MatchSpec::parse("numpy[version='1.7|1.8']").value();
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), "==1.7|==1.8");
-            CHECK_EQ(ms.str(), R"(numpy[version="==1.7|==1.8"])");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == "==1.7|==1.8");
+            REQUIRE(ms.str() == R"(numpy[version="==1.7|==1.8"])");
         }
 
         SECTION("conda-forge/linux-64::xtensor==0.12.3")
         {
             auto ms = MatchSpec::parse("conda-forge/linux-64::xtensor==0.12.3").value();
-            CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.version().str(), "==0.12.3");
+            REQUIRE(ms.name().str() == "xtensor");
+            REQUIRE(ms.version().str() == "==0.12.3");
             REQUIRE(ms.channel().has_value());
-            CHECK_EQ(ms.channel()->location(), "conda-forge");
-            CHECK_EQ(ms.platforms().value().get(), PlatformSet{ "linux-64" });
-            CHECK_EQ(ms.str(), "conda-forge[linux-64]::xtensor==0.12.3");
+            REQUIRE(ms.channel()->location() == "conda-forge");
+            REQUIRE(ms.platforms().value().get() == PlatformSet{ "linux-64" });
+            REQUIRE(ms.str() == "conda-forge[linux-64]::xtensor==0.12.3");
         }
 
         SECTION("conda-forge::foo[build=bld](target=blarg,optional)")
         {
             auto ms = MatchSpec::parse("conda-forge::foo[build=bld](target=blarg,optional)").value();
-            CHECK_EQ(ms.name().str(), "foo");
+            REQUIRE(ms.name().str() == "foo");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.channel().has_value());
-            CHECK_EQ(ms.channel()->location(), "conda-forge");
-            CHECK_EQ(ms.build_string().str(), "bld");
-            CHECK_EQ(ms.optional(), true);
-            CHECK_EQ(ms.str(), "conda-forge::foo=*=bld[optional]");
+            REQUIRE(ms.channel()->location() == "conda-forge");
+            REQUIRE(ms.build_string().str() == "bld");
+            REQUIRE(ms.optional() == true);
+            REQUIRE(ms.str() == "conda-forge::foo=*=bld[optional]");
         }
 
         SECTION("python[build_number=3]")
         {
             auto ms = MatchSpec::parse("python[build_number=3]").value();
-            CHECK_EQ(ms.name().str(), "python");
-            CHECK_EQ(ms.version().str(), "=*");
-            CHECK_EQ(ms.build_number().str(), "=3");
-            CHECK_EQ(ms.str(), R"(python[build_number="=3"])");
+            REQUIRE(ms.name().str() == "python");
+            REQUIRE(ms.version().str() == "=*");
+            REQUIRE(ms.build_number().str() == "=3");
+            REQUIRE(ms.str() == R"(python[build_number="=3"])");
         }
 
         SECTION(R"(blas[track_features="mkl avx"])")
         {
             auto ms = MatchSpec::parse(R"(blas[track_features="mkl avx"])").value();
-            CHECK_EQ(ms.name().str(), "blas");
-            CHECK_EQ(ms.track_features().value().get(), MatchSpec::string_set{ "avx", "mkl" });
-            CHECK_EQ(ms.str(), R"(blas[track_features="avx mkl"])");
+            REQUIRE(ms.name().str() == "blas");
+            REQUIRE(ms.track_features().value().get(), MatchSpec::string_set{ "avx" == "mkl" });
+            REQUIRE(ms.str() == R"(blas[track_features="avx mkl"])");
         }
 
         SECTION("python[build_number='<=3']")
         {
             auto ms = MatchSpec::parse("python[build_number='<=3']").value();
-            CHECK_EQ(ms.name().str(), "python");
-            CHECK_EQ(ms.build_number().str(), "<=3");
-            CHECK_EQ(ms.str(), R"(python[build_number="<=3"])");
+            REQUIRE(ms.name().str() == "python");
+            REQUIRE(ms.build_number().str() == "<=3");
+            REQUIRE(ms.str() == R"(python[build_number="<=3"])");
         }
 
         SECTION("https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
@@ -286,16 +286,16 @@ namespace
             };
 
             auto ms = MatchSpec::parse(str).value();
-            CHECK_EQ(ms.name().str(), "ncurses");
-            CHECK_EQ(ms.version().str(), "==6.4");
-            CHECK_EQ(ms.build_string().str(), "h59595ed_2");
+            REQUIRE(ms.name().str() == "ncurses");
+            REQUIRE(ms.version().str() == "==6.4");
+            REQUIRE(ms.build_string().str() == "h59595ed_2");
             CHECK_EQ(
                 ms.channel().value().str(),
                 "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda"
             );
-            CHECK_EQ(ms.filename(), "ncurses-6.4-h59595ed_2.conda");
-            CHECK_EQ(ms.md5(), "7dbaa197d7ba6032caf7ae7f32c1efa0");
-            CHECK_EQ(ms.str(), str);
+            REQUIRE(ms.filename() == "ncurses-6.4-h59595ed_2.conda");
+            REQUIRE(ms.md5() == "7dbaa197d7ba6032caf7ae7f32c1efa0");
+            REQUIRE(ms.str() == str);
         }
 
         SECTION("https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2")
@@ -304,15 +304,15 @@ namespace
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             };
             auto ms = MatchSpec::parse(str).value();
-            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
-            CHECK_EQ(ms.version().str(), "==0.1");
-            CHECK_EQ(ms.build_string().str(), "conda_forge");
+            REQUIRE(ms.name().str() == "_libgcc_mutex");
+            REQUIRE(ms.version().str() == "==0.1");
+            REQUIRE(ms.build_string().str() == "conda_forge");
             CHECK_EQ(
                 ms.channel().value().str(),
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
-            CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
-            CHECK_EQ(ms.str(), str);
+            REQUIRE(ms.filename() == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            REQUIRE(ms.str() == str);
         }
 
         SECTION("https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2")
@@ -321,15 +321,15 @@ namespace
                 "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
             };
             auto ms = MatchSpec::parse(str).value();
-            CHECK_EQ(ms.name().str(), "libgcc-ng");
-            CHECK_EQ(ms.version().str(), "==11.2.0");
-            CHECK_EQ(ms.build_string().str(), "h1d223b6_13");
+            REQUIRE(ms.name().str() == "libgcc-ng");
+            REQUIRE(ms.version().str() == "==11.2.0");
+            REQUIRE(ms.build_string().str() == "h1d223b6_13");
             CHECK_EQ(
                 ms.channel().value().str(),
                 "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
             );
-            CHECK_EQ(ms.filename(), "libgcc-ng-11.2.0-h1d223b6_13.tar.bz2");
-            CHECK_EQ(ms.str(), str);
+            REQUIRE(ms.filename() == "libgcc-ng-11.2.0-h1d223b6_13.tar.bz2");
+            REQUIRE(ms.str() == str);
         }
 
         SECTION("https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
@@ -339,10 +339,10 @@ namespace
                 "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
             };
             auto ms = MatchSpec::parse(str).value();
-            CHECK_EQ(ms.name().str(), "conda");
-            CHECK_EQ(ms.version().str(), "==4.3.21.0post699+1dab973");  // Note the ``.0post``
-            CHECK_EQ(ms.build_string().str(), "py36h4a561cd_0");
-            CHECK_EQ(ms.str(), str);
+            REQUIRE(ms.name().str() == "conda");
+            REQUIRE(ms.version().str() == "==4.3.21.0post699+1dab973");  // Note the ``.0post``
+            REQUIRE(ms.build_string().str() == "py36h4a561cd_0");
+            REQUIRE(ms.str() == str);
         }
 
         SECTION("/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2")
@@ -351,15 +351,15 @@ namespace
                 "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             };
             auto ms = MatchSpec::parse(str).value();
-            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
-            CHECK_EQ(ms.version().str(), "==0.1");
-            CHECK_EQ(ms.build_string().str(), "conda_forge");
+            REQUIRE(ms.name().str() == "_libgcc_mutex");
+            REQUIRE(ms.version().str() == "==0.1");
+            REQUIRE(ms.build_string().str() == "conda_forge");
             CHECK_EQ(
                 ms.channel().value().str(),
                 "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
-            CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
-            CHECK_EQ(ms.str(), str);
+            REQUIRE(ms.filename() == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            REQUIRE(ms.str() == str);
         }
 
         SECTION("xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]")
@@ -368,43 +368,43 @@ namespace
                           "xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]"
             )
                           .value();
-            CHECK_EQ(ms.name().str(), "xtensor");
+            REQUIRE(ms.name().str() == "xtensor");
             CHECK_EQ(
                 ms.channel().value().str(),
                 "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
             );
-            CHECK_EQ(ms.str(), "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            REQUIRE(ms.str() == "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
 
         SECTION("foo=1.0=2")
         {
             auto ms = MatchSpec::parse("foo=1.0=2").value();
-            CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
-            CHECK_EQ(ms.name().str(), "foo");
-            CHECK_EQ(ms.version().str(), "=1.0");
-            CHECK_EQ(ms.build_string().str(), "2");
-            CHECK_EQ(ms.str(), "foo=1.0=2");
+            REQUIRE(ms.conda_build_form() == "foo 1.0.* 2");
+            REQUIRE(ms.name().str() == "foo");
+            REQUIRE(ms.version().str() == "=1.0");
+            REQUIRE(ms.build_string().str() == "2");
+            REQUIRE(ms.str() == "foo=1.0=2");
         }
 
         SECTION("foo   =    1.0    =    2")
         {
             auto ms = MatchSpec::parse("foo   =    1.0    =    2").value();
-            CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
-            CHECK_EQ(ms.name().str(), "foo");
-            CHECK_EQ(ms.version().str(), "=1.0");
-            CHECK_EQ(ms.build_string().str(), "2");
-            CHECK_EQ(ms.str(), "foo=1.0=2");
+            REQUIRE(ms.conda_build_form() == "foo 1.0.* 2");
+            REQUIRE(ms.name().str() == "foo");
+            REQUIRE(ms.version().str() == "=1.0");
+            REQUIRE(ms.build_string().str() == "2");
+            REQUIRE(ms.str() == "foo=1.0=2");
         }
 
         SECTION("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']")
         {
             auto ms = MatchSpec::parse("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']")
                           .value();
-            CHECK_EQ(ms.name().str(), "foo");
-            CHECK_EQ(ms.version().str(), "=1.0");
-            CHECK_EQ(ms.build_string().str(), "2");
-            CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
-            CHECK_EQ(ms.str(), R"ms(foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms");
+            REQUIRE(ms.name().str() == "foo");
+            REQUIRE(ms.version().str() == "=1.0");
+            REQUIRE(ms.build_string().str() == "2");
+            REQUIRE(ms.conda_build_form() == "foo 1.0.* 2");
+            REQUIRE(ms.str() == R"ms(foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms");
         }
 
         SECTION("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']")
@@ -413,11 +413,11 @@ namespace
                           "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
             )
                           .value();
-            CHECK_EQ(ms.channel().value().str(), "abcdef");
-            CHECK_EQ(ms.name().str(), "foo");
-            CHECK_EQ(ms.version().str(), "=1.0");
-            CHECK_EQ(ms.build_string().str(), "2");
-            CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
+            REQUIRE(ms.channel().value().str() == "abcdef");
+            REQUIRE(ms.name().str() == "foo");
+            REQUIRE(ms.version().str() == "=1.0");
+            REQUIRE(ms.build_string().str() == "2");
+            REQUIRE(ms.conda_build_form() == "foo 1.0.* 2");
             CHECK_EQ(
                 ms.str(),
                 R"ms(abcdef::foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms"
@@ -431,11 +431,11 @@ namespace
                           R"(defaults::numpy=1.8=py27_0 [name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
             )
                           .value();
-            CHECK_EQ(ms.channel().value().str(), "anaconda");
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), "=1.8");
-            CHECK_EQ(ms.build_string().str(), "py27_0");
-            CHECK_EQ(ms.str(), R"(anaconda::numpy=1.8=py27_0)");
+            REQUIRE(ms.channel().value().str() == "anaconda");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == "=1.8");
+            REQUIRE(ms.build_string().str() == "py27_0");
+            REQUIRE(ms.str() == R"(anaconda::numpy=1.8=py27_0)");
         }
 
         SECTION(R"(defaults::numpy [ name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
@@ -445,19 +445,19 @@ namespace
                           R"(defaults::numpy [ name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
             )
                           .value();
-            CHECK_EQ(ms.channel().value().str(), "anaconda");
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), ">=1.8,(<2|==1.9)");
-            CHECK_EQ(ms.build_string().str(), "3");
-            CHECK_EQ(ms.str(), R"ms(anaconda::numpy[version=">=1.8,(<2|==1.9)",build="3"])ms");
+            REQUIRE(ms.channel().value().str() == "anaconda");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == ">=1.8,(<2|==1.9)");
+            REQUIRE(ms.build_string().str() == "3");
+            REQUIRE(ms.str() == R"ms(anaconda::numpy[version=">=1.8,(<2|==1.9)",build="3"])ms");
         }
 
         SECTION("numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0")
         {
             auto ms = MatchSpec::parse(R"(numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0)").value();
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), ">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))");
-            CHECK_EQ(ms.build_string().str(), "py34_0");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == ">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))");
+            REQUIRE(ms.build_string().str() == "py34_0");
             CHECK_EQ(
                 ms.str(),
                 R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))",build="py34_0"])ms"
@@ -467,138 +467,138 @@ namespace
         SECTION("python-graphviz~=0.20")
         {
             auto ms = MatchSpec::parse("python-graphviz~=0.20").value();
-            CHECK_EQ(ms.name().str(), "python-graphviz");
-            CHECK_EQ(ms.version().str(), ">=0.20,=0");
-            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
+            REQUIRE(ms.name().str() == "python-graphviz");
+            REQUIRE(ms.version().str() == ">=0.20,=0");
+            REQUIRE(ms.str() == R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
         SECTION("python-graphviz  ~=      0.20")
         {
             auto ms = MatchSpec::parse("python-graphviz  ~=      0.20").value();
-            CHECK_EQ(ms.name().str(), "python-graphviz");
-            CHECK_EQ(ms.version().str(), ">=0.20,=0");
-            CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
+            REQUIRE(ms.name().str() == "python-graphviz");
+            REQUIRE(ms.version().str() == ">=0.20,=0");
+            REQUIRE(ms.str() == R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
         SECTION("*[md5=fewjaflknd]")
         {
             auto ms = MatchSpec::parse("*[md5=fewjaflknd]").value();
             REQUIRE(ms.name().is_free());
-            CHECK_EQ(ms.md5(), "fewjaflknd");
-            CHECK_EQ(ms.str(), "*[md5=fewjaflknd]");
+            REQUIRE(ms.md5() == "fewjaflknd");
+            REQUIRE(ms.str() == "*[md5=fewjaflknd]");
         }
 
         SECTION("libblas=*=*mkl")
         {
             auto ms = MatchSpec::parse("libblas=*=*mkl").value();
-            CHECK_EQ(ms.name().str(), "libblas");
+            REQUIRE(ms.name().str() == "libblas");
             REQUIRE(ms.version().is_explicitly_free());
-            CHECK_EQ(ms.build_string().str(), "*mkl");
-            CHECK_EQ(ms.str(), R"(libblas[build="*mkl"])");
-            CHECK_EQ(ms.conda_build_form(), "libblas * *mkl");
+            REQUIRE(ms.build_string().str() == "*mkl");
+            REQUIRE(ms.str() == R"(libblas[build="*mkl"])");
+            REQUIRE(ms.conda_build_form() == "libblas * *mkl");
         }
 
         SECTION("libblas=0.15*")
         {
             // '*' is part of the version, not the glob
             auto ms = MatchSpec::parse("libblas=0.15*").value();
-            CHECK_EQ(ms.name().str(), "libblas");
-            CHECK_EQ(ms.version().str(), "=0.15*");
+            REQUIRE(ms.name().str() == "libblas");
+            REQUIRE(ms.version().str() == "=0.15*");
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "libblas=0.15*");
-            CHECK_EQ(ms.conda_build_form(), "libblas 0.15*.*");
+            REQUIRE(ms.str() == "libblas=0.15*");
+            REQUIRE(ms.conda_build_form() == "libblas 0.15*.*");
         }
 
         SECTION("xtensor =0.15*")
         {
             // '*' is part of the version, not the glob
             auto ms = MatchSpec::parse("xtensor =0.15*").value();
-            CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(ms.version().str(), "=0.15*");
+            REQUIRE(ms.name().str() == "xtensor");
+            REQUIRE(ms.version().str() == "=0.15*");
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "xtensor=0.15*");
-            CHECK_EQ(ms.conda_build_form(), "xtensor 0.15*.*");
+            REQUIRE(ms.str() == "xtensor=0.15*");
+            REQUIRE(ms.conda_build_form() == "xtensor 0.15*.*");
         }
 
         SECTION("numpy=1.20")
         {
             auto ms = MatchSpec::parse("numpy=1.20").value();
-            CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.version().str(), "=1.20");
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == "=1.20");
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "numpy=1.20");
+            REQUIRE(ms.str() == "numpy=1.20");
         }
 
         SECTION("conda-forge::tzdata")
         {
             auto ms = MatchSpec::parse("conda-forge::tzdata").value();
-            CHECK_EQ(ms.channel().value().str(), "conda-forge");
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "conda-forge");
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "conda-forge::tzdata");
+            REQUIRE(ms.str() == "conda-forge::tzdata");
         }
 
         SECTION("conda-forge/noarch::tzdata")
         {
             auto ms = MatchSpec::parse("conda-forge/noarch::tzdata").value();
-            CHECK_EQ(ms.channel().value().str(), "conda-forge[noarch]");
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "conda-forge[noarch]");
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
+            REQUIRE(ms.str() == "conda-forge[noarch]::tzdata");
         }
 
         SECTION("conda-forge[noarch]::tzdata")
         {
             auto ms = MatchSpec::parse("conda-forge/noarch::tzdata").value();
-            CHECK_EQ(ms.channel().value().str(), "conda-forge[noarch]");
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "conda-forge[noarch]");
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
+            REQUIRE(ms.str() == "conda-forge[noarch]::tzdata");
         }
 
         SECTION("pkgs/main::tzdata")
         {
             auto ms = MatchSpec::parse("pkgs/main::tzdata").value();
-            CHECK_EQ(ms.channel().value().str(), "pkgs/main");
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "pkgs/main");
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "pkgs/main::tzdata");
+            REQUIRE(ms.str() == "pkgs/main::tzdata");
         }
 
         SECTION("pkgs/main/noarch::tzdata")
         {
             auto ms = MatchSpec::parse("pkgs/main/noarch::tzdata").value();
-            CHECK_EQ(ms.channel().value().str(), "pkgs/main[noarch]");
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "pkgs/main[noarch]");
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "pkgs/main[noarch]::tzdata");
+            REQUIRE(ms.str() == "pkgs/main[noarch]::tzdata");
         }
 
         SECTION("conda-forge[noarch]::tzdata[subdir=linux64]")
         {
             auto ms = MatchSpec::parse("conda-forge[noarch]::tzdata[subdir=linux64]").value();
-            CHECK_EQ(ms.channel().value().str(), "conda-forge[noarch]");
-            CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "noarch" });
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "conda-forge[noarch]");
+            REQUIRE(ms.platforms().value().get() == MatchSpec::platform_set{ "noarch" });
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
+            REQUIRE(ms.str() == "conda-forge[noarch]::tzdata");
         }
 
         SECTION("conda-forge::tzdata[subdir=mamba-37]")
         {
             auto ms = MatchSpec::parse("conda-forge::tzdata[subdir=mamba-37]").value();
-            CHECK_EQ(ms.channel().value().str(), "conda-forge[mamba-37]");
-            CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "mamba-37" });
-            CHECK_EQ(ms.name().str(), "tzdata");
+            REQUIRE(ms.channel().value().str() == "conda-forge[mamba-37]");
+            REQUIRE(ms.platforms().value().get() == MatchSpec::platform_set{ "mamba-37" });
+            REQUIRE(ms.name().str() == "tzdata");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.build_string().is_explicitly_free());
-            CHECK_EQ(ms.str(), "conda-forge[mamba-37]::tzdata");
+            REQUIRE(ms.str() == "conda-forge[mamba-37]::tzdata");
         }
 
         SECTION("conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0")
@@ -607,19 +607,21 @@ namespace
                           "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
             )
                           .value();
-            CHECK_EQ(ms.channel().value().str(), "conda-canary[linux-64]");
-            CHECK_EQ(ms.platforms().value().get(), MatchSpec::platform_set{ "linux-64" });
-            CHECK_EQ(ms.name().str(), "conda");
-            CHECK_EQ(ms.version().str(), "==4.3.21.0post699+1dab973");  // Not ``.0post`` diff
-            CHECK_EQ(ms.build_string().str(), "py36h4a561cd_0");
-            CHECK_EQ(ms.str(), "conda-canary[linux-64]::conda==4.3.21.0post699+1dab973=py36h4a561cd_0");
+            REQUIRE(ms.channel().value().str() == "conda-canary[linux-64]");
+            REQUIRE(ms.platforms().value().get() == MatchSpec::platform_set{ "linux-64" });
+            REQUIRE(ms.name().str() == "conda");
+            REQUIRE(ms.version().str() == "==4.3.21.0post699+1dab973");  // Not ``.0post`` diff
+            REQUIRE(ms.build_string().str() == "py36h4a561cd_0");
+            REQUIRE(
+                ms.str() == "conda-canary[linux-64]::conda==4.3.21.0post699+1dab973=py36h4a561cd_0"
+            );
         }
 
         SECTION("libblas[build=^.*(accelerate|mkl)$]")
         {
             auto ms = MatchSpec::parse("libblas[build=^.*(accelerate|mkl)$]").value();
-            CHECK_EQ(ms.name().str(), "libblas");
-            CHECK_EQ(ms.build_string().str(), "^.*(accelerate|mkl)$");
+            REQUIRE(ms.name().str() == "libblas");
+            REQUIRE(ms.build_string().str() == "^.*(accelerate|mkl)$");
             REQUIRE_FALSE(ms.build_string().is_glob());
         }
     }
@@ -630,11 +632,11 @@ namespace
         {
             auto ms = MatchSpec::parse_url("https://conda.com/pkg-2-bld.conda").value();
             REQUIRE(ms.is_file());
-            CHECK_EQ(ms.name().str(), "pkg");
-            CHECK_EQ(ms.version().str(), "==2");
-            CHECK_EQ(ms.str(), "https://conda.com/pkg-2-bld.conda");
-            CHECK_EQ(ms.build_string().str(), "bld");
-            CHECK_EQ(ms.filename(), "pkg-2-bld.conda");
+            REQUIRE(ms.name().str() == "pkg");
+            REQUIRE(ms.version().str() == "==2");
+            REQUIRE(ms.str() == "https://conda.com/pkg-2-bld.conda");
+            REQUIRE(ms.build_string().str() == "bld");
+            REQUIRE(ms.filename() == "pkg-2-bld.conda");
         }
 
         SECTION("/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2")
@@ -644,11 +646,11 @@ namespace
             )
                           .value();
             REQUIRE(ms.is_file());
-            CHECK_EQ(ms.name().str(), "cph_test_data");
-            CHECK_EQ(ms.version().str(), "==0.0.1");
-            CHECK_EQ(ms.str(), "/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2");
-            CHECK_EQ(ms.build_string().str(), "0");
-            CHECK_EQ(ms.filename(), "cph_test_data-0.0.1-0.tar.bz2");
+            REQUIRE(ms.name().str() == "cph_test_data");
+            REQUIRE(ms.version().str() == "==0.0.1");
+            REQUIRE(ms.str() == "/home/usr/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2");
+            REQUIRE(ms.build_string().str() == "0");
+            REQUIRE(ms.filename() == "cph_test_data-0.0.1-0.tar.bz2");
         }
 
         SECTION(R"(D:\a\mamba\mamba\micromamba\tests\data\cph_test_data-0.0.1-0.tar.bz2)")
@@ -660,14 +662,14 @@ namespace
                 )
                               .value();
                 REQUIRE(ms.is_file());
-                CHECK_EQ(ms.name().str(), "cph_test_data");
-                CHECK_EQ(ms.version().str(), "==0.0.1");
+                REQUIRE(ms.name().str() == "cph_test_data");
+                REQUIRE(ms.version().str() == "==0.0.1");
                 CHECK_EQ(
                     ms.str(),
                     "D:/a/mamba/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
                 );
-                CHECK_EQ(ms.build_string().str(), "0");
-                CHECK_EQ(ms.filename(), "cph_test_data-0.0.1-0.tar.bz2");
+                REQUIRE(ms.build_string().str() == "0");
+                REQUIRE(ms.filename() == "cph_test_data-0.0.1-0.tar.bz2");
             }
         }
     }
@@ -680,8 +682,8 @@ namespace
             // `python=3.7=bld`.
             // It is `=3.7` and `==3.7` in the later.
             auto ms = MatchSpec::parse("python=3.7=bld").value();
-            CHECK_EQ(ms.version().str(), "=3.7");
-            CHECK_EQ(ms.build_string().str(), "bld");
+            REQUIRE(ms.version().str() == "=3.7");
+            REQUIRE(ms.build_string().str() == "bld");
         }
 
         SECTION("python[version>3]")
@@ -696,7 +698,7 @@ namespace
             // Ambiguous, `version=` parsed as attribute assignment, which leads to
             // `3.7` (similar to `==3.7`) being parsed as VersionSpec
             auto ms = MatchSpec::parse("python[version=3.7]").value();
-            CHECK_EQ(ms.version().str(), "==3.7");
+            REQUIRE(ms.version().str() == "==3.7");
         }
     }
 
@@ -977,16 +979,16 @@ namespace
         const auto spec3 = "py*>=3.7=bld[build_number='<=2', md5=lemd5, track_features='mkl']"_ms;
 
         // Check that the two copies are equal
-        CHECK_EQ(spec1, spec2);
+        REQUIRE(spec1 == spec2);
         // Check that the different specification is not equal to the first one
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 != spec3);
 
         // Check that the hash of the two copies is the same
         auto spec1_hash = std::hash<MatchSpec>{}(spec1);
         auto spec2_hash = std::hash<MatchSpec>{}(spec2);
         auto spec3_hash = std::hash<MatchSpec>{}(spec3);
 
-        CHECK_EQ(spec1_hash, spec2_hash);
-        CHECK_NE(spec1_hash, spec3_hash);
+        REQUIRE(spec1_hash == spec2_hash);
+        REQUIRE(spec1_hash != spec3_hash);
     }
 }

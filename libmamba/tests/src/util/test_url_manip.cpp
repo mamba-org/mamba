@@ -23,7 +23,7 @@ namespace
     {
         SECTION("/users/test/miniconda3")
         {
-            CHECK_EQ(abs_path_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
+            REQUIRE(abs_path_to_url("/users/test/miniconda3") == "file:///users/test/miniconda3");
         }
 
         SECTION(R"(D:\users\test\miniconda3)")
@@ -39,7 +39,7 @@ namespace
 
         SECTION("/tmp/foo bar")
         {
-            CHECK_EQ(abs_path_to_url("/tmp/foo bar"), "file:///tmp/foo%20bar");
+            REQUIRE(abs_path_to_url("/tmp/foo bar") == "file:///tmp/foo%20bar");
         }
     }
 
@@ -47,12 +47,14 @@ namespace
     {
         SECTION("/users/test/miniconda3")
         {
-            CHECK_EQ(abs_path_or_url_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
+            REQUIRE(
+                abs_path_or_url_to_url("/users/test/miniconda3") == "file:///users/test/miniconda3"
+            );
         }
 
         SECTION("file:///tmp/bar")
         {
-            CHECK_EQ(abs_path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
+            REQUIRE(abs_path_or_url_to_url("file:///tmp/bar") == "file:///tmp/bar");
         }
     }
 
@@ -65,11 +67,11 @@ namespace
             auto url = path_to_url("/users/test/miniconda3");
             if (on_win)
             {
-                CHECK_EQ(url, concat("file://", win_drive, ":/users/test/miniconda3"));
+                REQUIRE(url == concat("file://", win_drive, ":/users/test/miniconda3"));
             }
             else
             {
-                CHECK_EQ(url, "file:///users/test/miniconda3");
+                REQUIRE(url == "file:///users/test/miniconda3");
             }
         }
 
@@ -77,7 +79,9 @@ namespace
         {
             if (on_win)
             {
-                CHECK_EQ(path_to_url(R"(D:\users\test\miniconda3)"), "file://D:/users/test/miniconda3");
+                REQUIRE(
+                    path_to_url(R"(D:\users\test\miniconda3)") == "file://D:/users/test/miniconda3"
+                );
             }
         }
 
@@ -86,11 +90,11 @@ namespace
             auto url = path_to_url("/tmp/foo bar");
             if (on_win)
             {
-                CHECK_EQ(url, concat("file://", win_drive, ":/tmp/foo%20bar"));
+                REQUIRE(url == concat("file://", win_drive, ":/tmp/foo%20bar"));
             }
             else
             {
-                CHECK_EQ(url, "file:///tmp/foo%20bar");
+                REQUIRE(url == "file:///tmp/foo%20bar");
             }
         }
 
@@ -105,7 +109,7 @@ namespace
             else
             {
                 const auto expected_folder = fs::absolute("folder").lexically_normal();
-                CHECK_EQ(url, concat("file://", expected_folder.string()));
+                REQUIRE(url == concat("file://", expected_folder.string()));
             }
         }
     }
@@ -119,31 +123,31 @@ namespace
             auto url = path_or_url_to_url("/tmp/foo bar");
             if (on_win)
             {
-                CHECK_EQ(url, concat("file://", win_drive, ":/tmp/foo%20bar"));
+                REQUIRE(url == concat("file://", win_drive, ":/tmp/foo%20bar"));
             }
             else
             {
-                CHECK_EQ(url, "file:///tmp/foo%20bar");
+                REQUIRE(url == "file:///tmp/foo%20bar");
             }
         }
 
         SECTION("file:///tmp/bar")
         {
-            CHECK_EQ(path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
+            REQUIRE(path_or_url_to_url("file:///tmp/bar") == "file:///tmp/bar");
         }
     }
 
     TEST_CASE("url_concat")
     {
-        CHECK_EQ(url_concat("", ""), "");
-        CHECK_EQ(url_concat("", "/"), "/");
-        CHECK_EQ(url_concat("/", ""), "/");
-        CHECK_EQ(url_concat("/", "/"), "/");
+        REQUIRE(url_concat("", "") == "");
+        REQUIRE(url_concat("", "/") == "/");
+        REQUIRE(url_concat("/", "") == "/");
+        REQUIRE(url_concat("/", "/") == "/");
 
-        CHECK_EQ(url_concat("mamba.org", "folder"), "mamba.org/folder");
-        CHECK_EQ(url_concat("mamba.org", "/folder"), "mamba.org/folder");
-        CHECK_EQ(url_concat("mamba.org/", "folder"), "mamba.org/folder");
-        CHECK_EQ(url_concat("mamba.org/", "/folder"), "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org", "folder") == "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org", "/folder") == "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org/", "folder") == "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org/", "/folder") == "mamba.org/folder");
 
         CHECK_EQ(
             url_concat("mamba.org", 't', std::string("/sometoken/"), std::string_view("conda-forge")),
@@ -164,21 +168,21 @@ namespace
              })
         {
             CAPTURE(uri);
-            CHECK_EQ(file_uri_unc2_to_unc4(uri), uri);
+            REQUIRE(file_uri_unc2_to_unc4(uri) == uri);
         }
-        CHECK_EQ(file_uri_unc2_to_unc4("file://server/share"), "file:////server/share");
-        CHECK_EQ(file_uri_unc2_to_unc4("file://server"), "file:////server");
+        REQUIRE(file_uri_unc2_to_unc4("file://server/share") == "file:////server/share");
+        REQUIRE(file_uri_unc2_to_unc4("file://server") == "file:////server");
     }
 
     TEST_CASE("url_get_scheme")
     {
-        CHECK_EQ(url_get_scheme("http://mamba.org"), "http");
-        CHECK_EQ(url_get_scheme("file:///folder/file.txt"), "file");
-        CHECK_EQ(url_get_scheme("s3://bucket/file.txt"), "s3");
-        CHECK_EQ(url_get_scheme("mamba.org"), "");
-        CHECK_EQ(url_get_scheme("://"), "");
-        CHECK_EQ(url_get_scheme("f#gre://"), "");
-        CHECK_EQ(url_get_scheme(""), "");
+        REQUIRE(url_get_scheme("http://mamba.org") == "http");
+        REQUIRE(url_get_scheme("file:///folder/file.txt") == "file");
+        REQUIRE(url_get_scheme("s3://bucket/file.txt") == "s3");
+        REQUIRE(url_get_scheme("mamba.org") == "");
+        REQUIRE(url_get_scheme("://") == "");
+        REQUIRE(url_get_scheme("f#gre://") == "");
+        REQUIRE(url_get_scheme("") == "");
     }
 
     TEST_CASE("url_has_scheme")

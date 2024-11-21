@@ -4,20 +4,21 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <string>
 #include <vector>
 
 #include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-namespace doctest
+namespace Catch
 {
     template <typename T, typename A>
     struct StringMaker<std::vector<T, A>>
     {
-        static auto convert(const std::vector<T, A>& value) -> String
+        static std::string convert(const std::vector<T, A>& value)
         {
-            return { fmt::format("std::vector{{{}}}", fmt::join(value, ", ")).c_str() };
+            return fmt::format("std::vector{{{}}}", fmt::join(value, ", "));
         }
     };
 }

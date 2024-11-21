@@ -21,7 +21,7 @@ namespace
         REQUIRE(spec.contains(""));
         REQUIRE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "*");
+        REQUIRE(spec.str() == "*");
         REQUIRE(spec.is_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -35,7 +35,7 @@ namespace
         REQUIRE_FALSE(spec.contains("nomkl"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "mkl");
+        REQUIRE(spec.str() == "mkl");
         REQUIRE_FALSE(spec.is_free());
         REQUIRE(spec.is_exact());
     }
@@ -51,7 +51,7 @@ namespace
         REQUIRE_FALSE(spec.contains("rust"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "*py*");
+        REQUIRE(spec.str() == "*py*");
         REQUIRE_FALSE(spec.is_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -62,8 +62,8 @@ namespace
         auto spec2 = GlobSpec("py*");
         auto spec3 = GlobSpec("pyth*");
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         auto hash_fn = std::hash<GlobSpec>();
         REQUIRE(hash_fn(spec1) == hash_fn(spec2);

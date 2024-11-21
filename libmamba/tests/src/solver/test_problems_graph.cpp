@@ -38,7 +38,7 @@ namespace
     TEST_CASE("symmetric")
     {
         auto c = conflict_map<std::size_t>();
-        CHECK_EQ(c.size(), 0);
+        REQUIRE(c.size() == 0);
         REQUIRE_FALSE(c.has_conflict(0));
         REQUIRE_FALSE(c.in_conflict(0, 1));
         REQUIRE(c.add(0, 1));
@@ -58,7 +58,7 @@ namespace
     TEST_CASE("remove")
     {
         auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
-        REQUIRE_EQ(c.size(), 4);
+        REQUIRE(c.size() == 4);
 
         REQUIRE(c.in_conflict(2, 4));
         REQUIRE(c.in_conflict(4, 2));
@@ -570,27 +570,27 @@ TEST_CASE("NamedList")
     {
         l.insert({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
     }
-    CHECK_EQ(l.size(), n_packages);
-    CHECK_EQ(l.name(), "pkg");
+    REQUIRE(l.size() == n_packages);
+    REQUIRE(l.name() == "pkg");
     {
         auto [str, size] = l.versions_trunc(", ", "...", 5);
-        CHECK_EQ(size, 9);
-        CHECK_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
+        REQUIRE(size == 9);
+        REQUIRE(str == "0.1.0, 0.2.0, ..., 0.9.0");
     }
     {
         auto [str, size] = l.build_strings_trunc(", ", "...", 5, false);
-        CHECK_EQ(size, 9);
-        CHECK_EQ(str, "bld, bld, ..., bld");
+        REQUIRE(size == 9);
+        REQUIRE(str == "bld, bld, ..., bld");
     }
     {
         auto [str, size] = l.build_strings_trunc(", ", "...", 5, true);
-        CHECK_EQ(size, 1);
-        CHECK_EQ(str, "bld");
+        REQUIRE(size == 1);
+        REQUIRE(str == "bld");
     }
     {
         auto [str, size] = l.versions_and_build_strings_trunc("|", "---", 5);
-        CHECK_EQ(size, 9);
-        CHECK_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
+        REQUIRE(size == 9);
+        REQUIRE(str == "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
     }
 }
 
@@ -686,7 +686,7 @@ TEST_CASE("Create problem graph")
                 {
                     REQUIRE(graph_simplified.has_node(id));
                     // Unfortunately not all conflicts are on leaves
-                    // CHECK_EQ(graph_simplified.out_degree(id), 0);
+                    // REQUIRE(graph_simplified.out_degree(id) == 0);
                     REQUIRE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
                 }
             }

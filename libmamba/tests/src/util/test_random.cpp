@@ -21,10 +21,10 @@ namespace
         {
             auto& a = local_random_generator();
             auto& b = local_random_generator();
-            CHECK_EQ(&a, &b);
+            REQUIRE(&a == &b);
 
             auto& c = local_random_generator<std::mt19937>();
-            CHECK_EQ(&a, &c);
+            REQUIRE(&a == &c);
 
             auto& d = local_random_generator<std::mt19937_64>();
             REQUIRE(static_cast<void*>(&a) != static_cast<void*>(&d);
@@ -37,7 +37,7 @@ namespace
         std::thread another_thread{ [&] { pointer_to_another_thread_rng = same_thread_checks(); } };
         another_thread.join();
 
-        CHECK_NE(pointer_to_this_thread_rng, pointer_to_another_thread_rng);
+        REQUIRE(pointer_to_this_thread_rng != pointer_to_another_thread_rng);
     }
 
     TEST_CASE("value_in_range")
@@ -48,8 +48,8 @@ namespace
         for (std::size_t i = 0; i < attempts; ++i)
         {
             const int value = random_int(arbitrary_min, arbitrary_max);
-            CHECK_GE(value, arbitrary_min);
-            CHECK_LE(value, arbitrary_max);
+            REQUIRE(value >= arbitrary_min);
+            REQUIRE(value <= arbitrary_max);
         }
     }
 
@@ -59,7 +59,7 @@ namespace
         for (std::size_t i = 0; i < attempts; ++i)
         {
             const auto value = generate_random_alphanumeric_string(i);
-            CHECK_EQ(value.size(), i);
+            REQUIRE(value.size() == i);
             REQUIRE(std::all_of(
                 value.cbegin(),
                 value.cend(),

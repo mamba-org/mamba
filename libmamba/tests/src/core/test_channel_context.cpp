@@ -35,7 +35,7 @@ namespace
 
         SECTION("Channel alias")
         {
-            CHECK_EQ(chan_ctx.params().channel_alias.str(), "https://conda.anaconda.org/");
+            REQUIRE(chan_ctx.params().channel_alias.str() == "https://conda.anaconda.org/");
         }
 
         SECTION("Conda pkgs channels")
@@ -44,15 +44,15 @@ namespace
 
             const auto& main = custom.at("pkgs/main");
             REQUIRE(main.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/main");
-            CHECK_EQ(main.display_name(), "pkgs/main");
+            REQUIRE(main.display_name() == "pkgs/main");
 
             const auto& pro = custom.at("pkgs/pro");
             REQUIRE(pro.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/pro");
-            CHECK_EQ(pro.display_name(), "pkgs/pro");
+            REQUIRE(pro.display_name() == "pkgs/pro");
 
             const auto& r = custom.at("pkgs/r");
             REQUIRE(r.url() == CondaURL::parse("https://repo.anaconda.com/pkgs/r");
-            CHECK_EQ(r.display_name(), "pkgs/r");
+            REQUIRE(r.display_name() == "pkgs/r");
         }
 
         SECTION("Defaults")
@@ -83,7 +83,7 @@ namespace
             }
             else
             {
-                CHECK_EQ(found_names, util::flat_set<std::string>{ "pkgs/main", "pkgs/r" });
+                REQUIRE(found_names == util::flat_set<std::string>{ "pkgs/main", "pkgs/r" });
                 CHECK_EQ(
                     found_urls,
                     util::flat_set<std::string>{
@@ -97,7 +97,7 @@ namespace
         SECTION("Has zst")
         {
             const auto& chans = chan_ctx.make_channel("https://conda.anaconda.org/conda-forge");
-            REQUIRE_EQ(chans.size(), 1);
+            REQUIRE(chans.size() == 1);
             REQUIRE(chan_ctx.has_zst(chans.at(0)));
         }
     }
@@ -110,7 +110,7 @@ namespace
         {
             ctx.channel_alias = "https://ali.as";
             auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
-            CHECK_EQ(chan_ctx.params().channel_alias.str(), "https://ali.as/");
+            REQUIRE(chan_ctx.params().channel_alias.str() == "https://ali.as/");
         }
 
         SECTION("Custom channels")
@@ -125,17 +125,17 @@ namespace
 
             const auto& chan1 = custom.at("chan1");
             REQUIRE(chan1.url() == CondaURL::parse("https://repo.mamba.pm/chan1");
-            CHECK_EQ(chan1.display_name(), "chan1");
+            REQUIRE(chan1.display_name() == "chan1");
 
             // Conda behaviour that URL ending must match name
             const auto& chan2 = custom.at("chan2");
             REQUIRE(chan2.url() == CondaURL::parse("https://repo.mamba.pm/chan2");
-            CHECK_EQ(chan2.display_name(), "chan2");
+            REQUIRE(chan2.display_name() == "chan2");
 
             // Explicit override
             const auto& main = custom.at("pkgs/main");
             REQUIRE(main.url() == CondaURL::parse("https://repo.mamba.pm/pkgs/main");
-            CHECK_EQ(main.display_name(), "pkgs/main");
+            REQUIRE(main.display_name() == "pkgs/main");
         }
 
         SECTION("Custom defaults")
@@ -176,8 +176,8 @@ namespace
                 auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
                 const auto& local = chan_ctx.params().custom_multichannels.at("local");
 
-                REQUIRE_EQ(local.size(), 1);
-                CHECK_EQ(local.front().url(), CondaURL::parse(util::path_to_url(conda_bld.string())));
+                REQUIRE(local.size() == 1);
+                REQUIRE(local.front().url() == CondaURL::parse(util::path_to_url(conda_bld.string())));
             }
 
             SECTION("Root prefix")
@@ -186,8 +186,8 @@ namespace
                 auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
                 const auto& local = chan_ctx.params().custom_multichannels.at("local");
 
-                REQUIRE_EQ(local.size(), 1);
-                CHECK_EQ(local.front().url(), CondaURL::parse(util::path_to_url(conda_bld.string())));
+                REQUIRE(local.size() == 1);
+                REQUIRE(local.front().url() == CondaURL::parse(util::path_to_url(conda_bld.string())));
             }
 
             SECTION("Target prefix")
@@ -196,8 +196,8 @@ namespace
                 auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
                 const auto& local = chan_ctx.params().custom_multichannels.at("local");
 
-                REQUIRE_EQ(local.size(), 1);
-                CHECK_EQ(local.front().url(), CondaURL::parse(util::path_to_url(conda_bld.string())));
+                REQUIRE(local.size() == 1);
+                REQUIRE(local.front().url() == CondaURL::parse(util::path_to_url(conda_bld.string())));
             }
         }
 
@@ -284,7 +284,7 @@ namespace
         {
             ctx.channel_alias = "https://ali.as";
             auto chan_ctx = ChannelContext::make_simple(ctx);
-            CHECK_EQ(chan_ctx.params().channel_alias.str(), "https://ali.as/");
+            REQUIRE(chan_ctx.params().channel_alias.str() == "https://ali.as/");
         }
 
         SECTION("Custom channels")
@@ -299,17 +299,17 @@ namespace
 
             const auto& chan1 = custom.at("chan1");
             REQUIRE(chan1.url() == CondaURL::parse("https://repo.mamba.pm/chan1");
-            CHECK_EQ(chan1.display_name(), "chan1");
+            REQUIRE(chan1.display_name() == "chan1");
 
             // Different from Conda behaviour
             const auto& chan2 = custom.at("chan2");
             REQUIRE(chan2.url() == CondaURL::parse("https://repo.mamba.pm/");
-            CHECK_EQ(chan2.display_name(), "chan2");
+            REQUIRE(chan2.display_name() == "chan2");
 
             // Explicitly created
             const auto& main = custom.at("pkgs/main");
             REQUIRE(main.url() == CondaURL::parse("https://repo.mamba.pm/pkgs/main");
-            CHECK_EQ(main.display_name(), "pkgs/main");
+            REQUIRE(main.display_name() == "pkgs/main");
         }
 
         SECTION("No hard coded names")
@@ -414,20 +414,20 @@ namespace
                     const auto& chans = chan_ctx.make_channel(
                         "https://otherdomain.com/conda-forge[noarch]"
                     );
-                    REQUIRE_EQ(chans.size(), 1);
+                    REQUIRE(chans.size() == 1);
                     REQUIRE(chan_ctx.has_zst(chans.at(0)));
                 }
                 {
                     const auto& chans = chan_ctx.make_channel(
                         "https://otherdomain.com/conda-forge[win-64]"
                     );
-                    REQUIRE_EQ(chans.size(), 1);
+                    REQUIRE(chans.size() == 1);
                     REQUIRE_FALSE(chan_ctx.has_zst(chans.at(0)));
                 }
                 {
                     const auto& chans = chan_ctx.make_channel("https://conda.anaconda.org/conda-forge"
                     );
-                    REQUIRE_EQ(chans.size(), 1);
+                    REQUIRE(chans.size() == 1);
                     REQUIRE_FALSE(chan_ctx.has_zst(chans.at(0)));
                 }
             }
@@ -438,7 +438,7 @@ namespace
                 auto chan_ctx = ChannelContext::make_simple(ctx);
 
                 const auto& chans = chan_ctx.make_channel("https://otherdomain.com/conda-forge");
-                REQUIRE_EQ(chans.size(), 1);
+                REQUIRE(chans.size() == 1);
                 REQUIRE_FALSE(chan_ctx.has_zst(chans.at(0)));
             }
         }

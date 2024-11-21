@@ -158,20 +158,20 @@ namespace
     {
         v1::RootImpl root(trusted_root_file());
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v1::SpecImpl("1.0.17");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "ctor_from_json")
     {
         v1::RootImpl root(root1_json);
 
-        CHECK_EQ(root.type(), "root");
-        CHECK_EQ(root.file_ext(), "json");
+        REQUIRE(root.type() == "root");
+        REQUIRE(root.file_ext() == "json");
         REQUIRE(root.spec_version() == v1::SpecImpl("1.0.17");
-        CHECK_EQ(root.version(), 1);
+        REQUIRE(root.version() == 1);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "update_from_path")
@@ -186,10 +186,10 @@ namespace
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
         auto testing_root = static_cast<v1::RootImpl*>(updated_root.get());
-        CHECK_EQ(testing_root->type(), "root");
-        CHECK_EQ(testing_root->file_ext(), "json");
+        REQUIRE(testing_root->type() == "root");
+        REQUIRE(testing_root->file_ext() == "json");
         REQUIRE(testing_root->spec_version() == v1::SpecImpl("1.0.17");
-        CHECK_EQ(testing_root->version(), 2);
+        REQUIRE(testing_root->version() == 2);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "ctor_wrong_filename_spec_version")
@@ -201,7 +201,7 @@ namespace
         out_file.close();
 
         // "2.sv0.6.root.json" is not compatible spec version (spec version N)
-        CHECK_THROWS_AS(v1::RootImpl root(p), role_file_error);
+        REQUIRE_THROWS_AS(v1::RootImpl root(p), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "wrong_version")
@@ -212,7 +212,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 3 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "spec_version")
@@ -228,7 +228,7 @@ namespace
 
         auto testing_root = static_cast<v1::RootImpl*>(updated_root.get());
         REQUIRE(testing_root->spec_version() == v1::SpecImpl("1.30.10");
-        CHECK_EQ(testing_root->version(), 2);
+        REQUIRE(testing_root->version() == 2);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "wrong_spec_version")
@@ -239,7 +239,7 @@ namespace
                         { "op": "replace", "path": "/signed/spec_version", "value": "2.0.0" }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "wrong_filename_role")
@@ -248,7 +248,7 @@ namespace
 
         nl::json patch = R"([])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.rooot.json", patch)), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.rooot.json", patch)), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "wrong_filename_version")
@@ -257,7 +257,7 @@ namespace
 
         nl::json patch = R"([])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("3.root.json", patch)), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("3.root.json", patch)), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "wrong_filename_spec_version")
@@ -266,10 +266,10 @@ namespace
 
         // "2.sv2.root.json" is upgradable spec version (spec version N+1)
         // but v2 is NOT implemented yet, so v1::RootImpl is not upgradable
-        CHECK_THROWS_AS(root.update(create_root_update("2.sv2.root.json")), spec_version_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.sv2.root.json")), spec_version_error);
         // "2.sv3.root.json" is NOT upgradable spec version (spec version N+1)
-        CHECK_THROWS_AS(root.update(create_root_update("2.sv3.root.json")), role_file_error);
-        CHECK_THROWS_AS(root.update(create_root_update("2.sv0.6.root.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.sv3.root.json")), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.sv0.6.root.json")), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "illformed_filename_version")
@@ -278,7 +278,7 @@ namespace
 
         nl::json patch = R"([])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("wrong.root.json", patch)), role_file_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("wrong.root.json", patch)), role_file_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "rollback_attack")
@@ -289,7 +289,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), rollback_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), rollback_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "wrong_type")
@@ -301,7 +301,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "missing_type")
@@ -313,7 +313,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "missing_keys")
@@ -325,7 +325,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "missing_roles")
@@ -337,7 +337,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "missing_role")
@@ -349,7 +349,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "empty_role_keyids")
@@ -361,7 +361,7 @@ namespace
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "null_role_threshold")
@@ -373,7 +373,7 @@ namespace
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "extra_roles")
@@ -385,7 +385,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "key_not_found")
@@ -397,7 +397,7 @@ namespace
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "mirrors_role")
@@ -422,7 +422,7 @@ namespace
                         { "op": "replace", "path": "/signed/roles/root/threshold", "value": 2 }
                         ])"_json;
 
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "expires")
@@ -452,19 +452,19 @@ namespace
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09+0030" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09D" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
 
         patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09.000" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
-        CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
+        REQUIRE_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
     TEST_CASE_FIXTURE(RootImplT_v1, "possible_update_files")
@@ -503,12 +503,12 @@ namespace
     TEST_CASE_FIXTURE(SpecImplT_v1, "ctore")
     {
         v1::SpecImpl new_spec("1.0.0");
-        CHECK_EQ(new_spec.version_str(), "1.0.0");
+        REQUIRE(new_spec.version_str() == "1.0.0");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "version_str")
     {
-        CHECK_EQ(spec.version_str(), "1.0.17");
+        REQUIRE(spec.version_str() == "1.0.17");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "is_compatible")
@@ -541,7 +541,7 @@ namespace
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "compatible_prefix")
     {
-        CHECK_EQ(spec.compatible_prefix(), "1");
+        REQUIRE(spec.compatible_prefix() == "1");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "upgrade_prefix")
@@ -551,17 +551,17 @@ namespace
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "json_key")
     {
-        CHECK_EQ(spec.json_key(), "spec_version");
+        REQUIRE(spec.json_key() == "spec_version");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "expiration_json_key")
     {
-        CHECK_EQ(spec.expiration_json_key(), "expires");
+        REQUIRE(spec.expiration_json_key() == "expires");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "canonicalize")
     {
-        CHECK_EQ(spec.canonicalize(R"({"foo":"bar"})"_json), "{\"foo\":\"bar\"}");
+        REQUIRE(spec.canonicalize(R"({"foo":"bar"})"_json) == "{\"foo\":\"bar\"}");
     }
 
     TEST_CASE_FIXTURE(SpecImplT_v1, "signatures")
@@ -577,10 +577,10 @@ namespace
                                     ]
                                 })"_json;
         auto sigs = spec.signatures(j);
-        CHECK_EQ(sigs.size(), 1);
-        CHECK_EQ(sigs.begin()->keyid, "foo");
-        CHECK_EQ(sigs.begin()->sig, "baz");
-        CHECK_EQ(sigs.begin()->pgp_trailer, "bar");
+        REQUIRE(sigs.size() == 1);
+        REQUIRE(sigs.begin()->keyid == "foo");
+        REQUIRE(sigs.begin()->sig == "baz");
+        REQUIRE(sigs.begin()->pgp_trailer == "bar");
     }
 }
 

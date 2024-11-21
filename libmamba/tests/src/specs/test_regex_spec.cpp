@@ -19,7 +19,7 @@ namespace
         REQUIRE(spec.contains(""));
         REQUIRE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "^.*$");
+        REQUIRE(spec.str() == "^.*$");
         REQUIRE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -33,7 +33,7 @@ namespace
         REQUIRE_FALSE(spec.contains("nomkl"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "^mkl$");
+        REQUIRE(spec.str() == "^mkl$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE(spec.is_exact());
     }
@@ -48,7 +48,7 @@ namespace
         REQUIRE_FALSE(spec.contains(""));
         REQUIRE_FALSE(spec.contains("cpython"));
 
-        CHECK_EQ(spec.str(), "^py.*$");
+        REQUIRE(spec.str() == "^py.*$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -62,7 +62,7 @@ namespace
         REQUIRE_FALSE(spec.contains(""));
         REQUIRE_FALSE(spec.contains("openblas"));
 
-        CHECK_EQ(spec.str(), "^.*(accelerate|mkl)$");
+        REQUIRE(spec.str() == "^.*(accelerate|mkl)$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -73,8 +73,8 @@ namespace
         auto spec2 = RegexSpec::parse("pyth*").value();
         auto spec3 = RegexSpec::parse("python").value();
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         auto hash_fn = std::hash<RegexSpec>();
         REQUIRE(hash_fn(spec1) == hash_fn(spec2);

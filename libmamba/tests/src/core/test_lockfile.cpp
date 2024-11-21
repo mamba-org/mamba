@@ -91,17 +91,17 @@ namespace mamba
                 {
                     auto lock = LockFile(tempdir_path);
                     REQUIRE(lock.is_locked());
-                    CHECK_EQ(lock.count_lock_owners(), 1);
+                    REQUIRE(lock.count_lock_owners() == 1);
                     REQUIRE(fs::exists(lock.lockfile_path()));
 
                     {
                         auto other_lock = LockFile(tempdir_path);
                         REQUIRE(other_lock.is_locked());
-                        CHECK_EQ(other_lock.count_lock_owners(), 2);
-                        CHECK_EQ(lock.count_lock_owners(), 2);
+                        REQUIRE(other_lock.count_lock_owners() == 2);
+                        REQUIRE(lock.count_lock_owners() == 2);
                     }
 
-                    CHECK_EQ(lock.count_lock_owners(), 1);
+                    REQUIRE(lock.count_lock_owners() == 1);
 
                     // check the first lock is still locked
                     REQUIRE(fs::exists(lock.lockfile_path()));
@@ -222,16 +222,16 @@ namespace mamba
                     LockFile lock{ tempfile_path };
                     REQUIRE(lock.is_locked());
                     REQUIRE(fs::exists(lock.lockfile_path()));
-                    CHECK_EQ(lock.count_lock_owners(), 1);
+                    REQUIRE(lock.count_lock_owners() == 1);
 
                     {
                         LockFile other_lock{ tempfile_path };
                         REQUIRE(other_lock.is_locked());
-                        CHECK_EQ(other_lock.count_lock_owners(), 2);
-                        CHECK_EQ(lock.count_lock_owners(), 2);
+                        REQUIRE(other_lock.count_lock_owners() == 2);
+                        REQUIRE(lock.count_lock_owners() == 2);
                     }
 
-                    CHECK_EQ(lock.count_lock_owners(), 1);
+                    REQUIRE(lock.count_lock_owners() == 1);
 
                     // check the first lock is still locked
                     REQUIRE(fs::exists(lock.lockfile_path()));

@@ -42,7 +42,7 @@ namespace
                     REQUIRE(has_remove);
                 }
             );
-            CHECK_EQ(remove_count, 5);
+            REQUIRE(remove_count == 5);
 
             auto install_count = std::size_t(0);
             for_each_to_install(
@@ -55,7 +55,7 @@ namespace
                     REQUIRE(has_install);
                 }
             );
-            CHECK_EQ(install_count, 5);
+            REQUIRE(install_count == 5);
 
             auto omit_count = std::size_t(0);
             for_each_to_omit(
@@ -66,7 +66,7 @@ namespace
                     REQUIRE(util::ends_with(pkg.name, "omit"));
                 }
             );
-            CHECK_EQ(omit_count, 1);
+            REQUIRE(omit_count == 1);
         }
 
         SECTION("Iterate over packages and break")
@@ -80,7 +80,7 @@ namespace
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(remove_count, 1);
+            REQUIRE(remove_count == 1);
 
             auto install_count = std::size_t(0);
             for_each_to_install(
@@ -91,7 +91,7 @@ namespace
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(install_count, 1);
+            REQUIRE(install_count == 1);
 
             auto omit_count = std::size_t(0);
             for_each_to_omit(
@@ -102,7 +102,7 @@ namespace
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(omit_count, 1);
+            REQUIRE(omit_count == 1);
         }
     }
 }

@@ -32,10 +32,10 @@ namespace
             const auto key = std::string(u8"VAR_THAT_DOES_NOT_EXIST_XYZ");
             const auto value1 = std::string(u8"VALUE");
             set_env(key, value1);
-            CHECK_EQ(get_env(key), value1);
+            REQUIRE(get_env(key) == value1);
             const auto value2 = std::string(u8"VALUE_NEW");
             set_env(key, value2);
-            CHECK_EQ(get_env(key), value2);
+            REQUIRE(get_env(key) == value2);
         }
 
         SECTION("UTF-8")
@@ -43,10 +43,10 @@ namespace
             const auto key = std::string(u8"VAR_私のにほんごわへたです");
             const auto value1 = std::string(u8"😀");
             set_env(key, value1);
-            CHECK_EQ(get_env(key), value1);
+            REQUIRE(get_env(key) == value1);
             const auto value2 = std::string(u8"🤗");
             set_env(key, value2);
-            CHECK_EQ(get_env(key), value2);
+            REQUIRE(get_env(key) == value2);
         }
     }
 
@@ -69,15 +69,15 @@ namespace
         const auto restore = mambatests::EnvironmentCleaner();
 
         auto env = mamba::util::get_env_map();
-        CHECK_GT(env.size(), 0);
-        CHECK_EQ(env.count("VAR_THAT_MUST_NOT_EXIST_XYZ"), 0);
-        CHECK_EQ(env.count("PATH"), 1);
+        REQUIRE(env.size() > 0);
+        REQUIRE(env.count("VAR_THAT_MUST_NOT_EXIST_XYZ") == 0);
+        REQUIRE(env.count("PATH") == 1);
 
         const auto key = std::string(u8"VAR_私のにほHelloわへたです");
         const auto value = std::string(u8"😀");
         set_env(key, value);
         env = get_env_map();
-        CHECK_EQ(env.at(key), value);
+        REQUIRE(env.at(key) == value);
     }
 
     TEST_CASE("update_env_map")
@@ -94,15 +94,15 @@ namespace
 
         const auto val_set_1 = std::string(u8"a😀");
         update_env_map({ { key_changed, val_set_1 }, { key_unchanged, val_set_1 } });
-        CHECK_EQ(get_env(key_inexistent), std::nullopt);
-        CHECK_EQ(get_env(key_unchanged), val_set_1);
-        CHECK_EQ(get_env(key_changed), val_set_1);
+        REQUIRE(get_env(key_inexistent) == std::nullopt);
+        REQUIRE(get_env(key_unchanged) == val_set_1);
+        REQUIRE(get_env(key_changed) == val_set_1);
 
         const auto val_set_2 = std::string(u8"b😀");
         update_env_map({ { key_changed, val_set_2 } });
-        CHECK_EQ(get_env(key_inexistent), std::nullopt);
-        CHECK_EQ(get_env(key_unchanged), val_set_1);
-        CHECK_EQ(get_env(key_changed), val_set_2);
+        REQUIRE(get_env(key_inexistent) == std::nullopt);
+        REQUIRE(get_env(key_unchanged) == val_set_1);
+        REQUIRE(get_env(key_changed) == val_set_2);
     }
 
     TEST_CASE("set_env_map")
@@ -119,15 +119,15 @@ namespace
 
         const auto val_set_1 = std::string(u8"a😀");
         set_env_map({ { key_changed, val_set_1 }, { key_unchanged, val_set_1 } });
-        CHECK_EQ(get_env(key_inexistent), std::nullopt);
-        CHECK_EQ(get_env(key_unchanged), val_set_1);
-        CHECK_EQ(get_env(key_changed), val_set_1);
+        REQUIRE(get_env(key_inexistent) == std::nullopt);
+        REQUIRE(get_env(key_unchanged) == val_set_1);
+        REQUIRE(get_env(key_changed) == val_set_1);
 
         const auto val_set_2 = std::string(u8"b😀");
         set_env_map({ { key_changed, val_set_2 } });
-        CHECK_EQ(get_env(key_inexistent), std::nullopt);
-        CHECK_EQ(get_env(key_unchanged), std::nullopt);  // Difference with update_env_map
-        CHECK_EQ(get_env(key_changed), val_set_2);
+        REQUIRE(get_env(key_inexistent) == std::nullopt);
+        REQUIRE(get_env(key_unchanged) == std::nullopt);  // Difference with update_env_map
+        REQUIRE(get_env(key_changed) == val_set_2);
     }
 
     TEST_CASE("user_home_dir")
@@ -141,7 +141,7 @@ namespace
             if (!on_win)
             {
                 unset_env("HOME");
-                CHECK_EQ(user_home_dir(), home);  // Fallback does not need $HOME
+                REQUIRE(user_home_dir() == home);  // Fallback does not need $HOME
             }
         }
 
@@ -150,17 +150,17 @@ namespace
             if (on_win)
             {
                 set_env("USERPROFILE", R"(D:\user\mamba)");
-                CHECK_EQ(user_home_dir(), R"(D:\user\mamba)");
+                REQUIRE(user_home_dir() == R"(D:\user\mamba)");
 
                 unset_env("USERPROFILE");
                 set_env("HOMEDRIVE", R"(D:\user\)");
                 set_env("HOMEPATH", "mamba");
-                CHECK_EQ(user_home_dir(), R"(D:\user\mamba)");
+                REQUIRE(user_home_dir() == R"(D:\user\mamba)");
             }
             else
             {
                 set_env("HOME", "/user/mamba");
-                CHECK_EQ(user_home_dir(), "/user/mamba");
+                REQUIRE(user_home_dir() == "/user/mamba");
             }
         }
     }
@@ -176,9 +176,9 @@ namespace
                 { "XDG_DATA_HOME", "xdata" },
                 { "XDG_CACHE_HOME", "xcache" },
             });
-            CHECK_EQ(user_config_dir(), "xconfig");
-            CHECK_EQ(user_data_dir(), "xdata");
-            CHECK_EQ(user_cache_dir(), "xcache");
+            REQUIRE(user_config_dir() == "xconfig");
+            REQUIRE(user_data_dir() == "xdata");
+            REQUIRE(user_cache_dir() == "xcache");
         }
 
         SECTION("Defaults")
@@ -186,9 +186,9 @@ namespace
             if (!on_win)
             {
                 set_env_map({ { "HOME", "/user/mamba" } });
-                CHECK_EQ(user_config_dir(), "/user/mamba/.config");
-                CHECK_EQ(user_data_dir(), "/user/mamba/.local/share");
-                CHECK_EQ(user_cache_dir(), "/user/mamba/.cache");
+                REQUIRE(user_config_dir() == "/user/mamba/.config");
+                REQUIRE(user_data_dir() == "/user/mamba/.local/share");
+                REQUIRE(user_cache_dir() == "/user/mamba/.cache");
             }
         }
     }
@@ -197,7 +197,7 @@ namespace
     {
         SECTION("Inexistent search dirs")
         {
-            CHECK_EQ(which_in("echo", "/obviously/does/not/exist"), "");
+            REQUIRE(which_in("echo", "/obviously/does/not/exist") == "");
         }
 
         SECTION("testing_libmamba_lock")
@@ -206,7 +206,7 @@ namespace
                 "testing_libmamba_lock",
                 mambatests::testing_libmamba_lock_exe.parent_path()
             );
-            CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
+            REQUIRE(test_exe.stem() == "testing_libmamba_lock");
             REQUIRE(mamba::fs::exists(test_exe));
         }
 
@@ -218,7 +218,7 @@ namespace
                     "testing_libmamba_lock.exe",
                     mambatests::testing_libmamba_lock_exe.parent_path()
                 );
-                CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
+                REQUIRE(test_exe.stem() == "testing_libmamba_lock");
                 REQUIRE(mamba::fs::exists(test_exe));
             }
         }
@@ -229,7 +229,7 @@ namespace
         SECTION("echo")
         {
             const auto echo = which("echo");
-            CHECK_EQ(echo.stem(), "echo");
+            REQUIRE(echo.stem() == "echo");
             REQUIRE(mamba::fs::exists(echo));
 
             if (!on_win)
@@ -250,14 +250,14 @@ namespace
             if (on_win)
             {
                 const auto echo = which("echo.exe");
-                CHECK_EQ(echo.stem(), "echo");
+                REQUIRE(echo.stem() == "echo");
                 REQUIRE(mamba::fs::exists(echo));
             }
         }
 
         SECTION("Inexistent path")
         {
-            CHECK_EQ(which("obviously-does-not-exist"), "");
+            REQUIRE(which("obviously-does-not-exist") == "");
         }
     }
 }

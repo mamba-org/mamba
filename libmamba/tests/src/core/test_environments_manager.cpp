@@ -34,7 +34,7 @@ namespace mamba
 
             e.register_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
-            CHECK_EQ(new_prefixes.size(), prefixes.size() + 1);
+            REQUIRE(new_prefixes.size() == prefixes.size() + 1);
 
             e.unregister_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
@@ -46,13 +46,13 @@ namespace mamba
 
             e.register_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
-            CHECK_EQ(new_prefixes.size(), prefixes.size() + 1);
+            REQUIRE(new_prefixes.size() == prefixes.size() + 1);
 
             e.unregister_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
             // Shouldn't unregister because `conda-meta/other_file`
             // is there
-            CHECK_EQ(new_prefixes.size(), prefixes.size() + 1);
+            REQUIRE(new_prefixes.size() == prefixes.size() + 1);
 
             // Remove test directory
             fs::remove_all(util::expand_home("~/some_test_folder"));

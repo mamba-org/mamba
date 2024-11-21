@@ -50,8 +50,8 @@ namespace
              })
         {
             CAPTURE(std::string_view(no_ext_path));
-            CHECK_EQ(strip_archive_extension(no_ext_path), no_ext_path);
-            CHECK_EQ(strip_archive_extension(fs::u8path(no_ext_path)), no_ext_path);
+            REQUIRE(strip_archive_extension(no_ext_path) == no_ext_path);
+            REQUIRE(strip_archive_extension(fs::u8path(no_ext_path)) == no_ext_path);
         }
 
         CHECK_EQ(

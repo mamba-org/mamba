@@ -86,7 +86,7 @@ namespace mamba
                     [&] { executor.schedule([&] { ++counter; }); }
                 );
             }  // All threads from the executor must have been joined here.
-            CHECK_EQ(counter, arbitrary_task_count);
+            REQUIRE(counter == arbitrary_task_count);
         }
 
         TEST_CASE("closed_prevents_more_scheduling_and_joins")
@@ -104,7 +104,7 @@ namespace mamba
                 );
 
                 executor.close();
-                CHECK_EQ(counter, arbitrary_task_count);
+                REQUIRE(counter == arbitrary_task_count);
 
                 execute_tasks_from_concurrent_threads(
                     arbitrary_task_count,

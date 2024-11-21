@@ -24,50 +24,50 @@ namespace
     {
         auto tree = flat_binary_tree<std::string, int>{};
         REQUIRE(tree.empty());
-        CHECK_EQ(tree.size(), 0);
+        REQUIRE(tree.size() == 0);
 
         SECTION("Add nodes")
         {
             const auto l1 = tree.add_leaf(1);
             REQUIRE(tree.is_leaf(l1));
             REQUIRE_FALSE(tree.is_branch(l1));
-            CHECK_EQ(tree.leaf(l1), 1);
-            CHECK_EQ(tree.root(), l1);
+            REQUIRE(tree.leaf(l1) == 1);
+            REQUIRE(tree.root() == l1);
 
             const auto l2 = tree.add_leaf(2);
             REQUIRE(tree.is_leaf(l2));
             REQUIRE_FALSE(tree.is_branch(l2));
-            CHECK_EQ(tree.leaf(l2), 2);
+            REQUIRE(tree.leaf(l2) == 2);
 
             const auto pa = tree.add_branch("a", l1, l2);
             REQUIRE_FALSE(tree.is_leaf(pa));
             REQUIRE(tree.is_branch(pa));
-            CHECK_EQ(tree.branch(pa), "a");
-            CHECK_EQ(tree.left(pa), l1);
-            CHECK_EQ(tree.right(pa), l2);
-            CHECK_EQ(tree.root(), pa);
+            REQUIRE(tree.branch(pa) == "a");
+            REQUIRE(tree.left(pa) == l1);
+            REQUIRE(tree.right(pa) == l2);
+            REQUIRE(tree.root() == pa);
 
             const auto l3 = tree.add_leaf(3);
             REQUIRE(tree.is_leaf(l3));
             REQUIRE_FALSE(tree.is_branch(l3));
-            CHECK_EQ(tree.leaf(l2), 2);
+            REQUIRE(tree.leaf(l2) == 2);
 
             const auto pb = tree.add_branch("b", pa, l3);
             REQUIRE_FALSE(tree.is_leaf(pb));
             REQUIRE(tree.is_branch(pb));
-            CHECK_EQ(tree.branch(pb), "b");
-            CHECK_EQ(tree.left(pb), pa);
-            CHECK_EQ(tree.right(pb), l3);
-            CHECK_EQ(tree.root(), pb);
+            REQUIRE(tree.branch(pb) == "b");
+            REQUIRE(tree.left(pb) == pa);
+            REQUIRE(tree.right(pb) == l3);
+            REQUIRE(tree.root() == pb);
 
             REQUIRE_FALSE(tree.empty());
-            CHECK_EQ(tree.size(), 5);
+            REQUIRE(tree.size() == 5);
 
             SECTION("Clear nodes")
             {
                 tree.clear();
                 REQUIRE(tree.empty());
-                CHECK_EQ(tree.size(), 0);
+                REQUIRE(tree.size() == 0);
             }
         }
     }
@@ -120,10 +120,10 @@ namespace
             REQUIRE(parser.finalize());
 
             const auto& tree = parser.tree();
-            CHECK_EQ(tree.size(), 1);
+            REQUIRE(tree.size() == 1);
             REQUIRE(tree.is_leaf(0));
-            CHECK_EQ(tree.leaf(0), 'a');
-            CHECK_EQ(tree.root(), 0);
+            REQUIRE(tree.leaf(0) == 'a');
+            REQUIRE(tree.root() == 0);
         }
 
         SECTION("a b + c d e + * *")
@@ -141,7 +141,7 @@ namespace
             REQUIRE(parser.finalize());
 
             const auto& tree = parser.tree();
-            CHECK_EQ(tree.size(), 9);
+            REQUIRE(tree.size() == 9);
 
             const auto visited = visit_all_once_no_cycle(tree);
             REQUIRE(visited.size() == tree.size();
@@ -200,10 +200,10 @@ namespace
             REQUIRE(parser.finalize());
 
             const auto& tree = parser.tree();
-            REQUIRE_EQ(tree.size(), 1);
+            REQUIRE(tree.size() == 1);
             REQUIRE(tree.is_leaf(0));
-            CHECK_EQ(tree.root(), 0);
-            CHECK_EQ(tree.leaf(0), 'a');
+            REQUIRE(tree.root() == 0);
+            REQUIRE(tree.leaf(0) == 'a');
         }
 
         SECTION("(((a)) + b)")
@@ -220,14 +220,14 @@ namespace
             REQUIRE(parser.finalize());
 
             const auto& tree = parser.tree();
-            REQUIRE_EQ(tree.size(), 3);
+            REQUIRE(tree.size() == 3);
             const auto root = tree.root();
             REQUIRE(tree.is_branch(root));
-            CHECK_EQ(tree.branch(root), "+");
+            REQUIRE(tree.branch(root) == "+");
             REQUIRE(tree.is_leaf(tree.left(root)));
-            CHECK_EQ(tree.leaf(tree.left(root)), 'a');
+            REQUIRE(tree.leaf(tree.left(root)) == 'a');
             REQUIRE(tree.is_leaf(tree.right(root)));
-            CHECK_EQ(tree.leaf(tree.right(root)), 'b');
+            REQUIRE(tree.leaf(tree.right(root)) == 'b');
         }
 
         SECTION("(a + b) * (c * (d + e))")
@@ -250,7 +250,7 @@ namespace
             REQUIRE(parser.finalize());
 
             const auto& tree = parser.tree();
-            CHECK_EQ(tree.size(), 9);
+            REQUIRE(tree.size() == 9);
 
             const auto visited = visit_all_once_no_cycle(tree);
             REQUIRE(visited.size() == tree.size();
@@ -381,8 +381,8 @@ namespace
 
     TEST_CASE("Test exponential boolean cross-product")
     {
-        CHECK_EQ(integer_to_bools<5>(0b00000), std::array{ false, false, false, false, false });
-        CHECK_EQ(integer_to_bools<4>(0b1111), std::array{ true, true, true, true });
+        REQUIRE(integer_to_bools<5>(0b00000), std::array{ false, false, false, false == false });
+        REQUIRE(integer_to_bools<4>(0b1111), std::array{ true, true, true == true });
         CHECK_EQ(
             integer_to_bools<7>(0b1001101),
             std::array{ true, false, true, true, false, false, true }
@@ -506,6 +506,6 @@ namespace
             }
         );
         // There could be many representations, here is one
-        CHECK_EQ(result, "((x0 or x1) and ((x2 or (x3 or x4)) and x5)) or x6");
+        REQUIRE(result == "((x0 or x1) and ((x2 or (x3 or x4)) and x5)) or x6");
     }
 }

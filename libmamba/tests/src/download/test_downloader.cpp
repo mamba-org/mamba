@@ -49,7 +49,10 @@ namespace mamba
             const auto previous_quiet = context.output_params.quiet;
             auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
             context.output_params.quiet = true;
-            CHECK_THROWS_AS(download::download(dl_request, context.mirrors, context), std::runtime_error);
+            REQUIRE_THROWS_AS(
+                download::download(dl_request, context.mirrors, context),
+                std::runtime_error
+            );
         }
     }
 }

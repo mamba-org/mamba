@@ -28,7 +28,7 @@ namespace mamba
             REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
 
             const auto& error_details = EnvLockFileError::get_details(error);
-            CHECK_EQ(file_parsing_error_code::parsing_failure, error_details.parsing_error_code);
+            REQUIRE(file_parsing_error_code::parsing_failure == error_details.parsing_error_code);
             REQUIRE(error_details.yaml_error_type);
             const std::type_index bad_file_error_id{ typeid(YAML::BadFile) };
             REQUIRE(bad_file_error_id == error_details.yaml_error_type.value();
@@ -48,7 +48,7 @@ namespace mamba
             const auto error = maybe_lockfile.error();
             REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
             const auto& error_details = EnvLockFileError::get_details(error);
-            CHECK_EQ(file_parsing_error_code::unsupported_version, error_details.parsing_error_code);
+            REQUIRE(file_parsing_error_code::unsupported_version == error_details.parsing_error_code);
         }
 
         TEST_CASE("valid_no_package_succeed")
@@ -70,7 +70,7 @@ namespace mamba
             const auto error = maybe_lockfile.error();
             REQUIRE(mamba_error_code::env_lockfile_parsing_failed == error.error_code();
             const auto& error_details = EnvLockFileError::get_details(error);
-            CHECK_EQ(file_parsing_error_code::parsing_failure, error_details.parsing_error_code);
+            REQUIRE(file_parsing_error_code::parsing_failure == error_details.parsing_error_code);
         }
 
         TEST_CASE("valid_one_package_succeed")
@@ -80,7 +80,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
-            CHECK_EQ(lockfile.get_all_packages().size(), 1);
+            REQUIRE(lockfile.get_all_packages().size() == 1);
         }
 
         TEST_CASE("valid_one_package_implicit_category")
@@ -91,7 +91,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
-            CHECK_EQ(lockfile.get_all_packages().size(), 1);
+            REQUIRE(lockfile.get_all_packages().size() == 1);
         }
 
         TEST_CASE("valid_multiple_packages_succeed")
@@ -101,7 +101,7 @@ namespace mamba
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
-            CHECK_GT(lockfile.get_all_packages().size(), 1);
+            REQUIRE(lockfile.get_all_packages().size() > 1);
         }
 
         TEST_CASE("get_specific_packages")
@@ -113,12 +113,12 @@ namespace mamba
             {
                 const auto packages = lockfile.get_packages_for("main", "linux-64", "conda");
                 REQUIRE_FALSE(packages.empty());
-                CHECK_GT(packages.size(), 4);
+                REQUIRE(packages.size() > 4);
             }
             {
                 const auto packages = lockfile.get_packages_for("main", "linux-64", "pip");
                 REQUIRE_FALSE(packages.empty());
-                CHECK_EQ(packages.size(), 2);
+                REQUIRE(packages.size() == 2);
             }
         }
 
@@ -147,15 +147,15 @@ namespace mamba
                     other_specs
                 );
                 auto to_install = std::get<1>(transaction.to_conda());
-                CHECK_EQ(to_install.size(), num_conda);
+                REQUIRE(to_install.size() == num_conda);
                 if (num_pip == 0)
                 {
-                    CHECK_EQ(other_specs.size(), 0);
+                    REQUIRE(other_specs.size() == 0);
                 }
                 else
                 {
-                    CHECK_EQ(other_specs.size(), 1);
-                    CHECK_EQ(other_specs.at(0).deps.size(), num_pip);
+                    REQUIRE(other_specs.size() == 1);
+                    REQUIRE(other_specs.at(0).deps.size() == num_pip);
                 }
             };
 

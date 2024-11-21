@@ -53,40 +53,40 @@ namespace mamba
             auto& r = proxy.repr();
 
             REQUIRE(r.prefix.active());
-            CHECK_EQ(r.prefix.value(), "conda-forge");
-            CHECK_EQ(r.prefix.width(), 11);
+            REQUIRE(r.prefix.value() == "conda-forge");
+            REQUIRE(r.prefix.width() == 11);
 
             REQUIRE(r.progress);
-            CHECK_EQ(r.progress.value(), "??");
-            CHECK_EQ(r.progress.width(), 2);
+            REQUIRE(r.progress.value() == "??");
+            REQUIRE(r.progress.width() == 2);
 
             REQUIRE(r.separator);
-            CHECK_EQ(r.separator.value(), "-");
-            CHECK_EQ(r.separator.width(), 1);
+            REQUIRE(r.separator.value() == "-");
+            REQUIRE(r.separator.width() == 1);
 
             REQUIRE(r.total);
-            CHECK_EQ(r.total.value(), "bar");
-            CHECK_EQ(r.total.width(), 3);
+            REQUIRE(r.total.value() == "bar");
+            REQUIRE(r.total.width() == 3);
 
             REQUIRE(r.speed);
-            CHECK_EQ(r.speed.value(), "@10");
-            CHECK_EQ(r.speed.width(), 3);
+            REQUIRE(r.speed.value() == "@10");
+            REQUIRE(r.speed.width() == 3);
 
             REQUIRE(r.postfix.active());
-            CHECK_EQ(r.postfix.value(), "downloading");
-            CHECK_EQ(r.postfix.width(), 11);
+            REQUIRE(r.postfix.value() == "downloading");
+            REQUIRE(r.postfix.width() == 11);
 
             REQUIRE(r.elapsed.active());
-            CHECK_EQ(r.elapsed.value(), "0.1s");
-            CHECK_EQ(r.elapsed.width(), 4);
+            REQUIRE(r.elapsed.value() == "0.1s");
+            REQUIRE(r.elapsed.width() == 4);
 
             proxy.print(ostream, 0, false);
-            CHECK_EQ(ostream.str(), "conda-forge ?? foo - bar @10 downloading 0.1s");
+            REQUIRE(ostream.str() == "conda-forge ?? foo - bar @10 downloading 0.1s");
             ostream.str("");
 
             r.set_width(21);  // no impact if 'update_repr' not called
             proxy.print(ostream, 0, false);
-            CHECK_EQ(ostream.str(), "conda-forge ?? foo - bar @10 downloading 0.1s");
+            REQUIRE(ostream.str() == "conda-forge ?? foo - bar @10 downloading 0.1s");
             ostream.str("");
         }
 
@@ -104,14 +104,14 @@ namespace mamba
             REQUIRE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 106);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.separator.width(), 1);
-            CHECK_EQ(r.total.width(), 3);
-            CHECK_EQ(r.speed.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 106);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.separator.width() == 1);
+            REQUIRE(r.total.width() == 3);
+            REQUIRE(r.speed.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
         }
 
         TEST_CASE_FIXTURE(progress_bar, "print_reduce_bar")
@@ -128,14 +128,14 @@ namespace mamba
             REQUIRE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 40);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.separator.width(), 1);
-            CHECK_EQ(r.total.width(), 3);
-            CHECK_EQ(r.speed.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 40);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.separator.width() == 1);
+            REQUIRE(r.total.width() == 3);
+            REQUIRE(r.speed.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
 
             // 1: reduce bar width
             // available space redistributed to the bar
@@ -149,14 +149,14 @@ namespace mamba
             REQUIRE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 39);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.separator.width(), 1);
-            CHECK_EQ(r.total.width(), 3);
-            CHECK_EQ(r.speed.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 39);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.separator.width() == 1);
+            REQUIRE(r.total.width() == 3);
+            REQUIRE(r.speed.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
         }
 
         TEST_CASE_FIXTURE(progress_bar, "print_remove_total_sep")
@@ -173,14 +173,14 @@ namespace mamba
             REQUIRE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 15);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.separator.width(), 1);
-            CHECK_EQ(r.total.width(), 3);
-            CHECK_EQ(r.speed.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 15);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.separator.width() == 1);
+            REQUIRE(r.total.width() == 3);
+            REQUIRE(r.speed.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
 
             // 2: remove the total value and the separator
             // available space redistributed to the bar
@@ -194,12 +194,12 @@ namespace mamba
             REQUIRE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 20);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.speed.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 20);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.speed.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
         }
 
         TEST_CASE_FIXTURE(progress_bar, "print_remove_speed")
@@ -216,12 +216,12 @@ namespace mamba
             REQUIRE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 15);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.speed.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 15);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.speed.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
 
             // 3: remove the speed
             // available space redistributed to the bar
@@ -235,11 +235,11 @@ namespace mamba
             REQUIRE_FALSE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 18);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 18);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
         }
 
         TEST_CASE_FIXTURE(progress_bar, "print_remove_postfix")
@@ -256,11 +256,11 @@ namespace mamba
             REQUIRE_FALSE(r.speed);
             REQUIRE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 15);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.postfix.width(), 11);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 15);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.postfix.width() == 11);
+            REQUIRE(r.elapsed.width() == 5);
 
             // 4: remove the postfix
             // available space redistributed to the bar
@@ -274,10 +274,10 @@ namespace mamba
             REQUIRE_FALSE(r.speed);
             REQUIRE_FALSE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 26);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 26);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.elapsed.width() == 5);
         }
 
         TEST_CASE_FIXTURE(progress_bar, "print_truncate_prefix")
@@ -295,10 +295,10 @@ namespace mamba
             REQUIRE_FALSE(r.speed);
             REQUIRE_FALSE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 26);
-            CHECK_EQ(r.progress.width(), 15);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 26);
+            REQUIRE(r.progress.width() == 15);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.elapsed.width() == 5);
 
             // 5: truncate the prefix if too long
             // available space redistributed to the prefix
@@ -312,10 +312,10 @@ namespace mamba
             REQUIRE_FALSE(r.speed);
             REQUIRE_FALSE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 25);
-            CHECK_EQ(r.progress.width(), 15);
-            CHECK_EQ(r.current.width(), 3);
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.prefix.width() == 25);
+            REQUIRE(r.progress.width() == 15);
+            REQUIRE(r.current.width() == 3);
+            REQUIRE(r.elapsed.width() == 5);
         }
 
         TEST_CASE_FIXTURE(progress_bar, "print_without_bar")
@@ -332,19 +332,19 @@ namespace mamba
             REQUIRE_FALSE(r.speed);
             REQUIRE_FALSE(r.postfix);
             REQUIRE(r.elapsed);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 12);
-            CHECK_EQ(r.current.width(), 3);
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 12);
+            REQUIRE(r.current.width() == 3);
             // This fails because of invisible ANSI escape codes introduced with
             // https://github.com/mamba-org/mamba/pull/2085/
             // REQUIRE(r.progress.overflow());
-            CHECK_EQ(r.elapsed.width(), 5);
+            REQUIRE(r.elapsed.width() == 5);
 
             // 6: display progress without a bar
             r.set_width(33);
             proxy.update_repr();
             proxy.print(ostream, 0, false);
-            CHECK_EQ(ostream.str(), "conda-forge          0% foo    --");
+            REQUIRE(ostream.str() == "conda-forge          0% foo    --");
             ostream.str("");
         }
 
@@ -355,14 +355,14 @@ namespace mamba
             r.set_width(26).reset_fields();
             proxy.update_repr();
             proxy.print(ostream, 0, false);
-            CHECK_EQ(ostream.str(), "conda-forge   0% foo    --");
+            REQUIRE(ostream.str() == "conda-forge   0% foo    --");
             ostream.str("");
 
             // 7: remove the current value
             r.set_width(25).reset_fields();
             proxy.update_repr();
             proxy.print(ostream, 0, false);
-            CHECK_EQ(ostream.str(), "conda-forge      0%    --");
+            REQUIRE(ostream.str() == "conda-forge      0%    --");
             ostream.str("");
         }
 
@@ -381,19 +381,19 @@ namespace mamba
             REQUIRE_FALSE(r.postfix);
             REQUIRE(r.elapsed);
             proxy.print(ostream, 0, false);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 4);
-            CHECK_EQ(r.elapsed.width(), 5);
-            CHECK_EQ(ostream.str(), "conda-forge   0%    --");
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 4);
+            REQUIRE(r.elapsed.width() == 5);
+            REQUIRE(ostream.str() == "conda-forge   0%    --");
             ostream.str("");
 
             // 8: remove the elapsed time
             r.set_width(21);
             proxy.update_repr();
             proxy.print(ostream, 0, false);
-            CHECK_EQ(r.prefix.width(), 11);
-            CHECK_EQ(r.progress.width(), 9);
-            CHECK_EQ(ostream.str(), "conda-forge        0%");
+            REQUIRE(r.prefix.width() == 11);
+            REQUIRE(r.progress.width() == 9);
+            REQUIRE(ostream.str() == "conda-forge        0%");
             ostream.str("");
         }
     }

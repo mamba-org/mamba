@@ -71,15 +71,15 @@ test_forward_api(Seq& input, const Seq& res, Pred p)
 
     while (res_iter != res_iter_end)
     {
-        CHECK_EQ(*iter, *res_iter);
-        CHECK_EQ(*iter, *citer);
+        REQUIRE(*iter == *res_iter);
+        REQUIRE(*iter == *citer);
         ++iter, ++citer, ++res_iter;
     }
-    CHECK_EQ(iter, iter_end);
-    CHECK_EQ(citer, citer_end);
+    REQUIRE(iter == iter_end);
+    REQUIRE(citer == citer_end);
     REQUIRE(iter == iter_end);
 
-    CHECK_EQ(iter2.operator->(), (++input.begin()).operator->());
+    REQUIRE(iter2.operator->() == (++input.begin()).operator->());
     REQUIRE(iter2++ != ++iter3);
 }
 
@@ -102,15 +102,15 @@ test_bidirectional_api(Seq& input, const Seq& res, Pred pred)
     while (res_iter_end != res_iter)
     {
         --iter_end, --citer_end, --res_iter_end;
-        CHECK_EQ(*iter_end, *res_iter_end);
-        CHECK_EQ(*iter_end, *citer_end);
+        REQUIRE(*iter_end == *res_iter_end);
+        REQUIRE(*iter_end == *citer_end);
     }
 
-    CHECK_EQ(iter, iter_end);
-    CHECK_EQ(citer, citer_end);
+    REQUIRE(iter == iter_end);
+    REQUIRE(citer == citer_end);
     --iter_end, --citer_end;
 
-    CHECK_EQ(iter2.operator->(), input.end().operator->());
+    REQUIRE(iter2.operator->() == input.end().operator->());
     REQUIRE(iter2-- != --iter3);
 }
 
@@ -132,17 +132,17 @@ test_random_access_api(Seq& input, const Seq& res, Pred pred)
     auto citer2 = citer;
     auto res_iter2 = res_iter;
 
-    CHECK_EQ(iter_end - iter, static_cast<std::ptrdiff_t>(res.size()));
-    CHECK_EQ(citer_end - citer, static_cast<std::ptrdiff_t>(res.size()));
+    REQUIRE(iter_end - iter == static_cast<std::ptrdiff_t>(res.size()));
+    REQUIRE(citer_end - citer == static_cast<std::ptrdiff_t>(res.size()));
 
     REQUIRE(*(iter + 2) == *(res_iter + 2);
     REQUIRE(*(citer + 2) == *(res_iter + 2);
     iter += 2, res_iter += 2, citer += 2;
-    CHECK_EQ(*iter, *res_iter);
-    CHECK_EQ(*citer, *res_iter);
+    REQUIRE(*iter == *res_iter);
+    REQUIRE(*citer == *res_iter);
 
-    CHECK_EQ(iter2[1], res_iter2[1]);
-    CHECK_EQ(citer2[1], res_iter2[1]);
+    REQUIRE(iter2[1] == res_iter2[1]);
+    REQUIRE(citer2[1] == res_iter2[1]);
 }
 
 namespace

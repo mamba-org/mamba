@@ -51,9 +51,9 @@ namespace
 
             REQUIRE_FALSE(map.contains_weaken(-1));
 
-            CHECK_EQ(map.at_weaken(4), 40);  // Exact match
-            CHECK_EQ(map.at_weaken(0), 10);  // First key match
-            CHECK_EQ(map.at_weaken(7), 40);  // Weaken key
+            REQUIRE(map.at_weaken(4) == 40);  // Exact match
+            REQUIRE(map.at_weaken(0) == 10);  // First key match
+            REQUIRE(map.at_weaken(7) == 40);  // Weaken key
         }
     }
 }

@@ -5,19 +5,20 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <string>
 
 #include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-namespace doctest
+namespace Catch
 {
     template <typename T, std::size_t N>
     struct StringMaker<std::array<T, N>>
     {
-        static auto convert(const std::array<T, N>& value) -> String
+        static std::string convert(const std::array<T, N>& value)
         {
-            return { fmt::format("std::array{{{}}}", fmt::join(value, ", ")).c_str() };
+            return fmt::format("std::array{{{}}}", fmt::join(value, ", "));
         }
     };
 }

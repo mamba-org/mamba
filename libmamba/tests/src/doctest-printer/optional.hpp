@@ -5,20 +5,21 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <optional>
+#include <string>
 
 #include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 
-namespace doctest
+namespace Catch
 {
     template <typename T>
     struct StringMaker<std::optional<T>>
     {
-        static auto convert(const std::optional<T>& value) -> String
+        static std::string convert(const std::optional<T>& value)
         {
             if (value.has_value())
             {
-                return { fmt::format("Some({})", value.value()).c_str() };
+                return fmt::format("Some({})", value.value());
             }
             return "None";
         }

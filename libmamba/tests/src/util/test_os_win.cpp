@@ -25,14 +25,14 @@ namespace
 
         SECTION("utf8_to_windows_encoding")
         {
-            CHECK_EQ(utf8_to_windows_encoding(""), L"");
-            CHECK_EQ(utf8_to_windows_encoding(text_utf8), text_utf16);
+            REQUIRE(utf8_to_windows_encoding("") == L"");
+            REQUIRE(utf8_to_windows_encoding(text_utf8) == text_utf16);
         }
 
         SECTION("windows_encoding_to_utf8")
         {
-            CHECK_EQ(windows_encoding_to_utf8(L""), "");
-            CHECK_EQ(windows_encoding_to_utf8(text_utf16), text_utf8);
+            REQUIRE(windows_encoding_to_utf8(L"") == "");
+            REQUIRE(windows_encoding_to_utf8(text_utf16) == text_utf8);
         }
     }
 

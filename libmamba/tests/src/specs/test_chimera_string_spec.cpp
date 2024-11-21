@@ -19,7 +19,7 @@ namespace
         REQUIRE(spec.contains(""));
         REQUIRE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "*");
+        REQUIRE(spec.str() == "*");
         REQUIRE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
         REQUIRE(spec.is_glob());
@@ -34,7 +34,7 @@ namespace
         REQUIRE_FALSE(spec.contains("nomkl"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "mkl");
+        REQUIRE(spec.str() == "mkl");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE(spec.is_exact());
         REQUIRE(spec.is_glob());
@@ -50,7 +50,7 @@ namespace
         REQUIRE_FALSE(spec.contains(""));
         REQUIRE_FALSE(spec.contains("cpython"));
 
-        CHECK_EQ(spec.str(), "^py.*$");
+        REQUIRE(spec.str() == "^py.*$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
         REQUIRE_FALSE(spec.is_glob());
@@ -65,7 +65,7 @@ namespace
         REQUIRE_FALSE(spec.contains(""));
         REQUIRE_FALSE(spec.contains("openblas"));
 
-        CHECK_EQ(spec.str(), "^.*(accelerate|mkl)$");
+        REQUIRE(spec.str() == "^.*(accelerate|mkl)$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
         REQUIRE_FALSE(spec.is_glob());
@@ -77,8 +77,8 @@ namespace
         auto spec2 = ChimeraStringSpec::parse("mkl").value();
         auto spec3 = ChimeraStringSpec::parse("*").value();
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         std::hash<ChimeraStringSpec> hash_fn;
         REQUIRE(hash_fn(spec1) == hash_fn(spec2);

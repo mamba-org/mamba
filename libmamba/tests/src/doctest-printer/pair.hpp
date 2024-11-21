@@ -4,19 +4,20 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <string>
 #include <utility>
 
 #include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 
-namespace doctest
+namespace Catch
 {
     template <typename T, typename U>
     struct StringMaker<std::pair<T, U>>
     {
-        static auto convert(const std::pair<T, U>& value) -> String
+        static std::string convert(const std::pair<T, U>& value)
         {
-            return { fmt::format("std::pair{{{}, {}}}", value.first, value.second).c_str() };
+            return fmt::format("std::pair{{{}, {}}}", value.first, value.second);
         }
     };
 }

@@ -139,8 +139,8 @@ namespace
         const auto g = build_graph();
         using node_map = decltype(g)::node_map;
         using node_id_list = decltype(g)::node_id_list;
-        CHECK_EQ(g.number_of_nodes(), 7ul);
-        CHECK_EQ(g.number_of_edges(), 7ul);
+        REQUIRE(g.number_of_nodes() == 7ul);
+        REQUIRE(g.number_of_edges() == 7ul);
         CHECK_EQ(
             g.nodes(),
             node_map(
@@ -162,9 +162,9 @@ namespace
         const auto g = build_edge_data_graph();
         using node_map = decltype(g)::node_map;
         using node_id_list = decltype(g)::node_id_list;
-        CHECK_EQ(g.number_of_nodes(), 3ul);
-        CHECK_EQ(g.number_of_edges(), 2ul);
-        CHECK_EQ(g.nodes(), node_map({ { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 } }));
+        REQUIRE(g.number_of_nodes() == 3ul);
+        REQUIRE(g.number_of_edges() == 2ul);
+        REQUIRE(g.nodes() == node_map({ { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 } }));
         REQUIRE(g.successors(0ul) == node_id_list({ 1ul });
         REQUIRE(g.successors(1ul) == node_id_list({ 2ul });
         REQUIRE(g.successors(2ul) == node_id_list();
@@ -173,7 +173,7 @@ namespace
         REQUIRE(g.predecessors(2ul) == node_id_list({ 1ul });
 
         using edge_map = decltype(g)::edge_map;
-        CHECK_EQ(g.edges(), edge_map({ { { 0ul, 1ul }, "n0->n1" }, { { 1ul, 2ul }, "n1->n2" } }));
+        REQUIRE(g.edges() == edge_map({ { { 0ul, 1ul }, "n0->n1" }, { { 1ul, 2ul }, "n1->n2" } }));
     }
 
     TEST_CASE("has_node_edge")
@@ -195,14 +195,14 @@ namespace
         auto g = build_edge_data_graph();
 
         static constexpr auto new_node_val = -1.5;
-        CHECK_NE(g.node(0ul), new_node_val);
+        REQUIRE(g.node(0ul) != new_node_val);
         g.node(0ul) = new_node_val;
-        CHECK_EQ(g.node(0ul), new_node_val);
+        REQUIRE(g.node(0ul) == new_node_val);
 
         static constexpr auto new_edge_val = "data";
-        CHECK_NE(g.edge(0ul, 1ul), new_edge_val);
+        REQUIRE(g.edge(0ul, 1ul) != new_edge_val);
         g.edge(0ul, 1ul) = new_edge_val;
-        CHECK_EQ(g.edge(0ul, 1ul), new_edge_val);
+        REQUIRE(g.edge(0ul, 1ul) == new_edge_val);
     }
 
     TEST_CASE("remove_edge")
@@ -213,15 +213,15 @@ namespace
         REQUIRE_FALSE(g.has_edge(1, 0));
         REQUIRE(g.has_edge(0, 1));
         REQUIRE_FALSE(g.remove_edge(1, 0));
-        CHECK_EQ(g.number_of_edges(), n_edges_init);
+        REQUIRE(g.number_of_edges() == n_edges_init);
         REQUIRE_FALSE(g.has_edge(1, 0));
         REQUIRE(g.has_edge(0, 1));
 
         REQUIRE(g.has_edge(0, 1));
         REQUIRE(g.remove_edge(0, 1));
-        CHECK_EQ(g.number_of_edges(), n_edges_init - 1u);
+        REQUIRE(g.number_of_edges() == n_edges_init - 1u);
         REQUIRE_FALSE(g.has_edge(0, 1));
-        CHECK_EQ(g.edges().count({ 0, 1 }), 0);
+        REQUIRE(g.edges().count({ 0, 1 }) == 0);
     }
 
     TEST_CASE("remove_node")
@@ -239,38 +239,38 @@ namespace
         const auto node_1_degree = g.in_degree(1) + g.out_degree(1);
 
         REQUIRE(g.remove_node(1));
-        CHECK_EQ(g.number_of_nodes(), n_nodes_init - 1u);
-        CHECK_EQ(g.number_of_edges(), n_edges_init - node_1_degree);
-        CHECK_EQ(g.number_of_edges(), g.edges().size());
+        REQUIRE(g.number_of_nodes() == n_nodes_init - 1u);
+        REQUIRE(g.number_of_edges() == n_edges_init - node_1_degree);
+        REQUIRE(g.number_of_edges() == g.edges().size());
         REQUIRE(g.has_node(0));
         REQUIRE_FALSE(g.has_node(1));
         REQUIRE(g.has_node(2));
-        CHECK_EQ(g.in_degree(1), 0);
-        CHECK_EQ(g.out_degree(1), 0);
+        REQUIRE(g.in_degree(1) == 0);
+        REQUIRE(g.out_degree(1) == 0);
         REQUIRE_FALSE(g.has_edge(0, 1));
         REQUIRE_FALSE(g.has_edge(1, 2));
         g.for_each_node_id([&](auto id) { REQUIRE(g.has_node(id)); });
 
         REQUIRE_FALSE(g.remove_node(1));
-        CHECK_EQ(g.number_of_nodes(), n_nodes_init - 1u);
-        CHECK_EQ(g.number_of_edges(), n_edges_init - node_1_degree);
-        CHECK_EQ(g.number_of_edges(), g.edges().size());
+        REQUIRE(g.number_of_nodes() == n_nodes_init - 1u);
+        REQUIRE(g.number_of_edges() == n_edges_init - node_1_degree);
+        REQUIRE(g.number_of_edges() == g.edges().size());
 
         const auto new_id = g.add_node(.7);
-        CHECK_EQ(new_id, n_nodes_init);  // Ids are not invalidated so new id is used
-        REQUIRE_FALSE(g.has_node(1));    // Old id is not being confused
-        CHECK_EQ(g.number_of_nodes(), n_nodes_init);
+        REQUIRE(new_id == n_nodes_init);  // Ids are not invalidated so new id is used
+        REQUIRE_FALSE(g.has_node(1));     // Old id is not being confused
+        REQUIRE(g.number_of_nodes() == n_nodes_init);
     }
 
     TEST_CASE("degree")
     {
         const auto g = build_graph();
-        CHECK_EQ(g.out_degree(0), 2);
-        CHECK_EQ(g.out_degree(1), 2);
-        CHECK_EQ(g.out_degree(6), 0);
-        CHECK_EQ(g.in_degree(0), 0);
-        CHECK_EQ(g.in_degree(3), 2);
-        CHECK_EQ(g.in_degree(6), 1);
+        REQUIRE(g.out_degree(0) == 2);
+        REQUIRE(g.out_degree(1) == 2);
+        REQUIRE(g.out_degree(6) == 0);
+        REQUIRE(g.in_degree(0) == 0);
+        REQUIRE(g.in_degree(3) == 2);
+        REQUIRE(g.in_degree(6) == 1);
     }
 
     TEST_CASE("for_each_node")
@@ -310,7 +310,7 @@ namespace
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
         g.for_each_leaf_id([&leaves](node_id leaf) { leaves.insert(leaf); });
-        CHECK_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
+        REQUIRE(leaves == node_id_list({ 4ul, 5ul, 6ul }));
     }
 
     TEST_CASE("for_each_leaf_from")
@@ -320,7 +320,7 @@ namespace
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
         g.for_each_leaf_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
-        CHECK_EQ(leaves, node_id_list({ 5ul, 6ul }));
+        REQUIRE(leaves == node_id_list({ 5ul, 6ul }));
     }
 
     TEST_CASE("for_each_root")
@@ -350,7 +350,7 @@ namespace
         using node_id = typename decltype(g)::node_id;
         dfs_raw(g, vis, /* start= */ node_id(0));
         REQUIRE(vis.get_back_edge_map().empty());
-        CHECK_EQ(vis.get_cross_edge_map().find(2u)->second, 3u);
+        REQUIRE(vis.get_cross_edge_map().find(2u)->second == 3u);
 
         const auto& start_node_list = vis.get_start_node_list();
         const auto& finish_node_list = vis.get_finish_node_list();
@@ -360,7 +360,7 @@ namespace
         REQUIRE(start_node_list.size() == start_node_set.size();  // uniqueness
         const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
         REQUIRE(finish_node_list.size() == finish_node_set.size();  // uniqueness
-        CHECK_EQ(start_node_set, finish_node_set);
+        REQUIRE(start_node_set == finish_node_set);
     }
 
     TEST_CASE("dfs_cyclic")
@@ -369,7 +369,7 @@ namespace
         test_visitor<DiGraph<double>> vis;
         using node_id = typename decltype(g)::node_id;
         dfs_raw(g, vis, /* start= */ node_id(0));
-        CHECK_EQ(vis.get_back_edge_map().find(2u)->second, 0u);
+        REQUIRE(vis.get_back_edge_map().find(2u)->second == 0u);
         REQUIRE(vis.get_cross_edge_map().empty());
     }
 
@@ -411,8 +411,8 @@ namespace
         REQUIRE(is_node_id_permutation(g, finish_node_list.cbegin(), finish_node_list.cend()));
         const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
         const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
-        CHECK_EQ(start_node_set, finish_node_set);
-        CHECK_EQ(start_node_set.size(), 3);
+        REQUIRE(start_node_set == finish_node_set);
+        REQUIRE(start_node_set.size() == 3);
     }
 
     TEST_CASE("dfs_preorder & dfs_postorder")
@@ -430,7 +430,7 @@ namespace
         SECTION("dfs_preorder starting on a given node")
         {
             dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); }, n0);
-            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1 });
+            REQUIRE(nodes == std::vector<node_id>{ n0, n1 });
         }
 
         SECTION("dfs_preorder on all nodes")
@@ -440,20 +440,20 @@ namespace
             REQUIRE(g.has_node(n2));
             dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
             REQUIRE(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
-            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1, n2 });
+            REQUIRE(nodes == std::vector<node_id>{ n0, n1, n2 });
         }
 
         SECTION("dfs_postorder starting on a given node")
         {
             dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); }, n0);
-            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0 });
+            REQUIRE(nodes == std::vector<node_id>{ n1, n0 });
         }
 
         SECTION("dfs_postorder on all nodes")
         {
             dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
             REQUIRE(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
-            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0, n2 });
+            REQUIRE(nodes == std::vector<node_id>{ n1, n0, n2 });
         }
     }
 
@@ -498,7 +498,7 @@ namespace
                 // Must be true given the permutation assumption
                 REQUIRE_LT(to_pos, sorted.cend());
                 // The topological sort property
-                CHECK_LT(from_pos, to_pos);
+                REQUIRE(from_pos < to_pos);
             }
         );
     }

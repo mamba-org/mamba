@@ -30,8 +30,8 @@ namespace
             CHECK_EQ(find_matching_parentheses("(hello (dear (sir))(!))(how(are(you)))"), Slice(0, 22));
             CHECK_EQ(find_matching_parentheses("[hello]", '[', ']'), Slice(0, 6));
 
-            CHECK_EQ(find_matching_parentheses(")(").error(), ParseError::InvalidInput);
-            CHECK_EQ(find_matching_parentheses("((hello)").error(), ParseError::InvalidInput);
+            REQUIRE(find_matching_parentheses(")(").error() == ParseError::InvalidInput);
+            REQUIRE(find_matching_parentheses("((hello)").error() == ParseError::InvalidInput);
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
@@ -75,8 +75,8 @@ namespace
             );
             CHECK_EQ(rfind_matching_parentheses("[hello]", '[', ']'), Slice(0, 6));
 
-            CHECK_EQ(rfind_matching_parentheses(")(").error(), ParseError::InvalidInput);
-            CHECK_EQ(rfind_matching_parentheses("(hello))").error(), ParseError::InvalidInput);
+            REQUIRE(rfind_matching_parentheses(")(").error() == ParseError::InvalidInput);
+            REQUIRE(rfind_matching_parentheses("(hello))").error() == ParseError::InvalidInput);
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
@@ -105,18 +105,18 @@ namespace
     {
         SECTION("Single char and different open/close pair")
         {
-            CHECK_EQ(find_not_in_parentheses("", ','), npos);
-            CHECK_EQ(find_not_in_parentheses("Nothing to see here", ','), npos);
-            CHECK_EQ(find_not_in_parentheses("(hello, world)", ','), npos);
+            REQUIRE(find_not_in_parentheses("", ',') == npos);
+            REQUIRE(find_not_in_parentheses("Nothing to see here", ',') == npos);
+            REQUIRE(find_not_in_parentheses("(hello, world)", ',') == npos);
 
-            CHECK_EQ(find_not_in_parentheses("hello, world", ','), 5);
-            CHECK_EQ(find_not_in_parentheses("hello, world, welcome", ','), 5);
-            CHECK_EQ(find_not_in_parentheses("(hello, world), (welcome, here),", ','), 14);
-            CHECK_EQ(find_not_in_parentheses("(hello, world), (welcome, here),", ',', '[', ']'), 6);
-            CHECK_EQ(find_not_in_parentheses("[hello, world](welcome, here),", ',', '[', ']'), 22);
+            REQUIRE(find_not_in_parentheses("hello, world", ',') == 5);
+            REQUIRE(find_not_in_parentheses("hello, world, welcome", ',') == 5);
+            REQUIRE(find_not_in_parentheses("(hello, world), (welcome, here),", ',') == 14);
+            REQUIRE(find_not_in_parentheses("(hello, world), (welcome, here),", ',', '[', ']') == 6);
+            REQUIRE(find_not_in_parentheses("[hello, world](welcome, here),", ',', '[', ']') == 22);
 
-            CHECK_EQ(find_not_in_parentheses("(hello, world,", ',').error(), ParseError::InvalidInput);
-            CHECK_EQ(find_not_in_parentheses("(hello", ',').error(), ParseError::InvalidInput);
+            REQUIRE(find_not_in_parentheses("(hello, world,", ',').error() == ParseError::InvalidInput);
+            REQUIRE(find_not_in_parentheses("(hello", ',').error() == ParseError::InvalidInput);
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
@@ -128,7 +128,9 @@ namespace
                 find_not_in_parentheses("([(hello)], ([world])), [welcome, here],", ',', opens, closes),
                 22
             );
-            CHECK_EQ(find_not_in_parentheses("[hello, world](welcome, here),", ',', opens, closes), 29);
+            REQUIRE(
+                find_not_in_parentheses("[hello, world](welcome, here),", ',', opens, closes) == 29
+            );
             CHECK_EQ(
                 find_not_in_parentheses("(hello, ]world,) welcome, here],", ',', opens, closes).error(),
                 ParseError::InvalidInput
@@ -144,10 +146,10 @@ namespace
 
         SECTION("Single char and similar open/close pair")
         {
-            CHECK_EQ(find_not_in_parentheses(R"("some, csv")", ',', '"', '"'), npos);
+            REQUIRE(find_not_in_parentheses(R"("some, csv")", ',', '"', '"') == npos);
 
-            CHECK_EQ(find_not_in_parentheses(R"("some, csv",value)", ',', '"', '"'), 11);
-            CHECK_EQ(find_not_in_parentheses(R"("some, csv""value","here")", ',', '"', '"'), 18);
+            REQUIRE(find_not_in_parentheses(R"("some, csv",value)", ',', '"', '"') == 11);
+            REQUIRE(find_not_in_parentheses(R"("some, csv""value","here")", ',', '"', '"') == 18);
 
             CHECK_EQ(
                 find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error(),
@@ -173,18 +175,20 @@ namespace
 
         SECTION("Substring and different open/close pair")
         {
-            CHECK_EQ(find_not_in_parentheses("", "::"), npos);
-            CHECK_EQ(find_not_in_parentheses("Nothing to see here", "::"), npos);
-            CHECK_EQ(find_not_in_parentheses("(hello::world)", "::"), npos);
+            REQUIRE(find_not_in_parentheses("", "::") == npos);
+            REQUIRE(find_not_in_parentheses("Nothing to see here", "::") == npos);
+            REQUIRE(find_not_in_parentheses("(hello::world)", "::") == npos);
 
-            CHECK_EQ(find_not_in_parentheses("hello::world", "::"), 5);
-            CHECK_EQ(find_not_in_parentheses("hello::world::welcome", "::"), 5);
-            CHECK_EQ(find_not_in_parentheses("(hello::world)::(welcome::here)::", "::").value(), 14);
-            CHECK_EQ(find_not_in_parentheses("(hello::world)::(welcome::here)", "::", '[', ']'), 6);
-            CHECK_EQ(find_not_in_parentheses("[hello::world](welcome::here),", "::", '[', ']'), 22);
+            REQUIRE(find_not_in_parentheses("hello::world", "::") == 5);
+            REQUIRE(find_not_in_parentheses("hello::world::welcome", "::") == 5);
+            REQUIRE(find_not_in_parentheses("(hello::world)::(welcome::here)::", "::").value() == 14);
+            REQUIRE(find_not_in_parentheses("(hello::world)::(welcome::here)", "::", '[', ']') == 6);
+            REQUIRE(find_not_in_parentheses("[hello::world](welcome::here),", "::", '[', ']') == 22);
             //
-            CHECK_EQ(find_not_in_parentheses("(hello::world::", "::").error(), ParseError::InvalidInput);
-            CHECK_EQ(find_not_in_parentheses("(hello", "::").error(), ParseError::InvalidInput);
+            REQUIRE(
+                find_not_in_parentheses("(hello::world::", "::").error() == ParseError::InvalidInput
+            );
+            REQUIRE(find_not_in_parentheses("(hello", "::").error() == ParseError::InvalidInput);
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
@@ -209,10 +213,10 @@ namespace
 
         SECTION("Substring and similar open/close pair")
         {
-            CHECK_EQ(find_not_in_parentheses(R"("some::csv")", "::", '"', '"'), npos);
+            REQUIRE(find_not_in_parentheses(R"("some::csv")", "::", '"', '"') == npos);
 
-            CHECK_EQ(find_not_in_parentheses(R"("some::csv"::value)", "::", '"', '"'), 11);
-            CHECK_EQ(find_not_in_parentheses(R"("some::csv""value"::"here")", "::", '"', '"'), 18);
+            REQUIRE(find_not_in_parentheses(R"("some::csv"::value)", "::", '"', '"') == 11);
+            REQUIRE(find_not_in_parentheses(R"("some::csv""value"::"here")", "::", '"', '"') == 18);
 
             CHECK_EQ(
                 find_not_in_parentheses(R"("some::csv)", "::", '"', '"').error(),
@@ -251,18 +255,18 @@ namespace
     {
         SECTION("Single char and different open/close pair")
         {
-            CHECK_EQ(rfind_not_in_parentheses("", ','), npos);
-            CHECK_EQ(rfind_not_in_parentheses("Nothing to see here", ','), npos);
-            CHECK_EQ(rfind_not_in_parentheses("(hello, world)", ','), npos);
+            REQUIRE(rfind_not_in_parentheses("", ',') == npos);
+            REQUIRE(rfind_not_in_parentheses("Nothing to see here", ',') == npos);
+            REQUIRE(rfind_not_in_parentheses("(hello, world)", ',') == npos);
 
-            CHECK_EQ(rfind_not_in_parentheses("hello, world", ','), 5);
-            CHECK_EQ(rfind_not_in_parentheses("hello, world, welcome", ','), 12);
-            CHECK_EQ(rfind_not_in_parentheses("(hello, world), (welcome, here),", ','), 31);
-            CHECK_EQ(rfind_not_in_parentheses("(hello, world), (welcome, here)", ',', '[', ']'), 24);
-            CHECK_EQ(rfind_not_in_parentheses("[hello, world](welcome, here)", ',', '(', ')'), 6);
+            REQUIRE(rfind_not_in_parentheses("hello, world", ',') == 5);
+            REQUIRE(rfind_not_in_parentheses("hello, world, welcome", ',') == 12);
+            REQUIRE(rfind_not_in_parentheses("(hello, world), (welcome, here),", ',') == 31);
+            REQUIRE(rfind_not_in_parentheses("(hello, world), (welcome, here)", ',', '[', ']') == 24);
+            REQUIRE(rfind_not_in_parentheses("[hello, world](welcome, here)", ',', '(', ')') == 6);
 
-            CHECK_EQ(find_not_in_parentheses("(hello, world,", ',').error(), ParseError::InvalidInput);
-            CHECK_EQ(find_not_in_parentheses("(hello", ',').error(), ParseError::InvalidInput);
+            REQUIRE(find_not_in_parentheses("(hello, world,", ',').error() == ParseError::InvalidInput);
+            REQUIRE(find_not_in_parentheses("(hello", ',').error() == ParseError::InvalidInput);
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
@@ -274,23 +278,25 @@ namespace
                 rfind_not_in_parentheses(",[welcome, here], ([(hello)], ([world]))", ',', opens, closes),
                 16
             );
-            CHECK_EQ(rfind_not_in_parentheses(",[hello, world](welcome, here)", ',', opens, closes), 0);
+            REQUIRE(
+                rfind_not_in_parentheses(",[hello, world](welcome, here)", ',', opens, closes) == 0
+            );
             CHECK_EQ(
                 rfind_not_in_parentheses(",(hello, ]world,) welcome, here]", ',', opens, closes).error(),
                 ParseError::InvalidInput
             );
 
-            CHECK_EQ(rfind_not_in_parentheses("this, is, (a, string)", ',', opens, closes), 8);
-            CHECK_EQ(rfind_not_in_parentheses(",this (a, string)", ',', opens, closes), 0);
-            CHECK_EQ(rfind_not_in_parentheses("this (a, string)", ',', opens, closes), npos);
-            CHECK_EQ(rfind_not_in_parentheses("(a, string)", ',', opens, closes), npos);
+            REQUIRE(rfind_not_in_parentheses("this, is, (a, string)", ',', opens, closes) == 8);
+            REQUIRE(rfind_not_in_parentheses(",this (a, string)", ',', opens, closes) == 0);
+            REQUIRE(rfind_not_in_parentheses("this (a, string)", ',', opens, closes) == npos);
+            REQUIRE(rfind_not_in_parentheses("(a, string)", ',', opens, closes) == npos);
         }
 
         SECTION("Single char and similar open/close pair")
         {
-            CHECK_EQ(rfind_not_in_parentheses(R"("some, csv")", ',', '"', '"'), npos);
-            CHECK_EQ(rfind_not_in_parentheses(R"("some, csv","some, value")", ',', '"', '"'), 11);
-            CHECK_EQ(rfind_not_in_parentheses(R"("some, csv","value""here")", ',', '"', '"'), 11);
+            REQUIRE(rfind_not_in_parentheses(R"("some, csv")", ',', '"', '"') == npos);
+            REQUIRE(rfind_not_in_parentheses(R"("some, csv","some, value")", ',', '"', '"') == 11);
+            REQUIRE(rfind_not_in_parentheses(R"("some, csv","value""here")", ',', '"', '"') == 11);
 
             CHECK_EQ(
                 find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error(),
@@ -316,20 +322,22 @@ namespace
 
         SECTION("Substring and different open/close pair")
         {
-            CHECK_EQ(rfind_not_in_parentheses("", "::"), npos);
-            CHECK_EQ(rfind_not_in_parentheses("Nothing to see here", "::"), npos);
-            CHECK_EQ(rfind_not_in_parentheses("(hello::world)", "::"), npos);
+            REQUIRE(rfind_not_in_parentheses("", "::") == npos);
+            REQUIRE(rfind_not_in_parentheses("Nothing to see here", "::") == npos);
+            REQUIRE(rfind_not_in_parentheses("(hello::world)", "::") == npos);
 
-            CHECK_EQ(rfind_not_in_parentheses("hello::world", "::"), 5);
-            CHECK_EQ(rfind_not_in_parentheses("hello::", "::"), 5);
-            CHECK_EQ(rfind_not_in_parentheses("hello::world::welcome", "::"), 12);
-            CHECK_EQ(rfind_not_in_parentheses("::(hello::world)::(welcome::here)", "::"), 16);
-            CHECK_EQ(rfind_not_in_parentheses("(hello::world)::(welcome::here)", "::", '[', ']'), 24);
-            CHECK_EQ(rfind_not_in_parentheses(",(welcome::here)[hello::world]", "::", '[', ']'), 9);
+            REQUIRE(rfind_not_in_parentheses("hello::world", "::") == 5);
+            REQUIRE(rfind_not_in_parentheses("hello::", "::") == 5);
+            REQUIRE(rfind_not_in_parentheses("hello::world::welcome", "::") == 12);
+            REQUIRE(rfind_not_in_parentheses("::(hello::world)::(welcome::here)", "::") == 16);
+            REQUIRE(rfind_not_in_parentheses("(hello::world)::(welcome::here)", "::", '[', ']') == 24);
+            REQUIRE(rfind_not_in_parentheses(",(welcome::here)[hello::world]", "::", '[', ']') == 9);
 
-            CHECK_EQ(rfind_not_in_parentheses("hello::world::)", "::").error(), ParseError::InvalidInput);
-            CHECK_EQ(rfind_not_in_parentheses("hello)", "::").error(), ParseError::InvalidInput);
-            CHECK_EQ(rfind_not_in_parentheses("(hello", "::").error(), ParseError::InvalidInput);
+            REQUIRE(
+                rfind_not_in_parentheses("hello::world::)", "::").error() == ParseError::InvalidInput
+            );
+            REQUIRE(rfind_not_in_parentheses("hello)", "::").error() == ParseError::InvalidInput);
+            REQUIRE(rfind_not_in_parentheses("(hello", "::").error() == ParseError::InvalidInput);
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
@@ -355,9 +363,9 @@ namespace
 
         SECTION("Substring and similar open/close pair")
         {
-            CHECK_EQ(rfind_not_in_parentheses(R"("some::csv")", "::", '"', '"'), npos);
-            CHECK_EQ(rfind_not_in_parentheses(R"("some::csv"::"some::value")", "::", '"', '"'), 11);
-            CHECK_EQ(rfind_not_in_parentheses(R"("some::csv"::"value""here")", "::", '"', '"'), 11);
+            REQUIRE(rfind_not_in_parentheses(R"("some::csv")", "::", '"', '"') == npos);
+            REQUIRE(rfind_not_in_parentheses(R"("some::csv"::"some::value")", "::", '"', '"') == 11);
+            REQUIRE(rfind_not_in_parentheses(R"("some::csv"::"value""here")", "::", '"', '"') == 11);
             CHECK_EQ(
                 rfind_not_in_parentheses(R"(some::csv")", "::", '"', '"').error(),
                 ParseError::InvalidInput

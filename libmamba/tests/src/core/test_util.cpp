@@ -121,13 +121,13 @@ namespace mamba
             auto proxy_match_with_context = [&](const char* url)
             { return proxy_match(url, context.remote_fetch_params.proxy_servers); };
 
-            CHECK_EQ(*proxy_match_with_context("http://example.com/channel"), "foo");
-            CHECK_EQ(*proxy_match_with_context("http://example.net/channel"), "foo");
-            CHECK_EQ(*proxy_match_with_context("https://example.com/channel"), "bar");
-            CHECK_EQ(*proxy_match_with_context("https://example.com:8080/channel"), "bar");
-            CHECK_EQ(*proxy_match_with_context("https://example.net/channel"), "foobar");
-            CHECK_EQ(*proxy_match_with_context("ftp://example.net/channel"), "baz");
-            CHECK_EQ(*proxy_match_with_context("ftp://example.org"), "other");
+            REQUIRE(*proxy_match_with_context("http://example.com/channel") == "foo");
+            REQUIRE(*proxy_match_with_context("http://example.net/channel") == "foo");
+            REQUIRE(*proxy_match_with_context("https://example.com/channel") == "bar");
+            REQUIRE(*proxy_match_with_context("https://example.com:8080/channel") == "bar");
+            REQUIRE(*proxy_match_with_context("https://example.net/channel") == "foobar");
+            REQUIRE(*proxy_match_with_context("ftp://example.net/channel") == "baz");
+            REQUIRE(*proxy_match_with_context("ftp://example.org") == "other");
 
             context.remote_fetch_params.proxy_servers = { { "http", "foo" },
                                                           { "https", "bar" },

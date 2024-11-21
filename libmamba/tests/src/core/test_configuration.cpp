@@ -118,12 +118,12 @@ namespace mamba
         {
             TEST_CASE_FIXTURE(Configuration, "target_prefix_options")
             {
-                CHECK_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, 0);
-                CHECK_EQ(!MAMBA_ALLOW_MISSING_PREFIX, 0);
-                CHECK_EQ(!MAMBA_ALLOW_NOT_ENV_PREFIX, 0);
-                CHECK_EQ(!MAMBA_EXPECT_EXISTING_PREFIX, 0);
+                REQUIRE(!MAMBA_ALLOW_EXISTING_PREFIX == 0);
+                REQUIRE(!MAMBA_ALLOW_MISSING_PREFIX == 0);
+                REQUIRE(!MAMBA_ALLOW_NOT_ENV_PREFIX == 0);
+                REQUIRE(!MAMBA_EXPECT_EXISTING_PREFIX == 0);
 
-                CHECK_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, MAMBA_NOT_ALLOW_EXISTING_PREFIX);
+                REQUIRE(!MAMBA_ALLOW_EXISTING_PREFIX == MAMBA_NOT_ALLOW_EXISTING_PREFIX);
 
                 CHECK_EQ(
                     MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -139,9 +139,9 @@ namespace mamba
                         - test1)");
                 load_test_config(rc);
                 const auto src = util::shrink_home(tempfile_ptr->path().string());
-                CHECK_EQ(config.sources().size(), 1);
-                CHECK_EQ(config.valid_sources().size(), 1);
-                CHECK_EQ(config.dump(), "channels:\n  - test1");
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
+                REQUIRE(config.dump() == "channels:\n  - test1");
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                     "channels:\n  - test1  # '" + src + "'"
@@ -155,10 +155,10 @@ namespace mamba
 
                 load_test_config(rc);
 
-                CHECK_EQ(config.sources().size(), 1);
-                CHECK_EQ(config.valid_sources().size(), 0);
-                CHECK_EQ(config.dump(), "");
-                CHECK_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS), "");
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 0);
+                REQUIRE(config.dump() == "");
+                REQUIRE(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS) == "");
             }
 
             // Regression test for https://github.com/mamba-org/mamba/issues/2934
@@ -186,12 +186,12 @@ namespace mamba
                 std::vector<std::string> rcs = { rc1, rc2 };
                 load_test_config(rcs);
 
-                REQUIRE_EQ(config.sources().size(), 2);
-                REQUIRE_EQ(config.valid_sources().size(), 2);
+                REQUIRE(config.sources().size() == 2);
+                REQUIRE(config.valid_sources().size() == 2);
 
                 std::string src1 = shrink_source(0);
                 std::string src2 = shrink_source(1);
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                         channels:
                                           - test1
                                           - test2
@@ -218,14 +218,14 @@ namespace mamba
                 rcs.push_back(rc3);
                 load_test_config(rcs);
 
-                REQUIRE_EQ(config.sources().size(), 3);
-                REQUIRE_EQ(config.valid_sources().size(), 3);
+                REQUIRE(config.sources().size() == 3);
+                REQUIRE(config.valid_sources().size() == 3);
 
                 // tmp files changed
                 src1 = shrink_source(0);
                 src2 = shrink_source(1);
                 std::string src3 = shrink_source(2);
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                         channels:
                                           - test1
                                           - test2
@@ -254,14 +254,14 @@ namespace mamba
                 rcs.push_back(rc4);
                 load_test_config(rcs);
 
-                REQUIRE_EQ(config.sources().size(), 4);
-                REQUIRE_EQ(config.valid_sources().size(), 3);
+                REQUIRE(config.sources().size() == 4);
+                REQUIRE(config.valid_sources().size() == 3);
 
                 // tmp files changed
                 src1 = shrink_source(0);
                 src2 = shrink_source(1);
                 src3 = shrink_source(2);
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                         channels:
                                           - test1
                                           - test2
@@ -302,8 +302,8 @@ namespace mamba
 
                 load_test_config({ rc1, rc2 });
 
-                REQUIRE_EQ(config.sources().size(), 2);
-                REQUIRE_EQ(config.valid_sources().size(), 2);
+                REQUIRE(config.sources().size() == 2);
+                REQUIRE(config.valid_sources().size() == 2);
                 std::string src1 = shrink_source(0);
                 std::string src2 = util::shrink_home(shrink_source(1));
 
@@ -353,7 +353,7 @@ namespace mamba
                         - c21)");
                 load_test_config({ rc1, rc2, rc3 });
 
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                     channels:
                                       - c11
                                       - c12
@@ -363,15 +363,15 @@ namespace mamba
                 util::set_env("CONDA_CHANNELS", "c90,c101");
                 load_test_config(rc1);
 
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                     channels:
                                       - c90
                                       - c101
                                       - c11
                                       - c12)"));
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
                 CHECK_EQ(
@@ -402,7 +402,7 @@ namespace mamba
                               + src1 + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.channels, config.at("channels").value<std::vector<std::string>>());
+                REQUIRE(ctx.channels == config.at("channels").value<std::vector<std::string>>());
 
                 util::unset_env("CONDA_CHANNELS");
             }
@@ -424,7 +424,7 @@ namespace mamba
                       - c21)");
                 load_test_config({ rc1, rc2, rc3 });
 
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                             default_channels:
                               - c11
                               - c12
@@ -434,15 +434,15 @@ namespace mamba
                 util::set_env("MAMBA_DEFAULT_CHANNELS", "c91,c100");
                 load_test_config(rc1);
 
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                     default_channels:
                                       - c91
                                       - c100
                                       - c11
                                       - c12)"));
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
                 CHECK_EQ(
@@ -489,18 +489,18 @@ namespace mamba
                 std::string rc2 = "channel_alias: https://conda.anaconda.org/";
 
                 load_test_config({ rc1, rc2 });
-                CHECK_EQ(config.dump(), "channel_alias: http://repo.mamba.pm/");
+                REQUIRE(config.dump() == "channel_alias: http://repo.mamba.pm/");
 
                 load_test_config({ rc2, rc1 });
-                CHECK_EQ(config.dump(), "channel_alias: https://conda.anaconda.org/");
+                REQUIRE(config.dump() == "channel_alias: https://conda.anaconda.org/");
 
                 util::set_env("MAMBA_CHANNEL_ALIAS", "https://foo.bar");
                 load_test_config(rc1);
 
-                CHECK_EQ(config.dump(), "channel_alias: https://foo.bar");
+                REQUIRE(config.dump() == "channel_alias: https://foo.bar");
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
                 CHECK_EQ(
@@ -513,7 +513,7 @@ namespace mamba
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                     "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'"
                 );
-                CHECK_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
+                REQUIRE(ctx.channel_alias == config.at("channel_alias").value<std::string>());
 
                 util::unset_env("MAMBA_CHANNEL_ALIAS");
             }
@@ -528,7 +528,7 @@ namespace mamba
 
                 load_test_config(rc1);
 
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                           mirrored_channels:
                             channel1:
                               - https://conda.anaconda.org/channel1
@@ -546,18 +546,18 @@ namespace mamba
                 std::string rc2 = "pkgs_dirs:\n  - " + cache2;
 
                 load_test_config({ rc1, rc2 });
-                CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache1 + "\n  - " + cache2);
+                REQUIRE(config.dump() == "pkgs_dirs:\n  - " + cache1 + "\n  - " + cache2);
 
                 load_test_config({ rc2, rc1 });
-                CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache2 + "\n  - " + cache1);
+                REQUIRE(config.dump() == "pkgs_dirs:\n  - " + cache2 + "\n  - " + cache1);
 
                 std::string cache3 = util::path_concat(util::user_home_dir(), "baz");
                 util::set_env("CONDA_PKGS_DIRS", cache3);
                 load_test_config(rc1);
-                CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache3 + "\n  - " + cache1);
+                REQUIRE(config.dump() == "pkgs_dirs:\n  - " + cache3 + "\n  - " + cache1);
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
                 CHECK_EQ(
@@ -601,7 +601,7 @@ namespace mamba
                               + R"(  # 'fallback')" + extra_cache)
                                  .c_str())
                 );
-                CHECK_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::u8path>>());
+                REQUIRE(ctx.pkgs_dirs == config.at("pkgs_dirs").value<std::vector<fs::u8path>>());
 
                 std::string cache4 = util::path_concat(util::user_home_dir(), "babaz");
                 util::set_env("CONDA_PKGS_DIRS", cache4);
@@ -626,55 +626,55 @@ namespace mamba
                 ctx.remote_fetch_params.ssl_verify = "";
                 std::string rc = "";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<system>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<system>");
 
                 rc = "ssl_verify: true";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<system>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<system>");
 
                 rc = "ssl_verify: <true>";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<system>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<system>");
 
                 rc = "ssl_verify: 1";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<system>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<system>");
 
                 rc = "ssl_verify: 10";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "10");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "10");
 
                 rc = "ssl_verify: false";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<false>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<false>");
 
                 rc = "ssl_verify: <false>";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<false>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<false>");
 
                 rc = "ssl_verify: 0";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<false>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<false>");
 
                 rc = "ssl_verify: /foo/bar/baz";
                 load_test_config(rc);
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "/foo/bar/baz");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "/foo/bar/baz");
 
                 std::string rc1 = "ssl_verify: true";
                 std::string rc2 = "ssl_verify: false";
                 load_test_config({ rc1, rc2 });
-                CHECK_EQ(config.at("ssl_verify").value<std::string>(), "<system>");
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<system>");
+                REQUIRE(config.at("ssl_verify").value<std::string>() == "<system>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<system>");
 
                 load_test_config({ rc2, rc1 });
-                CHECK_EQ(config.at("ssl_verify").value<std::string>(), "<false>");
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<false>");
+                REQUIRE(config.at("ssl_verify").value<std::string>() == "<false>");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<false>");
 
                 util::set_env("MAMBA_SSL_VERIFY", "/env/bar/baz");
                 load_test_config(rc1);
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
                 CHECK_EQ(
@@ -697,15 +697,15 @@ namespace mamba
             {
                 std::string rc = "ssl_verify: /foo/bar/baz\ncacert_path: /other/foo/bar/baz";
                 load_test_config(rc);
-                CHECK_EQ(config.at("ssl_verify").value<std::string>(), "/other/foo/bar/baz");
-                CHECK_EQ(config.at("cacert_path").value<std::string>(), "/other/foo/bar/baz");
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "/other/foo/bar/baz");
+                REQUIRE(config.at("ssl_verify").value<std::string>() == "/other/foo/bar/baz");
+                REQUIRE(config.at("cacert_path").value<std::string>() == "/other/foo/bar/baz");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "/other/foo/bar/baz");
 
                 util::set_env("MAMBA_CACERT_PATH", "/env/ca/baz");
                 load_test_config(rc);
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src = shrink_source(0);
 
                 CHECK_EQ(
@@ -717,7 +717,7 @@ namespace mamba
                               + src + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "/env/ca/baz");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "/env/ca/baz");
 
                 config.at("cacert_path").set_yaml_value("/new/test").compute();
                 CHECK_EQ(
@@ -729,7 +729,7 @@ namespace mamba
                               + src + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "/env/ca/baz");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "/env/ca/baz");
 
                 config.at("ssl_verify").compute();
                 CHECK_EQ(
@@ -741,7 +741,7 @@ namespace mamba
                               + src + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "/new/test");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "/new/test");
 
                 util::unset_env("MAMBA_CACERT_PATH");
                 load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
@@ -757,23 +757,23 @@ namespace mamba
                 auto& actual = config.at("proxy_servers").value<std::map<std::string, std::string>>();
                 std::map<std::string, std::string> expected = { { "http", "foo" },
                                                                 { "https", "bar" } };
-                CHECK_EQ(actual, expected);
-                CHECK_EQ(ctx.remote_fetch_params.proxy_servers, expected);
+                REQUIRE(actual == expected);
+                REQUIRE(ctx.remote_fetch_params.proxy_servers == expected);
 
-                CHECK_EQ(config.sources().size(), 1);
-                CHECK_EQ(config.valid_sources().size(), 1);
-                CHECK_EQ(config.dump(), "proxy_servers:\n  http: foo\n  https: bar");
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
+                REQUIRE(config.dump() == "proxy_servers:\n  http: foo\n  https: bar");
             }
 
             TEST_CASE_FIXTURE(Configuration, "platform")
             {
-                CHECK_EQ(ctx.platform, ctx.host_platform);
+                REQUIRE(ctx.platform == ctx.host_platform);
 
                 std::string rc = "platform: mylinux-128";
                 load_test_config(rc);
                 std::string src = shrink_source(0);
-                CHECK_EQ(config.at("platform").value<std::string>(), "mylinux-128");
-                CHECK_EQ(ctx.platform, "mylinux-128");
+                REQUIRE(config.at("platform").value<std::string>() == "mylinux-128");
+                REQUIRE(ctx.platform == "mylinux-128");
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                     unindent((R"(
@@ -785,8 +785,8 @@ namespace mamba
                 util::set_env("CONDA_SUBDIR", "win-32");
                 load_test_config(rc);
                 src = shrink_source(0);
-                CHECK_EQ(config.at("platform").value<std::string>(), "win-32");
-                CHECK_EQ(ctx.platform, "win-32");
+                REQUIRE(config.at("platform").value<std::string>() == "win-32");
+                REQUIRE(ctx.platform == "win-32");
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                     unindent((R"(
@@ -819,8 +819,8 @@ namespace mamba
         util::set_env(env_name, "true");                                                            \
         load_test_config(rc2);                                                                      \
                                                                                                     \
-        REQUIRE_EQ(config.sources().size(), 1);                                                     \
-        REQUIRE_EQ(config.valid_sources().size(), 1);                                               \
+        REQUIRE(config.sources().size() == 1);                                                      \
+        REQUIRE(config.valid_sources().size() == 1);                                                \
         std::string src = shrink_source(0);                                                         \
                                                                                                     \
         std::string expected;                                                                       \
@@ -833,7 +833,7 @@ namespace mamba
             expected = std::string(#NAME) + ": true  # '" + env_name + "'";                         \
         }                                                                                           \
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS;                          \
-        CHECK_EQ((config.dump(dump_opts, { #NAME })), expected);                                    \
+        REQUIRE((config.dump(dump_opts, { #NAME })) == expected);                                   \
         REQUIRE(config.at(#NAME).value<bool>());                                                    \
         REQUIRE(CTX);                                                                               \
                                                                                                     \
@@ -846,7 +846,7 @@ namespace mamba
             expected = std::string(#NAME) + ": true  # 'API' > '" + env_name + "'";                 \
         }                                                                                           \
         config.at(#NAME).set_yaml_value("true").compute();                                          \
-        CHECK_EQ((config.dump(dump_opts, { #NAME })), expected);                                    \
+        REQUIRE((config.dump(dump_opts, { #NAME })) == expected);                                   \
         REQUIRE(config.at(#NAME).value<bool>());                                                    \
         REQUIRE(CTX);                                                                               \
                                                                                                     \
@@ -884,22 +884,26 @@ namespace mamba
                 REQUIRE(ctx.channel_priority == ChannelPriority::Disabled);
 
                 load_test_config({ rc2, rc1, rc3 });
-                CHECK_EQ(config.at("channel_priority").value<ChannelPriority>(), ChannelPriority::Strict);
+                REQUIRE(
+                    config.at("channel_priority").value<ChannelPriority>() == ChannelPriority::Strict
+                );
                 REQUIRE(ctx.channel_priority == ChannelPriority::Strict);
 
                 util::set_env("MAMBA_CHANNEL_PRIORITY", "strict");
                 load_test_config(rc3);
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src = shrink_source(0);
 
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                     "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'"
                 );
-                CHECK_EQ(config.at("channel_priority").value<ChannelPriority>(), ChannelPriority::Strict);
-                CHECK_EQ(ctx.channel_priority, ChannelPriority::Strict);
+                REQUIRE(
+                    config.at("channel_priority").value<ChannelPriority>() == ChannelPriority::Strict
+                );
+                REQUIRE(ctx.channel_priority == ChannelPriority::Strict);
 
                 config.at("channel_priority").set_yaml_value("flexible").compute();
                 CHECK_EQ(
@@ -910,7 +914,7 @@ namespace mamba
                     config.at("channel_priority").value<ChannelPriority>(),
                     ChannelPriority::Flexible
                 );
-                CHECK_EQ(ctx.channel_priority, ChannelPriority::Flexible);
+                REQUIRE(ctx.channel_priority == ChannelPriority::Flexible);
 
                 util::set_env("MAMBA_CHANNEL_PRIORITY", "stric");
                 REQUIRE_THROWS_AS(load_test_config(rc3), YAML::Exception);
@@ -922,9 +926,9 @@ namespace mamba
             {
                 std::string rc = "invalid_scalar_value";
                 load_test_config(rc);
-                CHECK_EQ(config.sources().size(), 1);
-                CHECK_EQ(config.valid_sources().size(), 0);
-                CHECK_EQ(config.dump(), "");
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 0);
+                REQUIRE(config.dump() == "");
             }
 
             TEST_CASE_FIXTURE(Configuration, "pinned_packages")
@@ -944,7 +948,7 @@ namespace mamba
                         - matplotlib)");
 
                 load_test_config({ rc1, rc2, rc3 });
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                             pinned_packages:
                                               - jupyterlab=3
                                               - numpy=1.19
@@ -957,7 +961,7 @@ namespace mamba
 
                 load_test_config({ rc2, rc1, rc3 });
                 REQUIRE(config.at("pinned_packages").yaml_value());
-                CHECK_EQ(config.dump(), unindent(R"(
+                REQUIRE(config.dump() == unindent(R"(
                                             pinned_packages:
                                               - matplotlib
                                               - numpy=1.19
@@ -970,8 +974,8 @@ namespace mamba
 
                 util::set_env("MAMBA_PINNED_PACKAGES", "mpl=10.2,xtensor");
                 load_test_config(rc1);
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
                 CHECK_EQ(
@@ -1049,32 +1053,36 @@ namespace mamba
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::Enabled
                 );
-                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::Enabled);
+                REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Enabled);
 
                 load_test_config({ rc2, rc1, rc3 });
-                CHECK_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::Warn);
-                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::Warn);
+                REQUIRE(
+                    config.at("safety_checks").value<VerificationLevel>() == VerificationLevel::Warn
+                );
+                REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Warn);
 
                 load_test_config({ rc3, rc1, rc3 });
                 CHECK_EQ(
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::Disabled
                 );
-                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::Disabled);
+                REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Disabled);
 
                 util::set_env("MAMBA_SAFETY_CHECKS", "warn");
                 load_test_config(rc1);
 
-                REQUIRE_EQ(config.sources().size(), 1);
-                REQUIRE_EQ(config.valid_sources().size(), 1);
+                REQUIRE(config.sources().size() == 1);
+                REQUIRE(config.valid_sources().size() == 1);
                 std::string src = shrink_source(0);
 
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                     "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'"
                 );
-                CHECK_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::Warn);
-                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::Warn);
+                REQUIRE(
+                    config.at("safety_checks").value<VerificationLevel>() == VerificationLevel::Warn
+                );
+                REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Warn);
 
                 config.at("safety_checks").set_yaml_value("disabled").compute();
                 CHECK_EQ(
@@ -1085,7 +1093,7 @@ namespace mamba
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::Disabled
                 );
-                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::Disabled);
+                REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Disabled);
 
                 util::set_env("MAMBA_SAFETY_CHECKS", "yeap");
                 REQUIRE_THROWS_AS(load_test_config(rc2), std::runtime_error);
@@ -1169,8 +1177,8 @@ namespace mamba
 
                 config.load();
 
-                REQUIRE_EQ(config.sources().size(), 2);
-                REQUIRE_EQ(config.at("channel_alias").value<std::string>(), "http://inner.com");
+                REQUIRE(config.sources().size() == 2);
+                REQUIRE(config.at("channel_alias").value<std::string>() == "http://inner.com");
             }
 
             TEST_CASE_FIXTURE(Configuration, "print_scalar_node")
@@ -1184,7 +1192,7 @@ namespace mamba
                 print_scalar_node(out, node, node_src, true);
 
                 std::string res = out.c_str();
-                CHECK_EQ(res, "foo  # '/some/source1'");
+                REQUIRE(res == "foo  # '/some/source1'");
 
                 // These tests do not really make sense since
                 // print_scalar should be called by print_configurable only
@@ -1194,16 +1202,16 @@ namespace mamba
                                 foo: bar
                                 bar: baz)");
                 node = YAML::Load(rc);
-                CHECK_THROWS_AS(print_scalar_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_scalar_node(out, node, node_src, true), std::runtime_error);
 
                 rc = unindent(R"(
                                 - foo
                                 - bar)");
                 node = YAML::Load(rc);
-                CHECK_THROWS_AS(print_scalar_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_scalar_node(out, node, node_src, true), std::runtime_error);
 
                 node = YAML::Node();
-                CHECK_THROWS_AS(print_scalar_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_scalar_node(out, node, node_src, true), std::runtime_error);
                 */
             }
 
@@ -1231,16 +1239,16 @@ namespace mamba
                 // and the check is already done in it.
                 /*rc = "foo";
                 node = YAML::Load(rc);
-                CHECK_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);
 
                 rc = unindent(R"(
                                 - foo
                                 - bar)");
                 node = YAML::Load(rc);
-                CHECK_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);
 
                 node = YAML::Node();
-                CHECK_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);*/
+                REQUIRE_THROWS_AS(print_map_node(out, node, node_src, true), std::runtime_error);*/
             }
 
             TEST_CASE_FIXTURE(Configuration, "print_seq_node")
@@ -1269,16 +1277,16 @@ namespace mamba
                 // and the check is already done in it.
                 /*rc = "foo";
                 node = YAML::Load(rc);
-                CHECK_THROWS_AS(print_seq_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_seq_node(out, node, node_src, true), std::runtime_error);
 
                 rc = unindent(R"(
                                 foo: bar
                                 bar: baz)");
                 node = YAML::Load(rc);
-                CHECK_THROWS_AS(print_seq_node(out, node, node_src, true), std::runtime_error);
+                REQUIRE_THROWS_AS(print_seq_node(out, node, node_src, true), std::runtime_error);
 
                 node = YAML::Node();
-                CHECK_THROWS_AS(print_seq_node(out, node, node_src, true), std::runtime_error);*/
+                REQUIRE_THROWS_AS(print_seq_node(out, node, node_src, true), std::runtime_error);*/
             }
         }
     }  // namespace testing

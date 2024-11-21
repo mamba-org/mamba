@@ -18,8 +18,12 @@ using namespace mamba::util;
 
 namespace
 {
-    TEST_CASE("utf8" * doctest::skip(!util::on_win))
+    TEST_CASE("utf8")
     {
+        if (!util::on_win)
+        {
+            SKIP();
+        }
         const std::wstring text_utf16 = L"Hello, I am Joël. 私のにほんごわへたです";
         const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";
 

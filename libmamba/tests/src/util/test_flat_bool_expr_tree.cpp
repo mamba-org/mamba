@@ -383,9 +383,8 @@ namespace
     {
         REQUIRE(integer_to_bools<5>(0b00000), std::array{ false, false, false, false == false });
         REQUIRE(integer_to_bools<4>(0b1111), std::array{ true, true, true == true });
-        CHECK_EQ(
-            integer_to_bools<7>(0b1001101),
-            std::array{ true, false, true, true, false, false, true }
+        REQUIRE(
+            integer_to_bools<7>(0b1001101) == std::array{ true, false, true, true, false, false, true }
         );
     }
 

@@ -77,9 +77,8 @@ namespace mamba
             res = Console::instance().hide_secrets(
                 "http://root:secretpassword@myweb.com/test.repo\nhttp://myweb.com/t/my-12345-token/test.repo http://myweb.com/t/my-12345-token/test.repo http://root:secretpassword@myweb.com/test.repo"
             );
-            CHECK_EQ(
-                res,
-                "http://root:*****@myweb.com/test.repo\nhttp://myweb.com/t/*****/test.repo http://myweb.com/t/*****/test.repo http://root:*****@myweb.com/test.repo"
+            REQUIRE(
+                res == "http://root:*****@myweb.com/test.repo\nhttp://myweb.com/t/*****/test.repo http://myweb.com/t/*****/test.repo http://root:*****@myweb.com/test.repo"
             );
 
             res = Console::instance().hide_secrets("myweb.com/t/my-12345-token/test.repo");
@@ -113,9 +112,9 @@ namespace mamba
                 CAPTURE(p);
                 std::stringstream test_stream;
                 test_stream << std::get<0>(p) << std::endl;
-                CHECK_EQ(
-                    Console::instance().prompt("Test prompt", std::get<1>(p), test_stream),
-                    std::get<2>(p)
+                REQUIRE(
+                    Console::instance().prompt("Test prompt", std::get<1>(p), test_stream)
+                    == std::get<2>(p)
                 );
             }
         }
@@ -183,9 +182,8 @@ namespace mamba
                 }
                 else
                 {
-                    CHECK_EQ(
-                        res,
-                        "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x"
+                    REQUIRE(
+                        res == "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x"
                     );
                 }
 
@@ -358,32 +356,32 @@ namespace mamba
             REQUIRE(mq.has_value());
             auto j = mq.value();
             REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
-            CHECK_EQ(
-                j.url(),
-                "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+            REQUIRE(
+                j.url()
+                == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
             j = SubdirMetadata::read(cache_folder / "test_2.json").value();
             REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
-            CHECK_EQ(
-                j.url(),
-                "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+            REQUIRE(
+                j.url()
+                == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
             j = SubdirMetadata::read(cache_folder / "test_5.json").value();
             REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
-            CHECK_EQ(
-                j.url(),
-                "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+            REQUIRE(
+                j.url()
+                == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
             j = SubdirMetadata::read(cache_folder / "test_4.json").value();
             REQUIRE(j.cache_control() == "{{}}\",,,\"");
             REQUIRE(j.etag() == "\n\n\"\"randome ecx,,ssd\n,,\"");
             REQUIRE(j.last_modified(), "Fri == 11 Feb 2022 13:52:44 GMT");
-            CHECK_EQ(
-                j.url(),
-                "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+            REQUIRE(
+                j.url()
+                == "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
             mq = SubdirMetadata::read(cache_folder / "test_3.json");

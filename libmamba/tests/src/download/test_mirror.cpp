@@ -166,8 +166,8 @@ namespace mamba::download
                 MirrorRequest mir_req = req_gen[0](req_repodata, nullptr);
 
                 REQUIRE(mir_req.name == "repodata_request");
-                CHECK_EQ(
-                    mir_req.url,
+                REQUIRE(
+                    mir_req.url ==
                     "https://ghcr.io/token?scope=repository:channel-mirrors/conda-forge/linux-64/repodata.json:pull"
                 );
 
@@ -198,8 +198,8 @@ namespace mamba::download
                 MirrorRequest mir_req = req_gen[0](req_spec, nullptr);
 
                 REQUIRE(mir_req.name == "pandoc_request");
-                CHECK_EQ(
-                    mir_req.url,
+                REQUIRE(
+                    mir_req.url ==
                     "https://ghcr.io/token?scope=repository:channel-mirrors/conda-forge/linux-64/pandoc:pull"
                 );
 

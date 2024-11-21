@@ -346,13 +346,13 @@ namespace
             SECTION("and token")
             {
                 url.set_path("/t/abcd1234/linux-64");
-                CHECK_EQ(
-                    url.str(CondaURL::Credentials::Show),
-                    "https://user%40mamba.org:pass@localhost/t/abcd1234/linux-64"
+                REQUIRE(
+                    url.str(CondaURL::Credentials::Show)
+                    == "https://user%40mamba.org:pass@localhost/t/abcd1234/linux-64"
                 );
-                CHECK_EQ(
-                    url.str(CondaURL::Credentials::Hide),
-                    "https://user%40mamba.org:*****@localhost/t/*****/linux-64"
+                REQUIRE(
+                    url.str(CondaURL::Credentials::Hide)
+                    == "https://user%40mamba.org:*****@localhost/t/*****/linux-64"
                 );
                 REQUIRE(url.str(CondaURL::Credentials::Remove) == "https://localhost/linux-64");
             }
@@ -397,17 +397,17 @@ namespace
 
             SECTION("without credentials")
             {
-                CHECK_EQ(
-                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show)
+                    == "https://localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide)
+                    == "https://localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove)
+                    == "https://localhost/"
                 );
             }
 
@@ -415,33 +415,33 @@ namespace
             {
                 url.set_user("user");
                 url.set_password("pass");
-                CHECK_EQ(
-                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
-                    "https://user:pass@localhost/"
+                REQUIRE(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show)
+                    == "https://user:pass@localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
-                    "https://user:*****@localhost/"
+                REQUIRE(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide)
+                    == "https://user:*****@localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove)
+                    == "https://localhost/"
                 );
 
                 SECTION("and token")
                 {
                     url.set_path("/t/abcd1234/linux-64");
-                    CHECK_EQ(
-                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
-                        "https://user:pass@localhost/t/abcd1234/linux-64"
+                    REQUIRE(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show)
+                        == "https://user:pass@localhost/t/abcd1234/linux-64"
                     );
-                    CHECK_EQ(
-                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
-                        "https://user:*****@localhost/t/*****/linux-64"
+                    REQUIRE(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide)
+                        == "https://user:*****@localhost/t/*****/linux-64"
                     );
-                    CHECK_EQ(
-                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
-                        "https://localhost/linux-64"
+                    REQUIRE(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove)
+                        == "https://localhost/linux-64"
                     );
                 }
             }
@@ -459,17 +459,16 @@ namespace
             url.set_query("param=value");
             url.set_fragment("fragment");
 
-            CHECK_EQ(
-                url.str(),
-                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.str() == "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
-            CHECK_EQ(
-                url.str(CondaURL::Credentials::Show),
-                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.str(CondaURL::Credentials::Show)
+                == "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
             );
-            CHECK_EQ(
-                url.pretty_str(),
-                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.pretty_str()
+                == "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
         }
 
@@ -482,9 +481,9 @@ namespace
             url.set_password("pw%rd");
             url.set_path("/some /path$/");
             REQUIRE(url.str() == "https://user%40email.com:*****@mamba.org/some%20/path%24/");
-            CHECK_EQ(
-                url.str(CondaURL::Credentials::Show),
-                "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
+            REQUIRE(
+                url.str(CondaURL::Credentials::Show)
+                == "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
             );
             REQUIRE(url.pretty_str() == "https://user@email.com:*****@mamba.org/some /path$/");
         }

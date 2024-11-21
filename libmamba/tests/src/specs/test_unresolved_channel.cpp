@@ -247,9 +247,9 @@ namespace
     TEST_CASE("str")
     {
         REQUIRE(UnresolvedChannel("location", {}, Type::Name).str() == "location");
-        CHECK_EQ(
-            UnresolvedChannel("location", { "linux-64", "noarch" }, Type::Name).str(),
-            "location[linux-64,noarch]"
+        REQUIRE(
+            UnresolvedChannel("location", { "linux-64", "noarch" }, Type::Name).str()
+            == "location[linux-64,noarch]"
         );
     }
 

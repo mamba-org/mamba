@@ -188,17 +188,15 @@ namespace
             SECTION("https://repo.mamba.pm/")
             {
                 auto chan = Channel("https://repo.mamba.pm/"_cu, "conda-forge", { "linux-64" });
-                CHECK_EQ(
-                    chan.contains_package("https://repo.mamba.pm/linux-64/pkg.conda"_cu),
-                    Match::Full
+                REQUIRE(
+                    chan.contains_package("https://repo.mamba.pm/linux-64/pkg.conda"_cu) == Match::Full
                 );
-                CHECK_EQ(
-                    chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu),
-                    Match::InOtherPlatform
+                REQUIRE(
+                    chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu)
+                    == Match::InOtherPlatform
                 );
-                CHECK_EQ(
-                    chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu),
-                    Match::InOtherPlatform
+                REQUIRE(
+                    chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu) == Match::InOtherPlatform
                 );
             }
 
@@ -220,13 +218,13 @@ namespace
                     { "win-64" }
                 );
                 REQUIRE(chan.contains_package(chan.url() / "win-64/pkg.conda") == Match::Full);
-                CHECK_EQ(
-                    chan.contains_package("https://repo.mamba.pm/conda-forge/win-64/pkg.conda"_cu),
-                    Match::Full
+                REQUIRE(
+                    chan.contains_package("https://repo.mamba.pm/conda-forge/win-64/pkg.conda"_cu)
+                    == Match::Full
                 );
-                CHECK_EQ(
-                    chan.contains_package("https://repo.mamba.pm/conda-forge/osx-64/pkg.conda"_cu),
-                    Match::InOtherPlatform
+                REQUIRE(
+                    chan.contains_package("https://repo.mamba.pm/conda-forge/osx-64/pkg.conda"_cu)
+                    == Match::InOtherPlatform
                 );
             }
         }
@@ -310,9 +308,9 @@ namespace
                     /* .authentication_db= */ {},
                     /* .home_dir= */ "/home",
                 };
-                CHECK_EQ(
-                    Channel::resolve(uc, params).value().at(0).display_name(),
-                    "win-64/libmamba-1.4.2-hcea66bb_0.conda"
+                REQUIRE(
+                    Channel::resolve(uc, params).value().at(0).display_name()
+                    == "win-64/libmamba-1.4.2-hcea66bb_0.conda"
                 );
             }
 
@@ -378,9 +376,9 @@ namespace
                     { "foo-56" },
                     UnresolvedChannel::Type::Path
                 );
-                CHECK_EQ(
-                    Channel::resolve(other_specs, ChannelResolveParams{}).value().at(0).platforms(),
-                    other_specs.platform_filters()
+                REQUIRE(
+                    Channel::resolve(other_specs, ChannelResolveParams{}).value().at(0).platforms()
+                    == other_specs.platform_filters()
                 );
             }
         }
@@ -568,9 +566,9 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse("https://repo.mamba.pm/t/mytoken/conda-forge").value()
+                REQUIRE(
+                    chan.url()
+                    == CondaURL::parse("https://repo.mamba.pm/t/mytoken/conda-forge").value()
                 );
                 REQUIRE(chan.display_name() == "https://repo.mamba.pm/conda-forge");
             }
@@ -592,9 +590,9 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse("https://repo.mamba.pm/t/forge-token/conda-forge").value()
+                REQUIRE(
+                    chan.url()
+                    == CondaURL::parse("https://repo.mamba.pm/t/forge-token/conda-forge").value()
                 );
                 REQUIRE(chan.display_name() == "https://repo.mamba.pm/conda-forge");
             }
@@ -618,9 +616,9 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse("https://user:pass@repo.mamba.pm/t/mytoken/conda-forge")
+                REQUIRE(
+                    chan.url()
+                    == CondaURL::parse("https://user:pass@repo.mamba.pm/t/mytoken/conda-forge")
                 );
                 REQUIRE(chan.display_name() == "https://repo.mamba.pm/conda-forge");
             }
@@ -687,9 +685,9 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse(util::path_concat(params.channel_alias.str(), name)).value()
+                REQUIRE(
+                    chan.url()
+                    == CondaURL::parse(util::path_concat(params.channel_alias.str(), name)).value()
                 );
                 REQUIRE(chan.platforms() == params.platforms);
                 REQUIRE(chan.display_name() == name);
@@ -709,9 +707,8 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse("https://user:pass@mydomain.com/private/conda-forge")
+                REQUIRE(
+                    chan.url() == CondaURL::parse("https://user:pass@mydomain.com/private/conda-forge")
                 );
                 REQUIRE(chan.display_name() == name);
                 REQUIRE(chan.platforms() == params.platforms);
@@ -782,9 +779,8 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse(util::path_concat(params.channel_alias.str(), name))
+                REQUIRE(
+                    chan.url() == CondaURL::parse(util::path_concat(params.channel_alias.str(), name))
                 );
                 REQUIRE(chan.platforms() == params.platforms);
                 REQUIRE(chan.display_name() == name);
@@ -806,9 +802,8 @@ namespace
                 auto channels = Channel::resolve(uc, params).value();
                 REQUIRE(channels.size() == 1);
                 const auto& chan = channels.front();
-                CHECK_EQ(
-                    chan.url(),
-                    CondaURL::parse("https://server.com/private/testchannel/mylabel/xyz")
+                REQUIRE(
+                    chan.url() == CondaURL::parse("https://server.com/private/testchannel/mylabel/xyz")
                 );
                 REQUIRE(chan.display_name() == name);
                 REQUIRE(chan.platforms() == params.platforms);

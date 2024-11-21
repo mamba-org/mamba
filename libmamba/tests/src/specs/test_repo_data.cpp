@@ -97,17 +97,17 @@ namespace
 
         const nl::json j = data;
         REQUIRE(j.at("version") == data.version);
-        CHECK_EQ(
-            j.at("info").at("subdir").get<std::string_view>(),
-            platform_name(data.info.value().subdir)
+        REQUIRE(
+            j.at("info").at("subdir").get<std::string_view>()
+            == platform_name(data.info.value().subdir)
         );
-        CHECK_EQ(
-            j.at("packages").at("mamba-1.0-h12345.tar.bz2"),
-            data.packages.at("mamba-1.0-h12345.tar.bz2")
+        REQUIRE(
+            j.at("packages").at("mamba-1.0-h12345.tar.bz2")
+            == data.packages.at("mamba-1.0-h12345.tar.bz2")
         );
-        CHECK_EQ(
-            j.at("packages").at("conda-1.0-h54321.tar.bz2"),
-            data.packages.at("conda-1.0-h54321.tar.bz2")
+        REQUIRE(
+            j.at("packages").at("conda-1.0-h54321.tar.bz2")
+            == data.packages.at("conda-1.0-h54321.tar.bz2")
         );
         REQUIRE(j.at("removed") == std::vector{ "bad-package-1" });
     }
@@ -133,8 +133,8 @@ namespace
         REQUIRE(data.version == j["version"]);
         REQUIRE(data.info.has_value());
         REQUIRE(platform_name(data.info.value().subdir) == j["info"]["subdir"].get<std::string_view>();
-        CHECK_EQ(
-            data.packages.at("mamba-1.0-h12345.tar.bz2").name,
+        REQUIRE(
+            data.packages.at("mamba-1.0-h12345.tar.bz2").name ==
             j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]
         );
         REQUIRE(data.conda_packages.empty());

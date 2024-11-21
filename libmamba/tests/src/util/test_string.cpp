@@ -85,13 +85,11 @@ namespace
             REQUIRE(split_prefix("hello", ""), PrefixTail{ "" == "hello" });
             REQUIRE(split_prefix("hello", "hello"), PrefixTail{ "hello" == "" });
             REQUIRE(split_prefix("", "hello"), PrefixTail{ "" == "" });
-            CHECK_EQ(
-                split_prefix("https://localhost", "https://"),
-                PrefixTail{ "https://", "localhost" }
+            REQUIRE(
+                split_prefix("https://localhost", "https://") == PrefixTail{ "https://", "localhost" }
             );
-            CHECK_EQ(
-                split_prefix("https://localhost", "http://"),
-                PrefixTail{ "", "https://localhost" }
+            REQUIRE(
+                split_prefix("https://localhost", "http://") == PrefixTail{ "", "https://localhost" }
             );
             REQUIRE(split_prefix("aabb", "a"), PrefixTail{ "a" == "abb" });
             REQUIRE(split_prefix("", 'a'), PrefixTail{ "" == "" });
@@ -208,13 +206,13 @@ namespace
             CHECK_EQ(lstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
             CHECK_EQ(lstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "hello", "" }));
             CHECK_EQ(lstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "", "hello" }));
-            CHECK_EQ(
-                lstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
-                StrPair({ "\n \t", "hello \t\n" })
+            REQUIRE(
+                lstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); })
+                == StrPair({ "\n \t", "hello \t\n" })
             );
-            CHECK_EQ(
-                lstrip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
-                StrPair({ "123", "hello456" })
+            REQUIRE(
+                lstrip_if_parts("123hello456", [](auto c) { return is_digit(c); })
+                == StrPair({ "123", "hello456" })
             );
         }
 
@@ -257,13 +255,13 @@ namespace
             CHECK_EQ(rstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
             CHECK_EQ(rstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "", "hello" }));
             CHECK_EQ(rstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "hello", "" }));
-            CHECK_EQ(
-                rstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
-                StrPair({ "\n \thello", " \t\n" })
+            REQUIRE(
+                rstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); })
+                == StrPair({ "\n \thello", " \t\n" })
             );
-            CHECK_EQ(
-                rstrip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
-                StrPair({ "123hello", "456" })
+            REQUIRE(
+                rstrip_if_parts("123hello456", [](auto c) { return is_digit(c); })
+                == StrPair({ "123hello", "456" })
             );
         }
 
@@ -302,13 +300,13 @@ namespace
             CHECK_EQ(strip_if_parts("", [](auto) { return true; }), StrTrio({ "", "", "" }));
             CHECK_EQ(strip_if_parts("hello", [](auto) { return true; }), StrTrio({ "hello", "", "" }));
             CHECK_EQ(strip_if_parts("hello", [](auto) { return false; }), StrTrio({ "", "hello", "" }));
-            CHECK_EQ(
-                strip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
-                StrTrio({ "\n \t", "hello", " \t\n" })
+            REQUIRE(
+                strip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); })
+                == StrTrio({ "\n \t", "hello", " \t\n" })
             );
-            CHECK_EQ(
-                strip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
-                StrTrio({ "123", "hello", "456" })
+            REQUIRE(
+                strip_if_parts("123hello456", [](auto c) { return is_digit(c); })
+                == StrTrio({ "123", "hello", "456" })
             );
         }
 
@@ -540,26 +538,26 @@ namespace
 
                 REQUIRE(concat_dedup_splits("", "", sep) == "");
 
-                CHECK_EQ(
-                    concat_dedup_splits(fmt::format("test{}chan", sep), "", sep),
-                    fmt::format("test{}chan", sep)
+                REQUIRE(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), "", sep)
+                    == fmt::format("test{}chan", sep)
                 );
-                CHECK_EQ(
-                    concat_dedup_splits("", fmt::format("test{}chan", sep), sep),
-                    fmt::format("test{}chan", sep)
+                REQUIRE(
+                    concat_dedup_splits("", fmt::format("test{}chan", sep), sep)
+                    == fmt::format("test{}chan", sep)
                 );
-                CHECK_EQ(
-                    concat_dedup_splits("test", fmt::format("test{}chan", sep), sep),
-                    fmt::format("test{}chan", sep)
+                REQUIRE(
+                    concat_dedup_splits("test", fmt::format("test{}chan", sep), sep)
+                    == fmt::format("test{}chan", sep)
                 );
                 CHECK_EQ(concat_dedup_splits("test", "chan", sep), fmt::format("test{}chan", sep));
-                CHECK_EQ(
-                    concat_dedup_splits(fmt::format("test{}chan", sep), "chan", sep),
-                    fmt::format("test{}chan", sep)
+                REQUIRE(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), "chan", sep)
+                    == fmt::format("test{}chan", sep)
                 );
-                CHECK_EQ(
-                    concat_dedup_splits(fmt::format("test{}chan", sep), fmt::format("chan{}foo", sep), sep),
-                    fmt::format("test{}chan{}foo", sep, sep)
+                REQUIRE(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), fmt::format("chan{}foo", sep), sep)
+                    == fmt::format("test{}chan{}foo", sep, sep)
                 );
                 CHECK_EQ(
                     concat_dedup_splits(

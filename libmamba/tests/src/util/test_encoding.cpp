@@ -38,9 +38,9 @@ namespace
                 std::byte{ 0xEF }, std::byte{ 0xFF },
             };
 
-            CHECK_EQ(
-                bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size()),
-                "000103090a0d0fad1030a0d0f0ada94eefff"
+            REQUIRE(
+                bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size())
+                == "000103090a0d0fad1030a0d0f0ada94eefff"
             );
         }
 
@@ -117,9 +117,9 @@ namespace
             REQUIRE(encode_percent("page") == "page");
             REQUIRE(encode_percent(" /word%") == "%20%2Fword%25");
             REQUIRE(encode_percent("user@email.com") == "user%40email.com");
-            CHECK_EQ(
-                encode_percent(R"(#!$&'"(ab23)*+,/:;=?@[])"),
-                "%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
+            REQUIRE(
+                encode_percent(R"(#!$&'"(ab23)*+,/:;=?@[])")
+                == "%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
             );
             // Does NOT parse URL
             REQUIRE(encode_percent("https://foo/") == "https%3A%2F%2Ffoo%2F");
@@ -136,9 +136,9 @@ namespace
             REQUIRE(decode_percent(" /word%25") == " /word%");
             REQUIRE(decode_percent("user%40email.com") == "user@email.com");
             REQUIRE(decode_percent("https%3A%2F%2Ffoo%2F") == "https://foo/");
-            CHECK_EQ(
-                decode_percent("%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"),
-                R"(#!$&'"(ab23)*+,/:;=?@[])"
+            REQUIRE(
+                decode_percent("%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D")
+                == R"(#!$&'"(ab23)*+,/:;=?@[])"
             );
         }
     }
@@ -150,9 +150,9 @@ namespace
             REQUIRE(encode_base64("Hello").value() == "SGVsbG8=");
             REQUIRE(encode_base64("Hello World!").value() == "SGVsbG8gV29ybGQh");
             REQUIRE(encode_base64("!@#$%^U&I*O").value() == "IUAjJCVeVSZJKk8=");
-            CHECK_EQ(
-                encode_base64(u8"_私のにほHelloわへたです").value(),
-                "X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ"
+            REQUIRE(
+                encode_base64(u8"_私のにほHelloわへたです").value()
+                == "X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ"
             );
             REQUIRE(encode_base64("xyzpass").value() == "eHl6cGFzcw==");
         }
@@ -162,9 +162,9 @@ namespace
             REQUIRE(decode_base64("SGVsbG8=").value() == "Hello");
             REQUIRE(decode_base64("SGVsbG8gV29ybGQh").value() == "Hello World!");
             REQUIRE(decode_base64("IUAjJCVeVSZJKk8=").value() == "!@#$%^U&I*O");
-            CHECK_EQ(
-                decode_base64(u8"X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ").value(),
-                "_私のにほHelloわへたです"
+            REQUIRE(
+                decode_base64(u8"X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ").value()
+                == "_私のにほHelloわへたです"
             );
             REQUIRE(decode_base64("eHl6cGFzcw==").value() == "xyzpass");
         }

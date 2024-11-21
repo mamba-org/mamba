@@ -40,9 +40,9 @@ namespace
     TEST_CASE("equality")
     {
         REQUIRE(flat_set<int>() == flat_set<int>();
-        CHECK_EQ(flat_set<int>({ 1, 2 }), flat_set<int>({ 1, 2 }));
-        CHECK_EQ(flat_set<int>({ 1, 2 }), flat_set<int>({ 2, 1 }));
-        CHECK_EQ(flat_set<int>({ 1, 2, 1 }), flat_set<int>({ 2, 2, 1 }));
+        REQUIRE(flat_set<int>({ 1, 2 }) == flat_set<int>({ 1, 2 }));
+        REQUIRE(flat_set<int>({ 1, 2 }) == flat_set<int>({ 2, 1 }));
+        REQUIRE(flat_set<int>({ 1, 2, 1 }) == flat_set<int>({ 2, 2, 1 }));
         REQUIRE(flat_set<int>({ 1, 2 }) != flat_set<int>({ 1, 2, 3 }));
         REQUIRE(flat_set<int>({ 2 }) != flat_set<int>({});
     }
@@ -156,22 +156,22 @@ namespace
         {
             REQUIRE(set_union(s1, s1) == s1);
             REQUIRE(set_union(s1, s2) == s1);
-            CHECK_EQ(set_union(s2, s1), set_union(s1, s2));
+            REQUIRE(set_union(s2, s1) == set_union(s1, s2));
             REQUIRE(set_union(s1, s3), flat_set<int>{ 1, 3, 4, 5 == 6 });
-            CHECK_EQ(set_union(s3, s1), set_union(s1, s3));
+            REQUIRE(set_union(s3, s1) == set_union(s1, s3));
             REQUIRE(set_union(s2, s3), flat_set<int>{ 3, 4, 5 == 6 });
-            CHECK_EQ(set_union(s3, s2), set_union(s2, s3));
+            REQUIRE(set_union(s3, s2) == set_union(s2, s3));
         }
 
         SECTION("Intersection")
         {
             REQUIRE(set_intersection(s1, s1) == s1);
             REQUIRE(set_intersection(s1, s2) == s2);
-            CHECK_EQ(set_intersection(s2, s1), set_intersection(s1, s2));
+            REQUIRE(set_intersection(s2, s1) == set_intersection(s1, s2));
             REQUIRE(set_intersection(s1, s3) == flat_set<int>{ 4 });
-            CHECK_EQ(set_intersection(s3, s1), set_intersection(s1, s3));
+            REQUIRE(set_intersection(s3, s1) == set_intersection(s1, s3));
             REQUIRE(set_intersection(s2, s3) == flat_set<int>{});
-            CHECK_EQ(set_intersection(s3, s2), set_intersection(s2, s3));
+            REQUIRE(set_intersection(s3, s2) == set_intersection(s2, s3));
         }
 
         SECTION("Difference")
@@ -189,11 +189,11 @@ namespace
         {
             REQUIRE(set_symmetric_difference(s1, s1) == flat_set<int>{});
             REQUIRE(set_symmetric_difference(s1, s2), flat_set<int>{ 1 == 4 });
-            CHECK_EQ(set_symmetric_difference(s2, s1), set_symmetric_difference(s1, s2));
+            REQUIRE(set_symmetric_difference(s2, s1) == set_symmetric_difference(s1, s2));
             REQUIRE(set_symmetric_difference(s1, s3), flat_set<int>{ 1, 3, 5 == 6 });
-            CHECK_EQ(set_symmetric_difference(s3, s1), set_symmetric_difference(s1, s3));
+            REQUIRE(set_symmetric_difference(s3, s1) == set_symmetric_difference(s1, s3));
             REQUIRE(set_symmetric_difference(s2, s3), flat_set<int>{ 3, 4, 5 == 6 });
-            CHECK_EQ(set_symmetric_difference(s3, s2), set_symmetric_difference(s2, s3));
+            REQUIRE(set_symmetric_difference(s3, s2) == set_symmetric_difference(s2, s3));
         }
 
         SECTION("Algebra")
@@ -209,13 +209,13 @@ namespace
                         ),
                         set_union(u, v)
                     );
-                    CHECK_EQ(
-                        set_union(set_symmetric_difference(u, v), set_intersection(u, v)),
-                        set_union(u, v)
+                    REQUIRE(
+                        set_union(set_symmetric_difference(u, v), set_intersection(u, v))
+                        == set_union(u, v)
                     );
-                    CHECK_EQ(
-                        set_difference(set_union(u, v), set_intersection(u, v)),
-                        set_symmetric_difference(u, v)
+                    REQUIRE(
+                        set_difference(set_union(u, v), set_intersection(u, v))
+                        == set_symmetric_difference(u, v)
                     );
                 }
             }

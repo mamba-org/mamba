@@ -68,12 +68,11 @@ namespace
             }
             if (util::on_win)
             {
-                CHECK_EQ(
-                    found_names,
-                    util::flat_set<std::string>{ "pkgs/main", "pkgs/r", "pkgs/msys2" }
+                REQUIRE(
+                    found_names == util::flat_set<std::string>{ "pkgs/main", "pkgs/r", "pkgs/msys2" }
                 );
-                CHECK_EQ(
-                    found_urls,
+                REQUIRE(
+                    found_urls ==
                     util::flat_set<std::string>{
                         "https://repo.anaconda.com/pkgs/main",
                         "https://repo.anaconda.com/pkgs/r",
@@ -84,8 +83,8 @@ namespace
             else
             {
                 REQUIRE(found_names == util::flat_set<std::string>{ "pkgs/main", "pkgs/r" });
-                CHECK_EQ(
-                    found_urls,
+                REQUIRE(
+                    found_urls ==
                     util::flat_set<std::string>{
                         "https://repo.anaconda.com/pkgs/main",
                         "https://repo.anaconda.com/pkgs/r",
@@ -152,8 +151,8 @@ namespace
             {
                 found_urls.insert(chan.url().str());
             }
-            CHECK_EQ(
-                found_urls,
+            REQUIRE(
+                found_urls ==
                 util::flat_set<std::string>{
                     "https://mamba.com/test/channel",
                     "https://mamba.com/stable/channel",
@@ -227,16 +226,16 @@ namespace
                     found_names.insert(chan.display_name());
                     found_urls.insert(chan.url().str());
                 }
-                CHECK_EQ(
-                    found_names,
+                REQUIRE(
+                    found_names ==
                     util::flat_set<std::string>{
                         "conda-forge",
                         "https://mydomain.com/bioconda",
                         "https://mydomain.com/snakepit",
                     }
                 );
-                CHECK_EQ(
-                    found_urls,
+                REQUIRE(
+                    found_urls ==
                     util::flat_set<std::string>{
                         "https://ali.as/conda-forge",
                         "https://mydomain.com/bioconda",
@@ -256,16 +255,16 @@ namespace
                     found_names.insert(chan.display_name());
                     found_urls.insert(chan.url().str());
                 }
-                CHECK_EQ(
-                    found_names,
+                REQUIRE(
+                    found_names ==
                     util::flat_set<std::string>{
                         "https://otherdomain.com/conda-forge",
                         "bioconda",
                         "https://otherdomain.com/snakepit",
                     }
                 );
-                CHECK_EQ(
-                    found_urls,
+                REQUIRE(
+                    found_urls ==
                     util::flat_set<std::string>{
                         "https://otherdomain.com/conda-forge",
                         "https://ali.as/bioconda",
@@ -353,16 +352,16 @@ namespace
                     found_names.insert(chan.display_name());
                     found_urls.insert(chan.url().str());
                 }
-                CHECK_EQ(
-                    found_names,
+                REQUIRE(
+                    found_names ==
                     util::flat_set<std::string>{
                         "conda-forge",
                         "https://mydomain.com/bioconda",
                         "https://mydomain.com/snakepit",
                     }
                 );
-                CHECK_EQ(
-                    found_urls,
+                REQUIRE(
+                    found_urls ==
                     util::flat_set<std::string>{
                         "https://ali.as/conda-forge",
                         "https://mydomain.com/bioconda",
@@ -382,16 +381,16 @@ namespace
                     found_names.insert(chan.display_name());
                     found_urls.insert(chan.url().str());
                 }
-                CHECK_EQ(
-                    found_names,
+                REQUIRE(
+                    found_names ==
                     util::flat_set<std::string>{
                         "https://otherdomain.com/conda-forge",
                         "bioconda",
                         "https://otherdomain.com/snakepit",
                     }
                 );
-                CHECK_EQ(
-                    found_urls,
+                REQUIRE(
+                    found_urls ==
                     util::flat_set<std::string>{
                         "https://otherdomain.com/conda-forge",
                         "https://ali.as/bioconda",

@@ -30,9 +30,8 @@ namespace
         {
             if (on_win)
             {
-                CHECK_EQ(
-                    abs_path_to_url(R"(D:\users\test\miniconda3)"),
-                    "file://D:/users/test/miniconda3"
+                REQUIRE(
+                    abs_path_to_url(R"(D:\users\test\miniconda3)") == "file://D:/users/test/miniconda3"
                 );
             }
         }
@@ -149,9 +148,9 @@ namespace
         REQUIRE(url_concat("mamba.org/", "folder") == "mamba.org/folder");
         REQUIRE(url_concat("mamba.org/", "/folder") == "mamba.org/folder");
 
-        CHECK_EQ(
-            url_concat("mamba.org", 't', std::string("/sometoken/"), std::string_view("conda-forge")),
-            "mamba.org/t/sometoken/conda-forge"
+        REQUIRE(
+            url_concat("mamba.org", 't', std::string("/sometoken/"), std::string_view("conda-forge"))
+            == "mamba.org/t/sometoken/conda-forge"
         );
     }
 

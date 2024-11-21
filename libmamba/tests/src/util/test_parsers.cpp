@@ -44,9 +44,9 @@ namespace
             CHECK_EQ(find_matching_parentheses(R"("")", '"', '"'), Slice(0, 1));
             CHECK_EQ(find_matching_parentheses(R"("hello")", '"', '"'), Slice(0, 6));
             CHECK_EQ(find_matching_parentheses(R"("some","csv","value")", '"', '"'), Slice(0, 5));
-            CHECK_EQ(
-                find_matching_parentheses(R"(Here is "some)", '"', '"').error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_matching_parentheses(R"(Here is "some)", '"', '"').error()
+                == ParseError::InvalidInput
             );
 
             static constexpr auto opens = std::array{ '[', '(', '\'' };
@@ -69,9 +69,8 @@ namespace
             CHECK_EQ(rfind_matching_parentheses("()"), Slice(0, 1));
             CHECK_EQ(rfind_matching_parentheses("hello()"), Slice(5, 6));
             CHECK_EQ(rfind_matching_parentheses("(hello)dear"), Slice(0, 6));
-            CHECK_EQ(
-                rfind_matching_parentheses("(hello (dear (sir))(!))(how(are(you)))"),
-                Slice(23, 37)
+            REQUIRE(
+                rfind_matching_parentheses("(hello (dear (sir))(!))(how(are(you)))") == Slice(23, 37)
             );
             CHECK_EQ(rfind_matching_parentheses("[hello]", '[', ']'), Slice(0, 6));
 
@@ -89,9 +88,9 @@ namespace
             CHECK_EQ(rfind_matching_parentheses(R"("")", '"', '"'), Slice(0, 1));
             CHECK_EQ(rfind_matching_parentheses(R"("hello")", '"', '"'), Slice(0, 6));
             CHECK_EQ(rfind_matching_parentheses(R"("some","csv","value")", '"', '"'), Slice(13, 19));
-            CHECK_EQ(
-                rfind_matching_parentheses(R"(Here is "some)", '"', '"').error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                rfind_matching_parentheses(R"(Here is "some)", '"', '"').error()
+                == ParseError::InvalidInput
             );
 
             static constexpr auto opens = std::array{ '[', '(', '\'' };
@@ -120,27 +119,26 @@ namespace
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
-            CHECK_EQ(
-                find_not_in_parentheses("(hello, world), [welcome, here],", ',', opens, closes),
-                14
+            REQUIRE(
+                find_not_in_parentheses("(hello, world), [welcome, here],", ',', opens, closes) == 14
             );
-            CHECK_EQ(
-                find_not_in_parentheses("([(hello)], ([world])), [welcome, here],", ',', opens, closes),
-                22
+            REQUIRE(
+                find_not_in_parentheses("([(hello)], ([world])), [welcome, here],", ',', opens, closes)
+                == 22
             );
             REQUIRE(
                 find_not_in_parentheses("[hello, world](welcome, here),", ',', opens, closes) == 29
             );
-            CHECK_EQ(
-                find_not_in_parentheses("(hello, ]world,) welcome, here],", ',', opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses("(hello, ]world,) welcome, here],", ',', opens, closes).error()
+                == ParseError::InvalidInput
             );
 
             // The following unfortunately does not work as we would need to allocate a stack
             // to keep track of the opening and closing of parentheses.
-            // CHECK_EQ(
+            // REQUIRE(
             //     find_not_in_parentheses("(hello, [world, )welcome, here],", ',', opens,
-            //     closes).error(), ParseError::InvalidInput
+            //     closes).error() == ParseError::InvalidInput
             // );
         }
 
@@ -151,23 +149,23 @@ namespace
             REQUIRE(find_not_in_parentheses(R"("some, csv",value)", ',', '"', '"') == 11);
             REQUIRE(find_not_in_parentheses(R"("some, csv""value","here")", ',', '"', '"') == 18);
 
-            CHECK_EQ(
-                find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error()
+                == ParseError::InvalidInput
             );
 
             static constexpr auto opens = std::array{ '[', '(', '\'', '"' };
             static constexpr auto closes = std::array{ ']', ')', '\'', '"' };
-            CHECK_EQ(
-                find_not_in_parentheses(R"('("hello", world)', [welcome, here],)", ',', opens, closes),
-                18
+            REQUIRE(
+                find_not_in_parentheses(R"('("hello", world)', [welcome, here],)", ',', opens, closes)
+                == 18
             );
-            CHECK_EQ(
-                find_not_in_parentheses("('[(hello)], ([world])'), [welcome, here],", ',', opens, closes),
-                24
+            REQUIRE(
+                find_not_in_parentheses("('[(hello)], ([world])'), [welcome, here],", ',', opens, closes)
+                == 24
             );
-            CHECK_EQ(
-                find_not_in_parentheses("('hello', ']world,) welcome, here],", ',', opens, closes)
+            REQUIRE(
+                find_not_in_parentheses("('hello', ']world,) welcome, here],", ',', opens == closes)
                     .error(),
                 ParseError::InvalidInput
             );
@@ -193,21 +191,21 @@ namespace
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
 
-            CHECK_EQ(
-                find_not_in_parentheses("(some str)", "", opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses("(some str)", "", opens, closes).error()
+                == ParseError::InvalidInput
             );
-            CHECK_EQ(
-                find_not_in_parentheses(R"((hello , world), [welcome , here] ,elf)", " ,", opens, closes),
-                33
+            REQUIRE(
+                find_not_in_parentheses(R"((hello , world), [welcome , here] ,elf)", " ,", opens, closes)
+                == 33
             );
-            CHECK_EQ(
-                find_not_in_parentheses("([(hello)] , ([world])), [welcome , here] ,elf", " ,", opens, closes),
-                41
+            REQUIRE(
+                find_not_in_parentheses("([(hello)] , ([world])), [welcome , here] ,elf", " ,", opens, closes)
+                == 41
             );
-            CHECK_EQ(
-                find_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens, closes).error()
+                == ParseError::InvalidInput
             );
         }
 
@@ -218,21 +216,21 @@ namespace
             REQUIRE(find_not_in_parentheses(R"("some::csv"::value)", "::", '"', '"') == 11);
             REQUIRE(find_not_in_parentheses(R"("some::csv""value"::"here")", "::", '"', '"') == 18);
 
-            CHECK_EQ(
-                find_not_in_parentheses(R"("some::csv)", "::", '"', '"').error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses(R"("some::csv)", "::", '"', '"').error()
+                == ParseError::InvalidInput
             );
 
             static constexpr auto opens = std::array{ '[', '(', '\'', '"' };
             static constexpr auto closes = std::array{ ']', ')', '\'', '"' };
 
-            CHECK_EQ(
-                find_not_in_parentheses("(some str)", "", opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses("(some str)", "", opens, closes).error()
+                == ParseError::InvalidInput
             );
-            CHECK_EQ(
-                find_not_in_parentheses(R"('("hello" , world)', [welcome , here] ,elf)", " ,", opens, closes),
-                37
+            REQUIRE(
+                find_not_in_parentheses(R"('("hello" , world)', [welcome , here] ,elf)", " ,", opens, closes)
+                == 37
             );
             CHECK_EQ(
                 find_not_in_parentheses(
@@ -243,8 +241,8 @@ namespace
                 ),
                 43
             );
-            CHECK_EQ(
-                find_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens, closes)
+            REQUIRE(
+                find_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens == closes)
                     .error(),
                 ParseError::InvalidInput
             );
@@ -270,20 +268,19 @@ namespace
 
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
-            CHECK_EQ(
-                rfind_not_in_parentheses(",(hello, world), [welcome, here]", ',', opens, closes),
-                15
+            REQUIRE(
+                rfind_not_in_parentheses(",(hello, world), [welcome, here]", ',', opens, closes) == 15
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses(",[welcome, here], ([(hello)], ([world]))", ',', opens, closes),
-                16
+            REQUIRE(
+                rfind_not_in_parentheses(",[welcome, here], ([(hello)], ([world]))", ',', opens, closes)
+                == 16
             );
             REQUIRE(
                 rfind_not_in_parentheses(",[hello, world](welcome, here)", ',', opens, closes) == 0
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses(",(hello, ]world,) welcome, here]", ',', opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                rfind_not_in_parentheses(",(hello, ]world,) welcome, here]", ',', opens, closes).error()
+                == ParseError::InvalidInput
             );
 
             REQUIRE(rfind_not_in_parentheses("this, is, (a, string)", ',', opens, closes) == 8);
@@ -298,23 +295,23 @@ namespace
             REQUIRE(rfind_not_in_parentheses(R"("some, csv","some, value")", ',', '"', '"') == 11);
             REQUIRE(rfind_not_in_parentheses(R"("some, csv","value""here")", ',', '"', '"') == 11);
 
-            CHECK_EQ(
-                find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error()
+                == ParseError::InvalidInput
             );
 
             static constexpr auto opens = std::array{ '[', '(', '\'', '"' };
             static constexpr auto closes = std::array{ ']', ')', '\'', '"' };
-            CHECK_EQ(
-                rfind_not_in_parentheses(R"(,[welcome, here], '("hello", world)')", ',', opens, closes),
-                16
+            REQUIRE(
+                rfind_not_in_parentheses(R"(,[welcome, here], '("hello", world)')", ',', opens, closes)
+                == 16
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses(",[welcome, here], ('[(hello)], ([world])')", ',', opens, closes),
-                16
+            REQUIRE(
+                rfind_not_in_parentheses(",[welcome, here], ('[(hello)], ([world])')", ',', opens, closes)
+                == 16
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses(",('hello', ']world,) welcome, here]", ',', opens, closes)
+            REQUIRE(
+                rfind_not_in_parentheses(",('hello', ']world,) welcome, here]", ',', opens == closes)
                     .error(),
                 ParseError::InvalidInput
             );
@@ -342,20 +339,20 @@ namespace
             static constexpr auto opens = std::array{ '[', '(' };
             static constexpr auto closes = std::array{ ']', ')' };
 
-            CHECK_EQ(
-                rfind_not_in_parentheses("(some str)", "", opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                rfind_not_in_parentheses("(some str)", "", opens, closes).error()
+                == ParseError::InvalidInput
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses(R"(hoy ,(hello , world), [welcome , here],elf)", " ,", opens, closes),
-                3
+            REQUIRE(
+                rfind_not_in_parentheses(R"(hoy ,(hello , world), [welcome , here],elf)", " ,", opens, closes)
+                == 3
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses("hey ,([(hello)] , ([world])), [it , here]", " ,", opens, closes),
-                3
+            REQUIRE(
+                rfind_not_in_parentheses("hey ,([(hello)] , ([world])), [it , here]", " ,", opens, closes)
+                == 3
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens, closes)
+            REQUIRE(
+                rfind_not_in_parentheses("(hello , ]world,) welcome, here],", ", ", opens == closes)
                     .error(),
                 ParseError::InvalidInput
             );
@@ -366,17 +363,17 @@ namespace
             REQUIRE(rfind_not_in_parentheses(R"("some::csv")", "::", '"', '"') == npos);
             REQUIRE(rfind_not_in_parentheses(R"("some::csv"::"some::value")", "::", '"', '"') == 11);
             REQUIRE(rfind_not_in_parentheses(R"("some::csv"::"value""here")", "::", '"', '"') == 11);
-            CHECK_EQ(
-                rfind_not_in_parentheses(R"(some::csv")", "::", '"', '"').error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                rfind_not_in_parentheses(R"(some::csv")", "::", '"', '"').error()
+                == ParseError::InvalidInput
             );
 
             static constexpr auto opens = std::array{ '[', '(', '\'', '"' };
             static constexpr auto closes = std::array{ ']', ')', '\'', '"' };
 
-            CHECK_EQ(
-                rfind_not_in_parentheses("(some str)", "", opens, closes).error(),
-                ParseError::InvalidInput
+            REQUIRE(
+                rfind_not_in_parentheses("(some str)", "", opens, closes).error()
+                == ParseError::InvalidInput
             );
             CHECK_EQ(
                 find_not_in_parentheses(
@@ -387,8 +384,8 @@ namespace
                 ),
                 3
             );
-            CHECK_EQ(
-                rfind_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens, closes)
+            REQUIRE(
+                rfind_not_in_parentheses("('hello' , ']world,) welcome, here],", ", ", opens == closes)
                     .error(),
                 ParseError::InvalidInput
             );

@@ -320,16 +320,16 @@ namespace
                     {
                         if (p.name == "_libgcc_mutex")
                         {
-                            CHECK_EQ(
-                                p.signatures,
-                                R"({"signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}}})"
+                            REQUIRE(
+                                p.signatures
+                                == R"({"signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}}})"
                             );
                         }
                         else if (p.name == "bzip2")
                         {
-                            CHECK_EQ(
-                                p.signatures,
-                                R"({"signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}}})"
+                            REQUIRE(
+                                p.signatures
+                                == R"({"signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}}})"
                             );
                         }
                         else
@@ -450,16 +450,16 @@ namespace
                 {
                     if (p.name == "_libgcc_mutex")
                     {
-                        CHECK_EQ(
-                            p.package_url,
-                            "https://repo.anaconda.com/repo/main/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                        REQUIRE(
+                            p.package_url
+                            == "https://repo.anaconda.com/repo/main/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
                         );
                     }
                     else if (p.name == "bzip2")
                     {
-                        CHECK_EQ(
-                            p.package_url,
-                            "https://repo.anaconda.com/repo/main/linux-64/bzip2-1.0.8-hd590300_5.conda"
+                        REQUIRE(
+                            p.package_url
+                            == "https://repo.anaconda.com/repo/main/linux-64/bzip2-1.0.8-hd590300_5.conda"
                         );
                     }
                 }
@@ -486,16 +486,16 @@ namespace
                 {
                     if (p.name == "_libgcc_mutex")
                     {
-                        CHECK_EQ(
-                            p.package_url,
-                            "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                        REQUIRE(
+                            p.package_url
+                            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
                         );
                     }
                     else if (p.name == "bzip2")
                     {
-                        CHECK_EQ(
-                            p.package_url,
-                            "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hd590300_5.conda"
+                        REQUIRE(
+                            p.package_url
+                            == "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hd590300_5.conda"
                         );
                     }
                 }

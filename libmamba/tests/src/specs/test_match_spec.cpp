@@ -289,9 +289,9 @@ namespace
             REQUIRE(ms.name().str() == "ncurses");
             REQUIRE(ms.version().str() == "==6.4");
             REQUIRE(ms.build_string().str() == "h59595ed_2");
-            CHECK_EQ(
-                ms.channel().value().str(),
-                "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda"
+            REQUIRE(
+                ms.channel().value().str()
+                == "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda"
             );
             REQUIRE(ms.filename() == "ncurses-6.4-h59595ed_2.conda");
             REQUIRE(ms.md5() == "7dbaa197d7ba6032caf7ae7f32c1efa0");
@@ -307,9 +307,9 @@ namespace
             REQUIRE(ms.name().str() == "_libgcc_mutex");
             REQUIRE(ms.version().str() == "==0.1");
             REQUIRE(ms.build_string().str() == "conda_forge");
-            CHECK_EQ(
-                ms.channel().value().str(),
-                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            REQUIRE(
+                ms.channel().value().str()
+                == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             REQUIRE(ms.filename() == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
             REQUIRE(ms.str() == str);
@@ -324,9 +324,9 @@ namespace
             REQUIRE(ms.name().str() == "libgcc-ng");
             REQUIRE(ms.version().str() == "==11.2.0");
             REQUIRE(ms.build_string().str() == "h1d223b6_13");
-            CHECK_EQ(
-                ms.channel().value().str(),
-                "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
+            REQUIRE(
+                ms.channel().value().str()
+                == "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
             );
             REQUIRE(ms.filename() == "libgcc-ng-11.2.0-h1d223b6_13.tar.bz2");
             REQUIRE(ms.str() == str);
@@ -354,9 +354,9 @@ namespace
             REQUIRE(ms.name().str() == "_libgcc_mutex");
             REQUIRE(ms.version().str() == "==0.1");
             REQUIRE(ms.build_string().str() == "conda_forge");
-            CHECK_EQ(
-                ms.channel().value().str(),
-                "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            REQUIRE(
+                ms.channel().value().str()
+                == "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             REQUIRE(ms.filename() == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
             REQUIRE(ms.str() == str);
@@ -369,9 +369,9 @@ namespace
             )
                           .value();
             REQUIRE(ms.name().str() == "xtensor");
-            CHECK_EQ(
-                ms.channel().value().str(),
-                "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
+            REQUIRE(
+                ms.channel().value().str()
+                == "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
             );
             REQUIRE(ms.str() == "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
@@ -418,9 +418,8 @@ namespace
             REQUIRE(ms.version().str() == "=1.0");
             REQUIRE(ms.build_string().str() == "2");
             REQUIRE(ms.conda_build_form() == "foo 1.0.* 2");
-            CHECK_EQ(
-                ms.str(),
-                R"ms(abcdef::foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms"
+            REQUIRE(
+                ms.str() == R"ms(abcdef::foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms"
             );
         }
 
@@ -458,9 +457,9 @@ namespace
             REQUIRE(ms.name().str() == "numpy");
             REQUIRE(ms.version().str() == ">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))");
             REQUIRE(ms.build_string().str() == "py34_0");
-            CHECK_EQ(
-                ms.str(),
-                R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))",build="py34_0"])ms"
+            REQUIRE(
+                ms.str()
+                == R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))",build="py34_0"])ms"
             );
         }
 
@@ -664,9 +663,8 @@ namespace
                 REQUIRE(ms.is_file());
                 REQUIRE(ms.name().str() == "cph_test_data");
                 REQUIRE(ms.version().str() == "==0.0.1");
-                CHECK_EQ(
-                    ms.str(),
-                    "D:/a/mamba/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
+                REQUIRE(
+                    ms.str() == "D:/a/mamba/mamba/micromamba/tests/data/cph_test_data-0.0.1-0.tar.bz2"
                 );
                 REQUIRE(ms.build_string().str() == "0");
                 REQUIRE(ms.filename() == "cph_test_data-0.0.1-0.tar.bz2");

@@ -201,13 +201,13 @@ namespace mamba
                 fs::perms::owner_read | fs::perms::group_read,
                 fs::perm_options::replace
             );
-            CHECK_EQ(
-                (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                fs::perms::none
+            REQUIRE(
+                (fs::status(readonly_file_path).permissions() & fs::perms::owner_write)
+                == fs::perms::none
             );
-            CHECK_EQ(
-                (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                fs::perms::none
+            REQUIRE(
+                (fs::status(readonly_file_path).permissions() & fs::perms::group_write)
+                == fs::perms::none
             );
 
             // removing should still work.
@@ -247,13 +247,13 @@ namespace mamba
                         fs::perms::owner_read | fs::perms::group_read,
                         fs::perm_options::replace
                     );
-                    CHECK_EQ(
-                        (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                        fs::perms::none
+                    REQUIRE(
+                        (fs::status(readonly_file_path).permissions() & fs::perms::owner_write)
+                        == fs::perms::none
                     );
-                    CHECK_EQ(
-                        (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                        fs::perms::none
+                    REQUIRE(
+                        (fs::status(readonly_file_path).permissions() & fs::perms::group_write)
+                        == fs::perms::none
                     );
                 }
             };

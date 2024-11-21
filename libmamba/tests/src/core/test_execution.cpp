@@ -112,11 +112,9 @@ namespace mamba
                     [&] { executor.schedule([&] { throw "this code must never be executed"; }); }
                 );
             }
-            CHECK_EQ(
-                counter,
-                arbitrary_task_count
-            );  // We re-check to make sure no thread are executed anymore
-                // as soon as `.close()` was called.
+            REQUIRE(counter == arbitrary_task_count);  // We re-check to make sure no thread are
+                                                       // executed anymore as soon as `.close()` was
+                                                       // called.
         }
     }
 

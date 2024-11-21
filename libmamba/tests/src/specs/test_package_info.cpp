@@ -93,9 +93,9 @@ namespace
             REQUIRE(pkg.field("build_number") == "5");
             REQUIRE(pkg.field("noarch") == "generic");
             REQUIRE(pkg.field("channel") == "conda-forge");
-            CHECK_EQ(
-                pkg.field("package_url"),
-                "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+            REQUIRE(
+                pkg.field("package_url")
+                == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
             );
             REQUIRE(pkg.field("subdir") == "linux-64");
             REQUIRE(pkg.field("filename") == "foo-4.0-mybld.conda");
@@ -122,9 +122,9 @@ namespace
             REQUIRE(
                 j.at("sha256") == "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
             );
-            CHECK_EQ(
-                j.at("signatures"),
-                R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
+            REQUIRE(
+                j.at("signatures")
+                == R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
             );
             REQUIRE(j.at("md5") == "68b329da9893e34099c7d8ad5cb9c940");
             CHECK_EQ(j.at("track_features"), "mkl,blas");

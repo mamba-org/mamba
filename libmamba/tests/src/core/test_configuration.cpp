@@ -142,9 +142,9 @@ namespace mamba
                 REQUIRE(config.sources().size() == 1);
                 REQUIRE(config.valid_sources().size() == 1);
                 REQUIRE(config.dump() == "channels:\n  - test1");
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channels:\n  - test1  # '" + src + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "channels:\n  - test1  # '" + src + "'"
                 );
 
                 // ill-formed config file
@@ -196,17 +196,17 @@ namespace mamba
                                           - test1
                                           - test2
                                         ssl_verify: <false>)"));
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                         channels:
                                           - test1  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                           - test2  # ')"
-                              + src2 + R"('
+                                 + src2 + R"('
                                         ssl_verify: <false>  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
 
                 // ill-formed key
@@ -231,19 +231,19 @@ namespace mamba
                                           - test2
                                           - test3
                                         ssl_verify: <false>)"));
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                         channels:
                                           - test1  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                           - test2  # ')"
-                              + src2 + R"('
+                                 + src2 + R"('
                                           - test3  # ')"
-                              + src3 + R"('
+                                 + src3 + R"('
                                         ssl_verify: <false>  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
 
                 // ill-formed file
@@ -267,19 +267,19 @@ namespace mamba
                                           - test2
                                           - test3
                                         ssl_verify: <false>)"));
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                         channels:
                                           - test1  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                           - test2  # ')"
-                              + src2 + R"('
+                                 + src2 + R"('
                                           - test3  # ')"
-                              + src3 + R"('
+                                 + src3 + R"('
                                         ssl_verify: <false>  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
             }
 
@@ -318,21 +318,21 @@ namespace mamba
                                     allow_softlinks: true)"));
 
                 res = config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS);
-                CHECK_EQ(
-                    res,
-                    unindent((R"(
+                REQUIRE(
+                    res
+                    == unindent((R"(
                                     channels:
                                       - test1  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - https://repo.mamba.pm/conda-forge  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - test10  # ')"
-                              + src2 + R"('
+                                 + src2 + R"('
                                     override_channels_enabled: true  # ')"
-                              + src1 + "' > '" + src2 + R"('
+                                 + src1 + "' > '" + src2 + R"('
                                     allow_softlinks: true  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
             }
 
@@ -374,33 +374,33 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     channels:
                                       - c90  # 'CONDA_CHANNELS'
                                       - c101  # 'CONDA_CHANNELS'
                                       - c11  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - c12  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
 
                 config.at("channels").set_yaml_value("https://my.channel, https://my2.channel").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     channels:
                                       - https://my.channel  # 'API'
                                       - https://my2.channel  # 'API'
                                       - c90  # 'CONDA_CHANNELS'
                                       - c101  # 'CONDA_CHANNELS'
                                       - c11  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - c12  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
                 REQUIRE(ctx.channels == config.at("channels").value<std::vector<std::string>>());
 
@@ -445,39 +445,39 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     default_channels:
                                       - c91  # 'MAMBA_DEFAULT_CHANNELS'
                                       - c100  # 'MAMBA_DEFAULT_CHANNELS'
                                       - c11  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - c12  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
 
                 config.at("default_channels")
                     .set_yaml_value("https://my.channel, https://my2.channel")
                     .compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     default_channels:
                                       - https://my.channel  # 'API'
                                       - https://my2.channel  # 'API'
                                       - c91  # 'MAMBA_DEFAULT_CHANNELS'
                                       - c100  # 'MAMBA_DEFAULT_CHANNELS'
                                       - c11  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - c12  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
-                CHECK_EQ(
-                    ctx.default_channels,
-                    config.at("default_channels").value<std::vector<std::string>>()
+                REQUIRE(
+                    ctx.default_channels
+                    == config.at("default_channels").value<std::vector<std::string>>()
                 );
 
                 util::unset_env("MAMBA_DEFAULT_CHANNELS");
@@ -503,15 +503,16 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'"
                 );
 
                 config.at("channel_alias").set_yaml_value("https://my.channel").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '"
+                           + src1 + "'"
                 );
                 REQUIRE(ctx.channel_alias == config.at("channel_alias").value<std::string>());
 
@@ -560,15 +561,15 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     pkgs_dirs:
                                       - )"
-                              + cache3 + R"(  # 'CONDA_PKGS_DIRS'
+                                 + cache3 + R"(  # 'CONDA_PKGS_DIRS'
                                       - )"
-                              + cache1 + "  # '" + src1 + "'")
-                                 .c_str())
+                                 + cache1 + "  # '" + src1 + "'")
+                                    .c_str())
                 );
 
                 util::unset_env("CONDA_PKGS_DIRS");
@@ -606,13 +607,13 @@ namespace mamba
                 std::string cache4 = util::path_concat(util::user_home_dir(), "babaz");
                 util::set_env("CONDA_PKGS_DIRS", cache4);
                 load_test_config(empty_rc);
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     pkgs_dirs:
                                       - )"
-                              + cache4 + "  # 'CONDA_PKGS_DIRS'")
-                                 .c_str())
+                                 + cache4 + "  # 'CONDA_PKGS_DIRS'")
+                                    .c_str())
                 );
 
                 util::unset_env("CONDA_PKGS_DIRS");
@@ -677,15 +678,15 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'"
                 );
 
                 config.at("ssl_verify").set_yaml_value("/new/test").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'"
                 );
 
                 util::unset_env("MAMBA_SSL_VERIFY");
@@ -708,38 +709,38 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     cacert_path: /env/ca/baz  # 'MAMBA_CACERT_PATH' > ')"
-                              + src + R"('
+                                 + src + R"('
                                     ssl_verify: /env/ca/baz  # ')"
-                              + src + "'")
-                                 .c_str())
+                                 + src + "'")
+                                    .c_str())
                 );
                 REQUIRE(ctx.remote_fetch_params.ssl_verify == "/env/ca/baz");
 
                 config.at("cacert_path").set_yaml_value("/new/test").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
-                              + src + R"('
+                                 + src + R"('
                                     ssl_verify: /env/ca/baz  # ')"
-                              + src + "'")
-                                 .c_str())
+                                 + src + "'")
+                                    .c_str())
                 );
                 REQUIRE(ctx.remote_fetch_params.ssl_verify == "/env/ca/baz");
 
                 config.at("ssl_verify").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
-                              + src + R"('
+                                 + src + R"('
                                     ssl_verify: /new/test  # ')"
-                              + src + "'")
-                                 .c_str())
+                                 + src + "'")
+                                    .c_str())
                 );
                 REQUIRE(ctx.remote_fetch_params.ssl_verify == "/new/test");
 
@@ -774,12 +775,12 @@ namespace mamba
                 std::string src = shrink_source(0);
                 REQUIRE(config.at("platform").value<std::string>() == "mylinux-128");
                 REQUIRE(ctx.platform == "mylinux-128");
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     platform: mylinux-128  # ')"
-                              + src + "'")
-                                 .c_str())
+                                 + src + "'")
+                                    .c_str())
                 );
 
                 util::set_env("CONDA_SUBDIR", "win-32");
@@ -787,12 +788,12 @@ namespace mamba
                 src = shrink_source(0);
                 REQUIRE(config.at("platform").value<std::string>() == "win-32");
                 REQUIRE(ctx.platform == "win-32");
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     platform: win-32  # 'CONDA_SUBDIR' > ')"
-                              + src + "'")
-                                 .c_str())
+                                 + src + "'")
+                                    .c_str())
                 );
 
                 config.at("platform").clear_values();
@@ -870,16 +871,14 @@ namespace mamba
                 std::string rc3 = "channel_priority: disabled";
 
                 load_test_config({ rc1, rc2, rc3 });
-                CHECK_EQ(
-                    config.at("channel_priority").value<ChannelPriority>(),
-                    ChannelPriority::Flexible
+                REQUIRE(
+                    config.at("channel_priority").value<ChannelPriority>() == ChannelPriority::Flexible
                 );
                 REQUIRE(ctx.channel_priority == ChannelPriority::Flexible);
 
                 load_test_config({ rc3, rc1, rc2 });
-                CHECK_EQ(
-                    config.at("channel_priority").value<ChannelPriority>(),
-                    ChannelPriority::Disabled
+                REQUIRE(
+                    config.at("channel_priority").value<ChannelPriority>() == ChannelPriority::Disabled
                 );
                 REQUIRE(ctx.channel_priority == ChannelPriority::Disabled);
 
@@ -896,9 +895,9 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'"
                 );
                 REQUIRE(
                     config.at("channel_priority").value<ChannelPriority>() == ChannelPriority::Strict
@@ -906,13 +905,12 @@ namespace mamba
                 REQUIRE(ctx.channel_priority == ChannelPriority::Strict);
 
                 config.at("channel_priority").set_yaml_value("flexible").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'"
                 );
-                CHECK_EQ(
-                    config.at("channel_priority").value<ChannelPriority>(),
-                    ChannelPriority::Flexible
+                REQUIRE(
+                    config.at("channel_priority").value<ChannelPriority>() == ChannelPriority::Flexible
                 );
                 REQUIRE(ctx.channel_priority == ChannelPriority::Flexible);
 
@@ -954,9 +952,9 @@ namespace mamba
                                               - numpy=1.19
                                               - matplotlib
                                               - bokeh)"));
-                CHECK_EQ(
-                    ctx.pinned_packages,
-                    std::vector<std::string>({ "jupyterlab=3", "numpy=1.19", "matplotlib", "bokeh" })
+                REQUIRE(
+                    ctx.pinned_packages
+                    == std::vector<std::string>({ "jupyterlab=3", "numpy=1.19", "matplotlib", "bokeh" })
                 );
 
                 load_test_config({ rc2, rc1, rc3 });
@@ -967,9 +965,9 @@ namespace mamba
                                               - numpy=1.19
                                               - jupyterlab=3
                                               - bokeh)"));
-                CHECK_EQ(
-                    ctx.pinned_packages,
-                    std::vector<std::string>({ "matplotlib", "numpy=1.19", "jupyterlab=3", "bokeh" })
+                REQUIRE(
+                    ctx.pinned_packages
+                    == std::vector<std::string>({ "matplotlib", "numpy=1.19", "jupyterlab=3", "bokeh" })
                 );
 
                 util::set_env("MAMBA_PINNED_PACKAGES", "mpl=10.2,xtensor");
@@ -978,40 +976,40 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src1 = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     pinned_packages:
                                       - mpl=10.2  # 'MAMBA_PINNED_PACKAGES'
                                       - xtensor  # 'MAMBA_PINNED_PACKAGES'
                                       - jupyterlab=3  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - numpy=1.19  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
-                CHECK_EQ(
-                    ctx.pinned_packages,
-                    std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" })
+                REQUIRE(
+                    ctx.pinned_packages
+                    == std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" })
                 );
 
                 config.at("pinned_packages").set_yaml_value("pytest").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    unindent((R"(
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == unindent((R"(
                                     pinned_packages:
                                       - pytest  # 'API'
                                       - mpl=10.2  # 'MAMBA_PINNED_PACKAGES'
                                       - xtensor  # 'MAMBA_PINNED_PACKAGES'
                                       - jupyterlab=3  # ')"
-                              + src1 + R"('
+                                 + src1 + R"('
                                       - numpy=1.19  # ')"
-                              + src1 + "'")
-                                 .c_str())
+                                 + src1 + "'")
+                                    .c_str())
                 );
-                CHECK_EQ(
-                    ctx.pinned_packages,
-                    std::vector<std::string>(
+                REQUIRE(
+                    ctx.pinned_packages
+                    == std::vector<std::string>(
                         { "pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }
                     )
                 );
@@ -1049,9 +1047,8 @@ namespace mamba
                 std::string rc3 = "safety_checks: disabled";
 
                 load_test_config({ rc1, rc2, rc3 });
-                CHECK_EQ(
-                    config.at("safety_checks").value<VerificationLevel>(),
-                    VerificationLevel::Enabled
+                REQUIRE(
+                    config.at("safety_checks").value<VerificationLevel>() == VerificationLevel::Enabled
                 );
                 REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Enabled);
 
@@ -1062,9 +1059,8 @@ namespace mamba
                 REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Warn);
 
                 load_test_config({ rc3, rc1, rc3 });
-                CHECK_EQ(
-                    config.at("safety_checks").value<VerificationLevel>(),
-                    VerificationLevel::Disabled
+                REQUIRE(
+                    config.at("safety_checks").value<VerificationLevel>() == VerificationLevel::Disabled
                 );
                 REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Disabled);
 
@@ -1075,9 +1071,9 @@ namespace mamba
                 REQUIRE(config.valid_sources().size() == 1);
                 std::string src = shrink_source(0);
 
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'"
                 );
                 REQUIRE(
                     config.at("safety_checks").value<VerificationLevel>() == VerificationLevel::Warn
@@ -1085,13 +1081,12 @@ namespace mamba
                 REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Warn);
 
                 config.at("safety_checks").set_yaml_value("disabled").compute();
-                CHECK_EQ(
-                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'"
+                REQUIRE(
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS)
+                    == "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'"
                 );
-                CHECK_EQ(
-                    config.at("safety_checks").value<VerificationLevel>(),
-                    VerificationLevel::Disabled
+                REQUIRE(
+                    config.at("safety_checks").value<VerificationLevel>() == VerificationLevel::Disabled
                 );
                 REQUIRE(ctx.validation_params.safety_checks == VerificationLevel::Disabled);
 

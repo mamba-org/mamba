@@ -54,22 +54,22 @@ namespace
             REQUIRE(strip_archive_extension(fs::u8path(no_ext_path)) == no_ext_path);
         }
 
-        CHECK_EQ(
-            strip_archive_extension("soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2"),
-            "soupsieve-2.3.2.post1-pyhd8ed1ab_0"
+        REQUIRE(
+            strip_archive_extension("soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2")
+            == "soupsieve-2.3.2.post1-pyhd8ed1ab_0"
         );
-        CHECK_EQ(
-            strip_archive_extension("folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2"),
-            "folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0"
+        REQUIRE(
+            strip_archive_extension("folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2")
+            == "folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0"
         );
 
-        CHECK_EQ(
-            strip_archive_extension(fs::u8path("soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2")),
-            "soupsieve-2.3.2.post1-pyhd8ed1ab_0"
+        REQUIRE(
+            strip_archive_extension(fs::u8path("soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2"))
+            == "soupsieve-2.3.2.post1-pyhd8ed1ab_0"
         );
-        CHECK_EQ(
-            strip_archive_extension(fs::u8path("folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2")),
-            "folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0"
+        REQUIRE(
+            strip_archive_extension(fs::u8path("folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0.tar.bz2"))
+            == "folder/soupsieve-2.3.2.post1-pyhd8ed1ab_0"
         );
     }
 }

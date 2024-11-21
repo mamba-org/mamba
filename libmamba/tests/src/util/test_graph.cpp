@@ -141,9 +141,9 @@ namespace
         using node_id_list = decltype(g)::node_id_list;
         REQUIRE(g.number_of_nodes() == 7ul);
         REQUIRE(g.number_of_edges() == 7ul);
-        CHECK_EQ(
-            g.nodes(),
-            node_map(
+        REQUIRE(
+            g.nodes()
+            == node_map(
                 { { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 }, { 3, 3.5 }, { 4, 4.5 }, { 5, 5.5 }, { 6, 6.5 } }
             )
         );

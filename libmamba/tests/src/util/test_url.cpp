@@ -452,17 +452,17 @@ namespace
 
             SECTION("without credentials")
             {
-                CHECK_EQ(
-                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show)
+                    == "https://localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide)
+                    == "https://localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove)
+                    == "https://localhost/"
                 );
             }
 
@@ -471,17 +471,17 @@ namespace
                 url.set_user("user");
                 url.set_password("pass");
 
-                CHECK_EQ(
-                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
-                    "https://user:pass@localhost/"
+                REQUIRE(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show)
+                    == "https://user:pass@localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
-                    "https://user:*****@localhost/"
+                REQUIRE(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide)
+                    == "https://user:*****@localhost/"
                 );
-                CHECK_EQ(
-                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
-                    "https://localhost/"
+                REQUIRE(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove)
+                    == "https://localhost/"
                 );
             }
         }
@@ -501,25 +501,24 @@ namespace
             url.set_query("param=value");
             url.set_fragment("fragment");
 
-            CHECK_EQ(
-                url.str(),
-                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.str() == "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
-            CHECK_EQ(
-                url.str(URL::Credentials::Show),
-                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.str(URL::Credentials::Show)
+                == "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
             );
-            CHECK_EQ(
-                url.str(URL::Credentials::Hide),
-                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.str(URL::Credentials::Hide)
+                == "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
-            CHECK_EQ(
-                url.str(URL::Credentials::Remove),
-                "https://mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.str(URL::Credentials::Remove)
+                == "https://mamba.org:8080/folder/file.html?param=value#fragment"
             );
-            CHECK_EQ(
-                url.pretty_str(),
-                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            REQUIRE(
+                url.pretty_str()
+                == "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
         }
 
@@ -532,13 +531,12 @@ namespace
             REQUIRE(url.str(URL::Credentials::Hide) == "https://user:*****@mamba.org/");
             REQUIRE(url.pretty_str() == "https://user:*****@mamba.org/");
             REQUIRE(url.pretty_str(URL::StripScheme::yes) == "user:*****@mamba.org/");
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Hide),
-                "user:*****@mamba.org/"
+            REQUIRE(
+                url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Hide)
+                == "user:*****@mamba.org/"
             );
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Show),
-                "user@mamba.org/"
+            REQUIRE(
+                url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Show) == "user@mamba.org/"
             );
             REQUIRE(
                 url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Remove) == "mamba.org/"
@@ -607,13 +605,13 @@ namespace
             url.set_user("user@email.com");
             url.set_password("pw%rd");
             url.set_path("/some /path$/");
-            CHECK_EQ(
-                url.str(URL::Credentials::Show),
-                "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
+            REQUIRE(
+                url.str(URL::Credentials::Show)
+                == "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
             );
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, '/', URL::Credentials::Show),
-                "https://user@email.com:pw%rd@mamba.org/some /path$"
+            REQUIRE(
+                url.pretty_str(URL::StripScheme::no, '/', URL::Credentials::Show)
+                == "https://user@email.com:pw%rd@mamba.org/some /path$"
             );
         }
     }
@@ -663,8 +661,8 @@ namespace
     TEST_CASE("Equality")
     {
         REQUIRE(URL() == URL();
-        CHECK_EQ(
-            URL::parse("https://169.254.0.0/page").value(),
+        REQUIRE(
+            URL::parse("https://169.254.0.0/page").value() ==
             URL::parse("https://169.254.0.0/page").value()
         );
         REQUIRE(URL::parse("mamba.org").value() == URL::parse("mamba.org/").value());

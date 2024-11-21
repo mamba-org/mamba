@@ -1035,9 +1035,9 @@ namespace
 
             REQUIRE(solution.actions.size() == 1);
             REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.front()));
-            CHECK_EQ(
-                std::get<Solution::Install>(solution.actions.front()).install.md5,
-                "0bab699354cbd66959550eb9b9866620"
+            REQUIRE(
+                std::get<Solution::Install>(solution.actions.front()).install.md5
+                == "0bab699354cbd66959550eb9b9866620"
             );
         }
 

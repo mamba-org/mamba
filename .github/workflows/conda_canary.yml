@@ -29,12 +29,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: '1.x'  # Conda latest is on 1.x version
+          ref: 'main'
       - name: create mamba build environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: build_env
-          environment-file: ./mamba/environment-dev.yml
+          environment-file: ./dev/environment-dev.yml
           condarc: |
             channels:
               - conda-forge
@@ -42,7 +42,7 @@ jobs:
             channel-priority: flexible
           create-args: >-
             python=3.10
-            conda=*+*
+            conda=*
 
       # Build Mamba
       - uses: hendrikmuhs/ccache-action@main

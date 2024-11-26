@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 'main'
-      - name: create mamba build environment
+      - name: Create mamba build environment
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: build_env
@@ -50,29 +50,27 @@ jobs:
           variant: sccache
           key: conda-canary-${{ github.job }}
           restore-keys: conda-canary-
-      - name: build libmamba Python bindings
+      - name: Build mamba, libmamba, and libmambapy bindings
         run: |
           cmake -B build/ -G Ninja \
             -D CMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -D BUILD_LIBMAMBAPY=ON \
             -D BUILD_LIBMAMBA=ON \
             -D BUILD_SHARED=ON \
-            -D BUILD_MAMBA_PACKAGE=ON \
+            -D BUILD_MAMBA=ON \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache
           cmake --build build/ --parallel
           cmake --install build/
-      - name: install libmambapy
+      - name: Install libmambapy
         run: pip install -e ./libmambapy/ --no-deps
-      - name: build cache statistics
+      - name: Build cache statistics
         run: sccache --show-stats
-      - name: install mamba
-        run: pip install ./mamba[test] --no-deps
 
       # Test Mamba with Conda nightly
-      - name: run mamba tests suite
+      - name: Run mamba tests suite
         run: pytest -v --capture=tee-sys mamba/tests
-      - name: run mamba create/update tests
+      - name: Run mamba create/update tests
         run: |
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f mamba/tests/test_env.yml

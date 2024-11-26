@@ -268,7 +268,9 @@ namespace mamba::download
         {
             std::stringstream ss;
             ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-               << size << " bytes";
+               << size << " bytes\n";
+            ss << "This channel is not accessible or is invalid.\n";
+            ss << "Has it been correctly spelled and is it still exiting?";
             return ss.str();
         }
     }

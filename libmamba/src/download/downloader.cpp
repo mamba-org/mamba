@@ -263,16 +263,6 @@ namespace mamba::download
             return 0;
         }
 
-        std::string
-        build_transfer_message(int http_status, const std::string& effective_url, std::size_t size)
-        {
-            std::stringstream ss;
-            ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-               << size << " bytes\n";
-            ss << "This channel is not accessible or is invalid.\n";
-            ss << "Has it been correctly spelled and is it still exiting?";
-            return ss.str();
-        }
     }
 
     void DownloadAttempt::Impl::configure_handle(const Context& context)
@@ -546,7 +536,15 @@ namespace mamba::download
             error.retry_wait_seconds = p_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER)
                                            .value_or(m_retry_wait_seconds);
         }
-        error.message = build_transfer_message(data.http_status, data.effective_url, data.downloaded_size);
+
+        std::stringstream ss;
+
+        ss << "Transfer finalized, status: " << data.http_status << " [" << data.effective_url
+           << "] " << data.downloaded_size << " bytes\n";
+        ss << "This channel is not accessible or is invalid.\n";
+        ss << "Has it been correctly spelled and is it still exiting?";
+
+        error.message = ss.str();
         error.transfer = std::move(data);
         return error;
     }

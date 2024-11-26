@@ -539,10 +539,11 @@ namespace mamba::download
 
         std::stringstream ss;
 
+        ss << "The resource associated to the URL is not accessible or is invalid.\n";
+        ss << "Has the channel been correctly spelled and is it still exiting?\n";
+
         ss << "Transfer finalized, status: " << data.http_status << " [" << data.effective_url
            << "] " << data.downloaded_size << " bytes\n";
-        ss << "This channel is not accessible or is invalid.\n";
-        ss << "Has it been correctly spelled and is it still exiting?";
 
         error.message = ss.str();
         error.transfer = std::move(data);

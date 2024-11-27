@@ -19,7 +19,11 @@ option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_MAMBA "Build mamba" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
-option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
+if(MSVC)
+    option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
+else()
+    option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" ON)
+endif()
 set(
     MAMBA_LTO
     "Default"

@@ -193,8 +193,8 @@ namespace mamba::download
             DownloadTrackerOptions options
         );
 
-        auto
-        prepare_new_attempt(CURLMultiHandle& handle, const Context& context) -> completion_map_entry;
+        auto prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
+            -> completion_map_entry;
 
         bool has_failed() const;
         bool can_start_transfer() const;

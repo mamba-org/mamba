@@ -1343,3 +1343,18 @@ def test_parsable_env_history_with_metadata(tmp_home, tmp_root_prefix, tmp_path)
 
     # Must not hang
     helpers.umamba_list("-p", env_prefix, "--json")
+
+
+def test_create_dry_run_json(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3583
+    env_prefix = tmp_path / "env-create_dry_run_json"
+    res = helpers.create("-p", env_prefix, "--dry-run", "--json")
+
+    expected_output = {
+        "actions": {"FETCH": [], "PREFIX": str(env_prefix)},
+        "dry_run": True,
+        "prefix": str(env_prefix),
+        "success": True,
+    }
+
+    assert res == expected_output

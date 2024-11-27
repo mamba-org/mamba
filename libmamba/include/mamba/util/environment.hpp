@@ -108,8 +108,8 @@ namespace mamba::util
      * Return the full path of a program from its name if found inside the given directories.
      */
     template <typename Iter>
-    [[nodiscard]] auto
-    which_in(std::string_view exe, Iter search_path_first, Iter search_path_last) -> fs::u8path;
+    [[nodiscard]] auto which_in(std::string_view exe, Iter search_path_first, Iter search_path_last)
+        -> fs::u8path;
 
     /**
      * Return the full path of a program from its name if found inside the given directories.
@@ -139,8 +139,8 @@ namespace mamba::util
     {
         [[nodiscard]] auto which_in_one(const fs::u8path& exe, const fs::u8path& dir) -> fs::u8path;
 
-        [[nodiscard]] auto
-        which_in_split(const fs::u8path& exe, std::string_view paths) -> fs::u8path;
+        [[nodiscard]] auto which_in_split(const fs::u8path& exe, std::string_view paths)
+            -> fs::u8path;
     }
 
     template <typename Iter>

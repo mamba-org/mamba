@@ -705,7 +705,8 @@ namespace mamba::util
 
     template <typename Graph>
     auto
-    is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target) -> bool
+    is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
+        -> bool
     {
         struct : EmptyVisitor<Graph>
         {

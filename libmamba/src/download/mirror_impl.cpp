@@ -153,10 +153,9 @@ namespace mamba::download
         return MirrorID(std::move(url));
     }
 
-    auto OCIMirror::get_request_generators_impl(
-        const std::string& url_path,
-        const std::string& spec_sha256
-    ) const -> request_generator_list
+    auto
+    OCIMirror::get_request_generators_impl(const std::string& url_path, const std::string& spec_sha256) const
+        -> request_generator_list
     {
         // NB: This method can be executed by many threads in parallel. Therefore,
         // data should not be captured in lambda used for building the request, as

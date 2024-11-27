@@ -186,6 +186,13 @@ namespace mamba
         return !other_processes_with_same_name.empty();
     }
 
+// This ctor only uses proc_dir_lock in `assert()` expression
+// That's why it might get reported as unused in Release builds
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
     ScopedProcFile::ScopedProcFile(
         const Context& context,
         const std::string& name,
@@ -216,6 +223,10 @@ namespace mamba
         // TODO: add other info here if necessary
         pid_file << file_json;
     }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
     ScopedProcFile::~ScopedProcFile()
     {

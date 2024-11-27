@@ -52,8 +52,8 @@ namespace mamba::util
 
             CurlUrl();
 
-            [[nodiscard]] auto
-            get_part(::CURLUPart part, flag_type flags = 0) const -> std::optional<std::string>;
+            [[nodiscard]] auto get_part(::CURLUPart part, flag_type flags = 0) const
+                -> std::optional<std::string>;
 
         private:
 
@@ -99,8 +99,8 @@ namespace mamba::util
             size_type m_len = { -1 };
         };
 
-        auto
-        CurlUrl::parse(const std::string& url, flag_type flags) -> tl::expected<CurlUrl, URL::ParseError>
+        auto CurlUrl::parse(const std::string& url, flag_type flags)
+            -> tl::expected<CurlUrl, URL::ParseError>
         {
             auto out = CurlUrl();
             const CURLUcode uc = ::curl_url_set(out.m_handle.get(), CURLUPART_URL, url.c_str(), flags);
@@ -445,8 +445,8 @@ namespace mamba::util
         );
     }
 
-    auto
-    URL::authority_elems(Credentials credentials, Decode::yes_type) const -> std::array<std::string, 7>
+    auto URL::authority_elems(Credentials credentials, Decode::yes_type) const
+        -> std::array<std::string, 7>
     {
         return authority_elems_impl<std::string>(
             authentication_elems(credentials, Decode::yes),

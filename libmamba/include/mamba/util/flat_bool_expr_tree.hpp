@@ -167,8 +167,8 @@ namespace mamba::util
         void reserve(size_type size);
 
         template <typename UnaryFunc = identity>
-        [[nodiscard]] auto
-        evaluate(UnaryFunc&& var_evaluator = {}, bool empty_val = true) const -> bool;
+        [[nodiscard]] auto evaluate(UnaryFunc&& var_evaluator = {}, bool empty_val = true) const
+            -> bool;
 
         template <typename UnaryFunc>
         void infix_for_each(UnaryFunc&& func) const;

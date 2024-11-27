@@ -22,8 +22,8 @@ using namespace mamba::solver;
 
 namespace
 {
-    auto
-    mkpkg(std::string name, std::string version, std::vector<std::string> deps = {}) -> specs::PackageInfo
+    auto mkpkg(std::string name, std::string version, std::vector<std::string> deps = {})
+        -> specs::PackageInfo
     {
         auto out = specs::PackageInfo();
         out.name = std::move(name);

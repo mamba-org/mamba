@@ -213,10 +213,9 @@ namespace mamba::solver
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
-        auto merge_node_indices(
-            const node_type_list<old_node_id_list>& nodes_by_type,
-            CompFunc&& merge_criteria
-        ) -> node_type_list<std::vector<old_node_id_list>>
+        auto
+        merge_node_indices(const node_type_list<old_node_id_list>& nodes_by_type, CompFunc&& merge_criteria)
+            -> node_type_list<std::vector<old_node_id_list>>
         {
             auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
             {
@@ -264,6 +263,12 @@ namespace mamba::solver
             std::transform(rng.begin(), rng.end(), std::back_inserter(tmp), std::forward<Func>(f));
             return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
         }
+
+// GCC reports dangling reference when using std::invoke with data members
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 13
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
 
         template <typename T>
         auto invoke_version(T&& e) -> decltype(auto)
@@ -328,6 +333,10 @@ namespace mamba::solver
                 return name;
             }
         }
+
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 13
+#pragma GCC diagnostic pop
+#endif
 
         /**
          * Detect if a type has a ``name`` member (function).
@@ -532,10 +541,9 @@ namespace mamba::solver
          * If two groups contain a node that are respectively in conflicts, then they are in
          * conflicts.
          */
-        auto merge_conflicts(
-            const ProblemsGraph::conflicts_t& old_conflicts,
-            const node_id_mapping& old_to_new
-        ) -> CompressedProblemsGraph::conflicts_t
+        auto
+        merge_conflicts(const ProblemsGraph::conflicts_t& old_conflicts, const node_id_mapping& old_to_new)
+            -> CompressedProblemsGraph::conflicts_t
         {
             auto new_conflicts = CompressedProblemsGraph::conflicts_t();
             for (const auto& [old_from, old_with] : old_conflicts)
@@ -1254,8 +1262,8 @@ namespace mamba::solver
             template <typename Node>
             auto concat_nodes_impl(const std::vector<node_id>& ids) -> Node;
             auto concat_nodes(const std::vector<node_id>& ids) -> node_t;
-            auto
-            concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to) -> edge_t;
+            auto concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to)
+                -> edge_t;
         };
 
         /*************************************
@@ -1313,8 +1321,8 @@ namespace mamba::solver
          * Sort suffices such that if one ends with the other, the longest one is put first.
          */
         template <std::size_t N>
-        constexpr auto
-        sorted_suffix(std::array<std::string_view, N> arr) -> std::array<std::string_view, N>
+        constexpr auto sorted_suffix(std::array<std::string_view, N> arr)
+            -> std::array<std::string_view, N>
         {
             std::sort(
                 arr.begin(),
@@ -1324,18 +1332,28 @@ namespace mamba::solver
             return arr;
         }
 
-        auto rstrip_excessive_free(std::string_view str) -> std::string_view
-        {
-            str = util::rstrip(str);
-            str = util::remove_suffix(str, specs::GlobSpec::free_pattern);
-            str = util::rstrip(str);
-            for (const auto& suffix : sorted_suffix(specs::VersionSpec::all_free_strs))
-            {
-                str = util::remove_suffix(str, suffix);
-            }
-            str = util::rstrip(str);
-            return str;
-        }
+        // Single dependency with only name constraint often end up looking like
+        // ``python =* *`` so `rstrip_excessive_free` was used to strip all this.
+        // Best would be to handle this with a richer NamedList that contains
+        // ``VersionSpecs`` to avoid flaky reliance on string modification.
+
+        // As `rstrip_excessive_free` side effect was to strip `*` from a regex,
+        // (which is not wanted and confusing when trying to understand the
+        // unsolvability problems), it is not used anymore on `vers_builds_trunc`.
+        // But we still keep it uncommented for a while (in case we need to
+        // restore it later).
+        // auto rstrip_excessive_free(std::string_view str) -> std::string_view
+        // {
+        //     str = util::rstrip(str);
+        //     str = util::remove_suffix(str, specs::GlobSpec::free_pattern);
+        //     str = util::rstrip(str);
+        //     for (const auto& suffix : sorted_suffix(specs::VersionSpec::all_free_strs))
+        //     {
+        //         str = util::remove_suffix(str, suffix);
+        //     }
+        //     str = util::rstrip(str);
+        //     return str;
+        // }
 
         void TreeExplainer::write_pkg_dep(const TreeNode& tn)
         {
@@ -1350,11 +1368,7 @@ namespace mamba::solver
             }
             else
             {
-                // Single dependency with only name constraint often end up looking like
-                // ``python =* *`` so we strip all this.
-                // Best would be to handle this with a richer NamedList that contains
-                // ``VersionSpecs`` to avoid flaky reliance on string modification.
-                const auto relevant_vers_builds_trunc = rstrip_excessive_free(vers_builds_trunc);
+                const auto relevant_vers_builds_trunc = vers_builds_trunc;
                 if (relevant_vers_builds_trunc.empty())
                 {
                     write(fmt::format(style, "{}", edges.name()));
@@ -1654,8 +1668,8 @@ namespace mamba::solver
         return out;
     }
 
-    auto
-    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format) -> std::string
+    auto problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
+        -> std::string
     {
         std::stringstream ss;
         print_problem_tree_msg(ss, pbs, format);

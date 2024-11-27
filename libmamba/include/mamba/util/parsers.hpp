@@ -249,8 +249,8 @@ namespace mamba::util
     /**
      * Test whether the glob pattern @p pattern matches the string @p str.
      */
-    [[nodiscard]] auto
-    glob_match(std::string_view pattern, std::string_view str, char glob = '*') -> bool;
+    [[nodiscard]] auto glob_match(std::string_view pattern, std::string_view str, char glob = '*')
+        -> bool;
 
     /********************
      *  Implementation  *

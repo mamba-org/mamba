@@ -1,2 +1,5 @@
 version_info = ("{{ version_major }}", "{{ version_minor }}", "{{ version_patch }}")
+version_prerelease = "{{ version_prerelease_name }}"
 __version__ = ".".join(map(str, version_info))
+if version_prerelease != "":
+    __version__ = "{}-{}".format(__version__, version_prerelease)

@@ -13,21 +13,22 @@
 #define LIBMAMBA_VERSION_MAJOR {{ version_major }}
 #define LIBMAMBA_VERSION_MINOR {{ version_minor }}
 #define LIBMAMBA_VERSION_PATCH {{ version_patch }}
+#define LIBMAMBA_VERSION_IS_PRERELEASE {{ version_is_prerelease }}
+#if LIBMAMBA_VERSION_IS_PRERELEASE == 1
+#    define LIBMAMBA_VERSION_PRERELEASE_NAME "{{ version_prerelease_name }}"
+#    define LIBMAMBA_VERSION_PRERELEASE_TYPE "{{ version_prerelease_type }}"
+#    define LIBMAMBA_VERSION_PRERELEASE_ITERATION {{ version_prerelease_iteration }}
+#endif
+
+#define LIBMAMBA_VERSION_STRING "{{ version_name }}"
+#define LIBMAMBA_VERSION (LIBMAMBA_VERSION_MAJOR * 10000 + LIBMAMBA_VERSION_MINOR * 100 + LIBMAMBA_VERSION_PATCH)
 
 // Binary version
 #define LIBMAMBA_BINARY_CURRENT 2
 #define LIBMAMBA_BINARY_REVISION 0
 #define LIBMAMBA_BINARY_AGE 0
 
-#define __LIBMAMBA_STRINGIZE_IMPL(s) #s
-#define __LIBMAMBA_STRINGIZE(s) __LIBMAMBA_STRINGIZE_IMPL(s)
 
-#define LIBMAMBA_VERSION                                                                           \
-    (LIBMAMBA_VERSION_MAJOR * 10000 + LIBMAMBA_VERSION_MINOR * 100 + LIBMAMBA_VERSION_PATCH)
-#define LIBMAMBA_VERSION_STRING                                                                    \
-    __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MAJOR)                                                   \
-    "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MINOR) "." __LIBMAMBA_STRINGIZE(                     \
-        LIBMAMBA_VERSION_PATCH)
 
 namespace mamba
 {
@@ -35,6 +36,7 @@ namespace mamba
 
     [[deprecate("will be replaced in a future minor version")]]
     std::array<int, 3> version_arr();
+
 }
 
 #endif

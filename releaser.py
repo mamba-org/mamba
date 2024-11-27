@@ -15,6 +15,79 @@ templates = {
 
 
 def apply_changelog(name, version, changes):
+    version_release = version
+    version_prerelease, version_prerelease_type, version_prerelease_iteration = ("", "", "")
+
+    maybe_version_and_prerelease = version.split("-", 2)
+    assert len(maybe_version_and_prerelease) >= 1
+    if len(maybe_version_and_prerelease) > 1:
+        version_release = maybe_version_and_prerelease[0]
+        version_prerelease = maybe_version_and_prerelease[1]
+
+    version_errors = []
+
+    VALID_VERSION_PRERELEASE_TYPES = ("alpha", "beta")
+    version_major, version_minor, version_patch = version_release.split(".", 3)
+    if version_prerelease != "":
+        if "." in version_prerelease:
+            version_prerelease_type, version_prerelease_iteration = version_prerelease.split(".", 2)
+        else:
+            version_errors.append(
+                "pre-release must have an iteration number, for example 'alpha.1`"
+            )
+
+    if not version_major.isdigit():
+        version_errors.append("'{}' is not a valid major version number".format(version_major))
+    if not version_minor.isdigit():
+        version_errors.append("'{}' is not a valid minor version number".format(version_minor))
+    if not version_patch.isdigit():
+        version_errors.append("'{}' is not a valid patch version number".format(version_patch))
+
+    if version_prerelease != "":
+        if version_prerelease_type not in VALID_VERSION_PRERELEASE_TYPES:
+            version_errors.append(
+                "'{}' is not a valid pre-release type - valid pre-release types: {} ".format(
+                    version_prerelease_type, VALID_VERSION_PRERELEASE_TYPES
+                )
+            )
+        if not version_prerelease_iteration.isdigit():
+            version_errors.append(
+                "'{}' is not a valid pre-release iteration number".format(
+                    version_prerelease_iteration
+                )
+            )
+    elif "-" in version:
+        version_errors.append(
+            "'-' is not followed by a pre-release name (for example `1.2.3-alpha.4`)"
+        )
+
+    if len(version_errors) > 0:
+        error_message = "'{}' is not a valid version name:".format(version)
+        for error in version_errors:
+            error_message += "\n - {}".format(error)
+        hint = "examples of valid versions: 1.2.3, 0.1.2, 1.2.3-alpha.0, 1.2.3-beta.1"
+        error_message += "\n{}".format(hint)
+        raise ValueError(error_message)
+
+    def template_substitute(contents):
+        x = contents.replace("{{ version_major }}", version_major)
+        x = x.replace("{{ version_minor }}", version_minor)
+        x = x.replace("{{ version_patch }}", version_patch)
+        x = x.replace("{{ version_is_prerelease }}", "1" if version_prerelease else "0")
+        x = x.replace("{{ version_prerelease_name }}", version_prerelease)
+        x = x.replace("{{ version_prerelease_type }}", version_prerelease_type)
+        x = x.replace("{{ version_prerelease_iteration }}", version_prerelease_iteration)
+        x = x.replace("{{ version_name }}", version)
+        return x
+
+    if name in templates:
+        template = templates[name]
+        with open(template, "r") as fi:
+            final = template_substitute(fi.read())
+        with open(template[: -len(".tmpl")], "w") as fo:
+            fo.write(final)
+
+    # version has been processed, we can now produce the changes
     res = ""
     today = datetime.date.today()
     fmt_today = today.strftime("%B %d, %Y")
@@ -37,21 +110,6 @@ def apply_changelog(name, version, changes):
         prev_cl = fi.read()
     with open(cl_file, "w") as fo:
         fo.write(res + prev_cl)
-
-    version_major, version_minor, version_patch = version.split(".")
-
-    def template_substitute(contents):
-        x = contents.replace("{{ version_major }}", version_major)
-        x = x.replace("{{ version_minor }}", version_minor)
-        x = x.replace("{{ version_patch }}", version_patch)
-        return x
-
-    if name in templates:
-        template = templates[name]
-        with open(template, "r") as fi:
-            final = template_substitute(fi.read())
-        with open(template[: -len(".tmpl")], "w") as fo:
-            fo.write(final)
 
 
 def commands(changes):

@@ -952,22 +952,29 @@ namespace mamba::solver
                 const std::vector<node_id>& children_ids,
                 SiblingNumber position,
                 const TreeNode& from,
-                TreeNodeIter out
+                TreeNodeIter out,
+                TreeNodeIter end
             ) -> std::pair<TreeNodeIter, Status>;
             /**
              * Visit a node from another node.
              */
-            auto
-            visit_node(node_id id, SiblingNumber position, const TreeNode& from, TreeNodeIter out)
-                -> std::pair<TreeNodeIter, Status>;
+            auto visit_node(
+                node_id id,
+                SiblingNumber position,
+                const TreeNode& from,
+                TreeNodeIter out,
+                TreeNodeIter end
+            ) -> std::pair<TreeNodeIter, Status>;
             /**
              * Visit the first node in the graph.
              */
-            auto visit_node(node_id id, TreeNodeIter out) -> std::pair<TreeNodeIter, Status>;
+            auto visit_node(node_id id, TreeNodeIter out, TreeNodeIter end)
+                -> std::pair<TreeNodeIter, Status>;
             /**
              * Code reuse.
              */
-            auto visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out)
+            auto
+            visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out, TreeNodeIter end)
                 -> std::pair<TreeNodeIter, Status>;
         };
 
@@ -987,7 +994,7 @@ namespace mamba::solver
             auto path = std::vector<TreeNode>(
                 m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
             );
-            auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
+            auto [out, _] = visit_node(m_pbs.root_node(), path.begin(), path.end());
             path.resize(static_cast<std::size_t>(out - path.begin()));
             return path;
         }
@@ -1079,7 +1086,8 @@ namespace mamba::solver
             const std::vector<node_id>& children_ids,
             SiblingNumber position,
             const TreeNode& from,
-            TreeNodeIter out
+            TreeNodeIter out,
+            TreeNodeIter end
         ) -> std::pair<TreeNodeIter, Status>
         {
             auto& ongoing = *(out++);
@@ -1103,7 +1111,7 @@ namespace mamba::solver
                 const bool last = (i == n_children - 1);
                 const auto child_pos = last ? SiblingNumber::last : SiblingNumber::not_last;
                 Status status;
-                std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out);
+                std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out, end);
                 // If there are any valid options in the split, the split is itself valid.
                 ongoing.status |= status;
             }
@@ -1131,8 +1139,10 @@ namespace mamba::solver
             return { out, ongoing.status };
         }
 
-        auto TreeDFS::visit_node(node_id root_id, TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
+        auto TreeDFS::visit_node(node_id root_id, TreeNodeIter out, TreeNodeIter end)
+            -> std::pair<TreeNodeIter, Status>
         {
+            assert(out != end);
             auto& ongoing = *(out++);
             ongoing = TreeNode{
                 /* .ancestry= */ {},
@@ -1143,15 +1153,20 @@ namespace mamba::solver
                 /* .status= */ {},  // Placeholder updated
             };
 
-            auto out_status = visit_node_impl(root_id, ongoing, out);
+            auto out_status = visit_node_impl(root_id, ongoing, out, end);
             ongoing.status = out_status.second;
             return out_status;
         }
 
-        auto
-        TreeDFS::visit_node(node_id id, SiblingNumber position, const TreeNode& from, TreeNodeIter out)
-            -> std::pair<TreeNodeIter, Status>
+        auto TreeDFS::visit_node(
+            node_id id,
+            SiblingNumber position,
+            const TreeNode& from,
+            TreeNodeIter out,
+            TreeNodeIter end
+        ) -> std::pair<TreeNodeIter, Status>
         {
+            assert(out != end);
             auto& ongoing = *(out++);
             ongoing = TreeNode{
                 /* .ancestry= */ concat(from.ancestry, position),
@@ -1162,12 +1177,13 @@ namespace mamba::solver
                 /* .status= */ {},  // Placeholder updated
             };
 
-            auto out_status = visit_node_impl(id, ongoing, out);
+            auto out_status = visit_node_impl(id, ongoing, out, end);
             ongoing.status = out_status.second;
             return out_status;
         }
 
-        auto TreeDFS::visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out)
+        auto
+        TreeDFS::visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out, TreeNodeIter end)
             -> std::pair<TreeNodeIter, Status>
         {
             // At depth 0, we use a stric grouping of edges to avoid gathering user requirements
@@ -1190,11 +1206,14 @@ namespace mamba::solver
                 assert(children.size() > 0);
                 if (children.size() > 1)
                 {
-                    std::tie(out, child_status) = visit_split(children, children_pos, ongoing, out);
+                    std::tie(out, child_status) = visit_split(children, children_pos, ongoing, out, end);
                 }
                 else
                 {
-                    std::tie(out, child_status) = visit_node(children[0], children_pos, ongoing, out);
+                    std::tie(
+                        out,
+                        child_status
+                    ) = visit_node(children[0], children_pos, ongoing, out, end);
                 }
                 // All children statuses need to be valid for a parent to be valid.
                 status &= child_status;

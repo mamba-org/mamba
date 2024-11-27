@@ -58,6 +58,7 @@ jobs:
             -D BUILD_LIBMAMBA=ON \
             -D BUILD_SHARED=ON \
             -D BUILD_MAMBA=ON \
+            -D MAMBA_WARNING_AS_ERROR=OFF \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache
           cmake --build build/ --parallel

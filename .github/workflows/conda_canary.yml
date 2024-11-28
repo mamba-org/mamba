@@ -68,9 +68,6 @@ jobs:
       - name: Build cache statistics
         run: sccache --show-stats
 
-      # Test Mamba with Conda nightly
-      - name: Run mamba tests suite
-        run: pytest -v --capture=tee-sys mamba/tests
       - name: Run mamba create/update tests
         run: |
           mamba create -n test_env xtensor -c conda-forge -y

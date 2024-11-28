@@ -4,6 +4,7 @@
 import copy
 import datetime
 import re
+from version_scheme import version_info
 
 template = {"version": None, "changes": []}
 
@@ -14,65 +15,16 @@ templates = {
 }
 
 
-def apply_changelog(name, version, changes):
-    if "-" in version:
-        raise ValueError(
-            "'{}' is not a valid version name : `-` is reserved for another usage in conda packages version names".format(
-                version
-            )
-        )
-
-    VALID_VERSION_PRERELEASE_TYPES = ("alpha", "beta")
-    version_fields = version.split(".")
-    version_fields_count = len(version_fields)
-    if version_fields_count < 3:
-        raise ValueError(
-            "'{}' is not a valid version name :  valid version scheme contains 3 or more dots-separated fields, the pre-release name starting with the 4th field (valid examples: 1.2.3, 0.1.2.alpha3, 0.1.2.alpha.3)".format(
-                version
-            )
-        )
-
-    version_major = version_fields[0]
-    version_minor = version_fields[1]
-    version_patch = version_fields[2]
-    version_prerelease = ""
-    if version_fields_count > 3:
-        # we assume here that all the additional dot-separated values are part of the pre-release name
-        version_prerelease = ".".join(version_fields[3:])
-
-    version_errors = []
-
-    if not version_major.isdigit():
-        version_errors.append("'{}' is not a valid major version number".format(version_major))
-    if not version_minor.isdigit():
-        version_errors.append("'{}' is not a valid minor version number".format(version_minor))
-    if not version_patch.isdigit():
-        version_errors.append("'{}' is not a valid patch version number".format(version_patch))
-
-    if version_prerelease != "" and not version_prerelease.startswith(
-        VALID_VERSION_PRERELEASE_TYPES
-    ):
-        version_errors.append(
-            "'{}' is not a valid pre-release name, pre-release names must start with either : {} ".format(
-                version_prerelease, VALID_VERSION_PRERELEASE_TYPES
-            )
-        )
-
-    if len(version_errors) > 0:
-        error_message = "'{}' is not a valid version name:".format(version)
-        for error in version_errors:
-            error_message += "\n - {}".format(error)
-        hint = "examples of valid versions: 1.2.3, 0.1.2, 1.2.3.alpha0, 1.2.3.beta1, 3.4.5.beta.2"
-        error_message += "\n{}".format(hint)
-        raise ValueError(error_message)
+def apply_changelog(name, version_name, changes):
+    version = version_info(version_name)
 
     def template_substitute(contents):
-        x = contents.replace("{{ version_major }}", version_major)
-        x = x.replace("{{ version_minor }}", version_minor)
-        x = x.replace("{{ version_patch }}", version_patch)
-        x = x.replace("{{ version_is_prerelease }}", "1" if version_prerelease else "0")
-        x = x.replace("{{ version_prerelease_name }}", version_prerelease)
-        x = x.replace("{{ version_name }}", version)
+        x = contents.replace("{{ version_major }}", version.major)
+        x = x.replace("{{ version_minor }}", version.minor)
+        x = x.replace("{{ version_patch }}", version.patch)
+        x = x.replace("{{ version_is_prerelease }}", "1" if version.pre_release else "0")
+        x = x.replace("{{ version_prerelease_name }}", version.pre_release)
+        x = x.replace("{{ version_name }}", version_name)
         return x
 
     if name in templates:

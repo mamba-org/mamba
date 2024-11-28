@@ -15,26 +15,32 @@ templates = {
 
 
 def apply_changelog(name, version, changes):
-    version_release = version
-    version_prerelease, version_prerelease_type, version_prerelease_iteration = ("", "", "")
-
-    maybe_version_and_prerelease = version.split("-", 2)
-    assert len(maybe_version_and_prerelease) >= 1
-    if len(maybe_version_and_prerelease) > 1:
-        version_release = maybe_version_and_prerelease[0]
-        version_prerelease = maybe_version_and_prerelease[1]
-
-    version_errors = []
+    if "-" in version:
+        raise ValueError(
+            "'{}' is not a valid version name : `-` is reserved for another usage in conda packages version names".format(
+                version
+            )
+        )
 
     VALID_VERSION_PRERELEASE_TYPES = ("alpha", "beta")
-    version_major, version_minor, version_patch = version_release.split(".", 3)
-    if version_prerelease != "":
-        if "." in version_prerelease:
-            version_prerelease_type, version_prerelease_iteration = version_prerelease.split(".", 2)
-        else:
-            version_errors.append(
-                "pre-release must have an iteration number, for example 'alpha.1`"
+    version_fields = version.split(".")
+    version_fields_count = len(version_fields)
+    if version_fields_count < 3:
+        raise ValueError(
+            "'{}' is not a valid version name :  valid version scheme contains 3 or more dots-separated fields, the pre-release name starting with the 4th field (valid examples: 1.2.3, 0.1.2.alpha3, 0.1.2.alpha.3)".format(
+                version
             )
+        )
+
+    version_major = version_fields[0]
+    version_minor = version_fields[1]
+    version_patch = version_fields[2]
+    version_prerelease = ""
+    if version_fields_count > 3:
+        # we assume here that all the additional dot-separated values are part of the pre-release name
+        version_prerelease = ".".join(version_fields[3:])
+
+    version_errors = []
 
     if not version_major.isdigit():
         version_errors.append("'{}' is not a valid major version number".format(version_major))
@@ -43,29 +49,20 @@ def apply_changelog(name, version, changes):
     if not version_patch.isdigit():
         version_errors.append("'{}' is not a valid patch version number".format(version_patch))
 
-    if version_prerelease != "":
-        if version_prerelease_type not in VALID_VERSION_PRERELEASE_TYPES:
-            version_errors.append(
-                "'{}' is not a valid pre-release type - valid pre-release types: {} ".format(
-                    version_prerelease_type, VALID_VERSION_PRERELEASE_TYPES
-                )
-            )
-        if not version_prerelease_iteration.isdigit():
-            version_errors.append(
-                "'{}' is not a valid pre-release iteration number".format(
-                    version_prerelease_iteration
-                )
-            )
-    elif "-" in version:
+    if version_prerelease != "" and not version_prerelease.startswith(
+        VALID_VERSION_PRERELEASE_TYPES
+    ):
         version_errors.append(
-            "'-' is not followed by a pre-release name (for example `1.2.3-alpha.4`)"
+            "'{}' is not a valid pre-release name, pre-release names must start with either : {} ".format(
+                version_prerelease, VALID_VERSION_PRERELEASE_TYPES
+            )
         )
 
     if len(version_errors) > 0:
         error_message = "'{}' is not a valid version name:".format(version)
         for error in version_errors:
             error_message += "\n - {}".format(error)
-        hint = "examples of valid versions: 1.2.3, 0.1.2, 1.2.3-alpha.0, 1.2.3-beta.1"
+        hint = "examples of valid versions: 1.2.3, 0.1.2, 1.2.3.alpha0, 1.2.3.beta1, 3.4.5.beta.2"
         error_message += "\n{}".format(hint)
         raise ValueError(error_message)
 
@@ -75,8 +72,6 @@ def apply_changelog(name, version, changes):
         x = x.replace("{{ version_patch }}", version_patch)
         x = x.replace("{{ version_is_prerelease }}", "1" if version_prerelease else "0")
         x = x.replace("{{ version_prerelease_name }}", version_prerelease)
-        x = x.replace("{{ version_prerelease_type }}", version_prerelease_type)
-        x = x.replace("{{ version_prerelease_iteration }}", version_prerelease_iteration)
         x = x.replace("{{ version_name }}", version)
         return x
 

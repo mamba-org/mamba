@@ -16,8 +16,6 @@
 #define LIBMAMBA_VERSION_IS_PRERELEASE {{ version_is_prerelease }}
 #if LIBMAMBA_VERSION_IS_PRERELEASE == 1
 #    define LIBMAMBA_VERSION_PRERELEASE_NAME "{{ version_prerelease_name }}"
-#    define LIBMAMBA_VERSION_PRERELEASE_TYPE "{{ version_prerelease_type }}"
-#    define LIBMAMBA_VERSION_PRERELEASE_ITERATION {{ version_prerelease_iteration }}
 #endif
 
 #define LIBMAMBA_VERSION_STRING "{{ version_name }}"

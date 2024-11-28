@@ -115,6 +115,10 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
+@pytest.mark.skipif(
+    platform.system() != "Linux",
+    reason="Test only available on Linux (cf. `test-env-pip-lock.yaml`)",
+)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myenv"

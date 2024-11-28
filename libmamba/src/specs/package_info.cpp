@@ -30,6 +30,10 @@ namespace mamba::specs
             {
                 return PackageType::Wheel;
             }
+            else if (util::ends_with(spec, ".tar.gz"))
+            {
+                return PackageType::TarGz;
+            }
             return PackageType::Conda;
         }
 
@@ -39,7 +43,6 @@ namespace mamba::specs
             {
                 return make_unexpected_parse("Missing filename extension.");
             }
-
 
             auto out = PackageInfo();
             // TODO decide on the best way to group filename/channel/subdir/package_url all at once
@@ -58,37 +61,119 @@ namespace mamba::specs
             out.filename = url.package();
             url.clear_package();
 
+            // The filename format depends on the package_type:
             out.package_type = parse_extension(spec);
+            // PackageType::Conda (.tar.bz2 or .conda):
+            // {pkg name}-{version}-{build string}.{tar.bz2, conda}
             if (out.package_type == PackageType::Conda)
             {
                 out.platform = url.platform_name();
                 url.clear_platform();
                 out.channel = util::rstrip(url.str(), '/');
+
+                // Note that we use `rsplit...` instead of `split...`
+                // because the package name may contain '-'.
+                // Build string
+                auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
+                out.build_string = tail;
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing name and version in filename "{}".)", out.filename)
+                    );
+                }
+
+                // Version
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                out.version = tail;
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                    );
+                }
+
+                // Name
+                out.name = head.value();  // There may be '-' in the name
             }
-
-            // Build string
-            auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
-            out.build_string = tail;
-
-            if (!head.has_value())
+            // PackageType::Wheel (.whl):
+            // {pkg name}-{version}-{build tag (optional)}-{python tag}-{abi tag}-{platform tag}.whl
+            // cf.
+            // https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
+            else if (out.package_type == PackageType::Wheel)
             {
-                return make_unexpected_parse(
-                    fmt::format(R"(Missing name and version in filename "{}".)", out.filename)
-                );
-            }
+                // Platform tag
+                auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                // Abi tag
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                // Python tag
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                // Build tag or version
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                if (util::contains(tail, '.'))
+                {
+                    // The tail is the version
+                    out.version = tail;
+                    // The head is the name
+                    out.name = head.value();  // There may be '-' in the name
+                }
+                else
+                {
+                    // The previous tail is the optional build tag
+                    std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                    // The tail is the version
+                    out.version = tail;
+                    if (!head.has_value())
+                    {
+                        return make_unexpected_parse(
+                            fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                        );
+                    }
 
-            // Version
-            std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-            out.version = tail;
-            if (!head.has_value())
+                    // Name
+                    out.name = head.value();  // There may be '-' in the name
+                }
+            }
+            // PackageType::TarGz (.tar.gz): {pkg name}-{version}.tar.gz
+            else if (out.package_type == PackageType::TarGz)
             {
-                return make_unexpected_parse(
-                    fmt::format(R"(Missing name in filename "{}".)", out.filename)
-                );
-            }
+                // Version
+                auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
+                out.version = tail;
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                    );
+                }
 
-            // Name
-            out.name = head.value();  // There may be '-' in the name
+                // Name
+                out.name = head.value();  // There may be '-' in the name
+            }
 
             return out;
         }

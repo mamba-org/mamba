@@ -24,6 +24,7 @@ namespace mamba::specs
         Unknown,
         Conda,
         Wheel,
+        TarGz,
     };
 
     class PackageInfo

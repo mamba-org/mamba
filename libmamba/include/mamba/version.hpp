@@ -31,7 +31,7 @@ namespace mamba
 {
     std::string version();
 
-    [[deprecate("will be replaced in a future minor version")]]
+    [[deprecated("will be replaced in a future minor version")]]
     std::array<int, 3> version_arr();
 
 }

@@ -24,8 +24,8 @@ namespace mamba::specs
      *
      * Not a static function, it is needed in "channel_spec.cpp".
      */
-    auto find_slash_and_platform(std::string_view path
-    ) -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>
+    auto find_slash_and_platform(std::string_view path)
+        -> std::tuple<std::size_t, std::size_t, std::optional<KnownPlatform>>
     {
         static constexpr auto npos = std::string_view::npos;
 

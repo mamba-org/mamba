@@ -174,21 +174,21 @@ namespace mamba
                 && __builtin_cpu_supports("avx512cd") && __builtin_cpu_supports("avx512dq")
                 && __builtin_cpu_supports("avx512vl"))
             {
-                return "x86_64-v4";
+                return "x86_64_v4";
             }
             /* if (__builtin_cpu_supports ("x86-64-v3")) */
             if (__builtin_cpu_supports("avx") && __builtin_cpu_supports("avx2")
                 && __builtin_cpu_supports("bmi") && __builtin_cpu_supports("bmi2")
                 && __builtin_cpu_supports("fma"))
             {
-                return "x86_64-v3";
+                return "x86_64_v3";
             }
             /* if (__builtin_cpu_supports ("x86-64-v2")) */
             if (__builtin_cpu_supports("popcnt") && __builtin_cpu_supports("sse3")
                 && __builtin_cpu_supports("ssse3") && __builtin_cpu_supports("sse4.1")
                 && __builtin_cpu_supports("sse4.2"))
             {
-                return "x86_64-v2";
+                return "x86_64_v2";
             }
 #endif
             return "x86_64";
@@ -243,12 +243,11 @@ namespace mamba
             return util::windows_version();
         }
 
-        std::vector<specs::PackageInfo> dist_packages(const Context& context)
+        std::vector<specs::PackageInfo> dist_packages(const std::string& platform)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
 
             std::vector<specs::PackageInfo> res;
-            const auto platform = context.platform;
             const auto split_platform = util::split(platform, "-", 1);
 
             if (split_platform.size() != 2)
@@ -263,7 +262,8 @@ namespace mamba
             {
                 overridable_windows_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(make_virtual_package("__win", platform, std::move(version)));
                         }
                     )
@@ -285,7 +285,8 @@ namespace mamba
 
                 overridable_linux_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(
                                 make_virtual_package("__linux", platform, std::move(version))
                             );
@@ -319,7 +320,8 @@ namespace mamba
 
                 overridable_osx_version()
                     .transform(
-                        [&](std::string&& version) {
+                        [&](std::string&& version)
+                        {
                             res.push_back(make_virtual_package("__osx", platform, std::move(version)));
                         }
                     )
@@ -342,15 +344,15 @@ namespace mamba
         }
     }
 
-    std::vector<specs::PackageInfo> get_virtual_packages(const Context& context)
+    std::vector<specs::PackageInfo> get_virtual_packages(const std::string& platform)
     {
         LOG_DEBUG << "Loading virtual packages";
-        auto res = detail::dist_packages(context);
+        auto res = detail::dist_packages(platform);
 
         auto cuda_ver = detail::cuda_version();
         if (!cuda_ver.empty())
         {
-            res.push_back(detail::make_virtual_package("__cuda", context.platform, cuda_ver));
+            res.push_back(detail::make_virtual_package("__cuda", platform, cuda_ver));
         }
 
         return res;

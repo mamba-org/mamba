@@ -133,8 +133,8 @@ protected:
 
     secrets_type secrets;
 
-    auto generate_role_secrets(int count
-    ) -> std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
+    auto generate_role_secrets(int count)
+        -> std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     {
         std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>> role_secrets;
 

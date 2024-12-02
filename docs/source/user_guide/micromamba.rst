@@ -32,7 +32,7 @@ Quickstarts
     config                      Configuration of micromamba
     info                        Information about micromamba
     constructor                 Commands to support using micromamba in constructor
-    env                         List environments
+    env                         See `mamba/micromamba env --help`
     activate                    Activate an environment
     run                         Run an executable in an environment
     ps                          Show, inspect or kill running processes
@@ -156,7 +156,7 @@ More powerful are ``YAML`` files like the following, because they already contai
   dependencies:
     - python >=3.6,<3.7
     - ipykernel >=5.1
-    - ipywidgets
+    - ipywidgets[build_number=!=0]
 
 They are used the same way as text files:
 

@@ -173,6 +173,8 @@ namespace mamba
         bool always_softlink = false;
         bool register_envs = true;
 
+        bool show_anaconda_channel_warnings = true;
+
         // solver options
         solver::Request::Flags solver_flags = {};
 

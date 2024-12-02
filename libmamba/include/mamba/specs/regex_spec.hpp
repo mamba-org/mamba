@@ -47,6 +47,18 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> const std::string&;
 
+        // TODO(C++20): replace by the `= default` implementation of `operator==`
+        [[nodiscard]] auto operator==(const RegexSpec& other) const -> bool
+        {
+            return m_raw_pattern == other.m_raw_pattern
+                   && m_pattern.flags() == other.m_pattern.flags();
+        }
+
+        [[nodiscard]] auto operator!=(const RegexSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         std::regex m_pattern;
@@ -59,7 +71,17 @@ struct fmt::formatter<mamba::specs::RegexSpec>
 {
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::RegexSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto format(const ::mamba::specs::RegexSpec& spec, format_context& ctx) const
+        -> decltype(ctx.out());
+};
+
+template <>
+struct std::hash<mamba::specs::RegexSpec>
+{
+    auto operator()(const mamba::specs::RegexSpec& spec) const -> std::size_t
+    {
+        return std::hash<std::string>{}(spec.str());
+    }
 };
 
 #endif

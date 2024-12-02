@@ -1371,7 +1371,7 @@ struct fmt::formatter<::mamba::fs::u8path>
     }
 
     template <class FormatContext>
-    auto format(const ::mamba::fs::u8path& path, FormatContext& ctx)
+    auto format(const ::mamba::fs::u8path& path, FormatContext& ctx) const
     {
         return fmt::format_to(ctx.out(), "'{}'", path.string());
     }

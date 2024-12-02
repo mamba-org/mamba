@@ -444,4 +444,19 @@ TEST_SUITE("specs::version_spec")
         CHECK_FALSE(VersionSpec::parse("==2.3|!=2.3").value().is_explicitly_free());
         CHECK_FALSE(VersionSpec::parse("=2.3,<3.0").value().is_explicitly_free());
     }
+
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto spec1 = VersionSpec::parse("*").value();
+        auto spec2 = VersionSpec::parse("*").value();
+        auto spec3 = VersionSpec::parse("=2.4").value();
+
+        CHECK_EQ(spec1, spec2);
+        CHECK_NE(spec1, spec3);
+
+        auto hash_fn = std::hash<VersionSpec>();
+        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
+        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+    }
 }

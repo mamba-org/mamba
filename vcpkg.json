@@ -13,7 +13,7 @@
         "lz4",
         "lzma",
         "lzo",
-        "openssl",
+        "crypto",
         "zstd"
       ],
       "name": "libarchive"

@@ -13,12 +13,11 @@ Solving Package Environments
 
 The :any:`libmambapy.solver <mamba::solver>` submodule contains a generic API for solving
 requirements (|MatchSpec|) into a list of packages (|PackageInfo|) with no conflicting dependencies.
-This problem is hard to solve (`NP-complete <https://en.wikipedia.org/wiki/NP-completeness>`_) which
-is why Mamba uses a `SAT solver <https://en.wikipedia.org/wiki/SAT_solver>`_ to do so.
 
 .. note::
 
-   There is currently only one solver available in Mamba:
+   Solving Package Environments can be cast as a Boolean satisfiability problem (SAT).
+   Mamba currently only uses one `SAT solver <https://en.wikipedia.org/wiki/SAT_solver>`_:
    `LibSolv <https://en.opensuse.org/openSUSE:Libzypp_satsolver>`_. For this reason, the generic
    interface has not been fully completed and users need to access the submodule
    :any:`libmambapy.solver.libsolv <mamba::solver::libsolv>` for certain types.
@@ -42,8 +41,10 @@ The first way to add a repository is from a list of |PackageInfo| using
 
    import libmambapy
 
+   channel_alias = libmambapy.specs.CondaURL.parse("https://conda.anaconda.org")
+
    db = libmambapy.solver.libsolv.Database(
-       libmambapy.specs.ChannelResolveParams(channel_alias="https://conda.anaconda.org")
+       libmambapy.specs.ChannelResolveParams(channel_alias=channel_alias)
    )
 
    repo1 = db.add_repo_from_packages(
@@ -57,15 +58,16 @@ The first way to add a repository is from a list of |PackageInfo| using
 
 The second way of loading packages is through Conda's repository index format ``repodata.json``
 using
-:cpp:func:`DataBase.add_repo_from_repodata <mamba::solver::libsolv::Database::add_repo_from_repodata>`.
+:cpp:func:`DataBase.add_repo_from_repodata_json <mamba::solver::libsolv::Database::add_repo_from_repodata_json>`.
 This is meant for convenience, and is not a performant alternative to the former method, since these files
 grow large.
 
 .. code:: python
 
-   repo2 = db.add_repo_from_repodata(
+   repo2 = db.add_repo_from_repodata_json(
        path="path/to/repodata.json",
        url="htts://conda.anaconda.org/conda-forge/linux-64",
+       channel_id="conda-forge",
    )
 
 One of the repositories can be set to have a special meaning of "installed repository".

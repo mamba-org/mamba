@@ -17,14 +17,16 @@ namespace mamba
 
     void list(Configuration& config, const std::string& regex);
 
-    namespace detail
+    /*namespace detail
     {
+        struct list_options;
+
         void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context);
 
         struct formatted_pkg;
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b);
-    }
+    }*/
 }
 
 #endif

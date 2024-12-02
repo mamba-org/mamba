@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
@@ -18,6 +20,8 @@ namespace mamba
         auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(false);
+        config.at("use_default_prefix_fallback").set_value(false);
+        config.at("use_root_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
@@ -27,6 +31,7 @@ namespace mamba
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
+        auto& json_format = config.at("json").get_cli_config<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
@@ -74,6 +79,21 @@ namespace mamba
                     ctx.platform,
                     remove_prefix_on_failure
                 );
+            }
+        }
+        else
+        {
+            if (create_specs.empty() && json_format)
+            {
+                // Just print the JSON
+                nlohmann::json output;
+                output["actions"]["FETCH"] = nlohmann::json::array();
+                output["actions"]["PREFIX"] = ctx.prefix_params.target_prefix;
+                output["dry_run"] = true;
+                output["prefix"] = ctx.prefix_params.target_prefix;
+                output["success"] = true;
+                std::cout << output.dump(2) << std::endl;
+                return;
             }
         }
 

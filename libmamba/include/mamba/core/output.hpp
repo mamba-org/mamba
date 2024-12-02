@@ -170,7 +170,7 @@ namespace mamba
     {
     public:
 
-        MessageLogger(const char* file, int line, log_level level);
+        MessageLogger(log_level level);
         ~MessageLogger();
 
         std::stringstream& stream();
@@ -181,8 +181,6 @@ namespace mamba
 
     private:
 
-        std::string m_file;
-        int m_line;
         log_level m_level;
         std::stringstream m_stream;
 
@@ -199,7 +197,7 @@ namespace mamba
 #undef LOG_ERROR
 #undef LOG_CRITICAL
 
-#define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
+#define LOG(severity) mamba::MessageLogger(severity).stream()
 #define LOG_TRACE LOG(mamba::log_level::trace)
 #define LOG_DEBUG LOG(mamba::log_level::debug)
 #define LOG_INFO LOG(mamba::log_level::info)

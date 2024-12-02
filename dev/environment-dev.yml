@@ -6,6 +6,7 @@ dependencies:
   - cmake >=3.16
   - pkg-config  # Used by some CMake dependencies
   - ninja
+  - make  # not always present
   # libmamba dependencies
   - cpp-expected
   - fmt
@@ -24,21 +25,21 @@ dependencies:
   # micromamba dependencies
   - cli11 >=2.2
   # micromamba test dependencies
-  - python =3.9  # Some not too recent version
+  - python
   - mitmproxy
   - pytest >=7.3.0
   - pytest-asyncio
+  - pytest-timeout
   - pytest-xprocess
   - requests
   - sel(win): pywin32
   - sel(win): menuinst
   - conda-content-trust
   - conda-package-handling
-  - cryptography<40.0  # Or breaks conda-content-trust
+  - cryptography
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build
-  - build
   - pybind11-stubgen <1.0
   # libmambapy dependencies
   - python

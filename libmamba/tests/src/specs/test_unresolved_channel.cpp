@@ -137,7 +137,15 @@ TEST_SUITE("specs::unresolved_channel")
         {
             const auto uc = UnresolvedChannel::parse("./folder/../folder/.").value();
             CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "folder");
+            CHECK_EQ(uc.location(), "./folder");
+            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE("./folder/subfolder/")
+        {
+            const auto uc = UnresolvedChannel::parse("./folder/subfolder/").value();
+            CHECK_EQ(uc.type(), Type::Path);
+            CHECK_EQ(uc.location(), "./folder/subfolder");
             CHECK_EQ(uc.platform_filters(), PlatformSet{});
         }
 
@@ -241,5 +249,19 @@ TEST_SUITE("specs::unresolved_channel")
             UnresolvedChannel("location", { "linux-64", "noarch" }, Type::Name).str(),
             "location[linux-64,noarch]"
         );
+    }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto uc1 = UnresolvedChannel::parse("conda-forge").value();
+        auto uc2 = UnresolvedChannel::parse("conda-forge").value();
+        auto uc3 = UnresolvedChannel::parse("conda-forge/linux-64").value();
+
+        CHECK_EQ(uc1, uc2);
+        CHECK_NE(uc1, uc3);
+
+        auto hash_fn = std::hash<UnresolvedChannel>();
+        CHECK_EQ(hash_fn(uc1), hash_fn(uc2));
+        CHECK_NE(hash_fn(uc1), hash_fn(uc3));
     }
 }

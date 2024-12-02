@@ -260,15 +260,15 @@ namespace mamba::util
 
     protected:
 
-        [[nodiscard]] auto
-            authentication_elems(Credentials, Decode::no_type) const -> std::array<std::string_view, 3>;
-        [[nodiscard]] auto
-            authentication_elems(Credentials, Decode::yes_type) const -> std::array<std::string, 3>;
+        [[nodiscard]] auto authentication_elems(Credentials, Decode::no_type) const
+            -> std::array<std::string_view, 3>;
+        [[nodiscard]] auto authentication_elems(Credentials, Decode::yes_type) const
+            -> std::array<std::string, 3>;
 
-        [[nodiscard]] auto
-            authority_elems(Credentials, Decode::no_type) const -> std::array<std::string_view, 7>;
-        [[nodiscard]] auto
-            authority_elems(Credentials, Decode::yes_type) const -> std::array<std::string, 7>;
+        [[nodiscard]] auto authority_elems(Credentials, Decode::no_type) const
+            -> std::array<std::string_view, 7>;
+        [[nodiscard]] auto authority_elems(Credentials, Decode::yes_type) const
+            -> std::array<std::string, 7>;
 
         [[nodiscard]] auto
         pretty_str_path(StripScheme strip_scheme = StripScheme::no, char rstrip_path = 0) const

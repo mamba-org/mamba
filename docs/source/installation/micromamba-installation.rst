@@ -25,6 +25,9 @@ On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
    brew install micromamba
 
+.. hint::
+
+   (2024-10-03) Homebrew currently only has version 1 of micromamba, not version 2. See https://github.com/mamba-org/mamba/issues/3495 for updates.
 
 Mamba-org releases
 ******************
@@ -51,6 +54,11 @@ On Windows Powershell, use
 .. code :: powershell
 
    Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
+
+A specific micromamba release can be installed by setting the ``VERSION`` environment variable.
+The release versions contain a build number in addition to the micromamba version.
+
+Micromamba releases can be found on Github: https://github.com/mamba-org/micromamba-releases/releases
 
 Self updates
 ^^^^^^^^^^^^
@@ -115,13 +123,13 @@ This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where t
 .. code:: sh
 
   # Linux/bash:
-  ./bin/micromamba shell init -s bash -p ~/micromamba  # this writes to your .bashrc file
+  ./bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
   # sourcing the bashrc file incorporates the changes into the running session.
   # better yet, restart your terminal!
   source ~/.bashrc
 
   # macOS/zsh:
-  ./micromamba shell init -s zsh -p ~/micromamba
+  ./micromamba shell init -s zsh -r ~/micromamba
   source ~/.zshrc
 
 Now you can activate the base environment and install new packages, or create other environments.
@@ -164,7 +172,7 @@ Windows
   .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
 
   # ... or initialize the shell
-  .\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
+  .\micromamba.exe shell init -s powershell -r C:\Your\Root\Prefix
   # and use micromamba directly
   micromamba create -f ./test/env_win.yaml -y
   micromamba activate yourenv
@@ -203,7 +211,7 @@ To build from source, install the development dependencies, using a Conda compat
 .. code-block:: bash
 
   micromamba create -n mamba --file dev/environment-micromamba-static.yml
-  micromamba activate -n mamba
+  micromamba activate mamba
 
 Use CMake from this environment to drive the build:
 
@@ -212,6 +220,7 @@ Use CMake from this environment to drive the build:
    cmake -B build/ \
        -G Ninja \
        ${CMAKE_ARGS} \
+       -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
        -D CMAKE_BUILD_TYPE="Release" \
        -D BUILD_LIBMAMBA=ON \
        -D BUILD_STATIC=ON \

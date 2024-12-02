@@ -26,6 +26,8 @@ namespace mamba
     void info(Configuration& config)
     {
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
@@ -156,7 +158,7 @@ namespace mamba
             items.push_back({ "populated config files", sources });
 
             std::vector<std::string> virtual_pkgs;
-            for (auto pkg : get_virtual_packages(ctx))
+            for (auto pkg : get_virtual_packages(ctx.platform))
             {
                 virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
                 );

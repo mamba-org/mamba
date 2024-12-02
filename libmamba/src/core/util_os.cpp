@@ -50,9 +50,8 @@ namespace mamba
     fs::u8path get_self_exe_path()
     {
 #ifdef _WIN32
-        DWORD size;
         std::wstring buffer(MAX_PATH, '\0');
-        size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
+        DWORD size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
         if (size == 0)
         {
             throw std::runtime_error("Could find location of the micromamba executable!");
@@ -140,19 +139,28 @@ namespace mamba
     {
         // Needs to be set system-wide & can only be run as admin ...
 
-        auto win_ver = util::windows_version();
+        const auto win_ver = util::windows_version();
+        LOG_DEBUG << fmt::format(
+            "Windows version : {}",
+            win_ver ? win_ver.value() : win_ver.error().message
+        );
+
+        static constexpr auto error_message_wrong_version = "Not setting long path registry key;"
+                                                            "Windows version must be at least 10 with the fall 2016 \"Anniversary update\" or newer.";
+
         if (!win_ver.has_value())
         {
-            LOG_WARNING << "Not setting long path registry key; Windows version must be at least 10 "
-                           "with the fall 2016 \"Anniversary update\" or newer.";
+            LOG_WARNING << "failed to acquire Windows version - " << error_message_wrong_version;
             return false;
         }
+
+
         auto split_out = util::split(win_ver.value(), ".");
         if (!(split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
               && std::stoull(split_out[2]) >= 14352))
         {
-            LOG_WARNING << "Not setting long path registry key; Windows version must be at least 10 "
-                           "with the fall 2016 \"Anniversary update\" or newer.";
+            LOG_WARNING << "Windows version found:" << win_ver.value() << " - "
+                        << error_message_wrong_version;
             return false;
         }
 
@@ -165,7 +173,8 @@ namespace mamba
         }
         catch (const winreg::RegException& /*e*/)
         {
-            LOG_INFO << "No LongPathsEnabled key detected.";
+            LOG_INFO << "No LongPathsEnabled key detected. (Windows version = " << win_ver.value()
+                     << ")";
             return false;
         }
 
@@ -174,8 +183,9 @@ namespace mamba
             auto out = Console::stream();
             fmt::print(
                 out,
-                "{}",
-                fmt::styled("Windows long-path support already enabled.", palette.ignored)
+                "{} (Windows version = {})",
+                fmt::styled("Windows long-path support already enabled.", palette.ignored),
+                win_ver.value()
             );
             return true;
         }

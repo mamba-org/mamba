@@ -93,10 +93,21 @@ namespace solv
 
     namespace
     {
+// This function is only used in `assert()` expressions
+// That's why it might get reported as unused in Release builds
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
         auto is_reldep(::Id id) -> bool
         {
             return ISRELDEP(static_cast<std::make_unsigned_t<::Id>>(id)) != 0;
         }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     }
 
     auto ObjPoolView::get_string(StringId id) const -> std::string_view
@@ -118,8 +129,8 @@ namespace solv
         return (id == 0) ? std::nullopt : std::optional(DependencyId{ id });
     }
 
-    auto
-    ObjPoolView::add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId
+    auto ObjPoolView::add_dependency(StringId name_id, RelationFlag flag, StringId version_id)
+        -> DependencyId
     {
         // Note: libsolv cannot report failure to allocate
         const ::Id id = ::pool_rel2id(
@@ -181,8 +192,8 @@ namespace solv
         return solvables;
     }
 
-    auto
-    ObjPoolView::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const -> ObjQueue
+    auto ObjPoolView::what_matches_dep(KeyNameId key, DependencyId dep, DependencyMarker marker) const
+        -> ObjQueue
     {
         ObjQueue solvables = {};
         ::pool_whatmatchesdep(const_cast<::Pool*>(raw()), key, dep, solvables.raw(), marker);

@@ -56,7 +56,7 @@ fmt::formatter<mamba::specs::GlobSpec>::parse(format_parse_context& ctx) -> decl
 }
 
 auto
-fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx)
+fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const
     -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.str());

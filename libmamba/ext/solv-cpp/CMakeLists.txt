@@ -20,6 +20,7 @@ find_package(Libsolv REQUIRED)
 
 if(BUILD_SHARED)
     set(LIBSOLV_DEPS solv::libsolv solv::libsolvext)
+    set_target_properties(solv-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()
     set(LIBSOLV_DEPS solv::libsolv_static solv::libsolvext_static)
 endif()

@@ -31,9 +31,7 @@ namespace mamba::util
         }
         else
         {
-            using int_t = Int;
-            return static_cast<int_t>(condition) * true_val
-                   + (int_t(1) - static_cast<int_t>(condition)) * false_val;
+            return condition ? true_val : false_val;
         }
     }
 }

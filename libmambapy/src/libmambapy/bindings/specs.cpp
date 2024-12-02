@@ -122,7 +122,8 @@ namespace mambapy
             )
             .def(
                 "user",
-                [](const CondaURL& self, bool decode) {
+                [](const CondaURL& self, bool decode)
+                {
                     return decode ? self.user(CondaURL::Decode::yes)
                                   : self.user(CondaURL::Decode::no);
                 },
@@ -145,7 +146,8 @@ namespace mambapy
             .def("has_user", [](const CondaURL& self) { return self.has_user(); })
             .def(
                 "password",
-                [](const CondaURL& self, bool decode) {
+                [](const CondaURL& self, bool decode)
+                {
                     return decode ? self.password(CondaURL::Decode::yes)
                                   : self.password(CondaURL::Decode::no);
                 },
@@ -197,7 +199,8 @@ namespace mambapy
             .def("authority", [](const CondaURL& self) { return self.authority(); })
             .def(
                 "path",
-                [](const CondaURL& self, bool decode) {
+                [](const CondaURL& self, bool decode)
+                {
                     return decode ? self.path(CondaURL::Decode::yes)
                                   : self.path(CondaURL::Decode::no);
                 },
@@ -778,7 +781,8 @@ namespace mambapy
             .def(
                 // V2 Migation: Hard deprecation since errors would be hard to track.
                 py::init(
-                    [](std::string_view) -> MatchSpec {
+                    [](std::string_view) -> MatchSpec
+                    {
                         throw std::invalid_argument(
                             "Use 'MatchSpec.parse' to create a new object from a string"
                         );

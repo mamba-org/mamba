@@ -1,9 +1,10 @@
 import os
+import platform
 import shutil
 import subprocess
 import sys
-import platform
 from pathlib import Path
+from packaging.version import Version
 
 import pytest
 
@@ -51,6 +52,8 @@ class TestInstall:
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
+        assert res["use_default_prefix_fallback"]
+        assert res["use_root_prefix_fallback"]
         checks = (
             helpers.MAMBA_ALLOW_EXISTING_PREFIX
             | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -116,7 +119,7 @@ class TestInstall:
     @pytest.mark.parametrize("cli_env_name", (False, True))
     @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
     @pytest.mark.parametrize("env_var", (False, True))
-    @pytest.mark.parametrize("fallback", (False, True))
+    @pytest.mark.parametrize("current_target_prefix_fallback", (False, True))
     def test_target_prefix(
         self,
         root_prefix,
@@ -125,7 +128,7 @@ class TestInstall:
         cli_env_name,
         yaml_name,
         env_var,
-        fallback,
+        current_target_prefix_fallback,
         existing_cache,
     ):
         cmd = []
@@ -176,21 +179,69 @@ class TestInstall:
         if env_var:
             os.environ["MAMBA_TARGET_PREFIX"] = p
 
-        if not fallback:
+        if not current_target_prefix_fallback:
             os.environ.pop("CONDA_PREFIX")
+            os.environ.pop("CONDA_DEFAULT_ENV")
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if (
-            (cli_prefix and cli_env_name)
-            or (yaml_name == "prefix")
-            or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
-        ):
+        if (cli_prefix and cli_env_name) or (yaml_name == "prefix"):
             with pytest.raises(subprocess.CalledProcessError):
                 helpers.install(*cmd, "--print-config-only")
+        elif not (
+            cli_prefix or cli_env_name or yaml_name or env_var or current_target_prefix_fallback
+        ):
+            # Fallback on root prefix
+            res = helpers.install(*cmd, "--print-config-only")
+            TestInstall.config_tests(res, root_prefix=r, target_prefix=r)
         else:
             res = helpers.install(*cmd, "--print-config-only")
             TestInstall.config_tests(res, root_prefix=r, target_prefix=expected_p)
+
+    def test_target_prefix_with_no_settings(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestInstall` class
+        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.root_prefix,
+            target_prefix=TestInstall.root_prefix,
+        )
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="MAMBA_ROOT_PREFIX is set in windows GH workflow",
+    )
+    def test_target_prefix_with_no_settings_and_no_env_var(
+        self,
+        existing_cache,
+    ):
+        # Specify no arg
+        cmd = []
+
+        os.environ.pop("MAMBA_ROOT_PREFIX")
+        os.environ.pop("CONDA_PREFIX")
+        os.environ.pop("CONDA_DEFAULT_ENV")
+
+        # Fallback on root prefix
+        res = helpers.install(*cmd, "--print-config-only")
+
+        TestInstall.config_tests(
+            res,
+            root_prefix=TestInstall.current_root_prefix,
+            target_prefix=TestInstall.current_root_prefix,
+        )
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))
@@ -563,12 +614,18 @@ class TestInstall:
         reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
 
-    def install_local_package(self):
-        """Attempts to install a .tar.bz2 package from a local directory."""
-        file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
+    def test_install_local_package_relative_path(self):
+        """Attempts to install a locally built package from a relative local path."""
+        spec = "./micromamba/tests/test-server/repo::test-package"
+        res = helpers.install(spec, "--json", default_channel=False)
+        assert res["success"]
 
-        res = helpers.install(f"file://{file_path}", "--json", default_channel=False)
-        assert "cph_test_data" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+        pkgs = res["actions"]["LINK"]
+        assert len(pkgs) == 1
+        pkg = pkgs[0]
+        assert pkg["name"] == "test-package"
+        assert pkg["version"] == "0.1"
+        assert pkg["url"].startswith("file://")
 
     def test_force_reinstall(self, existing_cache):
         """Force reinstall installs existing package again."""
@@ -582,6 +639,14 @@ class TestInstall:
         """Force reinstall on non-installed packages is valid."""
         reinstall_res = helpers.install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
+
+    def test_install_compatible_release(self, existing_cache):
+        """Install compatible release."""
+        res = helpers.install("numpy~=1.26.0", "--force-reinstall", "--json")
+        assert "numpy" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+        numpy = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "numpy"][0]
+        assert Version(numpy["version"]) >= Version("1.26.0")
 
 
 def test_install_check_dirs(tmp_home, tmp_root_prefix):
@@ -598,6 +663,28 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "site-packages")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
+
+
+def test_install_local_package(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    tmp_root_prefix / "envs" / env_name
+
+    helpers.create("-n", env_name, default_channel=False)
+
+    """Attempts to install a .tar.bz2 package from a local directory."""
+    file_path = Path(__file__).parent / "data" / "cph_test_data-0.0.1-0.tar.bz2"
+    res = helpers.install("-n", env_name, file_path, "--json", default_channel=False)
+
+    assert len(res["actions"]["LINK"]) == 1
+    pkg = res["actions"]["LINK"][0]
+
+    assert pkg["name"] == "cph_test_data"
+    assert pkg["version"] == "0.0.1"
+    assert pkg["fn"] == "cph_test_data-0.0.1-0.tar.bz2"
+    assert pkg["channel"].startswith("file:///")
+    assert pkg["channel"].endswith("data")
+    assert pkg["url"].startswith("file:///")
+    assert pkg["url"].endswith("cph_test_data-0.0.1-0.tar.bz2")
 
 
 @pytest.mark.skipif(
@@ -682,3 +769,30 @@ def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
 
     res = helpers.umamba_run("-n", env_name, "python", "-c", "import pip; print(pip.__version__)")
     assert len(res)
+
+
+env_yaml_content_to_install_empty_base = """
+channels:
+- conda-forge
+dependencies:
+- python
+- xtensor
+"""
+
+
+def test_install_empty_base(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-install-empty-base"
+
+    os.environ["MAMBA_ROOT_PREFIX"] = str(env_prefix)
+
+    env_file_yml = tmp_path / "test_install_env_empty_base.yaml"
+    env_file_yml.write_text(env_yaml_content_to_install_empty_base)
+
+    cmd = ["-p", env_prefix, f"--file={env_file_yml}", "-y", "--json"]
+
+    res = helpers.install(*cmd)
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "xtensor" for package in packages)
+    assert any(package["name"] == "python" for package in packages)

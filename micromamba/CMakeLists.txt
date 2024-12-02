@@ -79,6 +79,9 @@ macro(mambaexe_create_target target_name linkage output_name)
             find_package(libmamba REQUIRED)
         endif()
         target_link_libraries(${target_name} PRIVATE mamba::libmamba-static)
+        if(APPLE)
+            target_link_options(${target_name} PRIVATE -nostdlib++)
+        endif()
         # Dynamic build
         # =============
     else()

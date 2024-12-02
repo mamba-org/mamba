@@ -11,6 +11,7 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/archive.hpp"
@@ -152,6 +153,14 @@ namespace mamba::specs
         , version(std::move(v))
         , build_string(std::move(b))
         , build_number(std::move(bn))
+    {
+    }
+
+    PackageInfo::PackageInfo(std::string n, std::string v, std::string b, std::string c)
+        : name(std::move(n))
+        , version(std::move(v))
+        , build_string(std::move(b))
+        , channel(std::move(c))
     {
     }
 

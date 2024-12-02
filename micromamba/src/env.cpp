@@ -114,7 +114,8 @@ set_env_command(CLI::App* com, Configuration& config)
 
     export_subcom->add_flag("-e,--explicit", explicit_format, "Use explicit format");
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
-    export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
+    export_subcom
+        ->add_flag("--no-build,--no-builds,!--build", no_build, "Disable the build string in spec");
     export_subcom->add_flag("--channel-subdir", channel_subdir, "Enable channel/subdir in spec");
     export_subcom->add_flag(
         "--from-history",
@@ -129,6 +130,16 @@ set_env_command(CLI::App* com, Configuration& config)
             config.load();
 
             auto channel_context = mamba::ChannelContext::make_conda_compatible(ctx);
+
+            auto json_format = config.at("json").get_cli_config<bool>();
+
+            // Raise a warning if `--json` and `--explicit` are used together.
+            if (json_format && explicit_format)
+            {
+                std::cerr << "Warning: `--json` and `--explicit` are used together but are incompatible. The `--json` flag will be ignored."
+                          << std::endl;
+            }
+
             if (explicit_format)
             {
                 // TODO: handle error
@@ -163,12 +174,104 @@ set_env_command(CLI::App* com, Configuration& config)
                     std::cout << "\n";
                 }
             }
+            else if (json_format)
+            {
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
+                History& hist = pd.history();
+
+                const auto& versions_map = pd.records();
+                const auto& pip_versions_map = pd.pip_records();
+                auto requested_specs_map = hist.get_requested_specs_map();
+                std::stringstream dependencies;
+                std::set<std::string> channels;
+
+                bool first_dependency_printed = false;
+                for (const auto& [k, v] : versions_map)
+                {
+                    if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    {
+                        continue;
+                    }
+
+                    dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
+                    first_dependency_printed = true;
+
+                    auto chans = channel_context.make_channel(v.channel);
+
+                    if (from_history)
+                    {
+                        dependencies << requested_specs_map[k].str() << "\"";
+                    }
+                    else
+                    {
+                        if (channel_subdir)
+                        {
+                            dependencies
+                                // If the size is not one, it's a custom multi channel
+                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
+                                << "/" << v.platform << "::";
+                        }
+                        dependencies << v.name << "=" << v.version;
+                        if (!no_build)
+                        {
+                            dependencies << "=" << v.build_string;
+                        }
+                        if (no_md5 == -1)
+                        {
+                            dependencies << "[md5=" << v.md5 << "]";
+                        }
+                        dependencies << "\"";
+                    }
+
+                    for (const auto& chan : chans)
+                    {
+                        channels.insert(chan.display_name());
+                    }
+                }
+
+                // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
+                if (!pip_versions_map.empty())
+                {
+                    dependencies << (first_dependency_printed ? ",\n" : "") << "     { \"pip\": [\n";
+                    first_dependency_printed = false;
+                    for (const auto& [k, v] : pip_versions_map)
+                    {
+                        dependencies << (first_dependency_printed ? ",\n" : "") << "      \""
+                                     << v.name << "==" << v.version << "\"";
+                        first_dependency_printed = true;
+                    }
+                    dependencies << "\n    ]\n    }";
+                }
+
+                dependencies << (first_dependency_printed ? "\n" : "");
+
+                std::cout << "{\n";
+
+                std::cout << "  \"channels\": [\n";
+                for (auto channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
+                {
+                    auto last_channel = std::next(channel_it) == channels.end();
+                    std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
+                }
+                std::cout << "  ],\n";
+
+                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
+
+                std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)
+                          << "\",\n";
+                std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
+
+                std::cout << "}\n";
+
+                std::cout.flush();
+            }
             else
             {
                 auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
                 History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
+                const auto& pip_versions_map = pd.pip_records();
 
                 std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
@@ -176,6 +279,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
+
                 for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
@@ -187,11 +291,11 @@ set_env_command(CLI::App* com, Configuration& config)
 
                     if (from_history)
                     {
-                        dependencies << "- " << requested_specs_map[k].str() << "\n";
+                        dependencies << "  - " << requested_specs_map[k].str() << "\n";
                     }
                     else
                     {
-                        dependencies << "- ";
+                        dependencies << "  - ";
                         if (channel_subdir)
                         {
                             dependencies
@@ -216,12 +320,24 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
+                // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
+                if (!pip_versions_map.empty())
+                {
+                    dependencies << "  - pip:\n";
+                    for (const auto& [k, v] : pip_versions_map)
+                    {
+                        dependencies << "    - " << v.name << "==" << v.version << "\n";
+                    }
+                }
 
                 for (const auto& c : channels)
                 {
-                    std::cout << "- " << c << "\n";
+                    std::cout << "  - " << c << "\n";
                 }
                 std::cout << "dependencies:\n" << dependencies.str() << std::endl;
+
+                std::cout << "prefix: " << ctx.prefix_params.target_prefix << std::endl;
+
                 std::cout.flush();
             }
         }
@@ -236,7 +352,25 @@ set_env_command(CLI::App* com, Configuration& config)
         [&config]
         {
             // Remove specs if exist
-            remove(config, MAMBA_REMOVE_ALL);
+            RemoveResult remove_env_result = remove(config, MAMBA_REMOVE_ALL);
+
+            if (remove_env_result == RemoveResult::NO)
+            {
+                Console::stream() << "The environment was not removed.";
+                return;
+            }
+
+            if (remove_env_result == RemoveResult::EMPTY)
+            {
+                Console::stream() << "No packages to remove from environment.";
+
+                auto res = Console::prompt("Do you want to remove the environment?", 'Y');
+                if (!res)
+                {
+                    Console::stream() << "The environment was not removed.";
+                    return;
+                }
+            }
 
             const auto& ctx = config.context();
             if (!ctx.dry_run)
@@ -284,6 +418,15 @@ set_env_command(CLI::App* com, Configuration& config)
 
     update_subcom->callback(
         [&config]
-        { update(config, /*update_all*/ false, /*prune_deps*/ false, remove_not_specified); }
+        {
+            auto update_params = UpdateParams{
+                UpdateAll::No,
+                PruneDeps::Yes,
+                EnvUpdate::Yes,
+                remove_not_specified ? RemoveNotSpecified::Yes : RemoveNotSpecified::No,
+            };
+
+            update(config, update_params);
+        }
     );
 }

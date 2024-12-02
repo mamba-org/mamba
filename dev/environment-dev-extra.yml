@@ -24,5 +24,3 @@ dependencies:
   - ipdb
   # Github CLI tool
   - gh
-  # Taskfile for running scripts
-  - go-task

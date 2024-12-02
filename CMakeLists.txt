@@ -5,8 +5,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 
 cmake_minimum_required(VERSION 3.16)
-cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
-cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 
 project(mamba)
 
@@ -21,7 +19,11 @@ option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_MAMBA "Build mamba" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
-option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
+if(MSVC)
+    option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
+else()
+    option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" ON)
+endif()
 set(
     MAMBA_LTO
     "Default"

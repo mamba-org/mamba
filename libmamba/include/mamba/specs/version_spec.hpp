@@ -17,6 +17,7 @@
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/flat_bool_expr_tree.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -36,8 +37,8 @@ namespace mamba::specs
         [[nodiscard]] static auto make_less_equal(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
-        [[nodiscard]] static auto
-        make_compatible_with(Version ver, std::size_t level) -> VersionPredicate;
+        [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
+            -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -109,7 +110,7 @@ namespace mamba::specs
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
-        friend class ::fmt::formatter<VersionPredicate>;
+        friend struct ::fmt::formatter<VersionPredicate>;
     };
 
     auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
@@ -195,11 +196,21 @@ namespace mamba::specs
          */
         [[nodiscard]] auto expression_size() const -> std::size_t;
 
+        [[nodiscard]] auto operator==(const VersionSpec& other) const -> bool
+        {
+            return m_tree == other.m_tree;
+        }
+
+        [[nodiscard]] auto operator!=(const VersionSpec& other) const -> bool
+        {
+            return !(*this == other);
+        }
+
     private:
 
         tree_type m_tree;
 
-        friend class ::fmt::formatter<VersionSpec>;
+        friend struct ::fmt::formatter<VersionSpec>;
     };
 
     namespace version_spec_literals
@@ -218,8 +229,8 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto
-    format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) -> decltype(ctx.out());
+    auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) const
+        -> decltype(ctx.out());
 };
 
 template <>
@@ -232,6 +243,26 @@ struct fmt::formatter<mamba::specs::VersionSpec>
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
-    auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) -> decltype(ctx.out());
+    auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) const
+        -> decltype(ctx.out());
 };
+
+template <>
+struct std::hash<mamba::specs::VersionPredicate>
+{
+    auto operator()(const mamba::specs::VersionPredicate& pred) const -> std::size_t
+    {
+        return mamba::util::hash_vals(pred.str());
+    }
+};
+
+template <>
+struct std::hash<mamba::specs::VersionSpec>
+{
+    auto operator()(const mamba::specs::VersionSpec& spec) const -> std::size_t
+    {
+        return mamba::util::hash_vals(spec.str());
+    }
+};
+
 #endif

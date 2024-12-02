@@ -257,11 +257,21 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/info.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/utils.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/utils.hpp
     ${LIBMAMBA_SOURCE_DIR}/api/remove.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/repoquery.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
+# TODO: remove when switch to C++20
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    # This file uses capturing structured bindings, which was fixed in C++20
+    set_source_files_properties(
+        ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
+        PROPERTIES COMPILE_FLAGS -Wno-c++20-extensions
+    )
+endif()
 
 foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
@@ -403,15 +413,15 @@ set(
 # Targets and link
 # ================
 
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(tl-expected REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(simdjson REQUIRED)
-find_package(yaml-cpp REQUIRED)
-find_package(reproc REQUIRED)
-find_package(reproc++ REQUIRED)
-find_package(Libsolv REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(tl-expected CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(simdjson CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
+find_package(reproc CONFIG REQUIRED)
+find_package(reproc++ CONFIG REQUIRED)
+find_package(Libsolv MODULE REQUIRED)
 add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
@@ -524,7 +534,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
             if(APPLE)
                 set(MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
-                target_link_options(${target_name} PRIVATE -static-libstdc++)
+                target_link_options(${target_name} PRIVATE -nostdlib++)
             elseif(UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
@@ -537,7 +547,7 @@ macro(libmamba_create_target target_name linkage output_name)
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
             # For Windows we have a vcpkg based build system right now.
-            find_package(LibArchive REQUIRED)
+            find_package(LibArchive MODULE REQUIRED)
             find_package(CURL CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
@@ -607,6 +617,9 @@ macro(libmamba_create_target target_name linkage output_name)
                 solv::libsolvext
                 solv::cpp
         )
+        # CMake 3.17 provides a LibArchive::LibArchive target that could be used instead of
+        # LIBRARIES/INCLUDE_DIRS
+        target_include_directories(${target_name} PRIVATE "${LibArchive_INCLUDE_DIRS}")
     endif()
 
     if(WIN32)
@@ -657,9 +670,19 @@ endmacro()
 
 set(libmamba_targets "")
 
+option(
+    ENABLE_MAMBA_ROOT_PREFIX_FALLBACK
+    "Enable mamba (shared) root prefix to be set to install prefix"
+    ON
+)
+
 if(BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
     libmamba_create_target(libmamba-dyn SHARED libmamba)
+    if(ENABLE_MAMBA_ROOT_PREFIX_FALLBACK)
+        # Use mamba installation prefix to set root prefix (base)
+        target_compile_definitions(libmamba-dyn PUBLIC MAMBA_USE_INSTALL_PREFIX_AS_BASE)
+    endif()
 endif()
 
 if(BUILD_STATIC)

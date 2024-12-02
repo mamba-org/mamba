@@ -20,14 +20,14 @@ namespace mamba::specs
      *  NameWeakener Implementation  *
      *********************************/
 
-    auto ChannelResolveParams::NameWeakener::make_first_key(std::string_view key
-    ) const -> std::string_view
+    auto ChannelResolveParams::NameWeakener::make_first_key(std::string_view key) const
+        -> std::string_view
     {
         return key;
     }
 
-    auto ChannelResolveParams::NameWeakener::weaken_key(std::string_view key
-    ) const -> std::optional<std::string_view>
+    auto ChannelResolveParams::NameWeakener::weaken_key(std::string_view key) const
+        -> std::optional<std::string_view>
     {
         return std::get<0>(util::rsplit_once(key, '/'));
     }
@@ -328,7 +328,8 @@ namespace mamba::specs
             return uri.pretty_str();
         }
 
-        auto resolve_path_location(std::string location, ChannelResolveParamsView params) -> std::string
+        auto resolve_path_location(std::string location, ChannelResolveParamsView params)
+            -> std::string
         {
             if (util::url_has_scheme(location))
             {
@@ -387,8 +388,8 @@ namespace mamba::specs
             return url.pretty_str(StripScheme::no, '/', Credentials::Remove);
         }
 
-        auto
-        resolve_url(UnresolvedChannel&& uc, ChannelResolveParamsView params) -> expected_parse_t<Channel>
+        auto resolve_url(UnresolvedChannel&& uc, ChannelResolveParamsView params)
+            -> expected_parse_t<Channel>
         {
             assert(util::url_has_scheme(uc.location()));
             assert(util::url_get_scheme(uc.location()) != "file");
@@ -450,7 +451,8 @@ namespace mamba::specs
             return out;
         }
 
-        auto resolve_name_from_alias(UnresolvedChannel&& uc, ChannelResolveParamsView params) -> Channel
+        auto resolve_name_from_alias(UnresolvedChannel&& uc, ChannelResolveParamsView params)
+            -> Channel
         {
             auto url = params.channel_alias;
             url.append_path(uc.location());
@@ -462,8 +464,8 @@ namespace mamba::specs
             };
         }
 
-        auto
-        resolve_name(UnresolvedChannel&& uc, ChannelResolveParamsView params) -> Channel::channel_list
+        auto resolve_name(UnresolvedChannel&& uc, ChannelResolveParamsView params)
+            -> Channel::channel_list
         {
             if (auto it = params.custom_channels.find_weaken(uc.location());
                 it != params.custom_channels.cend())
@@ -561,8 +563,8 @@ namespace mamba::specs
  *  Implementation of std::hash  *
  *********************************/
 
-auto ::std::hash<mamba::specs::Channel>::operator()(const mamba::specs::Channel
-                                                    & chan) const -> std::size_t
+auto ::std::hash<mamba::specs::Channel>::operator()(const mamba::specs::Channel & chan) const
+    -> std::size_t
 {
     return mamba::util::hash_combine(
         mamba::util::hash_vals(chan.url(), chan.display_name()),

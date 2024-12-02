@@ -371,7 +371,8 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
         .def(py::init(
-            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator {
+            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator
+            {
                 throw std::runtime_error("Direct access to libsolv objects is not longer supported.");
             }
         ));
@@ -579,7 +580,8 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& full_url,
                MultiPackageCache& caches,
                const std::string& repodata_fn,
-               const std::string& url) {
+               const std::string& url)
+            {
                 self.create(context, channel_context, channel, platform, full_url, caches, repodata_fn, url);
             },
             py::arg("context"),
@@ -694,6 +696,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
         .def_readwrite("always_yes", &Context::always_yes)
+        .def_readwrite("show_anaconda_channel_warnings", &Context::show_anaconda_channel_warnings)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
@@ -1208,7 +1211,10 @@ bind_submodule_impl(pybind11::module_ m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", [](Context& context) { return get_virtual_packages(context); });
+    m.def(
+        "get_virtual_packages",
+        [](Context& context) { return get_virtual_packages(context.platform); }
+    );
 
     m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });
 

@@ -722,9 +722,18 @@ namespace mamba
         , m_locked(false)
     {
         std::error_code ec;
+
+        // Check if `path` exists
         if (!fs::exists(path, ec))
         {
-            throw_lock_error(fmt::format("Could not lock non-existing path '{}'", path.string()));
+            // If `path` doesn't exist, consider creating the directory
+            // (and its parents if they don't exist)
+            if (!fs::create_directories(path, ec))
+            {
+                throw_lock_error(
+                    fmt::format("Could not create directory '{}': {}", path.string(), ec.message())
+                );
+            }
         }
 
         if (fs::is_directory(path))
@@ -962,6 +971,13 @@ namespace mamba
                       << "'";
         }
 
+// This function is only used in `assert()` expressions
+// That's why it might get reported as unused in Release builds
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
         bool is_lockfile_locked(const LockFileOwner& lockfile)
         {
 #ifdef _WIN32
@@ -971,6 +987,10 @@ namespace mamba
             return LockFile::is_locked(lockfile.fd());
 #endif
         }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
         class LockedFilesRegistry
         {

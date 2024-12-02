@@ -137,4 +137,22 @@ TEST_SUITE("specs::build_number_spec")
         CHECK_FALSE(BuildNumberSpec::parse("=3").value().is_explicitly_free());
         CHECK_FALSE(BuildNumberSpec::parse("<2").value().is_explicitly_free());
     }
+
+    TEST_CASE("Comparability and hashability")
+    {
+        auto bn1 = BuildNumberSpec::parse("=3").value();
+        auto bn2 = BuildNumberSpec::parse("3").value();
+        auto bn3 = BuildNumberSpec::parse("*").value();
+
+        CHECK_EQ(bn1, bn2);
+        CHECK_NE(bn1, bn3);
+
+        auto hash_fn = std::hash<BuildNumberSpec>{};
+        auto bn1_hash = hash_fn(bn1);
+        auto bn2_hash = hash_fn(bn2);
+        auto bn3_hash = hash_fn(bn3);
+
+        CHECK_EQ(bn1_hash, bn2_hash);
+        CHECK_NE(bn1_hash, bn3_hash);
+    }
 }

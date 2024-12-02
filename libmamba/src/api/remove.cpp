@@ -18,7 +18,7 @@
 
 namespace mamba
 {
-    void remove(Configuration& config, int flags)
+    RemoveResult remove(Configuration& config, int flags)
     {
         auto& ctx = config.context();
 
@@ -27,6 +27,8 @@ namespace mamba
         bool remove_all = flags & MAMBA_REMOVE_ALL;
 
         config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(false);
+        config.at("use_root_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
             .set_value(
                 MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
@@ -44,7 +46,9 @@ namespace mamba
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
-                throw std::runtime_error("could not load prefix data");
+                throw std::runtime_error(
+                    fmt::format("could not load prefix data: {}", sprefix_data.error().what())
+                );
             }
             PrefixData& prefix_data = sprefix_data.value();
             for (const auto& package : prefix_data.records())
@@ -55,11 +59,14 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(ctx, channel_context, remove_specs, prune, force);
+            return detail::remove_specs(ctx, channel_context, remove_specs, prune, force)
+                       ? RemoveResult::YES
+                       : RemoveResult::NO;
         }
         else
         {
             Console::instance().print("Nothing to do.");
+            return RemoveResult::EMPTY;
         }
     }
 
@@ -107,7 +114,7 @@ namespace mamba
 
     namespace detail
     {
-        void remove_specs(
+        bool remove_specs(
             Context& ctx,
             ChannelContext& channel_context,
             const std::vector<std::string>& raw_specs,
@@ -143,10 +150,12 @@ namespace mamba
                     transaction.log_json();
                 }
 
-                if (transaction.prompt(ctx, channel_context))
+                auto prompt_entry = transaction.prompt(ctx, channel_context);
+                if (prompt_entry)
                 {
                     transaction.execute(ctx, channel_context, prefix_data);
                 }
+                return prompt_entry;
             };
 
             if (force)
@@ -167,7 +176,7 @@ namespace mamba
                     }
                 }
                 auto transaction = MTransaction(ctx, pool, pkgs_to_remove, {}, package_caches);
-                execute_transaction(transaction);
+                return execute_transaction(transaction);
             }
             else
             {
@@ -205,7 +214,7 @@ namespace mamba
                     package_caches
                 );
 
-                execute_transaction(transaction);
+                return execute_transaction(transaction);
             }
         }
     }

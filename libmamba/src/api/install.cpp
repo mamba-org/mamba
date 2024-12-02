@@ -531,10 +531,13 @@ namespace mamba
 
                 trans.execute(ctx, channel_context, prefix_data);
 
-                for (auto other_spec : config.at("others_pkg_mgrs_specs")
-                                           .value<std::vector<detail::other_pkg_mgr_spec>>())
+                if (!ctx.dry_run)
                 {
-                    install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
+                    for (auto other_spec : config.at("others_pkg_mgrs_specs")
+                                               .value<std::vector<detail::other_pkg_mgr_spec>>())
+                    {
+                        install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
+                    }
                 }
             }
             else

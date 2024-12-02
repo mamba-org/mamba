@@ -1,3 +1,10 @@
+# Parses and validates the version scheme chosen for mamba versions.
+# Specifically, we use a dot to separate pre-release names and use complete names for `alpha` and `beta`.
+#
+# See:
+#  - discussion in https://github.com/mamba-org/mamba/issues/3638
+#  - https://conda-forge.org/docs/maintainer/knowledge_base/#pre-release-version-sorting
+#  - https://github.com/conda/conda/blob/cc21508563912268649f207723fd5114fa21b906/conda/models/version.py#L115-L143
 class version_info:
     major = ""
     minor = ""
@@ -13,7 +20,7 @@ class version_info:
                 )
             )
 
-        VALID_VERSION_PRERELEASE_TYPES = ("alpha", "beta")
+        VALID_VERSION_PRERELEASE_TYPES = ("alpha", "beta", "rc", "dev")
         version_fields = version.split(".")
         version_fields_count = len(version_fields)
         if version_fields_count < 3:

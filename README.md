@@ -62,7 +62,7 @@ It can significantly reduce your CI setup time by:
 
 ## Differences with `conda`
 
-While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are a small number of limitations:
+While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are some differences:
 
 - mamba and micromamba do no support revisions yet (for discussions, see https://github.com/mamba-org/mamba/issues/803)
 

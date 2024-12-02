@@ -60,7 +60,7 @@ It can significantly reduce your CI setup time by:
 - Caching package downloads.
 - Caching entire `conda` environments.
 
-## Limitations compared to `conda`
+## Differences with `conda`
 
 While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are a small number of limitations:
 

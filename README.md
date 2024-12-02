@@ -88,13 +88,7 @@ It can significantly reduce your CI setup time by:
 
 While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are some differences:
 
-- mamba and micromamba do no support revisions yet (for discussions, see https://github.com/mamba-org/mamba/issues/803)
-
-## micromamba
-
-`micromamba` is a small, pure-C++ reimplementation of `mamba`/`conda`. It strives to be a full replacement for `mamba` and `conda`. As such, it doesn't use any `conda` code (in fact it doesn't require Python at all).
-
-See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for details.
+- mamba and micromamba do no support revisions (for discussions, see https://github.com/mamba-org/mamba/issues/803)
 
 ## Development installation
 

@@ -84,6 +84,12 @@ It can significantly reduce your CI setup time by:
 - Caching package downloads.
 - Caching entire `conda` environments.
 
+## Differences with `conda`
+
+While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are some differences:
+
+- mamba and micromamba do no support revisions (for discussions, see https://github.com/mamba-org/mamba/issues/803)
+
 ## Development installation
 
 Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/dev_environment.html).

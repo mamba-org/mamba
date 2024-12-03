@@ -480,6 +480,15 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.str(), R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
+        SUBCASE("python[version='~=3.11.0',build=*_cpython]")
+        {
+            auto ms = MatchSpec::parse("python[version='~=3.11.0',build=*_cpython]").value();
+            CHECK_EQ(ms.name().str(), "python");
+            CHECK_EQ(ms.version().str(), ">=3.11.0,=3.11");
+            CHECK_EQ(ms.build_string().str(), "*_cpython");
+            CHECK_EQ(ms.str(), R"ms(python[version=">=3.11.0,=3.11",build="*_cpython"])ms");
+        }
+
         SUBCASE("*[md5=fewjaflknd]")
         {
             auto ms = MatchSpec::parse("*[md5=fewjaflknd]").value();

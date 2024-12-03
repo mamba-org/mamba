@@ -499,6 +499,15 @@ namespace
             REQUIRE(ms.str() == R"ms(python-graphviz[version=">=0.20,=0"])ms");
         }
 
+        SECTION("python[version='~=3.11.0',build=*_cpython]")
+        {
+            auto ms = MatchSpec::parse("python[version='~=3.11.0',build=*_cpython]").value();
+            REQUIRE(ms.name().str() == "python");
+            REQUIRE(ms.version().str() == ">=3.11.0,=3.11");
+            REQUIRE(ms.build_string().str() == "*_cpython");
+            REQUIRE(ms.str() == R"ms(python[version=">=3.11.0,=3.11",build="*_cpython"])ms");
+        }
+
         SECTION("*[md5=fewjaflknd]")
         {
             auto ms = MatchSpec::parse("*[md5=fewjaflknd]").value();

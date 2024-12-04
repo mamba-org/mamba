@@ -261,3 +261,40 @@ def test_remove_config_target_prefix(
     else:
         res = helpers.remove(*cmd, "--print-config-only")
         remove_config_common_assertions(res, root_prefix=r, target_prefix=p)
+
+
+def test_uninstall(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
+    # Install xtensor and then uninstall xtensor the first time with the `remove`
+    # subcommand and a second time with the `uninstall` subcommand and check that
+    # their outputs are the same and that the environment is in the same state
+    helpers.create("-n", tmp_env_name, "--json", no_dry_run=True)
+
+    res_list = helpers.umamba_list("-n", tmp_env_name, "--json")
+    n_packages_after_init = len(res_list)
+
+    # Install xtensor
+    helpers.install("xtensor", "-n", tmp_env_name, no_dry_run=True)
+
+    # Remove xtensor
+    res_remove = helpers.remove("xtensor", "-n", tmp_env_name, "--json")
+    assert res_remove["success"]
+    assert res_remove["actions"]["PREFIX"] == str(tmp_xtensor_env)
+
+    # Check that the environment does not contain any packages
+    res_list = helpers.umamba_list("-n", tmp_env_name, "--json")
+    assert len(res_list) == n_packages_after_init
+
+    # Reinstall xtensor
+    helpers.install("xtensor", "-n", tmp_env_name, no_dry_run=True)
+
+    # Uninstall xtensor
+    res_uninstall = helpers.uninstall("xtensor", "-n", tmp_env_name, "--json")
+    assert res_uninstall["success"]
+    assert res_uninstall["actions"]["PREFIX"] == str(tmp_xtensor_env)
+
+    # Check that the environment does not contain any packages
+    res_list = helpers.umamba_list("-n", tmp_env_name, "--json")
+    assert len(res_list) == n_packages_after_init
+
+    # Check that the outputs of the `remove` and `uninstall` subcommands are the same
+    assert res_remove == res_uninstall

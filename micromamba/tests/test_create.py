@@ -114,19 +114,18 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
-# TODO: uncomment when https://github.com/mamba-org/mamba/pull/3286 is merged
-# @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-# def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
-#    env_prefix = tmp_path / "myenv"
-#    spec_file = (
-#        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
-#    )
-#
-#    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-#    assert res["success"]
-#
-#    packages = helpers.umamba_list("-p", env_prefix, "--json")
-#    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = (
+        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+    )
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1343,3 +1342,18 @@ def test_parsable_env_history_with_metadata(tmp_home, tmp_root_prefix, tmp_path)
 
     # Must not hang
     helpers.umamba_list("-p", env_prefix, "--json")
+
+
+def test_create_dry_run_json(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3583
+    env_prefix = tmp_path / "env-create_dry_run_json"
+    res = helpers.create("-p", env_prefix, "--dry-run", "--json")
+
+    expected_output = {
+        "actions": {"FETCH": [], "PREFIX": str(env_prefix)},
+        "dry_run": True,
+        "prefix": str(env_prefix),
+        "success": True,
+    }
+
+    assert res == expected_output

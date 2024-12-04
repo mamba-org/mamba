@@ -62,13 +62,7 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     CLI::App* remove_subcom = com->add_subcommand("remove", "Remove packages from active environment");
     set_remove_command(remove_subcom, config);
-
-    // `uninstall` is an alias for `remove`
-    CLI::App* uninstall_subcom = com->add_subcommand(
-        "uninstall",
-        "Remove packages from active environment"
-    );
-    set_remove_command(uninstall_subcom, config);
+    remove_subcom->alias("uninstall");
 
     CLI::App* list_subcom = com->add_subcommand("list", "List packages in active environment");
     set_list_command(list_subcom, config);

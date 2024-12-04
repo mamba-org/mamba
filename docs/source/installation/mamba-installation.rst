@@ -18,26 +18,6 @@ After successful installation, you can use the mamba commands as described in :r
    1. After installation, please :ref:`make sure <defaults_channels>` that you do not have the Anaconda default channels configured.
    2. Do not install anything into the ``base`` environment as this might break your installation. See :ref:`here <base_packages>` for details.
 
-
-Existing ``conda`` install (not recommended)
-********************************************
-
-.. warning::
-   This way of installing Mamba is **not recommended**.
-   We strongly recommend to use the Miniforge method (see above).
-
-To get ``mamba``, just install it *into the base environment* from the ``conda-forge`` channel:
-
-.. code:: bash
-
-   # NOT RECOMMENDED: This method of installation is not recommended, prefer Miniforge instead (see above)
-   # conda install -n base --override-channels -c conda-forge mamba 'python_abi=*=*cp*'
-
-
-.. warning::
-   Installing mamba into any other environment than ``base`` is not supported.
-
-
 Docker images
 *************
 

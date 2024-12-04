@@ -110,9 +110,8 @@ namespace mamba
             }
             else
             {
-                LOG_ERROR << "No 'dependencies' specified in YAML spec file '" << file.string()
-                          << "'";
-                throw std::runtime_error("Invalid spec file. Aborting.");
+                // Empty of absent `dependencies` key
+                deps = YAML::Node(YAML::NodeType::Null);
             }
             YAML::Node final_deps;
 
@@ -165,7 +164,14 @@ namespace mamba
             std::vector<std::string> dependencies;
             try
             {
-                dependencies = final_deps.as<std::vector<std::string>>();
+                if (final_deps.IsNull())
+                {
+                    dependencies = {};
+                }
+                else
+                {
+                    dependencies = final_deps.as<std::vector<std::string>>();
+                }
             }
             catch (const YAML::Exception& e)
             {

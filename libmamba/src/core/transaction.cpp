@@ -698,7 +698,8 @@ namespace mamba
                  it != extract_tasks.end();
                  ++it)
             {
-                std::packaged_task task{ [=] { return it->run(); } };
+                std::packaged_task<mamba::PackageExtractTask::Result()> task{ [=]
+                                                                              { return it->run(); } };
                 extract_trackers.push_back(task.get_future());
                 MainExecutor::instance().schedule(std::move(task));
             }

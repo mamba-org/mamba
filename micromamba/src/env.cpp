@@ -180,6 +180,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
+                const auto& pip_versions_map = pd.pip_records();
                 auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
@@ -227,6 +228,21 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
+
+                // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
+                if (!pip_versions_map.empty())
+                {
+                    dependencies << (first_dependency_printed ? ",\n" : "") << "     { \"pip\": [\n";
+                    first_dependency_printed = false;
+                    for (const auto& [k, v] : pip_versions_map)
+                    {
+                        dependencies << (first_dependency_printed ? ",\n" : "") << "      \""
+                                     << v.name << "==" << v.version << "\"";
+                        first_dependency_printed = true;
+                    }
+                    dependencies << "\n    ]\n    }";
+                }
+
                 dependencies << (first_dependency_printed ? "\n" : "");
 
                 std::cout << "{\n";
@@ -255,6 +271,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
+                const auto& pip_versions_map = pd.pip_records();
 
                 std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
@@ -278,7 +295,7 @@ set_env_command(CLI::App* com, Configuration& config)
                     }
                     else
                     {
-                        dependencies << "- ";
+                        dependencies << "  - ";
                         if (channel_subdir)
                         {
                             dependencies
@@ -303,10 +320,19 @@ set_env_command(CLI::App* com, Configuration& config)
                         channels.insert(chan.display_name());
                     }
                 }
+                // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
+                if (!pip_versions_map.empty())
+                {
+                    dependencies << "  - pip:\n";
+                    for (const auto& [k, v] : pip_versions_map)
+                    {
+                        dependencies << "    - " << v.name << "==" << v.version << "\n";
+                    }
+                }
 
                 for (const auto& c : channels)
                 {
-                    std::cout << "- " << c << "\n";
+                    std::cout << "  - " << c << "\n";
                 }
                 std::cout << "dependencies:\n" << dependencies.str() << std::endl;
 

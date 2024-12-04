@@ -1,3 +1,69 @@
+micromamba 2.0.4 (November 22, 2024)
+====================================
+
+Enhancements:
+
+- feat: List PyPI packages in environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3623
+- pip packages support with `list` by @Hind-M in https://github.com/mamba-org/mamba/pull/3565
+
+Bug fixes:
+
+- fix: Return JSON on environment creation dry run by @jjerphan in https://github.com/mamba-org/mamba/pull/3627
+- maint: Address compiler warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3605
+- fix: Export `'channels'` as part of environments' export by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3587
+- Remove Taskfile from `environment-dev-extra.yml` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3597
+- fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
+- fix: Correct `mamba env export --json --from-history` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3590
+- Fix test on windows by @Hind-M in https://github.com/mamba-org/mamba/pull/3555
+- fix: JSON output for environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3559
+- fix: Support `conda env export` `no-builds` flag by @jjerphan in https://github.com/mamba-org/mamba/pull/3563
+- fix: Export the environment prefix in specification by @jjerphan in https://github.com/mamba-org/mamba/pull/3562
+- Fix relative path in local channel by @Hind-M in https://github.com/mamba-org/mamba/pull/3540
+- Correctly rename test to be run by @Hind-M in https://github.com/mamba-org/mamba/pull/3545
+- Create empty base prefix with `env update` by @Hind-M in https://github.com/mamba-org/mamba/pull/3519
+- fix: Use POSIX-compliant scripts by @jjerphan in https://github.com/mamba-org/mamba/pull/3522
+- maint: Clarify `env` subcommand documentation in help menu (cont'd) by @jjerphan in https://github.com/mamba-org/mamba/pull/3539
+- maint: Clarify `env` subcommand documentation in help menu by @jjerphan in https://github.com/mamba-org/mamba/pull/3502
+- fix: Adapt `test_env_update_pypi_with_conda_forge` by @jjerphan in https://github.com/mamba-org/mamba/pull/3537
+
+CI fixes and doc:
+
+- ci: add brew toolchain test by @henryiii in https://github.com/mamba-org/mamba/pull/3625
+- doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+- Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
+- Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
+- Fix doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3568
+- [windows-vcpkg] Replace deprecated openssl with crypto feature with latest libarchive by @Hind-M in https://github.com/mamba-org/mamba/pull/3556
+- maint: Unpin libcurl<8.10 by @jjerphan in https://github.com/mamba-org/mamba/pull/3548
+- dev: Remove the use of Taskfile by @jjerphan in https://github.com/mamba-org/mamba/pull/3544
+- Upgraded CI to micromamba 2.0.2 by @JohanMabille in https://github.com/mamba-org/mamba/pull/3497
+
+micromamba 2.0.4alpha3 (November 21, 2024)
+==========================================
+
+Enhancements:
+
+- feat: List PyPI packages in environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3623
+
+Bug fixes:
+
+- maint: Address compiler warnings by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3605
+- fix: Export `'channels'` as part of environments' export by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3587
+
+CI fixes and doc:
+
+- doc: show how to use advanced match specs in yaml spec by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3384
+- Doc: how to install specific Micromamba version by @truh in https://github.com/mamba-org/mamba/pull/3517
+- doc: Homebrew currently only installs micromamba v1 by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3499
+- maint: Add dependabot config for GitHub workflows/actions by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3614
+- maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
+- docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
+
 micromamba 2.0.4alpha2 (November 14, 2024)
 ==========================================
 

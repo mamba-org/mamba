@@ -193,7 +193,7 @@ namespace mamba::solver::libsolv
             return { std::cref(it->second) };
         }
 
-        return specs::Channel::resolve(std::move(uc), channel_params())
+        return specs::Channel::resolve(uc, channel_params())
             .transform(
                 [&](channel_list&& chan)
                 {

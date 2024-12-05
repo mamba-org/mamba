@@ -1357,3 +1357,42 @@ def test_create_dry_run_json(tmp_path):
     }
 
     assert res == expected_output
+
+
+env_spec_empty_dependencies = """
+name: empty_dependencies
+channels:
+  - conda-forge
+dependencies: []
+"""
+
+env_spec_absent_dependencies = """
+name: absent_dependencies
+channels:
+  - conda-forge
+"""
+
+
+def test_create_empty_or_absent_dependencies(tmp_path):
+    env_prefix = tmp_path / "env-empty_dependencies"
+    # Write the env specification to a file and pass it to the create command
+
+    with open(tmp_path / "env_spec_empty_dependencies.yaml", "w") as f:
+        f.write(env_spec_empty_dependencies)
+
+    with open(tmp_path / "env_spec_absent_dependencies.yaml", "w") as f:
+        f.write(env_spec_absent_dependencies)
+
+    # Create the environment with empty dependencies, check that it is created successfully
+    # and that no packages are installed in the environment
+    res = helpers.create(
+        "-p", env_prefix, "-f", tmp_path / "env_spec_empty_dependencies.yaml", "--json"
+    )
+    assert res["success"]
+
+    # Create the environment with absent dependencies, check that it is created successfully
+    # and that no packages are installed in the environment
+    res = helpers.create(
+        "-p", env_prefix, "-f", tmp_path / "env_spec_absent_dependencies.yaml", "--json"
+    )
+    assert res["success"]

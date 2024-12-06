@@ -9,6 +9,8 @@ import yaml
 
 from . import helpers
 
+from memory_profiler import memory_usage
+
 __this_dir__ = Path(__file__).parent.resolve()
 
 env_file_requires_pip_install_path = __this_dir__ / "env-requires-pip-install.yaml"
@@ -1441,3 +1443,55 @@ def test_create_empty_or_absent_dependencies(tmp_path):
         "-p", env_prefix, "-f", tmp_path / "env_spec_absent_dependencies.yaml", "--json"
     )
     assert res["success"]
+
+
+env_spec_empty_lines_and_comments = """
+# The line below are empty (various number of spaces)
+"""
+
+env_spec_empty_lines_and_comments += "\n"
+env_spec_empty_lines_and_comments += "  \n"
+env_spec_empty_lines_and_comments += "    \n"
+env_spec_empty_lines_and_comments += "	\n"
+env_spec_empty_lines_and_comments += "# One comment \n"
+env_spec_empty_lines_and_comments += "	@ yet another one with a prefixed by a tab\n"
+env_spec_empty_lines_and_comments += "wheel\n"
+
+env_repro_1 = """
+wheel
+
+setuptools
+"""
+
+env_repro_2 = """
+wheel
+setuptools
+
+# comment
+"""
+
+
+@pytest.mark.parametrize("env_spec", [env_spec_empty_lines_and_comments, env_repro_1, env_repro_2])
+def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
+    # Non-regression test for:
+    #  - https://github.com/mamba-org/mamba/issues/3289
+    #  - https://github.com/mamba-org/mamba/issues/3659
+    memory_limit = 100  # in MB
+
+    def memory_intensive_operation():
+        env_prefix = tmp_path / "env-one_empty_line"
+
+        env_spec_file = tmp_path / "env_spec.txt"
+
+        with open(env_spec_file, "w") as f:
+            f.write(env_spec)
+
+        res = helpers.create("-p", env_prefix, "-f", env_spec_file, "--json")
+        assert res["success"]
+
+    max_memory = max(memory_usage(proc=memory_intensive_operation))
+
+    if max_memory > memory_limit:
+        pytest.fail(
+            f"test_create_with_empty_lines_and_comments exceeded memory limit of {memory_limit} MB (used {max_memory:.2f} MB)"
+        )

@@ -888,6 +888,8 @@ namespace mamba
                     {
                         throw std::runtime_error(util::concat("Got an empty file: ", file));
                     }
+
+                    // Inferring potential explicit environment specification
                     for (std::size_t i = 0; i < file_contents.size(); ++i)
                     {
                         auto& line = file_contents[i];
@@ -930,34 +932,23 @@ namespace mamba
                         }
                     }
 
-                    std::vector<std::string> f_specs;
-                    for (auto& line : file_contents)
-                    {
-                        auto lstrip_line = util::lstrip(line);
-
-                        // Skip comment lines and empty lines
-                        // Comment lines start with '#' or '@' preceded by whitespaces or tabs
-                        auto is_comment = util::starts_with(lstrip_line, "#")
-                                          || util::starts_with(lstrip_line, "@");
-                        auto is_empty = lstrip_line.empty();
-
-                        if (!is_comment && !is_empty)
-                        {
-                            f_specs.push_back(line);
-                        }
-                    }
-
+                    // If we reach here, we have a file with no explicit env, and the content of the
+                    // file just lists MatchSpecs.
                     if (specs.cli_configured())
                     {
                         auto current_specs = specs.cli_value<std::vector<std::string>>();
-                        current_specs.insert(current_specs.end(), f_specs.cbegin(), f_specs.cend());
+                        current_specs.insert(
+                            current_specs.end(),
+                            file_contents.cbegin(),
+                            file_contents.cend()
+                        );
                         specs.set_cli_value(current_specs);
                     }
                     else
                     {
-                        if (!f_specs.empty())
+                        if (!file_contents.empty())
                         {
-                            specs.set_cli_value(f_specs);
+                            specs.set_cli_value(file_contents);
                         }
                     }
                 }

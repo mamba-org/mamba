@@ -10,7 +10,7 @@ While ``mamba`` currently relies on ``conda`` configuration, ``libmamba`` and do
 rely on a pure C++ implementation.
 
 .. note::
-  For ``mamba`` configuration, please refer to `conda documentation <https://conda.io/projects/conda/en/latest/user-guide/configuration/index.html>`_
+  For ``mamba`` configuration, please refer to `conda documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/index.html>`_
 
 The configuration is parsed/read from multiple sources types:
 

@@ -301,24 +301,24 @@ namespace mamba
                 line.pop_back();
             }
 
-            const auto lstrip_line = util::lstrip(line);
+            line = util::strip(line);
 
             // Skipping empty lines
-            if (lstrip_line.empty())
+            if (line.empty())
             {
                 continue;
             }
 
             // Skipping comment lines starting with #
-            if (util::starts_with(lstrip_line, "#"))
+            if (util::starts_with(line, "#"))
             {
                 continue;
             }
 
             // Skipping comment lines starting with @ BUT headers of explicit environment specs
-            if (util::starts_with(lstrip_line, "@"))
+            if (util::starts_with(line, "@"))
             {
-                auto is_explicit_header = util::starts_with(lstrip_line, "@EXPLICIT");
+                auto is_explicit_header = util::starts_with(line, "@EXPLICIT");
 
                 if (is_explicit_header)
                 {

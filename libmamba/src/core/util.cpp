@@ -301,7 +301,8 @@ namespace mamba
                 line.pop_back();
             }
 
-            line = util::strip(line);
+            // Remove leading and trailing whitespace in place not to create a new string.
+            util::inplace_strip(line);
 
             // Skipping empty lines
             if (line.empty())

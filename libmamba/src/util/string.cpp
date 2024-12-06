@@ -447,6 +447,27 @@ namespace mamba::util
         return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
+    void inplace_strip(std::string& input)
+    {
+        // Dedicated implementation for std::string to avoid copies
+        if (input.empty())
+        {
+            return;
+        }
+
+        const auto start = input.find_first_not_of(" \t\n\v\f\r");
+
+        if (start == std::string::npos)
+        {
+            input.clear();
+            return;
+        }
+
+        const auto end = input.find_last_not_of(" \t\n\v\f\r");
+
+        input = input.substr(start, end - start + 1);
+    }
+
     /*********************************************
      *  Implementation of strip_parts functions  *
      *********************************************/

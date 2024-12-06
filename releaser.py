@@ -4,6 +4,7 @@
 import copy
 import datetime
 import re
+from version_scheme import version_info
 
 template = {"version": None, "changes": []}
 
@@ -14,7 +15,26 @@ templates = {
 }
 
 
-def apply_changelog(name, version, changes):
+def apply_changelog(name, version_name, changes):
+    version = version_info(version_name)
+
+    def template_substitute(contents):
+        x = contents.replace("{{ version_major }}", version.major)
+        x = x.replace("{{ version_minor }}", version.minor)
+        x = x.replace("{{ version_patch }}", version.patch)
+        x = x.replace("{{ version_is_prerelease }}", "1" if version.pre_release else "0")
+        x = x.replace("{{ version_prerelease_name }}", version.pre_release)
+        x = x.replace("{{ version_name }}", version_name)
+        return x
+
+    if name in templates:
+        template = templates[name]
+        with open(template, "r") as fi:
+            final = template_substitute(fi.read())
+        with open(template[: -len(".tmpl")], "w") as fo:
+            fo.write(final)
+
+    # version has been processed, we can now produce the changes
     res = ""
     today = datetime.date.today()
     fmt_today = today.strftime("%B %d, %Y")
@@ -37,21 +57,6 @@ def apply_changelog(name, version, changes):
         prev_cl = fi.read()
     with open(cl_file, "w") as fo:
         fo.write(res + prev_cl)
-
-    version_major, version_minor, version_patch = version.split(".")
-
-    def template_substitute(contents):
-        x = contents.replace("{{ version_major }}", version_major)
-        x = x.replace("{{ version_minor }}", version_minor)
-        x = x.replace("{{ version_patch }}", version_patch)
-        return x
-
-    if name in templates:
-        template = templates[name]
-        with open(template, "r") as fi:
-            final = template_substitute(fi.read())
-        with open(template[: -len(".tmpl")], "w") as fo:
-            fo.write(final)
 
 
 def commands(changes):

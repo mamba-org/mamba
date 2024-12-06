@@ -21,6 +21,7 @@ from datetime import date
 import json
 import re
 import subprocess
+from version_scheme import version_info
 
 
 def validate_date(date_str):
@@ -88,7 +89,7 @@ def main():
         "Enter the starting date of commits to be included in the release in the format YYYY-MM-DD: "
     )
     validate_date(commits_starting_date)
-    release_version = input("Enter the version to be released: ")
+    release_version = version_info(input("Enter the version to be released: "))
 
     # Get commits to include in the release
     log_cmd = "git log --since=" + commits_starting_date

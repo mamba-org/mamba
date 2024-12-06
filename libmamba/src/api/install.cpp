@@ -933,7 +933,15 @@ namespace mamba
                     std::vector<std::string> f_specs;
                     for (auto& line : file_contents)
                     {
-                        if (line[0] != '#' && line[0] != '@')
+                        auto lstrip_line = util::lstrip(line);
+
+                        // Skip comment lines and empty lines
+                        // Comment lines start with '#' or '@' preceded by whitespaces or tabs
+                        auto is_comment = util::starts_with(lstrip_line, "#")
+                                          || util::starts_with(lstrip_line, "@");
+                        auto is_empty = lstrip_line.empty();
+
+                        if (!is_comment && !is_empty)
                         {
                             f_specs.push_back(line);
                         }

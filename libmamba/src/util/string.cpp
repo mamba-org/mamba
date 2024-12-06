@@ -449,7 +449,6 @@ namespace mamba::util
 
     void inplace_strip(std::string& input)
     {
-        // Dedicated implementation for std::string to avoid copies
         if (input.empty())
         {
             return;

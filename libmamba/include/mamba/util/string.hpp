@@ -196,6 +196,10 @@ namespace mamba::util
     [[nodiscard]] auto strip(std::wstring_view input, std::wstring_view chars) -> std::wstring_view;
     [[nodiscard]] auto strip(std::string_view input) -> std::string_view;
     [[nodiscard]] auto strip(std::wstring_view input) -> std::wstring_view;
+
+    /**
+     * Dedicated implementation for inplace stripping of `std::string` to avoid copies
+     */
     void inplace_strip(std::string& input);
 
     [[nodiscard]] auto strip_parts(std::string_view input, char c) -> std::array<std::string_view, 3>;

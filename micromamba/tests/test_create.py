@@ -24,6 +24,7 @@ env_files = [
 ]
 
 lockfile_path: Path = __this_dir__ / "test_env-lock.yaml"
+pip_lockfile_path: Path = __this_dir__ / "test-env-pip-lock.yaml"
 
 
 def check_create_result(res, root_prefix, target_prefix):
@@ -112,6 +113,50 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+
+
+@pytest.mark.skipif(
+    platform.system() != "Linux",
+    reason="Test only available on Linux (cf. `test-env-pip-lock.yaml`)",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = tmp_path / "pip-env-lock.yaml"
+
+    shutil.copyfile(pip_lockfile_path, spec_file)
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+
+    # Test pkg url ending with `.tar.gz`
+    assert any(
+        package["name"] == "Checkm" and package["version"] == "0.4" and package["channel"] == "pypi"
+        for package in packages
+    )
+    # Test pkg url ending with `.whl`
+    assert any(
+        package["name"] == "starlette"
+        and package["version"] == "0.17.1"
+        and package["channel"] == "pypi"
+        for package in packages
+    )
+    # Test pkg url ending with `.conda`
+    assert any(
+        package["name"] == "bzip2"
+        and package["version"] == "1.0.8"
+        and package["channel"] == "conda-forge"
+        for package in packages
+    )
+    # Test pkg url ending with `.tar.bz2`
+    assert any(
+        package["name"] == "xz"
+        and package["version"] == "5.2.6"
+        and package["channel"] == "conda-forge"
+        for package in packages
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

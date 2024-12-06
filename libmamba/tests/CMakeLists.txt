@@ -12,6 +12,10 @@ set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     src/test_main.cpp
+    # Catch utils
+    src/catch-utils/conda_url.hpp
+    src/catch-utils/msvc_catch_byte.cpp
+    src/catch-utils/msvc_catch_string_view.cpp
     # Utility library
     src/util/test_cast.cpp
     src/util/test_compare.cpp
@@ -27,14 +31,14 @@ set(
     src/util/test_os_osx.cpp
     src/util/test_os_unix.cpp
     src/util/test_os_win.cpp
-    src/util/test_path_manip.cpp
     src/util/test_parsers.cpp
+    src/util/test_path_manip.cpp
     src/util/test_random.cpp
     src/util/test_string.cpp
     src/util/test_tuple_hash.cpp
     src/util/test_type_traits.cpp
-    src/util/test_url.cpp
     src/util/test_url_manip.cpp
+    src/util/test_url.cpp
     src/util/test_weakening_map.cpp
     # Implementation of version and matching specs
     src/specs/test_archive.cpp
@@ -103,13 +107,16 @@ target_include_directories(
         "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
-find_package(doctest REQUIRED)
+find_package(Catch2 REQUIRED)
 find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE doctest::doctest Threads::Threads
+    PRIVATE Catch2::Catch2WithMain Threads::Threads
+)
+set_target_properties(
+    test_libmamba PROPERTIES COMPILE_DEFINITIONS CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
 )
 
 # Copy data directory into binary dir to avoid modifications
@@ -126,10 +133,8 @@ add_dependencies(test_libmamba test_libmamba_data)
 
 target_compile_definitions(
     test_libmamba
-    PRIVATE
-        DOCTEST_CONFIG_USE_STD_HEADERS
-        MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
-        MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
+    PRIVATE MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+            MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )
 
 target_compile_features(test_libmamba PUBLIC cxx_std_17)

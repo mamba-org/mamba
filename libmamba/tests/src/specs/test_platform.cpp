@@ -4,32 +4,32 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/platform.hpp"
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::platform")
+namespace
 {
     TEST_CASE("KnownPlatform")
     {
-        SUBCASE("name")
+        SECTION("name")
         {
-            CHECK_EQ(platform_name(KnownPlatform::linux_riscv32), "linux-riscv32");
-            CHECK_EQ(platform_name(KnownPlatform::osx_arm64), "osx-arm64");
-            CHECK_EQ(platform_name(KnownPlatform::win_64), "win-64");
+            REQUIRE(platform_name(KnownPlatform::linux_riscv32) == "linux-riscv32");
+            REQUIRE(platform_name(KnownPlatform::osx_arm64) == "osx-arm64");
+            REQUIRE(platform_name(KnownPlatform::win_64) == "win-64");
         }
 
-        SUBCASE("parse")
+        SECTION("parse")
         {
-            CHECK_EQ(platform_parse("linux-armv6l"), KnownPlatform::linux_armv6l);
-            CHECK_EQ(platform_parse(" win-32 "), KnownPlatform::win_32);
-            CHECK_EQ(platform_parse(" OSX-64"), KnownPlatform::osx_64);
-            CHECK_EQ(platform_parse("linus-46"), std::nullopt);
+            REQUIRE(platform_parse("linux-armv6l") == KnownPlatform::linux_armv6l);
+            REQUIRE(platform_parse(" win-32 ") == KnownPlatform::win_32);
+            REQUIRE(platform_parse(" OSX-64") == KnownPlatform::osx_64);
+            REQUIRE(platform_parse("linus-46") == std::nullopt);
         }
 
-        SUBCASE("known_platform")
+        SECTION("known_platform")
         {
             static constexpr decltype(known_platform_names()) expected{
                 "noarch",        "linux-32",      "linux-64",    "linux-armv6l", "linux-armv7l",
@@ -38,13 +38,13 @@ TEST_SUITE("specs::platform")
                 "win-arm64",     "zos-z",
 
             };
-            CHECK_EQ(expected, known_platform_names());
+            REQUIRE(expected == known_platform_names());
         }
     }
 
     TEST_CASE("platform_is_xxx")
     {
-        SUBCASE("KnownPlatform")
+        SECTION("KnownPlatform")
         {
             // Making sure no-one forgot to add the platform with a specific OS
             for (auto plat : known_platforms())
@@ -54,47 +54,47 @@ TEST_SUITE("specs::platform")
                              || platform_is_win(plat)            //
                              || (plat == KnownPlatform::noarch)  //
                              || (plat == KnownPlatform::zos_z);
-                CHECK(check);
+                REQUIRE(check);
             }
         }
 
-        SUBCASE("DynamicPlatform")
+        SECTION("DynamicPlatform")
         {
-            CHECK_FALSE(platform_is_linux("win-64"));
-            CHECK_FALSE(platform_is_linux("osx-64"));
-            CHECK(platform_is_linux("linux-64"));
+            REQUIRE_FALSE(platform_is_linux("win-64"));
+            REQUIRE_FALSE(platform_is_linux("osx-64"));
+            REQUIRE(platform_is_linux("linux-64"));
 
-            CHECK_FALSE(platform_is_osx("win-64"));
-            CHECK(platform_is_osx("osx-64"));
-            CHECK_FALSE(platform_is_osx("linux-64"));
+            REQUIRE_FALSE(platform_is_osx("win-64"));
+            REQUIRE(platform_is_osx("osx-64"));
+            REQUIRE_FALSE(platform_is_osx("linux-64"));
 
-            CHECK(platform_is_win("win-64"));
-            CHECK_FALSE(platform_is_win("osx-64"));
-            CHECK_FALSE(platform_is_win("linux-64"));
+            REQUIRE(platform_is_win("win-64"));
+            REQUIRE_FALSE(platform_is_win("osx-64"));
+            REQUIRE_FALSE(platform_is_win("linux-64"));
         }
     }
 
     TEST_CASE("NoArch")
     {
-        SUBCASE("name")
+        SECTION("name")
         {
-            CHECK_EQ(noarch_name(NoArchType::No), "no");
-            CHECK_EQ(noarch_name(NoArchType::Generic), "generic");
-            CHECK_EQ(noarch_name(NoArchType::Python), "python");
+            REQUIRE(noarch_name(NoArchType::No) == "no");
+            REQUIRE(noarch_name(NoArchType::Generic) == "generic");
+            REQUIRE(noarch_name(NoArchType::Python) == "python");
         }
 
-        SUBCASE("parse")
+        SECTION("parse")
         {
-            CHECK_EQ(noarch_parse(""), std::nullopt);
-            CHECK_EQ(noarch_parse(" Python "), NoArchType::Python);
-            CHECK_EQ(noarch_parse(" geNeric"), NoArchType::Generic);
-            CHECK_EQ(noarch_parse("Nothing we know"), std::nullopt);
+            REQUIRE(noarch_parse("") == std::nullopt);
+            REQUIRE(noarch_parse(" Python ") == NoArchType::Python);
+            REQUIRE(noarch_parse(" geNeric") == NoArchType::Generic);
+            REQUIRE(noarch_parse("Nothing we know") == std::nullopt);
         }
 
-        SUBCASE("known_noarch")
+        SECTION("known_noarch")
         {
             static constexpr decltype(known_noarch_names()) expected{ "no", "generic", "python" };
-            CHECK_EQ(expected, known_noarch_names());
+            REQUIRE(expected == known_noarch_names());
         }
     }
 }

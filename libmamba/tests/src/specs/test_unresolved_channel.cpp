@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/util/build.hpp"
@@ -12,256 +12,258 @@
 using namespace mamba;
 using namespace mamba::specs;
 
-TEST_SUITE("specs::unresolved_channel")
+namespace
 {
     using PlatformSet = typename util::flat_set<std::string>;
     using Type = typename UnresolvedChannel::Type;
 
     TEST_CASE("Constructor")
     {
-        SUBCASE("Default")
+        SECTION("Default")
         {
             const auto uc = UnresolvedChannel();
-            CHECK_EQ(uc.type(), UnresolvedChannel::Type::Unknown);
-            CHECK_EQ(uc.location(), "<unknown>");
-            CHECK(uc.platform_filters().empty());
+            REQUIRE(uc.type() == UnresolvedChannel::Type::Unknown);
+            REQUIRE(uc.location() == "<unknown>");
+            REQUIRE(uc.platform_filters().empty());
         }
 
-        SUBCASE("Unknown")
+        SECTION("Unknown")
         {
             const auto uc = UnresolvedChannel("hello", { "linux-78" }, UnresolvedChannel::Type::Unknown);
-            CHECK_EQ(uc.type(), UnresolvedChannel::Type::Unknown);
-            CHECK_EQ(uc.location(), "<unknown>");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-78" });
+            REQUIRE(uc.type() == UnresolvedChannel::Type::Unknown);
+            REQUIRE(uc.location() == "<unknown>");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-78" });
         }
     }
 
     TEST_CASE("Parsing")
     {
-        SUBCASE("Unknown channels")
+        SECTION("Unknown channels")
         {
             for (std::string_view str : { "", "<unknown>", ":///<unknown>", "none" })
             {
                 CAPTURE(str);
                 const auto uc = UnresolvedChannel::parse(str).value();
-                CHECK_EQ(uc.type(), Type::Unknown);
-                CHECK_EQ(uc.location(), "<unknown>");
-                CHECK_EQ(uc.platform_filters(), PlatformSet{});
+                REQUIRE(uc.type() == Type::Unknown);
+                REQUIRE(uc.location() == "<unknown>");
+                REQUIRE(uc.platform_filters() == PlatformSet{});
             }
         }
 
-        SUBCASE("Invalid channels")
+        SECTION("Invalid channels")
         {
             for (std::string_view str : { "forgelinux-64]" })
             {
                 CAPTURE(str);
-                CHECK_FALSE(UnresolvedChannel::parse(str).has_value());
+                REQUIRE_FALSE(UnresolvedChannel::parse(str).has_value());
             }
         }
 
-        SUBCASE("https://repo.anaconda.com/conda-forge")
+        SECTION("https://repo.anaconda.com/conda-forge")
         {
             const auto uc = UnresolvedChannel::parse("https://repo.anaconda.com/conda-forge").value();
-            CHECK_EQ(uc.type(), Type::URL);
-            CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::URL);
+            REQUIRE(uc.location() == "https://repo.anaconda.com/conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("https://repo.anaconda.com/conda-forge/osx-64")
+        SECTION("https://repo.anaconda.com/conda-forge/osx-64")
         {
             const auto uc = UnresolvedChannel::parse("https://repo.anaconda.com/conda-forge/osx-64")
                                 .value();
-            CHECK_EQ(uc.type(), Type::URL);
-            CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "osx-64" });
+            REQUIRE(uc.type() == Type::URL);
+            REQUIRE(uc.location() == "https://repo.anaconda.com/conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "osx-64" });
         }
 
-        SUBCASE("https://repo.anaconda.com/conda-forge[win-64|noarch]")
+        SECTION("https://repo.anaconda.com/conda-forge[win-64|noarch]")
         {
             const auto uc = UnresolvedChannel::parse(
                                 "https://repo.anaconda.com/conda-forge[win-64|noarch]"
             )
                                 .value();
-            CHECK_EQ(uc.type(), Type::URL);
-            CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "win-64", "noarch" });
+            REQUIRE(uc.type() == Type::URL);
+            REQUIRE(uc.location() == "https://repo.anaconda.com/conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "win-64", "noarch" });
         }
 
-        SUBCASE("https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda")
+        SECTION("https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda")
         {
             const auto uc = UnresolvedChannel::parse(
                                 "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda"
             )
                                 .value();
-            CHECK_EQ(uc.type(), Type::PackageURL);
-            CHECK_EQ(uc.location(), "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::PackageURL);
+            REQUIRE(
+                uc.location() == "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda"
+            );
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("file:///Users/name/conda")
+        SECTION("file:///Users/name/conda")
         {
             const auto uc = UnresolvedChannel::parse("file:///Users/name/conda").value();
-            CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "file:///Users/name/conda");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Path);
+            REQUIRE(uc.location() == "file:///Users/name/conda");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("file:///Users/name/conda[linux-64]")
+        SECTION("file:///Users/name/conda[linux-64]")
         {
             const auto uc = UnresolvedChannel::parse("file:///Users/name/conda[linux-64]").value();
-            CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "file:///Users/name/conda");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
+            REQUIRE(uc.type() == Type::Path);
+            REQUIRE(uc.location() == "file:///Users/name/conda");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-64" });
         }
 
-        SUBCASE("file://C:/Users/name/conda")
+        SECTION("file://C:/Users/name/conda")
         {
             if (util::on_win)
             {
                 const auto uc = UnresolvedChannel::parse("file://C:/Users/name/conda").value();
-                CHECK_EQ(uc.type(), Type::Path);
-                CHECK_EQ(uc.location(), "file://C:/Users/name/conda");
-                CHECK_EQ(uc.platform_filters(), PlatformSet{});
+                REQUIRE(uc.type() == Type::Path);
+                REQUIRE(uc.location() == "file://C:/Users/name/conda");
+                REQUIRE(uc.platform_filters() == PlatformSet{});
             }
         }
 
-        SUBCASE("/Users/name/conda")
+        SECTION("/Users/name/conda")
         {
             const auto uc = UnresolvedChannel::parse("/Users/name/conda").value();
-            CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "/Users/name/conda");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Path);
+            REQUIRE(uc.location() == "/Users/name/conda");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("./folder/../folder/.")
+        SECTION("./folder/../folder/.")
         {
             const auto uc = UnresolvedChannel::parse("./folder/../folder/.").value();
-            CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "./folder");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Path);
+            REQUIRE(uc.location() == "./folder");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("./folder/subfolder/")
+        SECTION("./folder/subfolder/")
         {
             const auto uc = UnresolvedChannel::parse("./folder/subfolder/").value();
-            CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "./folder/subfolder");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Path);
+            REQUIRE(uc.location() == "./folder/subfolder");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("~/folder/")
+        SECTION("~/folder/")
         {
             const auto uc = UnresolvedChannel::parse("~/folder/").value();
-            CHECK_EQ(uc.type(), Type::Path);
-            CHECK_EQ(uc.location(), "~/folder");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Path);
+            REQUIRE(uc.location() == "~/folder");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("/tmp/pkg-0.0-bld.tar.bz2")
+        SECTION("/tmp/pkg-0.0-bld.tar.bz2")
         {
             const auto uc = UnresolvedChannel::parse("/tmp/pkg-0.0-bld.tar.bz2").value();
-            CHECK_EQ(uc.type(), Type::PackagePath);
-            CHECK_EQ(uc.location(), "/tmp/pkg-0.0-bld.tar.bz2");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::PackagePath);
+            REQUIRE(uc.location() == "/tmp/pkg-0.0-bld.tar.bz2");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("C:/tmp//pkg-0.0-bld.tar.bz2")
+        SECTION("C:/tmp//pkg-0.0-bld.tar.bz2")
         {
             const auto uc = UnresolvedChannel::parse("C:/tmp//pkg-0.0-bld.tar.bz2").value();
-            CHECK_EQ(uc.type(), Type::PackagePath);
-            CHECK_EQ(uc.location(), "C:/tmp/pkg-0.0-bld.tar.bz2");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::PackagePath);
+            REQUIRE(uc.location() == "C:/tmp/pkg-0.0-bld.tar.bz2");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE(R"(C:\tmp\pkg-0.0-bld.tar.bz2)")
+        SECTION(R"(C:\tmp\pkg-0.0-bld.tar.bz2)")
         {
             if (util::on_win)
             {
                 const auto uc = UnresolvedChannel::parse(R"(C:\tmp\pkg-0.0-bld.tar.bz2)").value();
-                CHECK_EQ(uc.type(), Type::PackagePath);
-                CHECK_EQ(uc.location(), "C:/tmp/pkg-0.0-bld.tar.bz2");
-                CHECK_EQ(uc.platform_filters(), PlatformSet{});
+                REQUIRE(uc.type() == Type::PackagePath);
+                REQUIRE(uc.location() == "C:/tmp/pkg-0.0-bld.tar.bz2");
+                REQUIRE(uc.platform_filters() == PlatformSet{});
             }
         }
 
-        SUBCASE("conda-forge")
+        SECTION("conda-forge")
         {
             const auto uc = UnresolvedChannel::parse("conda-forge").value();
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("repo.anaconda.com")
+        SECTION("repo.anaconda.com")
         {
             const auto uc = UnresolvedChannel::parse("repo.anaconda.com").value();
             // Unintuitive but correct type, this is not a URL. Better explicit than clever.
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "repo.anaconda.com");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{});
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "repo.anaconda.com");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
-        SUBCASE("conda-forge/linux-64")
+        SECTION("conda-forge/linux-64")
         {
             const auto uc = UnresolvedChannel::parse("conda-forge/linux-64").value();
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-64" });
         }
 
-        SUBCASE("conda-forge[linux-avx512]")
+        SECTION("conda-forge[linux-avx512]")
         {
             const auto uc = UnresolvedChannel::parse("conda-forge[linux-avx512]").value();
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-avx512" });
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-avx512" });
         }
 
-        SUBCASE("conda-forge[]")
+        SECTION("conda-forge[]")
         {
             const auto uc = UnresolvedChannel::parse("conda-forge[linux-64]").value();
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "conda-forge");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "conda-forge");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-64" });
         }
 
-        SUBCASE("conda-forge/linux-64/label/foo_dev")
+        SECTION("conda-forge/linux-64/label/foo_dev")
         {
             const auto uc = UnresolvedChannel::parse("conda-forge/linux-64/label/foo_dev").value();
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "conda-forge/label/foo_dev");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "conda-forge/label/foo_dev");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-64" });
         }
 
-        SUBCASE("conda-forge/label/foo_dev[linux-64]")
+        SECTION("conda-forge/label/foo_dev[linux-64]")
         {
             const auto uc = UnresolvedChannel::parse("conda-forge/label/foo_dev[linux-64]").value();
-            CHECK_EQ(uc.type(), Type::Name);
-            CHECK_EQ(uc.location(), "conda-forge/label/foo_dev");
-            CHECK_EQ(uc.platform_filters(), PlatformSet{ "linux-64" });
+            REQUIRE(uc.type() == Type::Name);
+            REQUIRE(uc.location() == "conda-forge/label/foo_dev");
+            REQUIRE(uc.platform_filters() == PlatformSet{ "linux-64" });
         }
     }
 
     TEST_CASE("str")
     {
-        CHECK_EQ(UnresolvedChannel("location", {}, Type::Name).str(), "location");
-        CHECK_EQ(
-            UnresolvedChannel("location", { "linux-64", "noarch" }, Type::Name).str(),
-            "location[linux-64,noarch]"
+        REQUIRE(UnresolvedChannel("location", {}, Type::Name).str() == "location");
+        REQUIRE(
+            UnresolvedChannel("location", { "linux-64", "noarch" }, Type::Name).str()
+            == "location[linux-64,noarch]"
         );
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("UnresolvedChannel Comparability and hashability")
     {
         auto uc1 = UnresolvedChannel::parse("conda-forge").value();
         auto uc2 = UnresolvedChannel::parse("conda-forge").value();
         auto uc3 = UnresolvedChannel::parse("conda-forge/linux-64").value();
 
-        CHECK_EQ(uc1, uc2);
-        CHECK_NE(uc1, uc3);
+        REQUIRE(uc1 == uc2);
+        REQUIRE(uc1 != uc3);
 
         auto hash_fn = std::hash<UnresolvedChannel>();
-        CHECK_EQ(hash_fn(uc1), hash_fn(uc2));
-        CHECK_NE(hash_fn(uc1), hash_fn(uc3));
+        REQUIRE(hash_fn(uc1) == hash_fn(uc2));
+        REQUIRE(hash_fn(uc1) != hash_fn(uc3));
     }
 }

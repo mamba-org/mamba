@@ -6,7 +6,7 @@
 
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
@@ -14,7 +14,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("u8path")
+    namespace
     {
         TEST_CASE("normalized_separators")
         {
@@ -22,9 +22,9 @@ namespace mamba
             std::filesystem::path x{ value };
             const auto y = fs::normalized_separators(x);
 #if defined(_WIN32)
-            REQUIRE_EQ(y.u8string(), u8R"(a\b\c)");
+            REQUIRE(y.u8string() == u8R"(a\b\c)");
 #else
-            REQUIRE_EQ(y.u8string(), value);
+            REQUIRE(y.u8string() == value);
 #endif
         }
 
@@ -32,9 +32,9 @@ namespace mamba
         {
             static constexpr auto value = u8"日本語";
             const std::filesystem::path x = fs::from_utf8(value);
-            REQUIRE_EQ(x.u8string(), u8"日本語");  // check assumption
+            REQUIRE(x.u8string() == u8"日本語");  // check assumption
             const auto y = fs::normalized_separators(x);
-            REQUIRE_EQ(y.u8string(), u8"日本語");
+            REQUIRE(y.u8string() == u8"日本語");
         }
 
         TEST_CASE("consistent_encoding")
@@ -42,13 +42,13 @@ namespace mamba
             const auto utf8_string = u8"日本語";
             const fs::u8path filename(utf8_string);
             const auto str = filename.string();
-            CHECK_EQ(str, utf8_string);
+            REQUIRE(str == utf8_string);
 
             const fs::u8path file_path = fs::temp_directory_path() / filename;
-            CHECK_EQ(file_path.filename().string(), utf8_string);
+            REQUIRE(file_path.filename().string() == utf8_string);
 
             const auto std_path = file_path.std_path();
-            CHECK_EQ(std_path.filename().u8string(), utf8_string);
+            REQUIRE(std_path.filename().u8string() == utf8_string);
         }
 
         TEST_CASE("string_stream_encoding")
@@ -59,12 +59,12 @@ namespace mamba
             const fs::u8path filename(utf8_string);
             std::stringstream stream;
             stream << filename;
-            CHECK_EQ(stream.str(), quoted_utf8_string);
+            REQUIRE(stream.str() == quoted_utf8_string);
 
             fs::u8path path_read;
             stream.seekg(0);
             stream >> path_read;
-            CHECK_EQ(path_read.string(), utf8_string);
+            REQUIRE(path_read.string() == utf8_string);
         }
 
         TEST_CASE("directory_iteration")
@@ -86,9 +86,9 @@ namespace mamba
                 const auto path_to_search_from = file_dir.parent_path();
                 fs::recursive_directory_iterator it{ path_to_search_from };
                 auto first_entry = *it;
-                CHECK_EQ(first_entry.path(), file_path.parent_path());
+                REQUIRE(first_entry.path() == file_path.parent_path());
                 auto secibd_entry = *(++it);
-                CHECK_EQ(secibd_entry.path(), file_path);
+                REQUIRE(secibd_entry.path() == file_path);
             }
 
             {
@@ -105,7 +105,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -122,7 +122,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path().string());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -136,7 +136,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -150,7 +150,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path().string());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
         }
 
@@ -173,12 +173,12 @@ namespace mamba
         {
             const fs::u8path path = u8R"(a/b/c/d)";
             const auto path_1 = path / u8R"(e\f\g)";
-            CHECK_EQ(path_1.string(), u8R"(a\b\c\d\e\f\g)");
+            REQUIRE(path_1.string() == u8R"(a\b\c\d\e\f\g)");
         }
 #endif
     }
 
-    TEST_SUITE("filesystem")
+    namespace
     {
         TEST_CASE("remove_readonly_file")
         {
@@ -201,19 +201,19 @@ namespace mamba
                 fs::perms::owner_read | fs::perms::group_read,
                 fs::perm_options::replace
             );
-            CHECK_EQ(
-                (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                fs::perms::none
+            REQUIRE(
+                (fs::status(readonly_file_path).permissions() & fs::perms::owner_write)
+                == fs::perms::none
             );
-            CHECK_EQ(
-                (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                fs::perms::none
+            REQUIRE(
+                (fs::status(readonly_file_path).permissions() & fs::perms::group_write)
+                == fs::perms::none
             );
 
             // removing should still work.
-            CHECK(fs::exists(readonly_file_path));
+            REQUIRE(fs::exists(readonly_file_path));
             fs::remove(readonly_file_path);
-            CHECK_FALSE(fs::exists(readonly_file_path));
+            REQUIRE_FALSE(fs::exists(readonly_file_path));
         }
 
         TEST_CASE("remove_all_readonly_files")
@@ -247,13 +247,13 @@ namespace mamba
                         fs::perms::owner_read | fs::perms::group_read,
                         fs::perm_options::replace
                     );
-                    CHECK_EQ(
-                        (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                        fs::perms::none
+                    REQUIRE(
+                        (fs::status(readonly_file_path).permissions() & fs::perms::owner_write)
+                        == fs::perms::none
                     );
-                    CHECK_EQ(
-                        (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                        fs::perms::none
+                    REQUIRE(
+                        (fs::status(readonly_file_path).permissions() & fs::perms::group_write)
+                        == fs::perms::none
                     );
                 }
             };
@@ -283,9 +283,9 @@ namespace mamba
                 create_readonly_files(dir_path);
             }
 
-            CHECK(fs::exists(tmp_dir));
+            REQUIRE(fs::exists(tmp_dir));
             fs::remove_all(tmp_dir);
-            CHECK_FALSE(fs::exists(tmp_dir));
+            REQUIRE_FALSE(fs::exists(tmp_dir));
         }
     }
 

@@ -8,33 +8,33 @@
 #include <array>
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 
 #include "mamba/specs/version.hpp"
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::version")
+namespace
 {
     TEST_CASE("atom_comparison")
     {
         // No literal
-        CHECK_EQ(VersionPartAtom(1), VersionPartAtom(1, ""));
+        REQUIRE(VersionPartAtom(1) == VersionPartAtom(1, ""));
         // lowercase
-        CHECK_EQ(VersionPartAtom(1, "dev"), VersionPartAtom(1, "DEV"));
+        REQUIRE(VersionPartAtom(1, "dev") == VersionPartAtom(1, "DEV"));
         // All operator comparison for mumerals
-        CHECK_NE(VersionPartAtom(1), VersionPartAtom(2, "dev"));
-        CHECK_LT(VersionPartAtom(1), VersionPartAtom(2, "dev"));
-        CHECK_LE(VersionPartAtom(1), VersionPartAtom(2, "dev"));
-        CHECK_GT(VersionPartAtom(2, "dev"), VersionPartAtom(1));
-        CHECK_GE(VersionPartAtom(2, "dev"), VersionPartAtom(1));
+        REQUIRE(VersionPartAtom(1) != VersionPartAtom(2, "dev"));
+        REQUIRE(VersionPartAtom(1) < VersionPartAtom(2, "dev"));
+        REQUIRE(VersionPartAtom(1) <= VersionPartAtom(2, "dev"));
+        REQUIRE(VersionPartAtom(2, "dev") > VersionPartAtom(1));
+        REQUIRE(VersionPartAtom(2, "dev") >= VersionPartAtom(1));
         // All operator comparison for literals
-        CHECK_NE(VersionPartAtom(1, "dev"), VersionPartAtom(1, "a"));
-        CHECK_LT(VersionPartAtom(1, "dev"), VersionPartAtom(1, "a"));
-        CHECK_LE(VersionPartAtom(1, "dev"), VersionPartAtom(1, "a"));
-        CHECK_GT(VersionPartAtom(1, "a"), VersionPartAtom(1, "dev"));
-        CHECK_GE(VersionPartAtom(1, "a"), VersionPartAtom(1, "dev"));
+        REQUIRE(VersionPartAtom(1, "dev") != VersionPartAtom(1, "a"));
+        REQUIRE(VersionPartAtom(1, "dev") < VersionPartAtom(1, "a"));
+        REQUIRE(VersionPartAtom(1, "dev") <= VersionPartAtom(1, "a"));
+        REQUIRE(VersionPartAtom(1, "a") > VersionPartAtom(1, "dev"));
+        REQUIRE(VersionPartAtom(1, "a") >= VersionPartAtom(1, "dev"));
 
         // clang-format off
             auto sorted_atoms = std::array{
@@ -54,52 +54,52 @@ TEST_SUITE("specs::version")
         // clang-format on
 
         // Strict ordering
-        CHECK(std::is_sorted(sorted_atoms.cbegin(), sorted_atoms.cend()));
+        REQUIRE(std::is_sorted(sorted_atoms.cbegin(), sorted_atoms.cend()));
         // None compare equal (given the is_sorted assumption)
-        CHECK_EQ(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()), sorted_atoms.cend());
+        REQUIRE(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()) == sorted_atoms.cend());
     }
 
     TEST_CASE("atom_format")
     {
-        CHECK_EQ(VersionPartAtom(1, "dev").str(), "1dev");
-        CHECK_EQ(VersionPartAtom(2).str(), "2");
+        REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
+        REQUIRE(VersionPartAtom(2).str() == "2");
     }
 
     TEST_CASE("version_comparison")
     {
         auto v = Version(0, { { { 1, "post" } } });
-        REQUIRE_EQ(v.version().size(), 1);
-        REQUIRE_EQ(v.version().front().size(), 1);
-        REQUIRE_EQ(v.version().front().front(), VersionPartAtom(1, "post"));
+        REQUIRE(v.version().size() == 1);
+        REQUIRE(v.version().front().size() == 1);
+        REQUIRE(v.version().front().front() == VersionPartAtom(1, "post"));
 
         // Same empty 0!1post version
-        CHECK_EQ(Version(0, { { { 1, "post" } } }), Version(0, { { { 1, "post" } } }));
+        REQUIRE(Version(0, { { { 1, "post" } } }) == Version(0, { { { 1, "post" } } }));
         // Empty trailing atom 0!1a == 0!1a0""
-        CHECK_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" }, {} } }));
+        REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" }, {} } }));
         // Empty trailing part 0!1a == 0!1a.0""
-        CHECK_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" } }, { {} } }));
+        REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" } }, { {} } }));
         // Mixed 0!1a0""0"" == 0!1a.0""
-        CHECK_EQ(Version(0, { { { 1, "a" }, {}, {} } }), Version(0, { { { 1, "a" } }, { {} } }));
+        REQUIRE(Version(0, { { { 1, "a" }, {}, {} } }) == Version(0, { { { 1, "a" } }, { {} } }));
 
         // Different epoch 0!2post < 1!1dev
-        CHECK_LT(Version(0, { { { 2, "post" } } }), Version(1, { { { 1, "dev" } } }));
-        CHECK_GE(Version(1, { { { 1, "dev" } } }), Version(0, { { { 2, "post" } } }));
+        REQUIRE(Version(0, { { { 2, "post" } } }) < Version(1, { { { 1, "dev" } } }));
+        REQUIRE(Version(1, { { { 1, "dev" } } }) >= Version(0, { { { 2, "post" } } }));
         // Different length with dev
-        CHECK_LT(Version(0, { { { 1 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
-        CHECK_LT(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
+        REQUIRE(Version(0, { { { 1 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
+        REQUIRE(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
         // Different major 0!1post < 0!2dev
-        CHECK_LT(Version(0, { { { 1, "post" } } }), Version(0, { { { 2, "dev" } } }));
+        REQUIRE(Version(0, { { { 1, "post" } } }) < Version(0, { { { 2, "dev" } } }));
         // Different length 0!2"".0"" < 0!11"".0"".0post all operator
-        CHECK_NE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        CHECK_LT(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        CHECK_LE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        CHECK_GT(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
-        CHECK_GE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
+        REQUIRE(Version(0, { { { 2 }, { 0 } } }) != Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        REQUIRE(Version(0, { { { 2 }, { 0 } } }) < Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        REQUIRE(Version(0, { { { 2 }, { 0 } } }) <= Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) > Version(0, { { { 2 }, { 0 } } }));
+        REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) >= Version(0, { { { 2 }, { 0 } } }));
     }
 
-    TEST_CASE("starts_with")
+    TEST_CASE("Version starts_with")
     {
-        SUBCASE("positive")
+        SECTION("positive")
         {
             // clang-format off
             auto const versions = std::vector<std::tuple<Version, Version>>{
@@ -149,11 +149,11 @@ TEST_SUITE("specs::version")
                 // Working around clang compilation issue.
                 const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
                 CAPTURE(msg);
-                CHECK(ver.starts_with(prefix));
+                REQUIRE(ver.starts_with(prefix));
             }
         }
 
-        SUBCASE("negative")
+        SECTION("negative")
         {
             // clang-format off
             auto const versions = std::vector<std::tuple<Version, Version>>{
@@ -183,14 +183,14 @@ TEST_SUITE("specs::version")
                 // Working around clang compilation issue.
                 const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
                 CAPTURE(msg);
-                CHECK_FALSE(ver.starts_with(prefix));
+                REQUIRE_FALSE(ver.starts_with(prefix));
             }
         }
     }
 
     TEST_CASE("compatible_with")
     {
-        SUBCASE("positive")
+        SECTION("positive")
         {
             // clang-format off
             auto const versions = std::vector<std::tuple<std::size_t, Version, Version>>{
@@ -249,11 +249,11 @@ TEST_SUITE("specs::version")
                     newer.str()
                 );
                 CAPTURE(msg);
-                CHECK(newer.compatible_with(older, level));
+                REQUIRE(newer.compatible_with(older, level));
             }
         }
 
-        SUBCASE("negative")
+        SECTION("negative")
         {
             // clang-format off
             auto const versions = std::vector<std::tuple<std::size_t, Version, Version>>{
@@ -298,46 +298,46 @@ TEST_SUITE("specs::version")
                     newer.str()
                 );
                 CAPTURE(msg);
-                CHECK_FALSE(newer.compatible_with(older, level));
+                REQUIRE_FALSE(newer.compatible_with(older, level));
             }
         }
     }
 
     TEST_CASE("version_format")
     {
-        SUBCASE("11a0post.3.4dev")
+        SECTION("11a0post.3.4dev")
         {
             auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
-            CHECK_EQ(v.str(), "11a0post.3.4dev");
-            CHECK_EQ(v.str(1), "11a0post");
-            CHECK_EQ(v.str(2), "11a0post.3");
-            CHECK_EQ(v.str(3), "11a0post.3.4dev");
-            CHECK_EQ(v.str(4), "11a0post.3.4dev.0");
-            CHECK_EQ(v.str(5), "11a0post.3.4dev.0.0");
+            REQUIRE(v.str() == "11a0post.3.4dev");
+            REQUIRE(v.str(1) == "11a0post");
+            REQUIRE(v.str(2) == "11a0post.3");
+            REQUIRE(v.str(3) == "11a0post.3.4dev");
+            REQUIRE(v.str(4) == "11a0post.3.4dev.0");
+            REQUIRE(v.str(5) == "11a0post.3.4dev.0.0");
         }
 
-        SUBCASE("1!11a0.3.4dev")
+        SECTION("1!11a0.3.4dev")
         {
             auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
-            CHECK_EQ(v.str(), "1!11a0.3.4dev");
-            CHECK_EQ(v.str(1), "1!11a0");
-            CHECK_EQ(v.str(2), "1!11a0.3");
-            CHECK_EQ(v.str(3), "1!11a0.3.4dev");
-            CHECK_EQ(v.str(4), "1!11a0.3.4dev.0");
+            REQUIRE(v.str() == "1!11a0.3.4dev");
+            REQUIRE(v.str(1) == "1!11a0");
+            REQUIRE(v.str(2) == "1!11a0.3");
+            REQUIRE(v.str(3) == "1!11a0.3.4dev");
+            REQUIRE(v.str(4) == "1!11a0.3.4dev.0");
         }
 
-        SUBCASE("1!11a0.3.4dev+1.2")
+        SECTION("1!11a0.3.4dev+1.2")
         {
             auto v = Version(
                 1,
                 { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
                 { { { 1 } }, { { 2 } } }
             );
-            CHECK_EQ(v.str(), "1!11a0.3.4dev+1.2");
-            CHECK_EQ(v.str(1), "1!11a0+1");
-            CHECK_EQ(v.str(2), "1!11a0.3+1.2");
-            CHECK_EQ(v.str(3), "1!11a0.3.4dev+1.2.0");
-            CHECK_EQ(v.str(4), "1!11a0.3.4dev.0+1.2.0.0");
+            REQUIRE(v.str() == "1!11a0.3.4dev+1.2");
+            REQUIRE(v.str(1) == "1!11a0+1");
+            REQUIRE(v.str(2) == "1!11a0.3+1.2");
+            REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
+            REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
         }
     }
 
@@ -346,7 +346,7 @@ TEST_SUITE("specs::version")
      *
      * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
      */
-    TEST_CASE("parse")
+    TEST_CASE("Version parse")
     {
         // clang-format off
             auto sorted_version = std::vector<std::pair<std::string_view, Version>>{
@@ -408,61 +408,61 @@ TEST_SUITE("specs::version")
         // clang-format on
         for (const auto& [raw, expected] : sorted_version)
         {
-            CHECK_EQ(Version::parse(raw), expected);
+            REQUIRE(Version::parse(raw) == expected);
         }
 
-        CHECK(std::is_sorted(
+        REQUIRE(std::is_sorted(
             sorted_version.cbegin(),
             sorted_version.cend(),
             [](const auto& a, const auto& b) { return a.second < b.second; }
         ));
 
         // Default constructed
-        CHECK_EQ(Version::parse("0.0").value(), Version());
+        REQUIRE(Version::parse("0.0").value() == Version());
 
         // Lowercase and strip
-        CHECK_EQ(Version::parse("0.4.1.rc").value(), Version::parse("  0.4.1.RC  "));
-        CHECK_EQ(Version::parse("  0.4.1.RC  ").value(), Version::parse("0.4.1.rc"));
+        REQUIRE(Version::parse("0.4.1.rc").value() == Version::parse("  0.4.1.RC  "));
+        REQUIRE(Version::parse("  0.4.1.RC  ").value() == Version::parse("0.4.1.rc"));
 
         // Functional assertions
-        CHECK_EQ(Version::parse("  0.4.rc  ").value(), Version::parse("0.4.RC"));
-        CHECK_EQ(Version::parse("0.4").value(), Version::parse("0.4.0"));
-        CHECK_NE(Version::parse("0.4").value(), Version::parse("0.4.1"));
-        CHECK_EQ(Version::parse("0.4.a1").value(), Version::parse("0.4.0a1"));
-        CHECK_NE(Version::parse("0.4.a1").value(), Version::parse("0.4.1a1"));
+        REQUIRE(Version::parse("  0.4.rc  ").value() == Version::parse("0.4.RC"));
+        REQUIRE(Version::parse("0.4").value() == Version::parse("0.4.0"));
+        REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1"));
+        REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1"));
+        REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1"));
     }
 
     TEST_CASE("parse_invalid")
     {
         // Wrong epoch
-        CHECK_FALSE(Version::parse("!1.1").has_value());
-        CHECK_FALSE(Version::parse("-1!1.1").has_value());
-        CHECK_FALSE(Version::parse("foo!1.1").has_value());
-        CHECK_FALSE(Version::parse("0post1!1.1").has_value());
+        REQUIRE_FALSE(Version::parse("!1.1").has_value());
+        REQUIRE_FALSE(Version::parse("-1!1.1").has_value());
+        REQUIRE_FALSE(Version::parse("foo!1.1").has_value());
+        REQUIRE_FALSE(Version::parse("0post1!1.1").has_value());
 
         // Empty parts
-        CHECK_FALSE(Version::parse("").has_value());
-        CHECK_FALSE(Version::parse("  ").has_value());
-        CHECK_FALSE(Version::parse("!2.2").has_value());
-        CHECK_FALSE(Version::parse("0!").has_value());
-        CHECK_FALSE(Version::parse("!").has_value());
-        CHECK_FALSE(Version::parse("1.").has_value());
-        CHECK_FALSE(Version::parse("1..1").has_value());
-        CHECK_FALSE(Version::parse("5.5..mw").has_value());
-        CHECK_FALSE(Version::parse("1.2post+").has_value());
-        CHECK_FALSE(Version::parse("1!+1.1").has_value());
+        REQUIRE_FALSE(Version::parse("").has_value());
+        REQUIRE_FALSE(Version::parse("  ").has_value());
+        REQUIRE_FALSE(Version::parse("!2.2").has_value());
+        REQUIRE_FALSE(Version::parse("0!").has_value());
+        REQUIRE_FALSE(Version::parse("!").has_value());
+        REQUIRE_FALSE(Version::parse("1.").has_value());
+        REQUIRE_FALSE(Version::parse("1..1").has_value());
+        REQUIRE_FALSE(Version::parse("5.5..mw").has_value());
+        REQUIRE_FALSE(Version::parse("1.2post+").has_value());
+        REQUIRE_FALSE(Version::parse("1!+1.1").has_value());
 
         // Repeated delimiters
-        CHECK_FALSE(Version::parse("5.5++").has_value());
-        CHECK_FALSE(Version::parse("5.5+1+0.0").has_value());
-        CHECK_FALSE(Version::parse("1!2!3.0").has_value());
+        REQUIRE_FALSE(Version::parse("5.5++").has_value());
+        REQUIRE_FALSE(Version::parse("5.5+1+0.0").has_value());
+        REQUIRE_FALSE(Version::parse("1!2!3.0").has_value());
 
         // '-' and '_' delimiters not allowed together.
-        CHECK_FALSE(Version::parse("1-1_1").has_value());
+        REQUIRE_FALSE(Version::parse("1-1_1").has_value());
 
         // Forbidden characters
-        CHECK_FALSE(Version::parse("3.5&1").has_value());
-        CHECK_FALSE(Version::parse("3.5|1").has_value());
+        REQUIRE_FALSE(Version::parse("3.5&1").has_value());
+        REQUIRE_FALSE(Version::parse("3.5|1").has_value());
     }
 
     /**
@@ -506,9 +506,9 @@ TEST_SUITE("specs::version")
         // clang-format on
 
         // Strict ordering
-        CHECK(std::is_sorted(versions.cbegin(), versions.cend()));
+        REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
         // None compare equal (given the is_sorted assumption)
-        CHECK_EQ(std::adjacent_find(versions.cbegin(), versions.cend()), versions.cend());
+        REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
     }
 
     /**
@@ -578,8 +578,8 @@ TEST_SUITE("specs::version")
         // clang-format on
 
         // Strict ordering
-        CHECK(std::is_sorted(versions.cbegin(), versions.cend()));
+        REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
         // None compare equal (given the is_sorted assumption)
-        CHECK_EQ(std::adjacent_find(versions.cbegin(), versions.cend()), versions.cend());
+        REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
     }
 }

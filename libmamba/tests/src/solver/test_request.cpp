@@ -6,7 +6,7 @@
 
 #include <type_traits>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -14,7 +14,7 @@
 using namespace mamba;
 using namespace mamba::solver;
 
-TEST_SUITE("solver::request")
+namespace
 {
     using namespace specs::match_spec_literals;
 
@@ -32,14 +32,14 @@ TEST_SUITE("solver::request")
             },
         };
 
-        SUBCASE("Iterate over same elements")
+        SECTION("Iterate over same elements")
         {
             auto count_install = std::size_t(0);
             for_each_of<Request::Install>(request, [&](const Request::Install&) { count_install++; });
-            CHECK_EQ(count_install, 2);
+            REQUIRE(count_install == 2);
         }
 
-        SUBCASE("Iterate over different elements")
+        SECTION("Iterate over different elements")
         {
             auto count_install = std::size_t(0);
             auto count_remove = std::size_t(0);
@@ -59,11 +59,11 @@ TEST_SUITE("solver::request")
                 }
             );
 
-            CHECK_EQ(count_install, 2);
-            CHECK_EQ(count_remove, 1);
+            REQUIRE(count_install == 2);
+            REQUIRE(count_remove == 1);
         }
 
-        SUBCASE("Iterate over elements and break loop")
+        SECTION("Iterate over elements and break loop")
         {
             auto count_install = std::size_t(0);
             for_each_of<Request::Install>(
@@ -74,7 +74,7 @@ TEST_SUITE("solver::request")
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(count_install, 1);
+            REQUIRE(count_install == 1);
         }
     }
 }

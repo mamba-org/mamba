@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mambatests.hpp"
 
@@ -26,9 +26,9 @@
 
 namespace mamba
 {
-    TEST_SUITE("history")
+    namespace
     {
-        TEST_CASE("parse")
+        TEST_CASE("History parse")
         {
             static const auto history_file_path = fs::absolute(
                 mambatests::test_data_dir / "history/parse/conda-meta/history"
@@ -90,7 +90,7 @@ namespace mamba
             }
             history_file.close();
 
-            REQUIRE_EQ(updated_history_buffer.str(), check_buffer.str());
+            REQUIRE(updated_history_buffer.str() == check_buffer.str());
         }
 
         TEST_CASE("parse_metadata")

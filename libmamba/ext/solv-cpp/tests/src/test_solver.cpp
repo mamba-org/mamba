@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <solv/solver.h>
 
 #include "solv-cpp/pool.hpp"
@@ -15,7 +15,7 @@
 using namespace solv;
 using namespace solv::test;
 
-TEST_SUITE("solv::ObjSolver")
+namespace
 {
     TEST_CASE("Create a solver")
     {
@@ -26,20 +26,20 @@ TEST_SUITE("solv::ObjSolver")
 
         auto solver = ObjSolver(pool);
 
-        CHECK_EQ(solver.problem_count(), 0);
+        REQUIRE(solver.problem_count() == 0);
 
-        SUBCASE("Flag default value")
+        SECTION("Flag default value")
         {
-            CHECK_FALSE(solver.get_flag(SOLVER_FLAG_ALLOW_DOWNGRADE));
+            REQUIRE_FALSE(solver.get_flag(SOLVER_FLAG_ALLOW_DOWNGRADE));
         }
 
-        SUBCASE("Set flag")
+        SECTION("Set flag")
         {
             solver.set_flag(SOLVER_FLAG_ALLOW_DOWNGRADE, true);
-            CHECK(solver.get_flag(SOLVER_FLAG_ALLOW_DOWNGRADE));
+            REQUIRE(solver.get_flag(SOLVER_FLAG_ALLOW_DOWNGRADE));
         }
 
-        SUBCASE("Solve successfully")
+        SECTION("Solve successfully")
         {
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
@@ -48,11 +48,11 @@ TEST_SUITE("solv::ObjSolver")
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
                 pool.add_conda_dependency("icons=2.*"),
             };
-            CHECK(solver.solve(pool, jobs));
-            CHECK_EQ(solver.problem_count(), 0);
+            REQUIRE(solver.solve(pool, jobs));
+            REQUIRE(solver.problem_count() == 0);
         }
 
-        SUBCASE("Solve unsuccessfully with conflict")
+        SECTION("Solve unsuccessfully with conflict")
         {
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
@@ -61,8 +61,8 @@ TEST_SUITE("solv::ObjSolver")
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("intl=5.*"),
             };
 
-            CHECK_FALSE(solver.solve(pool, jobs));
-            CHECK_NE(solver.problem_count(), 0);
+            REQUIRE_FALSE(solver.solve(pool, jobs));
+            REQUIRE(solver.problem_count() != 0);
 
             auto all_rules = ObjQueue{};
             solver.for_each_problem_id(
@@ -72,10 +72,10 @@ TEST_SUITE("solv::ObjSolver")
                     all_rules.insert(all_rules.end(), pb_rules.cbegin(), pb_rules.cend());
                 }
             );
-            CHECK_FALSE(all_rules.empty());
+            REQUIRE_FALSE(all_rules.empty());
         }
 
-        SUBCASE("Solve unsuccessfully with missing package")
+        SECTION("Solve unsuccessfully with missing package")
         {
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
@@ -83,8 +83,8 @@ TEST_SUITE("solv::ObjSolver")
                 pool.add_conda_dependency("does-not-exists"),
             };
 
-            CHECK_FALSE(solver.solve(pool, jobs));
-            CHECK_NE(solver.problem_count(), 0);
+            REQUIRE_FALSE(solver.solve(pool, jobs));
+            REQUIRE(solver.problem_count() != 0);
 
             auto all_rules = ObjQueue{};
             solver.for_each_problem_id(
@@ -94,7 +94,7 @@ TEST_SUITE("solv::ObjSolver")
                     all_rules.insert(all_rules.end(), pb_rules.cbegin(), pb_rules.cend());
                 }
             );
-            CHECK_FALSE(all_rules.empty());
+            REQUIRE_FALSE(all_rules.empty());
         }
     }
 }

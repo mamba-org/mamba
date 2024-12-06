@@ -6,29 +6,27 @@
 
 #include <string>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/type_traits.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::type_traits")
+struct NotOStreamable
 {
-    struct NotOStreamable
-    {
-    };
+};
 
-    struct OStreamable
-    {
-    };
+struct OStreamable
+{
+};
 
-    auto operator<<(std::ostream& s, const OStreamable&)->std::ostream&;
+auto
+operator<<(std::ostream& s, const OStreamable&) -> std::ostream&;
 
-    TEST_CASE("ostreamable")
-    {
-        CHECK(is_ostreamable_v<int>);
-        CHECK(is_ostreamable_v<std::string>);
-        CHECK_FALSE(is_ostreamable_v<NotOStreamable>);
-        CHECK(is_ostreamable_v<OStreamable>);
-    }
+TEST_CASE("ostreamable")
+{
+    REQUIRE(is_ostreamable_v<int>);
+    REQUIRE(is_ostreamable_v<std::string>);
+    REQUIRE_FALSE(is_ostreamable_v<NotOStreamable>);
+    REQUIRE(is_ostreamable_v<OStreamable>);
 }

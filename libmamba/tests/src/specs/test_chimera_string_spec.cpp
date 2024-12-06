@@ -4,84 +4,84 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/chimera_string_spec.hpp"
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::chimera_string_spec")
+namespace
 {
-    TEST_CASE("Free")
+    TEST_CASE("ChimeraStringSpec Free")
     {
         auto spec = ChimeraStringSpec();
 
-        CHECK(spec.contains(""));
-        CHECK(spec.contains("hello"));
+        REQUIRE(spec.contains(""));
+        REQUIRE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "*");
-        CHECK(spec.is_explicitly_free());
-        CHECK_FALSE(spec.is_exact());
-        CHECK(spec.is_glob());
+        REQUIRE(spec.str() == "*");
+        REQUIRE(spec.is_explicitly_free());
+        REQUIRE_FALSE(spec.is_exact());
+        REQUIRE(spec.is_glob());
     }
 
-    TEST_CASE("mkl")
+    TEST_CASE("ChimeraStringSpec mkl")
     {
         auto spec = ChimeraStringSpec::parse("mkl").value();
 
-        CHECK(spec.contains("mkl"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("nomkl"));
-        CHECK_FALSE(spec.contains("hello"));
+        REQUIRE(spec.contains("mkl"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("nomkl"));
+        REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "mkl");
-        CHECK_FALSE(spec.is_explicitly_free());
-        CHECK(spec.is_exact());
-        CHECK(spec.is_glob());
+        REQUIRE(spec.str() == "mkl");
+        REQUIRE_FALSE(spec.is_explicitly_free());
+        REQUIRE(spec.is_exact());
+        REQUIRE(spec.is_glob());
     }
 
-    TEST_CASE("py.*")
+    TEST_CASE("ChimeraStringSpec py.*")
     {
         auto spec = ChimeraStringSpec::parse("py.*").value();
 
-        CHECK(spec.contains("python"));
-        CHECK(spec.contains("py"));
-        CHECK(spec.contains("pypy"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("cpython"));
+        REQUIRE(spec.contains("python"));
+        REQUIRE(spec.contains("py"));
+        REQUIRE(spec.contains("pypy"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("cpython"));
 
-        CHECK_EQ(spec.str(), "^py.*$");
-        CHECK_FALSE(spec.is_explicitly_free());
-        CHECK_FALSE(spec.is_exact());
-        CHECK_FALSE(spec.is_glob());
+        REQUIRE(spec.str() == "^py.*$");
+        REQUIRE_FALSE(spec.is_explicitly_free());
+        REQUIRE_FALSE(spec.is_exact());
+        REQUIRE_FALSE(spec.is_glob());
     }
 
-    TEST_CASE("^.*(accelerate|mkl)$")
+    TEST_CASE("ChimeraStringSpec ^.*(accelerate|mkl)$")
     {
         auto spec = ChimeraStringSpec::parse("^.*(accelerate|mkl)$").value();
 
-        CHECK(spec.contains("accelerate"));
-        CHECK(spec.contains("mkl"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("openblas"));
+        REQUIRE(spec.contains("accelerate"));
+        REQUIRE(spec.contains("mkl"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("openblas"));
 
-        CHECK_EQ(spec.str(), "^.*(accelerate|mkl)$");
-        CHECK_FALSE(spec.is_explicitly_free());
-        CHECK_FALSE(spec.is_exact());
-        CHECK_FALSE(spec.is_glob());
+        REQUIRE(spec.str() == "^.*(accelerate|mkl)$");
+        REQUIRE_FALSE(spec.is_explicitly_free());
+        REQUIRE_FALSE(spec.is_exact());
+        REQUIRE_FALSE(spec.is_glob());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("ChimeraStringSpec Comparability and hashability")
     {
         auto spec1 = ChimeraStringSpec::parse("mkl").value();
         auto spec2 = ChimeraStringSpec::parse("mkl").value();
         auto spec3 = ChimeraStringSpec::parse("*").value();
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         std::hash<ChimeraStringSpec> hash_fn;
-        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
-        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+        REQUIRE(hash_fn(spec1) == hash_fn(spec2));
+        REQUIRE(hash_fn(spec1) != hash_fn(spec3));
     }
 }

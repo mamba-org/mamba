@@ -30,6 +30,6 @@ dependencies:
   - libnghttp2-static
   - lz4-c-static
   # libmamba test dependencies
-  - doctest
+  - catch2
   # micromamba dependencies
   - cli11 >=2.2,<3

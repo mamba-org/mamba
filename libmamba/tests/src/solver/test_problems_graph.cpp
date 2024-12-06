@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
@@ -33,52 +33,50 @@
 using namespace mamba;
 using namespace mamba::solver;
 
-TEST_SUITE("solver::conflict_map")
+namespace
 {
     TEST_CASE("symmetric")
     {
         auto c = conflict_map<std::size_t>();
-        CHECK_EQ(c.size(), 0);
-        CHECK_FALSE(c.has_conflict(0));
-        CHECK_FALSE(c.in_conflict(0, 1));
-        CHECK(c.add(0, 1));
-        CHECK(c.add(1, 2));
-        CHECK_FALSE(c.add(1, 2));
-        CHECK(c.has_conflict(0));
-        CHECK(c.in_conflict(0, 1));
-        CHECK(c.in_conflict(1, 2));
-        CHECK(c.has_conflict(2));
-        CHECK_FALSE(c.in_conflict(0, 2));
+        REQUIRE(c.size() == 0);
+        REQUIRE_FALSE(c.has_conflict(0));
+        REQUIRE_FALSE(c.in_conflict(0, 1));
+        REQUIRE(c.add(0, 1));
+        REQUIRE(c.add(1, 2));
+        REQUIRE_FALSE(c.add(1, 2));
+        REQUIRE(c.has_conflict(0));
+        REQUIRE(c.in_conflict(0, 1));
+        REQUIRE(c.in_conflict(1, 2));
+        REQUIRE(c.has_conflict(2));
+        REQUIRE_FALSE(c.in_conflict(0, 2));
         // With same
-        CHECK(c.add(5, 5));
-        CHECK(c.has_conflict(5));
-        CHECK(c.in_conflict(5, 5));
+        REQUIRE(c.add(5, 5));
+        REQUIRE(c.has_conflict(5));
+        REQUIRE(c.in_conflict(5, 5));
     }
 
     TEST_CASE("remove")
     {
         auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
-        REQUIRE_EQ(c.size(), 4);
+        REQUIRE(c.size() == 4);
 
         REQUIRE(c.in_conflict(2, 4));
         REQUIRE(c.in_conflict(4, 2));
-        CHECK(c.remove(2, 4));
-        CHECK_FALSE(c.in_conflict(4, 2));
-        CHECK_FALSE(c.in_conflict(2, 4));
-        CHECK(c.has_conflict(2));
-        CHECK_FALSE(c.has_conflict(4));
+        REQUIRE(c.remove(2, 4));
+        REQUIRE_FALSE(c.in_conflict(4, 2));
+        REQUIRE_FALSE(c.in_conflict(2, 4));
+        REQUIRE(c.has_conflict(2));
+        REQUIRE_FALSE(c.has_conflict(4));
 
-        CHECK_FALSE(c.remove(2, 4));
+        REQUIRE_FALSE(c.remove(2, 4));
 
-        CHECK(c.remove(1));
-        CHECK_FALSE(c.has_conflict(1));
-        CHECK_FALSE(c.in_conflict(1, 1));
-        CHECK_FALSE(c.in_conflict(1, 2));
-        CHECK_FALSE(c.in_conflict(3, 1));
+        REQUIRE(c.remove(1));
+        REQUIRE_FALSE(c.has_conflict(1));
+        REQUIRE_FALSE(c.in_conflict(1, 1));
+        REQUIRE_FALSE(c.in_conflict(1, 2));
+        REQUIRE_FALSE(c.in_conflict(3, 1));
     }
 }
-
-TEST_SUITE_BEGIN("solver::problems_graph");
 
 namespace
 {
@@ -570,27 +568,27 @@ TEST_CASE("NamedList")
     {
         l.insert({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
     }
-    CHECK_EQ(l.size(), n_packages);
-    CHECK_EQ(l.name(), "pkg");
+    REQUIRE(l.size() == n_packages);
+    REQUIRE(l.name() == "pkg");
     {
         auto [str, size] = l.versions_trunc(", ", "...", 5);
-        CHECK_EQ(size, 9);
-        CHECK_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
+        REQUIRE(size == 9);
+        REQUIRE(str == "0.1.0, 0.2.0, ..., 0.9.0");
     }
     {
         auto [str, size] = l.build_strings_trunc(", ", "...", 5, false);
-        CHECK_EQ(size, 9);
-        CHECK_EQ(str, "bld, bld, ..., bld");
+        REQUIRE(size == 9);
+        REQUIRE(str == "bld, bld, ..., bld");
     }
     {
         auto [str, size] = l.build_strings_trunc(", ", "...", 5, true);
-        CHECK_EQ(size, 1);
-        CHECK_EQ(str, "bld");
+        REQUIRE(size == 1);
+        REQUIRE(str == "bld");
     }
     {
         auto [str, size] = l.versions_and_build_strings_trunc("|", "---", 5);
-        CHECK_EQ(size, 9);
-        CHECK_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
+        REQUIRE(size == 9);
+        REQUIRE(str == "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
     }
 }
 
@@ -630,7 +628,7 @@ TEST_CASE("Create problem graph")
         const auto pbs_init = unsolvable.problems_graph(db);
         const auto& graph_init = pbs_init.graph();
 
-        REQUIRE_GE(graph_init.number_of_nodes(), 1);
+        REQUIRE(graph_init.number_of_nodes() >= 1);
         graph_init.for_each_node_id(
             [&](auto id)
             {
@@ -643,19 +641,19 @@ TEST_CASE("Create problem graph")
                     if (graph_init.in_degree(id) == 0)
                     {
                         // Only one root node
-                        CHECK_EQ(id, pbs_init.root_node());
-                        CHECK(std::holds_alternative<PbGr::RootNode>(node));
+                        REQUIRE(id == pbs_init.root_node());
+                        REQUIRE(std::holds_alternative<PbGr::RootNode>(node));
                     }
                     else if (graph_init.out_degree(id) == 0)
                     {
-                        CHECK_FALSE(std::holds_alternative<PbGr::RootNode>(node));
+                        REQUIRE_FALSE(std::holds_alternative<PbGr::RootNode>(node));
                     }
                     else
                     {
-                        CHECK(std::holds_alternative<PbGr::PackageNode>(node));
+                        REQUIRE(std::holds_alternative<PbGr::PackageNode>(node));
                     }
                     // All nodes reachable from the root
-                    CHECK(is_reachable(pbs_init.graph(), pbs_init.root_node(), id));
+                    REQUIRE(is_reachable(pbs_init.graph(), pbs_init.root_node(), id));
                 }
             }
         );
@@ -665,16 +663,16 @@ TEST_CASE("Create problem graph")
         {
             bool tmp = std::holds_alternative<PbGr::PackageNode>(graph_init.node(n))
                        || std::holds_alternative<PbGr::ConstraintNode>(graph_init.node(n));
-            CHECK(tmp);
+            REQUIRE(tmp);
         }
 
-        SUBCASE("Simplify conflicts")
+        SECTION("Simplify conflicts")
         {
             const auto& pbs_simplified = simplify_conflicts(pbs_init);
             const auto& graph_simplified = pbs_simplified.graph();
 
-            REQUIRE_GE(graph_simplified.number_of_nodes(), 1);
-            REQUIRE_LE(graph_simplified.number_of_nodes(), pbs_init.graph().number_of_nodes());
+            REQUIRE(graph_simplified.number_of_nodes() >= 1);
+            REQUIRE(graph_simplified.number_of_nodes() <= pbs_init.graph().number_of_nodes());
 
             for (const auto& [id, _] : pbs_simplified.conflicts())
             {
@@ -684,20 +682,20 @@ TEST_CASE("Create problem graph")
                 // practice
                 if (!is_virtual_package(node))
                 {
-                    CHECK(graph_simplified.has_node(id));
+                    REQUIRE(graph_simplified.has_node(id));
                     // Unfortunately not all conflicts are on leaves
-                    // CHECK_EQ(graph_simplified.out_degree(id), 0);
-                    CHECK(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
+                    // REQUIRE(graph_simplified.out_degree(id) == 0);
+                    REQUIRE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
                 }
             }
 
-            SUBCASE("Compress graph")
+            SECTION("Compress graph")
             {
                 const auto pbs_comp = CpPbGr::from_problems_graph(pbs_simplified);
                 const auto& graph_comp = pbs_comp.graph();
 
-                REQUIRE_GE(pbs_init.graph().number_of_nodes(), graph_comp.number_of_nodes());
-                REQUIRE_GE(graph_comp.number_of_nodes(), 1);
+                REQUIRE(pbs_init.graph().number_of_nodes() >= graph_comp.number_of_nodes());
+                REQUIRE(graph_comp.number_of_nodes() >= 1);
                 graph_comp.for_each_node_id(
                     [&](auto id)
                     {
@@ -710,19 +708,19 @@ TEST_CASE("Create problem graph")
                             if (graph_comp.in_degree(id) == 0)
                             {
                                 // Only one root node
-                                CHECK_EQ(id, pbs_init.root_node());
-                                CHECK(std::holds_alternative<CpPbGr::RootNode>(node));
+                                REQUIRE(id == pbs_init.root_node());
+                                REQUIRE(std::holds_alternative<CpPbGr::RootNode>(node));
                             }
                             else if (graph_comp.out_degree(id) == 0)
                             {
-                                CHECK_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
+                                REQUIRE_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
                             }
                             else
                             {
-                                CHECK(std::holds_alternative<CpPbGr::PackageListNode>(node));
+                                REQUIRE(std::holds_alternative<CpPbGr::PackageListNode>(node));
                             }
                             // All nodes reachable from the root
-                            CHECK(is_reachable(graph_comp, pbs_comp.root_node(), id));
+                            REQUIRE(is_reachable(graph_comp, pbs_comp.root_node(), id));
                         }
                     }
                 );
@@ -733,10 +731,10 @@ TEST_CASE("Create problem graph")
                     bool tmp = std::holds_alternative<CpPbGr::PackageListNode>(graph_comp.node(n))
                                || std::holds_alternative<CpPbGr::ConstraintListNode>(graph_comp.node(n
                                ));
-                    CHECK(tmp);
+                    REQUIRE(tmp);
                 }
 
-                SUBCASE("Compose error message")
+                SECTION("Compose error message")
                 {
                     const auto message = problem_tree_msg(pbs_comp);
 
@@ -745,7 +743,7 @@ TEST_CASE("Create problem graph")
                         using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                         if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
                         {
-                            CHECK(util::contains(message, node.name()));
+                            REQUIRE(util::contains(message, node.name()));
                         }
                     };
 
@@ -760,5 +758,3 @@ TEST_CASE("Create problem graph")
         }
     }
 }
-
-TEST_SUITE_END();

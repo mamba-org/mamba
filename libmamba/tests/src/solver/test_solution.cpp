@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/solver/solution.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -13,7 +13,7 @@
 using namespace mamba;
 using namespace mamba::solver;
 
-TEST_SUITE("solver::solution")
+namespace
 {
     using PackageInfo = specs::PackageInfo;
 
@@ -29,7 +29,7 @@ TEST_SUITE("solver::solution")
             Solution::Install{ PackageInfo("install") },
         } };
 
-        SUBCASE("Iterate over packages")
+        SECTION("Iterate over packages")
         {
             auto remove_count = std::size_t(0);
             for_each_to_remove(
@@ -39,10 +39,10 @@ TEST_SUITE("solver::solution")
                     remove_count++;
                     const auto has_remove = util::ends_with(pkg.name, "remove")
                                             || (pkg.name == "reinstall");
-                    CHECK(has_remove);
+                    REQUIRE(has_remove);
                 }
             );
-            CHECK_EQ(remove_count, 5);
+            REQUIRE(remove_count == 5);
 
             auto install_count = std::size_t(0);
             for_each_to_install(
@@ -52,10 +52,10 @@ TEST_SUITE("solver::solution")
                     install_count++;
                     const auto has_install = util::ends_with(pkg.name, "install")
                                              || (pkg.name == "reinstall");
-                    CHECK(has_install);
+                    REQUIRE(has_install);
                 }
             );
-            CHECK_EQ(install_count, 5);
+            REQUIRE(install_count == 5);
 
             auto omit_count = std::size_t(0);
             for_each_to_omit(
@@ -63,13 +63,13 @@ TEST_SUITE("solver::solution")
                 [&](const PackageInfo& pkg)
                 {
                     omit_count++;
-                    CHECK(util::ends_with(pkg.name, "omit"));
+                    REQUIRE(util::ends_with(pkg.name, "omit"));
                 }
             );
-            CHECK_EQ(omit_count, 1);
+            REQUIRE(omit_count == 1);
         }
 
-        SUBCASE("Iterate over packages and break")
+        SECTION("Iterate over packages and break")
         {
             auto remove_count = std::size_t(0);
             for_each_to_remove(
@@ -80,7 +80,7 @@ TEST_SUITE("solver::solution")
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(remove_count, 1);
+            REQUIRE(remove_count == 1);
 
             auto install_count = std::size_t(0);
             for_each_to_install(
@@ -91,7 +91,7 @@ TEST_SUITE("solver::solution")
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(install_count, 1);
+            REQUIRE(install_count == 1);
 
             auto omit_count = std::size_t(0);
             for_each_to_omit(
@@ -102,7 +102,7 @@ TEST_SUITE("solver::solution")
                     return util::LoopControl::Break;
                 }
             );
-            CHECK_EQ(omit_count, 1);
+            REQUIRE(omit_count == 1);
         }
     }
 }

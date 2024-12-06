@@ -7,17 +7,14 @@
 #include <array>
 #include <utility>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/util.hpp"
 #include "mamba/util/cryptography.hpp"
 
-#include "doctest-printer/array.hpp"
-#include "doctest-printer/optional.hpp"
-
 using namespace mamba::util;
 
-TEST_SUITE("util::cryptography")
+namespace
 {
     TEST_CASE("Hasher")
     {
@@ -59,34 +56,34 @@ TEST_SUITE("util::cryptography")
 
         } };
 
-        SUBCASE("Hash string")
+        SECTION("Hash string")
         {
-            SUBCASE("sha256")
+            SECTION("sha256")
             {
                 auto reused_hasher = Sha256Hasher();
                 for (auto [data, hash] : known_sha256)
                 {
-                    CHECK_EQ(reused_hasher.str_hex_str(data), hash);
+                    REQUIRE(reused_hasher.str_hex_str(data) == hash);
                     auto new_hasher = Sha256Hasher();
-                    CHECK_EQ(new_hasher.str_hex_str(data), hash);
+                    REQUIRE(new_hasher.str_hex_str(data) == hash);
                 }
             }
 
-            SUBCASE("md5")
+            SECTION("md5")
             {
                 auto reused_hasher = Md5Hasher();
                 for (auto [data, hash] : known_md5)
                 {
-                    CHECK_EQ(reused_hasher.str_hex_str(data), hash);
+                    REQUIRE(reused_hasher.str_hex_str(data) == hash);
                     auto new_hasher = Md5Hasher();
-                    CHECK_EQ(new_hasher.str_hex_str(data), hash);
+                    REQUIRE(new_hasher.str_hex_str(data) == hash);
                 }
             }
         }
 
-        SUBCASE("Hash file")
+        SECTION("Hash file")
         {
-            SUBCASE("sha256")
+            SECTION("sha256")
             {
                 auto hasher = Sha256Hasher();
                 for (auto [data, hash] : known_sha256)
@@ -100,11 +97,11 @@ TEST_SUITE("util::cryptography")
                     }
                     auto file = std::ifstream(tmp.path().std_path());
                     REQUIRE(file.good());
-                    CHECK_EQ(hasher.file_hex_str(file), hash);
+                    REQUIRE(hasher.file_hex_str(file) == hash);
                 }
             }
 
-            SUBCASE("md5")
+            SECTION("md5")
             {
                 auto hasher = Md5Hasher();
                 for (auto [data, hash] : known_md5)
@@ -118,7 +115,7 @@ TEST_SUITE("util::cryptography")
                     }
                     auto file = std::ifstream(tmp.path().std_path());
                     REQUIRE(file.good());
-                    CHECK_EQ(hasher.file_hex_str(file), hash);
+                    REQUIRE(hasher.file_hex_str(file) == hash);
                 }
             }
         }

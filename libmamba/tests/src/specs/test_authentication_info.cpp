@@ -10,78 +10,75 @@
 
 using namespace mamba::specs;
 
-namespace
+TEST_CASE("URLWeakener")
 {
-    TEST_CASE("URLWeakener")
+    const auto weakener = URLWeakener();
+
+    SECTION("mamba.org/private/chan")
     {
-        const auto weakener = URLWeakener();
+        REQUIRE(weakener.make_first_key("mamba.org/private/chan") == "mamba.org/private/chan/");
 
-        SECTION("mamba.org/private/chan")
-        {
-            REQUIRE(weakener.make_first_key("mamba.org/private/chan") == "mamba.org/private/chan/");
-
-            auto maybe_key = weakener.weaken_key("mamba.org/private/chan/");
-            REQUIRE(maybe_key == "mamba.org/private/chan");
-            maybe_key = weakener.weaken_key(maybe_key.value());
-            REQUIRE(maybe_key == "mamba.org/private/");
-            maybe_key = weakener.weaken_key(maybe_key.value());
-            REQUIRE(maybe_key == "mamba.org/private");
-            maybe_key = weakener.weaken_key(maybe_key.value());
-            REQUIRE(maybe_key == "mamba.org/");
-            maybe_key = weakener.weaken_key(maybe_key.value());
-            REQUIRE(maybe_key == "mamba.org");
-            maybe_key = weakener.weaken_key(maybe_key.value());
-            REQUIRE(maybe_key == std::nullopt);
-        }
-
-        SECTION("mamba.org/private/chan/")
-        {
-            REQUIRE(weakener.make_first_key("mamba.org/private/chan") == "mamba.org/private/chan/");
-        }
+        auto maybe_key = weakener.weaken_key("mamba.org/private/chan/");
+        REQUIRE(maybe_key == "mamba.org/private/chan");
+        maybe_key = weakener.weaken_key(maybe_key.value());
+        REQUIRE(maybe_key == "mamba.org/private/");
+        maybe_key = weakener.weaken_key(maybe_key.value());
+        REQUIRE(maybe_key == "mamba.org/private");
+        maybe_key = weakener.weaken_key(maybe_key.value());
+        REQUIRE(maybe_key == "mamba.org/");
+        maybe_key = weakener.weaken_key(maybe_key.value());
+        REQUIRE(maybe_key == "mamba.org");
+        maybe_key = weakener.weaken_key(maybe_key.value());
+        REQUIRE(maybe_key == std::nullopt);
     }
 
-    TEST_CASE("AuthticationDataBase")
+    SECTION("mamba.org/private/chan/")
     {
-        SECTION("mamba.org")
-        {
-            auto db = AuthenticationDataBase{ { "mamba.org", BearerToken{ "mytoken" } } };
+        REQUIRE(weakener.make_first_key("mamba.org/private/chan") == "mamba.org/private/chan/");
+    }
+}
 
-            REQUIRE(db.contains("mamba.org"));
-            REQUIRE_FALSE(db.contains("mamba.org/"));
+TEST_CASE("AuthticationDataBase")
+{
+    SECTION("mamba.org")
+    {
+        auto db = AuthenticationDataBase{ { "mamba.org", BearerToken{ "mytoken" } } };
 
-            REQUIRE(db.contains_weaken("mamba.org"));
-            REQUIRE(db.contains_weaken("mamba.org/"));
-            REQUIRE(db.contains_weaken("mamba.org/channel"));
-            REQUIRE_FALSE(db.contains_weaken("repo.mamba.org"));
-            REQUIRE_FALSE(db.contains_weaken("/folder"));
-        }
+        REQUIRE(db.contains("mamba.org"));
+        REQUIRE_FALSE(db.contains("mamba.org/"));
 
-        SECTION("mamba.org/")
-        {
-            auto db = AuthenticationDataBase{ { "mamba.org/", BearerToken{ "mytoken" } } };
+        REQUIRE(db.contains_weaken("mamba.org"));
+        REQUIRE(db.contains_weaken("mamba.org/"));
+        REQUIRE(db.contains_weaken("mamba.org/channel"));
+        REQUIRE_FALSE(db.contains_weaken("repo.mamba.org"));
+        REQUIRE_FALSE(db.contains_weaken("/folder"));
+    }
 
-            REQUIRE(db.contains("mamba.org/"));
-            REQUIRE_FALSE(db.contains("mamba.org"));
+    SECTION("mamba.org/")
+    {
+        auto db = AuthenticationDataBase{ { "mamba.org/", BearerToken{ "mytoken" } } };
 
-            REQUIRE(db.contains_weaken("mamba.org"));
-            REQUIRE(db.contains_weaken("mamba.org/"));
-            REQUIRE(db.contains_weaken("mamba.org/channel"));
-            REQUIRE_FALSE(db.contains_weaken("repo.mamba.org/"));
-            REQUIRE_FALSE(db.contains_weaken("/folder"));
-        }
+        REQUIRE(db.contains("mamba.org/"));
+        REQUIRE_FALSE(db.contains("mamba.org"));
 
-        SECTION("mamba.org/channel")
-        {
-            auto db = AuthenticationDataBase{ { "mamba.org/channel", BearerToken{ "mytoken" } } };
+        REQUIRE(db.contains_weaken("mamba.org"));
+        REQUIRE(db.contains_weaken("mamba.org/"));
+        REQUIRE(db.contains_weaken("mamba.org/channel"));
+        REQUIRE_FALSE(db.contains_weaken("repo.mamba.org/"));
+        REQUIRE_FALSE(db.contains_weaken("/folder"));
+    }
 
-            REQUIRE(db.contains("mamba.org/channel"));
-            REQUIRE_FALSE(db.contains("mamba.org"));
+    SECTION("mamba.org/channel")
+    {
+        auto db = AuthenticationDataBase{ { "mamba.org/channel", BearerToken{ "mytoken" } } };
 
-            REQUIRE_FALSE(db.contains_weaken("mamba.org"));
-            REQUIRE_FALSE(db.contains_weaken("mamba.org/"));
-            REQUIRE(db.contains_weaken("mamba.org/channel"));
-            REQUIRE_FALSE(db.contains_weaken("repo.mamba.org/"));
-            REQUIRE_FALSE(db.contains_weaken("/folder"));
-        }
+        REQUIRE(db.contains("mamba.org/channel"));
+        REQUIRE_FALSE(db.contains("mamba.org"));
+
+        REQUIRE_FALSE(db.contains_weaken("mamba.org"));
+        REQUIRE_FALSE(db.contains_weaken("mamba.org/"));
+        REQUIRE(db.contains_weaken("mamba.org/channel"));
+        REQUIRE_FALSE(db.contains_weaken("repo.mamba.org/"));
+        REQUIRE_FALSE(db.contains_weaken("/folder"));
     }
 }

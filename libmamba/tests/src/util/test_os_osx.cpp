@@ -14,23 +14,20 @@
 using namespace mamba;
 using namespace mamba::util;
 
-namespace
+TEST_CASE("osx_version")
 {
-    TEST_CASE("osx_version")
+    const auto maybe_version = osx_version();
+    if (util::on_mac)
     {
-        const auto maybe_version = osx_version();
-        if (util::on_mac)
-        {
-            CHECK(maybe_version.has_value());
-            // The version would be a sequence:
-            // 'x.x' or 'x.x.x'
-            // with 'x' matching one or more digits
-            static const auto version_regex = std::regex(R"r(\d+\.\d+(\.\d+)?)r");
-            CHECK(std ::regex_match(maybe_version.value(), version_regex));
-        }
-        else
-        {
-            REQUIRE_FALSE(maybe_version.has_value());
-        }
+        CHECK(maybe_version.has_value());
+        // The version would be a sequence:
+        // 'x.x' or 'x.x.x'
+        // with 'x' matching one or more digits
+        static const auto version_regex = std::regex(R"r(\d+\.\d+(\.\d+)?)r");
+        CHECK(std ::regex_match(maybe_version.value(), version_regex));
+    }
+    else
+    {
+        REQUIRE_FALSE(maybe_version.has_value());
     }
 }

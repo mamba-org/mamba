@@ -15,28 +15,26 @@
 
 using namespace mamba::specs;
 
-namespace
+TEST_CASE("atom_comparison")
 {
-    TEST_CASE("atom_comparison")
-    {
-        // No literal
-        REQUIRE(VersionPartAtom(1) == VersionPartAtom(1, ""));
-        // lowercase
-        REQUIRE(VersionPartAtom(1, "dev") == VersionPartAtom(1, "DEV"));
-        // All operator comparison for mumerals
-        REQUIRE(VersionPartAtom(1) != VersionPartAtom(2, "dev"));
-        REQUIRE(VersionPartAtom(1) < VersionPartAtom(2, "dev"));
-        REQUIRE(VersionPartAtom(1) <= VersionPartAtom(2, "dev"));
-        REQUIRE(VersionPartAtom(2, "dev") > VersionPartAtom(1));
-        REQUIRE(VersionPartAtom(2, "dev") >= VersionPartAtom(1));
-        // All operator comparison for literals
-        REQUIRE(VersionPartAtom(1, "dev") != VersionPartAtom(1, "a"));
-        REQUIRE(VersionPartAtom(1, "dev") < VersionPartAtom(1, "a"));
-        REQUIRE(VersionPartAtom(1, "dev") <= VersionPartAtom(1, "a"));
-        REQUIRE(VersionPartAtom(1, "a") > VersionPartAtom(1, "dev"));
-        REQUIRE(VersionPartAtom(1, "a") >= VersionPartAtom(1, "dev"));
+    // No literal
+    REQUIRE(VersionPartAtom(1) == VersionPartAtom(1, ""));
+    // lowercase
+    REQUIRE(VersionPartAtom(1, "dev") == VersionPartAtom(1, "DEV"));
+    // All operator comparison for mumerals
+    REQUIRE(VersionPartAtom(1) != VersionPartAtom(2, "dev"));
+    REQUIRE(VersionPartAtom(1) < VersionPartAtom(2, "dev"));
+    REQUIRE(VersionPartAtom(1) <= VersionPartAtom(2, "dev"));
+    REQUIRE(VersionPartAtom(2, "dev") > VersionPartAtom(1));
+    REQUIRE(VersionPartAtom(2, "dev") >= VersionPartAtom(1));
+    // All operator comparison for literals
+    REQUIRE(VersionPartAtom(1, "dev") != VersionPartAtom(1, "a"));
+    REQUIRE(VersionPartAtom(1, "dev") < VersionPartAtom(1, "a"));
+    REQUIRE(VersionPartAtom(1, "dev") <= VersionPartAtom(1, "a"));
+    REQUIRE(VersionPartAtom(1, "a") > VersionPartAtom(1, "dev"));
+    REQUIRE(VersionPartAtom(1, "a") >= VersionPartAtom(1, "dev"));
 
-        // clang-format off
+    // clang-format off
             auto sorted_atoms = std::array{
                VersionPartAtom{ 1, "*" },
                VersionPartAtom{ 1, "dev" },
@@ -51,57 +49,57 @@ namespace
                VersionPartAtom{ 1, "" },
                VersionPartAtom{ 1, "post" },
             };
-        // clang-format on
+    // clang-format on
 
-        // Strict ordering
-        REQUIRE(std::is_sorted(sorted_atoms.cbegin(), sorted_atoms.cend()));
-        // None compare equal (given the is_sorted assumption)
-        REQUIRE(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()) == sorted_atoms.cend());
-    }
+    // Strict ordering
+    REQUIRE(std::is_sorted(sorted_atoms.cbegin(), sorted_atoms.cend()));
+    // None compare equal (given the is_sorted assumption)
+    REQUIRE(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()) == sorted_atoms.cend());
+}
 
-    TEST_CASE("atom_format")
+TEST_CASE("atom_format")
+{
+    REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
+    REQUIRE(VersionPartAtom(2).str() == "2");
+}
+
+TEST_CASE("version_comparison")
+{
+    auto v = Version(0, { { { 1, "post" } } });
+    REQUIRE(v.version().size() == 1);
+    REQUIRE(v.version().front().size() == 1);
+    REQUIRE(v.version().front().front() == VersionPartAtom(1, "post"));
+
+    // Same empty 0!1post version
+    REQUIRE(Version(0, { { { 1, "post" } } }) == Version(0, { { { 1, "post" } } }));
+    // Empty trailing atom 0!1a == 0!1a0""
+    REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" }, {} } }));
+    // Empty trailing part 0!1a == 0!1a.0""
+    REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" } }, { {} } }));
+    // Mixed 0!1a0""0"" == 0!1a.0""
+    REQUIRE(Version(0, { { { 1, "a" }, {}, {} } }) == Version(0, { { { 1, "a" } }, { {} } }));
+
+    // Different epoch 0!2post < 1!1dev
+    REQUIRE(Version(0, { { { 2, "post" } } }) < Version(1, { { { 1, "dev" } } }));
+    REQUIRE(Version(1, { { { 1, "dev" } } }) >= Version(0, { { { 2, "post" } } }));
+    // Different length with dev
+    REQUIRE(Version(0, { { { 1 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
+    REQUIRE(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
+    // Different major 0!1post < 0!2dev
+    REQUIRE(Version(0, { { { 1, "post" } } }) < Version(0, { { { 2, "dev" } } }));
+    // Different length 0!2"".0"" < 0!11"".0"".0post all operator
+    REQUIRE(Version(0, { { { 2 }, { 0 } } }) != Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+    REQUIRE(Version(0, { { { 2 }, { 0 } } }) < Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+    REQUIRE(Version(0, { { { 2 }, { 0 } } }) <= Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+    REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) > Version(0, { { { 2 }, { 0 } } }));
+    REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) >= Version(0, { { { 2 }, { 0 } } }));
+}
+
+TEST_CASE("Version starts_with")
+{
+    SECTION("positive")
     {
-        REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
-        REQUIRE(VersionPartAtom(2).str() == "2");
-    }
-
-    TEST_CASE("version_comparison")
-    {
-        auto v = Version(0, { { { 1, "post" } } });
-        REQUIRE(v.version().size() == 1);
-        REQUIRE(v.version().front().size() == 1);
-        REQUIRE(v.version().front().front() == VersionPartAtom(1, "post"));
-
-        // Same empty 0!1post version
-        REQUIRE(Version(0, { { { 1, "post" } } }) == Version(0, { { { 1, "post" } } }));
-        // Empty trailing atom 0!1a == 0!1a0""
-        REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" }, {} } }));
-        // Empty trailing part 0!1a == 0!1a.0""
-        REQUIRE(Version(0, { { { 1, "a" } } }) == Version(0, { { { 1, "a" } }, { {} } }));
-        // Mixed 0!1a0""0"" == 0!1a.0""
-        REQUIRE(Version(0, { { { 1, "a" }, {}, {} } }) == Version(0, { { { 1, "a" } }, { {} } }));
-
-        // Different epoch 0!2post < 1!1dev
-        REQUIRE(Version(0, { { { 2, "post" } } }) < Version(1, { { { 1, "dev" } } }));
-        REQUIRE(Version(1, { { { 1, "dev" } } }) >= Version(0, { { { 2, "post" } } }));
-        // Different length with dev
-        REQUIRE(Version(0, { { { 1 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
-        REQUIRE(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }) < Version(0, { { { 1 } } }));
-        // Different major 0!1post < 0!2dev
-        REQUIRE(Version(0, { { { 1, "post" } } }) < Version(0, { { { 2, "dev" } } }));
-        // Different length 0!2"".0"" < 0!11"".0"".0post all operator
-        REQUIRE(Version(0, { { { 2 }, { 0 } } }) != Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        REQUIRE(Version(0, { { { 2 }, { 0 } } }) < Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        REQUIRE(Version(0, { { { 2 }, { 0 } } }) <= Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
-        REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) > Version(0, { { { 2 }, { 0 } } }));
-        REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) >= Version(0, { { { 2 }, { 0 } } }));
-    }
-
-    TEST_CASE("Version starts_with")
-    {
-        SECTION("positive")
-        {
-            // clang-format off
+        // clang-format off
             auto const versions = std::vector<std::tuple<Version, Version>>{
                 // 0!1.0.0, 0!1
                 {Version(), Version()},
@@ -142,20 +140,20 @@ namespace
                 // 0!0.4.1+1 0!0.4.1+1.3
                 {Version(0, {{{0}}, {{4}}, {{1}}}, {{{1}}}), Version(0, {{{0}}, {{4}}, {{1}}}, {{{1}}, {{3}}})},
             };
-            // clang-format on
+        // clang-format on
 
-            for (const auto& [prefix, ver] : versions)
-            {
-                // Working around clang compilation issue.
-                const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
-                CAPTURE(msg);
-                REQUIRE(ver.starts_with(prefix));
-            }
-        }
-
-        SECTION("negative")
+        for (const auto& [prefix, ver] : versions)
         {
-            // clang-format off
+            // Working around clang compilation issue.
+            const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
+            CAPTURE(msg);
+            REQUIRE(ver.starts_with(prefix));
+        }
+    }
+
+    SECTION("negative")
+    {
+        // clang-format off
             auto const versions = std::vector<std::tuple<Version, Version>>{
                 // 0!1a, 1!1a
                 {Version(0, {{{1, "a"}}}), Version(1, {{{1, "a"}}})},
@@ -176,23 +174,23 @@ namespace
                 // 0!1.1a, 0!1.1
                 {Version(0, {{{1}}, {{1, "a"}}}), Version(0, {{{1}}, {{1}}})},
             };
-            // clang-format on
+        // clang-format on
 
-            for (const auto& [prefix, ver] : versions)
-            {
-                // Working around clang compilation issue.
-                const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
-                CAPTURE(msg);
-                REQUIRE_FALSE(ver.starts_with(prefix));
-            }
+        for (const auto& [prefix, ver] : versions)
+        {
+            // Working around clang compilation issue.
+            const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
+            CAPTURE(msg);
+            REQUIRE_FALSE(ver.starts_with(prefix));
         }
     }
+}
 
-    TEST_CASE("compatible_with")
+TEST_CASE("compatible_with")
+{
+    SECTION("positive")
     {
-        SECTION("positive")
-        {
-            // clang-format off
+        // clang-format off
             auto const versions = std::vector<std::tuple<std::size_t, Version, Version>>{
                 {0, Version(), Version()},
                 {1, Version(), Version()},
@@ -237,25 +235,25 @@ namespace
                 // 0!1.2, 0!1.3
                 {1, Version(0, {{{1}}, {{2}}}), Version(0, {{{1}}, {{3}}})},
             };
-            // clang-format on
+        // clang-format on
 
-            for (const auto& [level, older, newer] : versions)
-            {
-                // Working around clang compilation issue.
-                const auto msg = fmt::format(
-                    R"(level={} prefix="{}" version="{}")",
-                    level,
-                    older.str(),
-                    newer.str()
-                );
-                CAPTURE(msg);
-                REQUIRE(newer.compatible_with(older, level));
-            }
-        }
-
-        SECTION("negative")
+        for (const auto& [level, older, newer] : versions)
         {
-            // clang-format off
+            // Working around clang compilation issue.
+            const auto msg = fmt::format(
+                R"(level={} prefix="{}" version="{}")",
+                level,
+                older.str(),
+                newer.str()
+            );
+            CAPTURE(msg);
+            REQUIRE(newer.compatible_with(older, level));
+        }
+    }
+
+    SECTION("negative")
+    {
+        // clang-format off
             auto const versions = std::vector<std::tuple<std::size_t, Version, Version>>{
                 // 0!1a, 1!1a
                 {0, Version(0, {{{1, "a"}}}), Version(1, {{{1, "a"}}})},
@@ -286,69 +284,69 @@ namespace
                 // 0!1.2, 0!1.1
                 {0, Version(0, {{{1}}, {{2}}}), Version(0, {{{1}}, {{1}}})},
             };
-            // clang-format on
+        // clang-format on
 
-            for (const auto& [level, older, newer] : versions)
-            {
-                // Working around clang compilation issue.
-                const auto msg = fmt::format(
-                    R"(level={} prefix="{}" version="{}")",
-                    level,
-                    older.str(),
-                    newer.str()
-                );
-                CAPTURE(msg);
-                REQUIRE_FALSE(newer.compatible_with(older, level));
-            }
-        }
-    }
-
-    TEST_CASE("version_format")
-    {
-        SECTION("11a0post.3.4dev")
+        for (const auto& [level, older, newer] : versions)
         {
-            auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
-            REQUIRE(v.str() == "11a0post.3.4dev");
-            REQUIRE(v.str(1) == "11a0post");
-            REQUIRE(v.str(2) == "11a0post.3");
-            REQUIRE(v.str(3) == "11a0post.3.4dev");
-            REQUIRE(v.str(4) == "11a0post.3.4dev.0");
-            REQUIRE(v.str(5) == "11a0post.3.4dev.0.0");
-        }
-
-        SECTION("1!11a0.3.4dev")
-        {
-            auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
-            REQUIRE(v.str() == "1!11a0.3.4dev");
-            REQUIRE(v.str(1) == "1!11a0");
-            REQUIRE(v.str(2) == "1!11a0.3");
-            REQUIRE(v.str(3) == "1!11a0.3.4dev");
-            REQUIRE(v.str(4) == "1!11a0.3.4dev.0");
-        }
-
-        SECTION("1!11a0.3.4dev+1.2")
-        {
-            auto v = Version(
-                1,
-                { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
-                { { { 1 } }, { { 2 } } }
+            // Working around clang compilation issue.
+            const auto msg = fmt::format(
+                R"(level={} prefix="{}" version="{}")",
+                level,
+                older.str(),
+                newer.str()
             );
-            REQUIRE(v.str() == "1!11a0.3.4dev+1.2");
-            REQUIRE(v.str(1) == "1!11a0+1");
-            REQUIRE(v.str(2) == "1!11a0.3+1.2");
-            REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
-            REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
+            CAPTURE(msg);
+            REQUIRE_FALSE(newer.compatible_with(older, level));
         }
     }
+}
 
-    /**
-     * Test from Conda
-     *
-     * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
-     */
-    TEST_CASE("Version parse")
+TEST_CASE("version_format")
+{
+    SECTION("11a0post.3.4dev")
     {
-        // clang-format off
+        auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
+        REQUIRE(v.str() == "11a0post.3.4dev");
+        REQUIRE(v.str(1) == "11a0post");
+        REQUIRE(v.str(2) == "11a0post.3");
+        REQUIRE(v.str(3) == "11a0post.3.4dev");
+        REQUIRE(v.str(4) == "11a0post.3.4dev.0");
+        REQUIRE(v.str(5) == "11a0post.3.4dev.0.0");
+    }
+
+    SECTION("1!11a0.3.4dev")
+    {
+        auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
+        REQUIRE(v.str() == "1!11a0.3.4dev");
+        REQUIRE(v.str(1) == "1!11a0");
+        REQUIRE(v.str(2) == "1!11a0.3");
+        REQUIRE(v.str(3) == "1!11a0.3.4dev");
+        REQUIRE(v.str(4) == "1!11a0.3.4dev.0");
+    }
+
+    SECTION("1!11a0.3.4dev+1.2")
+    {
+        auto v = Version(
+            1,
+            { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
+            { { { 1 } }, { { 2 } } }
+        );
+        REQUIRE(v.str() == "1!11a0.3.4dev+1.2");
+        REQUIRE(v.str(1) == "1!11a0+1");
+        REQUIRE(v.str(2) == "1!11a0.3+1.2");
+        REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
+        REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
+    }
+}
+
+/**
+ * Test from Conda
+ *
+ * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
+ */
+TEST_CASE("Version parse")
+{
+    // clang-format off
             auto sorted_version = std::vector<std::pair<std::string_view, Version>>{
                 {"0.4",         Version(0, {{{0}}, {{4}}})},
                 {"0.4.0",       Version(0, {{{0}}, {{4}}, {{0}}})},
@@ -405,85 +403,85 @@ namespace
                 {"1!3.1.1.6",   Version(1, {{{3}}, {{1}}, {{1}}, {{6}}})},
                 {"2!0.4.1",     Version(2, {{{0}}, {{4}}, {{1}}})},
             };
-        // clang-format on
-        for (const auto& [raw, expected] : sorted_version)
-        {
-            REQUIRE(Version::parse(raw) == expected);
-        }
-
-        REQUIRE(std::is_sorted(
-            sorted_version.cbegin(),
-            sorted_version.cend(),
-            [](const auto& a, const auto& b) { return a.second < b.second; }
-        ));
-
-        // Default constructed
-        REQUIRE(Version::parse("0.0").value() == Version());
-
-        // Lowercase and strip
-        REQUIRE(Version::parse("0.4.1.rc").value() == Version::parse("  0.4.1.RC  "));
-        REQUIRE(Version::parse("  0.4.1.RC  ").value() == Version::parse("0.4.1.rc"));
-
-        // Functional assertions
-        REQUIRE(Version::parse("  0.4.rc  ").value() == Version::parse("0.4.RC"));
-        REQUIRE(Version::parse("0.4").value() == Version::parse("0.4.0"));
-        REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1"));
-        REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1"));
-        REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1"));
+    // clang-format on
+    for (const auto& [raw, expected] : sorted_version)
+    {
+        REQUIRE(Version::parse(raw) == expected);
     }
 
-    TEST_CASE("parse_invalid")
-    {
-        // Wrong epoch
-        REQUIRE_FALSE(Version::parse("!1.1").has_value());
-        REQUIRE_FALSE(Version::parse("-1!1.1").has_value());
-        REQUIRE_FALSE(Version::parse("foo!1.1").has_value());
-        REQUIRE_FALSE(Version::parse("0post1!1.1").has_value());
+    REQUIRE(std::is_sorted(
+        sorted_version.cbegin(),
+        sorted_version.cend(),
+        [](const auto& a, const auto& b) { return a.second < b.second; }
+    ));
 
-        // Empty parts
-        REQUIRE_FALSE(Version::parse("").has_value());
-        REQUIRE_FALSE(Version::parse("  ").has_value());
-        REQUIRE_FALSE(Version::parse("!2.2").has_value());
-        REQUIRE_FALSE(Version::parse("0!").has_value());
-        REQUIRE_FALSE(Version::parse("!").has_value());
-        REQUIRE_FALSE(Version::parse("1.").has_value());
-        REQUIRE_FALSE(Version::parse("1..1").has_value());
-        REQUIRE_FALSE(Version::parse("5.5..mw").has_value());
-        REQUIRE_FALSE(Version::parse("1.2post+").has_value());
-        REQUIRE_FALSE(Version::parse("1!+1.1").has_value());
+    // Default constructed
+    REQUIRE(Version::parse("0.0").value() == Version());
 
-        // Repeated delimiters
-        REQUIRE_FALSE(Version::parse("5.5++").has_value());
-        REQUIRE_FALSE(Version::parse("5.5+1+0.0").has_value());
-        REQUIRE_FALSE(Version::parse("1!2!3.0").has_value());
+    // Lowercase and strip
+    REQUIRE(Version::parse("0.4.1.rc").value() == Version::parse("  0.4.1.RC  "));
+    REQUIRE(Version::parse("  0.4.1.RC  ").value() == Version::parse("0.4.1.rc"));
 
-        // '-' and '_' delimiters not allowed together.
-        REQUIRE_FALSE(Version::parse("1-1_1").has_value());
+    // Functional assertions
+    REQUIRE(Version::parse("  0.4.rc  ").value() == Version::parse("0.4.RC"));
+    REQUIRE(Version::parse("0.4").value() == Version::parse("0.4.0"));
+    REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1"));
+    REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1"));
+    REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1"));
+}
 
-        // Forbidden characters
-        REQUIRE_FALSE(Version::parse("3.5&1").has_value());
-        REQUIRE_FALSE(Version::parse("3.5|1").has_value());
-    }
+TEST_CASE("parse_invalid")
+{
+    // Wrong epoch
+    REQUIRE_FALSE(Version::parse("!1.1").has_value());
+    REQUIRE_FALSE(Version::parse("-1!1.1").has_value());
+    REQUIRE_FALSE(Version::parse("foo!1.1").has_value());
+    REQUIRE_FALSE(Version::parse("0post1!1.1").has_value());
 
-    /**
-     * Test from Conda.
-     *
-     * Some packages (most notably openssl) have incompatible version conventions.
-     * In particular, openssl interprets letters as version counters rather than
-     * pre-release identifiers. For openssl, the relation
-     *
-     * 1.0.1 < 1.0.1a  =>  False  # should be true for openssl
-     *
-     * holds, whereas conda packages use the opposite ordering. You can work-around
-     * this problem by appending an underscore to plain version numbers:
-     *
-     * 1.0.1_ < 1.0.1a =>  True   # ensure correct ordering for openssl
-     *
-     * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
-     */
-    TEST_CASE("parse_openssl")
-    {
-        // clang-format off
+    // Empty parts
+    REQUIRE_FALSE(Version::parse("").has_value());
+    REQUIRE_FALSE(Version::parse("  ").has_value());
+    REQUIRE_FALSE(Version::parse("!2.2").has_value());
+    REQUIRE_FALSE(Version::parse("0!").has_value());
+    REQUIRE_FALSE(Version::parse("!").has_value());
+    REQUIRE_FALSE(Version::parse("1.").has_value());
+    REQUIRE_FALSE(Version::parse("1..1").has_value());
+    REQUIRE_FALSE(Version::parse("5.5..mw").has_value());
+    REQUIRE_FALSE(Version::parse("1.2post+").has_value());
+    REQUIRE_FALSE(Version::parse("1!+1.1").has_value());
+
+    // Repeated delimiters
+    REQUIRE_FALSE(Version::parse("5.5++").has_value());
+    REQUIRE_FALSE(Version::parse("5.5+1+0.0").has_value());
+    REQUIRE_FALSE(Version::parse("1!2!3.0").has_value());
+
+    // '-' and '_' delimiters not allowed together.
+    REQUIRE_FALSE(Version::parse("1-1_1").has_value());
+
+    // Forbidden characters
+    REQUIRE_FALSE(Version::parse("3.5&1").has_value());
+    REQUIRE_FALSE(Version::parse("3.5|1").has_value());
+}
+
+/**
+ * Test from Conda.
+ *
+ * Some packages (most notably openssl) have incompatible version conventions.
+ * In particular, openssl interprets letters as version counters rather than
+ * pre-release identifiers. For openssl, the relation
+ *
+ * 1.0.1 < 1.0.1a  =>  False  # should be true for openssl
+ *
+ * holds, whereas conda packages use the opposite ordering. You can work-around
+ * this problem by appending an underscore to plain version numbers:
+ *
+ * 1.0.1_ < 1.0.1a =>  True   # ensure correct ordering for openssl
+ *
+ * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
+ */
+TEST_CASE("parse_openssl")
+{
+    // clang-format off
             auto versions = std::vector{
                 Version::parse("1.0.1dev").value(),
                 Version::parse("1.0.1_").value(),  // <- this
@@ -503,83 +501,82 @@ namespace
                 Version::parse("1.0.1post.za").value(),
                 Version::parse("1.0.2").value(),
             };
-        // clang-format on
+    // clang-format on
 
-        // Strict ordering
-        REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
-        // None compare equal (given the is_sorted assumption)
-        REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
-    }
+    // Strict ordering
+    REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
+    // None compare equal (given the is_sorted assumption)
+    REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
+}
 
-    /**
-     * Test from Conda slightly modified from the PEP 440 test suite.
-     *
-     * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
-     * @see https://github.com/pypa/packaging/blob/master/tests/test_version.py
-     */
-    TEST_CASE("parse_pep440")
-    {
-        auto versions = std::vector{
-            // Implicit epoch of 0
-            Version::parse("1.0a1").value(),
-            Version::parse("1.0a2.dev456").value(),
-            Version::parse("1.0a12.dev456").value(),
-            Version::parse("1.0a12").value(),
-            Version::parse("1.0b1.dev456").value(),
-            Version::parse("1.0b2").value(),
-            Version::parse("1.0b2.post345.dev456").value(),
-            Version::parse("1.0b2.post345").value(),
-            Version::parse("1.0c1.dev456").value(),
-            Version::parse("1.0c1").value(),
-            Version::parse("1.0c3").value(),
-            Version::parse("1.0rc2").value(),
-            Version::parse("1.0.dev456").value(),
-            Version::parse("1.0").value(),
-            Version::parse("1.0.post456.dev34").value(),
-            Version::parse("1.0.post456").value(),
-            Version::parse("1.1.dev1").value(),
-            Version::parse("1.2.r32+123456").value(),
-            Version::parse("1.2.rev33+123456").value(),
-            Version::parse("1.2+abc").value(),
-            Version::parse("1.2+abc123def").value(),
-            Version::parse("1.2+abc123").value(),
-            Version::parse("1.2+123abc").value(),
-            Version::parse("1.2+123abc456").value(),
-            Version::parse("1.2+1234.abc").value(),
-            Version::parse("1.2+123456").value(),
-            // Explicit epoch of 1
-            Version::parse("1!1.0a1").value(),
-            Version::parse("1!1.0a2.dev456").value(),
-            Version::parse("1!1.0a12.dev456").value(),
-            Version::parse("1!1.0a12").value(),
-            Version::parse("1!1.0b1.dev456").value(),
-            Version::parse("1!1.0b2").value(),
-            Version::parse("1!1.0b2.post345.dev456").value(),
-            Version::parse("1!1.0b2.post345").value(),
-            Version::parse("1!1.0c1.dev456").value(),
-            Version::parse("1!1.0c1").value(),
-            Version::parse("1!1.0c3").value(),
-            Version::parse("1!1.0rc2").value(),
-            Version::parse("1!1.0.dev456").value(),
-            Version::parse("1!1.0").value(),
-            Version::parse("1!1.0.post456.dev34").value(),
-            Version::parse("1!1.0.post456").value(),
-            Version::parse("1!1.1.dev1").value(),
-            Version::parse("1!1.2.r32+123456").value(),
-            Version::parse("1!1.2.rev33+123456").value(),
-            Version::parse("1!1.2+abc").value(),
-            Version::parse("1!1.2+abc123def").value(),
-            Version::parse("1!1.2+abc123").value(),
-            Version::parse("1!1.2+123abc").value(),
-            Version::parse("1!1.2+123abc456").value(),
-            Version::parse("1!1.2+1234.abc").value(),
-            Version::parse("1!1.2+123456").value(),
-        };
-        // clang-format on
+/**
+ * Test from Conda slightly modified from the PEP 440 test suite.
+ *
+ * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
+ * @see https://github.com/pypa/packaging/blob/master/tests/test_version.py
+ */
+TEST_CASE("parse_pep440")
+{
+    auto versions = std::vector{
+        // Implicit epoch of 0
+        Version::parse("1.0a1").value(),
+        Version::parse("1.0a2.dev456").value(),
+        Version::parse("1.0a12.dev456").value(),
+        Version::parse("1.0a12").value(),
+        Version::parse("1.0b1.dev456").value(),
+        Version::parse("1.0b2").value(),
+        Version::parse("1.0b2.post345.dev456").value(),
+        Version::parse("1.0b2.post345").value(),
+        Version::parse("1.0c1.dev456").value(),
+        Version::parse("1.0c1").value(),
+        Version::parse("1.0c3").value(),
+        Version::parse("1.0rc2").value(),
+        Version::parse("1.0.dev456").value(),
+        Version::parse("1.0").value(),
+        Version::parse("1.0.post456.dev34").value(),
+        Version::parse("1.0.post456").value(),
+        Version::parse("1.1.dev1").value(),
+        Version::parse("1.2.r32+123456").value(),
+        Version::parse("1.2.rev33+123456").value(),
+        Version::parse("1.2+abc").value(),
+        Version::parse("1.2+abc123def").value(),
+        Version::parse("1.2+abc123").value(),
+        Version::parse("1.2+123abc").value(),
+        Version::parse("1.2+123abc456").value(),
+        Version::parse("1.2+1234.abc").value(),
+        Version::parse("1.2+123456").value(),
+        // Explicit epoch of 1
+        Version::parse("1!1.0a1").value(),
+        Version::parse("1!1.0a2.dev456").value(),
+        Version::parse("1!1.0a12.dev456").value(),
+        Version::parse("1!1.0a12").value(),
+        Version::parse("1!1.0b1.dev456").value(),
+        Version::parse("1!1.0b2").value(),
+        Version::parse("1!1.0b2.post345.dev456").value(),
+        Version::parse("1!1.0b2.post345").value(),
+        Version::parse("1!1.0c1.dev456").value(),
+        Version::parse("1!1.0c1").value(),
+        Version::parse("1!1.0c3").value(),
+        Version::parse("1!1.0rc2").value(),
+        Version::parse("1!1.0.dev456").value(),
+        Version::parse("1!1.0").value(),
+        Version::parse("1!1.0.post456.dev34").value(),
+        Version::parse("1!1.0.post456").value(),
+        Version::parse("1!1.1.dev1").value(),
+        Version::parse("1!1.2.r32+123456").value(),
+        Version::parse("1!1.2.rev33+123456").value(),
+        Version::parse("1!1.2+abc").value(),
+        Version::parse("1!1.2+abc123def").value(),
+        Version::parse("1!1.2+abc123").value(),
+        Version::parse("1!1.2+123abc").value(),
+        Version::parse("1!1.2+123abc456").value(),
+        Version::parse("1!1.2+1234.abc").value(),
+        Version::parse("1!1.2+123456").value(),
+    };
+    // clang-format on
 
-        // Strict ordering
-        REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
-        // None compare equal (given the is_sorted assumption)
-        REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
-    }
+    // Strict ordering
+    REQUIRE(std::is_sorted(versions.cbegin(), versions.cend()));
+    // None compare equal (given the is_sorted assumption)
+    REQUIRE(std::adjacent_find(versions.cbegin(), versions.cend()) == versions.cend());
 }

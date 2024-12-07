@@ -33,56 +33,53 @@
 using namespace mamba;
 using namespace mamba::solver;
 
-namespace
+TEST_CASE("symmetric")
 {
-    TEST_CASE("symmetric")
-    {
-        auto c = conflict_map<std::size_t>();
-        REQUIRE(c.size() == 0);
-        REQUIRE_FALSE(c.has_conflict(0));
-        REQUIRE_FALSE(c.in_conflict(0, 1));
-        REQUIRE(c.add(0, 1));
-        REQUIRE(c.add(1, 2));
-        REQUIRE_FALSE(c.add(1, 2));
-        REQUIRE(c.has_conflict(0));
-        REQUIRE(c.in_conflict(0, 1));
-        REQUIRE(c.in_conflict(1, 2));
-        REQUIRE(c.has_conflict(2));
-        REQUIRE_FALSE(c.in_conflict(0, 2));
-        // With same
-        REQUIRE(c.add(5, 5));
-        REQUIRE(c.has_conflict(5));
-        REQUIRE(c.in_conflict(5, 5));
-    }
-
-    TEST_CASE("remove")
-    {
-        auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
-        REQUIRE(c.size() == 4);
-
-        REQUIRE(c.in_conflict(2, 4));
-        REQUIRE(c.in_conflict(4, 2));
-        REQUIRE(c.remove(2, 4));
-        REQUIRE_FALSE(c.in_conflict(4, 2));
-        REQUIRE_FALSE(c.in_conflict(2, 4));
-        REQUIRE(c.has_conflict(2));
-        REQUIRE_FALSE(c.has_conflict(4));
-
-        REQUIRE_FALSE(c.remove(2, 4));
-
-        REQUIRE(c.remove(1));
-        REQUIRE_FALSE(c.has_conflict(1));
-        REQUIRE_FALSE(c.in_conflict(1, 1));
-        REQUIRE_FALSE(c.in_conflict(1, 2));
-        REQUIRE_FALSE(c.in_conflict(3, 1));
-    }
+    auto c = conflict_map<std::size_t>();
+    REQUIRE(c.size() == 0);
+    REQUIRE_FALSE(c.has_conflict(0));
+    REQUIRE_FALSE(c.in_conflict(0, 1));
+    REQUIRE(c.add(0, 1));
+    REQUIRE(c.add(1, 2));
+    REQUIRE_FALSE(c.add(1, 2));
+    REQUIRE(c.has_conflict(0));
+    REQUIRE(c.in_conflict(0, 1));
+    REQUIRE(c.in_conflict(1, 2));
+    REQUIRE(c.has_conflict(2));
+    REQUIRE_FALSE(c.in_conflict(0, 2));
+    // With same
+    REQUIRE(c.add(5, 5));
+    REQUIRE(c.has_conflict(5));
+    REQUIRE(c.in_conflict(5, 5));
 }
 
+TEST_CASE("remove")
+{
+    auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
+    REQUIRE(c.size() == 4);
+
+    REQUIRE(c.in_conflict(2, 4));
+    REQUIRE(c.in_conflict(4, 2));
+    REQUIRE(c.remove(2, 4));
+    REQUIRE_FALSE(c.in_conflict(4, 2));
+    REQUIRE_FALSE(c.in_conflict(2, 4));
+    REQUIRE(c.has_conflict(2));
+    REQUIRE_FALSE(c.has_conflict(4));
+
+    REQUIRE_FALSE(c.remove(2, 4));
+
+    REQUIRE(c.remove(1));
+    REQUIRE_FALSE(c.has_conflict(1));
+    REQUIRE_FALSE(c.in_conflict(1, 1));
+    REQUIRE_FALSE(c.in_conflict(1, 2));
+    REQUIRE_FALSE(c.in_conflict(3, 1));
+}
+
+using namespace mamba::specs::match_spec_literals;
+using Request = solver::Request;
+
 namespace
 {
-    using namespace mamba::specs::match_spec_literals;
-    using Request = solver::Request;
-
     /**
      * Simple factory for building a specs::PackageInfo.
      */
@@ -95,19 +92,20 @@ namespace
         pkg.build_string = "bld";
         return pkg;
     }
+}
 
-    /**
-     * Create a solver and a database of a conflict.
-     *
-     * The underlying packages do not exist, we are only interested in the conflict.
-     */
-    template <typename PkgRange>
-    auto create_pkgs_database(ChannelContext& channel_context, const PkgRange& packages)
-    {
-        solver::libsolv::Database db{ channel_context.params() };
-        db.add_repo_from_packages(packages);
-        return db;
-    }
+/**
+ * Create a solver and a database of a conflict.
+ *
+ * The underlying packages do not exist, we are only interested in the conflict.
+ */
+template <typename PkgRange>
+auto
+create_pkgs_database(ChannelContext& channel_context, const PkgRange& packages)
+{
+    solver::libsolv::Database db{ channel_context.params() };
+    db.add_repo_from_packages(packages);
+    return db;
 }
 
 TEST_CASE("Test create_pkgs_database utility")
@@ -133,267 +131,266 @@ TEST_CASE("Test empty specs")
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
-namespace
+auto
+create_basic_conflict(Context&, ChannelContext& channel_context)
 {
-    auto create_basic_conflict(Context&, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_pkgs_database(
-                channel_context,
-                std::array{
-                    mkpkg("A", "0.1.0"),
-                    mkpkg("A", "0.2.0"),
-                    mkpkg("A", "0.3.0"),
-                }
-            ),
-            Request{ {}, { Request::Install{ "A=0.4.0"_ms } } }
-        );
-    }
-
-    /**
-     * Create the PubGrub blog post example.
-     *
-     * The example given by Natalie Weizenbaum
-     * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
-     */
-    auto create_pubgrub(Context&, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_pkgs_database(
-                channel_context,
-                std::array{
-                    mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
-                    mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
-                    mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
-                    mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
-                    mkpkg("menu", "1.1.0", { "dropdown=2.*" }),
-                    mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
-                    mkpkg("dropdown", "2.3.0", { "icons=2.*" }),
-                    mkpkg("dropdown", "2.2.0", { "icons=2.*" }),
-                    mkpkg("dropdown", "2.1.0", { "icons=2.*" }),
-                    mkpkg("dropdown", "2.0.0", { "icons=2.*" }),
-                    mkpkg("dropdown", "1.8.0", { "icons=1.*", "intl=3.*" }),
-                    mkpkg("icons", "2.0.0"),
-                    mkpkg("icons", "1.0.0"),
-                    mkpkg("intl", "5.0.0"),
-                    mkpkg("intl", "4.0.0"),
-                    mkpkg("intl", "3.0.0"),
-                }
-            ),
-            Request{
-                {},
-                {
-                    Request::Install{ "menu"_ms },
-                    Request::Install{ "icons=1.*"_ms },
-                    Request::Install{ "intl=5.*"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_pubgrub_hard_(Context&, ChannelContext& channel_context, bool missing_package)
-    {
-        auto packages = std::vector{
-            mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
-            mkpkg("menu", "2.0.1", { "dropdown>=2", "emoji" }),
-            mkpkg("menu", "2.0.0", { "dropdown>=2", "emoji" }),
-            mkpkg("menu", "1.5.0", { "dropdown=2.*", "emoji" }),
-            mkpkg("menu", "1.4.0", { "dropdown=2.*", "emoji" }),
-            mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
-            mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
-            mkpkg("menu", "1.1.0", { "dropdown=1.*" }),
-            mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
-            mkpkg("emoji", "1.1.0", { "libicons=2.*" }),
-            mkpkg("emoji", "1.0.0", { "libicons=2.*" }),
-            mkpkg("dropdown", "2.3.0", { "libicons=2.*" }),
-            mkpkg("dropdown", "2.2.0", { "libicons=2.*" }),
-            mkpkg("dropdown", "2.1.0", { "libicons=2.*" }),
-            mkpkg("dropdown", "2.0.0", { "libicons=2.*" }),
-            mkpkg("dropdown", "1.8.0", { "libicons=1.*", "intl=3.*" }),
-            mkpkg("dropdown", "1.7.0", { "libicons=1.*", "intl=3.*" }),
-            mkpkg("dropdown", "1.6.0", { "libicons=1.*", "intl=3.*" }),
-            mkpkg("pyicons", "2.0.0", { "libicons=2.*" }),
-            mkpkg("pyicons", "1.1.0", { "libicons=1.2.*" }),
-            mkpkg("pyicons", "1.0.0", { "libicons=1.*" }),
-            mkpkg("pretty", "1.1.0", { "pyicons=1.1.*" }),
-            mkpkg("pretty", "1.0.1", { "pyicons=1.*" }),
-            mkpkg("pretty", "1.0.0", { "pyicons=1.*" }),
-            mkpkg("intl", "5.0.0"),
-            mkpkg("intl", "4.0.0"),
-            mkpkg("intl", "3.2.0"),
-            mkpkg("intl", "3.1.0"),
-            mkpkg("intl", "3.0.0"),
-            mkpkg("intl-mod", "1.0.0", { "intl=5.0.*" }),
-            mkpkg("intl-mod", "1.0.1", { "intl=5.0.*" }),
-            mkpkg("libicons", "2.1.0"),
-            mkpkg("libicons", "2.0.1"),
-            mkpkg("libicons", "2.0.0"),
-            mkpkg("libicons", "1.2.1"),
-            mkpkg("libicons", "1.2.0"),
-            mkpkg("libicons", "1.0.0"),
-        };
-
-        if (missing_package)
-        {
-            packages.push_back(mkpkg("dropdown", "2.9.3", { "libnothere>1.0" }));
-            packages.push_back(mkpkg("dropdown", "2.9.2", { "libicons>10.0", "libnothere>1.0" }));
-            packages.push_back(mkpkg("dropdown", "2.9.1", { "libicons>10.0", "libnothere>1.0" }));
-            packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
-        }
-        return std::pair(
-            create_pkgs_database(channel_context, packages),
-            Request{
-                {},
-                {
-                    Request::Install{ "menu"_ms },
-                    Request::Install{ "pyicons=1.*"_ms },
-                    Request::Install{ "intl=5.*"_ms },
-                    Request::Install{ "intl-mod"_ms },
-                    Request::Install{ "pretty>=1.0"_ms },
-                },
-            }
-        );
-    }
-
-    /**
-     * A harder version of ``create_pubgrub``.
-     */
-    auto create_pubgrub_hard(Context& ctx, ChannelContext& channel_context)
-    {
-        return create_pubgrub_hard_(ctx, channel_context, false);
-    }
-
-    /**
-     * The hard version of the alternate PubGrub with missing packages.
-     */
-    auto create_pubgrub_missing(Context& ctx, ChannelContext& channel_context)
-    {
-        return create_pubgrub_hard_(ctx, channel_context, true);
-    }
-
-    /**
-     * Create a conflict due to a pin.
-     */
-    auto create_pin_conflict(Context&, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_pkgs_database(
-                channel_context,
-                std::array{
-                    mkpkg("foo", "2.0.0", { "bar=2.0" }),
-                    mkpkg("bar", "1.0.0"),
-                    mkpkg("bar", "2.0.0"),
-                }
-            ),
-            Request{
-                {},
-                {
-                    Request::Install{ "foo"_ms },
-                    Request::Pin{ "bar=1.0"_ms },
-                },
-            }
-        );
-    }
-
-    auto
-    make_platform_channels(std::vector<std::string>&& channels, const std::vector<std::string>& platforms)
-        -> std::vector<std::string>
-    {
-        auto add_plat = [&platforms](const auto& chan)
-        { return fmt::format("{}[{}]", chan, fmt::join(platforms, ",")); };
-        std::transform(channels.begin(), channels.end(), channels.begin(), add_plat);
-        return std::move(channels);
-    }
-
-    /*
-     * Mock of channel_loader.cpp:create_mirrors
-     * TODO: factorize that code
-     */
-    void create_mirrors(Context& ctx, const specs::Channel& channel)
-    {
-        if (!ctx.mirrors.has_mirrors(channel.id()))
-        {
-            for (const specs::CondaURL& url : channel.mirror_urls())
-            {
-                ctx.mirrors.add_unique_mirror(
-                    channel.id(),
-                    download::make_mirror(url.str(specs::CondaURL::Credentials::Show))
-                );
-            }
-        }
-    }
-
-    /**
-     * Mock of channel_loader.hpp:load_channels that takes a list of channels.
-     */
-    auto load_channels(
-        Context& ctx,
-        ChannelContext& channel_context,
-        solver::libsolv::Database& db,
-        MultiPackageCache& cache,
-        std::vector<std::string>&& channels
-    )
-    {
-        auto sub_dirs = std::vector<SubdirData>();
-        for (const auto& location : channels)
-        {
-            for (const auto& chan : channel_context.make_channel(location))
-            {
-                create_mirrors(ctx, chan);
-                for (const auto& platform : chan.platforms())
-                {
-                    auto sub_dir = SubdirData::create(ctx, channel_context, chan, platform, cache)
-                                       .value();
-                    sub_dirs.push_back(std::move(sub_dir));
-                }
-            }
-        }
-
-        SubdirData::download_indexes(sub_dirs, mambatests::context());
-
-        for (auto& sub_dir : sub_dirs)
-        {
-            auto repo = load_subdir_in_database(ctx, db, sub_dir);
-        }
-    }
-
-    /**
-     * Create a solver and a database of a conflict from conda-forge packages.
-     */
-    auto create_conda_forge_database(
-        Context& ctx,
-        ChannelContext& channel_context,
-        const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
-        std::vector<std::string>&& channels = { "conda-forge" },
-        const std::vector<std::string>& platforms = { "linux-64", "noarch" }
-    )
-    {
-        // Reusing the cache for all invocations of this function for speedup
-
-        static const auto tmp_dir = TemporaryDirectory();
-
-        auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
-        prefix_data.add_packages(virtual_packages);
-        auto db = solver::libsolv::Database{ channel_context.params() };
-
-        load_installed_packages_in_database(ctx, db, prefix_data);
-
-        auto cache = MultiPackageCache({ tmp_dir.path() / "cache" }, ctx.validation_params);
-        create_cache_dir(cache.first_writable_path());
-
-        bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
-        ctx.graphics_params.no_progress_bars = true;
-        load_channels(
-            ctx,
+    return std::pair(
+        create_pkgs_database(
             channel_context,
-            db,
-            cache,
-            make_platform_channels(std::move(channels), platforms)
-        );
-        ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
+            std::array{
+                mkpkg("A", "0.1.0"),
+                mkpkg("A", "0.2.0"),
+                mkpkg("A", "0.3.0"),
+            }
+        ),
+        Request{ {}, { Request::Install{ "A=0.4.0"_ms } } }
+    );
+}
 
-        return db;
+/**
+ * Create the PubGrub blog post example.
+ *
+ * The example given by Natalie Weizenbaum
+ * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
+ */
+auto
+create_pubgrub(Context&, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_pkgs_database(
+            channel_context,
+            std::array{
+                mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.1.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
+                mkpkg("dropdown", "2.3.0", { "icons=2.*" }),
+                mkpkg("dropdown", "2.2.0", { "icons=2.*" }),
+                mkpkg("dropdown", "2.1.0", { "icons=2.*" }),
+                mkpkg("dropdown", "2.0.0", { "icons=2.*" }),
+                mkpkg("dropdown", "1.8.0", { "icons=1.*", "intl=3.*" }),
+                mkpkg("icons", "2.0.0"),
+                mkpkg("icons", "1.0.0"),
+                mkpkg("intl", "5.0.0"),
+                mkpkg("intl", "4.0.0"),
+                mkpkg("intl", "3.0.0"),
+            }
+        ),
+        Request{
+            {},
+            {
+                Request::Install{ "menu"_ms },
+                Request::Install{ "icons=1.*"_ms },
+                Request::Install{ "intl=5.*"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_pubgrub_hard_(Context&, ChannelContext& channel_context, bool missing_package)
+{
+    auto packages = std::vector{
+        mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
+        mkpkg("menu", "2.0.1", { "dropdown>=2", "emoji" }),
+        mkpkg("menu", "2.0.0", { "dropdown>=2", "emoji" }),
+        mkpkg("menu", "1.5.0", { "dropdown=2.*", "emoji" }),
+        mkpkg("menu", "1.4.0", { "dropdown=2.*", "emoji" }),
+        mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
+        mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
+        mkpkg("menu", "1.1.0", { "dropdown=1.*" }),
+        mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
+        mkpkg("emoji", "1.1.0", { "libicons=2.*" }),
+        mkpkg("emoji", "1.0.0", { "libicons=2.*" }),
+        mkpkg("dropdown", "2.3.0", { "libicons=2.*" }),
+        mkpkg("dropdown", "2.2.0", { "libicons=2.*" }),
+        mkpkg("dropdown", "2.1.0", { "libicons=2.*" }),
+        mkpkg("dropdown", "2.0.0", { "libicons=2.*" }),
+        mkpkg("dropdown", "1.8.0", { "libicons=1.*", "intl=3.*" }),
+        mkpkg("dropdown", "1.7.0", { "libicons=1.*", "intl=3.*" }),
+        mkpkg("dropdown", "1.6.0", { "libicons=1.*", "intl=3.*" }),
+        mkpkg("pyicons", "2.0.0", { "libicons=2.*" }),
+        mkpkg("pyicons", "1.1.0", { "libicons=1.2.*" }),
+        mkpkg("pyicons", "1.0.0", { "libicons=1.*" }),
+        mkpkg("pretty", "1.1.0", { "pyicons=1.1.*" }),
+        mkpkg("pretty", "1.0.1", { "pyicons=1.*" }),
+        mkpkg("pretty", "1.0.0", { "pyicons=1.*" }),
+        mkpkg("intl", "5.0.0"),
+        mkpkg("intl", "4.0.0"),
+        mkpkg("intl", "3.2.0"),
+        mkpkg("intl", "3.1.0"),
+        mkpkg("intl", "3.0.0"),
+        mkpkg("intl-mod", "1.0.0", { "intl=5.0.*" }),
+        mkpkg("intl-mod", "1.0.1", { "intl=5.0.*" }),
+        mkpkg("libicons", "2.1.0"),
+        mkpkg("libicons", "2.0.1"),
+        mkpkg("libicons", "2.0.0"),
+        mkpkg("libicons", "1.2.1"),
+        mkpkg("libicons", "1.2.0"),
+        mkpkg("libicons", "1.0.0"),
+    };
+
+    if (missing_package)
+    {
+        packages.push_back(mkpkg("dropdown", "2.9.3", { "libnothere>1.0" }));
+        packages.push_back(mkpkg("dropdown", "2.9.2", { "libicons>10.0", "libnothere>1.0" }));
+        packages.push_back(mkpkg("dropdown", "2.9.1", { "libicons>10.0", "libnothere>1.0" }));
+        packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
     }
+    return std::pair(
+        create_pkgs_database(channel_context, packages),
+        Request{
+            {},
+            {
+                Request::Install{ "menu"_ms },
+                Request::Install{ "pyicons=1.*"_ms },
+                Request::Install{ "intl=5.*"_ms },
+                Request::Install{ "intl-mod"_ms },
+                Request::Install{ "pretty>=1.0"_ms },
+            },
+        }
+    );
+}
+
+/**
+ * A harder version of ``create_pubgrub``.
+ */
+auto
+create_pubgrub_hard(Context& ctx, ChannelContext& channel_context)
+{
+    return create_pubgrub_hard_(ctx, channel_context, false);
+}
+
+/**
+ * The hard version of the alternate PubGrub with missing packages.
+ */
+auto
+create_pubgrub_missing(Context& ctx, ChannelContext& channel_context)
+{
+    return create_pubgrub_hard_(ctx, channel_context, true);
+}
+
+/**
+ * Create a conflict due to a pin.
+ */
+auto
+create_pin_conflict(Context&, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_pkgs_database(
+            channel_context,
+            std::array{
+                mkpkg("foo", "2.0.0", { "bar=2.0" }),
+                mkpkg("bar", "1.0.0"),
+                mkpkg("bar", "2.0.0"),
+            }
+        ),
+        Request{
+            {},
+            {
+                Request::Install{ "foo"_ms },
+                Request::Pin{ "bar=1.0"_ms },
+            },
+        }
+    );
+}
+
+auto
+make_platform_channels(std::vector<std::string>&& channels, const std::vector<std::string>& platforms)
+    -> std::vector<std::string>
+{
+    auto add_plat = [&platforms](const auto& chan)
+    { return fmt::format("{}[{}]", chan, fmt::join(platforms, ",")); };
+    std::transform(channels.begin(), channels.end(), channels.begin(), add_plat);
+    return std::move(channels);
+}
+
+/*
+ * Mock of channel_loader.cpp:create_mirrors
+ * TODO: factorize that code
+ */
+void
+create_mirrors(Context& ctx, const specs::Channel& channel)
+{
+    if (!ctx.mirrors.has_mirrors(channel.id()))
+    {
+        for (const specs::CondaURL& url : channel.mirror_urls())
+        {
+            ctx.mirrors.add_unique_mirror(
+                channel.id(),
+                download::make_mirror(url.str(specs::CondaURL::Credentials::Show))
+            );
+        }
+    }
+}
+
+/**
+ * Mock of channel_loader.hpp:load_channels that takes a list of channels.
+ */
+auto
+load_channels(
+    Context& ctx,
+    ChannelContext& channel_context,
+    solver::libsolv::Database& db,
+    MultiPackageCache& cache,
+    std::vector<std::string>&& channels
+)
+{
+    auto sub_dirs = std::vector<SubdirData>();
+    for (const auto& location : channels)
+    {
+        for (const auto& chan : channel_context.make_channel(location))
+        {
+            create_mirrors(ctx, chan);
+            for (const auto& platform : chan.platforms())
+            {
+                auto sub_dir = SubdirData::create(ctx, channel_context, chan, platform, cache).value();
+                sub_dirs.push_back(std::move(sub_dir));
+            }
+        }
+    }
+
+    SubdirData::download_indexes(sub_dirs, mambatests::context());
+
+    for (auto& sub_dir : sub_dirs)
+    {
+        auto repo = load_subdir_in_database(ctx, db, sub_dir);
+    }
+}
+
+/**
+ * Create a solver and a database of a conflict from conda-forge packages.
+ */
+auto
+create_conda_forge_database(
+    Context& ctx,
+    ChannelContext& channel_context,
+    const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
+    std::vector<std::string>&& channels = { "conda-forge" },
+    const std::vector<std::string>& platforms = { "linux-64", "noarch" }
+)
+{
+    // Reusing the cache for all invocations of this function for speedup
+
+    static const auto tmp_dir = TemporaryDirectory();
+
+    auto prefix_data = PrefixData::create(tmp_dir.path() / "prefix", channel_context).value();
+    prefix_data.add_packages(virtual_packages);
+    auto db = solver::libsolv::Database{ channel_context.params() };
+
+    load_installed_packages_in_database(ctx, db, prefix_data);
+
+    auto cache = MultiPackageCache({ tmp_dir.path() / "cache" }, ctx.validation_params);
+    create_cache_dir(cache.first_writable_path());
+
+    bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
+    ctx.graphics_params.no_progress_bars = true;
+    load_channels(ctx, channel_context, db, cache, make_platform_channels(std::move(channels), platforms));
+    ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
+
+    return db;
 }
 
 TEST_CASE("Test create_conda_forge utility")
@@ -406,159 +403,165 @@ TEST_CASE("Test create_conda_forge utility")
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
-namespace
+auto
+create_pytorch_cpu(Context& ctx, ChannelContext& channel_context)
 {
-    auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(ctx, channel_context),
-            Request{
-                {},
-                {
-                    Request::Install{ "python=2.7"_ms },
-                    Request::Install{ "pytorch=1.12"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(
-                ctx,
-                channel_context,
-                { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
-            ),
-            Request{
-                {},
-                {
-                    Request::Install{ "python=2.7"_ms },
-                    Request::Install{ "pytorch=1.12"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(
-                ctx,
-                channel_context,
-                { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
-            ),
-            Request{
-                {},
-                {
-                    Request::Install{ "python=3.7"_ms },
-                    Request::Install{ "cudatoolkit=11.1"_ms },
-                    Request::Install{ "cudnn=8.0"_ms },
-                    Request::Install{ "pytorch=1.8"_ms },
-                    Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_jpeg9b(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(ctx, channel_context),
-            Request{
-                {},
-                {
-                    Request::Install{ "python=3.7"_ms },
-                    Request::Install{ "jpeg=9b"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_r_base(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(ctx, channel_context),
-            Request{
-                {},
-                {
-                    Request::Install{ "r-base=3.5.* "_ms },
-                    Request::Install{ "pandas=0"_ms },
-                    Request::Install{ "numpy<1.20.0"_ms },
-                    Request::Install{ "matplotlib=2"_ms },
-                    Request::Install{ "r-matchit=4.*"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_scip(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(ctx, channel_context),
-            Request{
-                {},
-                {
-                    Request::Install{ "scip=8.*"_ms },
-                    Request::Install{ "pyscipopt<4.0"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_double_python(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(ctx, channel_context),
-            Request{
-                {},
-                {
-                    Request::Install{ "python=3.9.*"_ms },
-                    Request::Install{ "python=3.10.*"_ms },
-                },
-            }
-        );
-    }
-
-    auto create_numba(Context& ctx, ChannelContext& channel_context)
-    {
-        return std::pair(
-            create_conda_forge_database(ctx, channel_context),
-            Request{
-                {},
-                {
-                    Request::Install{ "python=3.11"_ms },
-                    Request::Install{ "numba<0.56"_ms },
-                },
-            }
-        );
-    }
-
-    template <typename NodeVariant>
-    auto is_virtual_package(const NodeVariant& node) -> bool
-    {
-        return std::visit(
-            [](const auto& n) -> bool
+    return std::pair(
+        create_conda_forge_database(ctx, channel_context),
+        Request{
+            {},
             {
-                using Node = std::decay_t<decltype(n)>;
-                if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
-                {
-                    return false;
-                }
-                else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode>
-                                   || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
-                {
-                    return util::starts_with(std::invoke(&Node::name, n).str(), "__");
-                }
-                else
-                {
-                    return util::starts_with(std::invoke(&Node::name, n), "__");
-                }
+                Request::Install{ "python=2.7"_ms },
+                Request::Install{ "pytorch=1.12"_ms },
             },
-            node
-        );
-    };
+        }
+    );
 }
+
+auto
+create_pytorch_cuda(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(
+            ctx,
+            channel_context,
+            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
+        ),
+        Request{
+            {},
+            {
+                Request::Install{ "python=2.7"_ms },
+                Request::Install{ "pytorch=1.12"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_cudatoolkit(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(
+            ctx,
+            channel_context,
+            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
+        ),
+        Request{
+            {},
+            {
+                Request::Install{ "python=3.7"_ms },
+                Request::Install{ "cudatoolkit=11.1"_ms },
+                Request::Install{ "cudnn=8.0"_ms },
+                Request::Install{ "pytorch=1.8"_ms },
+                Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_jpeg9b(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(ctx, channel_context),
+        Request{
+            {},
+            {
+                Request::Install{ "python=3.7"_ms },
+                Request::Install{ "jpeg=9b"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_r_base(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(ctx, channel_context),
+        Request{
+            {},
+            {
+                Request::Install{ "r-base=3.5.* "_ms },
+                Request::Install{ "pandas=0"_ms },
+                Request::Install{ "numpy<1.20.0"_ms },
+                Request::Install{ "matplotlib=2"_ms },
+                Request::Install{ "r-matchit=4.*"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_scip(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(ctx, channel_context),
+        Request{
+            {},
+            {
+                Request::Install{ "scip=8.*"_ms },
+                Request::Install{ "pyscipopt<4.0"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_double_python(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(ctx, channel_context),
+        Request{
+            {},
+            {
+                Request::Install{ "python=3.9.*"_ms },
+                Request::Install{ "python=3.10.*"_ms },
+            },
+        }
+    );
+}
+
+auto
+create_numba(Context& ctx, ChannelContext& channel_context)
+{
+    return std::pair(
+        create_conda_forge_database(ctx, channel_context),
+        Request{
+            {},
+            {
+                Request::Install{ "python=3.11"_ms },
+                Request::Install{ "numba<0.56"_ms },
+            },
+        }
+    );
+}
+
+template <typename NodeVariant>
+auto
+is_virtual_package(const NodeVariant& node) -> bool
+{
+    return std::visit(
+        [](const auto& n) -> bool
+        {
+            using Node = std::decay_t<decltype(n)>;
+            if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
+            {
+                return false;
+            }
+            else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode>
+                               || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
+            {
+                return util::starts_with(std::invoke(&Node::name, n).str(), "__");
+            }
+            else
+            {
+                return util::starts_with(std::invoke(&Node::name, n), "__");
+            }
+        },
+        node
+    );
+};
 
 TEST_CASE("NamedList")
 {

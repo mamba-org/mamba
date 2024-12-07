@@ -10,74 +10,71 @@
 
 using namespace mamba::specs;
 
-namespace
+TEST_CASE("RegexSpec Free")
 {
-    TEST_CASE("RegexSpec Free")
-    {
-        auto spec = RegexSpec();
+    auto spec = RegexSpec();
 
-        REQUIRE(spec.contains(""));
-        REQUIRE(spec.contains("hello"));
+    REQUIRE(spec.contains(""));
+    REQUIRE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "^.*$");
-        REQUIRE(spec.is_explicitly_free());
-        REQUIRE_FALSE(spec.is_exact());
-    }
+    REQUIRE(spec.str() == "^.*$");
+    REQUIRE(spec.is_explicitly_free());
+    REQUIRE_FALSE(spec.is_exact());
+}
 
-    TEST_CASE("RegexSpec mkl")
-    {
-        auto spec = RegexSpec::parse("mkl").value();
+TEST_CASE("RegexSpec mkl")
+{
+    auto spec = RegexSpec::parse("mkl").value();
 
-        REQUIRE(spec.contains("mkl"));
-        REQUIRE_FALSE(spec.contains(""));
-        REQUIRE_FALSE(spec.contains("nomkl"));
-        REQUIRE_FALSE(spec.contains("hello"));
+    REQUIRE(spec.contains("mkl"));
+    REQUIRE_FALSE(spec.contains(""));
+    REQUIRE_FALSE(spec.contains("nomkl"));
+    REQUIRE_FALSE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "^mkl$");
-        REQUIRE_FALSE(spec.is_explicitly_free());
-        REQUIRE(spec.is_exact());
-    }
+    REQUIRE(spec.str() == "^mkl$");
+    REQUIRE_FALSE(spec.is_explicitly_free());
+    REQUIRE(spec.is_exact());
+}
 
-    TEST_CASE("RegexSpec py.*")
-    {
-        auto spec = RegexSpec::parse("py.*").value();
+TEST_CASE("RegexSpec py.*")
+{
+    auto spec = RegexSpec::parse("py.*").value();
 
-        REQUIRE(spec.contains("python"));
-        REQUIRE(spec.contains("py"));
-        REQUIRE(spec.contains("pypy"));
-        REQUIRE_FALSE(spec.contains(""));
-        REQUIRE_FALSE(spec.contains("cpython"));
+    REQUIRE(spec.contains("python"));
+    REQUIRE(spec.contains("py"));
+    REQUIRE(spec.contains("pypy"));
+    REQUIRE_FALSE(spec.contains(""));
+    REQUIRE_FALSE(spec.contains("cpython"));
 
-        REQUIRE(spec.str() == "^py.*$");
-        REQUIRE_FALSE(spec.is_explicitly_free());
-        REQUIRE_FALSE(spec.is_exact());
-    }
+    REQUIRE(spec.str() == "^py.*$");
+    REQUIRE_FALSE(spec.is_explicitly_free());
+    REQUIRE_FALSE(spec.is_exact());
+}
 
-    TEST_CASE("RegexSpec ^.*(accelerate|mkl)$")
-    {
-        auto spec = RegexSpec::parse("^.*(accelerate|mkl)$").value();
+TEST_CASE("RegexSpec ^.*(accelerate|mkl)$")
+{
+    auto spec = RegexSpec::parse("^.*(accelerate|mkl)$").value();
 
-        REQUIRE(spec.contains("accelerate"));
-        REQUIRE(spec.contains("mkl"));
-        REQUIRE_FALSE(spec.contains(""));
-        REQUIRE_FALSE(spec.contains("openblas"));
+    REQUIRE(spec.contains("accelerate"));
+    REQUIRE(spec.contains("mkl"));
+    REQUIRE_FALSE(spec.contains(""));
+    REQUIRE_FALSE(spec.contains("openblas"));
 
-        REQUIRE(spec.str() == "^.*(accelerate|mkl)$");
-        REQUIRE_FALSE(spec.is_explicitly_free());
-        REQUIRE_FALSE(spec.is_exact());
-    }
+    REQUIRE(spec.str() == "^.*(accelerate|mkl)$");
+    REQUIRE_FALSE(spec.is_explicitly_free());
+    REQUIRE_FALSE(spec.is_exact());
+}
 
-    TEST_CASE("RegexSpec Comparability and hashability")
-    {
-        auto spec1 = RegexSpec::parse("pyth*").value();
-        auto spec2 = RegexSpec::parse("pyth*").value();
-        auto spec3 = RegexSpec::parse("python").value();
+TEST_CASE("RegexSpec Comparability and hashability")
+{
+    auto spec1 = RegexSpec::parse("pyth*").value();
+    auto spec2 = RegexSpec::parse("pyth*").value();
+    auto spec3 = RegexSpec::parse("python").value();
 
-        REQUIRE(spec1 == spec2);
-        REQUIRE(spec1 != spec3);
+    REQUIRE(spec1 == spec2);
+    REQUIRE(spec1 != spec3);
 
-        auto hash_fn = std::hash<RegexSpec>();
-        REQUIRE(hash_fn(spec1) == hash_fn(spec2));
-        REQUIRE(hash_fn(spec1) != hash_fn(spec3));
-    }
+    auto hash_fn = std::hash<RegexSpec>();
+    REQUIRE(hash_fn(spec1) == hash_fn(spec2));
+    REQUIRE(hash_fn(spec1) != hash_fn(spec3));
 }

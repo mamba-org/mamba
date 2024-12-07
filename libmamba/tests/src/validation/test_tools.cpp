@@ -23,79 +23,76 @@ hex_str(const std::array<std::byte, size>& bytes)
     return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
 }
 
-namespace
+TEST_CASE("sha256sum")
 {
-    TEST_CASE("sha256sum")
-    {
-        auto tmp = TemporaryFile();
-        auto f = mamba::open_ofstream(tmp.path());
-        f << "test";
-        f.close();
-        auto sha256 = sha256sum(tmp.path());
-        REQUIRE(sha256 == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+    auto tmp = TemporaryFile();
+    auto f = mamba::open_ofstream(tmp.path());
+    f << "test";
+    f.close();
+    auto sha256 = sha256sum(tmp.path());
+    REQUIRE(sha256 == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 
-        auto md5 = md5sum(tmp.path());
-        REQUIRE(md5 == "098f6bcd4621d373cade4e832627b4f6");
-    }
+    auto md5 = md5sum(tmp.path());
+    REQUIRE(md5 == "098f6bcd4621d373cade4e832627b4f6");
+}
 
-    TEST_CASE("ed25519_key_hex_to_bytes")
-    {
-        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
-        generate_ed25519_keypair(pk.data(), sk.data());
+TEST_CASE("ed25519_key_hex_to_bytes")
+{
+    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+    generate_ed25519_keypair(pk.data(), sk.data());
 
-        auto pk_hex = hex_str(pk);
-        int error = 0;
-        auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
-        REQUIRE(error == 0);
-        REQUIRE(pk_hex == hex_str(pk_bytes));
+    auto pk_hex = hex_str(pk);
+    int error = 0;
+    auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
+    REQUIRE(error == 0);
+    REQUIRE(pk_hex == hex_str(pk_bytes));
 
-        spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::debug);
 
-        std::array<std::byte, 5> not_even_key;
-        pk_hex = hex_str(not_even_key);
-        pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
-        REQUIRE(error == 0);
-        REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
+    std::array<std::byte, 5> not_even_key;
+    pk_hex = hex_str(not_even_key);
+    pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
+    REQUIRE(error == 0);
+    REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
 
-        std::array<std::byte, 6> wrong_size_key;
-        pk_hex = hex_str(wrong_size_key);
-        pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
-        REQUIRE(error == 0);
-        REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
+    std::array<std::byte, 6> wrong_size_key;
+    pk_hex = hex_str(wrong_size_key);
+    pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
+    REQUIRE(error == 0);
+    REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
 
-        spdlog::set_level(spdlog::level::info);
-    }
+    spdlog::set_level(spdlog::level::info);
+}
 
-    TEST_CASE("ed25519_sig_hex_to_bytes")
-    {
-        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
-        generate_ed25519_keypair(pk.data(), sk.data());
+TEST_CASE("ed25519_sig_hex_to_bytes")
+{
+    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+    generate_ed25519_keypair(pk.data(), sk.data());
 
-        std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig;
-        sign("Some text.", sk.data(), sig.data());
+    std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig;
+    sign("Some text.", sk.data(), sig.data());
 
-        int error = 0;
-        auto sig_hex = hex_str(sig);
-        auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
-        REQUIRE(error == 0);
-        REQUIRE(sig_hex == hex_str(sig_bytes));
+    int error = 0;
+    auto sig_hex = hex_str(sig);
+    auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
+    REQUIRE(error == 0);
+    REQUIRE(sig_hex == hex_str(sig_bytes));
 
-        spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::debug);
 
-        std::array<std::byte, 5> not_even_sig;
-        sig_hex = hex_str(not_even_sig);
-        sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
-        REQUIRE(error == 0);
-        REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
+    std::array<std::byte, 5> not_even_sig;
+    sig_hex = hex_str(not_even_sig);
+    sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
+    REQUIRE(error == 0);
+    REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
 
-        std::array<std::byte, 6> wrong_size_sig;
-        sig_hex = hex_str(wrong_size_sig);
-        sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
-        REQUIRE(error == 0);
-        REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
+    std::array<std::byte, 6> wrong_size_sig;
+    sig_hex = hex_str(wrong_size_sig);
+    sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
+    REQUIRE(error == 0);
+    REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
 
-        spdlog::set_level(spdlog::level::info);
-    }
+    spdlog::set_level(spdlog::level::info);
 }
 
 class VerifyMsg
@@ -115,38 +112,35 @@ protected:
     std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> signature;
 };
 
-namespace
+TEST_CASE_METHOD(VerifyMsg, "from_bytes")
 {
-    TEST_CASE_METHOD(VerifyMsg, "from_bytes")
-    {
-        REQUIRE(verify("Some text.", pk.data(), signature.data()) == 1);
-    }
+    REQUIRE(verify("Some text.", pk.data(), signature.data()) == 1);
+}
 
-    TEST_CASE_METHOD(VerifyMsg, "from_hex")
-    {
-        auto signature_hex = hex_str(signature);
-        auto pk_hex = hex_str(pk);
+TEST_CASE_METHOD(VerifyMsg, "from_hex")
+{
+    auto signature_hex = hex_str(signature);
+    auto pk_hex = hex_str(pk);
 
-        REQUIRE(verify("Some text.", pk_hex, signature_hex) == 1);
-    }
+    REQUIRE(verify("Some text.", pk_hex, signature_hex) == 1);
+}
 
-    TEST_CASE_METHOD(VerifyMsg, "wrong_signature")
-    {
-        spdlog::set_level(spdlog::level::debug);
-        auto pk_hex = hex_str(pk);
+TEST_CASE_METHOD(VerifyMsg, "wrong_signature")
+{
+    spdlog::set_level(spdlog::level::debug);
+    auto pk_hex = hex_str(pk);
 
-        REQUIRE(verify("Some text.", pk_hex, "signature_hex") == 0);
-        spdlog::set_level(spdlog::level::info);
-    }
+    REQUIRE(verify("Some text.", pk_hex, "signature_hex") == 0);
+    spdlog::set_level(spdlog::level::info);
+}
 
-    TEST_CASE_METHOD(VerifyMsg, "wrong_public_key")
-    {
-        spdlog::set_level(spdlog::level::debug);
-        auto signature_hex = hex_str(signature);
+TEST_CASE_METHOD(VerifyMsg, "wrong_public_key")
+{
+    spdlog::set_level(spdlog::level::debug);
+    auto signature_hex = hex_str(signature);
 
-        REQUIRE(verify("Some text.", "pk_hex", signature_hex) == 0);
-        spdlog::set_level(spdlog::level::info);
-    }
+    REQUIRE(verify("Some text.", "pk_hex", signature_hex) == 0);
+    spdlog::set_level(spdlog::level::info);
 }
 
 class VerifyGPGMsg
@@ -188,26 +182,23 @@ protected:
     std::string data;
 };
 
-namespace
+TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
 {
-    TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
-    {
-        int error = 0;
-        auto bin_signature = ed25519_sig_hex_to_bytes(signature, error);
-        REQUIRE(error == 0);
-        auto bin_pk = ed25519_key_hex_to_bytes(pk, error);
-        REQUIRE(error == 0);
+    int error = 0;
+    auto bin_signature = ed25519_sig_hex_to_bytes(signature, error);
+    REQUIRE(error == 0);
+    auto bin_pk = ed25519_key_hex_to_bytes(pk, error);
+    REQUIRE(error == 0);
 
-        REQUIRE(verify_gpg_hashed_msg(hash, bin_pk.data(), bin_signature.data()) == 1);
-    }
+    REQUIRE(verify_gpg_hashed_msg(hash, bin_pk.data(), bin_signature.data()) == 1);
+}
 
-    TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg_hashed_msg_from_hex")
-    {
-        REQUIRE(verify_gpg_hashed_msg(hash, pk, signature) == 1);
-    }
+TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg_hashed_msg_from_hex")
+{
+    REQUIRE(verify_gpg_hashed_msg(hash, pk, signature) == 1);
+}
 
-    TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg")
-    {
-        REQUIRE(verify_gpg(data, trailer, pk, signature) == 1);
-    }
+TEST_CASE_METHOD(VerifyGPGMsg, "verify_gpg")
+{
+    REQUIRE(verify_gpg(data, trailer, pk, signature) == 1);
 }

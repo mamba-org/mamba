@@ -39,8 +39,7 @@ def apply_changelog(name, version_name, changes):
     today = datetime.date.today()
     fmt_today = today.strftime("%B %d, %Y")
 
-    header_line = f"{name} {version} ({fmt_today})"
-    res += f"{header_line}\n{'=' * len(header_line)}\n\n"
+    res += f"# {name} {version} ({fmt_today})\n\n"
 
     for idx, c in enumerate(changes):
         if c.startswith("-"):
@@ -121,13 +120,16 @@ def populate_changes(name, sections, changes):
                     el["changes"].append(f"- {i.text.strip()}")
 
 
+MARKDOWN_H1 = "# "
+
+
 def main():
     changes = {}
     with open("CHANGELOG.md", "r") as fi:
         contents = fi.readlines()
 
     for idx, line in enumerate(contents):
-        if line.startswith("====="):
+        if line.startswith(MARKDOWN_H1):
             release_start = idx + 1
             break
 
@@ -147,7 +149,7 @@ def main():
                 changes[rsplit[0].strip()]["version"] = rsplit[1].strip()
             continue
 
-        if contents[idx + 1].startswith("===="):
+        if contents[idx + 1].startswith(MARKDOWN_H1):
             break
 
         if c.strip() == "" or c[0] == "-":

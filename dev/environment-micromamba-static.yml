@@ -5,7 +5,7 @@ dependencies:
   # libmamba build dependencies
   - cxx-compiler
   - cmake >=3.16
-  - pkg-config  # Used by some CMake dependencies
+  - pkg-config # Used by some CMake dependencies
   - ninja
   # libmamba dependencies
   - cpp-expected

@@ -8,11 +8,10 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'docs/**'
-      - '**.md'
+      - "docs/**"
+      - "**.md"
   merge_group:
     types: [checks_requested]
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

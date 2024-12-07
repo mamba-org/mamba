@@ -29,9 +29,7 @@
       "build_number": 5,
       "build_string": "hd590300_5",
       "constrains": null,
-      "depends": [
-        "libgcc-ng >=12"
-      ],
+      "depends": ["libgcc-ng >=12"],
       "fn": "bzip2-1.0.8-hd590300_5.conda",
       "license": "bzip2-1.0.6",
       "md5": "69b8b6202a07720f448be700e300ccf4",

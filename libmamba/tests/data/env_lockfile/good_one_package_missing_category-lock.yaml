@@ -3,31 +3,31 @@ version: 1
 # TODO: change the metadata to make them valid/matching actual locked env
 metadata:
   channels:
-  - url: conda-forge
-    used_env_vars: []
-  - url: defaults
-    used_env_vars: []
+    - url: conda-forge
+      used_env_vars: []
+    - url: defaults
+      used_env_vars: []
   content_hash:
     linux-64: 1173e3c96ce20d063a5701b325b76deb97394f891af270af4ee0cb7cc1f6e838
     osx-64: d01c1f5433f30bdbcd3bdad8d9b096774ab55f1210c094acdc61a35b32b28d67
     win-64: 310b23581083bfb983927c40d3bdc86162192d7b26ffd7bffc385f627c155697
   platforms:
-  - linux-64
-  - osx-64
-  - win-64
+    - linux-64
+    - osx-64
+    - win-64
   sources:
-  - environment.yml
+    - environment.yml
 
 package:
-- dependencies:
-    vc: '>=14.1,<15.0a0'
-    vs2015_runtime: '>=14.16.27012'
-  hash:
-    md5: b28dd2488b4e5f892c67071acc1d0a8c
-    sha256: 5b7e002932c0138d78d251caae0c571d13f857ff90e7ce21d58d67073381250e
-  manager: conda
-  name: libzlib
-  optional: false
-  platform: win-64
-  url: https://conda.anaconda.org/conda-forge/win-64/libzlib-1.2.11-h8ffe710_1013.tar.bz2
-  version: 1.2.11
+  - dependencies:
+      vc: ">=14.1,<15.0a0"
+      vs2015_runtime: ">=14.16.27012"
+    hash:
+      md5: b28dd2488b4e5f892c67071acc1d0a8c
+      sha256: 5b7e002932c0138d78d251caae0c571d13f857ff90e7ce21d58d67073381250e
+    manager: conda
+    name: libzlib
+    optional: false
+    platform: win-64
+    url: https://conda.anaconda.org/conda-forge/win-64/libzlib-1.2.11-h8ffe710_1013.tar.bz2
+    version: 1.2.11

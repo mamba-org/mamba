@@ -37,9 +37,7 @@
       "description": "Base profile using conda libraries and GNU compilers",
       "displayName": "Conda GNU",
       "hidden": true,
-      "inherits": [
-        "conda-unix"
-      ],
+      "inherits": ["conda-unix"],
       "name": "conda-gnu"
     },
     {
@@ -52,9 +50,7 @@
       "description": "Base profile using conda libraries and LLVM compilers",
       "displayName": "Conda Clang",
       "hidden": true,
-      "inherits": [
-        "conda-unix"
-      ],
+      "inherits": ["conda-unix"],
       "name": "conda-llvm"
     }
   ],

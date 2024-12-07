@@ -8,10 +8,10 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'docs/**'
-      - 'mamba/**'
-      - 'libmambapy/**'
-      - '**.md'
+      - "docs/**"
+      - "mamba/**"
+      - "libmambapy/**"
+      - "**.md"
   merge_group:
     types: [checks_requested]
 
@@ -27,11 +27,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: ubuntu-latest, platform: linux, arch: "64"}
-          - {os: ubuntu-latest, platform: linux, arch: aarch64}
-          - {os: ubuntu-latest, platform: linux, arch: ppc64le}
-          - {os: macos-latest, platform: osx, arch: "64"}
-          - {os: macos-latest, platform: osx, arch: arm64}
+          - { os: ubuntu-latest, platform: linux, arch: "64" }
+          - { os: ubuntu-latest, platform: linux, arch: aarch64 }
+          - { os: ubuntu-latest, platform: linux, arch: ppc64le }
+          - { os: macos-latest, platform: osx, arch: "64" }
+          - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v4

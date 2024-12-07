@@ -1,8 +1,8 @@
 name: test env with spaces
 channels:
-- conda-forge
+  - conda-forge
 dependencies:
-- python=3.9
-- pip
-- pip:
-  - pydantic
+  - python=3.9
+  - pip
+  - pip:
+      - pydantic

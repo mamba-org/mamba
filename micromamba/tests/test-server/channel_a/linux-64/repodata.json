@@ -34,9 +34,7 @@
     "B_0.1.0.tar.bz2": {
       "build": "abc",
       "build_number": 0,
-      "depends": [
-        "a"
-      ],
+      "depends": ["a"],
       "license": "BSD",
       "license_family": "BSD",
       "md5": "85107fc10154734ef34a5a75685be684",

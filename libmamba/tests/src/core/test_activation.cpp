@@ -19,8 +19,7 @@ namespace mamba
 
         TEST_CASE("Activator::get_default_env")
         {
-            ContextOptions opts;
-            Context ctx(opts);
+            Context ctx;
             ctx.prefix_params.root_prefix = "/home/user/miniforge";
             PosixActivator a(ctx);
             REQUIRE(a.get_default_env("/home/user/miniforge") == "base");

@@ -11,6 +11,7 @@ add_executable(
     src/main.cpp
     src/msvc_catch_string_view.cpp
     src/pool_data.cpp
+    src/pool_data.hpp
     src/test_pool.cpp
     src/test_queue.cpp
     src/test_repo.cpp

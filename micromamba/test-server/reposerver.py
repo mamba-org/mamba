@@ -7,7 +7,6 @@ import shutil
 import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from typing import Dict, List
 
 try:
     import conda_content_trust.authentication as cct_authentication
@@ -34,7 +33,7 @@ def get_fingerprint(gpg_output: str) -> str:
     return fpline
 
 
-KeySet = Dict[str, List[Dict[str, str]]]
+KeySet = dict[str, list[dict[str, str]]]
 
 
 def normalize_keys(keys: KeySet) -> KeySet:

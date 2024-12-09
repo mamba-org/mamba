@@ -46,7 +46,7 @@ class WindowsProfiles:
                 "-Command",
                 "$PROFILE.CurrentUserAllHosts",
             ]
-            res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            res = subprocess.run(args, capture_output=True, check=True)
             return res.stdout.decode("utf-8").strip()
         elif shell == "cmd.exe":
             return None
@@ -185,8 +185,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     try:
         res = subprocess.run(
             args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=True,
             env=env,
             encoding="utf-8",
@@ -273,7 +272,7 @@ def shvar(v, interpreter):
 
 def env_to_dict(out, interpreter="bash"):
     if interpreter == "cmd.exe":
-        with open(out, "r") as f:
+        with open(out) as f:
             out = f.read()
 
     if interpreter == "fish":

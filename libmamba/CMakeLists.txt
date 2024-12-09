@@ -273,6 +273,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "App
     )
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    # See: https://github.com/mamba-org/mamba/issues/3666
+    set_source_files_properties(
+        ${LIBMAMBA_SOURCE_DIR}/download/curl.cpp PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized
+    )
+endif()
+
 foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
 endforeach()

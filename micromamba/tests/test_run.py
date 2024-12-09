@@ -80,7 +80,7 @@ class TestRun:
         test_script_path = os.path.join(os.path.dirname(__file__), test_script_file_name)
         if not os.path.isfile(test_script_path):
             raise RuntimeError(
-                "missing test script '{}' at '{}".format(test_script_file_name, test_script_path)
+                f"missing test script '{test_script_file_name}' at '{test_script_path}"
             )
         subprocess_run(test_script_path, shell=True)
 

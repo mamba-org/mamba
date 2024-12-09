@@ -159,7 +159,7 @@ def test_env_remove(tmp_home, tmp_root_prefix):
     env_json = helpers.run_env("list", "--json")
     assert str(env_fp) in env_json["envs"]
     assert env_fp.exists()
-    with open(conda_env_file, "r", encoding="utf-8") as f:
+    with open(conda_env_file, encoding="utf-8") as f:
         lines = [line.strip() for line in f]
         assert str(env_fp) in lines
 
@@ -168,7 +168,7 @@ def test_env_remove(tmp_home, tmp_root_prefix):
     env_json = helpers.run_env("list", "--json")
     assert str(env_fp) not in env_json["envs"]
     assert not env_fp.exists()
-    with open(conda_env_file, "r", encoding="utf-8") as f:
+    with open(conda_env_file, encoding="utf-8") as f:
         lines = [line.strip() for line in f]
         assert str(env_fp) not in lines
 

@@ -34,9 +34,7 @@ def validate_date(date_str):
 def subprocess_run(*args: str, **kwargs) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
     try:
-        p = subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
-        )
+        p = subprocess.run(args, capture_output=True, check=True, **kwargs)
     except subprocess.CalledProcessError as e:
         print(f"Command {args} failed with stderr: {e.stderr.decode()}")
         print(f"Command {args} failed with stdout: {e.stdout.decode()}")
@@ -45,18 +43,18 @@ def subprocess_run(*args: str, **kwargs) -> str:
 
 
 def append_to_file(ctgr_name, prs, out_file):
-    out_file.write("\n{}:\n\n".format(ctgr_name))
+    out_file.write(f"\n{ctgr_name}:\n\n")
     for pr in prs:
         # Author
-        pr_author_cmd = "gh pr view {} --json author".format(pr)
+        pr_author_cmd = f"gh pr view {pr} --json author"
         author_login = dict(json.loads(subprocess_run(*pr_author_cmd.split()).decode("utf-8")))[
             "author"
         ]["login"]
         # Title
-        pr_title_cmd = "gh pr view {} --json title".format(pr)
+        pr_title_cmd = f"gh pr view {pr} --json title"
         title = dict(json.loads(subprocess_run(*pr_title_cmd.split()).decode("utf-8")))["title"]
         # URL
-        pr_url_cmd = "gh pr view {} --json url".format(pr)
+        pr_url_cmd = f"gh pr view {pr} --json url"
         url = dict(json.loads(subprocess_run(*pr_url_cmd.split()).decode("utf-8")))["url"]
         # Files
         # Use a different command with graphql allowing pagination
@@ -110,7 +108,7 @@ def main():
 
     for pr in prs_nbrs:
         # Get labels
-        pr_labels_cmd = "gh pr view {} --json labels".format(pr)
+        pr_labels_cmd = f"gh pr view {pr} --json labels"
         labels = dict(json.loads(subprocess_run(*pr_labels_cmd.split()).decode("utf-8")))["labels"]
         nb_rls_lbls_types = 0
         label = ""
@@ -121,7 +119,7 @@ def main():
 
         # Only one release label should be set
         if nb_rls_lbls_types == 0:
-            raise ValueError("No release label is set for PR #{}".format(pr))
+            raise ValueError(f"No release label is set for PR #{pr}")
         elif nb_rls_lbls_types > 1:
             raise ValueError(
                 "Only one release label should be set. PR #{} has {} labels.".format(
@@ -137,7 +135,7 @@ def main():
         elif label == "release::ci_docs":
             ci_docs_prs.append(pr)
         else:
-            raise ValueError("Unknown release label {} for PR #{}".format(label, pr))
+            raise ValueError(f"Unknown release label {label} for PR #{pr}")
 
     with open("CHANGELOG.md", "r+") as changelog_file:
         # Make sure we're appending at the beginning of the file

@@ -127,7 +127,7 @@ def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name)
             assert trash_file.exists()
             all_trash_files = list(Path(tmp_xtensor_env).rglob("*.mamba_trash"))
 
-            with open(trash_file, "r") as fi:
+            with open(trash_file) as fi:
                 lines = [x.strip() for x in fi.readlines()]
                 assert all([line.endswith(".mamba_trash") for line in lines])
                 assert len(all_trash_files) == len(lines)
@@ -144,7 +144,7 @@ def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name)
             assert trash_file.exists()
             assert pyexe_trash.exists()
 
-            with open(trash_file, "r") as fi:
+            with open(trash_file) as fi:
                 lines = [x.strip() for x in fi.readlines()]
                 assert all([line.endswith(".mamba_trash") for line in lines])
                 assert len(all_trash_files) == len(lines)
@@ -155,7 +155,7 @@ def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name)
             assert trash_file.exists() is False
             assert pyexe_trash.exists() is False
 
-        subprocess.Popen("TASKKILL /F /PID {pid} /T".format(pid=pyproc.pid))
+        subprocess.Popen(f"TASKKILL /F /PID {pyproc.pid} /T")
         # check that another env mod clears lingering trash files
         time.sleep(0.5)
         helpers.install("xsimd", "-n", tmp_env_name, "--json", no_dry_run=True)

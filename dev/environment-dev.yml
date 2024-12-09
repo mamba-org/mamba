@@ -31,6 +31,7 @@ dependencies:
   - pytest-asyncio
   - pytest-timeout
   - pytest-xprocess
+  - memory_profiler
   - requests
   - sel(win): pywin32
   - sel(win): menuinst

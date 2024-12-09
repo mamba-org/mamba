@@ -16,9 +16,7 @@ import yaml
 def subprocess_run(*args: str, **kwargs) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
     try:
-        p = subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
-        )
+        p = subprocess.run(args, capture_output=True, check=True, **kwargs)
     except subprocess.CalledProcessError as e:
         print(f"Command {args} failed with stderr: {e.stderr.decode()}")
         print(f"Command {args} failed with stdout: {e.stdout.decode()}")
@@ -382,7 +380,7 @@ def read_windows_registry(target_path):  # pragma: no cover
 
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != errno.ENOENT:
             raise
         return None, None
@@ -410,7 +408,7 @@ def write_windows_registry(target_path, value_value, value_type):  # pragma: no 
     main_key = getattr(winreg, main_key)
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_WRITE)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != errno.ENOENT:
             raise
         key = winreg.CreateKey(main_key, subkey_str)

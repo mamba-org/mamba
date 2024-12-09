@@ -85,3 +85,18 @@ Deactivation
 ************
 
 The *deactivation* is the opposite operation of :ref:`activation<activation>`, removing from your shell what makes the environment content accessible.
+
+
+.. _shell_completion:
+
+Shell completion
+****************
+
+After initialization, shell completion is available in any new shell.
+Just hit ``<TAB><TAB>`` to get completion when typing your command.
+
+For example the following command will help you to pick a named environment to activate:
+
+.. code-block:: bash
+
+  micromamba activate <TAB><TAB>

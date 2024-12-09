@@ -56,10 +56,10 @@ namespace mamba
         {
             return "base";
         }
-        // if ../miniconda3/envs/my_super_env, return `my_super_env`, else path
-        if (prefix.parent_path().stem() == "envs")
+        // if ../miniconda3/envs/my_super.env, return `my_super.env`, else path
+        if (prefix.parent_path().filename() == "envs")
         {
-            return prefix.stem().string();
+            return prefix.filename().string();
         }
         else
         {

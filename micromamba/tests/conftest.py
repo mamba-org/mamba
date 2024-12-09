@@ -2,7 +2,8 @@ import copy
 import os
 import pathlib
 import platform
-from typing import Any, Generator, Mapping, Optional
+from typing import Any, Optional
+from collections.abc import Generator, Mapping
 
 import pytest
 

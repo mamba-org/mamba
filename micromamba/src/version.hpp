@@ -15,10 +15,10 @@
 #define UMAMBA_VERSION_PATCH 5
 #define UMAMBA_VERSION_IS_PRERELEASE 1
 #if UMAMBA_VERSION_IS_PRERELEASE == 1
-#define UMAMBA_VERSION_PRERELEASE_NAME "dev0"
+#define UMAMBA_VERSION_PRERELEASE_NAME "rc0"
 #endif
 
-#define UMAMBA_VERSION_STRING "2.0.5.dev0"
+#define UMAMBA_VERSION_STRING "2.0.5.rc0"
 #define UMAMBA_VERSION                                                                             \
     (UMAMBA_VERSION_MAJOR * 10000 + UMAMBA_VERSION_MINOR * 100 + UMAMBA_VERSION_PATCH)
 

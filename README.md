@@ -45,14 +45,16 @@ See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/u
 ## `mamba` v.s. `micromamba`
 
 `mamba` has to be preferred when:
-  - `libmambapy` or `libmamba` is used by other software in the same environment.
-  - Scenarios where regular updates to libraries are required (especially for security).
-  - Environments are focused on reducing disk space usage for dependencies.
+
+- `libmambapy` or `libmamba` is used by other software in the same environment.
+- Scenarios where regular updates to libraries are required (especially for security).
+- Environments are focused on reducing disk space usage for dependencies.
 
 `micromamba` has to be preferred when:
-  - Relying a single self-contained executable is required.
-  - A miniforge distribution is not present.
-  - Usage requires minimal runtime.
+
+- Relying a single self-contained executable is required.
+- A miniforge distribution is not present.
+- Usage requires minimal runtime.
 
 ## Installation
 

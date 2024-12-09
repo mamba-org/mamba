@@ -5,23 +5,20 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-      - id: fix-encoding-pragma
-        args: [--remove]
-      - id: check-yaml
-        exclude: ^.+(/tests/|/recipe/).+$
-      - id: check-toml
-      - id: check-json
       - id: check-merge-conflict
-      - id: pretty-format-json
-        args: [--autofix]
       - id: debug-statements
         language_version: python3
+  # Autoformat: YAML, JSON, Markdown, etc.
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.4.2
+    hooks:
+      - id: prettier
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
-    - id: rst-backticks
-    - id: rst-directive-colons
-    - id: rst-inline-touching-normal
+      - id: rst-backticks
+      - id: rst-directive-colons
+      - id: rst-inline-touching-normal
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.0
     hooks:
@@ -31,7 +28,7 @@ repos:
     rev: v0.8.2
     hooks:
       - id: ruff
-        args: [ --fix ]
+        args: [--fix]
       - id: ruff-format
   - repo: https://github.com/asottile/blacken-docs
     rev: 1.19.1
@@ -55,4 +52,4 @@ repos:
         exclude: (CHANGELOG.md)
         # In case of ambiguity (multiple possible corrections), `typos` will just report it to the user and move on without applying/writing any changes.
         # cf. https://github.com/crate-ci/typos
-        args: [ --write-changes ]
+        args: [--write-changes]

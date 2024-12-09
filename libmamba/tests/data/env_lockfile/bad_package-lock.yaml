@@ -1,15 +1,15 @@
 version: 1
 
 package:
-- category: main
-  dependencies: {}
-  ## Commented out some fields to make it an incomplete definition
-  # hash:
-  #   md5: d7c89558ba9fa0495403155b64376d81
-  #   sha256: fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726
-  # manager: conda
-  # optional: false
-  name: _libgcc_mutex
-  platform: linux-64
-  url: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
-  version: '0.1'
+  - category: main
+    dependencies: {}
+    ## Commented out some fields to make it an incomplete definition
+    # hash:
+    #   md5: d7c89558ba9fa0495403155b64376d81
+    #   sha256: fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726
+    # manager: conda
+    # optional: false
+    name: _libgcc_mutex
+    platform: linux-64
+    url: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
+    version: "0.1"

@@ -144,8 +144,7 @@ def main():
 
         # Append new info
         # Release date and version
-        changelog_file.write("{}\n".format(date.today().strftime("%Y.%m.%d")))
-        changelog_file.write("==========\n")
+        changelog_file.write("# {}\n".format(date.today().strftime("%Y.%m.%d")))
         changelog_file.write(
             "\nReleases: libmamba {0}, libmambapy {0}, micromamba {0}\n".format(release_version)
         )

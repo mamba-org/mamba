@@ -17,8 +17,9 @@ set(
     longpath.manifest
     ${CMAKE_CURRENT_SOURCE_DIR}/src/activate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/clean.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/completer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/constructor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/env.cpp
@@ -26,7 +27,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/install.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/list.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/login.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/package.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/remove.cpp
@@ -41,6 +41,7 @@ set(
 set(
     MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/constructor.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )

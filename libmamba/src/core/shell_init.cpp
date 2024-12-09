@@ -569,15 +569,34 @@ namespace mamba
     )
     {
         auto out = Console::stream();
-        fmt::print(
-            out,
-            "Modifying RC file {}\n"
-            "Generating config for root prefix {}\n"
-            "Setting mamba executable to: {}\n",
-            fmt::streamed(file_path),
-            fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
-            fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)
-        );
+
+        if (context.dry_run)
+        {
+            fmt::print("Running `shell init` in dry-run mode\n");
+            fmt::print("Running `shell init` would:\n");
+            fmt::print(
+                out,
+                " - would modify RC file: {}\n"
+                " - would generate config for root prefix: {}\n"
+                " - would set mamba executable to: {}\n",
+                fmt::streamed(file_path),
+                fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
+                fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)
+            );
+        }
+        else
+        {
+            fmt::print("Running `shell init`, which:\n");
+            fmt::print(
+                out,
+                " - modifies RC file: {}\n"
+                " - generates config for root prefix: {}\n"
+                " - sets mamba executable to: {}\n",
+                fmt::streamed(file_path),
+                fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
+                fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)
+            );
+        }
 
         // TODO do we need binary or not?
         std::string conda_init_content, rc_content;
@@ -612,15 +631,14 @@ namespace mamba
             conda_init_content = rcfile_content(conda_prefix, shell, mamba_exe);
         }
 
-        fmt::print(
-            out,
-            "Adding (or replacing) the following in your {} file\n{}",
-            fmt::streamed(file_path),
-            fmt::styled(conda_init_content, context.graphics_params.palette.success)
-        );
-
         if (context.dry_run)
         {
+            fmt::print(
+                out,
+                "The following would have been added in your {} file\n{}",
+                fmt::streamed(file_path),
+                fmt::styled(conda_init_content, context.graphics_params.palette.success)
+            );
             return;
         }
 
@@ -636,6 +654,13 @@ namespace mamba
             std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
             rc_file << result;
         }
+
+        fmt::print(
+            out,
+            "The following has been added in your {} file\n{}",
+            fmt::streamed(file_path),
+            fmt::styled(conda_init_content, context.graphics_params.palette.success)
+        );
     }
 
     void
@@ -1071,12 +1096,6 @@ namespace mamba
 
         // Find what content we need to add.
         auto out = Console::stream();
-        fmt::print(
-            out,
-            "Adding (or replacing) the following in your {} file\n{}",
-            fmt::streamed(profile_path),
-            fmt::styled(conda_init_content, context.graphics_params.palette.success)
-        );
 
         if (found_mamba_initialize)
         {
@@ -1093,6 +1112,13 @@ namespace mamba
 
         if (context.dry_run)
         {
+            fmt::print("Running `shell init` in dry-run mode\n");
+            fmt::print(
+                out,
+                "The following would have been added in your {} file\n{}",
+                fmt::streamed(profile_path),
+                fmt::styled(conda_init_content, context.graphics_params.palette.success)
+            );
             return;
         }
 
@@ -1117,7 +1143,13 @@ namespace mamba
 
             return;
         }
-        return;
+
+        fmt::print(
+            out,
+            "The following has been added in your {} file\n{}",
+            fmt::streamed(profile_path),
+            fmt::styled(conda_init_content, context.graphics_params.palette.success)
+        );
     }
 
     void deinit_powershell(const Context& context, const fs::u8path& profile_path, const fs::u8path&)

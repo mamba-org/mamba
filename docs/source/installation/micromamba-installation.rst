@@ -230,30 +230,3 @@ The executable can be striped to remove its size:
 .. code:: bash
 
    strip "build/micromamba/micromamba"
-
-
-.. _shell_completion:
-
-Shell completion
-****************
-
-For now, only ``micromamba`` provides shell completion on ``bash`` and ``zsh``.
-
-To activate it, it's as simple as running:
-
-.. code:: bash
-
-  micromamba shell completion
-
-The completion is now available in any new shell opened or in the current shell after sourcing the configuration file to take modifications into account.
-
-.. code-block:: sh
-
-  source ~/.<shell>rc
-
-| Just hit ``<TAB><TAB>`` to get completion when typing your command.
-| For example the following command will help you to pick a named environment to activate:
-
-.. code-block:: bash
-
-  micromamba activate <TAB><TAB>

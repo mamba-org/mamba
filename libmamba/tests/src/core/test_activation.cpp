@@ -28,8 +28,12 @@ namespace mamba
             REQUIRE(a.get_default_env("/home/user/miniforge/envs/an.env") == "an.env");
             REQUIRE(a.get_default_env("/home/user/miniforge/envs/an-oth.er") == "an-oth.er");
             REQUIRE(a.get_default_env("/opt/envs/yet.an-oth.er") == "yet.an-oth.er");
-            REQUIRE(a.get_default_env("/opt/envs.d/env") == "/opt/envs.d/env");
-            REQUIRE(a.get_default_env("/home/user/some/env") == "/home/user/some/env");
+
+            const fs::u8path& alternative_folder = "/opt/envs.d/env";
+            REQUIRE(a.get_default_env(alternative_folder) == alternative_folder);
+
+            const fs::u8path& alt_folder = "/home/user/some/env";
+            REQUIRE(a.get_default_env(alt_folder) == alt_folder);
         }
     }
 }  // namespace mamba

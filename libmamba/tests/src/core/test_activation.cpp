@@ -16,5 +16,20 @@ namespace mamba
             // std::endl; std::cout << a.activate("/home/wolfv/miniconda3/", false) <<
             // std::endl;
         }
+
+        TEST_CASE("Activator::get_default_env")
+        {
+            ContextOptions opts;
+            Context ctx(opts);
+            ctx.prefix_params.root_prefix = "/home/user/miniforge";
+            PosixActivator a(ctx);
+            REQUIRE(a.get_default_env("/home/user/miniforge") == "base");
+            REQUIRE(a.get_default_env("/home/user/miniforge/envs/env") == "env");
+            REQUIRE(a.get_default_env("/home/user/miniforge/envs/an.env") == "an.env");
+            REQUIRE(a.get_default_env("/home/user/miniforge/envs/an-oth.er") == "an-oth.er");
+            REQUIRE(a.get_default_env("/opt/envs/yet.an-oth.er") == "yet.an-oth.er");
+            REQUIRE(a.get_default_env("/opt/envs.d/env") == "/opt/envs.d/env");
+            REQUIRE(a.get_default_env("/home/user/some/env") == "/home/user/some/env");
+        }
     }
 }  // namespace mamba

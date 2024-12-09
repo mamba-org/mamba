@@ -196,18 +196,19 @@ void
 read_binary_from_stdin_and_write_to_file(fs::u8path& filename)
 {
     std::ofstream out_stream = open_ofstream(filename, std::ofstream::binary);
+    FILE* stdin_bin;
     // Need to reopen stdin as binary
-    std::freopen(nullptr, "rb", stdin);
-    if (std::ferror(stdin))
+    stdin_bin = std::freopen(nullptr, "rb", stdin);
+    if (std::ferror(stdin_bin))
     {
         throw std::runtime_error("Re-opening stdin as binary failed.");
     }
     std::size_t len;
     std::array<char, 1024> buffer;
 
-    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin)) > 0)
+    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin_bin)) > 0)
     {
-        if (std::ferror(stdin) && !std::feof(stdin))
+        if (std::ferror(stdin_bin) && !std::feof(stdin_bin))
         {
             throw std::runtime_error("Reading from stdin failed.");
         }

@@ -301,6 +301,34 @@ namespace mamba
                 line.pop_back();
             }
 
+            // Remove leading and trailing whitespace in place not to create a new string.
+            util::inplace_strip(line);
+
+            // Skipping empty lines
+            if (line.empty())
+            {
+                continue;
+            }
+
+            // Skipping comment lines starting with #
+            if (util::starts_with(line, "#"))
+            {
+                continue;
+            }
+
+            // Skipping comment lines starting with @ BUT headers of explicit environment specs
+            if (util::starts_with(line, "@"))
+            {
+                auto is_explicit_header = util::starts_with(line, "@EXPLICIT");
+
+                if (is_explicit_header)
+                {
+                    output.push_back(line);
+                }
+                continue;
+            }
+
+            // By default, add the line to the output (MatchSpecs, etc.)
             output.push_back(line);
         }
         file_stream.close();

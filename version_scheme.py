@@ -41,11 +41,11 @@ class version_info:
         version_errors = []
 
         if not self.major.isdigit():
-            version_errors.append("'{}' is not a valid major version number".format(self.major))
+            version_errors.append(f"'{self.major}' is not a valid major version number")
         if not self.minor.isdigit():
-            version_errors.append("'{}' is not a valid minor version number".format(self.minor))
+            version_errors.append(f"'{self.minor}' is not a valid minor version number")
         if not self.patch.isdigit():
-            version_errors.append("'{}' is not a valid patch version number".format(self.patch))
+            version_errors.append(f"'{self.patch}' is not a valid patch version number")
 
         if self.pre_release != "" and not self.pre_release.startswith(
             VALID_VERSION_PRERELEASE_TYPES
@@ -57,13 +57,13 @@ class version_info:
             )
 
         if len(version_errors) > 0:
-            error_message = "'{}' is not a valid version name:".format(version)
+            error_message = f"'{version}' is not a valid version name:"
             for error in version_errors:
-                error_message += "\n - {}".format(error)
+                error_message += f"\n - {error}"
             hint = (
                 "examples of valid versions: 1.2.3, 0.1.2, 1.2.3.alpha0, 1.2.3.beta1, 3.4.5.beta.2"
             )
-            error_message += "\n{}".format(hint)
+            error_message += f"\n{hint}"
             raise ValueError(error_message)
 
         self.name = version

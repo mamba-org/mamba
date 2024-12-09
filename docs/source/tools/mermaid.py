@@ -25,7 +25,6 @@ import sphinx
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
 from docutils.statemachine import ViewList
-from six import text_type
 from sphinx.application import Sphinx
 from sphinx.errors import SphinxError
 from sphinx.locale import _
@@ -96,7 +95,7 @@ class Mermaid(Directive):
             try:
                 with codecs.open(filename, "r", "utf-8") as fp:
                     mmcode = fp.read()
-            except (IOError, OSError):  # noqa
+            except OSError:  # noqa
                 return [
                     document.reporter.warning(
                         "External Mermaid file %r not found or reading " "it failed" % filename,
@@ -144,8 +143,8 @@ def render_mm(self, code, options, fmt, prefix="mermaid"):
         "utf-8"
     )
 
-    basename = "%s-%s" % (prefix, sha1(hashkey).hexdigest())
-    fname = "%s.%s" % (basename, fmt)
+    basename = f"{prefix}-{sha1(hashkey).hexdigest()}"
+    fname = f"{basename}.{fmt}"
     relfn = posixpath.join(self.builder.imgpath, fname)
     outdir = os.path.join(self.builder.outdir, self.builder.imagedir)
     outfn = os.path.join(outdir, fname)
@@ -157,7 +156,7 @@ def render_mm(self, code, options, fmt, prefix="mermaid"):
     ensuredir(os.path.dirname(outfn))
 
     # mermaid expects UTF-8 by default
-    if isinstance(code, text_type):
+    if isinstance(code, str):
         code = code.encode("utf-8")
 
     with open(tmpfn, "wb") as t:
@@ -235,8 +234,8 @@ def render_mm_html(self, node, code, options, prefix="mermaid", imgcls=None, alt
             alt = node.get("alt", self.encode(code).strip())
         imgcss = imgcls and 'class="%s"' % imgcls or ""
         if fmt == "svg":
-            svgtag = """<object data="%s" type="image/svg+xml">
-            <p class="warning">%s</p></object>\n""" % (
+            svgtag = """<object data="{}" type="image/svg+xml">
+            <p class="warning">{}</p></object>\n""".format(
                 fname,
                 alt,
             )
@@ -244,10 +243,10 @@ def render_mm_html(self, node, code, options, prefix="mermaid", imgcls=None, alt
         else:
             if "align" in node:
                 self.body.append(
-                    '<div align="%s" class="align-%s">' % (node["align"], node["align"])
+                    '<div align="{}" class="align-{}">'.format(node["align"], node["align"])
                 )
 
-            self.body.append('<img src="%s" alt="%s" %s/>\n' % (fname, alt, imgcss))
+            self.body.append(f'<img src="{fname}" alt="{alt}" {imgcss}/>\n')
             if "align" in node:
                 self.body.append("</div>\n")
 
@@ -310,9 +309,7 @@ def render_mm_latex(self, node, code, options, prefix="mermaid"):
             elif node["align"] == "right":
                 self.body.append("{\\hspace*{\\fill}")
                 post = "}"
-        self.body.append(
-            "%s\\sphinxincludegraphics{%s}%s" % (para_separator, fname, para_separator)
-        )
+        self.body.append(f"{para_separator}\\sphinxincludegraphics{{{fname}}}{para_separator}")
         if post:
             self.body.append(post)
 
@@ -356,7 +353,7 @@ def man_visit_mermaid(self, node):
 
 def config_inited(app, config):
     version = config.mermaid_version
-    mermaid_js_url = "https://unpkg.com/mermaid@{}/dist/mermaid.min.js".format(version)
+    mermaid_js_url = f"https://unpkg.com/mermaid@{version}/dist/mermaid.min.js"
     app.add_js_file(mermaid_js_url)
     app.add_js_file(
         None,

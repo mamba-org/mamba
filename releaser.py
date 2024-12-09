@@ -29,7 +29,7 @@ def apply_changelog(name, version_name, changes):
 
     if name in templates:
         template = templates[name]
-        with open(template, "r") as fi:
+        with open(template) as fi:
             final = template_substitute(fi.read())
         with open(template[: -len(".tmpl")], "w") as fo:
             fo.write(final)
@@ -53,7 +53,7 @@ def apply_changelog(name, version_name, changes):
     res += "\n"
 
     cl_file = name + "/CHANGELOG.md"
-    with open(cl_file, "r") as fi:
+    with open(cl_file) as fi:
         prev_cl = fi.read()
     with open(cl_file, "w") as fo:
         fo.write(res + prev_cl)
@@ -123,7 +123,7 @@ def populate_changes(name, sections, changes):
 
 def main():
     changes = {}
-    with open("CHANGELOG.md", "r") as fi:
+    with open("CHANGELOG.md") as fi:
         contents = fi.readlines()
 
     for idx, line in enumerate(contents):

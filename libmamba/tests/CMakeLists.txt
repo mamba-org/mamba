@@ -54,12 +54,12 @@ set(
     src/specs/test_regex_spec.cpp
     src/specs/test_repo_data.cpp
     src/specs/test_unresolved_channel.cpp
-    src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
+    src/specs/test_version.cpp
     # Solver tests
+    src/solver/test_problems_graph.cpp
     src/solver/test_request.cpp
     src/solver/test_solution.cpp
-    src/solver/test_problems_graph.cpp
     # Solver libsolv implementation tests
     src/solver/libsolv/test_database.cpp
     src/solver/libsolv/test_solver.cpp
@@ -77,21 +77,21 @@ set(
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp
+    src/core/test_env_lockfile.cpp
     src/core/test_environments_manager.cpp
+    src/core/test_execution.cpp
+    src/core/test_filesystem.cpp
     src/core/test_history.cpp
+    src/core/test_invoke.cpp
     src/core/test_lockfile.cpp
-    src/core/test_pinning.cpp
     src/core/test_output.cpp
+    src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
-    src/core/test_thread_utils.cpp
-    src/core/test_virtual_packages.cpp
-    src/core/test_util.cpp
-    src/core/test_env_lockfile.cpp
-    src/core/test_execution.cpp
-    src/core/test_invoke.cpp
     src/core/test_tasksync.cpp
-    src/core/test_filesystem.cpp
+    src/core/test_thread_utils.cpp
+    src/core/test_util.cpp
+    src/core/test_virtual_packages.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

@@ -108,6 +108,26 @@ namespace
             REQUIRE(ms.str() == "kytea[version=\">=0.1.4,==0.2.0\"]");
         }
 
+        SECTION("abc>12")
+        {
+            auto ms = MatchSpec::parse("abc>12").value();
+            REQUIRE(ms.name().str() == "abc");
+            REQUIRE(ms.version().str() == ">12");
+            REQUIRE(ms.build_string().is_explicitly_free());
+            REQUIRE(ms.build_number().is_explicitly_free());
+            REQUIRE(ms.str() == "abc>12");
+        }
+
+        SECTION("abc[version='>3']")
+        {
+            auto ms = MatchSpec::parse("abc[version='>3']").value();
+            REQUIRE(ms.name().str() == "abc");
+            REQUIRE(ms.version().str() == ">3");
+            REQUIRE(ms.build_string().is_explicitly_free());
+            REQUIRE(ms.build_number().is_explicitly_free());
+            REQUIRE(ms.str() == "abc>3");
+        }
+
         // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
         // which is currently supported but which must not.
         SECTION("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")

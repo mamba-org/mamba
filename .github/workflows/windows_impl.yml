@@ -29,6 +29,7 @@ jobs:
           environment-name: build_env
           cache-environment: true
           init-shell: cmd.exe
+          micromamba-version: 2.0.5.rc0-0
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -80,6 +81,7 @@ jobs:
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe
+          micromamba-version: 2.0.5.rc0-0
       - name: Run solv-cpp tests
         shell: bash -elo pipefail {0}
         run: |
@@ -109,6 +111,7 @@ jobs:
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe
+          micromamba-version: 2.0.5.rc0-0
       - name: Install libmambapy
         run: |
           cmake --install build/ --prefix %CONDA_PREFIX%
@@ -137,6 +140,7 @@ jobs:
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe powershell
+          micromamba-version: 2.0.5.rc0-0
       - name: Install mamba
         shell: bash -elo pipefail {0}
         run: |

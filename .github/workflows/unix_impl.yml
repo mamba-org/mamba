@@ -28,6 +28,7 @@ jobs:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+          micromamba-version: 2.0.5.rc0-0
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -74,6 +75,7 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+          micromamba-version: 2.0.5.rc0-0
       - name: Run solv-cpp tests
         run: |
           ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
@@ -100,6 +102,7 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+          micromamba-version: 2.0.5.rc0-0
       - name: Install libmambapy
         run: |
           cmake --install build/ --prefix "${CONDA_PREFIX}"
@@ -127,6 +130,7 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+          micromamba-version: 2.0.5.rc0-0
       - name: install zsh, xonsh, fish and tcsh in linux
         if: startsWith(inputs.os, 'ubuntu')
         run: |
@@ -184,6 +188,7 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+          micromamba-version: 2.0.5.rc0-0
       - name: Run tests using conda-content-trust (server side)
         shell: bash -l {0} -euo pipefail -x
         run: |

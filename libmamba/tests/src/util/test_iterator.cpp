@@ -17,41 +17,39 @@
 
 using namespace mamba::util;
 
-namespace
+bool
+greater_than_10(int i)
 {
-    bool greater_than_10(int i)
+    return i > 10;
+}
+
+struct greater_than_10_obj
+{
+    bool operator()(int i)
     {
         return i > 10;
     }
+};
 
-    struct greater_than_10_obj
+struct filter_test_data
+{
+    filter_test_data()
+        : input_forward_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
+        , res_forward_sequence({ 12, 14, 18, 20 })
+        , input_bidirectional_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
+        , res_bidirectional_sequence({ 12, 14, 18, 20 })
+        , input_random_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
+        , res_random_sequence({ 12, 14, 18, 20 })
     {
-        bool operator()(int i)
-        {
-            return i > 10;
-        }
-    };
+    }
 
-    struct filter_test_data
-    {
-        filter_test_data()
-            : input_forward_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
-            , res_forward_sequence({ 12, 14, 18, 20 })
-            , input_bidirectional_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
-            , res_bidirectional_sequence({ 12, 14, 18, 20 })
-            , input_random_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
-            , res_random_sequence({ 12, 14, 18, 20 })
-        {
-        }
-
-        std::forward_list<int> input_forward_sequence;
-        std::forward_list<int> res_forward_sequence;
-        std::list<int> input_bidirectional_sequence;
-        std::list<int> res_bidirectional_sequence;
-        std::vector<int> input_random_sequence;
-        std::vector<int> res_random_sequence;
-    };
-}
+    std::forward_list<int> input_forward_sequence;
+    std::forward_list<int> res_forward_sequence;
+    std::list<int> input_bidirectional_sequence;
+    std::list<int> res_bidirectional_sequence;
+    std::vector<int> input_random_sequence;
+    std::vector<int> res_random_sequence;
+};
 
 template <class Seq, class Pred>
 void
@@ -145,57 +143,42 @@ test_random_access_api(Seq& input, const Seq& res, Pred pred)
     REQUIRE(citer2[1] == res_iter2[1]);
 }
 
-namespace
+TEST_CASE("forward_iterator_api")
 {
-    TEST_CASE("forward_iterator_api")
-    {
-        filter_test_data data;
-        test_forward_api(data.input_forward_sequence, data.res_forward_sequence, greater_than_10);
-        test_forward_api(
-            data.input_bidirectional_sequence,
-            data.res_bidirectional_sequence,
-            greater_than_10
-        );
-        test_forward_api(data.input_random_sequence, data.res_random_sequence, greater_than_10);
+    filter_test_data data;
+    test_forward_api(data.input_forward_sequence, data.res_forward_sequence, greater_than_10);
+    test_forward_api(data.input_bidirectional_sequence, data.res_bidirectional_sequence, greater_than_10);
+    test_forward_api(data.input_random_sequence, data.res_random_sequence, greater_than_10);
 
-        test_forward_api(data.input_forward_sequence, data.res_forward_sequence, greater_than_10_obj{});
-        test_forward_api(
-            data.input_bidirectional_sequence,
-            data.res_bidirectional_sequence,
-            greater_than_10_obj{}
-        );
-        test_forward_api(data.input_random_sequence, data.res_random_sequence, greater_than_10_obj{});
-    }
+    test_forward_api(data.input_forward_sequence, data.res_forward_sequence, greater_than_10_obj{});
+    test_forward_api(
+        data.input_bidirectional_sequence,
+        data.res_bidirectional_sequence,
+        greater_than_10_obj{}
+    );
+    test_forward_api(data.input_random_sequence, data.res_random_sequence, greater_than_10_obj{});
+}
 
-    TEST_CASE("bidirectional_iterator_api")
-    {
-        filter_test_data data;
-        test_bidirectional_api(
-            data.input_bidirectional_sequence,
-            data.res_bidirectional_sequence,
-            greater_than_10
-        );
-        test_bidirectional_api(data.input_random_sequence, data.res_random_sequence, greater_than_10);
-        test_bidirectional_api(
-            data.input_bidirectional_sequence,
-            data.res_bidirectional_sequence,
-            greater_than_10_obj{}
-        );
-        test_bidirectional_api(
-            data.input_random_sequence,
-            data.res_random_sequence,
-            greater_than_10_obj{}
-        );
-    }
+TEST_CASE("bidirectional_iterator_api")
+{
+    filter_test_data data;
+    test_bidirectional_api(
+        data.input_bidirectional_sequence,
+        data.res_bidirectional_sequence,
+        greater_than_10
+    );
+    test_bidirectional_api(data.input_random_sequence, data.res_random_sequence, greater_than_10);
+    test_bidirectional_api(
+        data.input_bidirectional_sequence,
+        data.res_bidirectional_sequence,
+        greater_than_10_obj{}
+    );
+    test_bidirectional_api(data.input_random_sequence, data.res_random_sequence, greater_than_10_obj{});
+}
 
-    TEST_CASE("random_access_iterator_api")
-    {
-        filter_test_data data;
-        test_random_access_api(data.input_random_sequence, data.res_random_sequence, greater_than_10);
-        test_random_access_api(
-            data.input_random_sequence,
-            data.res_random_sequence,
-            greater_than_10_obj{}
-        );
-    }
+TEST_CASE("random_access_iterator_api")
+{
+    filter_test_data data;
+    test_random_access_api(data.input_random_sequence, data.res_random_sequence, greater_than_10);
+    test_random_access_api(data.input_random_sequence, data.res_random_sequence, greater_than_10_obj{});
 }

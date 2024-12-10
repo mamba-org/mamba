@@ -56,127 +56,78 @@ namespace mamba
             }
         };
 
-        namespace
+        TEST_CASE_METHOD(LockDirTest, "basics")
         {
-            TEST_CASE_METHOD(LockDirTest, "basics")
+            mamba::LockFile lock{ tempdir_path };
+            REQUIRE(lock);
             {
-                mamba::LockFile lock{ tempdir_path };
-                REQUIRE(lock);
-                {
-                    auto new_lock = std::move(lock);
-                    REQUIRE_FALSE(lock);
-                    REQUIRE(new_lock);
-                }
+                auto new_lock = std::move(lock);
+                REQUIRE_FALSE(lock);
+                REQUIRE(new_lock);
+            }
+            REQUIRE_FALSE(lock);
+        }
+
+        TEST_CASE_METHOD(LockDirTest, "disable_locking")
+        {
+            {
+                auto _ = on_scope_exit([] { mamba::allow_file_locking(true); });
+                mamba::allow_file_locking(false);
+                auto lock = LockFile(tempdir_path);
                 REQUIRE_FALSE(lock);
             }
-
-            TEST_CASE_METHOD(LockDirTest, "disable_locking")
+            REQUIRE(mamba::is_file_locking_allowed());
             {
-                {
-                    auto _ = on_scope_exit([] { mamba::allow_file_locking(true); });
-                    mamba::allow_file_locking(false);
-                    auto lock = LockFile(tempdir_path);
-                    REQUIRE_FALSE(lock);
-                }
                 REQUIRE(mamba::is_file_locking_allowed());
-                {
-                    REQUIRE(mamba::is_file_locking_allowed());
-                    auto lock = LockFile(tempdir_path);
-                    REQUIRE(lock);
-                }
+                auto lock = LockFile(tempdir_path);
+                REQUIRE(lock);
             }
+        }
 
-            TEST_CASE_METHOD(LockDirTest, "same_pid")
+        TEST_CASE_METHOD(LockDirTest, "same_pid")
+        {
             {
+                auto lock = LockFile(tempdir_path);
+                REQUIRE(lock.is_locked());
+                REQUIRE(lock.count_lock_owners() == 1);
+                REQUIRE(fs::exists(lock.lockfile_path()));
+
                 {
-                    auto lock = LockFile(tempdir_path);
-                    REQUIRE(lock.is_locked());
-                    REQUIRE(lock.count_lock_owners() == 1);
-                    REQUIRE(fs::exists(lock.lockfile_path()));
-
-                    {
-                        auto other_lock = LockFile(tempdir_path);
-                        REQUIRE(other_lock.is_locked());
-                        REQUIRE(other_lock.count_lock_owners() == 2);
-                        REQUIRE(lock.count_lock_owners() == 2);
-                    }
-
-                    REQUIRE(lock.count_lock_owners() == 1);
-
-                    // check the first lock is still locked
-                    REQUIRE(fs::exists(lock.lockfile_path()));
+                    auto other_lock = LockFile(tempdir_path);
+                    REQUIRE(other_lock.is_locked());
+                    REQUIRE(other_lock.count_lock_owners() == 2);
+                    REQUIRE(lock.count_lock_owners() == 2);
                 }
-                REQUIRE_FALSE(fs::exists(tempdir_path / (tempdir_path.filename().string() + ".lock")));
 
-                // we can still re-lock afterwards
-                {
-                    auto lock = LockFile(tempdir_path);
-                    REQUIRE(fs::exists(lock.lockfile_path()));
-                }
+                REQUIRE(lock.count_lock_owners() == 1);
+
+                // check the first lock is still locked
+                REQUIRE(fs::exists(lock.lockfile_path()));
             }
+            REQUIRE_FALSE(fs::exists(tempdir_path / (tempdir_path.filename().string() + ".lock")));
 
-            TEST_CASE_METHOD(LockDirTest, "different_pid")
+            // we can still re-lock afterwards
             {
-                const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
-                std::string out, err;
-                std::vector<std::string> args;
+                auto lock = LockFile(tempdir_path);
+                REQUIRE(fs::exists(lock.lockfile_path()));
+            }
+        }
 
-                {
-                    auto lock = LockFile(tempdir_path);
-                    REQUIRE(fs::exists(lock.lockfile_path()));
+        TEST_CASE_METHOD(LockDirTest, "different_pid")
+        {
+            const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
+            std::string out, err;
+            std::vector<std::string> args;
 
-                    // Check lock status
-                    REQUIRE(mamba::LockFile::is_locked(lock));
+            {
+                auto lock = LockFile(tempdir_path);
+                REQUIRE(fs::exists(lock.lockfile_path()));
 
-                    // Check lock status from another process
-                    args = { lock_exe, "is-locked", lock.lockfile_path().string() };
-                    out.clear();
-                    err.clear();
-                    reproc::run(
-                        args,
-                        reproc::options{},
-                        reproc::sink::string(out),
-                        reproc::sink::string(err)
-                    );
+                // Check lock status
+                REQUIRE(mamba::LockFile::is_locked(lock));
 
-                    int is_locked = 0;
-                    try
-                    {
-                        is_locked = std::stoi(out);
-                    }
-                    catch (...)
-                    {
-                        std::cout << "conversion error" << std::endl;
-                    }
-                    REQUIRE(is_locked);
-
-                    // Try to lock from another process
-                    args = { lock_exe, "lock", "--timeout=1", tempdir_path.string() };
-                    out.clear();
-                    err.clear();
-                    reproc::run(
-                        args,
-                        reproc::options{},
-                        reproc::sink::string(out),
-                        reproc::sink::string(err)
-                    );
-
-                    bool new_lock_created = true;
-                    try
-                    {
-                        new_lock_created = std::stoi(out);
-                    }
-                    catch (...)
-                    {
-                        std::cout << "conversion error" << std::endl;
-                    }
-                    REQUIRE_FALSE(new_lock_created);
-                }
-
-                fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
-                REQUIRE_FALSE(fs::exists(lock_path));
-
-                args = { lock_exe, "is-locked", lock_path.string() };
+                // Check lock status from another process
+                args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
@@ -188,9 +139,45 @@ namespace mamba
                 }
                 catch (...)
                 {
+                    std::cout << "conversion error" << std::endl;
                 }
-                REQUIRE_FALSE(is_locked);
+                REQUIRE(is_locked);
+
+                // Try to lock from another process
+                args = { lock_exe, "lock", "--timeout=1", tempdir_path.string() };
+                out.clear();
+                err.clear();
+                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+                bool new_lock_created = true;
+                try
+                {
+                    new_lock_created = std::stoi(out);
+                }
+                catch (...)
+                {
+                    std::cout << "conversion error" << std::endl;
+                }
+                REQUIRE_FALSE(new_lock_created);
             }
+
+            fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
+            REQUIRE_FALSE(fs::exists(lock_path));
+
+            args = { lock_exe, "is-locked", lock_path.string() };
+            out.clear();
+            err.clear();
+            reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+            int is_locked = 0;
+            try
+            {
+                is_locked = std::stoi(out);
+            }
+            catch (...)
+            {
+            }
+            REQUIRE_FALSE(is_locked);
         }
 
         class LockFileTest
@@ -214,93 +201,44 @@ namespace mamba
             }
         };
 
-        namespace
+        TEST_CASE_METHOD(LockFileTest, "same_pid")
         {
-            TEST_CASE_METHOD(LockFileTest, "same_pid")
             {
+                LockFile lock{ tempfile_path };
+                REQUIRE(lock.is_locked());
+                REQUIRE(fs::exists(lock.lockfile_path()));
+                REQUIRE(lock.count_lock_owners() == 1);
+
                 {
-                    LockFile lock{ tempfile_path };
-                    REQUIRE(lock.is_locked());
-                    REQUIRE(fs::exists(lock.lockfile_path()));
-                    REQUIRE(lock.count_lock_owners() == 1);
-
-                    {
-                        LockFile other_lock{ tempfile_path };
-                        REQUIRE(other_lock.is_locked());
-                        REQUIRE(other_lock.count_lock_owners() == 2);
-                        REQUIRE(lock.count_lock_owners() == 2);
-                    }
-
-                    REQUIRE(lock.count_lock_owners() == 1);
-
-                    // check the first lock is still locked
-                    REQUIRE(fs::exists(lock.lockfile_path()));
+                    LockFile other_lock{ tempfile_path };
+                    REQUIRE(other_lock.is_locked());
+                    REQUIRE(other_lock.count_lock_owners() == 2);
+                    REQUIRE(lock.count_lock_owners() == 2);
                 }
-                REQUIRE_FALSE(fs::exists(tempfile_path.string() + ".lock"));
+
+                REQUIRE(lock.count_lock_owners() == 1);
+
+                // check the first lock is still locked
+                REQUIRE(fs::exists(lock.lockfile_path()));
             }
+            REQUIRE_FALSE(fs::exists(tempfile_path.string() + ".lock"));
+        }
 
-            TEST_CASE_METHOD(LockFileTest, "different_pid")
+        TEST_CASE_METHOD(LockFileTest, "different_pid")
+        {
+            const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
+            std::string out, err;
+            std::vector<std::string> args;
             {
-                const std::string lock_exe = mambatests::testing_libmamba_lock_exe.string();
-                std::string out, err;
-                std::vector<std::string> args;
-                {
-                    // Create a lock
-                    auto lock = LockFile(tempfile_path);
-                    REQUIRE(fs::exists(lock.lockfile_path()));
+                // Create a lock
+                auto lock = LockFile(tempfile_path);
+                REQUIRE(fs::exists(lock.lockfile_path()));
 
-                    // Check lock status from current PID
-                    REQUIRE(mamba::LockFile::is_locked(lock));
+                // Check lock status from current PID
+                REQUIRE(mamba::LockFile::is_locked(lock));
 
-                    // Check lock status from another process
-                    args = { lock_exe, "is-locked", lock.lockfile_path().string() };
-                    out.clear();
-                    err.clear();
-                    reproc::run(
-                        args,
-                        reproc::options{},
-                        reproc::sink::string(out),
-                        reproc::sink::string(err)
-                    );
-
-                    int is_locked = 0;
-                    try
-                    {
-                        is_locked = std::stoi(out);
-                    }
-                    catch (...)
-                    {
-                        std::cout << "conversion error" << std::endl;
-                    }
-                    REQUIRE(is_locked);
-
-                    // Try to lock from another process
-                    args = { lock_exe, "lock", "--timeout=1", tempfile_path.string() };
-                    out.clear();
-                    err.clear();
-                    reproc::run(
-                        args,
-                        reproc::options{},
-                        reproc::sink::string(out),
-                        reproc::sink::string(err)
-                    );
-
-                    bool new_lock_created = true;
-                    try
-                    {
-                        new_lock_created = std::stoi(out);
-                    }
-                    catch (...)
-                    {
-                        std::cout << "conversion error" << std::endl;
-                    }
-                    REQUIRE_FALSE(new_lock_created);
-                }
-
-                fs::u8path lock_path = tempfile_path.string() + ".lock";
-                REQUIRE_FALSE(fs::exists(lock_path));
-
-                args = { lock_exe, "is-locked", lock_path.string() };
+                // Check lock status from another process
+                args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
@@ -312,9 +250,45 @@ namespace mamba
                 }
                 catch (...)
                 {
+                    std::cout << "conversion error" << std::endl;
                 }
-                REQUIRE_FALSE(is_locked);
+                REQUIRE(is_locked);
+
+                // Try to lock from another process
+                args = { lock_exe, "lock", "--timeout=1", tempfile_path.string() };
+                out.clear();
+                err.clear();
+                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+                bool new_lock_created = true;
+                try
+                {
+                    new_lock_created = std::stoi(out);
+                }
+                catch (...)
+                {
+                    std::cout << "conversion error" << std::endl;
+                }
+                REQUIRE_FALSE(new_lock_created);
             }
+
+            fs::u8path lock_path = tempfile_path.string() + ".lock";
+            REQUIRE_FALSE(fs::exists(lock_path));
+
+            args = { lock_exe, "is-locked", lock_path.string() };
+            out.clear();
+            err.clear();
+            reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+            int is_locked = 0;
+            try
+            {
+                is_locked = std::stoi(out);
+            }
+            catch (...)
+            {
+            }
+            REQUIRE_FALSE(is_locked);
         }
     }
 }

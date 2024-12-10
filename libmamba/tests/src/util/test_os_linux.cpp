@@ -14,20 +14,17 @@
 using namespace mamba;
 using namespace mamba::util;
 
-namespace
+TEST_CASE("linux_version")
 {
-    TEST_CASE("linux_version")
+    const auto maybe_version = linux_version();
+    if (util::on_linux)
     {
-        const auto maybe_version = linux_version();
-        if (util::on_linux)
-        {
-            REQUIRE(maybe_version.has_value());
-            static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
-            REQUIRE(std ::regex_match(maybe_version.value(), version_regex));
-        }
-        else
-        {
-            REQUIRE_FALSE(maybe_version.has_value());
-        }
+        REQUIRE(maybe_version.has_value());
+        static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
+        REQUIRE(std ::regex_match(maybe_version.value(), version_regex));
+    }
+    else
+    {
+        REQUIRE_FALSE(maybe_version.has_value());
     }
 }

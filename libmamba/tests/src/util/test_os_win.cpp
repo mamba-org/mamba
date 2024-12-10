@@ -16,42 +16,39 @@
 using namespace mamba;
 using namespace mamba::util;
 
-namespace
+TEST_CASE("utf8")
 {
-    TEST_CASE("utf8")
+    if (!util::on_win)
     {
-        if (!util::on_win)
-        {
-            SKIP();
-        }
-        const std::wstring text_utf16 = L"Hello, I am Joël. 私のにほんごわへたです";
-        const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";
+        SKIP();
+    }
+    const std::wstring text_utf16 = L"Hello, I am Joël. 私のにほんごわへたです";
+    const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";
 
-        SECTION("utf8_to_windows_encoding")
-        {
-            REQUIRE(utf8_to_windows_encoding("") == L"");
-            REQUIRE(utf8_to_windows_encoding(text_utf8) == text_utf16);
-        }
-
-        SECTION("windows_encoding_to_utf8")
-        {
-            REQUIRE(windows_encoding_to_utf8(L"") == "");
-            REQUIRE(windows_encoding_to_utf8(text_utf16) == text_utf8);
-        }
+    SECTION("utf8_to_windows_encoding")
+    {
+        REQUIRE(utf8_to_windows_encoding("") == L"");
+        REQUIRE(utf8_to_windows_encoding(text_utf8) == text_utf16);
     }
 
-    TEST_CASE("windows_version")
+    SECTION("windows_encoding_to_utf8")
     {
-        const auto maybe_version = windows_version();
-        if (util::on_win)
-        {
-            REQUIRE(maybe_version.has_value());
-            static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
-            REQUIRE(std::regex_match(maybe_version.value(), version_regex));
-        }
-        else
-        {
-            REQUIRE_FALSE(maybe_version.has_value());
-        }
+        REQUIRE(windows_encoding_to_utf8(L"") == "");
+        REQUIRE(windows_encoding_to_utf8(text_utf16) == text_utf8);
+    }
+}
+
+TEST_CASE("windows_version")
+{
+    const auto maybe_version = windows_version();
+    if (util::on_win)
+    {
+        REQUIRE(maybe_version.has_value());
+        static const auto version_regex = std::regex(R"r(\d+\.\d+\.\d+)r");
+        REQUIRE(std::regex_match(maybe_version.value(), version_regex));
+    }
+    else
+    {
+        REQUIRE_FALSE(maybe_version.has_value());
     }
 }

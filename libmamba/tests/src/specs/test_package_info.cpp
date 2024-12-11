@@ -52,6 +52,27 @@ namespace
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
+        SECTION("http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81"
+        )
+        {
+            static constexpr std::string_view url = "http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81";
+
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "_libgcc_mutex");
+            REQUIRE(pkg.version == "0.1");
+            REQUIRE(pkg.build_string == "conda_forge");
+            REQUIRE(pkg.filename == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.platform == "linux-64");
+            // Make sure the token is not censored when setting the channel
+            REQUIRE(
+                pkg.channel
+                == "http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel"
+            );
+        }
+
         SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg.conda")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg.conda";

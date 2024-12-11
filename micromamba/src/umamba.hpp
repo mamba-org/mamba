@@ -86,9 +86,4 @@ get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** ar
 void
 set_auth_command(CLI::App* subcom);
 
-#if !defined(_WIN32) && defined(MICROMAMBA_SERVER)
-void
-set_server_command(CLI::App* subcom, mamba::Configuration& config);
-#endif
-
 #endif

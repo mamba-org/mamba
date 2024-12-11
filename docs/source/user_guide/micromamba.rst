@@ -268,6 +268,8 @@ These files are named ``conda-lock.yml`` by default, and look like:
       category: main
       optional: false
 
+In order to YAML files to be considered as ``conda-lock`` files, their name must ends with ``-lock.yml`` or ``-lock.yaml``.
+
 To install such a file with ``micromamba``, just pass the ``-f`` flag again:
 
 .. code::

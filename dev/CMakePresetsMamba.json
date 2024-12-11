@@ -23,7 +23,6 @@
     {
       "cacheVariables": {
         "BUILD_MICROMAMBA": "ON",
-        "BUILD_MICROMAMBA_SERVER": "ON",
         "BUILD_STATIC": "ON"
       },
       "hidden": true,

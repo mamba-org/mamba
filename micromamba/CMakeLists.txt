@@ -46,11 +46,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
 
-if(UNIX AND BUILD_MICROMAMBA_SERVER)
-    list(APPEND MICROMAMBA_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp)
-    add_definitions(-DMICROMAMBA_SERVER)
-endif()
-
 # Targets and link
 # ================
 

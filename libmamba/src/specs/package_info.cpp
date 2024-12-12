@@ -69,7 +69,7 @@ namespace mamba::specs
             {
                 out.platform = url.platform_name();
                 url.clear_platform();
-                out.channel = util::rstrip(url.str(), '/');
+                out.channel = util::rstrip(url.str(specs::CondaURL::Credentials::Show), '/');
 
                 // Note that we use `rsplit...` instead of `split...`
                 // because the package name may contain '-'.

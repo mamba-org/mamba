@@ -753,7 +753,7 @@ namespace mamba::download
         {
             Error error;
             error.message = std::string("Could not find mirrors for channel ")
-                            + p_initial_request->mirror_name;
+                            + hide_secrets(p_initial_request->mirror_name);
             m_attempt_results.push_back(tl::unexpected(std::move(error)));
         }
     }

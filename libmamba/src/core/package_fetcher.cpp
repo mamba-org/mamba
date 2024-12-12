@@ -106,8 +106,8 @@ namespace mamba
             {
                 caches.clear_query_cache(m_package_info);
                 // need to download this file
-                LOG_DEBUG << "Adding '" << name() << "' to download targets from '" << channel()
-                          << "/" << url_path() << "'";
+                LOG_DEBUG << "Adding '" << name() << "' to download targets from '"
+                          << hide_secrets(channel()) << "/" << url_path() << "'";
                 m_tarball_path = m_cache_path / filename();
                 m_needs_extract = true;
                 m_needs_download = true;

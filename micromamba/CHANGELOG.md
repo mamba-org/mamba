@@ -1,3 +1,30 @@
+micromamba 2.0.5 (December 12, 2024)
+====================================
+
+Enhancements:
+
+- `micromamba/mamba --version` displays pre-release version names + establishes pre-release versions name scheme by @Klaim in https://github.com/mamba-org/mamba/pull/3639
+
+Bug fixes:
+
+- fix: Skip empty lines in environment spec files by @jjerphan in https://github.com/mamba-org/mamba/pull/3662
+- Handle `.tar.gz` in pkg url by @Hind-M in https://github.com/mamba-org/mamba/pull/3640
+- fix: Effectively apply dry-run on installation from PyPI by @jjerphan in https://github.com/mamba-org/mamba/pull/3644
+- fix: Handle environment with empty or absent `dependencies` by @jjerphan in https://github.com/mamba-org/mamba/pull/3657
+- fix: Reintroduce the `uninstall` command by @jjerphan in https://github.com/mamba-org/mamba/pull/3650
+
+CI fixes and doc:
+
+- Introducing mamba Guru on Gurubase.io by @kursataktas in https://github.com/mamba-org/mamba/pull/3612
+- build: Remove server by @jjerphan in https://github.com/mamba-org/mamba/pull/3685
+- docs: Clarify installation of lock file by @jjerphan in https://github.com/mamba-org/mamba/pull/3686
+- maint: Add pre-commit typos back by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3682
+- maint: Cleanup CMake files and delete not compiled files by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3667
+- maint: Add pyupgrade pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3671
+- docs: Adapt shell completion subsection by @jjerphan in https://github.com/mamba-org/mamba/pull/3672
+- maint: Restructure docs configuration file and improve docs pages by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3615
+- docs: Remove installation non-recommendation by @jjerphan in https://github.com/mamba-org/mamba/pull/3656
+
 micromamba 2.0.5.rc0 (December 09, 2024)
 ========================================
 

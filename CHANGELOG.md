@@ -1,3 +1,40 @@
+2024.12.12
+==========
+
+Releases: libmamba 2.0.5, libmambapy 2.0.5, micromamba 2.0.5
+
+Enhancements:
+
+- [all] `micromamba/mamba --version` displays pre-release version names + establishes pre-release versions name scheme by @Klaim in https://github.com/mamba-org/mamba/pull/3639
+
+Bug fixes:
+
+- [libmamba] Fix channel in `PackageInfo` by @Hind-M in https://github.com/mamba-org/mamba/pull/3681
+- [libmamba] fix: Clarify shell init dry runs outputs by @jjerphan in https://github.com/mamba-org/mamba/pull/3674
+- [libmamba] fix: Wrap `MAMBA_EXE` around double quotes in run shell script by @luciorq in https://github.com/mamba-org/mamba/pull/3673
+- [libmamba] fix: Activated environment name by @jjerphan in https://github.com/mamba-org/mamba/pull/3670
+- [libmamba] Fixed uninitialized variable in curl handler by @JohanMabille in https://github.com/mamba-org/mamba/pull/3669
+- [libmamba, micromamba] fix: Skip empty lines in environment spec files by @jjerphan in https://github.com/mamba-org/mamba/pull/3662
+- [all] Handle `.tar.gz` in pkg url by @Hind-M in https://github.com/mamba-org/mamba/pull/3640
+- [libmamba, micromamba] fix: Effectively apply dry-run on installation from PyPI by @jjerphan in https://github.com/mamba-org/mamba/pull/3644
+- [libmamba, micromamba] fix: Handle environment with empty or absent `dependencies` by @jjerphan in https://github.com/mamba-org/mamba/pull/3657
+- [micromamba] fix: Reintroduce the `uninstall` command by @jjerphan in https://github.com/mamba-org/mamba/pull/3650
+- [libmamba] Allow repoquery on non env prefix by @Hind-M in https://github.com/mamba-org/mamba/pull/3649
+
+CI fixes and doc:
+
+- [all] Introducing mamba Guru on Gurubase.io by @kursataktas in https://github.com/mamba-org/mamba/pull/3612
+- [micromamba] build: Remove server by @jjerphan in https://github.com/mamba-org/mamba/pull/3685
+- [all] docs: Clarify installation of lock file by @jjerphan in https://github.com/mamba-org/mamba/pull/3686
+- [all] maint: Add pre-commit typos back by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3682
+- [libmamba, micromamba] maint: Cleanup CMake files and delete not compiled files by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3667
+- [libmambapy, micromamba] maint: Add pyupgrade pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3671
+- [all] docs: Adapt shell completion subsection by @jjerphan in https://github.com/mamba-org/mamba/pull/3672
+- [all] maint: Restructure docs configuration file and improve docs pages by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3615
+- [libmamba] maint: Use Catch2 instead of doctest by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3618
+- [all] docs: Remove installation non-recommendation by @jjerphan in https://github.com/mamba-org/mamba/pull/3656
+- [libmambapy] ci: Remove Conda Nightly tests by @jjerphan in https://github.com/mamba-org/mamba/pull/3629
+
 2024.12.09
 ==========
 

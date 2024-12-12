@@ -1,3 +1,25 @@
+libmambapy 2.0.5 (December 12, 2024)
+====================================
+
+Enhancements:
+
+- `micromamba/mamba --version` displays pre-release version names + establishes pre-release versions name scheme by @Klaim in https://github.com/mamba-org/mamba/pull/3639
+
+Bug fixes:
+
+- Handle `.tar.gz` in pkg url by @Hind-M in https://github.com/mamba-org/mamba/pull/3640
+
+CI fixes and doc:
+
+- Introducing mamba Guru on Gurubase.io by @kursataktas in https://github.com/mamba-org/mamba/pull/3612
+- docs: Clarify installation of lock file by @jjerphan in https://github.com/mamba-org/mamba/pull/3686
+- maint: Add pre-commit typos back by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3682
+- maint: Add pyupgrade pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3671
+- docs: Adapt shell completion subsection by @jjerphan in https://github.com/mamba-org/mamba/pull/3672
+- maint: Restructure docs configuration file and improve docs pages by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3615
+- docs: Remove installation non-recommendation by @jjerphan in https://github.com/mamba-org/mamba/pull/3656
+- ci: Remove Conda Nightly tests by @jjerphan in https://github.com/mamba-org/mamba/pull/3629
+
 libmambapy 2.0.5.rc0 (December 09, 2024)
 ========================================
 

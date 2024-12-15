@@ -12,7 +12,7 @@
 #include <string_view>
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/parameters.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 #include "mamba/specs/channel.hpp"

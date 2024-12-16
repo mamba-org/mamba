@@ -965,13 +965,18 @@ namespace mamba
             }
         }
 
-        std::vector<fs::u8path> fallback_envs_dirs_hook(const Context& context)
+        void envs_dirs_hook(const Context& context, std::vector<fs::u8path>& dirs)
         {
-            return { context.prefix_params.root_prefix / "envs" };
-        }
+            // Check that "root_prefix/envs" is already in the dirs,
+            // and append if not - to match `conda`
+            // Therefore, there is no need for a fallback value anymore
+            fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
+            if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
+            {
+                dirs.push_back(default_env_dir);
+            }
 
-        void envs_dirs_hook(std::vector<fs::u8path>& dirs)
-        {
+            // Check that the values exist as directories
             for (auto& d : dirs)
             {
                 d = fs::weakly_canonical(util::expand_home(d.string())).string();
@@ -1297,10 +1302,10 @@ namespace mamba
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
                    .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook<decltype(m_context.envs_dirs)>(
-                       [this] { return detail::fallback_envs_dirs_hook(m_context); }
+                   .set_post_merge_hook<decltype(m_context.envs_dirs)>(
+                       [this](decltype(m_context.envs_dirs)& value)
+                       { return detail::envs_dirs_hook(m_context, value); }
                    )
-                   .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
         insert(Configurable("pkgs_dirs", &m_context.pkgs_dirs)

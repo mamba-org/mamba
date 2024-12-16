@@ -538,6 +538,40 @@ namespace mamba
                               - https://repo.mamba.pm/conda-forge)"));
             }
 
+            TEST_CASE_METHOD(Configuration, "envs_dirs")
+            {
+                // Load default config
+                // `envs_dirs` should be set to `root_prefix / envs`
+                config.load();
+
+                const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
+                REQUIRE(envs_dirs.size() == 1);
+                REQUIRE(
+                    envs_dirs[0]
+                    == util::path_concat(
+                        std::string(config.at("root_prefix").value<mamba::fs::u8path>()),
+                        "envs"
+                    )
+                );
+            }
+
+            TEST_CASE_METHOD(Configuration, "envs_dirs_with_additional_rc")
+            {
+                std::string cache1 = util::path_concat(util::user_home_dir(), "foo_envs_dirs");
+                std::string rc1 = "envs_dirs:\n  - " + cache1;
+
+                load_test_config(rc1);
+
+                REQUIRE(
+                    config.dump()
+                    == "envs_dirs:\n  - " + cache1 + "\n  - "
+                           + util::path_concat(
+                               std::string(config.at("root_prefix").value<mamba::fs::u8path>()),
+                               "envs"
+                           )
+                );
+            }
+
             TEST_CASE_METHOD(Configuration, "pkgs_dirs")
             {
                 std::string cache1 = util::path_concat(util::user_home_dir(), "foo");

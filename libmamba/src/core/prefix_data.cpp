@@ -200,6 +200,12 @@ namespace mamba
     // Load python packages installed with pip in the site-packages of the prefix.
     void PrefixData::load_site_packages()
     {
+        if (util::get_env("MAMBA_SKIP_LOAD_SITE_PACKAGES"))
+        {
+            LOG_INFO << "MAMBA_SKIP_LOAD_SITE_PACKAGES is set, skipping load_site_packages";
+            return;
+        }
+
         LOG_INFO << "Loading site packages";
 
         // Look for `pip` package and return if it doesn't exist

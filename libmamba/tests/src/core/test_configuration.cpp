@@ -541,9 +541,9 @@ namespace mamba
             TEST_CASE_METHOD(Configuration, "envs_dirs")
             {
                 // Load default config
-                // `envs_dirs` should be set to `root_prefix / envs`
                 config.load();
 
+                // `envs_dirs` should be set to `root_prefix / envs`
                 const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
                 REQUIRE(envs_dirs.size() == 1);
                 REQUIRE(
@@ -562,6 +562,8 @@ namespace mamba
 
                 load_test_config(rc1);
 
+                // `envs_dirs` should be set to the configured value `cache1`
+                // and `root_prefix / envs`
                 REQUIRE(
                     config.dump()
                     == "envs_dirs:\n  - " + cache1 + "\n  - "

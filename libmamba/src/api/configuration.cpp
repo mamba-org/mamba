@@ -969,7 +969,6 @@ namespace mamba
         {
             // Check that "root_prefix/envs" is already in the dirs,
             // and append if not - to match `conda`
-            // Therefore, there is no need for a fallback value anymore
             fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
             if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
             {

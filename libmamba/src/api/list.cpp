@@ -23,6 +23,7 @@ namespace mamba
         struct list_options
         {
             bool full_name;
+            bool no_pip;
         };
 
         struct formatted_pkg
@@ -55,7 +56,11 @@ namespace mamba
             list_options options
         )
         {
-            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
+            auto sprefix_data = PrefixData::create(
+                ctx.prefix_params.target_prefix,
+                channel_context,
+                options.no_pip
+            );
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -202,6 +207,8 @@ namespace mamba
 
         detail::list_options options;
         options.full_name = config.at("full_name").value<bool>();
+        options.no_pip = config.at("no_pip").value<bool>();
+
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));
     }

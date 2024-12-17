@@ -28,6 +28,11 @@ init_list_parser(CLI::App* subcom, Configuration& config)
                                         .description("Only search for full names, i.e., ^<regex>$."));
     subcom->add_flag("-f,--full-name", full_name.get_cli_config<bool>(), full_name.description());
 
+    auto& no_pip = config.insert(Configurable("no_pip", false)
+                                     .group("cli")
+                                     .description("Do not include pip-only installed packages."));
+    subcom->add_flag("--no-pip", no_pip.get_cli_config<bool>(), no_pip.description());
+
     // TODO: implement this in libmamba/list.cpp
     /*auto& canonical = config.insert(Configurable("canonical", false)
                                         .group("cli")

@@ -93,6 +93,14 @@ namespace mamba
                 return util::shrink_home(config.valid_sources()[position].string());
             }
 
+            const std::string get_root_prefix_envs_dir()
+            {
+                return util::path_concat(
+                    std::string(config.at("root_prefix").value<mamba::fs::u8path>()),
+                    "envs"
+                );
+            }
+
             std::unique_ptr<TemporaryFile> tempfile_ptr = std::make_unique<TemporaryFile>(
                 "mambarc",
                 ".yaml"
@@ -536,6 +544,33 @@ namespace mamba
                             conda-forge:
                               - https://conda.anaconda.org/conda-forge
                               - https://repo.mamba.pm/conda-forge)"));
+            }
+
+            TEST_CASE_METHOD(Configuration, "envs_dirs")
+            {
+                // Load default config
+                config.load();
+
+                // `envs_dirs` should be set to `root_prefix / envs`
+                const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
+
+                REQUIRE(envs_dirs.size() == 1);
+                REQUIRE(envs_dirs[0] == get_root_prefix_envs_dir());
+            }
+
+            TEST_CASE_METHOD(Configuration, "envs_dirs_with_additional_rc")
+            {
+                std::string cache1 = util::path_concat(util::user_home_dir(), "foo_envs_dirs");
+                std::string rc1 = "envs_dirs:\n  - " + cache1;
+
+                load_test_config(rc1);
+
+                // `envs_dirs` should be set to the configured value `cache1`
+                // and `root_prefix / envs`
+                REQUIRE(
+                    config.dump()
+                    == "envs_dirs:\n  - " + cache1 + "\n  - " + get_root_prefix_envs_dir()
+                );
             }
 
             TEST_CASE_METHOD(Configuration, "pkgs_dirs")

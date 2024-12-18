@@ -41,9 +41,6 @@ void
 load_channel_options(mamba::Context& ctx);
 
 void
-channels_hook(std::vector<std::string>& channels);
-
-void
 override_channels_hook(mamba::Configuration& config, bool& override_channels);
 
 #endif

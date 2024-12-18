@@ -422,6 +422,7 @@ namespace mamba::specs
                 p.dependencies,
                 p.constrains,
                 p.signatures,
+                p.python_site_packages_path,
                 p.defaulted_keys
             );
         }
@@ -468,6 +469,10 @@ namespace mamba::specs
         {
             j["signatures"] = pkg.signatures;
         }
+        if (!pkg.python_site_packages_path.empty())
+        {
+            j["python_site_packages_path"] = pkg.python_site_packages_path;
+        }
         if (pkg.dependencies.empty())
         {
             j["depends"] = nlohmann::json::array();
@@ -510,6 +515,7 @@ namespace mamba::specs
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
         pkg.signatures = j.value("signatures", "");
+        pkg.python_site_packages_path = j.value("python_site_packages_path", "");
         if (auto it = j.find("track_features"); it != j.end())
         {
             if (it->is_string() && !it->get<std::string_view>().empty())

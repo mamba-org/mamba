@@ -25,12 +25,13 @@
 
 namespace mamba
 {
-    auto PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context)
+    auto
+    PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip)
         -> expected_t<PrefixData>
     {
         try
         {
-            return PrefixData(prefix_path, channel_context);
+            return PrefixData(prefix_path, channel_context, no_pip);
         }
         catch (std::exception& e)
         {
@@ -46,7 +47,7 @@ namespace mamba
         }
     }
 
-    PrefixData::PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context)
+    PrefixData::PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip)
         : m_history(prefix_path, channel_context)
         , m_prefix_path(prefix_path)
         , m_channel_context(channel_context)
@@ -62,8 +63,11 @@ namespace mamba
                 }
             }
         }
-        // Load packages installed with pip
-        load_site_packages();
+        // Load packages installed with pip if `no_pip` is not set to `true`
+        if (!no_pip)
+        {
+            load_site_packages();
+        }
     }
 
     void PrefixData::add_packages(const std::vector<specs::PackageInfo>& packages)

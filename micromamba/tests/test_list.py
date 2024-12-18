@@ -52,8 +52,9 @@ dependencies:
 """
 
 
+@pytest.mark.parametrize("no_pip_flag", ["", "--no-pip"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path):
+def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path, no_pip_flag):
     env_name = "env-list_with_pip"
     tmp_root_prefix / "envs" / env_name
 
@@ -63,16 +64,20 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     helpers.create("-n", env_name, "python=3.12", "--json", no_dry_run=True)
     helpers.install("-n", env_name, "-f", env_file_yml, "--json", no_dry_run=True)
 
-    res = helpers.umamba_list("-n", env_name, "--json")
-    assert any(
-        package["name"] == "numpy"
-        and package["version"] == "1.26.4"
-        and package["base_url"] == "https://pypi.org/"
-        and package["build_string"] == "pypi_0"
-        and package["channel"] == "pypi"
-        and package["platform"] == sys.platform + "-" + platform.machine()
-        for package in res
-    )
+    res = helpers.umamba_list("-n", env_name, "--json", no_pip_flag)
+    if no_pip_flag == "":
+        assert any(
+            package["name"] == "numpy"
+            and package["version"] == "1.26.4"
+            and package["base_url"] == "https://pypi.org/"
+            and package["build_string"] == "pypi_0"
+            and package["channel"] == "pypi"
+            and package["platform"] == sys.platform + "-" + platform.machine()
+            for package in res
+        )
+    else:  # --no-pip
+        # Check that numpy installed with pip is not listed
+        assert all(package["name"] != "numpy" for package in res)
 
 
 @pytest.mark.parametrize("env_selector", ["name", "prefix"])

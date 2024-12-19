@@ -50,7 +50,7 @@ On Windows Powershell, use
 
 .. code :: powershell
 
-   Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
+   Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1 -UseBasicParsing).Content)
 
 A specific micromamba release can be installed by setting the ``VERSION`` environment variable.
 The release versions contain a build number in addition to the micromamba version.

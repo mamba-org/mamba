@@ -33,6 +33,10 @@ init_list_parser(CLI::App* subcom, Configuration& config)
                                      .description("Do not include pip-only installed packages."));
     subcom->add_flag("--no-pip", no_pip.get_cli_config<bool>(), no_pip.description());
 
+    auto& reverse = config.insert(Configurable("reverse", false)
+                                        .group("cli")
+                                        .description("List installed packages in reverse order."));
+    subcom->add_flag("--reverse", reverse.get_cli_config<bool>(), reverse.description());
     // TODO: implement this in libmamba/list.cpp
     /*auto& canonical = config.insert(Configurable("canonical", false)
                                         .group("cli")

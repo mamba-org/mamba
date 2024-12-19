@@ -24,6 +24,7 @@ namespace mamba
         {
             bool full_name;
             bool no_pip;
+            bool reverse;
         };
 
         struct formatted_pkg

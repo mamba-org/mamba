@@ -36,6 +36,7 @@ namespace mamba::specs
                || (plat == KnownPlatform::linux_aarch64)  //
                || (plat == KnownPlatform::linux_ppc64le)  //
                || (plat == KnownPlatform::linux_ppc64)    //
+               || (plat == KnownPlatform::linux_ppc)      //
                || (plat == KnownPlatform::linux_s390x)    //
                || (plat == KnownPlatform::linux_riscv32)  //
                || (plat == KnownPlatform::linux_riscv64);
@@ -101,6 +102,8 @@ namespace mamba::specs
 #else
         return KnownPlatform::linux_ppc64le;
 #endif
+#elif defined(__powerpc__) || defined(__ppc__)
+	return KnownPlatform::linux_ppc;
 #elif defined(__s390x__)
         return KnownPlatform::linux_s390x;
 #elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 32)

@@ -68,6 +68,7 @@ namespace mambapy
             .value("linux_aarch64", KnownPlatform::linux_aarch64)
             .value("linux_ppc64le", KnownPlatform::linux_ppc64le)
             .value("linux_ppc64", KnownPlatform::linux_ppc64)
+	    .value("linux_ppc", KnownPlatform::linux_ppc)
             .value("linux_s390x", KnownPlatform::linux_s390x)
             .value("linux_riscv32", KnownPlatform::linux_riscv32)
             .value("linux_riscv64", KnownPlatform::linux_riscv64)

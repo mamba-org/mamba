@@ -17,7 +17,9 @@
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 
+
 namespace mamba::specs
+
 {
     /**
      * Find the location of "/os-arch"-like subsring.
@@ -377,10 +379,17 @@ namespace mamba::specs
         // Must not decode to find the meaningful '/' separators
         if (has_archive_extension(path(Decode::no)))
         {
-            auto l_path = clear_path();
-            const auto pos = std::min(std::min(l_path.rfind('/'), l_path.size()) + 1ul, l_path.size());
-            l_path.replace(pos, std::string::npos, pkg);
-            Base::set_path(std::move(l_path), Encode::no);
+#ifdef __powerpc__
+                //The other three lines from below result in a failed build on ppc32
+                auto l_path = clear_path();
+#else
+		
+	        
+                auto l_path = clear_path();
+                const auto pos = std::min(std::min(l_path.rfind('/'), l_path.size()) + 1ul, l_path.size());
+                l_path.replace(pos, std::string::npos, pkg);
+                Base::set_path(std::move(l_path), Encode::no);
+#endif	
         }
         else
         {
@@ -540,6 +549,7 @@ namespace mamba::specs
         }
     }
 }
+#undef PPC32
 
 auto
 std::hash<mamba::specs::CondaURL>::operator()(const mamba::specs::CondaURL& u) const -> std::size_t

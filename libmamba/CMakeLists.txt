@@ -463,18 +463,31 @@ macro(libmamba_create_target target_name linkage output_name)
         mamba_target_check_type(reproc STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc++ STATIC_LIBRARY FATAL_ERROR)
 
-        target_link_libraries(
-            ${target_name}
-            PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
-            PRIVATE
+	if(PPC32)
+	target_link_libraries(
+		${target_name}
+            	PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
+            	PRIVATE
                 reproc
                 reproc++
-                simdjson::simdjson_static
-                solv::libsolv_static
-                solv::libsolvext_static
+                simdjson
+                libsolv
+                libsolvext
                 solv::cpp
         )
-
+	else()
+		target_link_libraries(
+		        ${target_name}
+		        PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
+		        PRIVATE
+		        reproc
+		        reproc++
+		        simdjson::simdjson_static
+		        solv::libsolv_static
+		        solv::libsolvext_static
+		        solv::cpp
+		)
+	endif()	
         if(UNIX)
 
             set(

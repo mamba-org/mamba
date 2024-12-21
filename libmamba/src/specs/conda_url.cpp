@@ -549,7 +549,6 @@ namespace mamba::specs
         }
     }
 }
-#undef PPC32
 
 auto
 std::hash<mamba::specs::CondaURL>::operator()(const mamba::specs::CondaURL& u) const -> std::size_t

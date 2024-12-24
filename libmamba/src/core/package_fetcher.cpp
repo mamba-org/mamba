@@ -325,11 +325,14 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        if (!util::starts_with(m_package_info.package_url, "file://"))
+        if (!util::starts_with(m_package_info.package_url, "file://")
+            && !util::starts_with(m_package_info.package_url, "https://"))
         {
             return m_package_info.channel;
         }
-        else  // local package case
+        // Use explicit url to fetch package and leave channel empty
+        // (local package case or install using explicit url)
+        else
         {
             return "";
         }
@@ -337,11 +340,14 @@ namespace mamba
 
     std::string PackageFetcher::url_path() const
     {
-        if (!util::starts_with(m_package_info.package_url, "file://"))
+        if (!util::starts_with(m_package_info.package_url, "file://")
+            && !util::starts_with(m_package_info.package_url, "https://"))
         {
             return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }
-        else  // local package case
+        // Use explicit url to fetch package
+        // (local package case or install using explicit url)
+        else
         {
             return m_package_info.package_url;
         }

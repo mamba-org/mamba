@@ -325,6 +325,9 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
+        // Note that in the oci case, the pkg url also implicitly starts with "https://"
+        // but should be included in the first case (with the url containing "ghcr" condition)
+        // TODO We should maybe think of a cleaner way of differentiating all this
         if (!util::starts_with(m_package_info.package_url, "file://")
             && (!util::starts_with(m_package_info.package_url, "https://")
                 || util::contains(m_package_info.package_url, "ghcr")))
@@ -341,6 +344,9 @@ namespace mamba
 
     std::string PackageFetcher::url_path() const
     {
+        // Note that in the oci case, the pkg url also implicitly starts with "https://"
+        // but should be included in the first case (with the url containing "ghcr" condition)
+        // TODO We should maybe think of a cleaner way of differentiating all this
         if (!util::starts_with(m_package_info.package_url, "file://")
             && (!util::starts_with(m_package_info.package_url, "https://")
                 || util::contains(m_package_info.package_url, "ghcr")))

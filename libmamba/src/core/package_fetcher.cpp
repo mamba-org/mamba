@@ -326,7 +326,8 @@ namespace mamba
     std::string PackageFetcher::channel() const
     {
         if (!util::starts_with(m_package_info.package_url, "file://")
-            && !util::starts_with(m_package_info.package_url, "https://"))
+            && (!util::starts_with(m_package_info.package_url, "https://")
+                || util::contains(m_package_info.package_url, "ghcr")))
         {
             return m_package_info.channel;
         }
@@ -341,7 +342,8 @@ namespace mamba
     std::string PackageFetcher::url_path() const
     {
         if (!util::starts_with(m_package_info.package_url, "file://")
-            && !util::starts_with(m_package_info.package_url, "https://"))
+            && (!util::starts_with(m_package_info.package_url, "https://")
+                || util::contains(m_package_info.package_url, "ghcr")))
         {
             return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }

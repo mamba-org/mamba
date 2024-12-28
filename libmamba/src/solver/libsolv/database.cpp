@@ -17,7 +17,7 @@
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/random.hpp"
 #include "solv-cpp/pool.hpp"

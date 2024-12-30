@@ -41,6 +41,32 @@ namespace mamba
 {
     namespace nl = nlohmann;
 
+    void print_activation_message(const Context& ctx)
+    {
+        // Check that the target prefix is not active before printing the activation message
+        if (util::get_env("CONDA_PREFIX") != ctx.prefix_params.target_prefix)
+        {
+            // Get the name of the executable used directly from the command.
+            const auto executable = get_self_exe_path().stem().string();
+
+            // Get the name of the environment
+            const auto environment = env_name(ctx);
+
+            Console::stream() << "\nTo activate this environment, use:\n\n"
+                                 "    "
+                              << executable << " activate " << environment
+                              << "\n\n"
+                                 "Or to execute a single command in this environment, use:\n\n"
+                                 "    "
+                              << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just
+                              // a name.
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
+        }
+    }
+
     namespace
     {
         bool need_pkg_download(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
@@ -438,33 +464,7 @@ namespace mamba
         LOG_INFO << "Waiting for pyc compilation to finish";
         m_transaction_context.wait_for_pyc_compilation();
 
-        // Get the name of the executable used directly from the command.
-        const auto executable = get_self_exe_path().stem().string();
-
-        // Get the name of the environment
-        const auto environment = env_name(ctx);
-
-        // Check if the target prefix is active
-        if (util::get_env("CONDA_PREFIX") == ctx.prefix_params.target_prefix)
-        {
-            Console::stream() << "\nTransaction finished\n";
-        }
-        else
-        {
-            Console::stream() << "\nTransaction finished\n\n"
-                                 "To activate this environment, use:\n\n"
-                                 "    "
-                              << executable << " activate " << environment
-                              << "\n\n"
-                                 "Or to execute a single command in this environment, use:\n\n"
-                                 "    "
-                              << executable
-                              << " run "
-                              // Use -n or -p depending on if the env_name is a full prefix or just
-                              // a name.
-                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                              << environment << " mycommand\n";
-        }
+        Console::stream() << "\nTransaction finished\n";
 
         prefix.history().add_entry(m_history_entry);
         return true;

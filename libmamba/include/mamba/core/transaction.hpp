@@ -107,6 +107,9 @@ namespace mamba
         MultiPackageCache& package_caches,
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     );
+
+    // NOTE: This can be moved to somewhere else if more appropriate
+    void print_activation_message(const Context& ctx);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

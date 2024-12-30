@@ -205,6 +205,10 @@ class TestUpdate:
         for to_link in res["actions"]["LINK"]:
             assert to_link["channel"] == "conda-forge"
 
+    def test_update_check_logs(self, env_created):
+        res = helpers.update("-n", TestUpdate.env_name, "xtensor=0.24.5")
+        assert "To activate this environment, use:" not in res
+
 
 class TestUpdateConfig:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]

@@ -36,6 +36,13 @@ def test_remove(tmp_home, tmp_root_prefix, env_selector, tmp_xtensor_env, tmp_en
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_remove_check_logs(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
+    helpers.install("xtensor-python", "-n", tmp_env_name, no_dry_run=True)
+    res = helpers.remove("xtensor", "-n", tmp_env_name)
+    assert "To activate this environment, use:" not in res
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.skipif(sys.platform == "win32", reason="This test is currently failing on Windows")
 def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
     env_pkgs = [p["name"] for p in helpers.umamba_list("-p", tmp_xtensor_env, "--json")]

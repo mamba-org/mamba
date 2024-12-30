@@ -545,6 +545,12 @@ def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix)
         assert cached_file.exists()
 
 
+def test_create_check_logs(tmp_home, tmp_root_prefix):
+    env_name = "env-create-check-logs"
+    res = helpers.create("-n", env_name, "xtensor")
+    assert "To activate this environment, use:" in res
+
+
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",

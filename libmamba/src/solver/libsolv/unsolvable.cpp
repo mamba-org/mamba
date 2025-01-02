@@ -367,6 +367,8 @@ namespace mamba::solver::libsolv
                 std::optional<std::string>& dep = problem.dep;
                 SolverRuleinfo type = problem.type;
 
+                static bool hint_for_flexible_channel_priority = false;
+
                 switch (type)
                 {
                     case SOLVER_RULE_PKG_CONSTRAINS:
@@ -535,7 +537,27 @@ namespace mamba::solver::libsolv
                     default:
                     {
                         // Many more SolverRuleinfo that have not been encountered.
-                        LOG_WARNING << "Problem type not implemented " << solv::enum_name(type);
+                        if (!hint_for_flexible_channel_priority)
+                        {
+                            hint_for_flexible_channel_priority = true;
+                            LOG_WARNING
+                                << "The specification of the environment does not seem solvable in your current setup.";
+                            LOG_WARNING
+                                << "For instance, packages from different channels might be specified,";
+                            LOG_WARNING
+                                << "whilst your current configuration might not allow their resolution.";
+                            LOG_WARNING << "";
+                            LOG_WARNING << "If it is the case, you need to either:";
+                            LOG_WARNING
+                                << " - adapt the channel ordering (e.g. by reordering the `-c` flags in your command line)";
+                            LOG_WARNING
+                                << " - use the flexible channel priority (e.g. using `--channel-priority flexible` in your command line)";
+                            LOG_WARNING << "";
+                            LOG_WARNING
+                                << "For reference, see this piece of documentation on channel priority:";
+                            LOG_WARNING
+                                << "https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-channels.html#strict-channel-priority";
+                        }
                         break;
                     }
                 }

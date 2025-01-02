@@ -1,3 +1,10 @@
+micromamba 1.5.12 (January 02, 2025)
+====================================
+
+Bug fixes:
+
+- Use `__conda_activate reactivate` instead of `__conda_reactivate` by @hmaarrfk in https://github.com/mamba-org/mamba/pull/3702
+
 micromamba 1.5.11 (November 21, 2024)
 =====================================
 

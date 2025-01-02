@@ -1,3 +1,12 @@
+2025.01.02
+==========
+
+Releases:  libmamba 1.5.12, libmambapy 1.5.12, mamba 1.5.12, micromamba 1.5.12
+
+Bug fixes:
+
+- [mamba, micromamba] Use `__conda_activate reactivate` instead of `__conda_reactivate` by @hmaarrfk in https://github.com/mamba-org/mamba/pull/3702
+
 2024.11.22
 ==========
 

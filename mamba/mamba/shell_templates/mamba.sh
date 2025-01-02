@@ -17,7 +17,7 @@ mamba() {
             ;;
         install|update|upgrade|remove|uninstall)
             __mamba_exe "$@" || \return
-            __conda_activate reactivate
+            __conda_reactivate
             ;;
         *)
             __mamba_exe "$@"

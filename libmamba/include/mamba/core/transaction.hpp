@@ -109,6 +109,7 @@ namespace mamba
     );
 
     // NOTE: This can be moved to somewhere else if more appropriate
+    // See: https://github.com/mamba-org/mamba/issues/2288
     void print_activation_message(const Context& ctx);
 }  // namespace mamba
 

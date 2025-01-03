@@ -665,11 +665,18 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
-def test_install_check_logs(tmp_home, tmp_root_prefix):
+@pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+def test_install_check_logs(tmp_home, tmp_root_prefix, output_flag):
     env_name = "env-install-check-logs"
     helpers.create("-n", env_name)
-    res = helpers.install("-n", env_name, "xtensor")
-    assert "To activate this environment, use:" not in res
+    res = helpers.install("-n", env_name, "xtensor", output_flag)
+
+    if output_flag == "--json":
+        assert res["success"]
+    elif output_flag == "--quiet":
+        assert res == ""
+    else:
+        assert "To activate this environment, use:" not in res
 
 
 def test_install_local_package(tmp_home, tmp_root_prefix):

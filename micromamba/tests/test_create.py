@@ -545,10 +545,17 @@ def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix)
         assert cached_file.exists()
 
 
-def test_create_check_logs(tmp_home, tmp_root_prefix):
+@pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+def test_create_check_logs(tmp_home, tmp_root_prefix, output_flag):
     env_name = "env-create-check-logs"
-    res = helpers.create("-n", env_name, "xtensor")
-    assert "To activate this environment, use:" in res
+    res = helpers.create("-n", env_name, "xtensor", output_flag)
+
+    if output_flag == "--json":
+        assert res["success"]
+    elif output_flag == "--quiet":
+        assert res == ""
+    else:
+        assert "To activate this environment, use:" in res
 
 
 @pytest.mark.skipif(

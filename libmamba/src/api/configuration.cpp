@@ -975,6 +975,19 @@ namespace mamba
                 dirs.push_back(default_env_dir);
             }
 
+            // Also add all the directories in the environment variable `CONDA_ENVS_PATH`.
+            auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+            if (conda_envs_path)
+            {
+                auto paths_separator = util::pathsep();
+
+                auto paths = util::split(conda_envs_path.value(), paths_separator);
+                for (auto& p : paths)
+                {
+                    dirs.push_back(fs::u8path(p));
+                }
+            }
+
             // Check that the values exist as directories
             for (auto& d : dirs)
             {

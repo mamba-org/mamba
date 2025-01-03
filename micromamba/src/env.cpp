@@ -403,11 +403,13 @@ set_env_command(CLI::App* com, Configuration& config)
     init_prefix_options(update_subcom, config);
 
     auto& file_specs = config.at("file_specs");
-    update_subcom->add_option(
-        "-f,--file",
-        file_specs.get_cli_config<std::vector<std::string>>(),
-        file_specs.description()
-    );
+    update_subcom
+        ->add_option(
+            "-f,--file",
+            file_specs.get_cli_config<std::vector<std::string>>(),
+            file_specs.description()
+        )
+        ->option_text("FILE");
 
     static bool remove_not_specified = false;
     update_subcom->add_flag(

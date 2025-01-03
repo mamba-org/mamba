@@ -55,7 +55,7 @@ void
 set_logout_command(CLI::App* subcom)
 {
     static std::string host;
-    subcom->add_option("host", host, "Host for the account");
+    subcom->add_option("host", host, "Host for the account")->option_text("HOST");
 
     static bool all;
     subcom->add_flag("--all", all, "Log out from all hosts");
@@ -118,19 +118,21 @@ set_login_command(CLI::App* subcom)
     static bool pass_stdin = false;
     static bool token_stdin = false;
     static bool bearer_stdin = false;
-    subcom->add_option("-p,--password", pass, "Password for account");
-    subcom->add_option("-u,--username", user, "User name for the account");
-    subcom->add_option("-t,--token", token, "Token for the account");
-    subcom->add_option("-b,--bearer", bearer, "Bearer token for the account");
+    subcom->add_option("-p,--password", pass, "Password for account")->option_text("PASSWORD");
+    subcom->add_option("-u,--username", user, "User name for the account")->option_text("USERNAME");
+    subcom->add_option("-t,--token", token, "Token for the account")->option_text("TOKEN");
+    subcom->add_option("-b,--bearer", bearer, "Bearer token for the account")->option_text("BEARER");
     subcom->add_flag("--password-stdin", pass_stdin, "Read password from stdin");
     subcom->add_flag("--token-stdin", token_stdin, "Read token from stdin");
     subcom->add_flag("--bearer-stdin", bearer_stdin, "Read bearer token from stdin");
-    subcom->add_option(
-        "host",
-        host,
-        "Host for the account. The scheme (e.g. https://) is ignored\n"
-        "but not the port (optional) nor the channel (optional)."
-    );
+    subcom
+        ->add_option(
+            "host",
+            host,
+            "Host for the account. The scheme (e.g. https://) is ignored\n"
+            "but not the port (optional) nor the channel (optional)."
+        )
+        ->option_text("HOST");
 
     subcom->callback(
         []()

@@ -39,7 +39,9 @@ namespace
         subcmd->add_option("specs", options.specs, "Specs to search")->required();
 
         auto& platform = config.at("platform");
-        subcmd->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
+        subcmd
+            ->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
+            ->option_text("PLATFORM");
     }
 
     template <typename Iter>
@@ -91,7 +93,7 @@ namespace
         init_repoquery_common_options(subcmd, config, options);
 
         static bool remote = false;
-        subcmd->add_flag("--remote", remote, "Use installed prefix instead of remote repositories.");
+        subcmd->add_flag("--remote", remote, "Use remote repositories");
 
         subcmd->callback(
             [&]()
@@ -114,7 +116,7 @@ namespace
                     }
                     if (remote && !channel_passed)
                     {
-                        std::cout << "Try looking in a different channel with '--channel'.\n";
+                        std::cout << "Try looking in a different channel with '-c, --channel'.\n";
                     }
                 }
             }
@@ -136,7 +138,7 @@ namespace
         init_repoquery_common_options(subcmd, config, options);
 
         static bool use_local = false;
-        subcmd->add_flag("--local", use_local, "Use installed prefix instead of remote repositories.");
+        subcmd->add_flag("--local", use_local, "Use installed prefix instead of remote repositories");
 
         subcmd->callback(
             [&]()
@@ -148,7 +150,7 @@ namespace
                 {
                     if (!use_local && !channel_passed)
                     {
-                        std::cout << "Try looking in a different channel with '--channel'.\n";
+                        std::cout << "Try looking in a different channel with '-c, --channel'.\n";
                     }
                 }
             }

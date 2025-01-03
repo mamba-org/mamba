@@ -20,11 +20,9 @@ set_remove_command(CLI::App* subcom, Configuration& config)
     init_prefix_options(subcom, config);
 
     auto& specs = config.at("specs");
-    subcom->add_option(
-        "specs",
-        specs.get_cli_config<string_list>(),
-        "Specs to remove from the environment"
-    );
+    subcom
+        ->add_option("specs", specs.get_cli_config<string_list>(), "Specs to remove from the environment")
+        ->option_text("SPECS");
 
     static bool remove_all = false, force = false, prune_deps = true;
     subcom->add_flag("-a,--all", remove_all, "Remove all packages in the environment");

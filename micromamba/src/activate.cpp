@@ -54,7 +54,7 @@ set_activate_command(CLI::App* subcom)
     static std::string name = "";
     static bool stack = false;
 
-    subcom->add_option("prefix", name, "The prefix to activate");
+    subcom->add_option("prefix", name, "The prefix to activate")->option_text("PREFIX");
     subcom->add_flag(
         "--stack",
         stack,

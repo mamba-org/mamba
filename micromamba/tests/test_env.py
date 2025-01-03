@@ -164,7 +164,9 @@ def test_env_remove(tmp_home, tmp_root_prefix):
         assert str(env_fp) in lines
 
     # Unregister / remove env_name
-    helpers.run_env("remove", "-n", env_name, "-y")
+    res = helpers.run_env("remove", "-n", env_name, "-y")
+    assert "To activate this environment, use:" not in res
+
     env_json = helpers.run_env("list", "--json")
     assert str(env_fp) not in env_json["envs"]
     assert not env_fp.exists()

@@ -22,7 +22,7 @@ init_rc_options(CLI::App* subcom, Configuration& config)
             rc_files.get_cli_config<std::vector<fs::u8path>>(),
             rc_files.description()
         )
-        ->option_text("FILE1 FILE2")
+        ->option_text("FILE1 FILE2...")
         ->group(cli_group);
 
     auto& no_rc = config.at("no_rc");
@@ -452,7 +452,7 @@ init_install_options(CLI::App* subcom, Configuration& config)
             trusted_channels.get_cli_config<string_list>(),
             trusted_channels.description()
         )
-        ->option_text("CHANNEL1 CHANNEL2");
+        ->option_text("CHANNEL1 CHANNEL2...");
 
     auto& repo_parsing = config.at("experimental_repodata_parsing");
     subcom->add_flag(
@@ -477,6 +477,6 @@ init_install_options(CLI::App* subcom, Configuration& config)
             categories.get_cli_config<string_list>(),
             "Categories of package to install from environment lockfile"
         )
-        ->option_text("CAT1 CAT2");
+        ->option_text("CAT1 CAT2...");
     ;
 }

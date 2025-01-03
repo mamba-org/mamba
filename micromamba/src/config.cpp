@@ -108,7 +108,7 @@ init_config_describe_options(CLI::App* subcom, mamba::Configuration& config)
     auto& specs = config.at("specs");
     subcom
         ->add_option("configs", specs.get_cli_config<std::vector<std::string>>(), "Configuration keys")
-        ->option_text("CONFIG1 CONFIG2");
+        ->option_text("CONFIG1 CONFIG2...");
 
     auto& show_long_descriptions = config.at("show_config_long_descriptions");
     subcom->add_flag(

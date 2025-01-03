@@ -322,7 +322,7 @@ namespace mamba
         return util::starts_with(m_package_info.package_url, "file://");
     }
 
-    bool PackageFetcher::use_explicit_url() const
+    bool PackageFetcher::use_explicit_https_url() const
     {
         // This excludes OCI case, which uses explicitly a "oci://" scheme,
         // but is resolved later to something starting with `oci_base_url`
@@ -338,28 +338,24 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        if (!is_local_package() && !use_explicit_url())
+        if (is_local_package() || use_explicit_https_url())
         {
-            return m_package_info.channel;
-        }
-        // Use explicit url to fetch package and leave channel empty
-        else
-        {
+            // Use explicit url or local package path
+            // to fetch package, leaving the channel empty.
             return "";
         }
+        return m_package_info.channel;
     }
 
     std::string PackageFetcher::url_path() const
     {
-        if (!is_local_package() && !use_explicit_url())
+        if (is_local_package() || use_explicit_https_url())
         {
-            return util::concat(m_package_info.platform, '/', m_package_info.filename);
-        }
-        // Use explicit url to fetch package
-        else
-        {
+            // Use explicit url or local package path
+            // to fetch package.
             return m_package_info.package_url;
         }
+        return util::concat(m_package_info.platform, '/', m_package_info.filename);
     }
 
     const std::string& PackageFetcher::url() const

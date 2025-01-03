@@ -105,4 +105,23 @@ endif()
 # Installation
 # ============
 
-install(TARGETS ${mambaexe_targets})
+# The script are only needed for mamba and not for micromamba
+
+if(BUILD_SHARED)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/mamba.sh"
+    )
+
+    install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/mamba.sh
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/
+    )
+endif()
+
+install(
+    TARGETS ${mambaexe_targets}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

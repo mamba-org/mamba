@@ -317,6 +317,19 @@ namespace mamba
     /*******************
      * Private methods *
      *******************/
+    bool PackageFetcher::is_local_package() const
+    {
+        return util::starts_with(m_package_info.package_url, "file://");
+    }
+
+    bool PackageFetcher::use_explicit_url() const
+    {
+        // This excludes OCI case, which uses explicitly a "oci://" scheme,
+        // but is resolved later to something starting with `oci_base_url`
+        constexpr std::string_view oci_base_url = "https://pkg-containers.githubusercontent.com/";
+        return util::starts_with(m_package_info.package_url, "https://")
+               && !util::starts_with(m_package_info.package_url, oci_base_url);
+    }
 
     const std::string& PackageFetcher::filename() const
     {
@@ -325,21 +338,11 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        // Note that in the oci case, the pkg url also implicitly starts with "https://"
-        // but should be included in the first case
-        // (with the url starting with "https://pkg-containers.githubusercontent.com/" condition)
-        // TODO We should maybe think of a cleaner way of differentiating all this
-        if (!util::starts_with(m_package_info.package_url, "file://")
-            && (!util::starts_with(m_package_info.package_url, "https://")
-                || util::starts_with(
-                    m_package_info.package_url,
-                    "https://pkg-containers.githubusercontent.com/"
-                )))
+        if (!is_local_package() && !use_explicit_url())
         {
             return m_package_info.channel;
         }
         // Use explicit url to fetch package and leave channel empty
-        // (local package case or install using explicit url)
         else
         {
             return "";
@@ -348,21 +351,11 @@ namespace mamba
 
     std::string PackageFetcher::url_path() const
     {
-        // Note that in the oci case, the pkg url also implicitly starts with "https://"
-        // but should be included in the first case
-        // (with the url starting with "https://pkg-containers.githubusercontent.com/" condition)
-        // TODO We should maybe think of a cleaner way of differentiating all this
-        if (!util::starts_with(m_package_info.package_url, "file://")
-            && (!util::starts_with(m_package_info.package_url, "https://")
-                || util::starts_with(
-                    m_package_info.package_url,
-                    "https://pkg-containers.githubusercontent.com/"
-                )))
+        if (!is_local_package() && !use_explicit_url())
         {
             return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }
         // Use explicit url to fetch package
-        // (local package case or install using explicit url)
         else
         {
             return m_package_info.package_url;

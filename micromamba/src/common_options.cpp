@@ -22,6 +22,7 @@ init_rc_options(CLI::App* subcom, Configuration& config)
             rc_files.get_cli_config<std::vector<fs::u8path>>(),
             rc_files.description()
         )
+        ->option_text("FILE1 FILE2")
         ->group(cli_group);
 
     auto& no_rc = config.at("no_rc");
@@ -108,10 +109,12 @@ init_prefix_options(CLI::App* subcom, Configuration& config)
 
     auto& root = config.at("root_prefix");
     subcom->add_option("-r,--root-prefix", root.get_cli_config<fs::u8path>(), root.description())
+        ->option_text("PATH")
         ->group(cli_group);
 
     auto& prefix = config.at("target_prefix");
     subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description())
+        ->option_text("PATH")
         ->group(cli_group);
 
     auto& relocate_prefix = config.at("relocate_prefix");
@@ -121,10 +124,12 @@ init_prefix_options(CLI::App* subcom, Configuration& config)
             relocate_prefix.get_cli_config<fs::u8path>(),
             relocate_prefix.description()
         )
+        ->option_text("PATH")
         ->group(cli_group);
 
     auto& name = config.at("env_name");
     subcom->add_option("-n,--name", name.get_cli_config<std::string>(), name.description())
+        ->option_text("NAME")
         ->group(cli_group);
 }
 
@@ -136,6 +141,7 @@ init_network_options(CLI::App* subcom, Configuration& config)
     auto& ssl_verify = config.at("ssl_verify");
     subcom
         ->add_option("--ssl-verify", ssl_verify.get_cli_config<std::string>(), ssl_verify.description())
+        ->option_text("'<false>' or PATH")
         ->group(cli_group);
 
     auto& ssl_no_revoke = config.at("ssl_no_revoke");
@@ -150,6 +156,7 @@ init_network_options(CLI::App* subcom, Configuration& config)
             cacert_path.get_cli_config<std::string>(),
             cacert_path.description()
         )
+        ->option_text("PATH")
         ->group(cli_group);
 
     auto& local_repodata_ttl = config.at("local_repodata_ttl");
@@ -180,6 +187,7 @@ init_channel_parser(CLI::App* subcom, Configuration& config)
     channels.needs({ "override_channels" });
     subcom
         ->add_option("-c,--channel", channels.get_cli_config<string_list>(), channels.description())
+        ->option_text("CHANNEL")
         ->type_size(1)
         ->allow_extra_args(false);
 
@@ -212,11 +220,13 @@ init_channel_parser(CLI::App* subcom, Configuration& config)
         ->transform(CLI::CheckedTransformer(cp_map, CLI::ignore_case));
 
     auto& channel_alias = config.at("channel_alias");
-    subcom->add_option(
-        "--channel-alias",
-        channel_alias.get_cli_config<std::string>(),
-        channel_alias.description()
-    );
+    subcom
+        ->add_option(
+            "--channel-alias",
+            channel_alias.get_cli_config<std::string>(),
+            channel_alias.description()
+        )
+        ->option_text("URL");
 
     auto& strict_channel_priority = config.insert(
         Configurable("strict_channel_priority", false)
@@ -342,15 +352,14 @@ init_install_options(CLI::App* subcom, Configuration& config)
     init_channel_parser(subcom, config);
 
     auto& specs = config.at("specs");
-    subcom->add_option(
-        "specs",
-        specs.get_cli_config<string_list>(),
-        "Specs to install into the environment"
-    );
+    subcom
+        ->add_option("specs", specs.get_cli_config<string_list>(), "Specs to install into the environment")
+        ->option_text("SPECS");
 
     auto& file_specs = config.at("file_specs");
     subcom
         ->add_option("-f,--file", file_specs.get_cli_config<string_list>(), file_specs.description())
+        ->option_text("FILE")
         ->type_size(1)
         ->allow_extra_args(false);
 
@@ -437,11 +446,13 @@ init_install_options(CLI::App* subcom, Configuration& config)
     auto& trusted_channels = config.at("trusted_channels");
     // Allowing unlimited number of args (may be modified later if needed using `type_size` and
     // `allow_extra_args`)
-    subcom->add_option(
-        "--trusted-channels",
-        trusted_channels.get_cli_config<string_list>(),
-        trusted_channels.description()
-    );
+    subcom
+        ->add_option(
+            "--trusted-channels",
+            trusted_channels.get_cli_config<string_list>(),
+            trusted_channels.description()
+        )
+        ->option_text("CHANNEL1 CHANNEL2");
 
     auto& repo_parsing = config.at("experimental_repodata_parsing");
     subcom->add_flag(
@@ -451,7 +462,8 @@ init_install_options(CLI::App* subcom, Configuration& config)
     );
 
     auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
+    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
+        ->option_text("PLATFORM");
 
     auto& no_deps = config.at("no_deps");
     subcom->add_flag("--no-deps", no_deps.get_cli_config<bool>(), no_deps.description());
@@ -459,9 +471,12 @@ init_install_options(CLI::App* subcom, Configuration& config)
     subcom->add_flag("--only-deps", only_deps.get_cli_config<bool>(), only_deps.description());
 
     auto& categories = config.at("categories");
-    subcom->add_option(
-        "--category",
-        categories.get_cli_config<string_list>(),
-        "Categories of package to install from environment lockfile"
-    );
+    subcom
+        ->add_option(
+            "--category",
+            categories.get_cli_config<string_list>(),
+            "Categories of package to install from environment lockfile"
+        )
+        ->option_text("CAT1 CAT2");
+    ;
 }

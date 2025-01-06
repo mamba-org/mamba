@@ -80,23 +80,28 @@ namespace mamba
                 std::ifstream f = open_ifstream(cuda_version_file);
                 nlohmann::json j;
                 f >> j;
-                if (j.contains("cuda") && j["cuda"].contains("version"))
+                if (auto it_cuda = j.find("cuda"); it_cuda != j.end())
                 {
-                    cuda_version = j["cuda"]["version"];
-                    LOG_DEBUG << "CUDA version found: " << cuda_version;
-
-                    // Extract major, minor and patch version number from the version string
-                    // and return only major.minor to match the cuda package version return
-                    // by `nvidia-smi --query -u -x`
-                    std::regex re("([0-9]+)\\.([0-9]+)\\.([0-9]+)");
-                    std::smatch m;
-                    if (std::regex_search(cuda_version, m, re) && m.size() >= 3)
+                    auto cuda_val = *it_cuda;
+                    if (auto it_cuda_version = cuda_val.find("version");
+                        it_cuda_version != cuda_val.end())
                     {
-                        std::ssub_match major = m[1];
-                        std::ssub_match minor = m[2];
-                        cuda_version = major.str() + "." + minor.str();
-                        LOG_DEBUG << "CUDA version returned: " << cuda_version;
-                        return cuda_version;
+                        cuda_version = it_cuda_version->get<std::string>();
+                        LOG_DEBUG << "CUDA version found: " << cuda_version;
+
+                        // Extract major, minor and patch version number from the version string
+                        // and return only major.minor to match the cuda package version return
+                        // by `nvidia-smi --query -u -x`
+                        std::regex re("([0-9]+)\\.([0-9]+)\\.([0-9]+)");
+                        std::smatch m;
+                        if (std::regex_search(cuda_version, m, re) && m.size() >= 3)
+                        {
+                            std::ssub_match major = m[1];
+                            std::ssub_match minor = m[2];
+                            cuda_version = major.str() + "." + minor.str();
+                            LOG_DEBUG << "CUDA version returned: " << cuda_version;
+                            return cuda_version;
+                        }
                     }
                     LOG_WARNING << "Could not extract CUDA version from: " << cuda_version;
                 }

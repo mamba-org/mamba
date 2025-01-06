@@ -1521,4 +1521,4 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
 
     out = helpers.create("-p", env_prefix, "-f", env_spec_file, "--dry-run")
 
-    assert update_specs_list in out
+    assert update_specs_list in out.replace("\r", "")

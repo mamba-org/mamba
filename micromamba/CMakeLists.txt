@@ -105,9 +105,9 @@ endif()
 # Installation
 # ============
 
-# The script are only needed for mamba and not for micromamba
-
-if(BUILD_SHARED)
+# This profile script is only needed for mamba on Unix systems.
+if(BUILD_SHARED AND UNIX)
+    message(STATUS "Generating profile script for mamba (i.e. `etc/profile.d/mamba.sh`)")
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh.in"
         "${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/mamba.sh"

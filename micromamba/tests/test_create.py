@@ -1548,3 +1548,30 @@ def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
         pytest.fail(
             f"test_create_with_empty_lines_and_comments exceeded memory limit of {memory_limit} MB (used {max_memory:.2f} MB)"
         )
+
+
+def test_update_spec_list(tmp_path):
+    env_prefix = tmp_path / "env-invalid_spec"
+
+    env_spec = """
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+@EXPLICIT
+https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#76601b0ccfe1fe13a21a5f8813cb38de
+"""
+
+    env_spec_file = tmp_path / "env_spec.txt"
+
+    update_specs_list = """
+  Updating specs:
+
+   - pip==24.3.1=pyh145f28c_2
+"""
+
+    with open(env_spec_file, "w") as f:
+        f.write(env_spec)
+
+    out = helpers.create("-p", env_prefix, "-f", env_spec_file, "--dry-run")
+
+    assert update_specs_list in out.replace("\r", "")

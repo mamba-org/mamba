@@ -203,30 +203,32 @@ namespace mamba
             [](const auto& pkg) { return explicit_spec(pkg); }
         );
 
+        m_history_entry.update.reserve(pkgs_to_install.size());
+        for (auto& pkg : pkgs_to_install)
+        {
+            m_history_entry.update.push_back(explicit_spec(pkg).str());
+        }
+        m_history_entry.remove.reserve(pkgs_to_remove.size());
+        for (auto& pkg : pkgs_to_remove)
+        {
+            m_history_entry.remove.push_back(explicit_spec(pkg).str());
+        }
+
         m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
+
         std::transform(
             std::move_iterator(pkgs_to_install.begin()),
             std::move_iterator(pkgs_to_install.end()),
             std::back_insert_iterator(m_solution.actions),
             [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
         );
+
         std::transform(
             std::move_iterator(pkgs_to_remove.begin()),
             std::move_iterator(pkgs_to_remove.end()),
             std::back_insert_iterator(m_solution.actions),
             [](specs::PackageInfo&& pkg) { return solver::Solution::Remove{ std::move(pkg) }; }
         );
-
-        m_history_entry.remove.reserve(pkgs_to_remove.size());
-        for (auto& pkg : pkgs_to_remove)
-        {
-            m_history_entry.remove.push_back(explicit_spec(pkg).str());
-        }
-        m_history_entry.update.reserve(pkgs_to_install.size());
-        for (auto& pkg : pkgs_to_install)
-        {
-            m_history_entry.update.push_back(explicit_spec(pkg).str());
-        }
 
         // if no action required, don't even start logging them
         if (!empty())

@@ -537,6 +537,12 @@ namespace mamba
 
                 trans.execute(ctx, channel_context, prefix_data);
 
+                // Print activation message only if the environment is freshly created
+                if (create_env)
+                {
+                    print_activation_message(ctx);
+                }
+
                 if (!ctx.dry_run)
                 {
                     for (auto other_spec : config.at("others_pkg_mgrs_specs")
@@ -640,6 +646,12 @@ namespace mamba
                 }
 
                 transaction.execute(ctx, channel_context, prefix_data);
+
+                // Print activation message only if the environment is freshly created
+                if (create_env)
+                {
+                    print_activation_message(ctx);
+                }
 
                 for (auto other_spec : others)
                 {

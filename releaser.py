@@ -138,6 +138,10 @@ def main():
         if line.startswith("Release"):
             release_re = re.compile(r"Release*:\s+(\d\.\d\.\d[\.\w]*)\s+\(([\w,\s]+)\)\s*")
             if matches := re.search(release_re, line):
+                if release_version is not None:
+                    raise ValueError(
+                        "multiple release lines (starting with 'Release: ...') found in changelog for last change - consider re-running `update_changelog.py`"
+                    )
                 release_version = matches.group(1)
                 projects = matches.group(2).replace(",", " ").split()
                 print(f"projects: {projects}")

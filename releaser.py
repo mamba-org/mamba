@@ -14,6 +14,7 @@ templates = {
     "libmambapy": "libmambapy/src/libmambapy/version.py.tmpl",
 }
 
+
 def apply_changelog(name, version, changes):
     def template_substitute(contents):
         x = contents.replace("{{ version_major }}", version.major)

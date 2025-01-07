@@ -14,9 +14,7 @@ templates = {
     "libmambapy": "libmambapy/src/libmambapy/version.py.tmpl",
 }
 
-
 def apply_changelog(name, version, changes):
-
     def template_substitute(contents):
         x = contents.replace("{{ version_major }}", version.major)
         x = x.replace("{{ version_minor }}", version.minor)
@@ -141,11 +139,11 @@ def main():
             release_re = re.compile(r"Release*:\s+(\d\.\d\.\d[\.\w]*)\s+\(([\w,\s]+)\)\s*")
             if matches := re.search(release_re, line):
                 release_version = matches.group(1)
-                projects = matches.group(2).replace(',', " ").split()
-                print("projects: {}".format(projects))
+                projects = matches.group(2).replace(",", " ").split()
+                print(f"projects: {projects}")
                 for project in projects:
                     # because `micromamba` is now the name of the `mamba` project's directory, we ignore it
-                    if project != 'mamba':
+                    if project != "mamba":
                         changes[project] = copy.deepcopy(template)
                         changes[project]["version"] = release_version
             continue

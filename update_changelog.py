@@ -168,7 +168,7 @@ def main():
         changelog_file.write("{}\n".format(date.today().strftime("%Y.%m.%d")))
         changelog_file.write("==========\n")
         changelog_file.write(
-            "\nRelease: {0} (libmamba, mamba, micromamba, libmambapy)\n".format(release_version)
+            f"\nRelease: {release_version} (libmamba, mamba, micromamba, libmambapy)\n"
         )
         # PRs info
         if enhancements_prs:

@@ -478,5 +478,4 @@ init_install_options(CLI::App* subcom, Configuration& config)
             "Categories of package to install from environment lockfile"
         )
         ->option_text("CAT1 CAT2...");
-    ;
 }

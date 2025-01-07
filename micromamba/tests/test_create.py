@@ -545,6 +545,19 @@ def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix)
         assert cached_file.exists()
 
 
+@pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+def test_create_check_logs(tmp_home, tmp_root_prefix, output_flag):
+    env_name = "env-create-check-logs"
+    res = helpers.create("-n", env_name, "xtensor", output_flag)
+
+    if output_flag == "--json":
+        assert res["success"]
+    elif output_flag == "--quiet":
+        assert res == ""
+    else:
+        assert "To activate this environment, use:" in res
+
+
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",
@@ -1156,6 +1169,46 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create("-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor")
 
 
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2",
+        "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda",
+    ],
+)
+def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
+    """Attempts to install a package using an explicit url."""
+    empty_root_prefix = tmp_path / "empty-root-create-from-explicit-url"
+    env_name = "env-create-from-explicit-url"
+
+    os.environ["MAMBA_ROOT_PREFIX"] = str(empty_root_prefix)
+
+    res = helpers.create(
+        spec, "--no-env", "-n", env_name, "--override-channels", "--json", default_channel=False
+    )
+    assert res["success"]
+
+    pkgs = res["actions"]["LINK"]
+    if spec.endswith(".tar.bz2"):
+        assert len(pkgs) == 1
+        assert pkgs[0]["name"] == "_libgcc_mutex"
+        assert pkgs[0]["version"] == "0.1"
+        assert (
+            pkgs[0]["url"]
+            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
+        )
+        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+    else:
+        assert len(pkgs) == 1
+        assert pkgs[0]["name"] == "abacus"
+        assert pkgs[0]["version"] == "3.2.4"
+        assert (
+            pkgs[0]["url"]
+            == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
+        )
+        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"
@@ -1495,3 +1548,30 @@ def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
         pytest.fail(
             f"test_create_with_empty_lines_and_comments exceeded memory limit of {memory_limit} MB (used {max_memory:.2f} MB)"
         )
+
+
+def test_update_spec_list(tmp_path):
+    env_prefix = tmp_path / "env-invalid_spec"
+
+    env_spec = """
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+@EXPLICIT
+https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#76601b0ccfe1fe13a21a5f8813cb38de
+"""
+
+    env_spec_file = tmp_path / "env_spec.txt"
+
+    update_specs_list = """
+  Updating specs:
+
+   - pip==24.3.1=pyh145f28c_2
+"""
+
+    with open(env_spec_file, "w") as f:
+        f.write(env_spec)
+
+    out = helpers.create("-p", env_prefix, "-f", env_spec_file, "--dry-run")
+
+    assert update_specs_list in out.replace("\r", "")

@@ -573,6 +573,30 @@ namespace mamba
                 );
             }
 
+            TEST_CASE_METHOD(Configuration, "envs_dirs_with_env_variable")
+            {
+                std::string cache1 = util::path_concat(util::user_home_dir(), "foo_envs_dirs");
+                std::string cache2 = util::path_concat(util::user_home_dir(), "bar_envs_dirs");
+
+                // Set CONDA_ENVS_PATH with cache1 and cache2 using platform specific path separator
+                util::set_env("CONDA_ENVS_PATH", cache1 + util::pathsep() + cache2);
+
+                // Load default config to get the envs_dirs
+                config.load();
+
+                const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
+
+                std::set<fs::u8path> envs_dirs_set(envs_dirs.begin(), envs_dirs.end());
+
+                // `envs_dirs` should at least contain `root_prefix / envs`, `cache1` and `cache2`
+                REQUIRE(envs_dirs.size() >= 3);
+                REQUIRE(envs_dirs_set.find(get_root_prefix_envs_dir()) != envs_dirs_set.end());
+                REQUIRE(envs_dirs_set.find(cache1) != envs_dirs_set.end());
+                REQUIRE(envs_dirs_set.find(cache2) != envs_dirs_set.end());
+
+                util::unset_env("CONDA_ENVS_PATH");
+            }
+
             TEST_CASE_METHOD(Configuration, "pkgs_dirs")
             {
                 std::string cache1 = util::path_concat(util::user_home_dir(), "foo");

@@ -205,6 +205,17 @@ class TestUpdate:
         for to_link in res["actions"]["LINK"]:
             assert to_link["channel"] == "conda-forge"
 
+    @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+    def test_update_check_logs(self, env_created, output_flag):
+        res = helpers.update("-n", TestUpdate.env_name, "xtensor=0.24.5", output_flag)
+
+        if output_flag == "--json":
+            assert res["success"]
+        elif output_flag == "--quiet":
+            assert res == ""
+        else:
+            assert "To activate this environment, use:" not in res
+
 
 class TestUpdateConfig:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]

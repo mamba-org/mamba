@@ -60,9 +60,6 @@ def apply_changelog(name, version, changes):
 def commands(release_version, changes):
     commit_msg = ", ".join([f"{x} {changes[x]['version']}" for x in changes])
 
-    today = datetime.date.today()
-    date_stamp = today.strftime("%Y.%m.%d")
-
     files_to_commit = ""
     for c in changes:
         files_to_commit += f"    {c}/CHANGELOG.md \\\n"

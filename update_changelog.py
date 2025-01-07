@@ -86,7 +86,11 @@ def append_to_file(ctgr_name, prs, out_file):
 def main():
 
     cli_parser = argparse.ArgumentParser("changelog updater")
-    cli_parser.add_argument("--from_date", "-d", help="Starting date of commits to be included in the release in the format YYYY-MM-DD.")
+    cli_parser.add_argument(
+        "--from_date",
+        "-d",
+        help="Starting date of commits to be included in the release in the format YYYY-MM-DD."
+    )
     cli_parser.add_argument("--version", "-v", help="Name of the version to be released.")
     args = cli_parser.parse_args()
 

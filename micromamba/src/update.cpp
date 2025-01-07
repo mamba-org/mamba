@@ -229,7 +229,8 @@ set_self_update_command(CLI::App* subcom, Configuration& config)
     init_install_options(subcom, config);
 
     static std::optional<std::string> version;
-    subcom->add_option("--version", version, "Install specific micromamba version");
+    subcom->add_option("--version", version, "Install specific micromamba version")
+        ->option_text("VERSION");
 
     subcom->callback([&] { return update_self(config, version); });
 }

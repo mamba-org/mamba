@@ -13,6 +13,11 @@ class version_info:
     name = ""
 
     def __init__(self, version: str):
+        if not isinstance(version, str):
+            raise ValueError(
+                "'{}' is not a valid version name : must be a string".format(version)
+            )
+
         if "-" in version:
             raise ValueError(
                 "'{}' is not a valid version name : `-` is reserved for another usage in conda packages version names".format(

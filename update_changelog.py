@@ -84,7 +84,6 @@ def append_to_file(ctgr_name, prs, out_file):
 
 
 def main():
-
     cli_parser = argparse.ArgumentParser("changelog updater")
     cli_parser.add_argument(
         "--from_date",

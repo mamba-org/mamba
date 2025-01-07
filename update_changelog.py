@@ -21,6 +21,7 @@ from datetime import date
 import json
 import re
 import subprocess
+import argparse
 from version_scheme import version_info
 
 
@@ -83,11 +84,28 @@ def append_to_file(ctgr_name, prs, out_file):
 
 
 def main():
-    commits_starting_date = input(
-        "Enter the starting date of commits to be included in the release in the format YYYY-MM-DD: "
-    )
+
+    cli_parser = argparse.ArgumentParser("changelog updater")
+    cli_parser.add_argument("--from_date", "-d", help="Starting date of commits to be included in the release in the format YYYY-MM-DD.")
+    cli_parser.add_argument("--version", "-v", help="Name of the version to be released.")
+    args = cli_parser.parse_args()
+
+    commits_starting_date = None
+    if args.from_date is not None:
+        commits_starting_date = args.from_date
+    else:
+        commits_starting_date = input(
+            "Enter the starting date of commits to be included in the release in the format YYYY-MM-DD: "
+        )
+
     validate_date(commits_starting_date)
-    release_version = version_info(input("Enter the version to be released: "))
+    release_version = None
+    if args.version is not None:
+        release_version = args.version
+    else:
+        release_version = input("Enter the version to be released: ")
+
+    release_version = version_info(release_version)
 
     # Get commits to include in the release
     log_cmd = "git log --since=" + commits_starting_date

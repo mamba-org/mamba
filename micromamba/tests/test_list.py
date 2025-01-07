@@ -7,16 +7,17 @@ import pytest
 from . import helpers
 
 
+@pytest.mark.parametrize("reverse_flag", ["", "--reverse"])
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag):
+def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag):
     if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag)
+        res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag, reverse_flag)
     elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, "--json", quiet_flag)
+        res = helpers.umamba_list("-n", tmp_env_name, "--json", quiet_flag, reverse_flag)
     else:
-        res = helpers.umamba_list("--json", quiet_flag)
+        res = helpers.umamba_list("--json", quiet_flag, reverse_flag)
 
     assert len(res) > 2
 
@@ -28,6 +29,8 @@ def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_sele
         for i in res
     )
 
+    if reverse_flag == "--reverse":
+        assert names.index("xtensor") > names.index("xtl")
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

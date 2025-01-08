@@ -6,6 +6,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
+#include <sstream>
 
 #include <fmt/format.h>
 
@@ -25,12 +27,10 @@ namespace mamba::specs
 
     auto RegexSpec::parse(std::string pattern) -> expected_parse_t<RegexSpec>
     {
-        // No other mean of getting parse result with ``std::regex``, but parse error need
-        // to be handled by ``tl::expected`` to be managed down the road.
+        // Parse error need to be handled by ``tl::expected`` to be managed down the road.
         try
         {
-            auto regex = std::regex(pattern);
-            return { { std::move(regex), std::move(pattern) } };
+            return { std::move(pattern) };
         }
         catch (const std::regex_error& e)
         {
@@ -39,25 +39,48 @@ namespace mamba::specs
     }
 
     RegexSpec::RegexSpec()
-        : RegexSpec(std::regex(free_pattern.data(), free_pattern.size()), std::string(free_pattern))
+        : RegexSpec(std::string(free_pattern))
     {
     }
 
-    RegexSpec::RegexSpec(std::regex pattern, std::string raw_pattern)
-        : m_pattern(std::move(pattern))
-        , m_raw_pattern(std::move(raw_pattern))
+    RegexSpec::RegexSpec(std::string raw_pattern)
     {
+        // Construct ss from raw_pattern, in particular make sure to replace all `*` by `.*`
+        // in the pattern if they are not preceded by a `.`.
         // We force regex to start with `^` and end with `$` to simplify the multiple
         // possible representations, and because this is the safest way we can make sure it is
         // not a glob when serializing it.
-        if (!util::starts_with(m_raw_pattern, pattern_start))
+        std::ostringstream ss;
+        ss << pattern_start;
+
+        auto first_character_it = raw_pattern.cbegin();
+        auto last_character_it = raw_pattern.cend() - 1;
+
+        for (auto it = first_character_it; it != raw_pattern.cend(); ++it)
         {
-            m_raw_pattern.insert(m_raw_pattern.begin(), pattern_start);
+            if (it == first_character_it && *it == pattern_start)
+            {
+                continue;
+            }
+            if (it == last_character_it && *it == pattern_end)
+            {
+                continue;
+            }
+            if (*it == '*' && (it == first_character_it || *(it - 1) != '.'))
+            {
+                ss << ".*";
+            }
+            else
+            {
+                ss << *it;
+            }
         }
-        if (!util::ends_with(m_raw_pattern, pattern_end))
-        {
-            m_raw_pattern.push_back(pattern_end);
-        }
+
+        ss << pattern_end;
+
+        m_raw_pattern = ss.str();
+
+        m_pattern = std::regex(m_raw_pattern);
     }
 
     auto RegexSpec::contains(std::string_view str) const -> bool

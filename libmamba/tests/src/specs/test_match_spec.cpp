@@ -981,6 +981,25 @@ namespace
                 /* .track_features =*/{ "openssl", "mkl" },
             }));
         }
+
+        SECTION("pytorch=2.3.1=py3.10_cuda11.8*")
+        {
+            // Check that it contains `pytorch=2.3.1=py3.10_cuda11.8_cudnn8.7.0_0`
+
+            const auto ms = "pytorch=2.3.1=py3.10_cuda11.8*"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "pytorch",
+                /* .version= */ "2.3.1"_v,
+                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
     }
 
     TEST_CASE("MatchSpec comparability and hashability")

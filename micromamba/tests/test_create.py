@@ -1638,3 +1638,42 @@ def test_ca_certificates(tmp_path):
     )
 
     assert root_prefix_ca_certificates_used or fall_back_certificates_used
+
+def test_glob_in_build_string(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3699
+    env_prefix = tmp_path / "test_glob_in_build_string"
+
+    pytorch_match_spec = "pytorch=2.3.1=py3.10_cuda11.8*"
+
+    # Export CONDA_OVERRIDE_GLIBC=2.17 to force the solver to use the glibc 2.17 package
+    try:
+        os.environ["CONDA_OVERRIDE_GLIBC"] = "2.17"
+
+        # Should run without error
+        out = helpers.create(
+            "-p",
+            env_prefix,
+            pytorch_match_spec,
+            "-c",
+            "pytorch",
+            "-c",
+            "nvidia/label/cuda-11.8.0",
+            "-c",
+            "nvidia",
+            "-c",
+            "conda-forge",
+            "--platform",
+            "linux-64",
+            "--dry-run",
+            "--json",
+        )
+    finally:
+        os.environ.pop("CONDA_OVERRIDE_GLIBC", None)
+
+    # Check that a build of pytorch 2.3.1 with `py3.10_cuda11.8_cudnn8.7.0_0` as a build string is found
+    assert any(
+        package["name"] == "pytorch"
+        and package["version"] == "2.3.1"
+        and package["build_string"] == "py3.10_cuda11.8_cudnn8.7.0_0"
+        for package in out["actions"]["FETCH"]
+    )

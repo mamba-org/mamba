@@ -1,5 +1,7 @@
-# Script to release any of the mamba packages
-# Please refer to `update_changelog.py` for more info about the release process
+# Script to release any of the mamba packages.
+# This script has no cli parameters and only read info from the root changelog
+# which must have been modified by executing `update_changelog.py`.
+# Please refer to `update_changelog.py` for more info about the release process.
 
 import copy
 import datetime

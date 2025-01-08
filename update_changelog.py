@@ -2,10 +2,11 @@
 
 # Steps:
 
-# 1. Run this script to update the root `CHANGELOG.md` file by giving the date of
+# 1. Run this script to update the root `CHANGELOG.md` file by providing the date of
 # the last release as input (cf. last date shown at the top of the file for reference)
 # or any other starting date that may be relevant for the release,
-# and the release version to be made.
+# and the release version name to be made.
+# You can provide these input interactively or through the cli (use `--help`).
 
 # 2. If you are happy with the changes, run `releaser.py` to update the versions and
 # corresponding nested `CHANGELOG.md` files.

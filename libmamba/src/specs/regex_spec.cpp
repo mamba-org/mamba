@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 #include <sstream>
 
 #include <fmt/format.h>
@@ -30,7 +29,7 @@ namespace mamba::specs
         // Parse error need to be handled by ``tl::expected`` to be managed down the road.
         try
         {
-            return { std::move(pattern) };
+            return RegexSpec{ std::move(pattern) };
         }
         catch (const std::regex_error& e)
         {

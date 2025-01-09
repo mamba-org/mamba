@@ -52,7 +52,7 @@ def test_list_no_json(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, 
     assert "xtensor" in res
     assert "xtl" in res
 
-    assert len(res.split("\n")) - 5 == res.count("conda-forge")
+    assert len(res[res.rindex("\u2500"):].split("\n")) - 2 == res.count("conda-forge")
 
     if reverse_flag == "--reverse":
         assert res.find("xtensor") > res.find("xtl")

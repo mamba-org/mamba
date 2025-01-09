@@ -166,8 +166,7 @@ def main():
 
         # Append new info
         # Release date and version
-        changelog_file.write("{}\n".format(date.today().strftime("%Y.%m.%d")))
-        changelog_file.write("==========\n")
+        changelog_file.write("# {}\n".format(date.today().strftime("%Y.%m.%d")))
         changelog_file.write(
             f"\nRelease: {release_version} (libmamba, mamba, micromamba, libmambapy)\n"
         )

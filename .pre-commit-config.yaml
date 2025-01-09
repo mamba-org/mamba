@@ -5,17 +5,14 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-      - id: fix-encoding-pragma
-        args: [--remove]
-      - id: check-yaml
-        exclude: ^.+(/tests/|/recipe/).+$
-      - id: check-toml
-      - id: check-json
       - id: check-merge-conflict
-      - id: pretty-format-json
-        args: [--autofix]
       - id: debug-statements
         language_version: python3
+  # Autoformat: YAML, JSON, Markdown, etc.
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.4.2
+    hooks:
+      - id: prettier
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:

@@ -2,61 +2,61 @@ BasedOnStyle: Mozilla
 Language: Cpp
 Standard: c++17
 
-AccessModifierOffset: '-4'
+AccessModifierOffset: "-4"
 AlignAfterOpenBracket: BlockIndent
-AlignEscapedNewlinesLeft: 'false'
+AlignEscapedNewlinesLeft: "false"
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
-AllowShortBlocksOnASingleLine: 'false'
-AllowShortCaseLabelsOnASingleLine: 'false'
-AllowShortFunctionsOnASingleLine: 'false'
-AllowShortIfStatementsOnASingleLine: 'false'
-AllowShortLoopsOnASingleLine: 'false'
-AlwaysBreakTemplateDeclarations: 'true'
+AllowShortBlocksOnASingleLine: "false"
+AllowShortCaseLabelsOnASingleLine: "false"
+AllowShortFunctionsOnASingleLine: "false"
+AllowShortIfStatementsOnASingleLine: "false"
+AllowShortLoopsOnASingleLine: "false"
+AlwaysBreakTemplateDeclarations: "true"
 BinPackArguments: false
 BinPackParameters: false
 BreakAfterAttributes: Leave
 BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Allman
-BreakBeforeTernaryOperators: 'true'
-BreakConstructorInitializersBeforeComma: 'true'
-BreakStringLiterals: 'false'
-ColumnLimit: '100'
-ConstructorInitializerAllOnOneLineOrOnePerLine: 'false'
-ConstructorInitializerIndentWidth: '4'
-ContinuationIndentWidth: '4'
-Cpp11BracedListStyle: 'false'
-DerivePointerAlignment: 'false'
-DisableFormat: 'false'
+BreakBeforeTernaryOperators: "true"
+BreakConstructorInitializersBeforeComma: "true"
+BreakStringLiterals: "false"
+ColumnLimit: "100"
+ConstructorInitializerAllOnOneLineOrOnePerLine: "false"
+ConstructorInitializerIndentWidth: "4"
+ContinuationIndentWidth: "4"
+Cpp11BracedListStyle: "false"
+DerivePointerAlignment: "false"
+DisableFormat: "false"
 EmptyLineAfterAccessModifier: Always
 EmptyLineBeforeAccessModifier: Always
-ExperimentalAutoDetectBinPacking: 'true'
+ExperimentalAutoDetectBinPacking: "true"
 IncludeBlocks: Regroup
 IncludeCategories:
-- Regex: <[^.]+>
-  Priority: -3
-- Regex: <mamba/.+>
-  Priority: -1
-- Regex: <.+>
-  Priority: -2
-- Regex: '"mamba/.+"'
-  Priority: 0
-- Regex: '"solv-cpp/.+"'
-  Priority: 0
-- Regex: '".+/.+"'
-  Priority: 1
-- Regex: '".+"'
-  Priority: 2
-IndentCaseLabels: 'true'
-IndentWidth: '4'
-IndentWrappedFunctionNames: 'false'
-InsertBraces: true  # Experimental
-KeepEmptyLinesAtTheStartOfBlocks: 'false'
-MaxEmptyLinesToKeep: '2'
+  - Regex: <[^.]+>
+    Priority: -3
+  - Regex: <mamba/.+>
+    Priority: -1
+  - Regex: <.+>
+    Priority: -2
+  - Regex: '"mamba/.+"'
+    Priority: 0
+  - Regex: '"solv-cpp/.+"'
+    Priority: 0
+  - Regex: '".+/.+"'
+    Priority: 1
+  - Regex: '".+"'
+    Priority: 2
+IndentCaseLabels: "true"
+IndentWidth: "4"
+IndentWrappedFunctionNames: "false"
+InsertBraces: true # Experimental
+KeepEmptyLinesAtTheStartOfBlocks: "false"
+MaxEmptyLinesToKeep: "2"
 NamespaceIndentation: All
-ObjCBlockIndentWidth: '4'
-ObjCSpaceAfterProperty: 'false'
-ObjCSpaceBeforeProtocolList: 'false'
+ObjCBlockIndentWidth: "4"
+ObjCSpaceAfterProperty: "false"
+ObjCSpaceBeforeProtocolList: "false"
 PackConstructorInitializers: Never
 PenaltyBreakAssignment: 100000
 PenaltyBreakBeforeFirstCallParameter: 0
@@ -67,22 +67,22 @@ PenaltyExcessCharacter: 10
 PenaltyIndentedWhitespace: 0
 PenaltyReturnTypeOnItsOwnLine: 10
 PointerAlignment: Left
-QualifierAlignment: Custom  # Experimental
+QualifierAlignment: Custom # Experimental
 QualifierOrder: [inline, static, constexpr, const, volatile, type]
-ReflowComments: 'true'
+ReflowComments: "true"
 SeparateDefinitionBlocks: Always
 SortIncludes: CaseInsensitive
 SortUsingDeclarations: Never
-SpaceAfterCStyleCast: 'true'
-SpaceAfterTemplateKeyword: 'true'
-SpaceBeforeAssignmentOperators: 'true'
+SpaceAfterCStyleCast: "true"
+SpaceAfterTemplateKeyword: "true"
+SpaceBeforeAssignmentOperators: "true"
 SpaceBeforeParens: ControlStatements
-SpaceInEmptyParentheses: 'false'
-SpacesBeforeTrailingComments: '2'
-SpacesInAngles: 'false'
-SpacesInCStyleCastParentheses: 'false'
-SpacesInContainerLiterals: 'false'
-SpacesInParentheses: 'false'
-SpacesInSquareBrackets: 'false'
-TabWidth: '4'
+SpaceInEmptyParentheses: "false"
+SpacesBeforeTrailingComments: "2"
+SpacesInAngles: "false"
+SpacesInCStyleCastParentheses: "false"
+SpacesInContainerLiterals: "false"
+SpacesInParentheses: "false"
+SpacesInSquareBrackets: "false"
+TabWidth: "4"
 UseTab: Never

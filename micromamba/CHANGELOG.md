@@ -1,5 +1,4 @@
-micromamba 2.0.5 (December 12, 2024)
-====================================
+# micromamba 2.0.5 (December 12, 2024)
 
 Enhancements:
 
@@ -25,8 +24,7 @@ CI fixes and doc:
 - maint: Restructure docs configuration file and improve docs pages by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3615
 - docs: Remove installation non-recommendation by @jjerphan in https://github.com/mamba-org/mamba/pull/3656
 
-micromamba 2.0.5.rc0 (December 09, 2024)
-========================================
+# micromamba 2.0.5.rc0 (December 09, 2024)
 
 Enhancements:
 
@@ -48,8 +46,7 @@ CI fixes and doc:
 - maint: Restructure docs configuration file and improve docs pages by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3615
 - docs: Remove installation non-recommendation by @jjerphan in https://github.com/mamba-org/mamba/pull/3656
 
-micromamba 2.0.4 (November 22, 2024)
-====================================
+# micromamba 2.0.4 (November 22, 2024)
 
 Enhancements:
 
@@ -93,8 +90,7 @@ CI fixes and doc:
 - dev: Remove the use of Taskfile by @jjerphan in https://github.com/mamba-org/mamba/pull/3544
 - Upgraded CI to micromamba 2.0.2 by @JohanMabille in https://github.com/mamba-org/mamba/pull/3497
 
-micromamba 2.0.4alpha3 (November 21, 2024)
-==========================================
+# micromamba 2.0.4alpha3 (November 21, 2024)
 
 Enhancements:
 
@@ -114,9 +110,7 @@ CI fixes and doc:
 - maint: Unify `cmake` calls in workflows, build win static builds in p… by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3616
 - docs: Update pieces of documentation after the release of mamba 2 by @jjerphan in https://github.com/mamba-org/mamba/pull/3610
 
-micromamba 2.0.4alpha2 (November 14, 2024)
-==========================================
-
+# micromamba 2.0.4alpha2 (November 14, 2024)
 
 Bug fixes:
 
@@ -127,20 +121,16 @@ CI fixes and doc:
 - Update pre-commit hooks except clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3599
 - Force spinx v6 in readthedocs by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3586
 
-micromamba 2.0.4alpha1 (November 12, 2024)
-==========================================
+# micromamba 2.0.4alpha1 (November 12, 2024)
 
 Bug fixes:
 
 - fixed incorrect syntax in static_build.yml by @Klaim in https://github.com/mamba-org/mamba/pull/3592
 - fix: Correct `mamba env export --json --from-history` by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3590
 
-micromamba 2.0.4alpha0 (November 12, 2024)
-==========================================
+# micromamba 2.0.4alpha0 (November 12, 2024)
 
-
-micromamba 2.0.3 (November 05, 2024)
-====================================
+# micromamba 2.0.3 (November 05, 2024)
 
 Enhancements:
 
@@ -168,8 +158,7 @@ CI fixes and doc:
 - dev: Remove the use of Taskfile by @jjerphan in https://github.com/mamba-org/mamba/pull/3544
 - Upgraded CI to micromamba 2.0.2 by @JohanMabille in https://github.com/mamba-org/mamba/pull/3497
 
-micromamba 2.0.2 (October 02, 2024)
-===================================
+# micromamba 2.0.2 (October 02, 2024)
 
 Bug fixes:
 
@@ -180,8 +169,7 @@ CI fixes and doc:
 
 - Rollback to micromamba 1.5.10 in CI by @JohanMabille in https://github.com/mamba-org/mamba/pull/3491
 
-micromamba 2.0.1 (September 30, 2024)
-=====================================
+# micromamba 2.0.1 (September 30, 2024)
 
 Bug fixes:
 
@@ -193,8 +181,7 @@ CI fixes and doc:
 
 - doc: add github links to documentation by @timhoffm in https://github.com/mamba-org/mamba/pull/3471
 
-micromamba 2.0.0 (September 25, 2024)
-=====================================
+# micromamba 2.0.0 (September 25, 2024)
 
 Enhancements:
 
@@ -348,8 +335,7 @@ CI fixes and doc:
 - update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
 - Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
 
-micromamba 2.0.0rc6 (September 20, 2024)
-========================================
+# micromamba 2.0.0rc6 (September 20, 2024)
 
 Enhancements:
 
@@ -367,8 +353,7 @@ CI fixes and doc:
 - Fix wrong version of miniforge in doc by @Hind-M in https://github.com/mamba-org/mamba/pull/3462
 - Remove cctools patch removal in CI by @Hind-M in https://github.com/mamba-org/mamba/pull/3451
 
-micromamba 2.0.0rc5 (September 13, 2024)
-========================================
+# micromamba 2.0.0rc5 (September 13, 2024)
 
 Enhancements:
 
@@ -385,16 +370,14 @@ CI fixes and doc:
 
 - docs: Specify `CMAKE_INSTALL_PREFIX` by @jjerphan in https://github.com/mamba-org/mamba/pull/3438
 
-micromamba 2.0.0rc4 (August 29, 2024)
-=====================================
+# micromamba 2.0.0rc4 (August 29, 2024)
 
 Bug fixes:
 
 - test: Adapt `test_remove_orphaned` unlinks by @jjerphan in https://github.com/mamba-org/mamba/pull/3417
 - fix: Reduce logging system overhead by @jjerphan in https://github.com/mamba-org/mamba/pull/3416
 
-micromamba 2.0.0rc3 (August 26, 2024)
-=====================================
+# micromamba 2.0.0rc3 (August 26, 2024)
 
 Bug fixes:
 
@@ -406,8 +389,7 @@ CI fixes and doc:
 
 - docs: Adapt "Solving Package Environments" section by @jjerphan in https://github.com/mamba-org/mamba/pull/3326
 
-micromamba 2.0.0rc2 (August 19, 2024)
-=====================================
+# micromamba 2.0.0rc2 (August 19, 2024)
 
 Enhancements:
 
@@ -425,18 +407,14 @@ CI fixes and doc:
 - Unpin cryptography, python, and add make to environment-dev.yml by @jaimergp in https://github.com/mamba-org/mamba/pull/3352
 - ci: Unpin libcxx <18 by @jjerphan in https://github.com/mamba-org/mamba/pull/3375
 
-micromamba 2.0.0rc1 (July 26, 2024)
-===================================
-
+# micromamba 2.0.0rc1 (July 26, 2024)
 
 CI fixes and doc:
 
 - chore(ci): bump github action versions by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3350
 - doc(more_concepts.rst): improve clarity by @corneliusroemer in https://github.com/mamba-org/mamba/pull/3357
 
-micromamba 2.0.0rc0 (July 08, 2024)
-===================================
-
+# micromamba 2.0.0rc0 (July 08, 2024)
 
 Bug fixes:
 
@@ -448,8 +426,7 @@ CI fixes and doc:
 
 - Temporarily disabled no_python_pinning test on Windows by @JohanMabille in https://github.com/mamba-org/mamba/pull/3322
 
-micromamba 2.0.0beta3 (June 14, 2024)
-=====================================
+# micromamba 2.0.0beta3 (June 14, 2024)
 
 Enhancements:
 
@@ -465,15 +442,13 @@ CI fixes and doc:
 
 - Fix CI failure on win-64 by @Hind-M in https://github.com/mamba-org/mamba/pull/3315
 
-micromamba 2.0.0beta2 (May 29, 2024)
-====================================
+# micromamba 2.0.0beta2 (May 29, 2024)
 
 Enhancements:
 
 - Add checking typos to pre-commit by @Hind-M in https://github.com/mamba-org/mamba/pull/3278
 
-micromamba 2.0.0beta1 (May 04, 2024)
-====================================
+# micromamba 2.0.0beta1 (May 04, 2024)
 
 Enhancements:
 
@@ -499,8 +474,7 @@ CI fixes and doc:
 - Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
 - Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
 
-micromamba 2.0.0beta0 (April 04, 2024)
-======================================
+# micromamba 2.0.0beta0 (April 04, 2024)
 
 Enhancements:
 
@@ -511,8 +485,7 @@ CI fixes and doc:
 
 - Small changelog additions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3254
 
-micromamba 2.0.0alpha4 (March 26, 2024)
-=======================================
+# micromamba 2.0.0alpha4 (March 26, 2024)
 
 Enhancements:
 
@@ -533,8 +506,7 @@ CI fixes and doc:
 - Typos in dev_environment.rst by @jd-foster in https://github.com/mamba-org/mamba/pull/3235
 - Add MatchSpec doc and fix errors by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3224
 
-micromamba 2.0.0alpha3 (February 28, 2024)
-==========================================
+# micromamba 2.0.0alpha3 (February 28, 2024)
 
 Enhancements:
 
@@ -552,8 +524,7 @@ Bug fixes:
 
 CI fixes and doc:
 
-micromamba 2.0.0alpha2 (February 02, 2024)
-==========================================
+# micromamba 2.0.0alpha2 (February 02, 2024)
 
 Enhancements:
 
@@ -588,16 +559,13 @@ CI fixes and doc:
 - Warning around manual install and add ref to conda-libmamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3119
 - Add MacOS DNS issue logging by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3130
 
-micromamba 2.0.0alpha1 (December 18, 2023)
-==========================================
-
+# micromamba 2.0.0alpha1 (December 18, 2023)
 
 CI fixes and doc:
 
 - Add CI merge groups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3068
 
-micromamba 2.0.0alpha0 (December 14, 2023)
-==========================================
+# micromamba 2.0.0alpha0 (December 14, 2023)
 
 Enhancements:
 
@@ -664,8 +632,7 @@ CI fixes and doc:
 - update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
 - Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
 
-micromamba 2.0.0alpha0 (December 14, 2023)
-==========================================
+# micromamba 2.0.0alpha0 (December 14, 2023)
 
 Enhancements:
 
@@ -732,8 +699,7 @@ CI fixes and doc:
 - update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
 - Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
 
-micromamba 1.5.1 (September 05, 2023)
-=====================================
+# micromamba 1.5.1 (September 05, 2023)
 
 Enhancements:
 
@@ -754,8 +720,7 @@ CI fixes and doc:
 - Use Release build mode in Windows CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2785
 - Fix wrong command description by @Hind-M in https://github.com/mamba-org/mamba/pull/2804
 
-micromamba 1.5.0 (August 24, 2023)
-==================================
+# micromamba 1.5.0 (August 24, 2023)
 
 Enhancements:
 
@@ -785,15 +750,13 @@ CI fixes and doc:
 - fix: Shell completion section title missing by @wy-luke in https://github.com/mamba-org/mamba/pull/2764
 - Add Debug build type by @Hind-M in https://github.com/mamba-org/mamba/pull/2762
 
-micromamba 1.4.9 (July 13, 2023)
-================================
+# micromamba 1.4.9 (July 13, 2023)
 
 Bug fixes:
 
 - Added upper bound to fmt to avoid weird failure on ci (windows only) by @JohanMabille in https://github.com/mamba-org/mamba/pull/2671
 
-micromamba 1.4.8 (July 11, 2023)
-================================
+# micromamba 1.4.8 (July 11, 2023)
 
 Enhancements:
 
@@ -803,20 +766,15 @@ CI fixes and doc;
 
 - Update installation docs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2654
 
-micromamba 1.4.7 (July 06, 2023)
-================================
+# micromamba 1.4.7 (July 06, 2023)
 
-
-micromamba 1.4.6 (June 30, 2023)
-================================
-
+# micromamba 1.4.6 (June 30, 2023)
 
 CI fixes and doc:
 
 - Document micromamba support for conda-lock spec files by @mfisher87 in https://github.com/mamba-org/mamba/pull/2621
 
-micromamba 1.4.5 (June 27, 2023)
-================================
+# micromamba 1.4.5 (June 27, 2023)
 
 Enhancements:
 
@@ -847,15 +805,13 @@ CI fixes and doc:
 - Switch to setup-micromamba by @pavelzw in https://github.com/mamba-org/mamba/pull/2610
 - Fix broken ref directives in docs by @mfisher87 in https://github.com/mamba-org/mamba/pull/2620
 
-micromamba 1.4.4 (May 16, 2023)
-===============================
+# micromamba 1.4.4 (May 16, 2023)
 
 Bug fixes:
 
 - fix: let the new executable run the shell init script by @ruben-arts in https://github.com/mamba-org/mamba/pull/2529
 
-micromamba 1.4.3 (May 15, 2023)
-===============================
+# micromamba 1.4.3 (May 15, 2023)
 
 Enhancements:
 
@@ -869,13 +825,12 @@ CI fixes and doc:
 
 - Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
 
-micromamba 1.4.2 (April 06, 2023)
-=================================
+# micromamba 1.4.2 (April 06, 2023)
 
 Enhancements:
 
-- Refactor test\_create, test\_proxy, and test\_env for test isolation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2416
-- Remove const ref to string\_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
+- Refactor test_create, test_proxy, and test_env for test isolation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2416
+- Remove const ref to string_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
 
 CI fixes and doc:
 
@@ -883,19 +838,17 @@ CI fixes and doc:
 - Remove outdated micromamba experimental warning by @jonashaag in https://github.com/mamba-org/mamba/pull/2430
 - Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
 
-micromamba 1.4.1 (March 28, 2023)
-=================================
+# micromamba 1.4.1 (March 28, 2023)
 
 Enhancements:
 
 - add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
 
-micromamba 1.4.0 (March 22, 2023)
-=================================
+# micromamba 1.4.0 (March 22, 2023)
 
 Enchancements:
 
-- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Implemented recursive dependency printout in repoquery by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
 - Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
 - Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
 - Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
@@ -911,8 +864,7 @@ CI fixes & docs:
 - Added missing dependency in local recipe by @wolfv in https://github.com/mamba-org/mamba/pull/2334
 - Fixed Conda Lock Path by @funtion in https://github.com/mamba-org/mamba/pull/2393
 
-micromamba 1.3.1 (February 09, 2023)
-====================================
+# micromamba 1.3.1 (February 09, 2023)
 
 A bugfix release for 1.3.0!
 
@@ -929,8 +881,7 @@ Docs:
 - - added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
 - - change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
 
-micromamba 1.3.0 (February 03, 2023)
-====================================
+# micromamba 1.3.0 (February 03, 2023)
 
 Enhancements:
 
@@ -951,8 +902,7 @@ CI fixes & docs:
 - fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
 - Fix Windows static builds by @jonashaag in https://github.com/mamba-org/mamba/pull/2228
 
-micromamba 1.2.0 (January 16, 2023)
-===================================
+# micromamba 1.2.0 (January 16, 2023)
 
 This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
 `repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
@@ -990,8 +940,7 @@ CI fixes & docs:
 - - Remove feedstock patches by @wolfv in #2216
 - - Fixed static dependency order by @JohanMabille in #2201
 
-micromamba 1.1.0 (November 25, 2022)
-====================================
+# micromamba 1.1.0 (November 25, 2022)
 
 Some bugfixes for 1.0 and experimental release of the new solver messages
 
@@ -1014,8 +963,7 @@ Enhancements
 - docs: Add warning to manual install instructions #2100
 - docs: Consistently use curl for fetching files #2126
 
-micromamba 1.0.0 (November 01, 2022)
-====================================
+# micromamba 1.0.0 (November 01, 2022)
 
 Our biggest version number yet! Finally a 1.0 release :)
 
@@ -1046,8 +994,7 @@ Enhancements:
 - better test isolation (thanks @AntoinePrv) #1903
 - Test special characters in basic auth (thanks @jonashaag) #2012
 
-micromamba 0.27.0 (October 04, 2022)
-====================================
+# micromamba 0.27.0 (October 04, 2022)
 
 Bug fixes:
 
@@ -1060,8 +1007,7 @@ Enhancements:
 
 - add cross-compiled builds to CI (thanks @pavelzw) #1976, #1989
 
-micromamba 0.26.0 (September 30, 2022)
-======================================
+# micromamba 0.26.0 (September 30, 2022)
 
 Bug fixes:
 
@@ -1079,15 +1025,13 @@ Enhancements:
 - CI: add fully static micromamba build (thanks @jonashaag) #1821
 - allow configuring proxies (thanks @AdrianFreundQC) #1841
 
-micromamba 0.25.1 (July 29, 2022)
-=================================
+# micromamba 0.25.1 (July 29, 2022)
 
 Bug fixes:
 
 - fix issue where pip installation was broken on Windows @Klaim #1828
 
-micromamba 0.25.0 (July 26, 2022)
-=================================
+# micromamba 0.25.0 (July 26, 2022)
 
 Bug fixes:
 
@@ -1106,16 +1050,14 @@ Enhancements:
 - Make `--use-index-cache` option work (thanks @AdrianFreundQC) #1762
 - Test improvements (thanks @AntoinePrv) #1777, #1778
 
-micromamba 0.24.0 (June 01, 2022)
-=================================
+# micromamba 0.24.0 (June 01, 2022)
 
 Bug fixes:
 
 - constructor now uses proper (patched) repodata to create repodata_record.json files #1698
 - use fmt::format for pretty printing in `micromamba search --pretty` #1710
 
-micromamba 0.23.3 (May 20, 2022)
-================================
+# micromamba 0.23.3 (May 20, 2022)
 
 Bug fixes
 
@@ -1127,15 +1069,13 @@ Improvements
 
 - make clean_force_pkgs respect `-y` flag (thanks @Patricol) #1686
 
-micromamba 0.23.2 (May 12, 2022)
-================================
+# micromamba 0.23.2 (May 12, 2022)
 
 Bug fixes
 
 - Fix a bug with platform replacement in URLs #1670
 
-micromamba 0.23.1 (May 11, 2022)
-================================
+# micromamba 0.23.1 (May 11, 2022)
 
 Bug fixes
 
@@ -1143,8 +1083,7 @@ Bug fixes
 - Fix thread clean up and singleton destruction order (thanks @Klaim) #1666, #1620
 - Show reason for multi-download failure (thanks @syslaila) #1652
 
-micromamba 0.23.0 (April 21, 2022)
-==================================
+# micromamba 0.23.0 (April 21, 2022)
 
 This release uses tl::expected for some improvements in the error handling.
 We also cleaned the API a bit and did some refactorings to make the code compile faster and clean up headers.
@@ -1168,8 +1107,7 @@ Enhancements
 - Add tests for micromamba run (thanks @Klaim) #1564
 - Also complete for micromamba deactivate #1577
 
-micromamba 0.22.0 (February 25, 2022)
-=====================================
+# micromamba 0.22.0 (February 25, 2022)
 
 Bug fixes
 
@@ -1185,15 +1123,13 @@ Improvements
 - Refactor configuration system (thanks @JohanMabille) #1500
 - Fix segfault on Linux with "fake" micromamba activate command #1496
 
-micromamba 0.21.2 (February 14, 2022)
-=====================================
+# micromamba 0.21.2 (February 14, 2022)
 
 Bug fixes
 
 - Properly attach stdin for `micromamba run` #1488
 
-micromamba 0.21.1 (February 11, 2022)
-=====================================
+# micromamba 0.21.1 (February 11, 2022)
 
 Bug fixes
 
@@ -1206,8 +1142,7 @@ Improvements
 - Micromamba run add `--clean-env` and `-e,--env` handling to pass in environment variables #1464
 - Disable banner with `micromamba run` #1474
 
-micromamba 0.21.0 (February 07, 2022)
-=====================================
+# micromamba 0.21.0 (February 07, 2022)
 
 Bug fixes
 
@@ -1232,8 +1167,7 @@ Improvements
 - Add improved `micromamba update --all` #1318
 - Add `micromamba repoquery` command #1318
 
-micromamba 0.20.0 (January 25, 2022)
-====================================
+# micromamba 0.20.0 (January 25, 2022)
 
 Bug fixes
 
@@ -1248,9 +1182,7 @@ Improvements
 - Experimental wass logged twice (thanks @baszalmstra) #1360
 - Store platform when creating env with `--platform=...` (thanks @adriendelsalle) #1381
 
-
-micromamba 0.19.1 (December 08, 2021)
-=====================================
+# micromamba 0.19.1 (December 08, 2021)
 
 Bug fixes
 
@@ -1260,8 +1192,7 @@ Improvements
 
 - Add `micromamba clean --trash` command to remove `*.mamba_trash` files (@wolfv) #1319
 
-micromamba 0.19.0 (November 30, 2021)
-=====================================
+# micromamba 0.19.0 (November 30, 2021)
 
 Bug fixes
 
@@ -1269,24 +1200,23 @@ Bug fixes
 - Do not set higher prio to arch vs noarch (@wolfv) #1312
 - Add shell_completion, changeps1 and env_prompt as RC settings, remove auto-activate-base CLI flag (@wolfv) #1304
 
-micromamba 0.18.2 (November 24, 2021)
-=====================================
+# micromamba 0.18.2 (November 24, 2021)
 
 Bug fixes
 
 - Fix CMake config for micromamba fully statically linked on Windows (@adriendelsalle) #1297
 - Fix shell activation regression (@adriendelsalle) #1289
 
-0.18.1 (November 19, 2021)
-==========================
+  # 0.18.1 (November 19, 2021)
 
 Bug fixes
+
 - Fix default log level, use warning everywhere (@adriendelsalle) #1279
 
-0.18.0 (November 17, 2021)
-==========================
+  # 0.18.0 (November 17, 2021)
 
 New features
+
 - Parallel packages extraction using subproc (@jonashaag @adriendelsalle) #1195
 - Improve bash completion (activate sub-command, directories completion) (@adriendelsalle) #1234
 - Add channel URLs to info (@jonashaag) #1235
@@ -1296,17 +1226,19 @@ New features
 - Add info JSON output and `--json` CLI flag (@adriendelsalle) #1271
 
 Bug fixes
+
 - Init all powershell profiles (@adriendelsalle) #1226
 - Fix multiple activations in Windows bash (@adriendelsalle) #1228
 
 Docs
+
 - Document fish support (@izahn) #1216
 
 General improvements
+
 - Split projects, improve CMake options (@adriendelsalle) #1219 #1243
 
-0.17.0 (October 13, 2021)
-=========================
+  # 0.17.0 (October 13, 2021)
 
 API Breaking changes:
 
@@ -1325,8 +1257,7 @@ packages dir is necessary, this value is taken directly from the MultiPackagesCa
 - micromamba: expose setting for `add_pip_as_python_dependency` #1203
 - stop displaying banner when running `mamba list` #1184 (thanks @madhur-thandon)
 
-0.16.0 (September 27, 2021)
-===========================
+  # 0.16.0 (September 27, 2021)
 
 - Add a User-Agent header to all requests (mamba/0.16.0) (thanks @shankerwangmiao)
 - Add `micromamba env export (--explicit)` to micromamba
@@ -1342,8 +1273,7 @@ packages dir is necessary, this value is taken directly from the MultiPackagesCa
 - Add constraint with pin when updating
 - Expose methods for virtual packages to Python (thanks @madhur-tandon)
 
-0.15.3 (August 18, 2021)
-========================
+  # 0.15.3 (August 18, 2021)
 
 - change token regex to work with edge-cases (underscores in user name) (#1122)
 - only pin major.minor version of python for update --all (#1101, thanks @mparry!)
@@ -1354,41 +1284,41 @@ packages dir is necessary, this value is taken directly from the MultiPackagesCa
 - Add mamba.bat in front of PATH (#1112, thanks @isuruf)
 - Fix mamba not writable cache errors (#1108)
 
-0.15.2 (July 16, 2021)
-======================
+  # 0.15.2 (July 16, 2021)
 
 - micromamba autocomplete now ready for usage (#1091)
 - improved file:// urls for windows to properly work (#1090)
 
-0.15.1 (July 15, 2021)
-======================
+  # 0.15.1 (July 15, 2021)
 
 New features:
+
 - add `mamba init` command and add mamba.sh (#1075, thanks @isuruf & #1078)
 - add flexible channel priority option in micromamba CLI (#1087)
 - improved autocompletion for micromamba (#1079)
 
 Bug fixes:
+
 - improve "file://" URL handling, fix local channel on Windows (#1085)
 - fix CONDA_SUBDIR not being used in mamba (#1084)
 - pass in channel_alias and custom_channels from conda to mamba (#1081)
 
-0.15.0 (July 9, 2021)
-=====================
+  # 0.15.0 (July 9, 2021)
 
 Big changes:
+
 - improve solutions by inspecting dependency versions as well (libsolv PR:
   https://github.com/openSUSE/libsolv/pull/457) @wolfv
 - properly implement strict channel priority (libsolv PR:
   https://github.com/openSUSE/libsolv/pull/459) @adriendelsalle
-	+ Note that this changes the meaning of strict and flexible priority as the
-	  previous implementation did not follow conda's semantics. Mamba now has
-	  three modes, just like conda: strict, flexible and disabled. Strict will
-	  completely disregard any packages from lower-priority channels if a
-	  package of the same name exists in a higher priority channel. Flexible
-	  will use packages from lower-priority channels if necessary to fulfill
-	  dependencies or explicitly requested (e.g. by version number). Disabled
-	  will use the highest version number, irregardless of the channel order.
+  - Note that this changes the meaning of strict and flexible priority as the
+    previous implementation did not follow conda's semantics. Mamba now has
+    three modes, just like conda: strict, flexible and disabled. Strict will
+    completely disregard any packages from lower-priority channels if a
+    package of the same name exists in a higher priority channel. Flexible
+    will use packages from lower-priority channels if necessary to fulfill
+    dependencies or explicitly requested (e.g. by version number). Disabled
+    will use the highest version number, irregardless of the channel order.
 - allow subdir selection as part of the channel: users can now specify an
   explicit list of subdirs, for example:
 
@@ -1398,6 +1328,7 @@ Big changes:
   Thanks for the contribution, @afranchuk! #1033
 
 New features
+
 - remove orphaned packages such as dependencies of explicitely installed
   packages (@adriendelsalle) #1040
 - add a diff character before package name in transaction table to improve
@@ -1410,30 +1341,31 @@ New features
 - add docs for package resolution
 
 Bug fixes:
+
 - Fix small output issues (#1060)
 - More descriptive incorrect download error (thanks @AntoinePrv) #1066
 - respect channel specific pins when updating (#1045)
 - keep track features in PackageInfo class (#1046)
 
-
-0.14.1 (June 25, 2021)
-======================
+  # 0.14.1 (June 25, 2021)
 
 New features
+
 - [micromamba] add remove command, to remove keys of vectors (@marimeireles)
   #1011
 
 Bug fixes
+
 - [micromamba] fixed in config prepend and append sequence (@adriendelsalle)
   #1023
 - fix bug when username has @ (@madhur-tandon) #1025
 - fix wrong update spec in history (@madhur-tandon) #1028
 - [mamba] silent pinned packages using JSON output (@adriendelsalle) #1031
 
-0.14.0 (June 16, 2021)
-======================
+  # 0.14.0 (June 16, 2021)
 
 New features
+
 - [micromamba] add `config set`, `get`, `append` and `prepend`, `remove`
   (@marimeireles) #838
 - automatically include `pip` in conda dependencies when having pip packages to
@@ -1451,6 +1383,7 @@ New features
 - [micromamba] Use a proper requirements.txt file for pip installations #1008
 
 Bug fixes
+
 - fix double-print int transaction (@JohanMabille) #952
 - fix strip function (@wolfv) #974
 - [micromamba] expand home directory in `--rc-file` (@adriendelsalle) #979
@@ -1459,64 +1392,70 @@ Bug fixes
 - fix long paths support on Windows (@adriendelsalle) #994
 
 General improvement
+
 - remove duplicate snippet (@madhur-tandon) #957
 - add `trace` log level (@adriendelsalle) #988
 
 Docs
+
 - concepts, user guide, configuration, update installation and build locally
   (@adriendelsalle) #953
 - advance usage section, linking (@adriendelsalle) #998
 - repo, channel, subdir, repodata, tarball (@adriendelsalle) #1004
 - artifacts verification (@adriendelsalle) #1000
 
-0.13.1 (May 17, 2021)
-=====================
+  # 0.13.1 (May 17, 2021)
 
 Bug fixes
+
 - [micromamba] pin only minor python version #948
 - [micromamba] use openssl certs when not linking statically #949
 
-0.13.0 (May 12, 2021)
-=====================
+  # 0.13.0 (May 12, 2021)
 
 New features
+
 - [mamba & micromamba] aggregated progress bar for package downloading and
   extraction (thanks @JohanMabille) #928
 
 Bug fixes
+
 - [micromamba] fixes for micromamba usage in constructor #935
 - [micromamba] fixes for the usage of lock files #936
 - [micromamba] switched from libsodium to openssl for ed25519 signature
   verification #933
 
 Docs
+
 - Mention mambaforge in the README (thanks @s-pike) #932
 
-0.12.3 (May 10, 2021)
-=====================
+  # 0.12.3 (May 10, 2021)
 
 New features
+
 - [libmamba] add free-function to use an existing conda root prefix
   (@adriendelsalle) #927
 
 General improvements
+
 - [micromamba] fix a typo in documentation (@cjber) #926
 
-0.12.2 (May 03, 2021)
-=====================
+  # 0.12.2 (May 03, 2021)
 
 New features
+
 - [micromamba] add initial framework for TUF validation (@adriendelsalle) #916
   #919
 - [micromamba] add channels from specs to download (@wolfv) #918
 
-0.12.1 (Apr 30, 2021)
-=====================
+  # 0.12.1 (Apr 30, 2021)
 
 New features
+
 - [micromamba] env list subcommand (@wolfv) #913
 
 Bug fixes
+
 - [micromamba] fix multiple shell init with cmd.exe (@adriendelsalle) #915
 - [micromamba] fix activate with --stack option (@wolfv) #914
 - [libmamba] only try loading ssl certificates when needed (@adriendelsalle)
@@ -1526,15 +1465,16 @@ Bug fixes
 - [micromamba] allow 'ultra-dry' config checks in final build (@adriendelsalle)
   #912
 
-0.12.0 (Apr 26, 2021)
-=====================
+  # 0.12.0 (Apr 26, 2021)
 
 New features
+
 - [libmamba] add experimental shell autocompletion (@wolfv) #900
 - [libmamba] add token handling (@wolfv) #886
 - [libmamba] add experimental pip support in spec files (@wolfv) #885
 
 Bug fixes
+
 - [libmamba] ignore failing pyc compilation for noarch packages (@wolfv) #904
   #905
 - [libmamba] fix string wrapping in error message (@bdice) #902
@@ -1545,6 +1485,7 @@ Bug fixes
 - [mamba] fix `env update` command (@ScottWales) #891
 
 General improvements
+
 - [libmamba] use lockfile, fix channel not loaded logic (@wolfv) #903
 - [libmamba] make root_prefix warnings more selective (@adriendelsalle) #899
 - [libmamba] house-keeping in python tests (@adriendelsalle) #898
@@ -1553,8 +1494,7 @@ General improvements
 - [libmamba] deactivate ca-certificates search when using offline mode
   (@adriendelsalle) #893
 
-0.11.3 (Apr 21, 2021)
-====================
+  # 0.11.3 (Apr 21, 2021)
 
 - [libmamba] make platform rc configurable #883
 - [libmamba] expand user home in target and root prefixes #882
@@ -1564,21 +1504,18 @@ General improvements
 - [micromamba] fix `clean` flags handling #880
 - [libmamba] C-API teardown on error #879
 
-0.11.2 (Apr 21, 2021)
-====================
+  # 0.11.2 (Apr 21, 2021)
 
 - [libmamba] create "base" env only for install operation #875
 - [libmamba] remove confirmation prompt of root_prefix in shell init #874
 - [libmamba] improve overrides between target_prefix and env_name #873
 - [micromamba] fix use of `-p,--prefix` and spec file env name #873
 
-0.11.1 (Apr 20, 2021)
-====================
+  # 0.11.1 (Apr 20, 2021)
 
 - [libmamba] fix channel_priority computation #872
 
-0.11.0 (Apr 20, 2021)
-====================
+  # 0.11.0 (Apr 20, 2021)
 
 - [libmamba] add experimental mode that unlock edge features #858
 - [micromamba] add `--experimental` umamba flag to enable experimental mode
@@ -1599,8 +1536,7 @@ General improvements
   API #866
 - [libmamba] add capapbility to set CLI config from C-API #867
 
-0.10.0 (Apr 16, 2021)
-====================
+  # 0.10.0 (Apr 16, 2021)
 
 - [micromamba] allow creation of empty env (without specs) #824 #827
 - [micromamba] automatically create empy `base` env at new root prefix #836
@@ -1627,8 +1563,7 @@ General improvements
 - fix CI C++ tests (unix/libmamba) and Python tests (win/mamba) wrongly
   successful #853
 
-0.9.2 (Apr 1, 2021)
-====================
+  # 0.9.2 (Apr 1, 2021)
 
 - [micromamba] fix unc url support (thanks @adament)
 - [micromamba] add --channel-alias as cli option to micromamba (thanks
@@ -1639,15 +1574,13 @@ General improvements
 - add simple context debugging, dry run tests and other test framework
   improvements
 
-0.9.1 (Mar 26, 2021)
-====================
+  # 0.9.1 (Mar 26, 2021)
 
 - [micromamba] fix remove command target_prefix selection
 - [micromamba] improve target_prefix fallback for CLI, add tests (thanks
   @adriendelsalle)
 
-0.9.0 (Mar 25, 2021)
-====================
+  # 0.9.0 (Mar 25, 2021)
 
 - [micromamba] use strict channels priority by default
 - [micromamba] change config precedence order: API>CLI>ENV>RC
@@ -1660,15 +1593,12 @@ General improvements
 - add pinned specs for env update (thanks @wolfv)
 - properly adhere to run_constrains (thanks @wolfv)
 
-0.8.2 (Mar 12, 2021)
-====================
+  # 0.8.2 (Mar 12, 2021)
 
 - [micromamba] fix setting network options before explicit spec installation
 - [micromamba] fix python based tests for windows
 
-
-0.8.1 (Mar 11, 2021)
-====================
+  # 0.8.1 (Mar 11, 2021)
 
 - use stoull (instead of stoi) to prevent overflow with long package build
   numbers (thanks @pbauwens-kbc)
@@ -1682,9 +1612,7 @@ General improvements
 - [micromamba] libsolv log messages to stderr (thanks @mariusvniekerk)
 - [micromamba] better curl error messages
 
-
-0.8.0 (Mar 5, 2021)
-===================
+  # 0.8.0 (Mar 5, 2021)
 
 - [micromamba] condarc and mambarc config file reading (and config subcommand)
   (thanks @adriendelsalle)
@@ -1710,9 +1638,7 @@ General improvements
 - [micromamba] compare cleaned URLs for cache invalidation
 - [micromamba] add regex handling to list command
 
-
-0.7.14 (Feb 12, 2021)
-=====================
+  # 0.7.14 (Feb 12, 2021)
 
 - [micromamba] better validation of extracted directories
 - [mamba] add additional tests for authentication and simple repodata server
@@ -1722,14 +1648,11 @@ General improvements
 - [micromamba] add clean functionality
 - [micromamba] always make target prefix path absolute
 
-
-0.7.13 (Feb 4, 2021)
-====================
+  # 0.7.13 (Feb 4, 2021)
 
 - [micromamba] Immediately exit after printing version (again)
 
-0.7.12 (Feb 3, 2021)
-====================
+  # 0.7.12 (Feb 3, 2021)
 
 - [micromamba] Improve CTRL+C signal handling behavior and simplify code
 - [micromamba] Revert extraction to temporary directory because of invalid
@@ -1737,8 +1660,7 @@ General improvements
 - [micromamba] Clean up partially extracted archives when CTRL+C interruption
   occured
 
-0.7.11 (Feb 2, 2021)
-====================
+  # 0.7.11 (Feb 2, 2021)
 
 - [micromamba] use wrapped call when compiling noarch Python code, which
   properly calls chcp for Windows
@@ -1747,73 +1669,62 @@ General improvements
 - first extract to temporary directory, then move to final pkgs cache to
   prevent corrupted extracted data
 
-0.7.10 (Jan 22, 2021)
-====================
+  # 0.7.10 (Jan 22, 2021)
 
 - [micromamba] properly fix PATH when linking, prevents missing
   vcruntime140.dll
 - [mamba] add virtual packages when creating any environment, not just on
   update (thanks @cbalioglu)
 
-0.7.9 (Jan 19, 2021)
-====================
+  # 0.7.9 (Jan 19, 2021)
 
 - [micromamba] fix PATH when linking
 
-0.7.8 (Jan 14, 2021)
-====================
+  # 0.7.8 (Jan 14, 2021)
 
 - [micromamba] retry on corrupted repodata
 - [mamba & micromamba] fix error handling when writing repodata
 
-0.7.6 (Dec 22, 2020)
-====================
+  # 0.7.6 (Dec 22, 2020)
 
 - [micromamba] more console flushing for std::cout consumers
 
-0.7.6 (Dec 14, 2020)
-====================
+  # 0.7.6 (Dec 14, 2020)
 
 - [mamba] more arguments for repodata.create_pool
 
-0.7.5 (Dec 10, 2020)
-====================
+  # 0.7.5 (Dec 10, 2020)
 
 - [micromamba] better error handling for YAML file reading, allows to pass in
   `-n` and `-p` from command line
 - [mamba & micromamba] ignore case of HTTP headers
 - [mamba] fix channel keys are without tokens (thanks @s22chan)
 
-0.7.4 (Dec 5, 2020)
-====================
+  # 0.7.4 (Dec 5, 2020)
 
 - [micromamba] fix noarch installation for explicit environments
 
-0.7.3 (Nov 20, 2020)
-====================
+  # 0.7.3 (Nov 20, 2020)
 
 - [micromamba] fix installation of noarch files with long prefixes
 - [micromamba] fix activation on windows with whitespaces in root prefix
   (thanks @adriendelsalle)
 - [micromamba] add `--json` output to micromamba list
 
-0.7.2 (Nov 18, 2020)
-====================
+  # 0.7.2 (Nov 18, 2020)
 
 - [micromamba] explicit specs installing should be better now
-	- empty lines are ignored
-	- network settings are correctly set to make ssl verification work
+  - empty lines are ignored
+  - network settings are correctly set to make ssl verification work
 - New Python repoquery API for mamba
 - Fix symlink packing for mamba package creation and transmute
 - Do not keep tempfiles around
 
-0.7.1 (Nov 16, 2020)
-====================
+  # 0.7.1 (Nov 16, 2020)
 
 - Handle LIBARCHIVE_WARN to not error, instead print warning (thanks @obilaniu)
 
-0.7.0 (Nov 12, 2020)
-====================
+  # 0.7.0 (Nov 12, 2020)
 
 - Improve activation and deactivation logic for micromamba
 - Switching `subprocess` implementation to more tested `reproc++`
@@ -1827,7 +1738,6 @@ General improvements
 - Fix compile time warning (thanks @obilaniu)
 - Fixed wrong CondaValueError import statement in mamba.py (thanks @saraedum)
 
-0.6.5 (Oct 2020)
-================
+  # 0.6.5 (Oct 2020)
 
 - Fix code signing for Apple Silicon (osx-arm64) @isuruf

@@ -38,7 +38,7 @@ namespace mamba
         }
         bool compare_reverse_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
         {
-            return a.name > b.name;
+            return a.name >= b.name;
         }
 
         std::string strip_from_filename_and_platform(
@@ -184,14 +184,11 @@ namespace mamba
                 }
             }
 
-            if (options.reverse)
-            {
-                std::sort(packages.begin(), packages.end(), compare_reverse_alphabetically);
-            }
-            else
-            {
-                std::sort(packages.begin(), packages.end(), compare_alphabetically);
-            }     
+            auto comparable = 
+                options.reverse ?
+                compare_reverse_alphabetically :
+                compare_alphabetically;
+            std::sort(packages.begin(), packages.end(), comparable);    
 
             // format and print table
             printers::Table t({ "Name", "Version", "Build", "Channel" });

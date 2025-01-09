@@ -76,6 +76,12 @@ namespace mamba
                 m_aggregated_message += er.what();
                 m_aggregated_message += "\n";
             }
+
+            m_aggregated_message += "If you run into this error repeatedly, your package cache may be corrupted.\n";
+            m_aggregated_message += "Please try running `mamba clean -a` to remove this cache before retrying the operation.\n";
+            m_aggregated_message += "\n";
+            m_aggregated_message += "If you still are having issues, please report the error on `mamba-org/mamba`'s issue tracker:\n";
+            m_aggregated_message += "https://github.com/mamba-org/mamba/issues/new?assignees=&labels=&projects=&template=bug.yml";
         }
         return m_aggregated_message.c_str();
     }

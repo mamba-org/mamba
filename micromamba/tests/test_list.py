@@ -31,6 +31,34 @@ def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_sele
 
     if reverse_flag == "--reverse":
         assert names.index("xtensor") > names.index("xtl")
+    else:
+        assert names.index("xtensor") < names.index("xtl")
+
+
+@pytest.mark.parametrize("reverse_flag", ["", "--reverse"])
+@pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_no_json(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag):
+    if env_selector == "prefix":
+        res = helpers.umamba_list("-p", tmp_xtensor_env, quiet_flag, reverse_flag)
+    elif env_selector == "name":
+        res = helpers.umamba_list("-n", tmp_env_name, quiet_flag, reverse_flag)
+    else:
+        res = helpers.umamba_list(quiet_flag, reverse_flag)
+
+    assert len(res) > 10
+
+    assert "xtensor" in res
+    assert "xtl" in res
+
+    assert len(res.split("\n")) - 5 == res.count("conda-forge")
+
+    if reverse_flag == "--reverse":
+        assert res.find("xtensor") > res.find("xtl")
+    else:
+        assert res.find("xtensor") < res.find("xtl")
+
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

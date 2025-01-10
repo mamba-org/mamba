@@ -2065,6 +2065,25 @@ namespace mamba
             fs::u8path(util::user_home_dir()) / ".conda/condarc.d",
             fs::u8path(util::user_home_dir()) / ".condarc",
         };
+
+        std::array<std::string, 3> condarc_list = { ".condarc", "condarc", "condarc.d" };
+        if (util::get_env("XDG_CONFIG_HOME"))
+        {
+            const std::string xgd_config_home = util::get_env("XDG_CONFIG_HOME").value();
+            for (const auto& path : condarc_list)
+            {
+                conda_user.push_back(fs::u8path(xgd_config_home) / "conda" / path);
+            }
+        }
+        if (util::get_env("CONDA_PREFIX"))
+        {
+            const std::string conda_prefix = util::get_env("CONDA_PREFIX").value();
+            for (const auto& path : condarc_list)
+            {
+                conda_user.push_back(fs::u8path(conda_prefix) / path);
+            }
+        }
+
         if (util::get_env("CONDARC"))
         {
             conda_user.push_back(fs::u8path(util::get_env("CONDARC").value()));

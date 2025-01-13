@@ -36,6 +36,7 @@ namespace mamba
         {
             return a.name < b.name;
         }
+
         bool compare_reverse_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
         {
             return a.name >= b.name;
@@ -95,15 +96,16 @@ namespace mamba
                 }
                 if (options.reverse)
                 {
-                    std::sort(keys.begin(), keys.end(), [](const std::string& a, const std::string& b)
-                                                        {
-                                                            return a > b;
-                                                        });
+                    std::sort(
+                        keys.begin(),
+                        keys.end(),
+                        [](const std::string& a, const std::string& b) { return a > b; }
+                    );
                 }
                 else
                 {
                     std::sort(keys.begin(), keys.end());
-                }         
+                }
 
                 for (const auto& key : keys)
                 {
@@ -184,11 +186,9 @@ namespace mamba
                 }
             }
 
-            auto comparable = 
-                options.reverse ?
-                compare_reverse_alphabetically :
-                compare_alphabetically;
-            std::sort(packages.begin(), packages.end(), comparable);    
+            auto comparable = options.reverse ? compare_reverse_alphabetically
+                                              : compare_alphabetically;
+            std::sort(packages.begin(), packages.end(), comparable);
 
             // format and print table
             printers::Table t({ "Name", "Version", "Build", "Channel" });
@@ -228,7 +228,7 @@ namespace mamba
         detail::list_options options;
         options.full_name = config.at("full_name").value<bool>();
         options.no_pip = config.at("no_pip").value<bool>();
-	    options.reverse =config.at("reverse").value<bool>();
+        options.reverse = config.at("reverse").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

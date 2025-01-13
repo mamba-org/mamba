@@ -11,7 +11,9 @@ from . import helpers
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag):
+def test_list(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag
+):
     if env_selector == "prefix":
         res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag, reverse_flag)
     elif env_selector == "name":
@@ -39,7 +41,9 @@ def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_sele
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list_no_json(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag):
+def test_list_no_json(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag
+):
     if env_selector == "prefix":
         res = helpers.umamba_list("-p", tmp_xtensor_env, quiet_flag, reverse_flag)
     elif env_selector == "name":
@@ -52,7 +56,19 @@ def test_list_no_json(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, 
     assert "xtensor" in res
     assert "xtl" in res
 
-    assert len(res[res.rindex("\u2500"):].split("\n")) - 2 == res.count("conda-forge")
+    # This is what res looks like in this case:
+    # List of packages in environment: "/tmp/xxx"
+
+    # Name           Version  Build        Channel
+    # ────────────────────────────────────────────────────
+    # _libgcc_mutex  0.1      conda_forge  conda-forge
+    # _openmp_mutex  4.5      2_gnu        conda-forge
+    header_delimiter = "\u2500"
+    packages = res[res.rindex(header_delimiter) :].split("\n", 1)[1]
+    packages_list = packages.strip().split("\n")
+
+    for package in packages_list:
+        assert package[-11:] == "conda-forge"
 
     if reverse_flag == "--reverse":
         assert res.find("xtensor") > res.find("xtl")

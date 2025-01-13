@@ -66,10 +66,11 @@ def test_list_no_json(
     packages = res[res.rindex("Channel") :].split("\n", 1)[1]
     packages_list = packages.strip().split("\n")
     header_delimiter = "\u2500"
-    if all([i == header_delimiter for i in packages_list[0]]):
+    if all([i in [header_delimiter, "\r"] for i in packages_list[0]]):
         packages_list.pop(0)
     for package in packages_list:
-        assert package[-11:] == "conda-forge"
+        channel = package.split(" ")[-1]
+        assert channel == "conda-forge"
 
     if reverse_flag == "--reverse":
         assert res.find("xtensor") > res.find("xtl")

@@ -81,7 +81,6 @@ namespace mamba
                 regex = '^' + regex + '$';
             }
 
-
             std::regex spec_pat(regex);
             auto all_records = prefix_data.all_pkg_mgr_records();
 
@@ -99,7 +98,7 @@ namespace mamba
                     std::sort(
                         keys.begin(),
                         keys.end(),
-                        [](const std::string& a, const std::string& b) { return a > b; }
+                        [](const std::string& a, const std::string& b) { return a >= b; }
                     );
                 }
                 else
@@ -186,9 +185,9 @@ namespace mamba
                 }
             }
 
-            auto comparable = options.reverse ? compare_reverse_alphabetically
+            auto comparator = options.reverse ? compare_reverse_alphabetically
                                               : compare_alphabetically;
-            std::sort(packages.begin(), packages.end(), comparable);
+            std::sort(packages.begin(), packages.end(), comparator);
 
             // format and print table
             printers::Table t({ "Name", "Version", "Build", "Channel" });

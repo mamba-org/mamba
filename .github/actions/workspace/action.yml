@@ -1,8 +1,8 @@
 name: workspace
-description: 'A action to persist your workspace across different jobs'
+description: "A action to persist your workspace across different jobs"
 branding:
-  icon: 'box'
-  color: 'green'
+  icon: "box"
+  color: "green"
 inputs:
   action:
     required: true
@@ -18,7 +18,7 @@ inputs:
     required: true
     default: ${{ github.workflow }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.sha }}
   key_suffix:
-    default: ''
+    default: ""
   token:
     required: false
     default: ${{ github.token }}

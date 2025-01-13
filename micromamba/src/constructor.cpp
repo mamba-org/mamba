@@ -24,7 +24,8 @@ init_constructor_parser(CLI::App* subcom, Configuration& config)
                                      .group("cli")
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
 
-    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description());
+    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description())
+        ->option_text("PATH");
 
     auto& extract_conda_pkgs = config.insert(Configurable("constructor_extract_conda_pkgs", false)
                                                  .group("cli")

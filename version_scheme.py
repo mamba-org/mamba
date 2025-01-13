@@ -13,11 +13,12 @@ class version_info:
     name = ""
 
     def __init__(self, version: str):
+        if not isinstance(version, str):
+            raise ValueError(f"'{version}' is not a valid version name : must be a string")
+
         if "-" in version:
             raise ValueError(
-                "'{}' is not a valid version name : `-` is reserved for another usage in conda packages version names".format(
-                    version
-                )
+                f"'{version}' is not a valid version name : `-` is reserved for another usage in conda packages version names"
             )
 
         VALID_VERSION_PRERELEASE_TYPES = ("alpha", "beta", "rc", "dev")
@@ -25,9 +26,7 @@ class version_info:
         version_fields_count = len(version_fields)
         if version_fields_count < 3:
             raise ValueError(
-                "'{}' is not a valid version name :  valid version scheme contains 3 or more dots-separated fields, the pre-release name starting with the 4th field (valid examples: 1.2.3, 0.1.2.alpha3, 0.1.2.alpha.3)".format(
-                    version
-                )
+                f"'{version}' is not a valid version name :  valid version scheme contains 3 or more dots-separated fields, the pre-release name starting with the 4th field (valid examples: 1.2.3, 0.1.2.alpha3, 0.1.2.alpha.3)"
             )
 
         self.major = version_fields[0]
@@ -51,9 +50,7 @@ class version_info:
             VALID_VERSION_PRERELEASE_TYPES
         ):
             version_errors.append(
-                "'{}' is not a valid pre-release name, pre-release names must start with either : {} ".format(
-                    self.pre_release, VALID_VERSION_PRERELEASE_TYPES
-                )
+                f"'{self.pre_release}' is not a valid pre-release name, pre-release names must start with either : {VALID_VERSION_PRERELEASE_TYPES} "
             )
 
         if len(version_errors) > 0:

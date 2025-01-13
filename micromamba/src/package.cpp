@@ -23,8 +23,8 @@ set_package_command(CLI::App* subcom, Configuration& config)
 
     auto extract_subcom = subcom->add_subcommand("extract");
     init_general_options(extract_subcom, config);
-    extract_subcom->add_option("archive", infile, "Archive to extract");
-    extract_subcom->add_option("dest", dest, "Destination folder");
+    extract_subcom->add_option("archive", infile, "Archive to extract")->option_text("ARCHIVE");
+    extract_subcom->add_option("dest", dest, "Destination folder")->option_text("FOLDER");
     extract_subcom->callback(
         [&]
         {
@@ -43,18 +43,23 @@ set_package_command(CLI::App* subcom, Configuration& config)
 
     auto compress_subcom = subcom->add_subcommand("compress");
     init_general_options(compress_subcom, config);
-    compress_subcom->add_option("folder", infile, "Folder to compress");
-    compress_subcom->add_option("dest", dest, "Destination (e.g. myfile-3.1-0.tar.bz2 or .conda)");
-    compress_subcom->add_option(
-        "-c,--compression-level",
-        compression_level,
-        "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)"
-    );
-    compress_subcom->add_option(
-        "--compression-threads",
-        compression_threads,
-        "Compression threads (only relevant for .conda packages, default is 1)"
-    );
+    compress_subcom->add_option("folder", infile, "Folder to compress")->option_text("FOLDER");
+    compress_subcom->add_option("dest", dest, "Destination (e.g. myfile-3.1-0.tar.bz2 or .conda)")
+        ->option_text("DEST");
+    compress_subcom
+        ->add_option(
+            "-c,--compression-level",
+            compression_level,
+            "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)"
+        )
+        ->option_text("COMP_LEVEL");
+    compress_subcom
+        ->add_option(
+            "--compression-threads",
+            compression_threads,
+            "Compression threads (only relevant for .conda packages, default is 1)"
+        )
+        ->option_text("COMP_THREADS");
     compress_subcom->callback(
         [&]()
         {
@@ -84,17 +89,21 @@ set_package_command(CLI::App* subcom, Configuration& config)
 
     auto transmute_subcom = subcom->add_subcommand("transmute");
     init_general_options(transmute_subcom, config);
-    transmute_subcom->add_option("infile", infile, "Folder to compress");
-    transmute_subcom->add_option(
-        "-c,--compression-level",
-        compression_level,
-        "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)"
-    );
-    transmute_subcom->add_option(
-        "--compression-threads",
-        compression_threads,
-        "Compression threads (only relevant for .conda packages, default is 1)"
-    );
+    transmute_subcom->add_option("infile", infile, "Folder to compress")->option_text("FOLDER");
+    transmute_subcom
+        ->add_option(
+            "-c,--compression-level",
+            compression_level,
+            "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)"
+        )
+        ->option_text("COMP_LEVEL");
+    transmute_subcom
+        ->add_option(
+            "--compression-threads",
+            compression_threads,
+            "Compression threads (only relevant for .conda packages, default is 1)"
+        )
+        ->option_text("COMP_THREADS");
     transmute_subcom->callback(
         [&]()
         {

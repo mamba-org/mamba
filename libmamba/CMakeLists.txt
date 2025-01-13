@@ -780,3 +780,17 @@ install(
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
     COMPONENT Mamba_Development
 )
+
+# This profile script is only needed for `libmamba` distributed as a shared library on Unix systems.
+if(BUILD_SHARED AND UNIX)
+    message(STATUS "Generating profile script for libmamba (i.e. `etc/profile.d/libmamba.sh`)")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/libmamba.sh.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/libmamba.sh"
+    )
+
+    install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/libmamba.sh
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/
+    )
+endif()

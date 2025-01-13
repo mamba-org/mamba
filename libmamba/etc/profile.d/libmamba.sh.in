@@ -1,0 +1,3 @@
+# `MAMBA_ROOT_PREFIX` is the root prefix of the installation.
+# It is used by `libmamba` (which can be used by other program than `mamba` and `micromamba`).
+export MAMBA_ROOT_PREFIX="@CMAKE_INSTALL_PREFIX@"

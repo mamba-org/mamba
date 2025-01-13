@@ -9,9 +9,7 @@
     "_type": "root",
     "roles": {
       "root": {
-        "keyids": [
-          "foo"
-        ],
+        "keyids": ["foo"],
         "threshold": 1
       }
     }

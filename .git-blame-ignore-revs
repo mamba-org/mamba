@@ -52,6 +52,8 @@
 # add tests for etag/mod/etc reading in cache
 # 7e4c03245b6c58af150f1a4d99bd3ee6a19c418f
 
+# maint: Add prettier pre-commit hook (#3663)
+d0c74588392c584ffc8ba5be92bd0924454b756c
 # maint: Add pre-commit typos back (#3682)
 99290aeebfcc72358f20d22cea31a0d733f1f9ec
 # maint: Add pyupgrade pre-commit hook (#3671)

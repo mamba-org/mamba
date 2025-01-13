@@ -56,17 +56,18 @@ def test_list_no_json(
     assert "xtensor" in res
     assert "xtl" in res
 
-    # This is what res looks like in this case:
-    # List of packages in environment: "/tmp/xxx"
+    # This is what res looks like in this case (with or without a header delimiter):
+    # List of packages in environment: "xxx"
 
     # Name           Version  Build        Channel
     # ────────────────────────────────────────────────────
     # _libgcc_mutex  0.1      conda_forge  conda-forge
     # _openmp_mutex  4.5      2_gnu        conda-forge
-    header_delimiter = "\u2500"
-    packages = res[res.rindex(header_delimiter) :].split("\n", 1)[1]
+    packages = res[res.rindex("Channel") :].split("\n", 1)[1]
     packages_list = packages.strip().split("\n")
-
+    header_delimiter = "\u2500"
+    if all([i == header_delimiter for i in packages_list[0]]):
+        packages_list.pop(0)
     for package in packages_list:
         assert package[-11:] == "conda-forge"
 

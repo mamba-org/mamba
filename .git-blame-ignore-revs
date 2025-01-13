@@ -49,6 +49,8 @@
 # e9695a45cc10848375d449a280282f6d29a8bb6c
 # Fix JSON output issues (#1600)
 # 048cb67f6285493fd7e1788adfddaa185edaa256
+# bump clang-format to 13.0.1 and make it work again
+# 7f9c5adb778e4fc8537c81cc078ad7da2052169f
 # add tests for etag/mod/etc reading in cache
 # 7e4c03245b6c58af150f1a4d99bd3ee6a19c418f
 
@@ -80,8 +82,6 @@ d116ff891798b0d915d84d496d65ec143412febd
 557e232ff5c9d44ea9eeeaa68c5975b2f0566074
 # Upgrade pre-commit env (#1602)
 81f2ffe03681f1312f341b655d90b5346275fbed
-# bump clang-format to 13.0.1 and make it work again
-7f9c5adb778e4fc8537c81cc078ad7da2052169f
 # Get clang-format from PyPI and version pre-commit hook
 01a336c0c154f15d7a5414bce4af85b71718ec65
 # Update pre-commit versions

@@ -581,13 +581,6 @@ namespace mamba
         {
             return util::split(str, "/", 1).front();  // Has at least one element
         }
-
-        /** Get subdir from channel name. */
-        auto get_subdir(std::string_view str) -> std::string
-        {
-            return util::split(str, "/").back();
-        }
-
     }
 
     auto QueryResult::table(std::ostream& out, const std::vector<std::string_view>& columns) const
@@ -670,7 +663,7 @@ namespace mamba
                 }
                 else if (cmd == "Subdir")
                 {
-                    row.emplace_back(get_subdir(pkg.channel));
+                    row.emplace_back(pkg.platform);
                 }
                 else if (cmd == "Depends")
                 {

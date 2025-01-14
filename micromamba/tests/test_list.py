@@ -63,9 +63,11 @@ def test_list_no_json(
     # ────────────────────────────────────────────────────
     # _libgcc_mutex  0.1      conda_forge  conda-forge
     # _openmp_mutex  4.5      2_gnu        conda-forge
-    header_delimiter = "-"
-    packages = res[res.rindex(header_delimiter) :].split("\n", 1)[1]
+    packages = res[res.rindex("Channel") :].split("\n", 1)[1]
     packages_list = packages.strip().split("\n")
+    header_delimiters = ["\u2500", "u+2500", "\r"]
+    if all([i in header_delimiters for i in packages_list[0]]):
+        packages_list.pop(0)
     for package in packages_list:
         channel = package.split(" ")[-1]
         assert channel == "conda-forge"

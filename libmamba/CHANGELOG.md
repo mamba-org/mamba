@@ -1,3 +1,26 @@
+# libmamba 2.0.6.rc0 (January 14, 2025)
+
+Bug fixes:
+
+- Correctly populate lists of `MatchSpec` in `MTransaction`'s history by @Hind-M in https://github.com/mamba-org/mamba/pull/3724
+- Honour `CONDA_ENVS_PATH` again by @jjerphan in https://github.com/mamba-org/mamba/pull/3725
+- Improve CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3700
+- Support installation using explicit url by @Hind-M in https://github.com/mamba-org/mamba/pull/3710
+- Improve display of environment activation message by @Hind-M in https://github.com/mamba-org/mamba/pull/3715
+- Adapt warnings shown when several channels are used by @jjerphan in https://github.com/mamba-org/mamba/pull/3720
+- Add a hint on cache corruption by @jjerphan in https://github.com/mamba-org/mamba/pull/3736
+- Support more condarc paths by @SandrineP in https://github.com/mamba-org/mamba/pull/3695
+- Always add `root_prefix/envs` in `envs_dirs` by @Hind-M in https://github.com/mamba-org/mamba/pull/3692
+
+CI fixes and doc:
+
+- Use a portable web request for Windows by @jjerphan in https://github.com/mamba-org/mamba/pull/3704
+- Add prettier pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3663
+- Document slight differences for environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3697
+- Unique Release Tag by @Klaim in https://github.com/mamba-org/mamba/pull/3732
+- Update Linux installation script for Nushell by @deephbz in https://github.com/mamba-org/mamba/pull/3721
+- `update_changelog.py` now can also take input as cli parameters by @Klaim in https://github.com/mamba-org/mamba/pull/3731
+
 # libmamba 2.0.5 (December 12, 2024)
 
 Enhancements:

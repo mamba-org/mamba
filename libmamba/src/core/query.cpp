@@ -592,7 +592,7 @@ namespace mamba
         }
 
         std::vector<mamba::printers::FormattedString> headers;
-        std::vector<std::string_view> cmds, args;
+        std::vector<std::string> cmds, args;
         std::vector<mamba::printers::alignment> alignments;
         for (auto& col : columns)
         {
@@ -614,7 +614,7 @@ namespace mamba
             else if (col.find_first_of(":") == col.npos)
             {
                 headers.emplace_back(col);
-                cmds.push_back(col);
+                cmds.push_back(std::string(col));
                 args.emplace_back("");
             }
             else

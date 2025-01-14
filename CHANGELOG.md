@@ -1,3 +1,31 @@
+# 2025.01.14
+
+Release: 2.0.6.rc0 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [all] Correctly populate lists of `MatchSpec` in `MTransaction`'s history by @Hind-M in https://github.com/mamba-org/mamba/pull/3724
+- [all] Honour `CONDA_ENVS_PATH` again by @jjerphan in https://github.com/mamba-org/mamba/pull/3725
+- [all] Improve CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3700
+- [all] Support installation using explicit url by @Hind-M in https://github.com/mamba-org/mamba/pull/3710
+- [all] Improve display of environment activation message by @Hind-M in https://github.com/mamba-org/mamba/pull/3715
+- [all] Adapt warnings shown when several channels are used by @jjerphan in https://github.com/mamba-org/mamba/pull/3720
+- [all] Add a hint on cache corruption by @jjerphan in https://github.com/mamba-org/mamba/pull/3736
+- [all] Support more condarc paths by @SandrineP in https://github.com/mamba-org/mamba/pull/3695
+- [all] Always add `root_prefix/envs` in `envs_dirs` by @Hind-M in https://github.com/mamba-org/mamba/pull/3692
+- [mamba] Generate and install `etc/profile.d/mamba.sh` by @jjerphan in https://github.com/mamba-org/mamba/pull/3723
+- [mamba] Add `no-pip` flag to `list` command by @Hind-M in https://github.com/mamba-org/mamba/pull/3696
+- [mamba, micromamba] Options args enhancement by @Hind-M in https://github.com/mamba-org/mamba/pull/3722
+
+CI fixes and doc:
+
+- [all] Use a portable web request for Windows by @jjerphan in https://github.com/mamba-org/mamba/pull/3704
+- [all] Add prettier pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3663
+- [all] Document slight differences for environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3697
+- [all] Unique Release Tag by @Klaim in https://github.com/mamba-org/mamba/pull/3732
+- [all] Update Linux installation script for Nushell by @deephbz in https://github.com/mamba-org/mamba/pull/3721
+- [all] `update_changelog.py` now can also take input as cli parameters by @Klaim in https://github.com/mamba-org/mamba/pull/3731
+
 # 2024.12.12
 
 Releases: libmamba 2.0.5, libmambapy 2.0.5, micromamba 2.0.5

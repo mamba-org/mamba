@@ -40,7 +40,7 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=file]
-        exclude: ".json"
+        exclude_types: [json]
   - repo: https://github.com/cheshirekow/cmake-format-precommit
     rev: v0.6.13
     hooks:

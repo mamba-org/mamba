@@ -80,4 +80,38 @@ namespace
         REQUIRE(hash_fn(spec1) == hash_fn(spec2));
         REQUIRE(hash_fn(spec1) != hash_fn(spec3));
     }
+
+    TEST_CASE("RegexSpec ^py3.10_cuda11.8*$")
+    {
+        auto spec = RegexSpec::parse("^py3.10_cuda11.8*$").value();
+        REQUIRE(spec.contains("py3.10_cuda11.8_cudnn8.7.0_0"));
+    }
+
+    TEST_CASE("RegexSpec * semantic")
+    {
+        auto spec = RegexSpec::parse("py3.*").value();
+
+        REQUIRE(spec.contains("py3."));
+        REQUIRE(spec.contains("py3.10"));
+        REQUIRE(spec.contains("py3.10_cuda11.8_cudnn8.7.0_0"));
+
+        REQUIRE_FALSE(spec.contains("py3"));
+        REQUIRE_FALSE(spec.contains("py310"));
+    }
+
+    TEST_CASE("RegexSpec ? semantic")
+    {
+        auto spec = RegexSpec::parse("py3.?").value();
+
+        REQUIRE(spec.contains("py3."));
+        REQUIRE(spec.contains("py3.1"));
+        REQUIRE(spec.contains("py3.0"));
+        REQUIRE(spec.contains("py3.?"));
+        REQUIRE(spec.contains("py3.."));
+
+        REQUIRE_FALSE(spec.contains("py3.10"));
+        REQUIRE_FALSE(spec.contains("py3"));
+        REQUIRE_FALSE(spec.contains("py310"));
+    }
+
 }

@@ -377,7 +377,7 @@ namespace mamba
 
             j = SubdirMetadata::read(cache_folder / "test_4.json").value();
             REQUIRE(j.cache_control() == "{{}}\",,,\"");
-            REQUIRE(j.etag() == "\n\n\"\"randome ecx,,ssd\n,,\"");
+            REQUIRE(j.etag() == "\n\n\"\"random ecx,,ssd\n,,\"");
             REQUIRE(j.last_modified() == "Fri, 11 Feb 2022 13:52:44 GMT");
             REQUIRE(
                 j.url()

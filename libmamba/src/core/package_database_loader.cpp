@@ -136,7 +136,7 @@ namespace mamba
         const PrefixData& prefix
     ) -> solver::libsolv::RepoInfo
     {
-        // TODO(C++20): We could do a PrefixData range that returns packages without storing thems.
+        // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();
         // TODO(C++20): We only need a range that concatenate both
         for (auto&& pkg : get_virtual_packages(ctx.platform))

@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
+
 template <typename T>
 struct adl_serializer<std::optional<T>>
 {
@@ -38,6 +39,7 @@ struct adl_serializer<std::optional<T>>
         }
     }
 };
+
 NLOHMANN_JSON_NAMESPACE_END
 
 namespace mamba::util

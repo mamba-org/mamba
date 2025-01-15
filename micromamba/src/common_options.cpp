@@ -72,6 +72,15 @@ init_general_options(CLI::App* subcom, Configuration& config)
     auto& json = config.at("json");
     subcom->add_flag("--json", json.get_cli_config<bool>(), json.description())->group(cli_group);
 
+    auto& conda_info_compat = config.at("conda_info_compat");
+    subcom
+        ->add_flag(
+            "--conda-info-compat",
+            conda_info_compat.get_cli_config<bool>(),
+            conda_info_compat.description()
+        )
+        ->group(cli_group);
+
     auto& offline = config.at("offline");
     subcom->add_flag("--offline", offline.get_cli_config<bool>(), offline.description())->group(cli_group);
 

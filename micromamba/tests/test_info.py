@@ -18,7 +18,7 @@ def test_base(tmp_home, tmp_root_prefix, prefix_selection):
 
     assert "environment : base (active)" in infos
     assert f"env location : {tmp_root_prefix}" in infos
-    assert f"user config files : {tmp_home / '.mambarc' }" in infos
+    assert f"user config files : {tmp_home / '.mambarc'}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos
 
 
@@ -31,10 +31,10 @@ def test_env(tmp_home, tmp_root_prefix, tmp_env_name, tmp_prefix, prefix_selecti
     else:
         infos = helpers.info()
 
-    assert f"envs directories : {tmp_root_prefix / 'envs' }" in infos
+    assert f"envs directories : {tmp_root_prefix / 'envs'}" in infos
     assert f"environment : {tmp_env_name} (active)" in infos
     assert f"env location : {tmp_prefix}" in infos
-    assert f"user config files : {tmp_home / '.mambarc' }" in infos
+    assert f"user config files : {tmp_home / '.mambarc'}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos
 
 
@@ -73,8 +73,8 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
         location = prefix
     print(infos)
 
-    assert f"envs directories : {tmp_root_prefix / 'envs' }" in infos
+    assert f"envs directories : {tmp_root_prefix / 'envs'}" in infos
     assert f"environment : {expected_name}" in infos
     assert f"env location : {location}" in infos
-    assert f"user config files : {tmp_home / '.mambarc' }" in infos
+    assert f"user config files : {tmp_home / '.mambarc'}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos

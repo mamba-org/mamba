@@ -49,7 +49,6 @@ repos:
     rev: 1.29.4
     hooks:
       - id: typos-conda
-        exclude: (CHANGELOG.md)
         # In case of ambiguity (multiple possible corrections), `typos` will just report it to the user and move on without applying/writing any changes.
         # cf. https://github.com/crate-ci/typos
         args: [--write-changes]

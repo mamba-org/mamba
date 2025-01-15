@@ -67,6 +67,7 @@ def test_list_no_json(
     packages_list = packages.strip().split("\n")[1:]
     for package in packages_list:
         channel = package.split(" ")[-1]
+        channel = channel.replace("\r", "")
         assert channel == "conda-forge"
 
     if reverse_flag == "--reverse":

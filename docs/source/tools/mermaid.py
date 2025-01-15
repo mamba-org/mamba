@@ -84,7 +84,7 @@ class Mermaid(Directive):
             if self.content:
                 return [
                     document.reporter.warning(
-                        "Mermaid directive cannot have both content and " "a filename argument",
+                        "Mermaid directive cannot have both content and a filename argument",
                         line=self.lineno,
                     )
                 ]
@@ -98,7 +98,7 @@ class Mermaid(Directive):
             except OSError:  # noqa
                 return [
                     document.reporter.warning(
-                        "External Mermaid file %r not found or reading " "it failed" % filename,
+                        "External Mermaid file %r not found or reading it failed" % filename,
                         line=self.lineno,
                     )
                 ]
@@ -183,13 +183,12 @@ def render_mm(self, code, options, fmt, prefix="mermaid"):
         logger.info(stdout)
 
     if p.returncode != 0:
-        raise MermaidError(
-            "Mermaid exited with error:\n[stderr]\n%s\n" "[stdout]\n%s" % (stderr, stdout)
-        )
+        raise MermaidError(f"Mermaid exited with error:\n[stderr]\n{stderr}\n[stdout]\n{stdout}")
     if not os.path.isfile(outfn):
         raise MermaidError(
-            "Mermaid did not produce an output file:\n[stderr]\n%s\n"
-            "[stdout]\n%s" % (stderr, stdout)
+            "Mermaid did not produce an output file:\n[stderr]\n{}\n[stdout]\n{}".format(
+                stderr, stdout
+            )
         )
     return relfn, outfn
 
@@ -219,7 +218,7 @@ def render_mm_html(self, node, code, options, prefix="mermaid", imgcls=None, alt
     try:
         if fmt not in ("png", "svg"):
             raise MermaidError(
-                "mermaid_output_format must be one of 'raw', 'png', " "'svg', but is %r" % fmt
+                "mermaid_output_format must be one of 'raw', 'png', 'svg', but is %r" % fmt
             )
 
         fname, outfn = render_mm(self, code, options, fmt, prefix)
@@ -284,7 +283,7 @@ def render_mm_latex(self, node, code, options, prefix="mermaid"):
 
         if p.returncode != 0:
             raise MermaidError(
-                "PdfCrop exited with error:\n[stderr]\n%s\n" "[stdout]\n%s" % (stderr, stdout)
+                f"PdfCrop exited with error:\n[stderr]\n{stderr}\n[stdout]\n{stdout}"
             )
         if not os.path.isfile(outfn):
             raise MermaidError(

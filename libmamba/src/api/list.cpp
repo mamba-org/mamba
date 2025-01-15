@@ -24,6 +24,7 @@ namespace mamba
         {
             bool full_name;
             bool no_pip;
+            bool reverse;
         };
 
         struct formatted_pkg
@@ -34,6 +35,11 @@ namespace mamba
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
         {
             return a.name < b.name;
+        }
+
+        bool compare_reverse_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
+        {
+            return a.name >= b.name;
         }
 
         std::string strip_from_filename_and_platform(
@@ -87,7 +93,18 @@ namespace mamba
                 {
                     keys.push_back(pkg.first);
                 }
-                std::sort(keys.begin(), keys.end());
+                if (options.reverse)
+                {
+                    std::sort(
+                        keys.begin(),
+                        keys.end(),
+                        [](const std::string& a, const std::string& b) { return a >= b; }
+                    );
+                }
+                else
+                {
+                    std::sort(keys.begin(), keys.end());
+                }
 
                 for (const auto& key : keys)
                 {
@@ -168,7 +185,9 @@ namespace mamba
                 }
             }
 
-            std::sort(packages.begin(), packages.end(), compare_alphabetically);
+            auto comparator = options.reverse ? compare_reverse_alphabetically
+                                              : compare_alphabetically;
+            std::sort(packages.begin(), packages.end(), comparator);
 
             // format and print table
             printers::Table t({ "Name", "Version", "Build", "Channel" });
@@ -208,6 +227,7 @@ namespace mamba
         detail::list_options options;
         options.full_name = config.at("full_name").value<bool>();
         options.no_pip = config.at("no_pip").value<bool>();
+        options.reverse = config.at("reverse").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

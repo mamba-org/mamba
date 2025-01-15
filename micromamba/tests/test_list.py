@@ -7,16 +7,19 @@ import pytest
 from . import helpers
 
 
+@pytest.mark.parametrize("reverse_flag", ["", "--reverse"])
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag):
+def test_list(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag
+):
     if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag)
+        res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag, reverse_flag)
     elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, "--json", quiet_flag)
+        res = helpers.umamba_list("-n", tmp_env_name, "--json", quiet_flag, reverse_flag)
     else:
-        res = helpers.umamba_list("--json", quiet_flag)
+        res = helpers.umamba_list("--json", quiet_flag, reverse_flag)
 
     assert len(res) > 2
 
@@ -27,6 +30,50 @@ def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_sele
         i["channel"] == "conda-forge" and i["base_url"] == "https://conda.anaconda.org/conda-forge"
         for i in res
     )
+
+    if reverse_flag == "--reverse":
+        assert names.index("xtensor") > names.index("xtl")
+    else:
+        assert names.index("xtensor") < names.index("xtl")
+
+
+@pytest.mark.parametrize("reverse_flag", ["", "--reverse"])
+@pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_no_json(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag, reverse_flag
+):
+    if env_selector == "prefix":
+        res = helpers.umamba_list("-p", tmp_xtensor_env, quiet_flag, reverse_flag)
+    elif env_selector == "name":
+        res = helpers.umamba_list("-n", tmp_env_name, quiet_flag, reverse_flag)
+    else:
+        res = helpers.umamba_list(quiet_flag, reverse_flag)
+
+    assert len(res) > 10
+
+    assert "xtensor" in res
+    assert "xtl" in res
+
+    # This is what res looks like in this case (with or without a header delimiter):
+    # List of packages in environment: "xxx"
+
+    # Name           Version  Build        Channel
+    # ────────────────────────────────────────────────────
+    # _libgcc_mutex  0.1      conda_forge  conda-forge
+    # _openmp_mutex  4.5      2_gnu        conda-forge
+    packages = res[res.rindex("Channel") :].split("\n", 1)[1]
+    packages_list = packages.strip().split("\n")[1:]
+    for package in packages_list:
+        channel = package.split(" ")[-1]
+        channel = channel.replace("\r", "")
+        assert channel == "conda-forge"
+
+    if reverse_flag == "--reverse":
+        assert res.find("xtensor") > res.find("xtl")
+    else:
+        assert res.find("xtensor") < res.find("xtl")
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

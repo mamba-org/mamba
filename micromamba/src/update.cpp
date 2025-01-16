@@ -75,7 +75,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     // We need to ensure that the `conda-meta` folder exists so that all further
     // operations can be performed.
-    fs::u8path conda_meta_path = ctx.prefix_params.target_prefix / "conda-meta";
+    const fs::u8path conda_meta_path = ctx.prefix_params.target_prefix / "conda-meta";
     if (!fs::exists(conda_meta_path))
     {
         fs::create_directories(conda_meta_path);

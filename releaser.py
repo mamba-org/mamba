@@ -39,7 +39,7 @@ def apply_changelog(name, version, changes):
     today = datetime.date.today()
     fmt_today = today.strftime("%B %d, %Y")
 
-    res += f"# {name} {version} ({fmt_today})\n\n"
+    res += f"## {name} {version} ({fmt_today})\n\n"
 
     for idx, c in enumerate(changes):
         if c.startswith("-"):
@@ -115,7 +115,7 @@ def populate_changes(name, sections, changes):
                     el["changes"].append(f"- {i.text.strip()}")
 
 
-MARKDOWN_H1 = "# "
+MARKDOWN_H2 = "## "
 
 
 def main():
@@ -124,7 +124,7 @@ def main():
         contents = fi.readlines()
 
     for idx, line in enumerate(contents):
-        if line.startswith(MARKDOWN_H1):
+        if line.startswith(MARKDOWN_H2):
             release_start = idx + 1
             break
 
@@ -154,7 +154,7 @@ def main():
                         changes[project]["version"] = release_version
             continue
 
-        if contents[idx + 1].startswith(MARKDOWN_H1):
+        if contents[idx + 1].startswith(MARKDOWN_H2):
             break
 
         if line.strip() == "" or line[0] == "-":

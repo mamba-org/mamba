@@ -19,6 +19,11 @@ repos:
       - id: rst-backticks
       - id: rst-directive-colons
       - id: rst-inline-touching-normal
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.1
+    hooks:
+      - id: markdownlint-cli2
+        args: [--fix]
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.1
     hooks:

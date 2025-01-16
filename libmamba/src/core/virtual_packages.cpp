@@ -103,11 +103,11 @@ namespace mamba
                             return cuda_version;
                         }
                     }
-                    LOG_WARNING << "Could not extract CUDA version from: " << cuda_version;
+                    LOG_DEBUG << "Could not extract CUDA version from: " << cuda_version;
                 }
                 else
                 {
-                    LOG_WARNING << "CUDA version not found in the JSON file (`.cuda.version` is missing)";
+                    LOG_DEBUG << "CUDA version not found in the JSON file (`.cuda.version` is missing)";
                 }
             }
             else
@@ -190,13 +190,13 @@ namespace mamba
                 }
             }
 
-            LOG_WARNING << "Could not find CUDA version by, in this order:\n";
-            LOG_WARNING << " - inspecting the `CONDA_OVERRIDE_CUDA` environment variable\n";
-            LOG_WARNING << " - parsing the : " << cuda_version_file << "\n";
-            LOG_WARNING << " - parsing the output of `nvidia-smi --query -u -x`\n";
-            LOG_WARNING << "\n";
-            LOG_WARNING << "We recommend setting the `CONDA_OVERRIDE_CUDA` environment variable\n";
-            LOG_WARNING << "to the desired CUDA version.";
+            LOG_DEBUG << "Could not find CUDA version by, in this order:\n";
+            LOG_DEBUG << " - inspecting the `CONDA_OVERRIDE_CUDA` environment variable\n";
+            LOG_DEBUG << " - parsing the : " << cuda_version_file << "\n";
+            LOG_DEBUG << " - parsing the output of `nvidia-smi --query -u -x`\n";
+            LOG_DEBUG << "\n";
+            LOG_DEBUG << "We recommend setting the `CONDA_OVERRIDE_CUDA` environment variable\n";
+            LOG_DEBUG << "to the desired CUDA version.";
             return "";
         }
 

@@ -78,7 +78,7 @@ def append_to_file(ctgr_name, prs, out_file):
             concerned_pkgs = ["all/"]
         # Write in file
         out_file.write(
-            "- [{}] {} by @{} in {}\n".format(
+            "- [{}] {} by @{} in <{}>\n".format(
                 (", ".join([pkg[:-1] for pkg in concerned_pkgs])), title, author_login, url
             )
         )
@@ -166,7 +166,7 @@ def main():
 
         # Append new info
         # Release date and version
-        changelog_file.write("# {}\n".format(date.today().strftime("%Y.%m.%d")))
+        changelog_file.write("## {}\n".format(date.today().strftime("%Y.%m.%d")))
         changelog_file.write(
             f"\nRelease: {release_version} (libmamba, mamba, micromamba, libmambapy)\n"
         )

@@ -81,7 +81,6 @@ if(WIN32)
 endif()
 
 option(ENABLE_ASAN "Enable Address-Sanitizer (currently only supported on GCC and Clang)" OFF)
-
 if(ENABLE_ASAN)
     message(
         WARNING
@@ -91,6 +90,7 @@ if(ENABLE_ASAN)
     add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 endif()
 
+option(ENABLE_TSAN "Enable Thread-Sanitizer (currently only supported on GCC and Clang)" OFF)
 if(ENABLE_TSAN)
     message(
         WARNING
@@ -100,6 +100,7 @@ if(ENABLE_TSAN)
     add_link_options(-fno-omit-frame-pointer -fsanitize=thread)
 endif()
 
+option(ENABLE_USAN "Enable Undefined-Sanitizer (currently only supported on GCC and Clang)" OFF)
 if(ENABLE_USAN)
     message(
         WARNING

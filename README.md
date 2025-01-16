@@ -1,6 +1,6 @@
-![mamba header image](docs/assets/mamba_header.png)
+# Mamba: The Fast Cross-Platform Package Manager
 
-## The Fast Cross-Platform Package Manager
+![mamba header image](docs/assets/mamba_header.png)
 
 <table>
 <thead align="center" cellspacing="10">
@@ -16,7 +16,7 @@
 </tbody>
 </table>
 
-# mamba
+## mamba
 
 [![Build Status](https://github.com/mamba-org/mamba/actions/workflows/tests.yml/badge.svg)](https://github.com/mamba-org/mamba/actions/workflows/tests.yml?query=branch%3Amain)
 [![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mamba-org/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)

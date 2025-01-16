@@ -1871,3 +1871,5 @@ General improvements
 ## 0.6.5 (Oct 2020)
 
 - Fix code signing for Apple Silicon (osx-arm64) @isuruf
+
+<!-- markdownlint-disable-file MD041 -->

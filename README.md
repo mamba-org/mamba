@@ -2,6 +2,8 @@
 
 ![mamba header image](docs/assets/mamba_header.png)
 
+<!-- markdownlint-disable-file MD033 -->
+
 <table>
 <thead align="center" cellspacing="10">
   <tr>

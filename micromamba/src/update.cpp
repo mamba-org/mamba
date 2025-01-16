@@ -73,6 +73,14 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     // the conda-meta folder of the target_prefix)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
+    // We need to ensure that the `conda-meta` folder exists so that all further
+    // operations can be performed.
+    fs::u8path conda_meta_path = ctx.prefix_params.target_prefix / "conda-meta";
+    if (!fs::exists(conda_meta_path))
+    {
+        fs::create_directories(conda_meta_path);
+    }
+
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
     solver::libsolv::Database db{ channel_context.params() };

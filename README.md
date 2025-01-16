@@ -61,7 +61,8 @@ See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/u
 
 ## Installation
 
-Please refer to the [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) installation guide in the documentation.
+Please refer to the [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)
+and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) installation guide in the documentation.
 
 ## Additional features in Mamba and Micromamba
 
@@ -112,7 +113,8 @@ Only `mamba` and `micromamba` 2.0 and later are supported and are actively devel
 
 The `1.x` branch is only maintained for addressing security issues such as CVEs.
 
-For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [Conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
+For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby)
+or on the [Conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
 ## License
 

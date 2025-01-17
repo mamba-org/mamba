@@ -190,13 +190,7 @@ namespace mamba
                 }
             }
 
-            LOG_DEBUG << "Could not find CUDA version by, in this order:\n";
-            LOG_DEBUG << " - inspecting the `CONDA_OVERRIDE_CUDA` environment variable\n";
-            LOG_DEBUG << " - parsing the : " << cuda_version_file << "\n";
-            LOG_DEBUG << " - parsing the output of `nvidia-smi --query -u -x`\n";
-            LOG_DEBUG << "\n";
-            LOG_DEBUG << "We recommend setting the `CONDA_OVERRIDE_CUDA` environment variable\n";
-            LOG_DEBUG << "to the desired CUDA version.";
+            LOG_DEBUG << "CUDA not found";
             return "";
         }
 

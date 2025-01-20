@@ -3,6 +3,7 @@ import json
 import os
 import platform
 import random
+import re
 import shutil
 import string
 import subprocess
@@ -70,6 +71,11 @@ def get_umamba(cwd=os.getcwd()):
 def random_string(n: int = 10) -> str:
     """Return random characters and digits."""
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
+
+
+def remove_whitespaces(s: str) -> str:
+    """Return the input string with extra whitespaces removed."""
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def shell(*args, cwd=os.getcwd(), **kwargs):

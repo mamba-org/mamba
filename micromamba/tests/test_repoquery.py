@@ -169,10 +169,7 @@ def test_whoneeds_not_installed_with_channel_no_json(yaml_env: Path, spec):
     res = helpers.umamba_repoquery("whoneeds", "-c", "conda-forge", spec, "--platform", "osx-64")
     res = helpers.remove_whitespaces(res)
     assert "Name Version Build Depends Channel Subdir" in res
-    if spec == "xtensor=0.24.5":  # `Depends` column is empty here (bug?)
-        assert "cascade 0.1.1 py38h5ce3968_0 conda-forge osx-64" in res
-    else:
-        assert "cascade 0.1.1 py38h5ce3968_0 xtensor conda-forge osx-64" in res
+    assert "cascade 0.1.1 py38h5ce3968_0 xtensor conda-forge osx-64" in res
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

@@ -39,7 +39,7 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     );
     subcom->add_flag("--reverse", reverse.get_cli_config<bool>(), reverse.description());
 
-    auto& explicit_ = config.insert(Configurable("explicit_", false)
+    auto& explicit_ = config.insert(Configurable("explicit", false)
                                         .group("cli")
                                         .description("List explicitly all installed packages with URL."
                                         ));

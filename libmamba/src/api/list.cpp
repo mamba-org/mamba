@@ -240,7 +240,7 @@ namespace mamba
         options.full_name = config.at("full_name").value<bool>();
         options.no_pip = config.at("no_pip").value<bool>();
         options.reverse = config.at("reverse").value<bool>();
-        options.explicit_ = config.at("explicit_").value<bool>();
+        options.explicit_ = config.at("explicit").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

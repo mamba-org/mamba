@@ -27,7 +27,10 @@ def test_list(
     assert "xtensor" in names
     assert "xtl" in names
     assert all(
-        i["channel"] == "conda-forge" and i["base_url"] == "https://conda.anaconda.org/conda-forge"
+        i["channel"] == "conda-forge"
+        and i["base_url"] == "https://conda.anaconda.org/conda-forge"
+        and i["name"] in i["url"]
+        and "conda-forge" in i["url"]
         for i in res
     )
 
@@ -56,7 +59,7 @@ def test_list_no_json(
     assert "xtensor" in res
     assert "xtl" in res
 
-    # This is what res looks like in this case (with or without a header delimiter):
+    # This is what res looks like in this case:
     # List of packages in environment: "xxx"
 
     # Name           Version  Build        Channel
@@ -74,6 +77,25 @@ def test_list_no_json(
         assert res.find("xtensor") > res.find("xtl")
     else:
         assert res.find("xtensor") < res.find("xtl")
+
+
+@pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_explicit_no_json(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, explicit_flag
+):
+    if env_selector == "prefix":
+        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag)
+    elif env_selector == "name":
+        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag)
+    else:
+        res = helpers.umamba_list(explicit_flag)
+
+    packages_url_list = res.strip().split("\n")[2:]
+    if explicit_flag == "--explicit":
+        for url in packages_url_list:
+            assert "conda-forge" in url
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

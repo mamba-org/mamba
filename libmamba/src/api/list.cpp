@@ -25,11 +25,12 @@ namespace mamba
             bool full_name;
             bool no_pip;
             bool reverse;
+            bool explicit_;
         };
 
         struct formatted_pkg
         {
-            std::string name, version, build, channel;
+            std::string name, version, build, channel, url;
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -134,6 +135,7 @@ namespace mamba
                                 pkg_info.platform
                             );
                         }
+                        obj["url"] = pkg_info.package_url;
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
                         obj["dist_name"] = pkg_info.str();
@@ -163,6 +165,7 @@ namespace mamba
                     formatted_pkgs.name = package.second.name;
                     formatted_pkgs.version = package.second.version;
                     formatted_pkgs.build = package.second.build_string;
+                    formatted_pkgs.url = package.second.package_url;
                     if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
                     {
                         formatted_pkgs.channel = "";
@@ -190,25 +193,34 @@ namespace mamba
             std::sort(packages.begin(), packages.end(), comparator);
 
             // format and print table
-            printers::Table t({ "Name", "Version", "Build", "Channel" });
-            t.set_alignment({ printers::alignment::left,
-                              printers::alignment::left,
-                              printers::alignment::left,
-                              printers::alignment::left });
-            t.set_padding({ 2, 2, 2, 2 });
-
-            for (auto p : packages)
+            if (options.explicit_)
             {
-                printers::FormattedString formatted_name(p.name);
-                if (requested_specs.find(p.name) != requested_specs.end())
+                for (auto p : packages)
                 {
-                    formatted_name = printers::FormattedString(p.name);
-                    formatted_name.style = ctx.graphics_params.palette.user;
+                    std::cout << p.url << std::endl;
                 }
-                t.add_row({ formatted_name, p.version, p.build, p.channel });
             }
+            else
+            {
+                printers::Table t({ "Name", "Version", "Build", "Channel" });
+                t.set_alignment({ printers::alignment::left,
+                                  printers::alignment::left,
+                                  printers::alignment::left,
+                                  printers::alignment::left });
+                t.set_padding({ 2, 2, 2, 2 });
 
-            t.print(std::cout);
+                for (auto p : packages)
+                {
+                    printers::FormattedString formatted_name(p.name);
+                    if (requested_specs.find(p.name) != requested_specs.end())
+                    {
+                        formatted_name = printers::FormattedString(p.name);
+                        formatted_name.style = ctx.graphics_params.palette.user;
+                    }
+                    t.add_row({ formatted_name, p.version, p.build, p.channel });
+                }
+                t.print(std::cout);
+            }
         }
     }
 
@@ -228,6 +240,7 @@ namespace mamba
         options.full_name = config.at("full_name").value<bool>();
         options.no_pip = config.at("no_pip").value<bool>();
         options.reverse = config.at("reverse").value<bool>();
+        options.explicit_ = config.at("explicit").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

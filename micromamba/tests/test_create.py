@@ -1675,6 +1675,7 @@ def test_glob_in_build_string(monkeypatch, tmp_path):
         for package in out["actions"]["FETCH"]
     )
 
+
 def test_non_url_encoding(tmp_path):
     # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
     env_prefix = tmp_path / "env-non_url_encoding"
@@ -1692,4 +1693,3 @@ def test_non_url_encoding(tmp_path):
     non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
     out = helpers.run_env("export", "-p", env_prefix, "--explicit")
     assert non_encoded_url_start in out
-

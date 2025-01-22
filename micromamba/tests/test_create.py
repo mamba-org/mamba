@@ -1575,3 +1575,21 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
     out = helpers.create("-p", env_prefix, "-f", env_spec_file, "--dry-run")
 
     assert update_specs_list in out.replace("\r", "")
+
+
+def test_non_url_encoding(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
+    env_prefix = tmp_path / "env-non_url_encoding"
+
+    out = helpers.create("--json", "x264>=1!0", "-p", env_prefix)
+
+    # Check that the URL of the build of x264 is encoded.
+    encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1%21"
+
+    x264_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "x264")
+    assert x264_package["url"].startswith(encoded_url_start)
+
+    # Export an explicit specification of the environment and check that the URL is not encoded
+    non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
+    out = helpers.run_env("export", "-p", env_prefix, "--explicit")
+    assert non_encoded_url_start in out

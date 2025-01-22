@@ -19,6 +19,11 @@
 #include "curl.hpp"
 #include "downloader_impl.hpp"
 
+#if defined(__linux__)
+// To find the path of `libmamba`'s loaded library via `Dl_info`
+#include <dlfcn.h>
+#endif
+
 namespace mamba::download
 {
     namespace
@@ -76,14 +81,43 @@ namespace mamba::download
                 }
                 else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
                 {
+#if defined(__linux__)
+                    // Use the CA certificates from the `conda-forge::ca-certificates` (a transitive
+                    // dependency of libmamba via OpenSSL) which are installed at
+                    // `$CONDA_PREFIX/ssl/cacert.pem` if they exist.
+
+                    // We cannot assume that the prefix can be know from $CONDA_PREFIX (since it
+                    // might not be set), so we infer its value from the path of `libmamba`.
+                    Dl_info dl_info;
+                    if (dladdr(reinterpret_cast<void*>(init_remote_fetch_params), &dl_info))
+                    {
+                        // `$CONDA_PREFIX/lib/libmamba.so`
+                        fs::u8path libmamba_path = dl_info.dli_fname;
+                        fs::u8path conda_prefix = libmamba_path.parent_path().parent_path();
+                        fs::u8path conda_cert = conda_prefix / "ssl" / "cacert.pem";
+
+                        LOG_INFO << "Checking for CA certificates at: " << conda_cert;
+
+                        if (fs::exists(conda_cert))
+                        {
+                            LOG_INFO << "Using CA certificates from the environment at: "
+                                     << conda_cert;
+                            remote_fetch_params.ssl_verify = conda_cert;
+                            remote_fetch_params.curl_initialized = true;
+                            return;
+                        }
+                    }
+#endif
                     bool found = false;
 
                     for (const auto& loc : cert_locations)
                     {
                         if (fs::exists(loc))
                         {
+                            LOG_INFO << "Using system CA certificates at: " << loc;
                             remote_fetch_params.ssl_verify = loc;
                             found = true;
+                            break;
                         }
                     }
 

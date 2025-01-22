@@ -25,7 +25,7 @@ env_files = [
     env_file_requires_pip_install_path_with_whitespaces,
 ]
 
-lockfile_path: Path = __this_dir__ / "test_env-lock.yaml"
+lockfile_path: Path = __this_dir__ / "test-env-lock.yaml"
 pip_lockfile_path: Path = __this_dir__ / "test-env-pip-lock.yaml"
 pip_git_https_lockfile_path: Path = __this_dir__ / "test-env-lock-pip-git-https.yaml"
 
@@ -197,7 +197,7 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
 def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myenv"
     spec_file = (
-        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
     )
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")

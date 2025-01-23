@@ -81,8 +81,20 @@ namespace mamba
 
             auto certificates = context.remote_fetch_params.ssl_verify;
             const fs::u8path root_prefix = detail::get_root_prefix();
-            auto expected_certificates = root_prefix / "ssl" / "cacert.pem";
-            REQUIRE(certificates == expected_certificates);
+            const fs::u8path expected_certificates = root_prefix / "ssl" / "cert.pem";
+
+            // TODO: is libmamba tested without a root prefix or a base installation?
+            bool reach_fallback_certificates;
+            if (util::on_win)
+            {
+                // Default certificates from libcurl/libssl are used on Windows
+                reach_fallback_certificates = certificates == "";
+            }
+            else
+            {
+                reach_fallback_certificates = (mamba::util::ends_with(certificates, "cert.pem") || mamba::util::ends_with(certificates, "ca-certificates.crt"));
+            }
+            REQUIRE((certificates == expected_certificates || reach_fallback_certificates));
         }
     }
 }

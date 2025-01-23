@@ -1578,8 +1578,7 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
 
 
 def test_ca_certificates(tmp_path):
-    # Check that CA certificates from conda-forge or from the system
-    # are correctly used by micromamba.
+    # Check that CA certificates from conda-forge or that the fall back is used by micromamba.
     env_prefix = tmp_path / "env-ca-certificates"
 
     umamba = helpers.get_umamba()
@@ -1591,6 +1590,18 @@ def test_ca_certificates(tmp_path):
         "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix"
         in verbose_logs
     )
+
     system_ca_certificates_used = "Using system CA certificates at" in verbose_logs
 
-    assert root_prefix_ca_certificates_used or system_ca_certificates_used
+    default_libcurl_certificates_used = (
+        "Using libcurl/the SSL library's default CA certification" in verbose_logs
+    )
+
+    # On Windows default
+    fall_back_certificates_used = (
+        default_libcurl_certificates_used
+        if platform.system() == "Windows"
+        else system_ca_certificates_used
+    )
+
+    assert root_prefix_ca_certificates_used or fall_back_certificates_used

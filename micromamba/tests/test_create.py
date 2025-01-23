@@ -1578,7 +1578,8 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
 
 
 def test_ca_certificates(tmp_path):
-    # Check that the CA certificates are correctly used in the environment
+    # Check that CA certificates from conda-forge or from the system
+    # are correctly used by micromamba.
     env_prefix = tmp_path / "env-ca-certificates"
 
     umamba = helpers.get_umamba()
@@ -1588,7 +1589,10 @@ def test_ca_certificates(tmp_path):
 
     print(verbose_logs)
 
-    assert (
+    root_prefix_ca_certificates_used = (
         "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix"
         in verbose_logs
     )
+    system_ca_certificates_used = "Using system CA certificates at" in verbose_logs
+
+    assert root_prefix_ca_certificates_used or system_ca_certificates_used

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -24,7 +25,7 @@ namespace mamba::download
     namespace
     {
 
-        constexpr std::array<const char*, 9> cert_locations{
+        constexpr std::array<const char*, 6> cert_locations{
             "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
             "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
             "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
@@ -80,7 +81,8 @@ namespace mamba::download
                     // root prefix or the system CA certificates if the certificate is not present.
                     fs::u8path libmamba_library_path;
 
-                    fs::u8path root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
+                    fs::u8path root_prefix;
+                    detail::get_default_root_prefix(root_prefix);
                     fs::u8path env_prefix_conda_cert = root_prefix / "ssl" / "cacert.pem";
 
                     LOG_INFO << "Checking for CA certificates at the root prefix: "

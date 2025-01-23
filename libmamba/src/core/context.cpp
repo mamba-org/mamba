@@ -12,6 +12,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
@@ -177,7 +178,7 @@ namespace mamba
     Context::Context(const ContextOptions& options)
     {
         on_ci = static_cast<bool>(util::get_env("CI"));
-        prefix_params.root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
+        prefix_params.root_prefix = detail::get_root_prefix();
         prefix_params.conda_prefix = prefix_params.root_prefix;
 
         envs_dirs = { prefix_params.root_prefix / "envs" };

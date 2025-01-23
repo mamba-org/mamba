@@ -88,8 +88,7 @@ namespace mamba::download
                     // root prefix or the system CA certificates if the certificate is not present.
                     fs::u8path libmamba_library_path;
 
-                    fs::u8path root_prefix;
-                    detail::get_default_root_prefix(root_prefix);
+                    fs::u8path root_prefix = detail::get_root_prefix();
                     fs::u8path env_prefix_conda_cert = root_prefix / "ssl" / "cacert.pem";
 
                     LOG_INFO << "Checking for CA certificates at the root prefix: "

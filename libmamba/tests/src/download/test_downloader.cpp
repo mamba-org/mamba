@@ -6,6 +6,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/download/downloader.hpp"
 
 #include "mambatests.hpp"
@@ -78,9 +79,8 @@ namespace mamba
             download::MultiResult res = download::download(dl_request, context.mirrors, context);
             REQUIRE(context.remote_fetch_params.curl_initialized);
 
-            // Check that the path is correct
             auto certificates = context.remote_fetch_params.ssl_verify;
-            const fs::u8path root_prefix = context.prefix_params.root_prefix;
+            const fs::u8path root_prefix = detail::get_root_prefix();
             auto expected_certificates = root_prefix / "ssl" / "cacert.pem";
             REQUIRE(certificates == expected_certificates);
         }

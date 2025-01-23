@@ -751,13 +751,23 @@ namespace mamba
             }
         }
 
+        auto get_root_prefix() -> fs::u8path
+        {
+            fs::u8path root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
+            if (root_prefix.empty())
+            {
+                get_default_root_prefix(root_prefix);
+            }
+            return root_prefix;
+        }
+
         void root_prefix_hook(Configuration& config, fs::u8path& prefix)
         {
             auto& env_name = config.at("env_name");
 
             if (prefix.empty())
             {
-                get_default_root_prefix(prefix);
+                prefix = get_root_prefix();
 
                 if (env_name.configured())
                 {

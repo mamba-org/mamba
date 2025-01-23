@@ -37,11 +37,6 @@ namespace mamba::download
             "/usr/local/etc/openssl/cert.pem",
             "/usr/local/share/certs/ca-root-nss.crt",
             "/usr/local/share/certs/ca-root.crt",
-            // Windows
-            "C:/Program Files/Common Files/SSL/certs/ca-bundle.crt",
-            "C:/Program Files/Common Files/SSL/certs/ca-bundle.trust.crt",
-            "C:/Program Files/Common Files/SSL/certs/ca-bundle.pem",
-            "C:/Program Files/Common Files/SSL/certs/ca-bundle.crt"
         };
 
         void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
@@ -111,6 +106,18 @@ namespace mamba::download
 
                     // Fallback on system CA certificates.
                     bool found = false;
+
+                    // TODO: find if one needs to specify a CA certificate on Windows or not
+                    // given that the location of system's CA certificates is not clear on Windows.
+                    // For now, just use `libcurl` and the SSL libraries' default.
+                    if (util::on_win)
+                    {
+                        LOG_INFO << "Using libcurl/the SSL library's default CA certification";
+                        remote_fetch_params.ssl_verify = "";
+                        found = true;
+                        remote_fetch_params.curl_initialized = true;
+                        return;
+                    }
 
                     for (const auto& loc : cert_locations)
                     {

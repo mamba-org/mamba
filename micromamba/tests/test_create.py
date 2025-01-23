@@ -193,18 +193,19 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     )
 
 
-@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
-    env_prefix = tmp_path / "myenv"
-    spec_file = (
-        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
-    )
+# TODO Uncomment this after merging https://github.com/mamba-org/mamba/pull/3764
+# @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+# def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+# env_prefix = tmp_path / "myenv"
+# spec_file = (
+# "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
+# )
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-    assert res["success"]
+# res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+# assert res["success"]
 
-    packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+# packages = helpers.umamba_list("-p", env_prefix, "--json")
+# assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

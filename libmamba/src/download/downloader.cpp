@@ -25,7 +25,7 @@ namespace mamba::download
     namespace
     {
 
-        constexpr std::array<const char*, 14> cert_locations{
+        constexpr std::array<const char*, 10> cert_locations{
             "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
             "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
             "/etc/ssl/ca-bundle.pem",                             // OpenSUSE

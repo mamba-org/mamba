@@ -1587,8 +1587,6 @@ def test_ca_certificates(tmp_path):
     p = subprocess.run(args, capture_output=True, check=True)
     verbose_logs = p.stderr.decode()
 
-    print(verbose_logs)
-
     root_prefix_ca_certificates_used = (
         "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix"
         in verbose_logs

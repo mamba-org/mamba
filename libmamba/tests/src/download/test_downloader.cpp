@@ -54,5 +54,35 @@ namespace mamba
                 std::runtime_error
             );
         }
+
+        TEST_CASE("Use CA certificate from the root prefix")
+        {
+            // Create a context, make a request and check that ssl_verify is set to the correct path
+            auto& context = mambatests::singletons().context;
+
+            // Set the context values to the default ones
+            context.remote_fetch_params.curl_initialized = false;
+            context.remote_fetch_params.ssl_verify = "<system>";
+
+            download::Request request(
+                "test",
+                download::MirrorName(""),
+                "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+                "test_download_repodata.json"
+            );
+            download::MultiRequest dl_request{ std::vector{ std::move(request) } };
+
+            // Downloading must initialize curl and set `ssl_verify` to the path of the CA
+            // certificate
+            REQUIRE(!context.remote_fetch_params.curl_initialized);
+            download::MultiResult res = download::download(dl_request, context.mirrors, context);
+            REQUIRE(context.remote_fetch_params.curl_initialized);
+
+            // Check that the path is correct
+            auto certificates = context.remote_fetch_params.ssl_verify;
+            const fs::u8path root_prefix = context.prefix_params.root_prefix;
+            auto expected_certificates = root_prefix / "ssl" / "cacert.pem";
+            REQUIRE(certificates == expected_certificates);
+        }
     }
 }

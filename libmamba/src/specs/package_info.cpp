@@ -225,6 +225,20 @@ namespace mamba::specs
             }
         }
 
+        // A git repository URL over https and used by `pip`
+        // git+https://<repository-url>@<commit|branch|tag>#egg=<package-name>
+        if (util::starts_with(str, "git+https"))
+        {
+            auto pkg = PackageInfo();
+            pkg.package_url = str;
+            const std::string pkg_name_marker = "#egg=";
+            if (const auto idx = str.rfind(pkg_name_marker); idx != std::string_view::npos)
+            {
+                pkg.name = str.substr(idx + pkg_name_marker.length());
+            }
+            return pkg;
+        }
+
         return make_unexpected_parse(fmt::format(R"(Fail to parse PackageInfo URL "{}")", str));
     }
 

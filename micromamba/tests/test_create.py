@@ -1575,3 +1575,18 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
     out = helpers.create("-p", env_prefix, "-f", env_spec_file, "--dry-run")
 
     assert update_specs_list in out.replace("\r", "")
+
+
+def test_ca_certificates(tmp_path):
+    # Check that the CA certificates are correctly used in the environment
+    env_prefix = tmp_path / "env-ca-certificates"
+
+    umamba = helpers.get_umamba()
+    args = [umamba, "create", "-p", env_prefix, "numpy", "--dry-run", "-vvv"]
+    p = subprocess.run(args, capture_output=True, check=True)
+    verbose_logs = p.stderr.decode()
+
+    assert (
+        "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix"
+        in verbose_logs
+    )

@@ -97,8 +97,8 @@ namespace mamba::download
 
                     if (fs::exists(env_prefix_conda_cert))
                     {
-                        LOG_INFO << "Using CA certificates from the root prefix at: "
-                                 << env_prefix_conda_cert;
+                        LOG_INFO << "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix "
+                                 << "(i.e " << env_prefix_conda_cert << ")";
                         remote_fetch_params.ssl_verify = env_prefix_conda_cert;
                         remote_fetch_params.curl_initialized = true;
                         return;

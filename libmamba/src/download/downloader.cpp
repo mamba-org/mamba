@@ -19,13 +19,6 @@
 #include "curl.hpp"
 #include "downloader_impl.hpp"
 
-// To find the path of `libmamba`'s loaded shared library.
-#if defined(__linux__) || __APPLE__ || __MACH__
-#include <dlfcn.h>
-#else
-#include <Windows.h>
-#endif
-
 namespace mamba::download
 {
     namespace
@@ -38,9 +31,6 @@ namespace mamba::download
             "/etc/pki/tls/cacert.pem",                            // OpenELEC
             "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
             "/etc/ssl/cert.pem",                                  // Alpine Linux
-            "/System/Library/Keychains/SystemRootCertificates.keychain",  // macOS
-            "/Library/Keychains/System.keychain",                         // macOS
-            "C:/Program Files/Common Files/SSL/certs/ca-bundle.crt"       // Windows
         };
 
         void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
@@ -84,45 +74,21 @@ namespace mamba::download
                         LOG_INFO << "Using REQUESTS_CA_BUNDLE " << remote_fetch_params.ssl_verify;
                     }
                 }
-                else if (remote_fetch_params.ssl_verify == "<system>")
+                else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
                 {
-                    // Use the CA certificates from the `conda-forge::ca-certificates` (a transitive
-                    // dependency of `libmamba` via `libcurl`) which are installed at
-                    // `$CONDA_PREFIX/ssl/cacert.pem` if they exist, otherwise we fallback to the
-                    // system CA certificates.
-
-                    // We cannot assume that the prefix can be known from $CONDA_PREFIX (which
-                    // might not be set), so we infer its value from the path of `libmamba`.
-
+                    // Use the CA certificates from `conda-forge::ca-certificates` installed in the
+                    // root prefix or the system CA certificates if the certificate is not present.
                     fs::u8path libmamba_library_path;
 
-#if defined(__linux__) || __APPLE__ || __MACH__
-                    Dl_info dl_info;
-                    if (dladdr(reinterpret_cast<void*>(init_remote_fetch_params), &dl_info))
-                    {
-                        libmamba_library_path = dl_info.dli_fname;
-                    }
-#else
-                    HMODULE hModule = NULL;
-                    CHAR path[MAX_PATH];
-                    GetModuleHandleEx(
-                        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
-                            | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                        (LPCTSTR) init_remote_fetch_params,
-                        &hModule
-                    );
-                    GetModuleFileName(hModule, path, MAX_PATH);
+                    fs::u8path root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
+                    fs::u8path env_prefix_conda_cert = root_prefix / "ssl" / "cacert.pem";
 
-                    libmamba_library_path = std::string(path);
-#endif
-                    fs::u8path env_prefix = libmamba_library_path.parent_path().parent_path();
-                    fs::u8path env_prefix_conda_cert = env_prefix / "ssl" / "cacert.pem";
-
-                    LOG_INFO << "Checking for CA certificates at: " << env_prefix_conda_cert;
+                    LOG_INFO << "Checking for CA certificates at the root prefix: "
+                             << env_prefix_conda_cert;
 
                     if (fs::exists(env_prefix_conda_cert))
                     {
-                        LOG_INFO << "Using CA certificates from the environment at: "
+                        LOG_INFO << "Using CA certificates from the root prefix at: "
                                  << env_prefix_conda_cert;
                         remote_fetch_params.ssl_verify = env_prefix_conda_cert;
                         remote_fetch_params.curl_initialized = true;

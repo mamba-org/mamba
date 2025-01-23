@@ -25,13 +25,23 @@ namespace mamba::download
     namespace
     {
 
-        constexpr std::array<const char*, 6> cert_locations{
+        constexpr std::array<const char*, 14> cert_locations{
             "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
             "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
             "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
             "/etc/pki/tls/cacert.pem",                            // OpenELEC
             "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
             "/etc/ssl/cert.pem",                                  // Alpine Linux
+            // MacOS
+            "/System/Library/OpenSSL/certs/cert.pem",
+            "/usr/local/etc/openssl/cert.pem",
+            "/usr/local/share/certs/ca-root-nss.crt",
+            "/usr/local/share/certs/ca-root.crt",
+            // Windows
+            "C:/Program Files/Common Files/SSL/certs/ca-bundle.crt",
+            "C:/Program Files/Common Files/SSL/certs/ca-bundle.trust.crt",
+            "C:/Program Files/Common Files/SSL/certs/ca-bundle.pem",
+            "C:/Program Files/Common Files/SSL/certs/ca-bundle.crt"
         };
 
         void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
@@ -75,7 +85,9 @@ namespace mamba::download
                         LOG_INFO << "Using REQUESTS_CA_BUNDLE " << remote_fetch_params.ssl_verify;
                     }
                 }
-                else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
+                // TODO: Adapt the semantic of `<system>` to decouple the use of CA certificates
+                // from `conda-forge::ca-certificates` and the system CA certificates.
+                else if (remote_fetch_params.ssl_verify == "<system>")
                 {
                     // Use the CA certificates from `conda-forge::ca-certificates` installed in the
                     // root prefix or the system CA certificates if the certificate is not present.

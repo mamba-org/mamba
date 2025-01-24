@@ -80,30 +80,35 @@ if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-option(ENABLE_ASAN "Enable Address-Sanitizer (currently only supported on GCC and Clang)" OFF)
-
+option(ENABLE_ASAN "Enable AddressSanitizer (currently only supported on GCC and Clang)" OFF)
 if(ENABLE_ASAN)
     message(
         WARNING
-            "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+            "AddressSanitizer instrumentation will be injected into binaries - do not release these binaries"
     )
     add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
     add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 endif()
 
+option(ENABLE_TSAN "Enable ThreadSanitizer (currently only supported on GCC and Clang)" OFF)
 if(ENABLE_TSAN)
     message(
         WARNING
-            "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+            "ThreadSanitizer instrumentation will be injected into binaries - do not release these binaries"
     )
     add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
     add_link_options(-fno-omit-frame-pointer -fsanitize=thread)
 endif()
 
-if(ENABLE_USAN)
+option(
+    ENABLE_UBSAN
+    "Enable UndefinedBehaviorSanitizer (currently only supported on GCC and Clang)"
+    OFF
+)
+if(ENABLE_UBSAN)
     message(
         WARNING
-            "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+            "UndefinedBehaviorSanitizer instrumentation will be injected into binaries - do not release these binaries"
     )
     add_compile_options(-fno-omit-frame-pointer -fsanitize=undefined)
     add_link_options(-fno-omit-frame-pointer -fsanitize=undefined)

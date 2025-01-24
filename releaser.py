@@ -64,11 +64,11 @@ def commands(release_version, changes):
     files_to_commit = ""
     for c in changes:
         files_to_commit += f"    {c}/CHANGELOG.md \\\n"
-        files_to_commit += f"    {templates[c][:-len('.tmpl')]} \\\n"
+        files_to_commit += f"    {templates[c][: -len('.tmpl')]} \\\n"
     files_to_commit = files_to_commit[:-3]
 
     for c in changes:
-        files_to_commit += f"    {templates[c][:-len('.tmpl')]} \\\n"
+        files_to_commit += f"    {templates[c][: -len('.tmpl')]} \\\n"
     print("\n\n--- REVERT ---\n\n")
     print(f"git checkout origin/main -- \\\n{files_to_commit[:-3]}\n\n")
 

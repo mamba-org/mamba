@@ -212,7 +212,7 @@ Enhancements:
 - Migrate Channel::make_channel to resolve multi channels by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2986
 - Move core/channel > specs/channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3000
 - Remove ChannelContext ctor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3002
-- Remove ChanelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
+- Remove ChannelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
 - Bind Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3001
 - Bind ChannelContext by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3034
 - Split validate.[ch]pp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3041
@@ -268,9 +268,9 @@ CI fixes and doc:
 - Add CI merge groups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3068
 - Refactor CI and libamambapy tests (on Unix) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2952
 - Refactor CI and libamambapy tests (on Win) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2955
-- Simplify and correct development documention by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
+- Simplify and correct development documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
 - Add install from source instructions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2977
-- update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
+- update readme install link by @artificial-agent in https://github.com/mamba-org/mamba/pull/2980
 - Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
 
 # libmambapy 2.0.0rc6 (September 20, 2024)
@@ -508,7 +508,7 @@ Enhancements:
 - Migrate Channel::make_channel to resolve multi channels by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2986
 - Move core/channel > specs/channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3000
 - Remove ChannelContext ctor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3002
-- Remove ChanelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
+- Remove ChannelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
 - Bind Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3001
 - Bind ChannelContext by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3034
 - MatchSpec small improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3043
@@ -526,9 +526,9 @@ CI fixes and doc:
 
 - Refactor CI and libamambapy tests (on Unix) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2952
 - Refactor CI and libamambapy tests (on Win) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2955
-- Simplify and correct development documention by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
+- Simplify and correct development documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
 - Add install from source instructions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2977
-- update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
+- update readme install link by @artificial-agent in https://github.com/mamba-org/mamba/pull/2980
 - Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
 
 # libmambapy 2.0.0alpha0 (December 14, 2023)
@@ -552,7 +552,7 @@ Enhancements:
 - Migrate Channel::make_channel to resolve multi channels by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2986
 - Move core/channel > specs/channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3000
 - Remove ChannelContext ctor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3002
-- Remove ChanelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
+- Remove ChannelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
 - Bind Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3001
 - Bind ChannelContext by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3034
 - MatchSpec small improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3043
@@ -570,9 +570,9 @@ CI fixes and doc:
 
 - Refactor CI and libamambapy tests (on Unix) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2952
 - Refactor CI and libamambapy tests (on Win) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2955
-- Simplify and correct development documention by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
+- Simplify and correct development documentation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
 - Add install from source instructions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2977
-- update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
+- update readme install link by @artificial-agent in https://github.com/mamba-org/mamba/pull/2980
 - Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
 
 # libmambapy 1.5.1 (September 05, 2023)
@@ -583,7 +583,7 @@ Enhancements:
 
 CI fixes and doc:
 
-- Splitted GHA workflow by @JohanMabille in https://github.com/mamba-org/mamba/pull/2779
+- Split GHA workflow by @JohanMabille in https://github.com/mamba-org/mamba/pull/2779
 - Use Release build mode in Windows CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2785
 
 # libmambapy 1.5.0 (August 24, 2023)
@@ -676,10 +676,10 @@ CI fixes and doc:
 
 # libmambapy 1.4.0 (March 22, 2023)
 
-Enchancements:
+Enhancements:
 
 - Implemented recursive dependency printout in repoquery by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
-- Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- Aggressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
 - Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
 - Activated SAT error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2325
 - Removed redundant `DependencyInfo` by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2314
@@ -726,7 +726,7 @@ CI fixes & docs:
 - - Run conda_nightly once per week by @jonashaag in #2147
 - - Update doc by @Hind-M in #2156
 - - Use Conda canary in nightly tests by @jonashaag in #2180
-- - Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- - Explicitly point to libmamba test data independently of cwd by @AntoinePrv in #2158
 - - Add bug report issue template by @jonashaag in #2182
 - - Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
 - - Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
@@ -955,7 +955,7 @@ Big changes:
 
 New features
 
-- remove orphaned packages such as dependencies of explicitely installed
+- remove orphaned packages such as dependencies of explicitly installed
   packages (@adriendelsalle) #1040
 - add a diff character before package name in transaction table to improve
   readability without coloration (@adriendelsalle) #1040
@@ -1165,7 +1165,7 @@ General improvements
 # 0.10.0 (Apr 16, 2021)
 
 - [micromamba] allow creation of empty env (without specs) #824 #827
-- [micromamba] automatically create empy `base` env at new root prefix #836
+- [micromamba] automatically create empty `base` env at new root prefix #836
 - [micromamba] add remove all CLI flags `-a,--all` #824
 - [micromamba] add dry-run and ultra-dry-run tests to increase coverage and
   speed-up CI #813 #845
@@ -1191,7 +1191,7 @@ General improvements
 
 # 0.9.2 (Apr 1, 2021)
 
-- [micromamba] fix unc url support (thanks @adament)
+- [micromamba] fix unc url support (thanks @adamant)
 - [micromamba] add --channel-alias as cli option to micromamba (thanks
   @adriendelsalle)
 - [micromamba] fix --no-rc and environment yaml files (thanks @adriendelsalle)
@@ -1214,7 +1214,7 @@ General improvements
   short/long descriptions and groups
 - [micromamba] prevent crashes when no bashrc or zshrc file found (thanks
   @wolfv)
-- add support for UNC file:// urls (thanks @adament)
+- add support for UNC file:// urls (thanks @adamant)
 - add support for use_only_tar_bz2 (thanks @tl-hbk @wolfv)
 - add pinned specs for env update (thanks @wolfv)
 - properly adhere to run_constrains (thanks @wolfv)
@@ -1284,7 +1284,7 @@ General improvements
 - [micromamba] Revert extraction to temporary directory because of invalid
   cross-device links on Linux
 - [micromamba] Clean up partially extracted archives when CTRL+C interruption
-  occured
+  occurred
 
 # 0.7.11 (Feb 2, 2021)
 

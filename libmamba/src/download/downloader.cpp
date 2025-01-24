@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -24,13 +25,18 @@ namespace mamba::download
     namespace
     {
 
-        constexpr std::array<const char*, 6> cert_locations{
+        constexpr std::array<const char*, 10> cert_locations{
             "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
             "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
             "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
             "/etc/pki/tls/cacert.pem",                            // OpenELEC
             "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
             "/etc/ssl/cert.pem",                                  // Alpine Linux
+            // MacOS
+            "/System/Library/OpenSSL/certs/cert.pem",
+            "/usr/local/etc/openssl/cert.pem",
+            "/usr/local/share/certs/ca-root-nss.crt",
+            "/usr/local/share/certs/ca-root.crt",
         };
 
         void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
@@ -74,16 +80,52 @@ namespace mamba::download
                         LOG_INFO << "Using REQUESTS_CA_BUNDLE " << remote_fetch_params.ssl_verify;
                     }
                 }
-                else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
+                // TODO: Adapt the semantic of `<system>` to decouple the use of CA certificates
+                // from `conda-forge::ca-certificates` and the system CA certificates.
+                else if (remote_fetch_params.ssl_verify == "<system>")
                 {
+                    // Use the CA certificates from `conda-forge::ca-certificates` installed in the
+                    // root prefix or the system CA certificates if the certificate is not present.
+                    fs::u8path libmamba_library_path;
+
+                    fs::u8path root_prefix = detail::get_root_prefix();
+                    fs::u8path env_prefix_conda_cert = root_prefix / "ssl" / "cacert.pem";
+
+                    LOG_INFO << "Checking for CA certificates at the root prefix: "
+                             << env_prefix_conda_cert;
+
+                    if (fs::exists(env_prefix_conda_cert))
+                    {
+                        LOG_INFO << "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix "
+                                 << "(i.e " << env_prefix_conda_cert << ")";
+                        remote_fetch_params.ssl_verify = env_prefix_conda_cert;
+                        remote_fetch_params.curl_initialized = true;
+                        return;
+                    }
+
+                    // Fallback on system CA certificates.
                     bool found = false;
+
+                    // TODO: find if one needs to specify a CA certificate on Windows or not
+                    // given that the location of system's CA certificates is not clear on Windows.
+                    // For now, just use `libcurl` and the SSL libraries' default.
+                    if (util::on_win)
+                    {
+                        LOG_INFO << "Using libcurl/the SSL library's default CA certification";
+                        remote_fetch_params.ssl_verify = "";
+                        found = true;
+                        remote_fetch_params.curl_initialized = true;
+                        return;
+                    }
 
                     for (const auto& loc : cert_locations)
                     {
                         if (fs::exists(loc))
                         {
+                            LOG_INFO << "Using system CA certificates at: " << loc;
                             remote_fetch_params.ssl_verify = loc;
                             found = true;
+                            break;
                         }
                     }
 

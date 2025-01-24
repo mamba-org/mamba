@@ -78,6 +78,15 @@ namespace
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg.conda";
             REQUIRE_FALSE(PackageInfo::from_url(url).has_value());
         }
+
+        SECTION("git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+        {
+            static constexpr std::string_view url = "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3";
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "urllib3");
+            REQUIRE(pkg.package_url == url);
+        }
     }
 
     TEST_CASE("PackageInfo serialization")

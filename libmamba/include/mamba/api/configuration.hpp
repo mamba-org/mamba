@@ -483,6 +483,8 @@ namespace mamba
 
     namespace detail
     {
+        auto get_root_prefix() -> fs::u8path;
+
         template <class T>
         bool ConfigurableImpl<T>::cli_configured() const
         {

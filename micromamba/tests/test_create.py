@@ -1581,7 +1581,8 @@ def test_non_url_encoding(tmp_path):
     # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
     env_prefix = tmp_path / "env-non_url_encoding"
 
-    out = helpers.create("--json", "x264>=1!0", "-p", env_prefix)
+    # Use linux-64 without loss of generality
+    out = helpers.create("--json", "x264>=1!0", "-p", env_prefix, "--platform", "linux-64")
 
     # Check that the URL of the build of x264 is encoded.
     encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1%21"

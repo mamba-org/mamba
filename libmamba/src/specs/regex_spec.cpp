@@ -44,6 +44,18 @@ namespace mamba::specs
 
     RegexSpec::RegexSpec(std::string raw_pattern)
     {
+        // If the string is wrapped in `^` and `$`, `conda.model.MatchSpec` considers it a regex.
+        // See:
+        // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L134-L139.
+        // See:
+        // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L889-L894
+        if (util::starts_with(raw_pattern, pattern_start) && util::ends_with(raw_pattern, pattern_end))
+        {
+            m_raw_pattern = raw_pattern;
+            m_pattern = std::regex(m_raw_pattern);
+            return;
+        }
+
         // Construct ss from raw_pattern, in particular make sure to replace all `*` by `.*`
         // in the pattern if they are not preceded by a `.`.
         // We force regex to start with `^` and end with `$` to simplify the multiple

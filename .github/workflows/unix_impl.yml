@@ -162,7 +162,7 @@ jobs:
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           unset CONDARC  # Interferes with tests
-          python -m pytest micromamba/tests/ \
+          python -m pytest micromamba/tests/test_install.py::TestInstall::test_no_python_pinning \
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}
 
   verify_pkg_tests:

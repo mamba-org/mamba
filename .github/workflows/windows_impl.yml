@@ -149,5 +149,5 @@ jobs:
           $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
-          python -m pytest micromamba/tests/test_install.py::TestInstall::test_no_python_pinning `
+          python -m pytest micromamba/tests/ `
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}

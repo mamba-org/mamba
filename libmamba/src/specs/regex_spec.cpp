@@ -37,43 +37,40 @@ namespace mamba::specs
         }
     }
 
-    RegexSpec::RegexSpec()
-        : RegexSpec(std::string(free_pattern))
+    auto regexify(std::string raw_pattern) -> std::string
     {
-    }
+        // raw_pattern can be a regex or a glob pattern. We need to convert it to a regex.
 
-    RegexSpec::RegexSpec(std::string raw_pattern)
-    {
         // If the string is wrapped in `^` and `$`, `conda.model.MatchSpec` considers it a regex.
         // See:
         // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L134-L139.
         // See:
         // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L889-L894
-        if (util::starts_with(raw_pattern, pattern_start) && util::ends_with(raw_pattern, pattern_end))
+        if (util::starts_with(raw_pattern, RegexSpec::pattern_start)
+            && util::ends_with(raw_pattern, RegexSpec::pattern_end))
         {
-            m_raw_pattern = raw_pattern;
-            m_pattern = std::regex(m_raw_pattern);
-            return;
+            return raw_pattern;
         }
 
-        // Construct ss from raw_pattern, in particular make sure to replace all `*` by `.*`
-        // in the pattern if they are not preceded by a `.`.
+        // Construct the regex progressively from raw_pattern, in particular make sure to replace
+        // all `*` by `.*` in the pattern if they are not preceded by a `.`.
+        //
         // We force regex to start with `^` and end with `$` to simplify the multiple
         // possible representations, and because this is the safest way we can make sure it is
         // not a glob when serializing it.
         std::ostringstream ss;
-        ss << pattern_start;
+        ss << RegexSpec::pattern_start;
 
         auto first_character_it = raw_pattern.cbegin();
         auto last_character_it = raw_pattern.cend() - 1;
 
         for (auto it = first_character_it; it != raw_pattern.cend(); ++it)
         {
-            if (it == first_character_it && *it == pattern_start)
+            if (it == first_character_it && *it == RegexSpec::pattern_start)
             {
                 continue;
             }
-            if (it == last_character_it && *it == pattern_end)
+            if (it == last_character_it && *it == RegexSpec::pattern_end)
             {
                 continue;
             }
@@ -87,11 +84,20 @@ namespace mamba::specs
             }
         }
 
-        ss << pattern_end;
+        ss << RegexSpec::pattern_end;
 
-        m_raw_pattern = ss.str();
+        return ss.str();
+    }
 
-        m_pattern = std::regex(m_raw_pattern);
+    RegexSpec::RegexSpec()
+        : RegexSpec(std::string(free_pattern))
+    {
+    }
+
+    RegexSpec::RegexSpec(std::string raw_pattern)
+        : m_raw_pattern(regexify(std::move(raw_pattern)))
+        , m_pattern(std::regex(m_raw_pattern))
+    {
     }
 
     auto RegexSpec::contains(std::string_view str) const -> bool

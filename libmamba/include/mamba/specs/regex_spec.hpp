@@ -61,8 +61,8 @@ namespace mamba::specs
 
     private:
 
-        std::regex m_pattern;
         std::string m_raw_pattern;
+        std::regex m_pattern;
     };
 }
 

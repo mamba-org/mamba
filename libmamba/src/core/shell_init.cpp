@@ -503,6 +503,7 @@ namespace mamba
       | into record
       | load-env
     )
+    $env.PATH = $env.PATH | split row (char esep)
     # update prompt
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}

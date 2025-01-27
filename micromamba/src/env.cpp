@@ -157,8 +157,11 @@ set_env_command(CLI::App* com, Configuration& config)
                             .transform(
                                 [](specs::CondaURL&& url)
                                 {
-                                    using Credentials = typename specs::CondaURL::Credentials;
-                                    return url.str(Credentials::Remove);
+                                    return url.pretty_str(
+                                        specs::CondaURL::StripScheme::no,
+                                        0,  // don't strip any path characters
+                                        specs::CondaURL::Credentials::Remove
+                                    );
                                 }
                             )
                             .or_else(

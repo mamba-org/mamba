@@ -193,19 +193,18 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     )
 
 
-# TODO Uncomment this after merging https://github.com/mamba-org/mamba/pull/3764
-# @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-# def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
-# env_prefix = tmp_path / "myenv"
-# spec_file = (
-# "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
-# )
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = (
+        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
+    )
 
-# res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-# assert res["success"]
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
 
-# packages = helpers.umamba_list("-p", env_prefix, "--json")
-# assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1675,3 +1674,22 @@ def test_glob_in_build_string(monkeypatch, tmp_path):
         and package["build_string"] == "py3.10_cuda11.8_cudnn8.7.0_0"
         for package in out["actions"]["FETCH"]
     )
+
+def test_non_url_encoding(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
+    env_prefix = tmp_path / "env-non_url_encoding"
+
+    # Use linux-64 without loss of generality
+    out = helpers.create("--json", "x264>=1!0", "-p", env_prefix, "--platform", "linux-64")
+
+    # Check that the URL of the build of x264 is encoded.
+    encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1%21"
+
+    x264_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "x264")
+    assert x264_package["url"].startswith(encoded_url_start)
+
+    # Export an explicit specification of the environment and check that the URL is not encoded
+    non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
+    out = helpers.run_env("export", "-p", env_prefix, "--explicit")
+    assert non_encoded_url_start in out
+

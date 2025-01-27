@@ -56,6 +56,64 @@ namespace mamba
             ));
         }
 
+        std::vector<std::string>
+        get_record_keys(list_options options, const PrefixData::package_map& all_records)
+        {
+            std::vector<std::string> keys;
+
+            for (const auto& pkg : all_records)
+            {
+                keys.push_back(pkg.first);
+            }
+            if (options.reverse)
+            {
+                std::sort(
+                    keys.begin(),
+                    keys.end(),
+                    [](const std::string& a, const std::string& b) { return a >= b; }
+                );
+            }
+            else
+            {
+                std::sort(keys.begin(), keys.end());
+            }
+
+            return keys;
+        }
+
+        std::string
+        get_formatted_channel(const specs::PackageInfo& pkg_info, const specs::Channel& channel)
+        {
+            if (pkg_info.channel == "pypi")
+            {
+                return "pypi";
+            }
+            else
+            {
+                return strip_from_filename_and_platform(
+                    channel.display_name(),
+                    pkg_info.filename,
+                    pkg_info.platform
+                );
+            }
+        }
+
+        std::string get_base_url(const specs::PackageInfo& pkg_info, const specs::Channel& channel)
+        {
+            if (pkg_info.channel == "pypi")
+            {
+                return "https://pypi.org/";
+            }
+            else
+            {
+                return strip_from_filename_and_platform(
+                    channel.url().str(specs::CondaURL::Credentials::Remove),
+                    pkg_info.filename,
+                    pkg_info.platform
+                );
+            }
+        }
+
         void list_packages(
             const Context& ctx,
             std::string regex,
@@ -83,6 +141,10 @@ namespace mamba
             }
 
             std::regex spec_pat(regex);
+
+            auto accept_package = [&regex, &spec_pat](const specs::PackageInfo& pkg_info) -> bool
+            { return (regex.empty() || std::regex_search(pkg_info.name, spec_pat)); };
+
             auto all_records = prefix_data.all_pkg_mgr_records();
 
             if (ctx.output_params.json)
@@ -90,51 +152,20 @@ namespace mamba
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
 
-                for (const auto& pkg : all_records)
-                {
-                    keys.push_back(pkg.first);
-                }
-                if (options.reverse)
-                {
-                    std::sort(
-                        keys.begin(),
-                        keys.end(),
-                        [](const std::string& a, const std::string& b) { return a >= b; }
-                    );
-                }
-                else
-                {
-                    std::sort(keys.begin(), keys.end());
-                }
+                keys = get_record_keys(options, all_records);
 
                 for (const auto& key : keys)
                 {
                     auto obj = nlohmann::json();
                     const auto& pkg_info = all_records.find(key)->second;
 
-                    if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
+                    if (accept_package(pkg_info))
                     {
                         auto channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
 
-                        if (pkg_info.package_url.empty() && (pkg_info.channel == "pypi"))
-                        {
-                            obj["base_url"] = "https://pypi.org/";
-                            obj["channel"] = pkg_info.channel;
-                        }
-                        else
-                        {
-                            obj["base_url"] = strip_from_filename_and_platform(
-                                channels.front().url().str(specs::CondaURL::Credentials::Remove),
-                                pkg_info.filename,
-                                pkg_info.platform
-                            );
-                            obj["channel"] = strip_from_filename_and_platform(
-                                channels.front().display_name(),
-                                pkg_info.filename,
-                                pkg_info.platform
-                            );
-                        }
+                        obj["channel"] = get_formatted_channel(pkg_info, channels.front());
+                        obj["base_url"] = get_base_url(pkg_info, channels.front());
                         obj["url"] = pkg_info.package_url;
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
@@ -146,80 +177,66 @@ namespace mamba
                     }
                 }
                 std::cout << jout.dump(4) << std::endl;
-                return;
-            }
-
-            std::cout << "List of packages in environment: " << ctx.prefix_params.target_prefix
-                      << "\n\n";
-
-            formatted_pkg formatted_pkgs;
-
-            std::vector<formatted_pkg> packages;
-            auto requested_specs = prefix_data.history().get_requested_specs_map();
-
-            // order list of packages from prefix_data by alphabetical order
-            for (const auto& package : all_records)
-            {
-                if (regex.empty() || std::regex_search(package.second.name, spec_pat))
-                {
-                    formatted_pkgs.name = package.second.name;
-                    formatted_pkgs.version = package.second.version;
-                    formatted_pkgs.build = package.second.build_string;
-                    formatted_pkgs.url = package.second.package_url;
-                    if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
-                    {
-                        formatted_pkgs.channel = "";
-                    }
-                    else if (package.second.channel == "pypi")
-                    {
-                        formatted_pkgs.channel = package.second.channel;
-                    }
-                    else
-                    {
-                        auto channels = channel_context.make_channel(package.second.channel);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = strip_from_filename_and_platform(
-                            channels.front().display_name(),
-                            package.second.filename,
-                            package.second.platform
-                        );
-                    }
-                    packages.push_back(formatted_pkgs);
-                }
-            }
-
-            auto comparator = options.reverse ? compare_reverse_alphabetically
-                                              : compare_alphabetically;
-            std::sort(packages.begin(), packages.end(), comparator);
-
-            // format and print table
-            if (options.explicit_)
-            {
-                for (auto p : packages)
-                {
-                    std::cout << p.url << std::endl;
-                }
             }
             else
             {
-                printers::Table t({ "Name", "Version", "Build", "Channel" });
-                t.set_alignment({ printers::alignment::left,
-                                  printers::alignment::left,
-                                  printers::alignment::left,
-                                  printers::alignment::left });
-                t.set_padding({ 2, 2, 2, 2 });
+                std::cout << "List of packages in environment: " << ctx.prefix_params.target_prefix
+                          << "\n\n";
 
-                for (auto p : packages)
+                formatted_pkg formatted_pkgs;
+
+                std::vector<formatted_pkg> packages;
+
+                // order list of packages from prefix_data by alphabetical order
+                for (const auto& package : all_records)
                 {
-                    printers::FormattedString formatted_name(p.name);
-                    if (requested_specs.find(p.name) != requested_specs.end())
+                    if (accept_package(package.second))
                     {
-                        formatted_name = printers::FormattedString(p.name);
-                        formatted_name.style = ctx.graphics_params.palette.user;
+                        auto channels = channel_context.make_channel(package.second.channel);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        formatted_pkgs.channel = get_formatted_channel(package.second, channels.front());
+                        formatted_pkgs.name = package.second.name;
+                        formatted_pkgs.version = package.second.version;
+                        formatted_pkgs.build = package.second.build_string;
+                        formatted_pkgs.url = package.second.package_url;
+                        packages.push_back(formatted_pkgs);
                     }
-                    t.add_row({ formatted_name, p.version, p.build, p.channel });
                 }
-                t.print(std::cout);
+
+                auto comparator = options.reverse ? compare_reverse_alphabetically
+                                                  : compare_alphabetically;
+                std::sort(packages.begin(), packages.end(), comparator);
+
+                // format and print table
+                if (options.explicit_)
+                {
+                    for (auto p : packages)
+                    {
+                        std::cout << p.url << std::endl;
+                    }
+                }
+                else
+                {
+                    auto requested_specs = prefix_data.history().get_requested_specs_map();
+                    printers::Table t({ "Name", "Version", "Build", "Channel" });
+                    t.set_alignment({ printers::alignment::left,
+                                      printers::alignment::left,
+                                      printers::alignment::left,
+                                      printers::alignment::left });
+                    t.set_padding({ 2, 2, 2, 2 });
+
+                    for (auto p : packages)
+                    {
+                        printers::FormattedString formatted_name(p.name);
+                        if (requested_specs.find(p.name) != requested_specs.end())
+                        {
+                            formatted_name = printers::FormattedString(p.name);
+                            formatted_name.style = ctx.graphics_params.palette.user;
+                        }
+                        t.add_row({ formatted_name, p.version, p.build, p.channel });
+                    }
+                    t.print(std::cout);
+                }
             }
         }
     }

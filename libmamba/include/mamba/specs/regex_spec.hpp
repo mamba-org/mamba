@@ -31,7 +31,7 @@ namespace mamba::specs
         [[nodiscard]] static auto parse(std::string pattern) -> expected_parse_t<RegexSpec>;
 
         RegexSpec();
-        RegexSpec(std::regex pattern, std::string raw_pattern);
+        explicit RegexSpec(std::string raw_pattern);
 
         [[nodiscard]] auto contains(std::string_view str) const -> bool;
 
@@ -61,8 +61,8 @@ namespace mamba::specs
 
     private:
 
-        std::regex m_pattern;
         std::string m_raw_pattern;
+        std::regex m_pattern;
     };
 }
 

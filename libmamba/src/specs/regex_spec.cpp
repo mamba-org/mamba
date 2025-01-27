@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <sstream>
 
 #include <fmt/format.h>
 
@@ -25,12 +26,10 @@ namespace mamba::specs
 
     auto RegexSpec::parse(std::string pattern) -> expected_parse_t<RegexSpec>
     {
-        // No other mean of getting parse result with ``std::regex``, but parse error need
-        // to be handled by ``tl::expected`` to be managed down the road.
+        // Parse error need to be handled by ``tl::expected`` to be managed down the road.
         try
         {
-            auto regex = std::regex(pattern);
-            return { { std::move(regex), std::move(pattern) } };
+            return RegexSpec{ std::move(pattern) };
         }
         catch (const std::regex_error& e)
         {
@@ -38,26 +37,67 @@ namespace mamba::specs
         }
     }
 
-    RegexSpec::RegexSpec()
-        : RegexSpec(std::regex(free_pattern.data(), free_pattern.size()), std::string(free_pattern))
+    auto regexify(std::string raw_pattern) -> std::string
     {
-    }
+        // raw_pattern can be a regex or a glob pattern. We need to convert it to a regex.
 
-    RegexSpec::RegexSpec(std::regex pattern, std::string raw_pattern)
-        : m_pattern(std::move(pattern))
-        , m_raw_pattern(std::move(raw_pattern))
-    {
+        // If the string is wrapped in `^` and `$`, `conda.model.MatchSpec` considers it a regex.
+        // See:
+        // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L134-L139.
+        // See:
+        // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L889-L894
+        if (util::starts_with(raw_pattern, RegexSpec::pattern_start)
+            && util::ends_with(raw_pattern, RegexSpec::pattern_end))
+        {
+            return raw_pattern;
+        }
+
+        // Construct the regex progressively from raw_pattern, in particular make sure to replace
+        // all `*` by `.*` in the pattern if they are not preceded by a `.`.
+        //
         // We force regex to start with `^` and end with `$` to simplify the multiple
         // possible representations, and because this is the safest way we can make sure it is
         // not a glob when serializing it.
-        if (!util::starts_with(m_raw_pattern, pattern_start))
+        std::ostringstream ss;
+        ss << RegexSpec::pattern_start;
+
+        auto first_character_it = raw_pattern.cbegin();
+        auto last_character_it = raw_pattern.cend() - 1;
+
+        for (auto it = first_character_it; it != raw_pattern.cend(); ++it)
         {
-            m_raw_pattern.insert(m_raw_pattern.begin(), pattern_start);
+            if (it == first_character_it && *it == RegexSpec::pattern_start)
+            {
+                continue;
+            }
+            if (it == last_character_it && *it == RegexSpec::pattern_end)
+            {
+                continue;
+            }
+            if (*it == '*' && (it == first_character_it || *(it - 1) != '.'))
+            {
+                ss << ".*";
+            }
+            else
+            {
+                ss << *it;
+            }
         }
-        if (!util::ends_with(m_raw_pattern, pattern_end))
-        {
-            m_raw_pattern.push_back(pattern_end);
-        }
+
+        ss << RegexSpec::pattern_end;
+
+        return ss.str();
+    }
+
+    RegexSpec::RegexSpec()
+        : RegexSpec(std::string(free_pattern))
+    {
+    }
+
+    RegexSpec::RegexSpec(std::string raw_pattern)
+        : m_raw_pattern(regexify(std::move(raw_pattern)))
+        , m_pattern(std::regex(m_raw_pattern))
+    {
     }
 
     auto RegexSpec::contains(std::string_view str) const -> bool

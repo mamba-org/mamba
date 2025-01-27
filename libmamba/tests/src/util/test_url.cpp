@@ -293,6 +293,22 @@ namespace
             REQUIRE(url.host(URL::Decode::no) != "mamba%f0%9f%86%92%f0%9f%94%ac.org");
         }
 
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2")
+        {
+            // Non-regression test for: https://github.com/mamba-org/mamba/issues/3737
+            // Check that the `!` character is not encoded
+            const URL url = URL::parse(
+                                "https://conda.anaconda.org/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+            )
+                                .value();
+            REQUIRE(
+                url.path(URL::Decode::no) == "/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+            );
+            REQUIRE(
+                url.path(URL::Decode::yes) == "/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"
+            );
+        }
+
         SECTION("file://C:/Users/wolfv/test/document.json")
         {
             if (on_win)

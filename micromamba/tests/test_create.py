@@ -1637,3 +1637,22 @@ def test_ca_certificates(tmp_path):
     )
 
     assert root_prefix_ca_certificates_used or fall_back_certificates_used
+
+
+def test_non_url_encoding(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
+    env_prefix = tmp_path / "env-non_url_encoding"
+
+    # Use linux-64 without loss of generality
+    out = helpers.create("--json", "x264>=1!0", "-p", env_prefix, "--platform", "linux-64")
+
+    # Check that the URL of the build of x264 is encoded.
+    encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1%21"
+
+    x264_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "x264")
+    assert x264_package["url"].startswith(encoded_url_start)
+
+    # Export an explicit specification of the environment and check that the URL is not encoded
+    non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
+    out = helpers.run_env("export", "-p", env_prefix, "--explicit")
+    assert non_encoded_url_start in out

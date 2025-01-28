@@ -56,6 +56,15 @@ init_list_parser(CLI::App* subcom, Configuration& config)
             .description("Output canonical names of packages only. Ignored if --explicit.")
     );
     subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());
+
+    auto& export_ = config.insert(
+        Configurable("export", false)
+            .group("cli")
+            .description(
+                "Output explicit, machine-readable requirement strings instead of human-readable lists of packages. Ignored if --explicit or --canonical."
+            )
+    );
+    subcom->add_flag("-e,--export", export_.get_cli_config<bool>(), export_.description());
 }
 
 void

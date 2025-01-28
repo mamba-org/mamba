@@ -80,22 +80,27 @@ def test_list_no_json(
 
 
 @pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
+@pytest.mark.parametrize("md5_flag", ["", "--md5"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list_explicit_no_json(
-    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, explicit_flag
+def test_list_explicit(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, explicit_flag, md5_flag
 ):
     if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag)
+        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag, md5_flag)
     elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag)
+        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag, md5_flag)
     else:
-        res = helpers.umamba_list(explicit_flag)
+        res = helpers.umamba_list(explicit_flag, md5_flag)
 
-    packages_url_list = res.strip().split("\n")[2:]
+    outputs_list = res.strip().split("\n")[2:]
     if explicit_flag == "--explicit":
-        for url in packages_url_list:
-            assert "conda-forge" in url
+        for output in outputs_list:
+            assert "/conda-forge/" in output
+            if md5_flag == "--md5":
+                assert "#" in output
+            else:
+                assert "#" not in output
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

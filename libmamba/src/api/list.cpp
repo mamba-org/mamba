@@ -26,11 +26,12 @@ namespace mamba
             bool no_pip;
             bool reverse;
             bool explicit_;
+            bool md5;
         };
 
         struct formatted_pkg
         {
-            std::string name, version, build, channel, url;
+            std::string name, version, build, channel, url, md5;
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -199,6 +200,7 @@ namespace mamba
                         formatted_pkgs.version = package.second.version;
                         formatted_pkgs.build = package.second.build_string;
                         formatted_pkgs.url = package.second.package_url;
+                        formatted_pkgs.md5 = package.second.md5;
                         packages.push_back(formatted_pkgs);
                     }
                 }
@@ -212,7 +214,14 @@ namespace mamba
                 {
                     for (auto p : packages)
                     {
-                        std::cout << p.url << std::endl;
+                        if (options.md5)
+                        {
+                            std::cout << p.url << "#" << p.md5 << std::endl;
+                        }
+                        else
+                        {
+                            std::cout << p.url << std::endl;
+                        }
                     }
                 }
                 else
@@ -258,6 +267,7 @@ namespace mamba
         options.no_pip = config.at("no_pip").value<bool>();
         options.reverse = config.at("reverse").value<bool>();
         options.explicit_ = config.at("explicit").value<bool>();
+        options.md5 = config.at("md5").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

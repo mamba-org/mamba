@@ -227,7 +227,7 @@ namespace mamba
             { "PYTHONIOENCODING", "utf-8" },
             { "NO_COLOR", "1" },
             { "PIP_NO_COLOR", "1" },
-            { "PIP_NO_PYTHON_VERSION_WARNING", "1" },
+            // Removed due to deprecation: { "PIP_NO_PYTHON_VERSION_WARNING", "1" },
         };
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };

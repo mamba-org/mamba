@@ -1248,7 +1248,7 @@ namespace mamba
 
         if (!env_transform.export_path.empty())
         {
-            out << "PATH = " << env_transform.export_path << ";";
+            out << "PATH = " << env_transform.export_path << util:on_win ? ';' : ':';
         }
 
         for (const fs::u8path& ds : env_transform.deactivate_scripts)
@@ -1268,7 +1268,8 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            out << ekey << " = " << evar << ";";
+            // add unix or windows handling
+            out << ekey << " = " << evar << util:on_win ? ';' : ':';
         }
 
         for (const fs::u8path& p : env_transform.activate_scripts)

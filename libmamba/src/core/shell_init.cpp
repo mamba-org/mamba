@@ -516,7 +516,7 @@ namespace mamba
     if $env.CONDA_PROMPT_MODIFIER? != null {
       # unset set variables
       for x in (^$env.MAMBA_EXE shell deactivate --shell nu
-              | split row (if $nu.os-info.name == "windows" { ";" } else { ";" }) {
+              | split row (if $nu.os-info.name == "windows" { ";" } else { ":" }) {
           if ("hide-env" in $x) {
             hide-env ($x | parse "hide-env {var}").var.0
           } else if $x != "" {

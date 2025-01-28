@@ -82,6 +82,7 @@ def test_list_no_json(
 @pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
 @pytest.mark.parametrize("md5_flag", ["", "--md5"])
 @pytest.mark.parametrize("canonical_flag", ["", "-c", "--canonical"])
+@pytest.mark.parametrize("export_flag", ["", "-e", "--export"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_list_subcommands(
@@ -93,15 +94,22 @@ def test_list_subcommands(
     explicit_flag,
     md5_flag,
     canonical_flag,
+    export_flag,
 ):
     if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag, md5_flag, canonical_flag)
+        res = helpers.umamba_list(
+            "-p", tmp_xtensor_env, explicit_flag, md5_flag, canonical_flag, export_flag
+        )
     elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag, md5_flag, canonical_flag)
+        res = helpers.umamba_list(
+            "-n", tmp_env_name, explicit_flag, md5_flag, canonical_flag, export_flag
+        )
     else:
-        res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag)
+        res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag, export_flag)
 
     outputs_list = res.strip().split("\n")[2:]
+    outputs_list = [i for i in outputs_list if not i.startswith("Warning")]
+    outputs_list = [i for i in outputs_list if i != ""]
     if explicit_flag == "--explicit":
         for output in outputs_list:
             assert "/conda-forge/" in output
@@ -110,11 +118,17 @@ def test_list_subcommands(
             else:
                 assert "#" not in output
     else:
-        if canonical_flag == "--canonical":
+        if canonical_flag in ["-c", "--canonical"]:
             items = ["conda-forge/", "::"]
             for output in outputs_list:
                 assert all(i in output for i in items)
                 assert " " not in output
+        else:
+            if export_flag in ["-e", "--export"]:
+                items = ["conda-forge/", "::", " "]
+                for output in outputs_list:
+                    # assert all(i not in output for i in items)
+                    assert output.count("=") == 2
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

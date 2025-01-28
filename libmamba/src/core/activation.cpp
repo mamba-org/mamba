@@ -1271,7 +1271,6 @@ namespace mamba
             // add unix or windows handling
             out << ekey << " = " << evar << util:on_win ? ';' : ':';
         }
-
         for (const fs::u8path& p : env_transform.activate_scripts)
         {
             out << "source " << p << ";";

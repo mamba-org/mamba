@@ -103,6 +103,26 @@ def test_list_explicit(
                 assert "#" not in output
 
 
+@pytest.mark.parametrize("canonical_flag", ["", "--canonical"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_canonical(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, canonical_flag
+):
+    if env_selector == "prefix":
+        res = helpers.umamba_list("-p", tmp_xtensor_env, canonical_flag)
+    elif env_selector == "name":
+        res = helpers.umamba_list("-n", tmp_env_name, canonical_flag)
+    else:
+        res = helpers.umamba_list(canonical_flag)
+
+    outputs_list = res.strip().split("\n")[2:]
+    if canonical_flag == "--canonical":
+        items = ["conda-forge", "/", " "]
+        for output in outputs_list:
+            assert all(i not in output for i in items)
+
+
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_list_name(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):

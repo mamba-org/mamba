@@ -1,3 +1,29 @@
+# libmamba 2.0.6.rc1 (January 28, 2025)
+
+Enhancements:
+
+- Add reverse flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3705
+
+Bug fixes:
+
+- Support globs in `MatchSpec` build strings by @jjerphan in https://github.com/mamba-org/mamba/pull/3735
+- Don't encode URLs for `mamba env export --explicit` by @maresb in https://github.com/mamba-org/mamba/pull/3745
+- Handle `git+https` pip urls by @Hind-M in https://github.com/mamba-org/mamba/pull/3764
+- Uncomment no more failing test by @Hind-M in https://github.com/mamba-org/mamba/pull/3767
+- Use CA certificates from `conda-forge::ca-certificates` by @jjerphan in https://github.com/mamba-org/mamba/pull/3765
+- Add explicit flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3760
+- Fix dependency and `subdir` in repoquery `whoneeds` by @Hind-M in https://github.com/mamba-org/mamba/pull/3743
+- Use `LOG_DEBUG` for CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3757
+- Add missing thread and undefined sanitizers CMake options by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3753
+
+Maintenance:
+
+- `list` refactoring by @SandrineP in https://github.com/mamba-org/mamba/pull/3768
+- Correctly exclude json files in clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3749
+- Fix build status badge by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3755
+- Don't exclude Changelog files from typos-conda by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3748
+- Update pre-commit hooks by by @mathbunnyru https://github.com/mamba-org/mamba/pull/3746
+
 # libmamba 2.0.6.rc0 (January 14, 2025)
 
 Bug fixes:

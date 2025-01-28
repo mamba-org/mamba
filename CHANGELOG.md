@@ -1,3 +1,31 @@
+# 2025.01.28
+
+Release: 2.0.6.rc1 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [all] Add reverse flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3705
+
+Bug fixes:
+
+- [all] Support globs in `MatchSpec` build strings by @jjerphan in https://github.com/mamba-org/mamba/pull/3735
+- [all] Don't encode URLs for `mamba env export --explicit` by @maresb in https://github.com/mamba-org/mamba/pull/3745
+- [all] Handle `git+https` pip urls by @Hind-M in https://github.com/mamba-org/mamba/pull/3764
+- [all] Uncomment no more failing test by @Hind-M in https://github.com/mamba-org/mamba/pull/3767
+- [all] Use CA certificates from `conda-forge::ca-certificates` by @jjerphan in https://github.com/mamba-org/mamba/pull/3765
+- [all] Add explicit flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3760
+- [all] Fix dependency and `subdir` in repoquery `whoneeds` by @Hind-M in https://github.com/mamba-org/mamba/pull/3743
+- [all] Use `LOG_DEBUG` for CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3757
+- [all] Add missing thread and undefined sanitizers CMake options by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3753
+
+Maintenance:
+
+- [all] `list` refactoring by @SandrineP in https://github.com/mamba-org/mamba/pull/3768
+- [all] Correctly exclude json files in clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3749
+- [all] Fix build status badge by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3755
+- [all] Don't exclude Changelog files from typos-conda by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3748
+- [all] Update pre-commit hooks by by @mathbunnyru https://github.com/mamba-org/mamba/pull/3746
+
 # 2025.01.14
 
 Release: 2.0.6.rc0 (libmamba, mamba, micromamba, libmambapy)

@@ -27,11 +27,13 @@ namespace mamba
             bool reverse;
             bool explicit_;
             bool md5;
+            bool canonical;
+            bool export_;
         };
 
         struct formatted_pkg
         {
-            std::string name, version, build, channel, url, md5;
+            std::string name, version, build, channel, url, md5, build_string;
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -201,6 +203,7 @@ namespace mamba
                         formatted_pkgs.build = package.second.build_string;
                         formatted_pkgs.url = package.second.package_url;
                         formatted_pkgs.md5 = package.second.md5;
+                        formatted_pkgs.build_string = package.second.build_string;
                         packages.push_back(formatted_pkgs);
                     }
                 }
@@ -209,8 +212,22 @@ namespace mamba
                                                   : compare_alphabetically;
                 std::sort(packages.begin(), packages.end(), comparator);
 
-                // format and print table
-                if (options.explicit_)
+                // format and print output
+                if (options.canonical)
+                {
+                    for (auto p : packages)
+                    {
+                        std::cout << p.name << "-" << p.version << "-" << p.build_string << std::endl;
+                    }
+                }
+                else if (options.export_)
+                {
+                    for (auto p : packages)
+                    {
+                        std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
+                    }
+                }
+                else if (options.explicit_)
                 {
                     for (auto p : packages)
                     {
@@ -268,6 +285,8 @@ namespace mamba
         options.reverse = config.at("reverse").value<bool>();
         options.explicit_ = config.at("explicit").value<bool>();
         options.md5 = config.at("md5").value<bool>();
+        options.canonical = config.at("canonical").value<bool>();
+        options.export_ = config.at("export").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

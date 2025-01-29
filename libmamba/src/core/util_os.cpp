@@ -92,25 +92,40 @@ namespace mamba
 
     fs::u8path get_libmamba_path()
     {
-        fs::u8path libmamba_path;
 #ifdef _WIN32
         HMODULE hModule = NULL;
-        CHAR path[MAX_PATH];
-        GetModuleHandleEx(
+        GetModuleHandleExW(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             (LPCTSTR) get_libmamba_path,
             &hModule
         );
-        GetModuleFileName(hModule, path, MAX_PATH);
-        libmamba_path = fs::u8path(std::string(path));
+        std::wstring buffer(MAX_PATH, '\0');
+        DWORD size = GetModuleFileNameW(hModule, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
+        if (size == 0)
+        {
+            throw std::runtime_error("Could find location of the libmamba library!");
+        }
+        else if (size == buffer.size())
+        {
+            DWORD new_size = size;
+            do
+            {
+                new_size *= 2;
+                buffer.reserve(new_size);
+                size = GetModuleFileNameW(hModule, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
+            } while (new_size == size);
+        }
+        buffer.resize(buffer.find(L'\0'));
+        return fs::absolute(buffer);
 #else
+        fs::u8path libmamba_path;
         Dl_info dl_info;
         if (dladdr(reinterpret_cast<void*>(get_libmamba_path), &dl_info))
         {
             libmamba_path = dl_info.dli_fname;
         }
-#endif
         return libmamba_path;
+#endif
     }
 
     bool is_admin()

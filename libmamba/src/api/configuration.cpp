@@ -629,14 +629,6 @@ namespace mamba
             }
         }
 
-        bool is_root_prefix(const fs::u8path& prefix)
-        {
-            // TODO: consider the conjunction (i.e. &&-chaining) of the following conditions
-            // instead.
-            return fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
-                   || fs::exists(prefix / "envs");
-        }
-
         auto get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path)
             -> expected_t<fs::u8path>
         {
@@ -661,7 +653,9 @@ namespace mamba
                 return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
             }
 
-            if (!is_root_prefix(prefix))
+            // TODO: consider the conjunction (i.e. &&-chaining) of the following conditions.
+            auto qualifies_as_root_prefix = (fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta") || fs::exists(prefix / "envs"));
+            if (!qualifies_as_root_prefix)
             {
                 return make_unexpected(
                     fmt::format(
@@ -748,11 +742,12 @@ namespace mamba
                 libmamba_path.parent_path().parent_path()
             );
 
-            if (is_root_prefix(env_prefix))
+            if (auto maybe_prefix = validate_existing_root_prefix(env_prefix);
+                maybe_prefix.has_value())
             {
                 LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
-                          << env_prefix;
-                return env_prefix;
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
             }
 
             // From the environment directory, we might infer the root prefix.
@@ -760,11 +755,12 @@ namespace mamba
                 env_prefix.parent_path().parent_path()
             );
 
-            if (is_root_prefix(inferred_root_prefix))
+            if (auto maybe_prefix = validate_existing_root_prefix(env_prefix);
+                maybe_prefix.has_value())
             {
                 LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
-                          << inferred_root_prefix;
-                return inferred_root_prefix;
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
             }
 
 #ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE

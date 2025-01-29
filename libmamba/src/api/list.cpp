@@ -218,8 +218,8 @@ namespace mamba
                 {
                     if (options.canonical)
                     {
-                        std::cout << "Warning: Option --canonical ignored because of --explicit \n"
-                                  << std::endl;
+                        LOG_WARNING << "Warning: Option --canonical ignored because of --explicit"
+                                    << std::endl;
                     }
                     for (auto p : packages)
                     {

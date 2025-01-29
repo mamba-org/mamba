@@ -81,17 +81,25 @@ def test_list_no_json(
 
 @pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
 @pytest.mark.parametrize("md5_flag", ["", "--md5"])
+@pytest.mark.parametrize("canonical_flag", ["", "-c", "--canonical"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list_explicit(
-    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, explicit_flag, md5_flag
+def test_list_subcommands(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_env_name,
+    tmp_xtensor_env,
+    env_selector,
+    explicit_flag,
+    md5_flag,
+    canonical_flag,
 ):
     if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag, md5_flag)
+        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag, md5_flag, canonical_flag)
     elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag, md5_flag)
+        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag, md5_flag, canonical_flag)
     else:
-        res = helpers.umamba_list(explicit_flag, md5_flag)
+        res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag)
 
     outputs_list = res.strip().split("\n")[2:]
     if explicit_flag == "--explicit":
@@ -101,27 +109,12 @@ def test_list_explicit(
                 assert "#" in output
             else:
                 assert "#" not in output
-
-
-@pytest.mark.parametrize("canonical_flag", ["", "--canonical"])
-@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
-@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list_canonical(
-    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, canonical_flag
-):
-    if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, canonical_flag)
-    elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, canonical_flag)
     else:
-        res = helpers.umamba_list(canonical_flag)
-
-    outputs_list = res.strip().split("\n")[2:]
-    if canonical_flag == "--canonical":
-        items = ["conda-forge/", "::"]
-        for output in outputs_list:
-            assert all(i in output for i in items)
-            assert " " not in output
+        if canonical_flag == "--canonical":
+            items = ["conda-forge/", "::"]
+            for output in outputs_list:
+                assert all(i in output for i in items)
+                assert " " not in output
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

@@ -19,7 +19,7 @@ Mamba (executable)
 has been entirely replaced by the dynamically linked version of ``micromamba``,
 a statically-linked ELF based on ``libmamba``.
 
-Hence ``mamba``` now has the exact same user interface and experience as ``micromamba``.
+Hence ``mamba`` now has the exact same user interface and experience as ``micromamba``.
 
 .. warning::
 
@@ -40,6 +40,9 @@ Breaking changes include:
 - A new config ``order_solver_request`` (default true) can be used to order the dependencies passed
   to the solver, getting order independent solutions.
 - Support for complex match specs such as ``pkg[md5=0000000000000]`` and ``pkg[build='^\d*$']``.
+- Dropped support for leading and internal globs in version strings (via
+  redesigned ``VersionSpec``, which no longer handles version strings as a
+  regex). Only trailing globs continue to be supported.
 
 .. TODO OCI and mirrors
 
@@ -86,6 +89,9 @@ Changes include:
   - The redesign of ``MatchSpec``.
     The module also includes a platform enumeration, an implementation of ordered ``Version``,
     and a ``VersionSpec`` to match versions.
+    **Breaking change:** ``VersionSpec`` dropped support for leading and
+    internal globs in version strings because they are no longer handled as a
+    regex. Only trailing globs continue to be supported.
   - ``PackageInfo`` has been moved to this submodule.
     Some attributes have been given a more explicit name ``fn`` > ``filename``,
     ``url`` > ``package_url``.
@@ -127,6 +133,10 @@ The main changes are:
   - A refactoring of a purely functional ``Channel`` class,
   - Implementation of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
   - A refactored and complete implementation of ``MatchSpec`` using the components above.
+  - **Breaking change:** ``VersionSpec`` dropped support for leading and
+    internal globs in version strings because they are no longer handled as a
+    regex. Only trailing globs continue to be supported. This affects version
+    strings in both the command-line interface and recipe requirements.
 
 - A cleanup of ``ChannelContext`` to be a light proxy and parameter holder wrapping the
   ``specs::Channel``.

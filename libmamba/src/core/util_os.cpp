@@ -133,10 +133,14 @@ namespace mamba
 #else
         fs::u8path libmamba_path;
         Dl_info dl_info;
-        if (dladdr(reinterpret_cast<void*>(get_libmamba_path), &dl_info))
+        if (!dladdr(reinterpret_cast<void*>(get_libmamba_path), &dl_info))
         {
-            libmamba_path = dl_info.dli_fname;
+            throw mamba_error(
+                "Could not find libmamba's path. (dladdr failed)",
+                mamba_error_code::internal_failure
+            );
         }
+        libmamba_path = dl_info.dli_fname;
         return libmamba_path;
 #endif
     }

@@ -3,7 +3,8 @@
 
 #ifndef _WIN32
 #include <clocale>
-
+// To find the path of `libmamba`'s library.
+#include <dlfcn.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
 #include <unistd.h>
@@ -87,6 +88,29 @@ namespace mamba
         return fs::read_symlink("/proc/self/exe");
 #endif
 #endif
+    }
+
+    fs::u8path get_libmamba_path()
+    {
+        fs::u8path libmamba_library_path;
+#if defined(__linux__) || __APPLE__ || __MACH__
+        Dl_info dl_info;
+        if (dladdr(reinterpret_cast<void*>(get_self_exe_path), &dl_info))
+        {
+            libmamba_library_path = dl_info.dli_fname;
+        }
+#else
+        HMODULE hModule = NULL;
+        CHAR path[MAX_PATH];
+        GetModuleHandleEx(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            (LPCTSTR) get_self_exe_path,
+            &hModule
+        );
+        GetModuleFileName(hModule, path, MAX_PATH);
+        libmamba_library_path = fs::u8path(std::string(path));
+#endif
+        return libmamba_library_path;
     }
 
     bool is_admin()

@@ -14,7 +14,7 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/loop_control.hpp"

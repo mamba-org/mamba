@@ -741,11 +741,11 @@ namespace mamba
             }
 
             // Find the location of libmamba
-            fs::u8path libmamba_library_path = get_libmamba_path();
+            const fs::u8path libmamba_path = get_libmamba_path();
 
             // Find the environment directory of the executable
-            fs::u8path env_prefix = fs::weakly_canonical(
-                libmamba_library_path.parent_path().parent_path()
+            const fs::u8path env_prefix = fs::weakly_canonical(
+                libmamba_path.parent_path().parent_path()
             );
 
             if (is_root_prefix(env_prefix))
@@ -756,15 +756,15 @@ namespace mamba
             }
 
             // From the environment directory, we might infer the root prefix.
-            fs::u8path supposed_root_prefix = fs::weakly_canonical(
+            const fs::u8path inferred_root_prefix = fs::weakly_canonical(
                 env_prefix.parent_path().parent_path()
             );
 
-            if (is_root_prefix(supposed_root_prefix))
+            if (is_root_prefix(inferred_root_prefix))
             {
                 LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
-                          << supposed_root_prefix;
-                return supposed_root_prefix;
+                          << inferred_root_prefix;
+                return inferred_root_prefix;
             }
 
 #ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE

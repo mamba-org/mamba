@@ -86,7 +86,7 @@ namespace mamba::download
                 {
                     // Use the CA certificates from `conda-forge::ca-certificates` installed in the
                     // root prefix or the system CA certificates if the certificate is not present.
-                    fs::u8path libmamba_library_path;
+                    fs::u8path libmamba_path;
 
                     fs::u8path root_prefix = detail::get_root_prefix();
                     fs::u8path env_prefix_conda_cert = root_prefix / "ssl" / "cacert.pem";

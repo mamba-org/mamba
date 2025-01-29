@@ -92,12 +92,12 @@ namespace mamba
 
     fs::u8path get_libmamba_path()
     {
-        fs::u8path libmamba_library_path;
+        fs::u8path libmamba_path;
 #if defined(__linux__) || __APPLE__ || __MACH__
         Dl_info dl_info;
         if (dladdr(reinterpret_cast<void*>(get_self_exe_path), &dl_info))
         {
-            libmamba_library_path = dl_info.dli_fname;
+            libmamba_path = dl_info.dli_fname;
         }
 #else
         HMODULE hModule = NULL;
@@ -108,9 +108,9 @@ namespace mamba
             &hModule
         );
         GetModuleFileName(hModule, path, MAX_PATH);
-        libmamba_library_path = fs::u8path(std::string(path));
+        libmamba_path = fs::u8path(std::string(path));
 #endif
-        return libmamba_library_path;
+        return libmamba_path;
     }
 
     bool is_admin()

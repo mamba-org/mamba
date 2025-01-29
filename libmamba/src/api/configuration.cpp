@@ -629,6 +629,14 @@ namespace mamba
             }
         }
 
+        bool is_root_prefix(const fs::u8path& prefix)
+        {
+            // TODO: consider the conjunction (i.e. &&-chaining) of the following conditions
+            // instead.
+            return fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
+                   || fs::exists(prefix / "envs");
+        }
+
         auto get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path)
             -> expected_t<fs::u8path>
         {
@@ -653,9 +661,7 @@ namespace mamba
                 return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
             }
 
-            if (!fs::exists(prefix / "pkgs")           //
-                && !fs::exists(prefix / "conda-meta")  //
-                && !fs::exists(prefix / "envs"))
+            if (!is_root_prefix(prefix))
             {
                 return make_unexpected(
                     fmt::format(
@@ -740,23 +746,18 @@ namespace mamba
             // Find the environment directory of the executable
             fs::u8path env_prefix = fs::weakly_canonical(exe_path.parent_path().parent_path());
 
-            // If the `envs` directory is found in the parent directory of the executable directory,
-            // then the root prefix is the parent directory of the executable directory.
-            auto is_root_prefix = fs::exists(env_prefix / "envs");
-
-            if (is_root_prefix)
+            if (is_root_prefix(env_prefix))
             {
                 LOG_TRACE << "Using root prefix inferred from executable location: " << env_prefix;
                 return env_prefix;
             }
 
+            // From the environment directory, we might infer the root prefix.
             fs::u8path supposed_root_prefix = fs::weakly_canonical(
                 env_prefix.parent_path().parent_path()
             );
 
-            is_root_prefix = fs::exists(supposed_root_prefix / "envs");
-
-            if (is_root_prefix)
+            if (is_root_prefix(supposed_root_prefix))
             {
                 LOG_TRACE << "Using root prefix inferred from executable location: "
                           << supposed_root_prefix;

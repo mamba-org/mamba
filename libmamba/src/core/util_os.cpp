@@ -93,22 +93,22 @@ namespace mamba
     fs::u8path get_libmamba_path()
     {
         fs::u8path libmamba_path;
-#if defined(__linux__) || __APPLE__ || __MACH__
-        Dl_info dl_info;
-        if (dladdr(reinterpret_cast<void*>(get_self_exe_path), &dl_info))
-        {
-            libmamba_path = dl_info.dli_fname;
-        }
-#else
+#ifdef _WIN32
         HMODULE hModule = NULL;
         CHAR path[MAX_PATH];
         GetModuleHandleEx(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            (LPCTSTR) get_self_exe_path,
+            (LPCTSTR) get_libmamba_path,
             &hModule
         );
         GetModuleFileName(hModule, path, MAX_PATH);
         libmamba_path = fs::u8path(std::string(path));
+#else
+        Dl_info dl_info;
+        if (dladdr(reinterpret_cast<void*>(get_libmamba_path), &dl_info))
+        {
+            libmamba_path = dl_info.dli_fname;
+        }
 #endif
         return libmamba_path;
     }

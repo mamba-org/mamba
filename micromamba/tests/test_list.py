@@ -118,9 +118,10 @@ def test_list_canonical(
 
     outputs_list = res.strip().split("\n")[2:]
     if canonical_flag == "--canonical":
-        items = ["conda-forge", "/", " "]
+        items = ["conda-forge/", "::"]
         for output in outputs_list:
-            assert all(i not in output for i in items)
+            assert all(i in output for i in items)
+            assert " " not in output
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

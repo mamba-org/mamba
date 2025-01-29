@@ -22,17 +22,17 @@ namespace mamba
     {
         struct list_options
         {
-            bool full_name;
-            bool no_pip;
-            bool reverse;
-            bool explicit_;
-            bool md5;
-            bool canonical;
+            bool full_name = false;
+            bool no_pip = false;
+            bool reverse = false;
+            bool explicit_ = false;
+            bool md5 = false;
+            bool canonical = false;
         };
 
         struct formatted_pkg
         {
-            std::string name, version, build, channel, url, md5, build_string;
+            std::string name, version, build, channel, url, md5, build_string, platform;
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -169,6 +169,7 @@ namespace mamba
                         obj["channel"] = get_formatted_channel(pkg_info, channels.front());
                         obj["base_url"] = get_base_url(pkg_info, channels.front());
                         obj["url"] = pkg_info.package_url;
+                        obj["md5"] = pkg_info.md5;
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
                         obj["dist_name"] = pkg_info.str();
@@ -203,6 +204,7 @@ namespace mamba
                         formatted_pkgs.url = package.second.package_url;
                         formatted_pkgs.md5 = package.second.md5;
                         formatted_pkgs.build_string = package.second.build_string;
+                        formatted_pkgs.platform = package.second.platform;
                         packages.push_back(formatted_pkgs);
                     }
                 }
@@ -212,15 +214,13 @@ namespace mamba
                 std::sort(packages.begin(), packages.end(), comparator);
 
                 // format and print output
-                if (options.canonical)
+                if (options.explicit_)
                 {
-                    for (auto p : packages)
+                    if (options.canonical)
                     {
-                        std::cout << p.name << "-" << p.version << "-" << p.build_string << std::endl;
+                        std::cout << "Warning: Option --canonical ignored because of --explicit \n"
+                                  << std::endl;
                     }
-                }
-                else if (options.explicit_)
-                {
                     for (auto p : packages)
                     {
                         if (options.md5)
@@ -231,6 +231,14 @@ namespace mamba
                         {
                             std::cout << p.url << std::endl;
                         }
+                    }
+                }
+                else if (options.canonical)
+                {
+                    for (auto p : packages)
+                    {
+                        std::cout << p.channel << "/" << p.platform << "::" << p.name << "-"
+                                  << p.version << "-" << p.build_string << std::endl;
                     }
                 }
                 else

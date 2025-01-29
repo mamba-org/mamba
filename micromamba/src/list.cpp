@@ -50,9 +50,11 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     );
     subcom->add_flag("--md5", md5.get_cli_config<bool>(), md5.description());
 
-    auto& canonical = config.insert(Configurable("canonical", false)
-                                        .group("cli")
-                                        .description("Output canonical names of packages only."));
+    auto& canonical = config.insert(
+        Configurable("canonical", false)
+            .group("cli")
+            .description("Output canonical names of packages only. Ignored if --explicit.")
+    );
     subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());
 }
 

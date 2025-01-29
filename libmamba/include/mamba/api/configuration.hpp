@@ -438,6 +438,8 @@ namespace mamba
         Configurable& insert(Configurable configurable, bool allow_redefinition = false);
 
         void reset_configurables();
+        void enable_conda_info_compat();
+        bool is_conda_info_compat();
 
     protected:
 
@@ -472,6 +474,8 @@ namespace mamba
         std::map<fs::u8path, YAML::Node> m_rc_yaml_nodes_cache;
 
         bool m_load_lock = false;
+
+        bool m_conda_info_compat = false;
 
         std::map<std::string, Configurable> m_config;
         std::vector<std::string> m_config_order, m_loading_sequence;

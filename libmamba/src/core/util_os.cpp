@@ -95,11 +95,18 @@ namespace mamba
     {
 #ifdef _WIN32
         HMODULE hModule = NULL;
-        GetModuleHandleExW(
+        BOOL ret_code = GetModuleHandleExW(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             (LPCWSTR) get_libmamba_path,
             &hModule
         );
+        if (!ret_code)
+        {
+            throw mamba::mamba_error(
+                "Could find libmamba's module handle. (GetModuleHandleExW failed)",
+                mamba_error_code::internal_failure
+            );
+        }
         std::wstring buffer(MAX_PATH, '\0');
         DWORD new_size = MAX_PATH;
         DWORD size = 0;
@@ -109,7 +116,7 @@ namespace mamba
             if (size == 0)
             {
                 throw mamba::mamba_error(
-                    "Could find location of the libmamba library!",
+                    "Could find the filename of the libmamba's module handle. (GetModuleFileNameW failed)",
                     mamba_error_code::internal_failure
                 );
             }

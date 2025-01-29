@@ -33,6 +33,7 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
@@ -96,26 +97,31 @@ namespace mamba
         HMODULE hModule = NULL;
         GetModuleHandleExW(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            (LPCTSTR) get_libmamba_path,
+            (LPCWSTR) get_libmamba_path,
             &hModule
         );
         std::wstring buffer(MAX_PATH, '\0');
-        DWORD size = GetModuleFileNameW(hModule, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
-        if (size == 0)
+        DWORD new_size = MAX_PATH;
+        DWORD size = 0;
+        while (true)
         {
-            throw std::runtime_error("Could find location of the libmamba library!");
-        }
-        else if (size == buffer.size())
-        {
-            DWORD new_size = size;
-            do
+            size = GetModuleFileNameW(hModule, buffer.data(), static_cast<DWORD>(buffer.size()));
+            if (size == 0)
             {
-                new_size *= 2;
-                buffer.reserve(new_size);
-                size = GetModuleFileNameW(hModule, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
-            } while (new_size == size);
+                throw mamba::mamba_error(
+                    "Could find location of the libmamba library!",
+                    mamba_error_code::internal_failure
+                );
+            }
+            if (size < new_size)
+            {
+                break;
+            }
+
+            new_size *= 2;
+            buffer.reserve(new_size);
         }
-        buffer.resize(buffer.find(L'\0'));
+        buffer.resize(size);
         return fs::absolute(buffer);
 #else
         fs::u8path libmamba_path;

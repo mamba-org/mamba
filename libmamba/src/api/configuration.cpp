@@ -740,15 +740,18 @@ namespace mamba
                 return root_prefix;
             }
 
-            // Find the location of this executable
-            fs::u8path exe_path = get_self_exe_path();
+            // Find the location of libmamba
+            fs::u8path libmamba_library_path = get_libmamba_path();
 
             // Find the environment directory of the executable
-            fs::u8path env_prefix = fs::weakly_canonical(exe_path.parent_path().parent_path());
+            fs::u8path env_prefix = fs::weakly_canonical(
+                libmamba_library_path.parent_path().parent_path()
+            );
 
             if (is_root_prefix(env_prefix))
             {
-                LOG_TRACE << "Using root prefix inferred from executable location: " << env_prefix;
+                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
+                          << env_prefix;
                 return env_prefix;
             }
 
@@ -759,7 +762,7 @@ namespace mamba
 
             if (is_root_prefix(supposed_root_prefix))
             {
-                LOG_TRACE << "Using root prefix inferred from executable location: "
+                LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
                           << supposed_root_prefix;
                 return supposed_root_prefix;
             }

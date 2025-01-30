@@ -635,7 +635,7 @@ namespace mamba
             if (mamba_bin_path.empty())
             {
                 return make_unexpected(
-                    "`mamba` binary not found.\nPlease set `MAMBA_ROOT_PREFIX`.",
+                    "The root prefix of your installation cannot be found.\nPlease set `MAMBA_ROOT_PREFIX`.",
                     mamba_error_code::incorrect_usage
                 );
             }
@@ -653,9 +653,9 @@ namespace mamba
                 return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
             }
 
-            if (!fs::exists(prefix / "pkgs")           //
-                && !fs::exists(prefix / "conda-meta")  //
-                && !fs::exists(prefix / "envs"))
+            // TODO: consider the conjunction (i.e. &&-chaining) of the following conditions.
+            auto qualifies_as_root_prefix = (fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta") || fs::exists(prefix / "envs"));
+            if (!qualifies_as_root_prefix)
             {
                 return make_unexpected(
                     fmt::format(
@@ -713,51 +713,79 @@ namespace mamba
             return { fs::weakly_canonical(std::move(prefix)) };
         }
 
-        auto get_default_root_prefix(fs::u8path& prefix) -> void
-        {
-            if (util::get_env("MAMBA_DEFAULT_ROOT_PREFIX"))
-            {
-                prefix = util::get_env("MAMBA_DEFAULT_ROOT_PREFIX").value();
-                LOG_WARNING << unindent(R"(
-                                    'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
-                                    Consider using 'MAMBA_ROOT_PREFIX' instead)");
-            }
-            else
-            {
-#ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
-                // mamba case
-                // set the root prefix as the mamba installation path
-                get_root_prefix_from_mamba_bin(util::which("mamba"))
-                    .transform([&](fs::u8path&& p) { prefix = std::move(p); })
-                    .or_else([](mamba_error&& error) { throw std::move(error); });
-#else
-                // micromamba case
-
-                // In 1.0, only micromamba was using this location.
-                const fs::u8path default_root_prefix_v1 = fs::u8path(util::user_home_dir())
-                                                          / "micromamba";
-
-                // In 2.0, we change the default location.
-                // We unconditionally name the subfolder "mamba" for compatibility between ``mamba``
-                // and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
-                const fs::u8path default_root_prefix_v2 = fs::u8path(util::user_data_dir()) / "mamba";
-
-                validate_existing_root_prefix(default_root_prefix_v1)
-                    .or_else([&default_root_prefix_v2](const auto& /* error */)
-                             { return validate_root_prefix(default_root_prefix_v2); })
-                    .transform([&](fs::u8path&& p) { prefix = std::move(p); })
-                    .or_else([](mamba_error&& error) { throw std::move(error); });
-#endif
-            }
-        }
-
         auto get_root_prefix() -> fs::u8path
         {
             fs::u8path root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
-            if (root_prefix.empty())
+
+            if (!root_prefix.empty())
             {
-                get_default_root_prefix(root_prefix);
+                LOG_TRACE << "Using root prefix set in `MAMBA_ROOT_PREFIX`: " << root_prefix;
+                return root_prefix;
             }
+
+            root_prefix = util::get_env("MAMBA_DEFAULT_ROOT_PREFIX").value_or("");
+
+            if (!root_prefix.empty())
+            {
+                LOG_WARNING << unindent(R"(
+                                'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
+                                Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                LOG_TRACE << "Using root prefix set in `MAMBA_DEFAULT_ROOT_PREFIX`: " << root_prefix;
+                return root_prefix;
+            }
+
+            // Find the location of libmamba
+            const fs::u8path libmamba_path = get_libmamba_path();
+
+            // Find the environment directory of the executable
+            const fs::u8path env_prefix = fs::weakly_canonical(
+                libmamba_path.parent_path().parent_path()
+            );
+
+            if (auto maybe_prefix = validate_existing_root_prefix(env_prefix);
+                maybe_prefix.has_value())
+            {
+                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
+            }
+
+            // From the environment directory, we might infer the root prefix.
+            const fs::u8path inferred_root_prefix = fs::weakly_canonical(
+                env_prefix.parent_path().parent_path()
+            );
+
+            if (auto maybe_prefix = validate_existing_root_prefix(env_prefix);
+                maybe_prefix.has_value())
+            {
+                LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
+            }
+
+#ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
+            // mamba case
+            // set the root prefix as the mamba installation path
+            get_root_prefix_from_mamba_bin(util::which("mamba"))
+                .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
+                .or_else([](mamba_error&& error) { throw std::move(error); });
+#else
+            // micromamba case
+            // In 1.0, only micromamba was using this location.
+            const fs::u8path default_root_prefix_v1 = fs::u8path(util::user_home_dir())
+                                                      / "micromamba";
+
+            // In 2.0, we change the default location.
+            // We unconditionally name the subfolder "mamba" for compatibility between ``mamba``
+            // and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
+            const fs::u8path default_root_prefix_v2 = fs::u8path(util::user_data_dir()) / "mamba";
+
+            validate_existing_root_prefix(default_root_prefix_v1)
+                .or_else([&default_root_prefix_v2](const auto& /* error */)
+                         { return validate_root_prefix(default_root_prefix_v2); })
+                .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
+                .or_else([](mamba_error&& error) { throw std::move(error); });
+#endif
             return root_prefix;
         }
 

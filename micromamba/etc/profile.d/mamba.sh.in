@@ -1,4 +1,10 @@
-export MAMBA_ROOT_PREFIX="@CMAKE_INSTALL_PREFIX@"
+if [ -z "${MAMBA_ROOT_PREFIX}" ]; then
+    echo "WARNING: MAMBA_ROOT_PREFIX is not set."
+    echo "WARNING: Please set `MAMBA_ROOT_PREFIX` to the root of your installation."
+    echo "WARNING: For now continuing with `MAMBA_ROOT_PREFIX` set to `@CMAKE_INSTALL_PREFIX@`."
+    export MAMBA_ROOT_PREFIX="@CMAKE_INSTALL_PREFIX@"
+fi
+
 __mamba_setup="$("@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/mamba" shell hook --shell posix 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__mamba_setup"

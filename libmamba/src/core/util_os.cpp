@@ -126,7 +126,7 @@ namespace mamba
             }
 
             new_size *= 2;
-            buffer.reserve(new_size);
+            buffer.resize(new_size);
         }
         buffer.resize(size);
         return fs::absolute(buffer);

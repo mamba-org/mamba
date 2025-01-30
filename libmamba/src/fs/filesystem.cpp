@@ -36,6 +36,16 @@ namespace mamba::fs
         path = std::move(native_string);
         return path;
     }
+
+//     u8path use_common_separator(u8path path)
+//     {
+//         auto native_string = path.native();
+//         static constexpr wchar_t common_sep = L'/';
+//         static constexpr wchar_t win_sep = L'\\';
+//         std::replace(native_string.begin(), native_string.end(), other_sep, platform_sep);
+//         path = std::move(native_string);
+//         return path;
+//     }
 #else
     // noop on non-Windows platforms
     std::filesystem::path normalized_separators(std::filesystem::path path)
@@ -45,9 +55,16 @@ namespace mamba::fs
 #endif
 
 #if __cplusplus == 201703L
-    std::string to_utf8(const std::filesystem::path& path)
+    std::string to_utf8(const std::filesystem::path& path, bool use_win_sep)
     {
-        return normalized_separators(path).u8string();
+        if (use_win_sep)
+        {
+            return normalized_separators(path).u8string();
+        }
+        else
+        {
+            return path.u8string();
+        }
     }
 
     std::filesystem::path from_utf8(std::string_view u8string)

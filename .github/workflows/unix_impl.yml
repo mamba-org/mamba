@@ -167,7 +167,7 @@ jobs:
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           unset CONDARC  # Interferes with tests
           # Only rerun flaky tests on the `main` branch
-          python -m pytest micromamba/tests/ \
+          python -m pytest micromamba/tests/test_create.py::test_create_with_norm_path \
               ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 

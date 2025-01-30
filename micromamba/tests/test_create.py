@@ -1438,6 +1438,15 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_with_norm_path(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+
+    res = helpers.create("-n", env_name, "conda-smithy")
+    print("RES: ", res)
+    assert False
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_unicode(tmp_home, tmp_root_prefix):
     env_name = "320 áγђß家固êôōçñ한"
     env_prefix = tmp_root_prefix / "envs" / env_name

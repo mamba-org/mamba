@@ -107,7 +107,10 @@ jobs:
           python -m pip install --no-deps --no-build-isolation ./libmambapy
       - name: Run libmamba Python bindings tests
         run: |
-          python -m pytest libmambapy/tests/ --reruns 3 ${{ runner.debug == 'true' && '-v' || '--exitfirst' }}
+          # Only rerun flaky tests on the `main` branch
+          python -m pytest libmambapy/tests/ \
+              ${{ runner.debug == 'true' && '-v' || '--exitfirst' }} \
+              ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   mamba_integration_tests_unix:
     name: mamba integration tests

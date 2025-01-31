@@ -10,8 +10,6 @@
 
 #include "common_options.hpp"
 
-using namespace mamba;
-
 void
 init_info_parser(CLI::App* subcom, mamba::Configuration& config)
 {
@@ -26,7 +24,7 @@ set_info_command(CLI::App* subcom, mamba::Configuration& config)
     static bool print_licenses;
 
     auto& base = config.insert(
-        Configurable("base", false).group("cli").description("Display base environment path.")
+        mamba::Configurable("base", false).group("cli").description("Display base environment path.")
     );
     subcom->add_flag("--base", base.get_cli_config<bool>(), base.description());
 

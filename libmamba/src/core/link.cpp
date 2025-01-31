@@ -590,6 +590,9 @@ namespace mamba
 
         if (noarch_python)
         {
+            std::cout << "before get_python_noarch_target_path: subtarget: " << subtarget
+                      << " m_context->site_packages_path: " << m_context->site_packages_path
+                      << std::endl;
             rel_dst = get_python_noarch_target_path(subtarget, m_context->site_packages_path);
             std::cout << "1, no_arch_python: rel_dst: " << rel_dst << std::endl;
             dst = m_context->target_prefix / rel_dst;

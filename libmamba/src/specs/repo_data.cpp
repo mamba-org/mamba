@@ -22,6 +22,7 @@ namespace mamba::specs
         j["subdir"] = p.subdir;
         j["md5"] = p.md5;
         j["sha256"] = p.sha256;
+        j["python_site_packages_path"] = p.python_site_packages_path;
         j["legacy_bz2_md5"] = p.legacy_bz2_md5;
         j["legacy_bz2_size"] = p.legacy_bz2_size;
         j["size"] = p.size;
@@ -50,6 +51,7 @@ namespace mamba::specs
         deserialize_maybe_missing(j, "subdir", p.subdir);
         deserialize_maybe_missing(j, "md5", p.md5);
         deserialize_maybe_missing(j, "sha256", p.sha256);
+        deserialize_maybe_missing(j, "python_site_packages_path", p.python_site_packages_path);
         deserialize_maybe_missing(j, "legacy_bz2_md5", p.legacy_bz2_md5);
         deserialize_maybe_missing(j, "legacy_bz2_size", p.legacy_bz2_size);
         deserialize_maybe_missing(j, "size", p.size);

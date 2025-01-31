@@ -77,7 +77,7 @@ namespace mamba::fs
     std::filesystem::path normalized_separators(std::filesystem::path path);
 
     // Returns a UTF-8 string given a standard path.
-    std::string to_utf8(const std::filesystem::path& path);
+    std::string to_utf8(const std::filesystem::path& path, bool use_win_sep);
 
     // Returns standard path given a UTF-8 string.
     std::filesystem::path from_utf8(std::string_view u8string);
@@ -303,7 +303,7 @@ namespace mamba::fs
         // Returns a UTF-8 string.
         std::string string() const
         {
-            return to_utf8(m_path);
+            return to_utf8(m_path, true);
         }
 
         // Returns a default encoded string.
@@ -333,7 +333,8 @@ namespace mamba::fs
         // Returns a UTF-8 string using the ``/`` on all systems.
         std::string generic_string() const
         {
-            return to_utf8(m_path.generic_string());
+            // return to_utf8(m_path.generic_string(), false);
+            return m_path.generic_string();
         }
 
         // Implicit conversion to standard path.
@@ -621,6 +622,10 @@ namespace mamba::fs
 
         std::filesystem::path m_path;
     };
+
+    // Have '/' as a separator on all platforms
+    // cf. https://github.com/mamba-org/mamba/issues/3781
+    //     u8path use_common_separator(u8path path);
 
     class directory_entry : private std::filesystem::directory_entry
     {

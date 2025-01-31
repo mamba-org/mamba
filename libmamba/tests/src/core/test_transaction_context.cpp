@@ -8,9 +8,10 @@
 
 #include "mamba/core/transaction_context.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
-
     namespace
     {
         TEST_CASE("compute_short_python_version")
@@ -22,8 +23,8 @@ namespace mamba
 
         TEST_CASE("get_python_short_path")
         {
-            auto path_empty_ver = get_python_short_path("");
-            auto path = get_python_short_path("3.5.0");
+            auto path_empty_ver = get_python_short_path("").string();
+            auto path = get_python_short_path("3.5.0").string();
 #ifdef _WIN32
             REQUIRE(path_empty_ver == "python.exe");
             REQUIRE(path == "python.exe");
@@ -35,9 +36,9 @@ namespace mamba
 
         TEST_CASE("get_python_site_packages_short_path")
         {
-            REQUIRE(get_python_site_packages_short_path("") == "");
+            REQUIRE(get_python_site_packages_short_path("").string() == "");
 
-            auto path = get_python_site_packages_short_path("3.5.0");
+            auto path = get_python_site_packages_short_path("3.5.0").string();
 #ifdef _WIN32
             REQUIRE(path == "Lib/site-packages");
 #else
@@ -47,7 +48,7 @@ namespace mamba
 
         TEST_CASE("get_bin_directory_short_path")
         {
-            auto path = get_bin_directory_short_path();
+            auto path = get_bin_directory_short_path().string();
 #ifdef _WIN32
             REQUIRE(path == "Scripts");
 #else
@@ -57,19 +58,23 @@ namespace mamba
 
         TEST_CASE("get_python_noarch_target_path")
         {
-            REQUIRE(get_python_noarch_target_path("lib/site-packages", "bla") == "lib/site-packages");
+            REQUIRE(
+                get_python_noarch_target_path("lib/site-packages", "bla").string() == "lib/site-packages"
+            );
             REQUIRE(
                 get_python_noarch_target_path(
                     "site-packages/some_random_package",
                     "target_site_packages_short_path"
                 )
+                    .string()
                 == "target_site_packages_short_path/some_random_package"
             );
 
             auto path = get_python_noarch_target_path(
-                "python-scripts/some_random_file",
-                "target_site_packages_short_path"
-            );
+                            "python-scripts/some_random_file",
+                            "target_site_packages_short_path"
+            )
+                            .string();
 #ifdef _WIN32
             REQUIRE(path == "Scripts/some_random_file");
 #else
@@ -77,5 +82,14 @@ namespace mamba
 #endif
         }
     }
+
+    //     namespace
+    //     {
+    //         TEST_CASE("LinkPackage::link_path")
+    //         {
+    //             auto& ctx = mambatests::context();
+    //             TransactionContext tc(ctx);
+    //         }
+    //     }
 
 }  // namespace mamba

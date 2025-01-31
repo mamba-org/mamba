@@ -31,20 +31,20 @@ namespace mamba
     void add_spdlog_logger_to_database(solver::libsolv::Database& db)
     {
         db.set_logger(
-            [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
+            [logger = spdlog::get("libsolv")](solver::LogLevel level, std::string_view msg)
             {
                 switch (level)
                 {
-                    case (solver::libsolv::LogLevel::Fatal):
+                    case (solver::LogLevel::Fatal):
                         logger->critical(msg);
                         break;
-                    case (solver::libsolv::LogLevel::Error):
+                    case (solver::LogLevel::Error):
                         logger->error(msg);
                         break;
-                    case (solver::libsolv::LogLevel::Warning):
+                    case (solver::LogLevel::Warning):
                         logger->warn(msg);
                         break;
-                    case (solver::libsolv::LogLevel::Debug):
+                    case (solver::LogLevel::Debug):
                         logger->debug(msg);
                         break;
                 }
@@ -56,18 +56,16 @@ namespace mamba
     load_subdir_in_database(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
-        const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
+        const auto expected_cache_origin = solver::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
             /* .etag= */ subdir.metadata().etag(),
             /* .mod= */ subdir.metadata().last_modified(),
         };
 
-        const auto add_pip = static_cast<solver::libsolv::PipAsPythonDependency>(
-            ctx.add_pip_as_python_dependency
+        const auto add_pip = static_cast<solver::PipAsPythonDependency>(ctx.add_pip_as_python_dependency
         );
-        const auto json_parser = ctx.experimental_repodata_parsing
-                                     ? solver::libsolv::RepodataParser::Mamba
-                                     : solver::libsolv::RepodataParser::Libsolv;
+        const auto json_parser = ctx.experimental_repodata_parsing ? solver::RepodataParser::Mamba
+                                                                   : solver::RepodataParser::Libsolv;
 
         // Solv files are too slow on Windows.
         if (!util::on_win)
@@ -93,7 +91,7 @@ namespace mamba
             .and_then(
                 [&](fs::u8path&& repodata_json)
                 {
-                    using PackageTypes = solver::libsolv::PackageTypes;
+                    using PackageTypes = solver::PackageTypes;
 
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
                     return db.add_repo_from_repodata_json(
@@ -103,8 +101,7 @@ namespace mamba
                         add_pip,
                         ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
                                              : PackageTypes::CondaOrElseTarBz2,
-                        static_cast<solver::libsolv::VerifyPackages>(ctx.validation_params.verify_artifacts
-                        ),
+                        static_cast<solver::VerifyPackages>(ctx.validation_params.verify_artifacts),
                         json_parser
                     );
                 }
@@ -146,11 +143,7 @@ namespace mamba
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
-        auto repo = db.add_repo_from_packages(
-            pkgs,
-            "installed",
-            solver::libsolv::PipAsPythonDependency::No
-        );
+        auto repo = db.add_repo_from_packages(pkgs, "installed", solver::PipAsPythonDependency::No);
         db.set_installed_repo(repo);
         return repo;
     }

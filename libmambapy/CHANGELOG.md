@@ -1,3 +1,15 @@
+# libmambapy 2.0.6.rc2 (January 31, 2025)
+
+Enhancements:
+
+- [all] Add md5 flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3773
+
+Bug fixes:
+
+- [all] Factor handling of `GetModuleFileNameW` by @jjerphan in https://github.com/mamba-org/mamba/pull/3785
+- [all] Adapt root prefix determination by @jjerphan in https://github.com/mamba-org/mamba/pull/3782
+- [all] Remove pip warning for `PIP_NO_PYTHON_VERSION_WARNING` by @Hind-M in https://github.com/mamba-org/mamba/pull/3770
+
 # libmambapy 2.0.6.rc1 (January 28, 2025)
 
 Enhancements:

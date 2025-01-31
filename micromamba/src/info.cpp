@@ -4,10 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/core/context.hpp"
 
 #include "common_options.hpp"
+
+using namespace mamba;
 
 void
 init_info_parser(CLI::App* subcom, mamba::Configuration& config)
@@ -21,6 +24,11 @@ set_info_command(CLI::App* subcom, mamba::Configuration& config)
 {
     init_info_parser(subcom, config);
     static bool print_licenses;
+
+    auto& base = config.insert(
+        Configurable("base", false).group("cli").description("Display base environment path.")
+    );
+    subcom->add_flag("--base", base.get_cli_config<bool>(), base.description());
 
     subcom->add_flag("--licenses", print_licenses, "Print licenses");
 

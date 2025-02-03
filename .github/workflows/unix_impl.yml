@@ -109,7 +109,7 @@ jobs:
         run: |
           # Only rerun flaky tests on the `main` branch
           python -m pytest libmambapy/tests/ \
-              ${{ runner.debug == 'true' && '-v' || '--exitfirst' }} \
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   mamba_integration_tests_unix:
@@ -165,8 +165,10 @@ jobs:
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           unset CONDARC  # Interferes with tests
+          # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ \
-            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
+              ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   verify_pkg_tests:
     name: mamba-content-trust tests

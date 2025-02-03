@@ -118,7 +118,7 @@ jobs:
         run: |
           # Only rerun flaky tests on the `main` branch
           python -m pytest libmambapy/tests/ \
-              ${{ runner.debug == 'true' && '-v' || '--exitfirst' }} \
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   mamba_integration_tests_win:
@@ -152,5 +152,7 @@ jobs:
           $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
-          python -m pytest micromamba/tests/ `
-            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}
+          # Only rerun flaky tests on the `main` branch
+          python -m pytest micromamba/tests/ \
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
+              ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

@@ -731,16 +731,9 @@ namespace mamba
                              : libmamba_path.parent_path().parent_path()
             );
 
-            if (auto maybe_prefix = validate_existing_root_prefix(libmamba_env_prefix);
-                maybe_prefix.has_value())
-            {
-                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
-                          << maybe_prefix.value();
-                return maybe_prefix.value();
-            }
-
-            // From the environment directory, we might infer the root prefix
-            // taking `$ROOT_PREFIX/envs/libmamba_env_prefix` as an assumption.
+            // If `libmamba` is installed in another environment than `base`, then the
+            // root prefix is likely the grand-parent directory (i.e.
+            // `$ROOT_PREFIX/envs/libmamba_env_prefix`).
             const fs::u8path inferred_root_prefix = fs::weakly_canonical(
                 libmamba_env_prefix.parent_path().parent_path()
             );
@@ -749,6 +742,15 @@ namespace mamba
                 maybe_prefix.has_value())
             {
                 LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
+            }
+
+            // Otherwise `libmamba` might be directly installed in the root prefix.
+            if (auto maybe_prefix = validate_existing_root_prefix(libmamba_env_prefix);
+                maybe_prefix.has_value())
+            {
+                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
                           << maybe_prefix.value();
                 return maybe_prefix.value();
             }

@@ -78,3 +78,27 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
     assert f"env location : {location}" in infos
     assert f"user config files : {tmp_home / '.mambarc'}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos
+
+
+@pytest.mark.parametrize("base_flag", ["", "--base"])
+@pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
+def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag):
+    os.environ["CONDA_PREFIX"] = str(tmp_root_prefix)
+
+    if prefix_selection == "prefix":
+        infos = helpers.info("-p", tmp_root_prefix, base_flag)
+    elif prefix_selection == "name":
+        infos = helpers.info("-n", "base", base_flag)
+    else:
+        infos = helpers.info()
+
+    items = ["libmamba version", "mamba version", "curl version", "libarchive version", "envs directories",
+        "package cache", "environment", "env location", "user config files", "populated config files", 
+        "user config files", "virtual packages", "channels", "base environment", "platform"]
+    if base_flag == "--base":
+        print(infos)
+        # assert all(f"{i} :" not in infos for i in items)
+        # assert os.path.exists(infos)
+    else:
+        assert all(i in infos for i in items)
+    

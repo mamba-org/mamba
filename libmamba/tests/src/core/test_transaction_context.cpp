@@ -8,8 +8,6 @@
 
 #include "mamba/core/transaction_context.hpp"
 
-#include "mambatests.hpp"
-
 namespace mamba
 {
     namespace
@@ -95,14 +93,4 @@ namespace mamba
 #endif
         }
     }
-
-    //     namespace
-    //     {
-    //         TEST_CASE("LinkPackage::link_path")
-    //         {
-    //             auto& ctx = mambatests::context();
-    //             TransactionContext tc(ctx);
-    //         }
-    //     }
-
 }  // namespace mamba

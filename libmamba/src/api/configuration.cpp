@@ -629,21 +629,6 @@ namespace mamba
             }
         }
 
-        auto get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path)
-            -> expected_t<fs::u8path>
-        {
-            if (mamba_bin_path.empty())
-            {
-                return make_unexpected(
-                    "The root prefix of your installation cannot be found.\nPlease set `MAMBA_ROOT_PREFIX`.",
-                    mamba_error_code::incorrect_usage
-                );
-            }
-            // In linux and osx, the install path would be install_prefix/bin/mamba
-            // In windows, install_prefix/Scripts/mamba.exe
-            return { fs::weakly_canonical(mamba_bin_path.parent_path().parent_path()) };
-        }
-
         auto validate_existing_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
         {
             auto prefix = fs::u8path(util::expand_home(candidate.string()));
@@ -737,25 +722,23 @@ namespace mamba
             // Find the location of libmamba
             const fs::u8path libmamba_path = get_libmamba_path();
 
-            // Find the environment directory of the executable
-            const fs::u8path env_prefix = fs::weakly_canonical(
-                libmamba_path.parent_path().parent_path()
+            // Find the supposed environment prefix of libmamba.
+            // `libmamba` is installed at:
+            //    - `${PREFIX}/lib/libmamba${SHLIB_EXT}`  on Unix
+            //    - `${PREFIX}/Library/bin/libmamba$.dll` on Windows
+            const fs::u8path libmamba_env_prefix = fs::weakly_canonical(
+                util::on_win ? libmamba_path.parent_path().parent_path().parent_path()
+                             : libmamba_path.parent_path().parent_path()
             );
 
-            if (auto maybe_prefix = validate_existing_root_prefix(env_prefix);
-                maybe_prefix.has_value())
-            {
-                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
-                          << maybe_prefix.value();
-                return maybe_prefix.value();
-            }
-
-            // From the environment directory, we might infer the root prefix.
+            // If `libmamba` is installed in another environment than `base`, then the
+            // root prefix is likely the grand-parent directory (i.e.
+            // `$ROOT_PREFIX/envs/libmamba_env_prefix`).
             const fs::u8path inferred_root_prefix = fs::weakly_canonical(
-                env_prefix.parent_path().parent_path()
+                libmamba_env_prefix.parent_path().parent_path()
             );
 
-            if (auto maybe_prefix = validate_existing_root_prefix(env_prefix);
+            if (auto maybe_prefix = validate_existing_root_prefix(inferred_root_prefix);
                 maybe_prefix.has_value())
             {
                 LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
@@ -763,12 +746,20 @@ namespace mamba
                 return maybe_prefix.value();
             }
 
+            // Otherwise `libmamba` might be directly installed in the root prefix.
+            if (auto maybe_prefix = validate_existing_root_prefix(libmamba_env_prefix);
+                maybe_prefix.has_value())
+            {
+                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
+            }
+
 #ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
-            // mamba case
-            // set the root prefix as the mamba installation path
-            get_root_prefix_from_mamba_bin(util::which("mamba"))
-                .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
-                .or_else([](mamba_error&& error) { throw std::move(error); });
+            // libmamba case: set the root prefix as libmamba's installation path as a last resort.
+            LOG_TRACE << "Using libmamba's installation path as the root prefix: "
+                      << libmamba_env_prefix;
+            return libmamba_env_prefix;
 #else
             // micromamba case
             // In 1.0, only micromamba was using this location.
@@ -785,6 +776,8 @@ namespace mamba
                          { return validate_root_prefix(default_root_prefix_v2); })
                 .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
                 .or_else([](mamba_error&& error) { throw std::move(error); });
+
+            LOG_TRACE << "Using default root prefix for micromamba: " << root_prefix;
 #endif
             return root_prefix;
         }

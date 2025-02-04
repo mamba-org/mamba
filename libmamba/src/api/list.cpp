@@ -219,11 +219,13 @@ namespace mamba
                 {
                     if (options.canonical)
                     {
-                        LOG_WARNING << "Option --canonical ignored because of --explicit \n";
+                        LOG_WARNING
+                            << "Option --canonical ignored because --explicit was also provided.";
                     }
                     if (options.export_)
                     {
-                        LOG_WARNING << "Option --export ignored because of --explicit \n";
+                        LOG_WARNING
+                            << "Option --export ignored because --explicit was also provided.";
                     }
                     for (auto p : packages)
                     {
@@ -241,7 +243,8 @@ namespace mamba
                 {
                     if (options.export_)
                     {
-                        LOG_WARNING << "Option --export ignored because of --explicit \n";
+                        LOG_WARNING
+                            << "Option --export ignored because --canonical was also provided.";
                     }
                     for (auto p : packages)
                     {

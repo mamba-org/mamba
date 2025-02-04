@@ -108,8 +108,8 @@ def test_list_subcommands(
         res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag, export_flag)
 
     outputs_list = res.strip().split("\n")[2:]
-    outputs_list = [i for i in outputs_list if not i.startswith("Warning")]
-    outputs_list = [i for i in outputs_list if i != ""]
+    outputs_list = [i for i in outputs_list if i != "" and not i.startswith("Warning")]
+    items = ["conda-forge/", "::"]
     if explicit_flag == "--explicit":
         for output in outputs_list:
             assert "/conda-forge/" in output
@@ -117,18 +117,15 @@ def test_list_subcommands(
                 assert "#" in output
             else:
                 assert "#" not in output
-    else:
-        if canonical_flag in ["-c", "--canonical"]:
-            items = ["conda-forge/", "::"]
-            for output in outputs_list:
-                assert all(i in output for i in items)
-                assert " " not in output
-        else:
-            if export_flag in ["-e", "--export"]:
-                items = ["conda-forge/", "::", " "]
-                for output in outputs_list:
-                    # assert all(i not in output for i in items)
-                    assert output.count("=") == 2
+    elif canonical_flag in ["-c", "--canonical"]:
+        for output in outputs_list:
+            assert all(i in output for i in items)
+            assert " " not in output
+    elif export_flag in ["-e", "--export"]:
+        items += [" "]
+        for output in outputs_list:
+            assert all(i not in output for i in items)
+            assert len(output.split("=")) == 3
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

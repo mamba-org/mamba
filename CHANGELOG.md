@@ -1,3 +1,21 @@
+# 2025.02.04
+
+Release: 2.0.6.rc3 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancement:
+
+- [all] add canonical flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3777
+
+Bug fixes:
+
+- [all] Use `libmamba`'s installation instead of `mamba`'s as a fallback by @jjerphan in https://github.com/mamba-org/mamba/pull/3792
+
+Maintenance:
+
+- [mamba] Warn about future removal of `etc/profile.d/mamba.sh` by @jjerphan in https://github.com/mamba-org/mamba/pull/3788
+- [all] Fix typo in Windows workflows by @jjerphan in https://github.com/mamba-org/mamba/pull/3793
+- [all] Rerun pytest tests on `main` in case of failures by @jjerphan in https://github.com/mamba-org/mamba/pull/3769
+
 # 2025.01.31
 
 Release: 2.0.6.rc2 (libmamba, mamba, micromamba, libmambapy)

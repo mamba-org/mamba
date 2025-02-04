@@ -52,12 +52,11 @@ namespace mamba
         TEST_CASE("from_utf8")
         {
             static constexpr auto some_path_str = u8"a/b/c";
-            std::filesystem::path some_path{ some_path_str };
 
 #if defined(_WIN32)
             REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::path(u8"a\\b\\c"));
 #else
-            REQUIRE(fs::from_utf8(some_path_str) == some_path);
+            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::path(u8"a/b/c"));
 #endif
         }
 

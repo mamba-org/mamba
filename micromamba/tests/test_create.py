@@ -1,3 +1,4 @@
+import json
 import os
 import platform
 import shutil
@@ -1440,10 +1441,30 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_norm_path(tmp_home, tmp_root_prefix):
     env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
 
-    res = helpers.create("-n", env_name, "conda-smithy")
-    print("RES: ", res)
-    assert False
+    res = helpers.create("-n", env_name, "conda-smithy", "--json")
+    assert res["success"]
+
+    conda_smithy = next((env_prefix / "conda-meta").glob("conda-smithy*.json")).read_text()
+    conda_smithy_data = json.loads(conda_smithy)
+    if platform.system() == "Windows":
+        assert all(
+            file_path.startswith(("Lib/site-packages", "Scripts"))
+            for file_path in conda_smithy_data["files"]
+        )
+        assert all(
+            py_path["_path"].startswith(("Lib/site-packages", "Scripts"))
+            for py_path in conda_smithy_data["paths_data"]["paths"]
+        )
+    else:
+        assert all(
+            file_path.startswith(("lib/python", "bin")) for file_path in conda_smithy_data["files"]
+        )
+        assert all(
+            py_path["_path"].startswith(("lib/python", "bin"))
+            for py_path in conda_smithy_data["paths_data"]["paths"]
+        )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

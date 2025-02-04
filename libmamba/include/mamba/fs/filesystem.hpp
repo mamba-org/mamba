@@ -622,10 +622,6 @@ namespace mamba::fs
         std::filesystem::path m_path;
     };
 
-    // Have '/' as a separator on all platforms
-    // cf. https://github.com/mamba-org/mamba/issues/3781
-    //     u8path use_common_separator(u8path path);
-
     class directory_entry : private std::filesystem::directory_entry
     {
     public:

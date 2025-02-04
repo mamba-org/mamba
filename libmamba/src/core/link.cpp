@@ -582,26 +582,17 @@ namespace mamba
     std::tuple<std::string, std::string>
     LinkPackage::link_path(const PathData& path_data, bool noarch_python)
     {
-        std::cout << "IN link_path" << std::endl;
-        std::cout << "path_data: " << path_data.path << " noarch_python: " << noarch_python
-                  << std::endl;
         std::string subtarget = path_data.path;
         LOG_TRACE << "linking '" << subtarget << "'";
         fs::u8path dst, rel_dst;
-
         if (noarch_python)
         {
-            std::cout << "before get_python_noarch_target_path: subtarget: " << subtarget
-                      << " m_context->site_packages_path: " << m_context->site_packages_path
-                      << std::endl;
             rel_dst = get_python_noarch_target_path(subtarget, m_context->site_packages_path);
-            std::cout << "1, no_arch_python: rel_dst: " << rel_dst.generic_string() << std::endl;
             dst = m_context->target_prefix / rel_dst;
         }
         else
         {
             rel_dst = subtarget;
-            std::cout << "2, rel_dst: " << rel_dst.generic_string() << std::endl;
             dst = m_context->target_prefix / rel_dst;
         }
 
@@ -617,7 +608,6 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            std::cout << "3, windows return rel_dst: " << rel_dst.generic_string() << std::endl;
             return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
 #endif
             fs::remove(dst);
@@ -710,8 +700,6 @@ namespace mamba
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
-                    std::cout << "4, windows return rel_dst: " << rel_dst.generic_string()
-                              << std::endl;
                     return std::make_tuple(
                         std::string(validation::sha256sum(dst)),
                         rel_dst.generic_string()
@@ -764,7 +752,6 @@ namespace mamba
                 codesign(dst, m_context->context().output_params.verbosity > 1);
             }
 #endif
-            std::cout << "5, return rel_dst: " << rel_dst.generic_string() << std::endl;
             return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
         }
 
@@ -817,7 +804,6 @@ namespace mamba
             fs::copy_symlink(src, dst);
             // we need to wait until all files are linked to compute the SHA256 sum!
             // otherwise the file that's pointed to might not be linked yet.
-            std::cout << "6, return rel_dst: " << rel_dst.generic_string() << std::endl;
             return std::make_tuple("", rel_dst.generic_string());
         }
         else
@@ -827,7 +813,6 @@ namespace mamba
                 + std::to_string(static_cast<int>(path_data.path_type))
             );
         }
-        std::cout << "7, return rel_dst: " << rel_dst.generic_string() << std::endl;
         return std::make_tuple(
             path_data.sha256.empty() ? std::string(validation::sha256sum(dst)) : path_data.sha256,
             rel_dst.generic_string()

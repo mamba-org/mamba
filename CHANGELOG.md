@@ -1,5 +1,63 @@
 # 2025.02.04
 
+Release: 2.0.6 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [all] Add reverse flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3705
+- [all] Add md5 flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3773
+- [all] add canonical flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3777
+
+Bug fixes:
+
+- [all] Correctly populate lists of `MatchSpec` in `MTransaction`'s history by @Hind-M in https://github.com/mamba-org/mamba/pull/3724
+- [all] Honour `CONDA_ENVS_PATH` again by @jjerphan in https://github.com/mamba-org/mamba/pull/3725
+- [all] Improve CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3700
+- [all] Support installation using explicit url by @Hind-M in https://github.com/mamba-org/mamba/pull/3710
+- [all] Improve display of environment activation message by @Hind-M in https://github.com/mamba-org/mamba/pull/3715
+- [all] Adapt warnings shown when several channels are used by @jjerphan in https://github.com/mamba-org/mamba/pull/3720
+- [all] Add a hint on cache corruption by @jjerphan in https://github.com/mamba-org/mamba/pull/3736
+- [all] Support more condarc paths by @SandrineP in https://github.com/mamba-org/mamba/pull/3695
+- [all] Always add `root_prefix/envs` in `envs_dirs` by @Hind-M in https://github.com/mamba-org/mamba/pull/3692
+- [mamba] Generate and install `etc/profile.d/mamba.sh` by @jjerphan in https://github.com/mamba-org/mamba/pull/3723
+- [mamba] Add `no-pip` flag to `list` command by @Hind-M in https://github.com/mamba-org/mamba/pull/3696
+- [mamba, micromamba] Options args enhancement by @Hind-M in https://github.com/mamba-org/mamba/pull/3722
+- [all] Support globs in `MatchSpec` build strings by @jjerphan in https://github.com/mamba-org/mamba/pull/3735
+- [all] Don't encode URLs for `mamba env export --explicit` by @maresb in https://github.com/mamba-org/mamba/pull/3745
+- [all] Handle `git+https` pip urls by @Hind-M in https://github.com/mamba-org/mamba/pull/3764
+- [all] Uncomment no more failing test by @Hind-M in https://github.com/mamba-org/mamba/pull/3767
+- [all] Use CA certificates from `conda-forge::ca-certificates` by @jjerphan in https://github.com/mamba-org/mamba/pull/3765
+- [all] Add explicit flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3760
+- [all] Fix dependency and `subdir` in repoquery `whoneeds` by @Hind-M in https://github.com/mamba-org/mamba/pull/3743
+- [all] Use `LOG_DEBUG` for CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3757
+- [all] Add missing thread and undefined sanitizers CMake options by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3753
+- [all] Factor handling of `GetModuleFileNameW` by @jjerphan in https://github.com/mamba-org/mamba/pull/3785
+- [all] Adapt root prefix determination by @jjerphan in https://github.com/mamba-org/mamba/pull/3782
+- [all] Remove pip warning for `PIP_NO_PYTHON_VERSION_WARNING` by @Hind-M in https://github.com/mamba-org/mamba/pull/3770
+- [all] Use `libmamba`'s installation instead of `mamba`'s as a fallback by @jjerphan in https://github.com/mamba-org/mamba/pull/3792
+- [mamba] Warn about future removal of `etc/profile.d/mamba.sh` by @jjerphan in https://github.com/mamba-org/mamba/pull/3788
+- [all] Fix typo in Windows workflows by @jjerphan in https://github.com/mamba-org/mamba/pull/3793
+- [all] Rerun pytest tests on `main` in case of failures by @jjerphan in https://github.com/mamba-org/mamba/pull/3769
+
+CI fixes and doc:
+
+- [all] Use a portable web request for Windows by @jjerphan in https://github.com/mamba-org/mamba/pull/3704
+- [all] Add prettier pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3663
+- [all] Document slight differences for environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3697
+- [all] Unique Release Tag by @Klaim in https://github.com/mamba-org/mamba/pull/3732
+- [all] Update Linux installation script for Nushell by @deephbz in https://github.com/mamba-org/mamba/pull/3721
+- [all] `update_changelog.py` now can also take input as cli parameters by @Klaim in https://github.com/mamba-org/mamba/pull/3731
+
+Maintenance:
+
+- [all] `list` refactoring by @SandrineP in https://github.com/mamba-org/mamba/pull/3768
+- [all] Correctly exclude json files in clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3749
+- [all] Fix build status badge by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3755
+- [all] Don't exclude Changelog files from typos-conda by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3748
+- [all] Update pre-commit hooks by by @mathbunnyru https://github.com/mamba-org/mamba/pull/3746
+
+# 2025.02.04
+
 Release: 2.0.6.rc3 (libmamba, mamba, micromamba, libmambapy)
 
 Enhancement:

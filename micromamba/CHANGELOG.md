@@ -1,3 +1,56 @@
+# micromamba 2.0.6 (February 04, 2025)
+
+Enhancements:
+
+- Add reverse flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3705
+- Add md5 flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3773
+- add canonical flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3777
+
+Bug fixes:
+
+- Correctly populate lists of `MatchSpec` in `MTransaction`'s history by @Hind-M in https://github.com/mamba-org/mamba/pull/3724
+- Honour `CONDA_ENVS_PATH` again by @jjerphan in https://github.com/mamba-org/mamba/pull/3725
+- Improve CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3700
+- Support installation using explicit url by @Hind-M in https://github.com/mamba-org/mamba/pull/3710
+- Improve display of environment activation message by @Hind-M in https://github.com/mamba-org/mamba/pull/3715
+- Adapt warnings shown when several channels are used by @jjerphan in https://github.com/mamba-org/mamba/pull/3720
+- Add a hint on cache corruption by @jjerphan in https://github.com/mamba-org/mamba/pull/3736
+- Support more condarc paths by @SandrineP in https://github.com/mamba-org/mamba/pull/3695
+- Always add `root_prefix/envs` in `envs_dirs` by @Hind-M in https://github.com/mamba-org/mamba/pull/3692
+- Options args enhancement by @Hind-M in https://github.com/mamba-org/mamba/pull/3722
+- Support globs in `MatchSpec` build strings by @jjerphan in https://github.com/mamba-org/mamba/pull/3735
+- Don't encode URLs for `mamba env export --explicit` by @maresb in https://github.com/mamba-org/mamba/pull/3745
+- Handle `git+https` pip urls by @Hind-M in https://github.com/mamba-org/mamba/pull/3764
+- Uncomment no more failing test by @Hind-M in https://github.com/mamba-org/mamba/pull/3767
+- Use CA certificates from `conda-forge::ca-certificates` by @jjerphan in https://github.com/mamba-org/mamba/pull/3765
+- Add explicit flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3760
+- Fix dependency and `subdir` in repoquery `whoneeds` by @Hind-M in https://github.com/mamba-org/mamba/pull/3743
+- Use `LOG_DEBUG` for CUDA version detection by @jjerphan in https://github.com/mamba-org/mamba/pull/3757
+- Add missing thread and undefined sanitizers CMake options by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3753
+- Factor handling of `GetModuleFileNameW` by @jjerphan in https://github.com/mamba-org/mamba/pull/3785
+- Adapt root prefix determination by @jjerphan in https://github.com/mamba-org/mamba/pull/3782
+- Remove pip warning for `PIP_NO_PYTHON_VERSION_WARNING` by @Hind-M in https://github.com/mamba-org/mamba/pull/3770
+- Use `libmamba`'s installation instead of `mamba`'s as a fallback by @jjerphan in https://github.com/mamba-org/mamba/pull/3792
+- Fix typo in Windows workflows by @jjerphan in https://github.com/mamba-org/mamba/pull/3793
+- Rerun pytest tests on `main` in case of failures by @jjerphan in https://github.com/mamba-org/mamba/pull/3769
+
+CI fixes and doc:
+
+- Use a portable web request for Windows by @jjerphan in https://github.com/mamba-org/mamba/pull/3704
+- Add prettier pre-commit hook by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3663
+- Document slight differences for environment export by @jjerphan in https://github.com/mamba-org/mamba/pull/3697
+- Unique Release Tag by @Klaim in https://github.com/mamba-org/mamba/pull/3732
+- Update Linux installation script for Nushell by @deephbz in https://github.com/mamba-org/mamba/pull/3721
+- `update_changelog.py` now can also take input as cli parameters by @Klaim in https://github.com/mamba-org/mamba/pull/3731
+
+Maintenance:
+
+- `list` refactoring by @SandrineP in https://github.com/mamba-org/mamba/pull/3768
+- Correctly exclude json files in clang-format by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3749
+- Fix build status badge by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3755
+- Don't exclude Changelog files from typos-conda by @mathbunnyru in https://github.com/mamba-org/mamba/pull/3748
+- Update pre-commit hooks by by @mathbunnyru https://github.com/mamba-org/mamba/pull/3746
+
 # micromamba 2.0.6.rc3 (February 04, 2025)
 
 Enhancement:

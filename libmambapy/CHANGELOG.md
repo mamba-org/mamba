@@ -1,3 +1,18 @@
+# libmambapy 2.0.6.rc3 (February 04, 2025)
+
+Enhancement:
+
+- add canonical flag to list command by @SandrineP in https://github.com/mamba-org/mamba/pull/3777
+
+Bug fixes:
+
+- Use `libmamba`'s installation instead of `mamba`'s as a fallback by @jjerphan in https://github.com/mamba-org/mamba/pull/3792
+
+Maintenance:
+
+- Fix typo in Windows workflows by @jjerphan in https://github.com/mamba-org/mamba/pull/3793
+- Rerun pytest tests on `main` in case of failures by @jjerphan in https://github.com/mamba-org/mamba/pull/3769
+
 # libmambapy 2.0.6.rc2 (January 31, 2025)
 
 Enhancements:

@@ -37,6 +37,44 @@ namespace mamba
             REQUIRE(y.u8string() == u8"日本語");
         }
 
+        TEST_CASE("to_utf8")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path{ some_path_str };
+
+#if defined(_WIN32)
+            REQUIRE(fs::to_utf8(some_path) == u8"a\\b\\c");
+#else
+            REQUIRE(fs::to_utf8(some_path) == some_path_str);
+#endif
+        }
+
+        TEST_CASE("from_utf8")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path{ some_path_str };
+
+#if defined(_WIN32)
+            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::path(u8"a\\b\\c"));
+#else
+            REQUIRE(fs::from_utf8(some_path_str) == some_path);
+#endif
+        }
+
+        TEST_CASE("u8path_separators_formatting")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path{ some_path_str };
+            const fs::u8path u8_path(some_path);
+
+#if defined(_WIN32)
+            REQUIRE(u8_path.string() == u8"a\\b\\c");
+#else
+            REQUIRE(u8_path.string() == some_path_str);
+#endif
+            REQUIRE(u8_path.generic_string() == some_path_str);
+        }
+
         TEST_CASE("consistent_encoding")
         {
             const auto utf8_string = u8"日本語";

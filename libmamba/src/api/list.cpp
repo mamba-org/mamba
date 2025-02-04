@@ -28,6 +28,7 @@ namespace mamba
             bool explicit_ = false;
             bool md5 = false;
             bool canonical = false;
+            bool export_ = false;
         };
 
         struct formatted_pkg
@@ -218,7 +219,13 @@ namespace mamba
                 {
                     if (options.canonical)
                     {
-                        LOG_WARNING << "Option --canonical ignored because of --explicit";
+                        LOG_WARNING
+                            << "Option --canonical ignored because --explicit was also provided.";
+                    }
+                    if (options.export_)
+                    {
+                        LOG_WARNING
+                            << "Option --export ignored because --explicit was also provided.";
                     }
                     for (auto p : packages)
                     {
@@ -234,10 +241,22 @@ namespace mamba
                 }
                 else if (options.canonical)
                 {
+                    if (options.export_)
+                    {
+                        LOG_WARNING
+                            << "Option --export ignored because --canonical was also provided.";
+                    }
                     for (auto p : packages)
                     {
                         std::cout << p.channel << "/" << p.platform << "::" << p.name << "-"
                                   << p.version << "-" << p.build_string << std::endl;
+                    }
+                }
+                else if (options.export_)
+                {
+                    for (auto p : packages)
+                    {
+                        std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
                     }
                 }
                 else
@@ -285,6 +304,7 @@ namespace mamba
         options.explicit_ = config.at("explicit").value<bool>();
         options.md5 = config.at("md5").value<bool>();
         options.canonical = config.at("canonical").value<bool>();
+        options.export_ = config.at("export").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

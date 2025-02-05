@@ -21,16 +21,16 @@ find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
     bindings
-    src/libmambapy/bindings/longpath.manifest
+    bindings/longpath.manifest
     # Entry point to all submodules
-    src/libmambapy/bindings/bindings.cpp
+    bindings/bindings.cpp
     # All bindings used to live in a global module
-    src/libmambapy/bindings/legacy.cpp
+    bindings/legacy.cpp
     # Submodules
-    src/libmambapy/bindings/utils.cpp
-    src/libmambapy/bindings/specs.cpp
-    src/libmambapy/bindings/solver.cpp
-    src/libmambapy/bindings/solver_libsolv.cpp
+    bindings/utils.cpp
+    bindings/specs.cpp
+    bindings/solver.cpp
+    bindings/solver_libsolv.cpp
 )
 # TODO: remove when `SubdirData::cache_path()` is removed
 if(
@@ -40,12 +40,11 @@ if(
 )
     # This file uses capturing structured bindings, which was fixed in C++20
     set_source_files_properties(
-        src/libmambapy/bindings/legacy.cpp
-        PROPERTIES COMPILE_FLAGS -Wno-error=deprecated-declarations
+        bindings/legacy.cpp PROPERTIES COMPILE_FLAGS -Wno-error=deprecated-declarations
     )
 endif()
 
-target_include_directories(bindings PRIVATE src/libmambapy/bindings)
+target_include_directories(bindings PRIVATE bindings)
 
 mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
@@ -62,7 +61,7 @@ set_target_properties(
 # Installation
 
 if(SKBUILD)
-    install(TARGETS bindings DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR})
+    install(TARGETS bindings DESTINATION libmambapy)
 else()
     # WARNING: this default should probably not be used for installation but only for local
     # development and testing. Proper installation should be controlled externally by a Python

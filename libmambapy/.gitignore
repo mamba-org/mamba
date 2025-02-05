@@ -1,2 +1,3 @@
 libmambapy/bindings*
 libmambapy.egg-info/
+/src/libmambapy/version.py

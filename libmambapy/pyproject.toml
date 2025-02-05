@@ -1,12 +1,6 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-    "scikit-build>=0.13",
-    "cmake>=3.18",
-    "ninja",
-]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "libmambapy"
@@ -26,9 +20,15 @@ keywords = ["mamba", "conda", "packaging"]
 license = "BSD-3-Clause"
 dependencies = []
 dynamic = ["version"]
-[projet.url]
+
+[project.urls]
 Documentation = "https://mamba.readthedocs.io"
 Repository = "https://github.com/mamba-org/mamba/"
 
-[tool.setuptools]
-platforms = ["Windows", "Linux", "Mac OS X"]
+[tool.scikit-build]
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+sdist.include = ["src/libmambapy/version.py"]
+
+[tool.setuptools_scm]
+root = "../"
+write_to = "libmambapy/src/libmambapy/version.py"

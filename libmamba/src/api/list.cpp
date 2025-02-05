@@ -29,6 +29,7 @@ namespace mamba
             bool md5 = false;
             bool canonical = false;
             bool export_ = false;
+            bool revisions = false;
         };
 
         struct formatted_pkg
@@ -259,6 +260,26 @@ namespace mamba
                         std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
                     }
                 }
+                else if (options.revisions)
+                {
+                    auto user_requests = prefix_data.history().get_user_requests();
+                    for (auto r : user_requests)
+                    {
+                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                        {
+                            std::cout << r.date << " (rev " << r.revision_num << ")" << std::endl;
+                            for (auto ld : r.link_dists)
+                            {
+                                std::cout << "+ " << ld << std::endl;
+                            }
+                            for (auto ud : r.unlink_dists)
+                            {
+                                std::cout << "- " << ud << std::endl;
+                            }
+                            std::cout << std::endl;
+                        }
+                    }
+                }
                 else
                 {
                     auto requested_specs = prefix_data.history().get_requested_specs_map();
@@ -305,6 +326,7 @@ namespace mamba
         options.md5 = config.at("md5").value<bool>();
         options.canonical = config.at("canonical").value<bool>();
         options.export_ = config.at("export").value<bool>();
+        options.revisions = config.at("revisions").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

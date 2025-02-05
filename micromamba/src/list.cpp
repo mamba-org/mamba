@@ -66,6 +66,11 @@ init_list_parser(CLI::App* subcom, Configuration& config)
             )
     );
     subcom->add_flag("-e,--export", export_.get_cli_config<bool>(), export_.description());
+
+    auto& revisions = config.insert(
+        Configurable("revisions", false).group("cli").description("List the revision history.")
+    );
+    subcom->add_flag("--revisions", revisions.get_cli_config<bool>(), revisions.description());
 }
 
 void

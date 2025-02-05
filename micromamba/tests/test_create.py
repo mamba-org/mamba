@@ -253,6 +253,7 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     "similar_non_canonical,non_canonical_position",
     ((False, None), (True, "append"), (True, "prepend")),
 )
+@pytest.mark.parametrize("root_prefix_env_exists", (False, True))
 def test_target_prefix(
     tmp_home,
     tmp_root_prefix,
@@ -266,6 +267,7 @@ def test_target_prefix(
     current_target_prefix_fallback,
     similar_non_canonical,
     non_canonical_position,
+    root_prefix_env_exists
 ):
     cmd = []
 
@@ -276,6 +278,9 @@ def test_target_prefix(
         cmd += ["-r", root_prefix]
     else:
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
+
+    if root_prefix_env_exists:
+        os.mkdir((Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs"))
 
     env_prefix = tmp_path / "myenv"
 

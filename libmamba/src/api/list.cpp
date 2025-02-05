@@ -250,7 +250,7 @@ namespace mamba
                             std::cout << std::endl;
                         }
                     }
-                }                
+                }
                 else if (options.explicit_)
                 {
                     if (options.canonical)

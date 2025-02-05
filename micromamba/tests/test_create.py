@@ -1693,3 +1693,20 @@ def test_non_url_encoding(tmp_path):
     non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
     out = helpers.run_env("export", "-p", env_prefix, "--explicit")
     assert non_encoded_url_start in out
+
+
+def test_custom_channel_redirection(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3804
+    env_prefix = tmp_path / "env-custom_channel"
+
+    # Should run without error
+    helpers.create(
+        "-p",
+        env_prefix,
+        "-c",
+        "https://repo.prefix.dev/emscripten-forge-dev",
+        "cpp-tabulate",
+        "--platform",
+        "emscripten-wasm32",
+        "--yes",
+    )

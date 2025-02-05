@@ -216,7 +216,42 @@ namespace mamba
                 std::sort(packages.begin(), packages.end(), comparator);
 
                 // format and print output
-                if (options.explicit_)
+                if (options.revisions)
+                {
+                    if (options.explicit_)
+                    {
+                        LOG_WARNING
+                            << "Option --explicit ignored because --revisions was also provided.";
+                    }
+                    if (options.canonical)
+                    {
+                        LOG_WARNING
+                            << "Option --canonical ignored because --revisions was also provided.";
+                    }
+                    if (options.export_)
+                    {
+                        LOG_WARNING
+                            << "Option --export ignored because --revisions was also provided.";
+                    }
+                    auto user_requests = prefix_data.history().get_user_requests();
+                    for (auto r : user_requests)
+                    {
+                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                        {
+                            std::cout << r.date << " (rev " << r.revision_num << ")" << std::endl;
+                            for (auto ud : r.unlink_dists)
+                            {
+                                std::cout << "-" << ud << std::endl;
+                            }
+                            for (auto ld : r.link_dists)
+                            {
+                                std::cout << "+" << ld << std::endl;
+                            }
+                            std::cout << std::endl;
+                        }
+                    }
+                }                
+                else if (options.explicit_)
                 {
                     if (options.canonical)
                     {
@@ -258,26 +293,6 @@ namespace mamba
                     for (auto p : packages)
                     {
                         std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
-                    }
-                }
-                else if (options.revisions)
-                {
-                    auto user_requests = prefix_data.history().get_user_requests();
-                    for (auto r : user_requests)
-                    {
-                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
-                        {
-                            std::cout << r.date << " (rev " << r.revision_num << ")" << std::endl;
-                            for (auto ld : r.link_dists)
-                            {
-                                std::cout << "+ " << ld << std::endl;
-                            }
-                            for (auto ud : r.unlink_dists)
-                            {
-                                std::cout << "- " << ud << std::endl;
-                            }
-                            std::cout << std::endl;
-                        }
                     }
                 }
                 else

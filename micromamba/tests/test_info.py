@@ -90,15 +90,28 @@ def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag)
     elif prefix_selection == "name":
         infos = helpers.info("-n", "base", base_flag)
     else:
-        infos = helpers.info()
+        infos = helpers.info(base_flag)
 
-    items = ["libmamba version", "mamba version", "curl version", "libarchive version", "envs directories",
-        "package cache", "environment", "env location", "user config files", "populated config files", 
-        "user config files", "virtual packages", "channels", "base environment", "platform"]
+    items = [
+        "libmamba version",
+        "mamba version",
+        "curl version",
+        "libarchive version",
+        "envs directories",
+        "package cache",
+        "environment",
+        "env location",
+        "user config files",
+        "populated config files",
+        "user config files",
+        "virtual packages",
+        "channels",
+        "base environment",
+        "platform",
+    ]
     if base_flag == "--base":
         print(infos)
-        # assert all(f"{i} :" not in infos for i in items)
-        # assert os.path.exists(infos)
+        assert all(f"{i} :" not in infos for i in items)
+        assert os.path.exists(infos.strip())
     else:
         assert all(i in infos for i in items)
-    

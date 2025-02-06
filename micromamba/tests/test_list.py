@@ -209,3 +209,32 @@ def test_regex(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
     filtered_res = helpers.umamba_list("^xt", "--json", quiet_flag)
     filtered_names = sorted([i["name"] for i in filtered_res])
     assert filtered_names == ["xtensor", "xtl"]
+
+
+@pytest.mark.parametrize("revisions_flag", ["", "--revisions"])
+def test_revisions(revisions_flag):
+    env_name = "myenv"
+
+    helpers.create("-n", env_name, "python=3.8")
+    helpers.install("-n", env_name, "xeus=2.0")
+    helpers.update("-n", env_name, "xeus=4.0")
+    helpers.uninstall("-n", env_name, "xeus")
+    res = helpers.umamba_list("-n", env_name, revisions_flag)
+
+    if revisions_flag == "--revisions":
+        revisions = res.split("\n\n")[1:-1]
+        assert all("rev" in revisions[i] for i in range(len(revisions)))
+        assert "python-3.8" in revisions[0]
+        assert revisions[0].count("+") == len(revisions[0].split("\n")) - 1
+        rev_2 = revisions[2].split("\n")[1:]
+        assert "xeus-2.0" in revisions[2]
+        assert "xeus-4.0" in revisions[2]
+        for line in rev_2:
+            if "xeus-2.0" in line:
+                assert line.startswith("-")
+            elif "xeus-4.0" in line:
+                assert line.startswith("+")
+        assert "xeus-4.0" in revisions[3]
+        assert "+" not in revisions[3]
+    else:
+        assert "xeus" not in res

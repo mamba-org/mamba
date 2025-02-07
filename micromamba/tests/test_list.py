@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 import pytest
+import re
 
 from . import helpers
 
@@ -222,10 +223,10 @@ def test_revisions(revisions_flag):
     res = helpers.umamba_list("-n", env_name, revisions_flag)
 
     if revisions_flag == "--revisions":
-        revisions = res.split("\n\n")[1:-1]
+        revisions = re.split(r"\d{4}-\d{2}-\d{2}", res)[1:]
         assert all("rev" in revisions[i] for i in range(len(revisions)))
         assert "python-3.8" in revisions[0]
-        assert revisions[0].count("+") == len(revisions[0].split("\n")) - 1
+        assert revisions[0].count("+") == len(revisions[0].strip().split("\n")) - 1
         rev_2 = revisions[2].split("\n")[1:]
         assert "xeus-2.0" in revisions[2]
         assert "xeus-4.0" in revisions[2]

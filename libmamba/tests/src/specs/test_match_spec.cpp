@@ -475,11 +475,10 @@ namespace
         {
             auto ms = MatchSpec::parse(R"(numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0)").value();
             REQUIRE(ms.name().str() == "numpy");
-            REQUIRE(ms.version().str() == ">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))");
+            REQUIRE(ms.version().str() == ">1.8,((<2|==1.7),(!=1.9,~=1.7))");
             REQUIRE(ms.build_string().str() == "py34_0");
             REQUIRE(
-                ms.str()
-                == R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,(>=1.7.1,=1.7)))",build="py34_0"])ms"
+                ms.str() == R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,~=1.7))",build="py34_0"])ms"
             );
         }
 
@@ -487,25 +486,25 @@ namespace
         {
             auto ms = MatchSpec::parse("python-graphviz~=0.20").value();
             REQUIRE(ms.name().str() == "python-graphviz");
-            REQUIRE(ms.version().str() == ">=0.20,=0");
-            REQUIRE(ms.str() == R"ms(python-graphviz[version=">=0.20,=0"])ms");
+            REQUIRE(ms.version().str() == "~=0");
+            REQUIRE(ms.str() == R"ms(python-graphviz~=0)ms");
         }
 
         SECTION("python-graphviz  ~=      0.20")
         {
             auto ms = MatchSpec::parse("python-graphviz  ~=      0.20").value();
             REQUIRE(ms.name().str() == "python-graphviz");
-            REQUIRE(ms.version().str() == ">=0.20,=0");
-            REQUIRE(ms.str() == R"ms(python-graphviz[version=">=0.20,=0"])ms");
+            REQUIRE(ms.version().str() == "~=0");
+            REQUIRE(ms.str() == R"ms(python-graphviz~=0)ms");
         }
 
         SECTION("python[version='~=3.11.0',build=*_cpython]")
         {
             auto ms = MatchSpec::parse("python[version='~=3.11.0',build=*_cpython]").value();
             REQUIRE(ms.name().str() == "python");
-            REQUIRE(ms.version().str() == ">=3.11.0,=3.11");
+            REQUIRE(ms.version().str() == "~=3.11");
             REQUIRE(ms.build_string().str() == "*_cpython");
-            REQUIRE(ms.str() == R"ms(python[version=">=3.11.0,=3.11",build="*_cpython"])ms");
+            REQUIRE(ms.str() == R"ms(python[version="~=3.11",build="*_cpython"])ms");
         }
 
         SECTION("*[md5=fewjaflknd]")

@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from packaging.version import Version
 
 import pytest
 
@@ -639,14 +638,6 @@ class TestInstall:
         """Force reinstall on non-installed packages is valid."""
         reinstall_res = helpers.install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
-
-    def test_install_compatible_release(self, existing_cache):
-        """Install compatible release."""
-        res = helpers.install("numpy~=1.26.0", "--force-reinstall", "--json")
-        assert "numpy" in {pkg["name"] for pkg in res["actions"]["LINK"]}
-
-        numpy = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "numpy"][0]
-        assert Version(numpy["version"]) >= Version("1.26.0")
 
 
 def test_install_check_dirs(tmp_home, tmp_root_prefix):

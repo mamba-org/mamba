@@ -34,6 +34,21 @@ jobs:
           key: ${{ github.job }}-${{ inputs.os }}
           restore-keys: |
             ccache-libmamba-${{ inputs.os }}
+      - name: Add hardening flags for debug builds
+        if: inputs.build_type == 'Debug'
+        run: |
+          export CXXFLAGS="${CXXFLAGS} -D_FORTIFY_SOURCE=2 -fstack-protector-strong"
+          # Enable libc++ hardening on macOS
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+          # See: https://libcxx.llvm.org/Hardening.html
+              export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG"
+          fi
+
+          # Enable libstdc++ hardening on Linux
+          if [[ "${RUNNER_OS}" == "Linux" ]]; then
+            # See: https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_macros.html
+            export CXXFLAGS="${CXXFLAGS} -D_GLIBCXX_ASSERTIONS -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG_BACKTRACE"
+          fi
       - name: Build mamba
         run: |
           cmake -B build/ -G Ninja \

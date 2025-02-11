@@ -352,6 +352,24 @@ namespace
             REQUIRE("~=3.3.2|==2.2"_vs.contains("3.3.3"_v));
             REQUIRE_FALSE("~=3.3.2|==2.2"_vs.contains("2.2.1"_v));
 
+            // Compatible version operator (~=)
+            REQUIRE("~=1.7"_vs.contains("1.7"_v));
+            REQUIRE("~=1.7"_vs.contains("1.7.0"_v));
+            REQUIRE("~=1.7"_vs.contains("1.7.1"_v));
+            REQUIRE_FALSE("~=1.7"_vs.contains("2.0.0"_v));
+            REQUIRE_FALSE("~=1.7"_vs.contains("1"_v));
+            REQUIRE_FALSE("~=1.7"_vs.contains("1.6.0"_v));
+            REQUIRE_FALSE("~=1.7"_vs.contains("0.1.0"_v));
+
+            REQUIRE("~= 4.41"_vs.contains("4.41"_v));
+            REQUIRE("~= 4.41"_vs.contains("4.41.0"_v));
+            REQUIRE("~= 4.41"_vs.contains("4.41.1"_v));
+            REQUIRE("~= 4.41"_vs.contains("4.42.0"_v));
+            REQUIRE("~= 4.41"_vs.contains("4.42.1"_v));
+            REQUIRE_FALSE("~= 4.41"_vs.contains("4.40.0"_v));
+            REQUIRE_FALSE("~= 4.41"_vs.contains("4.40.1"_v));
+            REQUIRE_FALSE("~= 4.41"_vs.contains("5"_v));
+
             // Regex are currently not supported
             // REQUIRE("^1.7.1$"_vs.contains("1.7.1"_v));
             // REQUIRE(R"(^1\.7\.1$)"_vs.contains("1.7.1"_v));

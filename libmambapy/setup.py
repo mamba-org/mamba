@@ -33,5 +33,6 @@ skbuild.setup(
     cmake_install_dir="src/libmambapy",  # Must match package_dir layout
     cmake_args=[
         f"-DMAMBA_INSTALL_PYTHON_EXT_LIBDIR={CMAKE_INSTALL_DIR()}/src/libmambapy",
+        f"-DMAMBA_WARNING_AS_ERROR=ON",
     ],
 )

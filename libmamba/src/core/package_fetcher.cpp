@@ -317,19 +317,6 @@ namespace mamba
     /*******************
      * Private methods *
      *******************/
-    bool PackageFetcher::is_local_package() const
-    {
-        return util::starts_with(m_package_info.package_url, "file://");
-    }
-
-    bool PackageFetcher::use_explicit_https_url() const
-    {
-        // This excludes OCI case, which uses explicitly a "oci://" scheme,
-        // but is resolved later to something starting with `oci_base_url`
-        constexpr std::string_view oci_base_url = "https://pkg-containers.githubusercontent.com/";
-        return util::starts_with(m_package_info.package_url, "https://")
-               && !util::starts_with(m_package_info.package_url, oci_base_url);
-    }
 
     const std::string& PackageFetcher::filename() const
     {
@@ -338,24 +325,26 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        if (is_local_package() || use_explicit_https_url())
+        if (!util::starts_with(m_package_info.package_url, "file://"))
         {
-            // Use explicit url or local package path
-            // to fetch package, leaving the channel empty.
+            return m_package_info.channel;
+        }
+        else  // local package case
+        {
             return "";
         }
-        return m_package_info.channel;
     }
 
     std::string PackageFetcher::url_path() const
     {
-        if (is_local_package() || use_explicit_https_url())
+        if (!util::starts_with(m_package_info.package_url, "file://"))
         {
-            // Use explicit url or local package path
-            // to fetch package.
+            return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        }
+        else  // local package case
+        {
             return m_package_info.package_url;
         }
-        return util::concat(m_package_info.platform, '/', m_package_info.filename);
     }
 
     const std::string& PackageFetcher::url() const

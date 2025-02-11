@@ -1201,46 +1201,6 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create("-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor")
 
 
-@pytest.mark.parametrize(
-    "spec",
-    [
-        "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2",
-        "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda",
-    ],
-)
-def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
-    """Attempts to install a package using an explicit url."""
-    empty_root_prefix = tmp_path / "empty-root-create-from-explicit-url"
-    env_name = "env-create-from-explicit-url"
-
-    os.environ["MAMBA_ROOT_PREFIX"] = str(empty_root_prefix)
-
-    res = helpers.create(
-        spec, "--no-env", "-n", env_name, "--override-channels", "--json", default_channel=False
-    )
-    assert res["success"]
-
-    pkgs = res["actions"]["LINK"]
-    if spec.endswith(".tar.bz2"):
-        assert len(pkgs) == 1
-        assert pkgs[0]["name"] == "_libgcc_mutex"
-        assert pkgs[0]["version"] == "0.1"
-        assert (
-            pkgs[0]["url"]
-            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
-        )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
-    else:
-        assert len(pkgs) == 1
-        assert pkgs[0]["name"] == "abacus"
-        assert pkgs[0]["version"] == "3.2.4"
-        assert (
-            pkgs[0]["url"]
-            == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
-        )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
-
-
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"
@@ -1693,3 +1653,20 @@ def test_non_url_encoding(tmp_path):
     non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
     out = helpers.run_env("export", "-p", env_prefix, "--explicit")
     assert non_encoded_url_start in out
+
+
+def test_custom_channel_redirection(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3804
+    env_prefix = tmp_path / "env-custom_channel"
+
+    # Should run without error
+    helpers.create(
+        "-p",
+        env_prefix,
+        "-c",
+        "https://repo.prefix.dev/emscripten-forge-dev",
+        "cpp-tabulate",
+        "--platform",
+        "emscripten-wasm32",
+        "--yes",
+    )

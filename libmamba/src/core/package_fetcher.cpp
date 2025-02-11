@@ -317,6 +317,7 @@ namespace mamba
     /*******************
      * Private methods *
      *******************/
+    // TODO to be removed if not used
     bool PackageFetcher::is_local_package() const
     {
         return util::starts_with(m_package_info.package_url, "file://");
@@ -338,23 +339,24 @@ namespace mamba
 
     std::string PackageFetcher::channel() const
     {
-        if (is_local_package() || use_explicit_https_url())
-        {
-            // Use explicit url or local package path
-            // to fetch package, leaving the channel empty.
-            return "";
-        }
+        //         if (is_local_package() || use_explicit_https_url())
+        //         {
+        //             // Use explicit url or local package path
+        //             // to fetch package, leaving the channel empty.
+        //             return "";
+        //         }
         return m_package_info.channel;
     }
 
+    // TODO to rename, second_part_url?
     std::string PackageFetcher::url_path() const
     {
-        if (is_local_package() || use_explicit_https_url())
-        {
-            // Use explicit url or local package path
-            // to fetch package.
-            return m_package_info.package_url;
-        }
+        //         if (is_local_package() || use_explicit_https_url())
+        //         {
+        //             // Use explicit url or local package path
+        //             // to fetch package.
+        //             return m_package_info.package_url;
+        //         }
         return util::concat(m_package_info.platform, '/', m_package_info.filename);
     }
 

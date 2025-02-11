@@ -666,6 +666,39 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
 
 
+@pytest.mark.parametrize("cli_root_prefix", (False, True))
+@pytest.mark.parametrize("user_envs_dirs", (False, True))
+def test_root_prefix_precedence(monkeypatch, tmp_path, user_envs_dirs, cli_root_prefix):
+    """Test for root prefix precedence"""
+
+    envroot = tmp_path / "envroot"
+    cliroot = tmp_path / "cliroot"
+    userenv = tmp_path / "userenv" / "envs"
+
+    map(lambda p: os.makedirs(p), (envroot, cliroot, userenv))
+
+    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(envroot))
+    cmd = ["mamba", "create", "-n", "foo", "--print-config-only", "--debug"]
+
+    if cli_root_prefix:
+        cmd += ["-r", cliroot]
+
+    if user_envs_dirs:
+        monkeypatch.setenv("CONDA_ENVS_DIRS", str(userenv))
+
+    res = helpers.create(*cmd)
+    envs_dirs = res["envs_dirs"]
+
+    if user_envs_dirs:
+        assert envs_dirs[0] == str(userenv)
+        envs_dirs = envs_dirs[1:]
+
+    if cli_root_prefix:
+        assert envs_dirs[0] == str(cliroot / "envs")
+    else:
+        assert envs_dirs[0] == str(envroot / "envs")
+
+
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",

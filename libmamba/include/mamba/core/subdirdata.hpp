@@ -155,6 +155,7 @@ namespace mamba
         );
 
         std::string repodata_url_path() const;
+        std::string repodata_full_url() const;
 
         void
         load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel);

@@ -591,6 +591,11 @@ namespace mamba
         return util::concat(m_platform, "/", m_repodata_fn);
     }
 
+    std::string SubdirData::repodata_full_url() const
+    {
+        return util::concat(m_name, "/", m_repodata_fn);
+    }
+
     void
     SubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel)
     {
@@ -773,7 +778,7 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(SubdirMetadata::HttpMetadata{ success.transfer.effective_url,
+                return finalize_transfer(SubdirMetadata::HttpMetadata{ repodata_full_url(),
                                                                        success.etag,
                                                                        success.last_modified,
                                                                        success.cache_control });

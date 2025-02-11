@@ -267,7 +267,7 @@ def test_target_prefix(
     current_target_prefix_fallback,
     similar_non_canonical,
     non_canonical_position,
-    root_prefix_env_exists
+    root_prefix_env_exists,
 ):
     cmd = []
 
@@ -280,7 +280,7 @@ def test_target_prefix(
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
 
     if root_prefix_env_exists:
-        os.mkdir((Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs"))
+        os.mkdir(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs")
 
     env_prefix = tmp_path / "myenv"
 

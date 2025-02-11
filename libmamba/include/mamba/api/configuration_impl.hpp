@@ -83,7 +83,7 @@ namespace mamba
         {
             static std::vector<std::string> default_value(const std::vector<T>& init)
             {
-	      return std::vector<std::string>(std::max<size_t>(1, init.size()), "default");
+                return std::vector<std::string>(std::max<size_t>(1, init.size()), "default");
             };
 
             static void merge(

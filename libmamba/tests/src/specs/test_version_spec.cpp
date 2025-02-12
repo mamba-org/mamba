@@ -360,6 +360,7 @@ namespace
             REQUIRE_FALSE("~=1.7"_vs.contains("1"_v));
             REQUIRE_FALSE("~=1.7"_vs.contains("1.6.0"_v));
             REQUIRE_FALSE("~=1.7"_vs.contains("0.1.0"_v));
+            REQUIRE("~=1.7.0"_vs.str() == "~=1.7.0");
 
             REQUIRE("~= 4.41"_vs.contains("4.41"_v));
             REQUIRE("~= 4.41"_vs.contains("4.41.0"_v));

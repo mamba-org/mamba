@@ -345,7 +345,8 @@ namespace mamba
         //             // to fetch package, leaving the channel empty.
         //             return "";
         //         }
-        return m_package_info.channel;
+        //         return m_package_info.channel;
+        return "";
     }
 
     // TODO to rename, second_part_url?
@@ -357,7 +358,8 @@ namespace mamba
         //             // to fetch package.
         //             return m_package_info.package_url;
         //         }
-        return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        //         return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::url() const

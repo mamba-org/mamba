@@ -155,7 +155,7 @@ namespace mamba
         );
 
         std::string repodata_url_path() const;
-        std::string repodata_full_url() const;
+        const std::string& repodata_full_url() const;
 
         void
         load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel);
@@ -185,6 +185,8 @@ namespace mamba
         std::string m_json_fn;
         std::string m_solv_fn;
         bool m_is_noarch;
+
+        std::string m_full_url;
 
         SubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;

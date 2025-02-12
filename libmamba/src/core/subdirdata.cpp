@@ -580,6 +580,7 @@ namespace mamba
         , m_is_noarch(platform == "noarch")
         , p_context(&(ctx))
     {
+        m_full_url = util::url_concat(channel.url().str(), "/", repodata_url_path());
         assert(!channel.is_package());
         m_forbid_cache = (channel.mirror_urls().size() == 1u)
                          && util::starts_with(channel.url().str(), "file://");
@@ -591,9 +592,9 @@ namespace mamba
         return util::concat(m_platform, "/", m_repodata_fn);
     }
 
-    std::string SubdirData::repodata_full_url() const
+    const std::string& SubdirData::repodata_full_url() const
     {
-        return util::concat(m_name, "/", m_repodata_fn);
+        return m_full_url;
     }
 
     void

@@ -128,6 +128,19 @@ namespace
             REQUIRE(ms.str() == "abc>3");
         }
 
+        SECTION("numpy~=1.26.0")
+        {
+            auto ms = MatchSpec::parse("numpy~=1.26.0").value();
+            REQUIRE(ms.name().str() == "numpy");
+            REQUIRE(ms.version().str() == "~=1.26.0");
+            REQUIRE(ms.build_string().is_explicitly_free());
+            REQUIRE(ms.build_number().is_explicitly_free());
+            REQUIRE(ms.str() == "numpy~=1.26.0");
+
+            auto ms2 = MatchSpec::parse(ms.str()).value();
+            REQUIRE(ms2 == ms);
+        }
+
         // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
         // which is currently supported but which must not.
         SECTION("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
@@ -1131,6 +1144,59 @@ namespace
                 /* .version= */ "1.25.0"_v,
                 /* .build_string= */ "py310h1d0b8b9_0",
                 /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
+
+        SECTION("numpy~=1.26")
+        {
+            const auto ms = "numpy~=1.26"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "numpy",
+                /* .version= */ "1.26.0"_v,
+                /* .build_string= */ "py310h1d0b8b9_0",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "numpy",
+                /* .version= */ "1.26.1"_v,
+                /* .build_string= */ "py310h1d0b8b9_0",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "numpy",
+                /* .version= */ "1.27"_v,
+                /* .build_string= */ "py310h1d0b8b9_0",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "GPL",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "numpy",
+                /* .version= */ "2.0.0"_v,
+                /* .build_string= */ "py310h1d0b8b9_1",
+                /* .build_number= */ 1,
                 /* .md5= */ "lemd5",
                 /* .sha256= */ "somesha256",
                 /* .license= */ "GPL",

@@ -280,7 +280,7 @@ def test_target_prefix(
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
 
     if root_prefix_env_exists:
-        os.mkdir(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs")
+        os.makedirs(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs", exist_ok=True)
 
     env_prefix = tmp_path / "myenv"
 
@@ -668,35 +668,53 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
 
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
 @pytest.mark.parametrize("user_envs_dirs", (False, True))
-def test_root_prefix_precedence(monkeypatch, tmp_path, user_envs_dirs, cli_root_prefix):
+@pytest.mark.parametrize("check_config", (False, True))
+def test_root_prefix_precedence(
+    monkeypatch, tmp_path, user_envs_dirs, cli_root_prefix, check_config
+):
     """Test for root prefix precedence"""
 
     envroot = tmp_path / "envroot"
+    envroot_envs = envroot / "envs"
     cliroot = tmp_path / "cliroot"
-    userenv = tmp_path / "userenv" / "envs"
-
-    map(lambda p: os.makedirs(p), (envroot, cliroot, userenv))
+    cliroot_envs = cliroot / "envs"
+    userenv = tmp_path / "userenv"
+    userenv_envs = userenv / "envs"
 
     monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(envroot))
-    cmd = ["mamba", "create", "-n", "foo", "--print-config-only", "--debug"]
+    if user_envs_dirs:
+        monkeypatch.setenv("CONDA_ENVS_DIRS", str(userenv_envs))
+
+    for i in (envroot, cliroot, userenv_envs):
+        os.makedirs(i, exist_ok=True)
+
+    cmd = ["-n", "foo"]
+
+    if check_config:
+        cmd += ["--print-config-only", "--debug"]
 
     if cli_root_prefix:
         cmd += ["-r", cliroot]
 
-    if user_envs_dirs:
-        monkeypatch.setenv("CONDA_ENVS_DIRS", str(userenv))
+    res = helpers.create(*cmd, create_cmd="create")
 
-    res = helpers.create(*cmd)
-    envs_dirs = res["envs_dirs"]
-
-    if user_envs_dirs:
-        assert envs_dirs[0] == str(userenv)
-        envs_dirs = envs_dirs[1:]
-
-    if cli_root_prefix:
-        assert envs_dirs[0] == str(cliroot / "envs")
+    if check_config:
+        envs_dirs = res["envs_dirs"]
+        if user_envs_dirs:
+            assert envs_dirs[0] == str(userenv_envs)
+            envs_dirs = envs_dirs[1:]
+        if cli_root_prefix:
+            assert envs_dirs[0] == str(cliroot_envs)
+        else:
+            assert envs_dirs[0] == str(envroot_envs)
     else:
-        assert envs_dirs[0] == str(envroot / "envs")
+        if user_envs_dirs:
+            assert Path(userenv_envs / "foo").exists()
+        else:
+            if cli_root_prefix:
+                assert Path(cliroot_envs / "foo").exists()
+            else:
+                assert Path(envroot_envs / "foo").exists()
 
 
 @pytest.mark.skipif(

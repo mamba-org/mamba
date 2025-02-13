@@ -147,6 +147,7 @@ namespace mamba
         // We add -script.py to WIN32, and link the conda.exe launcher which will
         // automatically find the correct script to launch
         std::string win_script = path.string() + "-script.py";
+        std::string win_script_gen_str = path.generic_string() + "-script.py";
         fs::u8path script_path = m_context->target_prefix / win_script;
 #else
         fs::u8path script_path = m_context->target_prefix / path;
@@ -192,7 +193,7 @@ namespace mamba
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
-        return std::array<std::string, 2>{ win_script, script_exe.string() };
+        return std::array<std::string, 2>{ win_script_gen_str, script_exe.generic_string() };
 #else
         if (!python_path.empty())
         {
@@ -607,7 +608,7 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
+            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
 #endif
             fs::remove(dst);
         }
@@ -699,7 +700,10 @@ namespace mamba
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
-                    return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
+                    return std::make_tuple(
+                        std::string(validation::sha256sum(dst)),
+                        rel_dst.generic_string()
+                    );
                 }
 #else
                 std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())
@@ -748,7 +752,7 @@ namespace mamba
                 codesign(dst, m_context->context().output_params.verbosity > 1);
             }
 #endif
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
+            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
         }
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
@@ -800,7 +804,7 @@ namespace mamba
             fs::copy_symlink(src, dst);
             // we need to wait until all files are linked to compute the SHA256 sum!
             // otherwise the file that's pointed to might not be linked yet.
-            return std::make_tuple("", rel_dst.string());
+            return std::make_tuple("", rel_dst.generic_string());
         }
         else
         {
@@ -811,7 +815,7 @@ namespace mamba
         }
         return std::make_tuple(
             path_data.sha256.empty() ? std::string(validation::sha256sum(dst)) : path_data.sha256,
-            rel_dst.string()
+            rel_dst.generic_string()
         );
     }
 
@@ -1032,10 +1036,10 @@ namespace mamba
             std::vector<fs::u8path> pyc_files = compile_pyc_files(for_compilation);
             for (const fs::u8path& pyc_path : pyc_files)
             {
-                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.string() },
+                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.generic_string() },
                                                             { "path_type", "pyc_file" } });
 
-                out_json["files"].push_back(pyc_path.string());
+                out_json["files"].push_back(pyc_path.generic_string());
             }
 
             if (link_json.find("noarch") != link_json.end()

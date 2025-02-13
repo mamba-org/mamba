@@ -346,7 +346,7 @@ namespace mamba
         //             return "";
         //         }
         //         return m_package_info.channel;
-        if (m_package_info.channel == "oci_channel")
+        if (util::starts_with(m_package_info.package_url, "oci://"))
         {
             return m_package_info.channel;
         }
@@ -363,7 +363,7 @@ namespace mamba
         //             return m_package_info.package_url;
         //         }
         //         return util::concat(m_package_info.platform, '/', m_package_info.filename);
-        if (m_package_info.channel == "oci_channel")
+        if (util::starts_with(m_package_info.package_url, "oci://"))
         {
             return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }

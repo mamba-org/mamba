@@ -245,9 +245,21 @@ namespace mamba
             // See those sources to understand bitshifts:
             // https://docs.microsoft.com/en-us/cpp/intrinsics/cpuid-cpuidex?view=msvc-160
             // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
+            // https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
 
             int cpu_info[4];
-            int eax_value = 7;
+            int eax_value = 0;
+
+            // Check the value of the leaf and the sub-leaf to determine if the CPU supports
+            // the required instruction sets.
+            __cpuid(cpu_info, eax_value);
+            if (cpu_info[0] < 7)
+            {
+                return "x86_64";
+            }
+
+            // Otherwise we can check the extended features.
+            eax_value = 7;
             int ecx_value = 0;
             __cpuidex(cpu_info, eax_value, ecx_value);
 

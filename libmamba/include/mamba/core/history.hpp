@@ -38,6 +38,7 @@ namespace mamba
             static UserRequest prefilled(const Context& context);
 
             std::string date;
+            int revision_num;
             std::string cmd;
             std::string conda_version;
 

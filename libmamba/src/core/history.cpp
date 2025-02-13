@@ -203,6 +203,7 @@ namespace mamba
     std::vector<History::UserRequest> History::get_user_requests()
     {
         std::vector<UserRequest> res;
+        int revision_num = 0;
         for (const auto& el : parse())
         {
             UserRequest r;
@@ -222,6 +223,10 @@ namespace mamba
                 {
                     r.link_dists.push_back(x.substr(1));
                 }
+            }
+            if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+            {
+                r.revision_num = revision_num++;
             }
             res.push_back(r);
         }

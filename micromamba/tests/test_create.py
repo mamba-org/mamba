@@ -666,55 +666,87 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
 
 
+@pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
+@pytest.mark.parametrize("set_in_condarc", (False, True))
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
-@pytest.mark.parametrize("user_envs_dirs", (False, True))
 @pytest.mark.parametrize("check_config", (False, True))
 def test_root_prefix_precedence(
-    monkeypatch, tmp_path, user_envs_dirs, cli_root_prefix, check_config
+    tmp_path,
+    tmp_home,
+    monkeypatch,
+    set_in_condarc,
+    set_in_conda_envs_dirs,
+    cli_root_prefix,
+    check_config,
 ):
-    """Test for root prefix precedence"""
+    """
+    Test for root prefix precedence
 
-    envroot = tmp_path / "envroot"
-    envroot_envs = envroot / "envs"
-    cliroot = tmp_path / "cliroot"
-    cliroot_envs = cliroot / "envs"
-    userenv = tmp_path / "userenv"
-    userenv_envs = userenv / "envs"
+    Environments can be created in several places depending, in this order:
+      - 1. in the folder of `CONDA_ENVS_DIRS` if it is set
+      - 2. in the folder of `envs_dirs` if set in the rc file
+      - 3. the root prefix given by the user's command (e.g. specified via the `-r` option)
+      - 4. the usual root prefix (set generally by `MAMBA_ROOT_PREFIX`)
+    """
 
-    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(envroot))
-    if user_envs_dirs:
-        monkeypatch.setenv("CONDA_ENVS_DIRS", str(userenv_envs))
+    # Given by `CONDA_ENVS_DIRS`
+    conda_envs_dirs = tmp_path / "conda_envs_dirs" / "envs"
+    # Given by `envs_dirs` in the rc file
+    condarc_envs_dirs = tmp_path / "condarc_envs_dirs" / "envs"
+    # Given via the CLI
+    cli_provided_root = tmp_path / "cliroot"
+    cli_provided_root_envs = cli_provided_root / "envs"
+    # Given by `MAMBA_ROOT_PREFIX`
+    mamba_root_prefix = tmp_path / "envroot"
+    mamba_root_prefix_envs = mamba_root_prefix / "envs"
 
-    for i in (envroot, cliroot, userenv_envs):
-        os.makedirs(i, exist_ok=True)
+    env_name = "foo"
+    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(mamba_root_prefix))
+    if set_in_conda_envs_dirs:
+        monkeypatch.setenv("CONDA_ENVS_DIRS", str(conda_envs_dirs))
 
-    cmd = ["-n", "foo"]
+    with open(tmp_home / ".condarc", "w+") as f:
+        if set_in_condarc:
+            f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
+
+    for envs_folder in (condarc_envs_dirs, conda_envs_dirs, cli_provided_root, mamba_root_prefix):
+        os.makedirs(envs_folder, exist_ok=True)
+
+    cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
 
     if check_config:
         cmd += ["--print-config-only", "--debug"]
 
     if cli_root_prefix:
-        cmd += ["-r", cliroot]
+        cmd += ["-r", cli_provided_root]
 
-    res = helpers.create(*cmd, create_cmd="create")
+    res = helpers.create(*cmd, no_rc=False)
+
+    def assert_env_exists(prefix_path):
+        assert Path(prefix_path / env_name).exists()
 
     if check_config:
         envs_dirs = res["envs_dirs"]
-        if user_envs_dirs:
-            assert envs_dirs[0] == str(userenv_envs)
-            envs_dirs = envs_dirs[1:]
+        expected_envs_dirs = []
+
+        if set_in_conda_envs_dirs:
+            expected_envs_dirs.append(conda_envs_dirs)
+        if set_in_condarc:
+            expected_envs_dirs.append(condarc_envs_dirs)
         if cli_root_prefix:
-            assert envs_dirs[0] == str(cliroot_envs)
+            expected_envs_dirs.append(cli_provided_root_envs)
         else:
-            assert envs_dirs[0] == str(envroot_envs)
+            expected_envs_dirs.append(mamba_root_prefix_envs)
+        assert envs_dirs == [str(env_dir) for env_dir in expected_envs_dirs]
+
+    elif set_in_conda_envs_dirs:
+        assert_env_exists(conda_envs_dirs)
+    elif set_in_condarc:
+        assert_env_exists(condarc_envs_dirs)
+    elif cli_root_prefix:
+        assert_env_exists(cli_provided_root_envs)
     else:
-        if user_envs_dirs:
-            assert Path(userenv_envs / "foo").exists()
-        else:
-            if cli_root_prefix:
-                assert Path(cliroot_envs / "foo").exists()
-            else:
-                assert Path(envroot_envs / "foo").exists()
+        assert_env_exists(mamba_root_prefix_envs)
 
 
 @pytest.mark.skipif(

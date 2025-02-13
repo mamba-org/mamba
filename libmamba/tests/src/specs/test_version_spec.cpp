@@ -422,6 +422,27 @@ namespace
             REQUIRE(vs.str() == "=2.3,<3.0");
             REQUIRE(vs.str_conda_build() == "2.3.*,<3.0");
         }
+
+        SECTION("~=1")
+        {
+            auto vs = VersionSpec::parse("~=1").value();
+            REQUIRE(vs.str() == "~=1");
+            REQUIRE(vs.str_conda_build() == "~=1");
+        }
+
+        SECTION("~=1.8")
+        {
+            auto vs = VersionSpec::parse("~=1.8").value();
+            REQUIRE(vs.str() == "~=1.8");
+            REQUIRE(vs.str_conda_build() == "~=1.8");
+        }
+
+        SECTION("~=1.8.0")
+        {
+            auto vs = VersionSpec::parse("~=1.8.0").value();
+            REQUIRE(vs.str() == "~=1.8.0");
+            REQUIRE(vs.str_conda_build() == "~=1.8.0");
+        }
     }
 
     TEST_CASE("VersionSpec::is_explicitly_free")

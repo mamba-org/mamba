@@ -3,6 +3,7 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
+from packaging.version import Version
 
 import pytest
 import yaml
@@ -1693,3 +1694,13 @@ def test_non_url_encoding(tmp_path):
     non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
     out = helpers.run_env("export", "-p", env_prefix, "--explicit")
     assert non_encoded_url_start in out
+
+
+def test_compatible_release(tmp_path):
+    # Non-regression test for: https://github.com/mamba-org/mamba/issues/3472
+    env_prefix = tmp_path / "env-compatible-release"
+
+    out = helpers.create("--json", "jupyterlab~=4.3", "-p", env_prefix, "--dry-run")
+
+    jupyterlab_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "jupyterlab")
+    assert Version(jupyterlab_package["version"]) >= Version("4.3.0")

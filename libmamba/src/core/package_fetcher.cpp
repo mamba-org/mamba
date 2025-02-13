@@ -346,6 +346,10 @@ namespace mamba
         //             return "";
         //         }
         //         return m_package_info.channel;
+        if (m_package_info.channel == "oci_channel")
+        {
+            return m_package_info.channel;
+        }
         return "";
     }
 
@@ -359,6 +363,10 @@ namespace mamba
         //             return m_package_info.package_url;
         //         }
         //         return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        if (m_package_info.channel == "oci_channel")
+        {
+            return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        }
         return m_package_info.package_url;
     }
 

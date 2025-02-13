@@ -198,5 +198,5 @@ Listing packages in the created ``pandoc_from_oci`` environment:
   $ micromamba list -n pandoc_from_oci
 
   Name    Version  Build       Channel
-  ─────────────────────────────────────────────────────────────────────────────────────
-  pandoc  3.2      ha770c72_0  https://pkg-containers.githubusercontent.com/ghcr1/blobs
+  ──────────────────────────────────────────
+  pandoc  3.2      ha770c72_0  conda-forge

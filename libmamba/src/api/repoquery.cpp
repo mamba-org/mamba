@@ -14,7 +14,7 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

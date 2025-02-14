@@ -17,9 +17,12 @@ extern "C"
     using Repo = struct s_Repo;
 }
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
-    class Database;
+    namespace libsolv
+    {
+        class Database;
+    }
 
     /**
      * A libsolv repository descriptor.
@@ -50,7 +53,7 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto package_count() const -> std::size_t;
 
-        [[nodiscard]] auto priority() const -> Priorities;
+        [[nodiscard]] auto priority() const -> libsolv::Priorities;
 
     private:
 
@@ -58,7 +61,7 @@ namespace mamba::solver::libsolv
 
         explicit RepoInfo(::Repo* repo);
 
-        friend class Database;
+        friend class mamba::solver::libsolv::Database;
         friend auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool;
     };
 

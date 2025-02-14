@@ -12,7 +12,7 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -24,7 +24,7 @@ namespace mamba
             ChannelContext& channel_context,
             solver::libsolv::Database& pool,
             const fs::u8path& pkgs_dir
-        ) -> solver::libsolv::RepoInfo
+        ) -> solver::RepoInfo
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -248,7 +248,7 @@ namespace mamba
                 }
 
                 load_subdir_in_database(ctx, pool, subdir)
-                    .transform([&](solver::libsolv::RepoInfo&& repo)
+                    .transform([&](solver::RepoInfo&& repo)
                                { pool.set_repo_priority(repo, priorities[i]); })
                     .or_else(
                         [&](const auto&)

@@ -11,7 +11,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
     enum class RepodataParser
     {

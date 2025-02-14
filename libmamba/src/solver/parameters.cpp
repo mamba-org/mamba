@@ -8,10 +8,10 @@
 
 #include <nlohmann/json.hpp>
 
-#include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/parameters.hpp"
 #include "mamba/util/string.hpp"
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
     namespace
     {

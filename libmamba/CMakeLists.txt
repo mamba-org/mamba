@@ -188,6 +188,7 @@ set(
     # Solver generic interface
     ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/problems_graph.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/unsolvable.cpp
     # Solver libsolv implementation
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/database.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
@@ -195,7 +196,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
@@ -342,12 +342,12 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/problems_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/unsolvable.hpp
     # Solver libsolv implementation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/database.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp

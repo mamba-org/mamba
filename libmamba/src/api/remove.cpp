@@ -191,7 +191,7 @@ namespace mamba
                 };
 
                 auto outcome = solver::libsolv::Solver().solve(pool, request).value();
-                if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
+                if (auto* unsolvable = std::get_if<solver::UnSolvable>(&outcome))
                 {
                     if (ctx.output_params.json)
                     {

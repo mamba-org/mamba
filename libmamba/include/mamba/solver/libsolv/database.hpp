@@ -37,10 +37,14 @@ namespace mamba
     }
 }
 
+namespace mamba::solver
+{
+    class UnSolvable;
+}
+
 namespace mamba::solver::libsolv
 {
     class Solver;
-    class UnSolvable;
 
     /**
      * Database of solvable involved in resolving en environment.
@@ -137,7 +141,7 @@ namespace mamba::solver::libsolv
             [[nodiscard]] static auto get(const Database& pool) -> const solv::ObjPool&;
 
             friend class Solver;
-            friend class UnSolvable;
+            friend class solver::UnSolvable;
         };
 
     private:

@@ -15,7 +15,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/unsolvable.hpp"
+#include "mamba/solver/unsolvable.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
@@ -23,7 +23,7 @@
 
 #include "solver/libsolv/helpers.hpp"
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
     UnSolvable::UnSolvable(std::unique_ptr<solv::ObjSolver>&& solver)
         : m_solver(std::move(solver))
@@ -42,9 +42,9 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
-    auto UnSolvable::problems(Database& db) const -> std::vector<std::string>
+    auto UnSolvable::problems(libsolv::Database& db) const -> std::vector<std::string>
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = solver::libsolv::Database::Impl::get(db);
         std::vector<std::string> problems;
         solver().for_each_problem_id([&](solv::ProblemId pb)
                                      { problems.emplace_back(solver().problem_to_string(pool, pb)); }
@@ -52,9 +52,9 @@ namespace mamba::solver::libsolv
         return problems;
     }
 
-    auto UnSolvable::problems_to_str(Database& db) const -> std::string
+    auto UnSolvable::problems_to_str(libsolv::Database& db) const -> std::string
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = solver::libsolv::Database::Impl::get(db);
         std::stringstream problems;
         problems << "Encountered problems while solving:\n";
         solver().for_each_problem_id(
@@ -64,9 +64,9 @@ namespace mamba::solver::libsolv
         return problems.str();
     }
 
-    auto UnSolvable::all_problems_to_str(Database& db) const -> std::string
+    auto UnSolvable::all_problems_to_str(libsolv::Database& db) const -> std::string
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = libsolv::Database::Impl::get(db);
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
@@ -323,7 +323,7 @@ namespace mamba::solver::libsolv
                     {
                         if (solv_pin.type() == solv::SolvableType::Pin)
                         {
-                            auto pin = make_package_info(pool, solv_pin);
+                            auto pin = libsolv::make_package_info(pool, solv_pin);
                             // There should really just be one constraint
                             ms.set_name(specs::MatchSpec::NameSpec(
                                 fmt::format("pin on {}", fmt::join(pin.constrains, " and "))
@@ -565,14 +565,14 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto UnSolvable::problems_graph(const Database& pool) const -> ProblemsGraph
+    auto UnSolvable::problems_graph(const libsolv::Database& pool) const -> ProblemsGraph
     {
         assert(m_solver != nullptr);
-        return ProblemsGraphCreator(Database::Impl::get(pool), *m_solver).problem_graph();
+        return ProblemsGraphCreator(libsolv::Database::Impl::get(pool), *m_solver).problem_graph();
     }
 
     auto UnSolvable::explain_problems_to(
-        Database& pool,
+        libsolv::Database& pool,
         std::ostream& out,
         const ProblemsMessageFormat& format
     ) const -> std::ostream&
@@ -585,7 +585,8 @@ namespace mamba::solver::libsolv
         return out;
     }
 
-    auto UnSolvable::explain_problems(Database& pool, const ProblemsMessageFormat& format) const
+    auto
+    UnSolvable::explain_problems(libsolv::Database& pool, const ProblemsMessageFormat& format) const
         -> std::string
 
     {

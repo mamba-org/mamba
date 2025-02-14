@@ -12,7 +12,7 @@
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
-#include "mamba/solver/libsolv/unsolvable.hpp"
+#include "mamba/solver/unsolvable.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -211,18 +211,6 @@ namespace mambapy
                     return out;
                 },
                 py::arg("spec")
-            );
-
-        py::class_<UnSolvable>(m, "UnSolvable")
-            .def("problems", &UnSolvable::problems, py::arg("database"))
-            .def("problems_to_str", &UnSolvable::problems_to_str, py::arg("database"))
-            .def("all_problems_to_str", &UnSolvable::all_problems_to_str, py::arg("database"))
-            .def("problems_graph", &UnSolvable::problems_graph, py::arg("database"))
-            .def(
-                "explain_problems",
-                &UnSolvable::explain_problems,
-                py::arg("database"),
-                py::arg("format")
             );
 
         constexpr auto solver_flags_v2_migrator = [](Solver&, py::args, py::kwargs)

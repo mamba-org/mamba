@@ -23,8 +23,8 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
-#include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/solver/problems_graph.hpp"
+#include "mamba/solver/unsolvable.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
@@ -624,7 +624,7 @@ TEST_CASE("Create problem graph")
         auto [db, request] = factory(ctx, channel_context);
         auto outcome = solver::libsolv::Solver().solve(db, request).value();
         // REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
-        auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
+        auto& unsolvable = std::get<solver::UnSolvable>(outcome);
         const auto pbs_init = unsolvable.problems_graph(db);
         const auto& graph_init = pbs_init.graph();
 

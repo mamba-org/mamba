@@ -1337,7 +1337,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
         assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
 
 
-def test_create_with_from_mirror(tmp_home, tmp_root_prefix, tmp_path):
+def test_create_from_mirror(tmp_home, tmp_root_prefix, tmp_path):
     """Attempts to install a package using an explicit channel/mirror."""
     empty_root_prefix = tmp_path / "empty-root-create-from-mirror"
     env_name = "env-create-from-mirror"

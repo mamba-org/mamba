@@ -670,6 +670,25 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
 
 
+@pytest.mark.parametrize("envs_dirs_source", ("condarc", "env_var"))
+def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, envs_dirs_source):
+    """Test that an env dir is created if it does not exist already"""
+
+    envs_dir = tmp_path / "user_provided_envdir" / "envs"
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        if envs_dirs_source == "env_var":
+            monkeypatch.setenv("CONDA_ENVS_DIRS", str(envs_dir))
+        else:
+            f.write(f"envs_dirs: [{str(envs_dir)}]")
+
+    assert not envs_dir.exists()  # directory doesn't exist yet
+
+    helpers.create("-n", "bar", "--rc-file", tmp_home / ".condarc", no_rc=False)
+
+    assert envs_dir.exists()
+
+
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
 @pytest.mark.parametrize("set_in_condarc", (False, True))
 @pytest.mark.parametrize("cli_root_prefix", (False, True))

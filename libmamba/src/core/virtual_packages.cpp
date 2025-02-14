@@ -244,56 +244,63 @@ namespace mamba
             //
             // See those sources to understand bitshifts:
             // https://docs.microsoft.com/en-us/cpp/intrinsics/cpuid-cpuidex?view=msvc-160
-            // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
             // https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
 
             int cpu_info[4];
             int eax_value = 0;
 
-            // Check the value of the leaf and the sub-leaf to determine if the CPU supports
-            // the required instruction sets.
+            // Check the value of the leaf to determine if the CPU exposes the bit for
+            // the extended features.
             __cpuid(cpu_info, eax_value);
-            if (cpu_info[0] < 7)
-            {
-                return "x86_64";
-            }
+            int max_leaf = cpu_info[0];
 
-            // Otherwise we can check the extended features.
-            eax_value = 7;
+            // Get the extended features for `x86_64_v4` and some of `x86_64_v3`.
+            // See table "CPUID EAX=7,ECX=0: Extended feature bits in EBX, ECX and EDX" of:
+            // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
             int ecx_value = 0;
+            eax_value = 7;
             __cpuidex(cpu_info, eax_value, ecx_value);
 
-            bool avx512f = cpu_info[1] & (1 << 16);
-            bool avx512dq = cpu_info[1] & (1 << 17);
-            bool avx512cd = cpu_info[1] & (1 << 28);
-            bool avx512bw = cpu_info[1] & (1 << 30);
-            bool avx512vl = cpu_info[1] & (1 << 31);
-            if (avx512f && avx512dq && avx512cd && avx512bw && avx512vl)
+            if (max_leaf >= 7)
             {
-                return "x86_64_v4";
+                bool avx512f = cpu_info[1] & (1 << 16);
+                bool avx512dq = cpu_info[1] & (1 << 17);
+                bool avx512cd = cpu_info[1] & (1 << 28);
+                bool avx512bw = cpu_info[1] & (1 << 30);
+                bool avx512vl = cpu_info[1] & (1 << 31);
+                if (avx512f && avx512dq && avx512cd && avx512bw && avx512vl)
+                {
+                    return "x86_64_v4";
+                }
             }
 
-            bool bmi = cpu_info[1] & (1 << 3);
+            bool bmi1 = cpu_info[1] & (1 << 3);
             bool avx2 = cpu_info[1] & (1 << 5);
             bool bmi2 = cpu_info[1] & (1 << 8);
+
+            // Get the remaining extended features of `x86_64_v3` and all of `x86_64_v2`.
+            // See table "CPUID EAX=1: Feature Information in EDX and ECX" of:
+            // https://en.wikipedia.org/wiki/CPUID#EAX=1:_Processor_Info_and_Feature_Bits
+            eax_value = 1;
+            __cpuidex(cpu_info, eax_value, ecx_value);
+
             bool fma_ = cpu_info[1] & (1 << 12);
             bool avx = cpu_info[1] & (1 << 28);
-            if (bmi && avx2 && bmi2 && fma_ && avx)
+            if (bmi1 && avx2 && bmi2 && fma_ && avx)
             {
                 return "x86_64_v3";
             }
 
             bool sse3 = cpu_info[1] & (1 << 0);
             bool ssse3 = cpu_info[1] & (1 << 9);
-            bool sse41 = cpu_info[1] & (1 << 19);
-            bool sse42 = cpu_info[1] & (1 << 20);
+            bool sse4_1 = cpu_info[1] & (1 << 19);
+            bool sse4_2 = cpu_info[1] & (1 << 20);
             bool popcnt = cpu_info[1] & (1 << 23);
-            if (sse3 && ssse3 && sse41 && sse42 && popcnt)
+            if (sse3 && ssse3 && sse4_1 && sse4_2 && popcnt)
             {
                 return "x86_64_v2";
             }
 #endif
-
             return "x86_64";
         }
 

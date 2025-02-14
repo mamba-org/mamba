@@ -255,47 +255,50 @@ namespace mamba
             int max_leaf = cpu_info[0];
 
             // Get the extended features for `x86_64_v4` and some of `x86_64_v3`.
-            // See table "CPUID EAX=7,ECX=0: Extended feature bits in EBX, ECX and EDX" of:
-            // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
+            // See column "EBX" of table "CPUID EAX=7,ECX=0: Extended feature bits in EBX, ECX and
+            // EDX": https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
             int ecx_value = 0;
             eax_value = 7;
             __cpuidex(cpu_info, eax_value, ecx_value);
 
+            int ebx_value = cpu_info[1];
+
             if (max_leaf >= 7)
             {
-                bool avx512f = cpu_info[1] & (1 << 16);
-                bool avx512dq = cpu_info[1] & (1 << 17);
-                bool avx512cd = cpu_info[1] & (1 << 28);
-                bool avx512bw = cpu_info[1] & (1 << 30);
-                bool avx512vl = cpu_info[1] & (1 << 31);
+                bool avx512f = ebx_value & (1 << 16);
+                bool avx512dq = ebx_value & (1 << 17);
+                bool avx512cd = ebx_value & (1 << 28);
+                bool avx512bw = ebx_value & (1 << 30);
+                bool avx512vl = ebx_value & (1 << 31);
                 if (avx512f && avx512dq && avx512cd && avx512bw && avx512vl)
                 {
                     return "x86_64_v4";
                 }
             }
 
-            bool bmi1 = cpu_info[1] & (1 << 3);
-            bool avx2 = cpu_info[1] & (1 << 5);
-            bool bmi2 = cpu_info[1] & (1 << 8);
+            bool bmi1 = ebx_value & (1 << 3);
+            bool avx2 = ebx_value & (1 << 5);
+            bool bmi2 = ebx_value & (1 << 8);
 
             // Get the remaining extended features of `x86_64_v3` and all of `x86_64_v2`.
-            // See table "CPUID EAX=1: Feature Information in EDX and ECX" of:
+            // See second "ECX" column of table "CPUID EAX=1: Feature Information in EDX and ECX":
             // https://en.wikipedia.org/wiki/CPUID#EAX=1:_Processor_Info_and_Feature_Bits
             eax_value = 1;
+            ecx_value = 0;
             __cpuidex(cpu_info, eax_value, ecx_value);
-
-            bool fma_ = cpu_info[1] & (1 << 12);
-            bool avx = cpu_info[1] & (1 << 28);
+            ecx_value = cpu_info[2];
+            bool fma_ = ecx_value & (1 << 12);
+            bool avx = ecx_value & (1 << 28);
             if (bmi1 && avx2 && bmi2 && fma_ && avx)
             {
                 return "x86_64_v3";
             }
 
-            bool sse3 = cpu_info[1] & (1 << 0);
-            bool ssse3 = cpu_info[1] & (1 << 9);
-            bool sse4_1 = cpu_info[1] & (1 << 19);
-            bool sse4_2 = cpu_info[1] & (1 << 20);
-            bool popcnt = cpu_info[1] & (1 << 23);
+            bool sse3 = ecx_value & (1 << 0);
+            bool ssse3 = ecx_value & (1 << 9);
+            bool sse4_1 = ecx_value & (1 << 19);
+            bool sse4_2 = ecx_value & (1 << 20);
+            bool popcnt = ecx_value & (1 << 23);
             if (sse3 && ssse3 && sse4_1 && sse4_2 && popcnt)
             {
                 return "x86_64_v2";

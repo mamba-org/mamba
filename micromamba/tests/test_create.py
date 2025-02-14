@@ -279,6 +279,8 @@ def test_target_prefix(
     else:
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
 
+    # TODO: Remove this call to `os.makedirs` once
+    # https://github.com/mamba-org/mamba/issues/3790 is fixed
     if root_prefix_env_exists:
         os.makedirs(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs", exist_ok=True)
 
@@ -669,7 +671,7 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
 @pytest.mark.parametrize("set_in_condarc", (False, True))
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
-@pytest.mark.parametrize("check_config", (False, True))
+@pytest.mark.parametrize("check_config_only", (False, True))
 def test_root_prefix_precedence(
     tmp_path,
     tmp_home,
@@ -677,7 +679,7 @@ def test_root_prefix_precedence(
     set_in_condarc,
     set_in_conda_envs_dirs,
     cli_root_prefix,
-    check_config,
+    check_config_only,
 ):
     """
     Test for root prefix precedence
@@ -709,12 +711,14 @@ def test_root_prefix_precedence(
         if set_in_condarc:
             f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
 
+    # TODO: Remove this call to `os.makedirs` once
+    # https://github.com/mamba-org/mamba/issues/3790 is fixed
     for envs_folder in (condarc_envs_dirs, conda_envs_dirs, cli_provided_root, mamba_root_prefix):
         os.makedirs(envs_folder, exist_ok=True)
 
     cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
 
-    if check_config:
+    if check_config_only:
         cmd += ["--print-config-only", "--debug"]
 
     if cli_root_prefix:
@@ -725,20 +729,22 @@ def test_root_prefix_precedence(
     def assert_env_exists(prefix_path):
         assert Path(prefix_path / env_name).exists()
 
-    if check_config:
-        envs_dirs = res["envs_dirs"]
+    if check_config_only:
         expected_envs_dirs = []
-
         if set_in_conda_envs_dirs:
-            expected_envs_dirs.append(conda_envs_dirs)
+            expected_envs_dirs.append(str(conda_envs_dirs))
         if set_in_condarc:
-            expected_envs_dirs.append(condarc_envs_dirs)
+            expected_envs_dirs.append(str(condarc_envs_dirs))
         if cli_root_prefix:
-            expected_envs_dirs.append(cli_provided_root_envs)
+            expected_envs_dirs.append(str(cli_provided_root_envs))
         else:
-            expected_envs_dirs.append(mamba_root_prefix_envs)
-        assert envs_dirs == [str(env_dir) for env_dir in expected_envs_dirs]
+            expected_envs_dirs.append(str(mamba_root_prefix_envs))
 
+        effective_envs_dirs = res["envs_dirs"]
+        assert effective_envs_dirs == expected_envs_dirs
+
+    # Otherwise, we check that `foo` has been created in the directory
+    # based on precedence given above.
     elif set_in_conda_envs_dirs:
         assert_env_exists(conda_envs_dirs)
     elif set_in_condarc:

@@ -14,6 +14,7 @@ dependencies:
   - libcurl >=7.86
   - libsodium
   - libsolv >=0.7.18
+  - resolvo-cpp
   - nlohmann_json
   - reproc-cpp >=14.2.4.post0
   - simdjson >=3.3.0

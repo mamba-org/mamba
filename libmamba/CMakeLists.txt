@@ -188,14 +188,18 @@ set(
     # Solver generic interface
     ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/problems_graph.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/parameters.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/repo_info.cpp
     # Solver libsolv implementation
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/database.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/matcher.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
+    # Solver resolvo implementation
+    ${LIBMAMBA_SOURCE_DIR}/solver/resolvo/database.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/resolvo/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/resolvo/unsolvable.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
@@ -339,15 +343,19 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     # Solver generic interface
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/problems_graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/repo_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
     # Solver libsolv implementation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/database.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
+    # Solver resolvo implementation
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/resolvo/database.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/resolvo/solver.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/resolvo/unsolvable.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp
@@ -430,6 +438,8 @@ find_package(yaml-cpp CONFIG REQUIRED)
 find_package(reproc CONFIG REQUIRED)
 find_package(reproc++ CONFIG REQUIRED)
 find_package(Libsolv MODULE REQUIRED)
+find_package(Resolvo CONFIG REQUIRED)
+
 add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
@@ -478,6 +488,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 solv::libsolv_static
                 solv::libsolvext_static
                 solv::cpp
+                Resolvo::Resolvo
         )
 
         if(UNIX)
@@ -624,6 +635,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 solv::libsolv
                 solv::libsolvext
                 solv::cpp
+                Resolvo::Resolvo
         )
         # CMake 3.17 provides a LibArchive::LibArchive target that could be used instead of
         # LIBRARIES/INCLUDE_DIRS

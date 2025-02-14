@@ -1337,6 +1337,33 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
         assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
 
 
+def test_create_with_from_mirror(tmp_home, tmp_root_prefix, tmp_path):
+    """Attempts to install a package using an explicit channel/mirror."""
+    empty_root_prefix = tmp_path / "empty-root-create-from-mirror"
+    env_name = "env-create-from-mirror"
+
+    os.environ["MAMBA_ROOT_PREFIX"] = str(empty_root_prefix)
+
+    res = helpers.create(
+        "cpp-tabulate",
+        "-n",
+        env_name,
+        "-c",
+        "https://repo.prefix.dev/emscripten-forge-dev",
+        "--platform=emscripten-wasm32",
+        "--json",
+        default_channel=False,
+    )
+    assert res["success"]
+
+    assert any(
+        package["name"] == "cpp-tabulate"
+        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["subdir"] == "emscripten-wasm32"
+        for package in res["actions"]["LINK"]
+    )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"

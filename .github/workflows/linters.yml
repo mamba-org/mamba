@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - feat/alt-branch
   pull_request:
     branches:
       - main
+      - feat/alt-branch
   merge_group:
     types: [checks_requested]
 

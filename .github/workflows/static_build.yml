@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/alt-solver
     paths-ignore:
       - "docs/**"
       - "mamba/**"

@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - feat/alt-solver
   pull_request:
     branches:
       - main
+      - feat/alt-solver
     paths-ignore:
       - "docs/**"
       - "**.md"

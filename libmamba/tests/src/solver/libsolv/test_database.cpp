@@ -45,7 +45,7 @@ namespace
 
         SECTION("Add repo from packages")
         {
-            auto pkgs = std::array{
+            auto pkgs = std::vector{
                 mkpkg("x", "1.0"),
                 mkpkg("x", "2.0"),
                 mkpkg("z", "1.0", { "x>=1.0" }),
@@ -115,7 +115,7 @@ namespace
 
             SECTION("Iterate over packages")
             {
-                auto repo2 = db.add_repo_from_packages(std::array{ mkpkg("z", "2.0") }, "repo1");
+                auto repo2 = db.add_repo_from_packages(std::vector{ mkpkg("z", "2.0") }, "repo1");
 
                 SECTION("In a given repo")
                 {

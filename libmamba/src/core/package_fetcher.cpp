@@ -152,7 +152,7 @@ namespace mamba
                 cb.value()(success.transfer.downloaded_size);
             }
             m_needs_download = false;
-            m_downloaded_url = success.transfer.effective_url;
+            m_downloaded_url = m_package_info.package_url;
             return expected_t<void>();
         };
 
@@ -317,45 +317,47 @@ namespace mamba
     /*******************
      * Private methods *
      *******************/
-    bool PackageFetcher::is_local_package() const
-    {
-        return util::starts_with(m_package_info.package_url, "file://");
-    }
-
-    bool PackageFetcher::use_explicit_https_url() const
-    {
-        // This excludes OCI case, which uses explicitly a "oci://" scheme,
-        // but is resolved later to something starting with `oci_base_url`
-        constexpr std::string_view oci_base_url = "https://pkg-containers.githubusercontent.com/";
-        return util::starts_with(m_package_info.package_url, "https://")
-               && !util::starts_with(m_package_info.package_url, oci_base_url);
-    }
 
     const std::string& PackageFetcher::filename() const
     {
         return m_package_info.filename;
     }
 
+    bool PackageFetcher::use_oci() const
+    {
+        constexpr std::string_view oci_scheme = "oci://";
+        return util::starts_with(m_package_info.package_url, oci_scheme);
+    }
+
+    // NOTE
+    // In the general case (not fetching from an oci registry),
+    // `channel()` and `url_path()` are concatenated when passed to `HTTPMirror`
+    // and the channel is resolved if needed (using the channel alias).
+    // Therefore, `util::url_concat("", m_package_info.package_url)`
+    // and `util::url_concat(m_package_info.channel, m_package_info.platform,
+    // m_package_info.filename)` should be equivalent, except when an explicit url is used as a spec
+    // with `--override-channels` option.
+    // Hence, we are favoring the first option (returning "" and `m_package_info.package_url`
+    // to be concatenated), valid for all the mentioned cases used with `HTTPMirror`.
+    // In the case of fetching from oci registries (using `OCIMirror`),the actual url
+    // used is built differently, and returning `m_package_info.package_url` is not relevant
+    // (i.e oci://ghcr.io/<mirror>/<channel>/<platform>/<filename>).
     std::string PackageFetcher::channel() const
     {
-        if (is_local_package() || use_explicit_https_url())
+        if (use_oci())
         {
-            // Use explicit url or local package path
-            // to fetch package, leaving the channel empty.
-            return "";
+            return m_package_info.channel;
         }
-        return m_package_info.channel;
+        return "";
     }
 
     std::string PackageFetcher::url_path() const
     {
-        if (is_local_package() || use_explicit_https_url())
+        if (use_oci())
         {
-            // Use explicit url or local package path
-            // to fetch package.
-            return m_package_info.package_url;
+            return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }
-        return util::concat(m_package_info.platform, '/', m_package_info.filename);
+        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::url() const

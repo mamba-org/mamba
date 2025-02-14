@@ -101,8 +101,7 @@ namespace mamba
 
         struct CheckSumParams;
 
-        bool is_local_package() const;
-        bool use_explicit_https_url() const;
+        bool use_oci() const;
         const std::string& filename() const;
         std::string channel() const;
         std::string url_path() const;

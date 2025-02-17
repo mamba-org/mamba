@@ -29,7 +29,7 @@ namespace mamba
     {
         struct list_options
         {
-            bool base;
+            bool base = false;
         };
 
         void info_pretty_print(
@@ -93,105 +93,102 @@ namespace mamba
             if (options.base)
             {
                 std::cout << ctx.prefix_params.root_prefix.string() << std::endl;
+                return;
+            }
+
+            std::vector<std::tuple<std::string, nlohmann::json>> items;
+
+            items.push_back({ "libmamba version", version() });
+
+            if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
+            {
+                items.push_back({
+                    fmt::format("{} version", get_self_exe_path().stem().string()),
+                    ctx.command_params.caller_version,
+                });
+            }
+
+            items.push_back({ "curl version", curl_version() });
+            items.push_back({ "libarchive version", archive_version_details() });
+
+            items.push_back({ "envs directories", ctx.envs_dirs });
+            items.push_back({ "package cache", ctx.pkgs_dirs });
+
+            std::string name, location;
+            if (!ctx.prefix_params.target_prefix.empty())
+            {
+                name = env_name(ctx);
+                location = ctx.prefix_params.target_prefix.string();
             }
             else
             {
-                std::vector<std::tuple<std::string, nlohmann::json>> items;
-
-                items.push_back({ "libmamba version", version() });
-
-                if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
-                {
-                    items.push_back({
-                        fmt::format("{} version", get_self_exe_path().stem().string()),
-                        ctx.command_params.caller_version,
-                    });
-                }
-
-                items.push_back({ "curl version", curl_version() });
-                items.push_back({ "libarchive version", archive_version_details() });
-
-                items.push_back({ "envs directories", ctx.envs_dirs });
-                items.push_back({ "package cache", ctx.pkgs_dirs });
-
-                std::string name, location;
-                if (!ctx.prefix_params.target_prefix.empty())
-                {
-                    name = env_name(ctx);
-                    location = ctx.prefix_params.target_prefix.string();
-                }
-                else
-                {
-                    name = "None";
-                    location = "-";
-                }
-
-                if (auto prefix = util::get_env("CONDA_PREFIX");
-                    prefix == ctx.prefix_params.target_prefix)
-                {
-                    name += " (active)";
-                }
-                else if (fs::exists(ctx.prefix_params.target_prefix))
-                {
-                    if (!(fs::exists(ctx.prefix_params.target_prefix / "conda-meta")
-                          || (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)))
-                    {
-                        name += " (not env)";
-                    }
-                }
-                else
-                {
-                    name += " (not found)";
-                }
-
-                items.push_back({ "environment", name });
-                items.push_back({ "env location", location });
-
-                // items.insert( { "shell level", { 1 } });
-                items.push_back({
-                    "user config files",
-                    { util::path_concat(util::user_home_dir(), ".mambarc") },
-                });
-
-                std::vector<std::string> sources;
-                for (auto s : config.valid_sources())
-                {
-                    sources.push_back(s.string());
-                };
-                items.push_back({ "populated config files", sources });
-
-                std::vector<std::string> virtual_pkgs;
-                for (auto pkg : get_virtual_packages(ctx.platform))
-                {
-                    virtual_pkgs.push_back(
-                        util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
-                    );
-                }
-                items.push_back({ "virtual packages", virtual_pkgs });
-
-                // Always append context channels
-                std::vector<std::string> channel_urls;
-                using Credentials = specs::CondaURL::Credentials;
-                channel_urls.reserve(ctx.channels.size() * 2);  // Lower bound * (platform + noarch)
-                for (const auto& loc : ctx.channels)
-                {
-                    for (auto channel : channel_context.make_channel(loc))
-                    {
-                        for (auto url : channel.platform_urls())
-                        {
-                            channel_urls.push_back(std::move(url).str(Credentials::Remove));
-                        }
-                    }
-                }
-                items.push_back({ "channels", channel_urls });
-
-                items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
-
-                items.push_back({ "platform", ctx.platform });
-
-                info_json_print(items);
-                info_pretty_print(items, ctx.output_params);
+                name = "None";
+                location = "-";
             }
+
+            if (auto prefix = util::get_env("CONDA_PREFIX"); prefix == ctx.prefix_params.target_prefix)
+            {
+                name += " (active)";
+            }
+            else if (fs::exists(ctx.prefix_params.target_prefix))
+            {
+                if (!(fs::exists(ctx.prefix_params.target_prefix / "conda-meta")
+                      || (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)))
+                {
+                    name += " (not env)";
+                }
+            }
+            else
+            {
+                name += " (not found)";
+            }
+
+            items.push_back({ "environment", name });
+            items.push_back({ "env location", location });
+
+            // items.insert( { "shell level", { 1 } });
+            items.push_back({
+                "user config files",
+                { util::path_concat(util::user_home_dir(), ".mambarc") },
+            });
+
+            std::vector<std::string> sources;
+            for (auto s : config.valid_sources())
+            {
+                sources.push_back(s.string());
+            };
+            items.push_back({ "populated config files", sources });
+
+            std::vector<std::string> virtual_pkgs;
+            for (auto pkg : get_virtual_packages(ctx.platform))
+            {
+                virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
+                );
+            }
+            items.push_back({ "virtual packages", virtual_pkgs });
+
+            // Always append context channels
+            std::vector<std::string> channel_urls;
+            using Credentials = specs::CondaURL::Credentials;
+            channel_urls.reserve(ctx.channels.size() * 2);  // Lower bound * (platform + noarch)
+            for (const auto& loc : ctx.channels)
+            {
+                for (auto channel : channel_context.make_channel(loc))
+                {
+                    for (auto url : channel.platform_urls())
+                    {
+                        channel_urls.push_back(std::move(url).str(Credentials::Remove));
+                    }
+                }
+            }
+            items.push_back({ "channels", channel_urls });
+
+            items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
+
+            items.push_back({ "platform", ctx.platform });
+
+            info_json_print(items);
+            info_pretty_print(items, ctx.output_params);
         }
     }  // detail
 

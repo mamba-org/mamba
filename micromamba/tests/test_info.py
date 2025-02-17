@@ -6,8 +6,8 @@ from . import helpers
 
 
 @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_base(tmp_home, tmp_root_prefix, prefix_selection):
-    os.environ["CONDA_PREFIX"] = str(tmp_root_prefix)
+def test_base(tmp_home, tmp_root_prefix, prefix_selection, monkeypatch):
+    monkeypatch.setenv("CONDA_PREFIX", str(tmp_root_prefix))
 
     if prefix_selection == "prefix":
         infos = helpers.info("-p", tmp_root_prefix)
@@ -82,8 +82,8 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
 
 @pytest.mark.parametrize("base_flag", ["", "--base"])
 @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag):
-    os.environ["CONDA_PREFIX"] = str(tmp_root_prefix)
+def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag, monkeypatch):
+    monkeypatch.setenv("CONDA_PREFIX", str(tmp_root_prefix))
 
     if prefix_selection == "prefix":
         infos = helpers.info("-p", tmp_root_prefix, base_flag)
@@ -110,8 +110,8 @@ def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag)
         "platform",
     ]
     if base_flag == "--base":
-        print(infos)
         assert all(f"{i} :" not in infos for i in items)
-        assert os.path.exists(infos.strip())
+        base_environment_path = infos.strip()
+        assert os.path.exists(base_environment_path)
     else:
-        assert all(i in infos for i in items)
+        assert all(f"{i} :" in infos for i in items)

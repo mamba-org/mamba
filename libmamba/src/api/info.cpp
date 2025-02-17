@@ -27,7 +27,7 @@ namespace mamba
 {
     namespace detail
     {
-        struct list_options
+        struct InfoOptions
         {
             bool base = false;
         };
@@ -85,14 +85,23 @@ namespace mamba
             Context& ctx,
             ChannelContext& channel_context,
             const Configuration& config,
-            list_options options
+            InfoOptions options
         )
         {
             assert(&ctx == &config.context());
 
             if (options.base)
             {
-                std::cout << ctx.prefix_params.root_prefix.string() << std::endl;
+                if (ctx.output_params.json)
+                {
+                    auto obj = nlohmann::json();
+                    obj["base"] = ctx.prefix_params.root_prefix.string();
+                    std::cout << obj << std::endl;
+                }
+                else
+                {
+                    std::cout << ctx.prefix_params.root_prefix.string() << std::endl;
+                }
                 return;
             }
 
@@ -203,7 +212,7 @@ namespace mamba
             );
         config.load();
 
-        detail::list_options options;
+        detail::InfoOptions options;
         options.base = config.at("base").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());

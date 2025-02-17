@@ -71,7 +71,6 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
         else:
             expected_name = name + " (not found)"
         location = prefix
-    print(infos)
 
     assert f"envs directories : {tmp_root_prefix / 'envs'}" in infos
     assert f"environment : {expected_name}" in infos
@@ -81,16 +80,19 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
 
 
 @pytest.mark.parametrize("base_flag", ["", "--base"])
+@pytest.mark.parametrize("json_flag", ["", "--json"])
 @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag, monkeypatch):
+def test_base_subcommand(
+    tmp_home, tmp_root_prefix, prefix_selection, base_flag, json_flag, monkeypatch
+):
     monkeypatch.setenv("CONDA_PREFIX", str(tmp_root_prefix))
 
     if prefix_selection == "prefix":
-        infos = helpers.info("-p", tmp_root_prefix, base_flag)
+        infos = helpers.info("-p", tmp_root_prefix, base_flag, json_flag)
     elif prefix_selection == "name":
-        infos = helpers.info("-n", "base", base_flag)
+        infos = helpers.info("-n", "base", base_flag, json_flag)
     else:
-        infos = helpers.info(base_flag)
+        infos = helpers.info(base_flag, json_flag)
 
     items = [
         "libmamba version",
@@ -110,8 +112,16 @@ def test_base_subcommand(tmp_home, tmp_root_prefix, prefix_selection, base_flag,
         "platform",
     ]
     if base_flag == "--base":
-        assert all(f"{i} :" not in infos for i in items)
-        base_environment_path = infos.strip()
+        if json_flag == "--json":
+            assert all(i not in infos.keys() for i in items)
+            base_environment_path = infos["base"].strip()
+        else:
+            assert all(f"{i} :" not in infos for i in items)
+            base_environment_path = infos.strip()
         assert os.path.exists(base_environment_path)
+        assert base_environment_path == str(tmp_root_prefix)
     else:
-        assert all(f"{i} :" in infos for i in items)
+        if json_flag == "--json":
+            assert all(i in infos.keys() for i in items)
+        else:
+            assert all(f"{i} :" in infos for i in items)

@@ -40,6 +40,7 @@ jobs:
             --preset mamba-unix-shared-${{ inputs.build_type }}  \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -D MAMBA_WARNING_AS_ERROR=ON \
             -D BUILD_LIBMAMBAPY=OFF \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           cmake --build build/ --parallel

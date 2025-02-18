@@ -50,7 +50,8 @@ namespace mamba::solver::resolvo
         ) const -> std::ostream&;
 
         [[nodiscard]] auto
-        explain_problems(PackageDatabase& pool, const ProblemsMessageFormat& format) const -> std::string;
+        explain_problems(PackageDatabase& pool, const ProblemsMessageFormat& format) const
+            -> std::string;
 
     private:
 

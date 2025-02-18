@@ -17,8 +17,8 @@ namespace mamba::solver::resolvo
         using Outcome = std::variant<Solution, UnSolvable>;
 
         [[nodiscard]] auto solve(PackageDatabase& pool, Request&& request) -> expected_t<Outcome>;
-        [[nodiscard]] auto
-        solve(PackageDatabase& pool, const Request& request) -> expected_t<Outcome>;
+        [[nodiscard]] auto solve(PackageDatabase& pool, const Request& request)
+            -> expected_t<Outcome>;
 
     private:
 

@@ -90,6 +90,7 @@ set(
     src/core/test_shell_init.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
+    src/core/test_transaction_context.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp
 )

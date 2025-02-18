@@ -154,31 +154,52 @@ namespace mamba
             if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
-                std::vector<std::string> keys;
 
-                keys = get_record_keys(options, all_records);
-
-                for (const auto& key : keys)
+                if (options.revisions)
                 {
-                    auto obj = nlohmann::json();
-                    const auto& pkg_info = all_records.find(key)->second;
+                    auto user_requests = prefix_data.history().get_user_requests();
 
-                    if (accept_package(pkg_info))
+                    for (auto r : user_requests)
                     {
-                        auto channels = channel_context.make_channel(pkg_info.package_url);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                        {
+                            auto obj = nlohmann::json();
 
-                        obj["channel"] = get_formatted_channel(pkg_info, channels.front());
-                        obj["base_url"] = get_base_url(pkg_info, channels.front());
-                        obj["url"] = pkg_info.package_url;
-                        obj["md5"] = pkg_info.md5;
-                        obj["build_number"] = pkg_info.build_number;
-                        obj["build_string"] = pkg_info.build_string;
-                        obj["dist_name"] = pkg_info.str();
-                        obj["name"] = pkg_info.name;
-                        obj["platform"] = pkg_info.platform;
-                        obj["version"] = pkg_info.version;
-                        jout.push_back(obj);
+                            obj["date"] = r.date;
+                            obj["install"] = r.link_dists;
+                            obj["remove"] = r.unlink_dists;
+                            obj["rev"] = r.revision_num;
+                            jout.push_back(obj);
+                        }
+                    }
+                }
+                else
+                {
+                    std::vector<std::string> keys;
+                    keys = get_record_keys(options, all_records);
+
+                    for (const auto& key : keys)
+                    {
+                        auto obj = nlohmann::json();
+                        const auto& pkg_info = all_records.find(key)->second;
+
+                        if (accept_package(pkg_info))
+                        {
+                            auto channels = channel_context.make_channel(pkg_info.package_url);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+
+                            obj["channel"] = get_formatted_channel(pkg_info, channels.front());
+                            obj["base_url"] = get_base_url(pkg_info, channels.front());
+                            obj["url"] = pkg_info.package_url;
+                            obj["md5"] = pkg_info.md5;
+                            obj["build_number"] = pkg_info.build_number;
+                            obj["build_string"] = pkg_info.build_string;
+                            obj["dist_name"] = pkg_info.str();
+                            obj["name"] = pkg_info.name;
+                            obj["platform"] = pkg_info.platform;
+                            obj["version"] = pkg_info.version;
+                            jout.push_back(obj);
+                        }
                     }
                 }
                 std::cout << jout.dump(4) << std::endl;

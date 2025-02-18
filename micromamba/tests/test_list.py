@@ -213,29 +213,40 @@ def test_regex(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
 
 
 @pytest.mark.parametrize("revisions_flag", ["", "--revisions"])
-def test_revisions(revisions_flag):
+@pytest.mark.parametrize("json_flag", ["", "--json"])
+def test_revisions(revisions_flag, json_flag):
     env_name = "myenv"
 
     helpers.create("-n", env_name, "python=3.8")
     helpers.install("-n", env_name, "xeus=2.0")
     helpers.update("-n", env_name, "xeus=4.0")
     helpers.uninstall("-n", env_name, "xeus")
-    res = helpers.umamba_list("-n", env_name, revisions_flag)
+    res = helpers.umamba_list("-n", env_name, revisions_flag, json_flag)
 
     if revisions_flag == "--revisions":
-        revisions = re.split(r"\d{4}-\d{2}-\d{2}", res)[1:]
-        assert all("rev" in revisions[i] for i in range(len(revisions)))
-        assert "python-3.8" in revisions[0]
-        assert revisions[0].count("+") == len(revisions[0].strip().split("\n")) - 1
-        rev_2 = revisions[2].split("\n")[1:]
-        assert "xeus-2.0" in revisions[2]
-        assert "xeus-4.0" in revisions[2]
-        for line in rev_2:
-            if "xeus-2.0" in line:
-                assert line.startswith("-")
-            elif "xeus-4.0" in line:
-                assert line.startswith("+")
-        assert "xeus-4.0" in revisions[3]
-        assert "+" not in revisions[3]
+        if json_flag == "--json":
+            # print(res)
+            assert all(res[i]["rev"] == i for i in range(len(res)))
+            assert any("python-3.8" in i for i in res[0]["install"])
+            assert any("xeus-2.0" in i for i in res[2]["remove"])
+            assert any("xeus-4.0" in i for i in res[2]["install"])
+            assert any("xeus-4.0" in i for i in res[3]["remove"])
+            assert len(res[3]["install"]) == 0
+        else:
+            # Splitting on dates (e.g. 2025-02-18) which are at the beginning of each new revision
+            revisions = re.split(r"\d{4}-\d{2}-\d{2}", res)[1:]
+            assert all("rev" in revisions[i] for i in range(len(revisions)))
+            assert "python-3.8" in revisions[0]
+            assert revisions[0].count("+") == len(revisions[0].strip().split("\n")) - 1
+            rev_2 = revisions[2].split("\n")[1:]
+            assert "xeus-2.0" in revisions[2]
+            assert "xeus-4.0" in revisions[2]
+            for line in rev_2:
+                if "xeus-2.0" in line:
+                    assert line.startswith("-")
+                elif "xeus-4.0" in line:
+                    assert line.startswith("+")
+            assert "xeus-4.0" in revisions[3]
+            assert "+" not in revisions[3]
     else:
         assert "xeus" not in res

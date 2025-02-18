@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import pathlib
+import sys
 
 import skbuild
 import skbuild.constants
@@ -23,6 +24,13 @@ def libmambapy_version():
     return ver.__version__
 
 
+def get_cmake_args():
+    cmake_args = [f"-DMAMBA_INSTALL_PYTHON_EXT_LIBDIR={CMAKE_INSTALL_DIR()}/src/libmambapy"]
+    if sys.platform != "win32" and sys.platform != "cygwin":
+        cmake_args += ["-DMAMBA_WARNING_AS_ERROR=ON"]
+    return cmake_args
+
+
 skbuild.setup(
     version=libmambapy_version(),
     packages=["libmambapy", "libmambapy.bindings", "libmambapy.solver"],
@@ -31,7 +39,5 @@ skbuild.setup(
     cmake_languages=["CXX"],
     cmake_minimum_required_version="3.17",
     cmake_install_dir="src/libmambapy",  # Must match package_dir layout
-    cmake_args=[
-        f"-DMAMBA_INSTALL_PYTHON_EXT_LIBDIR={CMAKE_INSTALL_DIR()}/src/libmambapy",
-    ],
+    cmake_args=get_cmake_args(),
 )

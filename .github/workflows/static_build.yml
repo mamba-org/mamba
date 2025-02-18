@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - feat/*
   pull_request:
     branches:
       - main
+      - feat/*
     paths-ignore:
       - "docs/**"
       - "mamba/**"

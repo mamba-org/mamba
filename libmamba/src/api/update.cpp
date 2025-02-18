@@ -200,6 +200,14 @@ namespace mamba
         auto outcome = solver::libsolv::Solver().solve(db, request).value();
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
+            unsolvable->explain_problems_to(
+                db,
+                LOG_ERROR,
+                {
+                    /* .unavailable= */ ctx.graphics_params.palette.failure,
+                    /* .available= */ ctx.graphics_params.palette.success,
+                }
+            );
             if (ctx.output_params.json)
             {
                 Console::instance().json_write({ { "success", false },

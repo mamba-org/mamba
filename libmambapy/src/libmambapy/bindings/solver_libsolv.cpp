@@ -5,17 +5,14 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <pybind11/functional.h>
-#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/solver/parameters.hpp"
 #include "mamba/solver/repo_info.hpp"
 
-#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "path_caster.hpp"

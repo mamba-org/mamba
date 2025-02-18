@@ -22,6 +22,12 @@ namespace mamba
         class Database;
     }
 
+    namespace solver::resolvo
+    {
+        class PackageDatabase;
+    }
+
+    // Libsolv
     void add_spdlog_logger_to_database(solver::libsolv::Database& db);
 
     auto load_subdir_in_database(  //
@@ -33,6 +39,20 @@ namespace mamba
     auto load_installed_packages_in_database(
         const Context& ctx,
         solver::libsolv::Database& db,
+        const PrefixData& prefix
+    ) -> solver::RepoInfo;
+
+    // Resolvo
+
+    auto load_subdir_in_resolvo_database(
+        const Context& ctx,
+        solver::resolvo::PackageDatabase& db,
+        const SubdirData& subdir
+    ) -> expected_t<solver::RepoInfo>;
+
+    auto load_installed_packages_in_resolvo_database(
+        const Context& ctx,
+        solver::resolvo::PackageDatabase& db,
         const PrefixData& prefix
     ) -> solver::RepoInfo;
 }

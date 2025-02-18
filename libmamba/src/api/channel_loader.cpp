@@ -12,8 +12,8 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/resolvo/database.hpp"
 #include "mamba/solver/repo_info.hpp"
+#include "mamba/solver/resolvo/database.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -418,7 +418,7 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_database(ctx, pool, subdir)
+                load_subdir_in_resolvo_database(ctx, pool, subdir)
                     //                .transform([&](solver::libsolv::RepoInfo&& repo)
                     //                           { pool.set_repo_priority(repo, priorities[i]); })
                     .or_else(

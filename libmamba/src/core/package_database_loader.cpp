@@ -28,6 +28,8 @@
 
 namespace mamba
 {
+    // Libsolv
+
     void add_spdlog_logger_to_database(solver::libsolv::Database& db)
     {
         db.set_logger(
@@ -146,5 +148,23 @@ namespace mamba
         auto repo = db.add_repo_from_packages(pkgs, "installed", solver::PipAsPythonDependency::No);
         db.set_installed_repo(repo);
         return repo;
+    }
+
+    // Resolvo
+
+    auto load_subdir_in_resolvo_database(
+        const Context& ctx,
+        solver::resolvo::PackageDatabase& db,
+        const SubdirData& subdir
+    ) -> expected_t<solver::RepoInfo>
+    {
+    }
+
+    auto load_installed_packages_in_resolvo_database(
+        const Context& ctx,
+        solver::resolvo::PackageDatabase& db,
+        const PrefixData& prefix
+    ) -> solver::RepoInfo
+    {
     }
 }

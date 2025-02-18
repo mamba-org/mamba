@@ -1304,12 +1304,9 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda",
     ],
 )
-def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
+def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
     """Attempts to install a package using an explicit url."""
-    empty_root_prefix = tmp_path / "empty-root-create-from-explicit-url"
     env_name = "env-create-from-explicit-url"
-
-    os.environ["MAMBA_ROOT_PREFIX"] = str(empty_root_prefix)
 
     res = helpers.create(
         spec, "--no-env", "-n", env_name, "--override-channels", "--json", default_channel=False
@@ -1337,12 +1334,9 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
         assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
 
 
-def test_create_from_mirror(tmp_home, tmp_root_prefix, tmp_path):
+def test_create_from_mirror(tmp_home, tmp_root_prefix):
     """Attempts to install a package using an explicit channel/mirror."""
-    empty_root_prefix = tmp_path / "empty-root-create-from-mirror"
     env_name = "env-create-from-mirror"
-
-    os.environ["MAMBA_ROOT_PREFIX"] = str(empty_root_prefix)
 
     res = helpers.create(
         "cpp-tabulate",

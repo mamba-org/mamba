@@ -63,41 +63,43 @@ find_actions_with_name(const Solution& solution, std::string_view name)
     return out;
 }
 
-auto find_actions(const Solution& solution) -> std::vector<Solution::Action>
+auto
+find_actions(const Solution& solution) -> std::vector<Solution::Action>
 {
     auto out = std::vector<Solution::Action>();
     for (const auto& action : solution.actions)
     {
         std::visit(
-        [&](const auto& act)
-        {
-            using Act = std::decay_t<decltype(act)>;
-            if constexpr (Solution::has_install_v<Act>)
+            [&](const auto& act)
             {
-                out.push_back(act);
-            }
-        },
-                action
+                using Act = std::decay_t<decltype(act)>;
+                if constexpr (Solution::has_install_v<Act>)
+                {
+                    out.push_back(act);
+                }
+            },
+            action
         );
     }
     return out;
 }
 
-auto extract_package_to_install(const Solution& solution) -> std::vector<specs::PackageInfo>
+auto
+extract_package_to_install(const Solution& solution) -> std::vector<specs::PackageInfo>
 {
     auto out = std::vector<specs::PackageInfo>();
     for (const auto& action : find_actions(solution))
     {
         std::visit(
-        [&](const auto& act)
-        {
-            using Act = std::decay_t<decltype(act)>;
-            if constexpr (Solution::has_install_v<Act>)
+            [&](const auto& act)
             {
-                out.push_back(act.install);
-            }
-        },
-                action
+                using Act = std::decay_t<decltype(act)>;
+                if constexpr (Solution::has_install_v<Act>)
+                {
+                    out.push_back(act.install);
+                }
+            },
+            action
         );
     }
     return out;

@@ -90,22 +90,16 @@ namespace mamba
         {
             assert(&ctx == &config.context());
 
+            std::vector<std::tuple<std::string, nlohmann::json>> items;
+
             if (options.base)
             {
-                if (ctx.output_params.json)
-                {
-                    auto obj = nlohmann::json();
-                    obj["base"] = ctx.prefix_params.root_prefix.string();
-                    std::cout << obj << std::endl;
-                }
-                else
-                {
-                    std::cout << ctx.prefix_params.root_prefix.string() << std::endl;
-                }
+                items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
+
+                info_json_print(items);
+                info_pretty_print(items, ctx.output_params);
                 return;
             }
-
-            std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             items.push_back({ "libmamba version", version() });
 

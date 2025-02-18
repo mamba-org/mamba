@@ -108,19 +108,21 @@ def test_base_subcommand(
         "user config files",
         "virtual packages",
         "channels",
-        "base environment",
         "platform",
     ]
     if base_flag == "--base":
         if json_flag == "--json":
             assert all(i not in infos.keys() for i in items)
-            base_environment_path = infos["base"].strip()
+            base_environment_path = infos["base environment"].strip()
         else:
-            assert all(f"{i} :" not in infos for i in items)
-            base_environment_path = infos.strip()
+            assert all(
+                (f"{i} :" not in infos) | (f"\n{i} :" not in infos) for i in items
+            )  # f"\n{i} :" is to handle the case of the "environment" item
+            base_environment_path = infos.replace("base environment :", "").strip()
         assert os.path.exists(base_environment_path)
         assert base_environment_path == str(tmp_root_prefix)
     else:
+        items += ["base environment"]
         if json_flag == "--json":
             assert all(i in infos.keys() for i in items)
         else:

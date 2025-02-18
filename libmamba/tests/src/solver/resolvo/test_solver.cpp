@@ -1480,7 +1480,9 @@ TEST_CASE("Test consistency with libsolv (environment creation)")
 
     SECTION("scikit-learn explicit")
     {
-        std::vector<std::string> specs_to_install = { "scikit-learn==1.6.1=py313h8ef605b_0" };
+        // Note: currently, pip is added to the environment when python is added
+        // we add it here to make resolvo's results consistent with libsolv's.
+        std::vector<std::string> specs_to_install = { "scikit-learn==1.6.1=py313h8ef605b_0", "pip" };
 
         std::vector<PackageInfo> known_resolution = {
             PackageInfo("_libgcc_mutex", "0.1", "conda_forge", 0),

@@ -82,7 +82,7 @@ namespace mamba::fs
     std::filesystem::path normalized_separators(std::filesystem::path path);
 
     // Returns a UTF-8 string given a standard path.
-    std::string to_utf8(const std::filesystem::path& path, Utf8Options utf8_options);
+    std::string to_utf8(const std::filesystem::path& path, Utf8Options utf8_options = {});
 
     // Returns standard path given a UTF-8 string.
     std::filesystem::path from_utf8(std::string_view u8string);

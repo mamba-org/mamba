@@ -30,7 +30,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& pool,
+        solver::libsolv::Database& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>;
 

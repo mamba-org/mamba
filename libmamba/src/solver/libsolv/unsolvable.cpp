@@ -42,9 +42,9 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
-    auto UnSolvable::problems(Database& db) const -> std::vector<std::string>
+    auto UnSolvable::problems(Database& database) const -> std::vector<std::string>
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = Database::Impl::get(database);
         std::vector<std::string> problems;
         solver().for_each_problem_id([&](solv::ProblemId pb)
                                      { problems.emplace_back(solver().problem_to_string(pool, pb)); }
@@ -52,9 +52,9 @@ namespace mamba::solver::libsolv
         return problems;
     }
 
-    auto UnSolvable::problems_to_str(Database& db) const -> std::string
+    auto UnSolvable::problems_to_str(Database& database) const -> std::string
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = Database::Impl::get(database);
         std::stringstream problems;
         problems << "Encountered problems while solving:\n";
         solver().for_each_problem_id(
@@ -64,9 +64,9 @@ namespace mamba::solver::libsolv
         return problems.str();
     }
 
-    auto UnSolvable::all_problems_to_str(Database& db) const -> std::string
+    auto UnSolvable::all_problems_to_str(Database& database) const -> std::string
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = Database::Impl::get(database);
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
@@ -565,32 +565,32 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto UnSolvable::problems_graph(const Database& pool) const -> ProblemsGraph
+    auto UnSolvable::problems_graph(const Database& database) const -> ProblemsGraph
     {
         assert(m_solver != nullptr);
-        return ProblemsGraphCreator(Database::Impl::get(pool), *m_solver).problem_graph();
+        return ProblemsGraphCreator(Database::Impl::get(database), *m_solver).problem_graph();
     }
 
     auto UnSolvable::explain_problems_to(
-        Database& pool,
+        Database& database,
         std::ostream& out,
         const ProblemsMessageFormat& format
     ) const -> std::ostream&
     {
         out << "Could not solve for environment specs\n";
-        const auto pbs = problems_graph(pool);
+        const auto pbs = problems_graph(database);
         const auto pbs_simplified = simplify_conflicts(pbs);
         const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
         print_problem_tree_msg(out, cp_pbs, format);
         return out;
     }
 
-    auto UnSolvable::explain_problems(Database& pool, const ProblemsMessageFormat& format) const
+    auto UnSolvable::explain_problems(Database& database, const ProblemsMessageFormat& format) const
         -> std::string
 
     {
         std::stringstream ss;
-        explain_problems_to(pool, ss, format);
+        explain_problems_to(database, ss, format);
         return ss.str();
     }
 }

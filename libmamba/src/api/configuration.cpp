@@ -1898,6 +1898,16 @@ namespace mamba
                    .set_env_var_names()
                    .description("Report all output as json"));
 
+
+        insert(Configurable("conda_info_compat", &m_conda_info_compat)
+                   .group("Output, Prompt and Flow Control")
+                   .set_env_var_names()
+                   .set_rc_configurable()
+                   .description(
+                       "Set the output format of info sub-command to be compatible with the conda format"
+                   ));
+
+
         insert(Configurable("changeps1", &m_context.change_ps1)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
@@ -2698,4 +2708,15 @@ namespace mamba
             return dump_yaml(opts, names, get_grouped_config());
         }
     }
+
+    void Configuration::enable_conda_info_compat()
+    {
+        m_conda_info_compat = true;
+    }
+
+    bool Configuration::is_conda_info_compat()
+    {
+        return m_conda_info_compat;
+    }
+
 }

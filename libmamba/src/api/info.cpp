@@ -8,6 +8,7 @@
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
@@ -35,8 +36,14 @@ namespace mamba
         config.load();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::print_info(config.context(), channel_context, config);
-
+        if (config.is_conda_info_compat())
+        {
+            detail::print_conda_compat_info(config.context(), channel_context, config);
+        }
+        else
+        {
+            detail::print_info(config.context(), channel_context, config);
+        }
         config.operation_teardown();
     }
 
@@ -188,5 +195,104 @@ namespace mamba
             info_json_print(items);
             info_pretty_print(items, ctx.output_params);
         }
+
+        void
+        print_conda_compat_info(Context& ctx, ChannelContext& channel_context, const Configuration& config)
+        {
+            assert(&ctx == &config.context());
+            std::vector<std::tuple<std::string, nlohmann::json>> items;
+            EnvironmentsManager env_manager{ ctx };
+
+            items.push_back({ "libmamba_version", version() });
+
+            if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
+            {
+                items.push_back({
+                    fmt::format("{}_version", get_self_exe_path().stem().string()),
+                    ctx.command_params.caller_version,
+                });
+            }
+
+            items.push_back({ "curl_version", curl_version() });
+            items.push_back({ "libarchive_version", archive_version_details() });
+
+            items.push_back({ "envs_dirs", ctx.envs_dirs });
+            items.push_back({ "pkgs_dirs", ctx.pkgs_dirs });
+
+            std::vector<std::string> envs;
+            for (auto& env : env_manager.list_all_known_prefixes())
+            {
+                envs.push_back(env.string());
+            }
+            items.push_back({ "envs", envs });
+
+            std::string name, location;
+            if (!ctx.prefix_params.target_prefix.empty())
+            {
+                name = env_name(ctx);
+                location = ctx.prefix_params.target_prefix.string();
+            }
+            else
+            {
+                name = "None";
+                location = "-";
+            }
+
+            items.push_back({ "active_prefix_name", name });
+            items.push_back({ "active_prefix", location });
+
+            // items.insert( { "shell level", { 1 } });
+            items.push_back({
+                "rc_path",
+                { util::path_concat(util::user_home_dir(), ".mambarc") },
+            });
+
+            std::vector<std::string> sources;
+            for (auto s : config.valid_sources())
+            {
+                sources.push_back(s.string());
+            };
+            items.push_back({ "populated_config_files", sources });
+
+            std::vector<std::string> virtual_pkgs;
+            for (auto pkg : get_virtual_packages(ctx))
+            {
+                virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
+                );
+            }
+            items.push_back({ "virtual_pkgs", virtual_pkgs });
+
+            // Always append context channels
+            std::vector<std::string> channel_urls;
+            using Credentials = specs::CondaURL::Credentials;
+            channel_urls.reserve(ctx.channels.size() * 2);  // Lower bound * (platform + noarch)
+            for (const auto& loc : ctx.channels)
+            {
+                for (auto channel : channel_context.make_channel(loc))
+                {
+                    for (auto url : channel.platform_urls())
+                    {
+                        channel_urls.push_back(std::move(url).str(Credentials::Remove));
+                    }
+                }
+            }
+
+            if (channel_urls.size() == 0)
+            {
+                items.push_back({ "channels", ctx.default_channels });
+            }
+            else
+            {
+                items.push_back({ "channels", channel_urls });
+            }
+
+            items.push_back({ "root_prefix", ctx.prefix_params.root_prefix.string() });
+
+            items.push_back({ "platform", ctx.platform });
+
+            info_json_print(items);
+            info_pretty_print(items, ctx.output_params);
+        }
     }  // detail
+
 }  // mamba

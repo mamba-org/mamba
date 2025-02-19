@@ -281,8 +281,6 @@ def test_target_prefix(
     else:
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
 
-    # TODO: Remove this call to `os.makedirs` once
-    # https://github.com/mamba-org/mamba/issues/3790 is fixed
     if root_prefix_env_exists:
         os.makedirs(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs", exist_ok=True)
 
@@ -732,8 +730,6 @@ def test_root_prefix_precedence(
         if set_in_condarc:
             f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
 
-    # TODO: Remove this call to `os.makedirs` once
-    # https://github.com/mamba-org/mamba/issues/3790 is fixed
     for envs_folder in (condarc_envs_dirs, conda_envs_dirs, cli_provided_root, mamba_root_prefix):
         os.makedirs(envs_folder, exist_ok=True)
 

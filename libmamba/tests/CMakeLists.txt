@@ -85,6 +85,7 @@ set(
     src/core/test_invoke.cpp
     src/core/test_lockfile.cpp
     src/core/test_output.cpp
+    src/core/test_package_fetcher.cpp
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp

@@ -497,12 +497,13 @@ namespace mamba
     #ask mamba how to setup the environment and set the environment
     (^($env.MAMBA_EXE) shell activate --shell nu $name
       | str replace --regex '\s+' '' --all
-      | split row ";"
+      | split row (if $nu.os-info.name == "windows" { ";" } else { ":" })
       | parse --regex '(.*)=(.+)'
       | transpose --header-row
       | into record
       | load-env
     )
+    $env.PATH = $env.PATH | split row (char esep)
     # update prompt
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
@@ -515,7 +516,7 @@ namespace mamba
     if $env.CONDA_PROMPT_MODIFIER? != null {
       # unset set variables
       for x in (^$env.MAMBA_EXE shell deactivate --shell nu
-              | split row ";") {
+              | split row (if $nu.os-info.name == "windows" { ";" } else { ":" }) {
           if ("hide-env" in $x) {
             hide-env ($x | parse "hide-env {var}").var.0
           } else if $x != "" {

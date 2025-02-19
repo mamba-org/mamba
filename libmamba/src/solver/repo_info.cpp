@@ -7,10 +7,10 @@
 #include <string_view>
 #include <type_traits>
 
-#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "solv-cpp/repo.hpp"
 
-namespace mamba::solver::libsolv
+namespace mamba::solver
 {
     RepoInfo::RepoInfo(::Repo* repo)
         : m_ptr(repo)

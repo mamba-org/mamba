@@ -23,6 +23,7 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/resolvo/solver.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -379,6 +380,59 @@ namespace mamba
 
     namespace
     {
+        void install_specs_resolvo_impl(
+            Context& ctx,
+            ChannelContext& channel_context,
+            const Configuration& config,
+            const std::vector<std::string>& specs,
+            bool create_env,
+            bool remove_prefix_on_failure,
+            bool is_retry
+        )
+        {
+            assert(&config.context() == &ctx);
+
+            auto& no_pin = config.at("no_pin").value<bool>();
+            auto& no_py_pin = config.at("no_py_pin").value<bool>();
+            auto& freeze_installed = config.at("freeze_installed").value<bool>();
+            auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
+
+            if (ctx.prefix_params.target_prefix.empty())
+            {
+                throw std::runtime_error("No active target prefix");
+            }
+            if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
+            {
+                throw std::runtime_error(fmt::format(
+                    "Prefix does not exist at: {}",
+                    ctx.prefix_params.target_prefix.string()
+                ));
+            }
+
+            MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
+
+            // add channels from specs
+            for (const auto& s : specs)
+            {
+                if (auto ms = specs::MatchSpec::parse(s); ms && ms->channel().has_value())
+                {
+                    ctx.channels.push_back(ms->channel()->str());
+                }
+            }
+
+            if (ctx.channels.empty() && !ctx.offline)
+            {
+                LOG_WARNING << "No 'channels' specified";
+            }
+
+            solver::resolvo::PackageDatabase db{ channel_context.params() };
+            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+            if (!exp_load)
+            {
+                throw std::runtime_error(exp_load.error().what());
+            }
+        }
+
         void install_specs_impl(
             Context& ctx,
             ChannelContext& channel_context,
@@ -574,6 +628,21 @@ namespace mamba
         bool remove_prefix_on_failure
     )
     {
+        // Check if the MAMBA_USE_RESOLVO env var is set
+        if (const char* use_resolvo = std::getenv("MAMBA_USE_RESOLVO");
+            use_resolvo && std::string(use_resolvo) == "1")
+        {
+            return install_specs_resolvo_impl(
+                ctx,
+                channel_context,
+                config,
+                specs,
+                create_env,
+                remove_prefix_on_failure,
+                false
+            );
+        }
+
         return install_specs_impl(
             ctx,
             channel_context,

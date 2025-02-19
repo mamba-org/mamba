@@ -5,16 +5,14 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <pybind11/functional.h>
-#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/parameters.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
+#include "mamba/solver/parameters.hpp"
+#include "mamba/solver/repo_info.hpp"
 
-#include "bind_utils.hpp"
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "path_caster.hpp"
@@ -25,96 +23,8 @@ namespace mambapy
     {
         namespace py = pybind11;
         using namespace mamba;
+        using namespace mamba::solver;
         using namespace mamba::solver::libsolv;
-
-        py::enum_<RepodataParser>(m, "RepodataParser")
-            .value("Mamba", RepodataParser::Mamba)
-            .value("Libsolv", RepodataParser::Libsolv)
-            .def(py::init(&enum_from_str<RepodataParser>));
-        py::implicitly_convertible<py::str, RepodataParser>();
-
-        py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
-            .value("No", PipAsPythonDependency::No)
-            .value("Yes", PipAsPythonDependency::Yes)
-            .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
-        py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
-
-        py::enum_<PackageTypes>(m, "PackageTypes")
-            .value("CondaOnly", PackageTypes::CondaOnly)
-            .value("TarBz2Only", PackageTypes::TarBz2Only)
-            .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
-            .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2)
-            .def(py::init(&enum_from_str<PackageTypes>));
-        py::implicitly_convertible<py::str, PackageTypes>();
-
-        py::enum_<VerifyPackages>(m, "VerifyPackages")
-            .value("No", VerifyPackages::No)
-            .value("Yes", VerifyPackages::Yes)
-            .def(py::init([](bool val) { return static_cast<VerifyPackages>(val); }));
-        py::implicitly_convertible<py::bool_, VerifyPackages>();
-
-        py::enum_<LogLevel>(m, "LogLevel")
-            .value("Debug", LogLevel::Debug)
-            .value("Warning", LogLevel::Warning)
-            .value("Error", LogLevel::Error)
-            .value("Fatal", LogLevel::Fatal)
-            .def(py::init(&enum_from_str<LogLevel>));
-        py::implicitly_convertible<py::bool_, LogLevel>();
-
-        py::class_<Priorities>(m, "Priorities")
-            .def(
-                py::init(
-                    [](int priority, int subpriority) -> Priorities
-                    {
-                        return {
-                            /* .priority= */ priority,
-                            /* .subpriority= */ subpriority,
-                        };
-                    }
-                ),
-                py::arg("priority") = 0,
-                py::arg("subpriority") = 0
-            )
-            .def_readwrite("priority", &Priorities::priority)
-            .def_readwrite("subpriority", &Priorities::subpriority)
-            .def(py::self == py::self)
-            .def(py::self != py::self)
-            .def("__copy__", &copy<Priorities>)
-            .def("__deepcopy__", &deepcopy<Priorities>, py::arg("memo"));
-
-        py::class_<RepodataOrigin>(m, "RepodataOrigin")
-            .def(
-                py::init(
-                    [](std::string_view url, std::string_view etag, std::string_view mod) -> RepodataOrigin
-                    {
-                        return {
-                            /* .url= */ std::string(url),
-                            /* .etag= */ std::string(etag),
-                            /* .mod= */ std::string(mod),
-                        };
-                    }
-                ),
-                py::arg("url") = "",
-                py::arg("etag") = "",
-                py::arg("mod") = ""
-            )
-            .def_readwrite("url", &RepodataOrigin::url)
-            .def_readwrite("etag", &RepodataOrigin::etag)
-            .def_readwrite("mod", &RepodataOrigin::mod)
-            .def(py::self == py::self)
-            .def(py::self != py::self)
-            .def("__copy__", &copy<RepodataOrigin>)
-            .def("__deepcopy__", &deepcopy<RepodataOrigin>, py::arg("memo"));
-
-        py::class_<RepoInfo>(m, "RepoInfo")
-            .def_property_readonly("id", &RepoInfo::id)
-            .def_property_readonly("name", &RepoInfo::name)
-            .def_property_readonly("priority", &RepoInfo::priority)
-            .def("package_count", &RepoInfo::package_count)
-            .def(py::self == py::self)
-            .def(py::self != py::self)
-            .def("__copy__", &copy<RepoInfo>)
-            .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
 
         py::class_<Database>(m, "Database")
             .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
@@ -169,7 +79,7 @@ namespace mambapy
             .def("package_count", &Database::package_count)
             .def(
                 "packages_in_repo",
-                [](const Database& db, RepoInfo repo)
+                [](const Database& db, solver::RepoInfo repo)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.

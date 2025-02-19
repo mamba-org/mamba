@@ -21,10 +21,10 @@
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/libsolv/unsolvable.hpp"
 #include "mamba/solver/problems_graph.hpp"
+#include "mamba/solver/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 

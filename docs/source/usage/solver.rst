@@ -26,7 +26,7 @@ Populating the Package Database
 -------------------------------
 The first thing needed is a |Database| of all the packages and their dependencies.
 Packages are organised in repositories, described by a
-:cpp:type:`RepoInfo <mamba::solver::libsolv::RepoInfo>`.
+:cpp:type:`RepoInfo <mamba::solver::RepoInfo>`.
 This serves to resolve explicit channel requirements or channel priority.
 As such, the database constructor takes a set of
 :cpp:type:`ChannelResolveParams <mamba::specs::ChannelResolveParams>`

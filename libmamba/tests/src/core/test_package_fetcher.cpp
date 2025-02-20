@@ -24,17 +24,15 @@ namespace
             auto pkg_info = specs::PackageInfo::from_url(url).value();
 
             PackageFetcher pkg_fetcher{ pkg_info, package_caches };
-            REQUIRE(pkg_fetcher.name() == "pkg");
+            REQUIRE(pkg_fetcher.name() == pkg_info.name);
 
             auto req = pkg_fetcher.build_download_request();
             // Should correspond to package name
-            REQUIRE(req.name == "pkg");
+            REQUIRE(req.name == pkg_info.name);
             // Should correspond to PackageFetcher::channel()
             REQUIRE(req.mirror_name == "");
             // Should correspond to PackageFetcher::url_path()
-            REQUIRE(
-                req.url_path == "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda"
-            );
+            REQUIRE(req.url_path == url);
         }
 
         SECTION("From some mirror")
@@ -43,18 +41,15 @@ namespace
             auto pkg_info = specs::PackageInfo::from_url(url).value();
 
             PackageFetcher pkg_fetcher{ pkg_info, package_caches };
-            REQUIRE(pkg_fetcher.name() == "cpp-tabulate");
+            REQUIRE(pkg_fetcher.name() == pkg_info.name);
 
             auto req = pkg_fetcher.build_download_request();
             // Should correspond to package name
-            REQUIRE(req.name == "cpp-tabulate");
+            REQUIRE(req.name == pkg_info.name);
             // Should correspond to PackageFetcher::channel()
             REQUIRE(req.mirror_name == "");
             // Should correspond to PackageFetcher::url_path()
-            REQUIRE(
-                req.url_path
-                == "https://repo.prefix.dev/emscripten-forge-dev/emscripten-wasm32/cpp-tabulate-1.5.0-h7223423_2.tar.bz2"
-            );
+            REQUIRE(req.url_path == url);
         }
 
         SECTION("From local file")
@@ -63,15 +58,15 @@ namespace
             auto pkg_info = specs::PackageInfo::from_url(url).value();
 
             PackageFetcher pkg_fetcher{ pkg_info, package_caches };
-            REQUIRE(pkg_fetcher.name() == "xtensor");
+            REQUIRE(pkg_fetcher.name() == pkg_info.name);
 
             auto req = pkg_fetcher.build_download_request();
             // Should correspond to package name
-            REQUIRE(req.name == "xtensor");
+            REQUIRE(req.name == pkg_info.name);
             // Should correspond to PackageFetcher::channel()
             REQUIRE(req.mirror_name == "");
             // Should correspond to PackageFetcher::url_path()
-            REQUIRE(req.url_path == "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            REQUIRE(req.url_path == url);
         }
 
         SECTION("From oci")
@@ -80,11 +75,11 @@ namespace
             auto pkg_info = specs::PackageInfo::from_url(url).value();
 
             PackageFetcher pkg_fetcher{ pkg_info, package_caches };
-            REQUIRE(pkg_fetcher.name() == "xtensor");
+            REQUIRE(pkg_fetcher.name() == pkg_info.name);
 
             auto req = pkg_fetcher.build_download_request();
             // Should correspond to package name
-            REQUIRE(req.name == "xtensor");
+            REQUIRE(req.name == pkg_info.name);
             // Should correspond to PackageFetcher::channel()
             REQUIRE(req.mirror_name == "oci://ghcr.io/channel-mirrors/conda-forge");
             // Should correspond to PackageFetcher::url_path()

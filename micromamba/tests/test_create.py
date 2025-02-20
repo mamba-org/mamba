@@ -1335,7 +1335,10 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
 
 
 def test_create_from_mirror(tmp_home, tmp_root_prefix):
-    """Attempts to install a package using an explicit channel/mirror."""
+    """
+    Attempts to install a package using an explicit channel/mirror.
+    Non-regression test for https://github.com/mamba-org/mamba/issues/3804
+    """
     env_name = "env-create-from-mirror"
 
     res = helpers.create(

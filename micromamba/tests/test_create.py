@@ -663,13 +663,26 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
 def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     """Create an environment when the first env dir is not writable."""
 
-    noperm_dir = Path("/noperm")
-    if platform.system() == "Windows":
-        noperm_dir = Path("C:\\Windows\\System32\\noperm")
+    noperm_root_dir = Path(tmp_path / "noperm")
+    noperm_envs_dir = noperm_root_dir / "envs"
 
-    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{noperm_dir},{tmp_path}")
+    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{noperm_envs_dir},{tmp_path}")
     env_name = "myenv"
-    helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    os.makedirs(noperm_root_dir, exist_ok=True)
+
+    if platform.system() == "Windows":
+        subprocess.run(["icacls", noperm_root_dir, "/deny", "Everyone:(W)"], check=True)
+    else:
+        os.chmod(noperm_root_dir, 0o555)
+
+    try:
+        helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    finally:
+        if platform.system() == "Windows":
+            subprocess.run(["icacls", noperm_root_dir, "/remove", "Everyone"], check=True)
+        else:
+            os.chmod(noperm_root_dir, 0o755)
+
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
 
 

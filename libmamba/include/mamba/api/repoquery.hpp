@@ -23,7 +23,7 @@ namespace mamba
     };
 
     [[nodiscard]] auto make_repoquery(
-        solver::libsolv::Database& pool,
+        solver::libsolv::Database& database,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,

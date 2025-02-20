@@ -94,12 +94,14 @@ namespace mamba
 
         using Database = solver::libsolv::Database;
 
-        [[nodiscard]] static auto find(Database& db, const std::vector<std::string>& queries)
+        [[nodiscard]] static auto find(Database& database, const std::vector<std::string>& queries)
             -> QueryResult;
 
-        [[nodiscard]] static auto whoneeds(Database& db, std::string query, bool tree) -> QueryResult;
+        [[nodiscard]] static auto whoneeds(Database& database, std::string query, bool tree)
+            -> QueryResult;
 
-        [[nodiscard]] static auto depends(Database& db, std::string query, bool tree) -> QueryResult;
+        [[nodiscard]] static auto depends(Database& database, std::string query, bool tree)
+            -> QueryResult;
     };
 
     /********************

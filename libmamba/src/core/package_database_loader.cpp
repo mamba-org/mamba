@@ -28,9 +28,9 @@
 
 namespace mamba
 {
-    void add_spdlog_logger_to_database(solver::libsolv::Database& db)
+    void add_spdlog_logger_to_database(solver::libsolv::Database& database)
     {
-        db.set_logger(
+        database.set_logger(
             [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
             {
                 switch (level)
@@ -53,7 +53,7 @@ namespace mamba
     }
 
     auto
-    load_subdir_in_database(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)
+    load_subdir_in_database(const Context& ctx, solver::libsolv::Database& database, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
@@ -75,7 +75,7 @@ namespace mamba
             auto maybe_repo = subdir.valid_solv_cache().and_then(
                 [&](fs::u8path&& solv_file)
                 {
-                    return db.add_repo_from_native_serialization(
+                    return database.add_repo_from_native_serialization(
                         solv_file,
                         expected_cache_origin,
                         subdir.channel_id(),
@@ -96,7 +96,7 @@ namespace mamba
                     using PackageTypes = solver::libsolv::PackageTypes;
 
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
-                    return db.add_repo_from_repodata_json(
+                    return database.add_repo_from_repodata_json(
                         repodata_json,
                         util::rsplit(subdir.metadata().url(), "/", 1).front(),
                         subdir.channel_id(),
@@ -114,7 +114,8 @@ namespace mamba
                 {
                     if (!util::on_win)
                     {
-                        db.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
+                        database
+                            .native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
                             .or_else(
                                 [&](const auto& err)
                                 {
@@ -132,7 +133,7 @@ namespace mamba
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         const PrefixData& prefix
     ) -> solver::libsolv::RepoInfo
     {
@@ -146,12 +147,12 @@ namespace mamba
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
-        auto repo = db.add_repo_from_packages(
+        auto repo = database.add_repo_from_packages(
             pkgs,
             "installed",
             solver::libsolv::PipAsPythonDependency::No
         );
-        db.set_installed_repo(repo);
+        database.set_installed_repo(repo);
         return repo;
     }
 }

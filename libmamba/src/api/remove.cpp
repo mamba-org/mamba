@@ -136,8 +136,8 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            solver::libsolv::Database pool{ channel_context.params() };
-            add_spdlog_logger_to_database(pool);
+            solver::libsolv::Database pool{ channel_context.params(), /* add_logger= */ true };
+
             load_installed_packages_in_database(ctx, pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");

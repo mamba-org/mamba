@@ -660,9 +660,14 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
     assert (effective_prefix / "conda-meta" / "history").exists()
 
 
-def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
+def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     """Create an environment when the first env dir is not writable."""
-    os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+
+    noperm_dir = Path("/noperm")
+    if platform.system() == "Windows":
+        noperm_dir = Path("C:\\Windows\\System32\\noperm")
+
+    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{noperm_dir},{tmp_path}")
     env_name = "myenv"
     helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
@@ -685,6 +690,32 @@ def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, envs_dirs_source):
     helpers.create("-n", "bar", "--rc-file", tmp_home / ".condarc", no_rc=False)
 
     assert envs_dir.exists()
+
+
+def test_env_dir_idempotence(tmp_path, tmp_home, monkeypatch):
+    """
+    Test that setting envs_dirs to ~/.conda and running twice in a row
+    gives the same results
+    https://github.com/mamba-org/mamba/issues/3836
+    """
+
+    mamba_root_prefix = tmp_path / "envroot"
+    mamba_root_prefix_envs = mamba_root_prefix / "envs"
+    condarc_envs_dirs = tmp_home / ".conda"
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
+
+    os.makedirs(mamba_root_prefix, exist_ok=True)
+    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(mamba_root_prefix))
+    env_name = "foo"
+
+    for _ in range(2):
+        cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
+        helpers.create(*cmd, no_rc=False)
+
+    assert not Path(mamba_root_prefix_envs / env_name).exists()
+    assert Path(condarc_envs_dirs / env_name).exists()
 
 
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))

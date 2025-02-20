@@ -39,7 +39,7 @@ namespace mamba::solver::libsolv
         Matcher matcher;
     };
 
-    Database::Database(specs::ChannelResolveParams channel_params)
+    Database::Database(specs::ChannelResolveParams channel_params, bool add_logger)
         : m_data(std::make_unique<DatabaseImpl>(std::move(channel_params)))
     {
         pool().set_disttype(DISTTYPE_CONDA);
@@ -54,6 +54,30 @@ namespace mamba::solver::libsolv
                 return data.matcher.get_matching_packages(pool, dep, flags);
             }
         );
+
+        if (add_logger)
+        {
+            set_logger(
+                [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
+                {
+                    switch (level)
+                    {
+                        case (solver::libsolv::LogLevel::Fatal):
+                            logger->critical(msg);
+                            break;
+                        case (solver::libsolv::LogLevel::Error):
+                            logger->error(msg);
+                            break;
+                        case (solver::libsolv::LogLevel::Warning):
+                            logger->warn(msg);
+                            break;
+                        case (solver::libsolv::LogLevel::Debug):
+                            logger->debug(msg);
+                            break;
+                    }
+                }
+            );
+        }
     }
 
     Database::~Database() = default;

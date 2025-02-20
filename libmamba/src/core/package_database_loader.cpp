@@ -28,29 +28,6 @@
 
 namespace mamba
 {
-    void add_spdlog_logger_to_database(solver::libsolv::Database& db)
-    {
-        db.set_logger(
-            [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
-            {
-                switch (level)
-                {
-                    case (solver::libsolv::LogLevel::Fatal):
-                        logger->critical(msg);
-                        break;
-                    case (solver::libsolv::LogLevel::Error):
-                        logger->error(msg);
-                        break;
-                    case (solver::libsolv::LogLevel::Warning):
-                        logger->warn(msg);
-                        break;
-                    case (solver::libsolv::LogLevel::Debug):
-                        logger->debug(msg);
-                        break;
-                }
-            }
-        );
-    }
 
     auto
     load_subdir_in_database(const Context& ctx, solver::libsolv::Database& db, const SubdirData& subdir)

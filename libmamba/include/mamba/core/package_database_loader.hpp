@@ -22,8 +22,6 @@ namespace mamba
         class Database;
     }
 
-    void add_spdlog_logger_to_database(solver::libsolv::Database& db);
-
     auto load_subdir_in_database(  //
         const Context& ctx,
         solver::libsolv::Database& db,

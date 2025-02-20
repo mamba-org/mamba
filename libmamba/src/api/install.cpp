@@ -417,8 +417,7 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_database(db);
+            solver::libsolv::Database db{ channel_context.params(), /* add_logger= */ true };
             // functions implied in 'and_then' coding-styles must return the same type
             // which limits this syntax
             /*auto exp_prefix_data = load_channels(pool, package_caches)
@@ -599,8 +598,7 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_database(db);
+            solver::libsolv::Database db{ channel_context.params(), /* add_logger= */ true };
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty

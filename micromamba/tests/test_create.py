@@ -730,9 +730,6 @@ def test_root_prefix_precedence(
         if set_in_condarc:
             f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
 
-    for envs_folder in (condarc_envs_dirs, conda_envs_dirs, cli_provided_root, mamba_root_prefix):
-        os.makedirs(envs_folder, exist_ok=True)
-
     cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
 
     if check_config_only:

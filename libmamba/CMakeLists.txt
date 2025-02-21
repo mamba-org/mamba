@@ -409,6 +409,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/constants.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/create.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/env.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/install.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/list.hpp

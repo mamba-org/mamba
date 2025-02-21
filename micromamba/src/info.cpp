@@ -33,7 +33,7 @@ set_info_command(CLI::App* subcom, mamba::Configuration& config)
 
     std::string env_list_flag = "-e, --envs";
     std::string env_list_description = "List known environments";
-    set_env_list_subcommand(subcom, config, env_list_flag, env_list_description);
+    mamba::details::set_env_list_subcommand(subcom, config, env_list_flag, env_list_description);
 
     subcom->callback(
         [&config]

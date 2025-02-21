@@ -42,7 +42,7 @@ get_env_name(const Context& ctx, const mamba::fs::u8path& px)
     }
 }
 
-void set_env_list_subcommand(CLI::App* com, Configuration& config, std::string flag, std::string description)
+void details::set_env_list_subcommand(CLI::App* com, Configuration& config, std::string flag, std::string description)
 {
     init_general_options(com, config);
     init_prefix_options(com, config);
@@ -99,7 +99,7 @@ set_env_command(CLI::App* com, Configuration& config)
     std::string env_list_flag = "list";
     std::string env_list_description = "List known environments";
     
-    set_env_list_subcommand(com, config, env_list_flag, env_list_description);
+    details::set_env_list_subcommand(com, config, env_list_flag, env_list_description);
     
     // env create subcommand
     auto* create_subcom = com->add_subcommand(

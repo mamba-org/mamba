@@ -19,7 +19,10 @@ namespace mamba
     class Configuration;
     class Context;
     
-    void set_env_list_subcommand(CLI::App* com, Configuration& config, std::string flag, std::string description);
+    namespace details
+    {
+        void set_env_list_subcommand(CLI::App* com, Configuration& config, std::string flag, std::string description);
+    }
 }
 
 #endif

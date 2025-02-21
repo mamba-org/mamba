@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/env.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/core/context.hpp"
 
@@ -29,6 +30,10 @@ set_info_command(CLI::App* subcom, mamba::Configuration& config)
     subcom->add_flag("--base", base.get_cli_config<bool>(), base.description());
 
     subcom->add_flag("--licenses", print_licenses, "Print licenses");
+
+    std::string env_list_flag = "-e, --envs";
+    std::string env_list_description = "List known environments";
+    set_env_list_subcommand(subcom, config, env_list_flag, env_list_description);
 
     subcom->callback(
         [&config]

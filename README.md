@@ -1,6 +1,8 @@
+# Mamba: The Fast Cross-Platform Package Manager
+
 ![mamba header image](docs/assets/mamba_header.png)
 
-## The Fast Cross-Platform Package Manager
+<!-- markdownlint-disable-file MD033 -->
 
 <table>
 <thead align="center" cellspacing="10">
@@ -16,7 +18,7 @@
 </tbody>
 </table>
 
-# mamba
+## mamba
 
 [![Build Status](https://github.com/mamba-org/mamba/actions/workflows/tests.yml/badge.svg)](https://github.com/mamba-org/mamba/actions/workflows/tests.yml?query=branch%3Amain)
 [![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mamba-org/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -59,7 +61,8 @@ See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/u
 
 ## Installation
 
-Please refer to the [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) installation guide in the documentation.
+Please refer to the [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)
+and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) installation guide in the documentation.
 
 ## Additional features in Mamba and Micromamba
 
@@ -96,7 +99,7 @@ It can significantly reduce your CI setup time by:
 
 While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are some differences:
 
-- `mamba` and `micromamba` do no support revisions (for discussions, see https://github.com/mamba-org/mamba/issues/803)
+- `mamba` and `micromamba` do no support revisions (for discussions, see <https://github.com/mamba-org/mamba/issues/803>)
 - `mamba` and `micromamba` normalize `MatchSpec` strings to the simplest form, whereas `conda` use a more verbose form
   This can lead to slight differences in the output of `conda env export` and `mamba env export`.
 
@@ -110,7 +113,8 @@ Only `mamba` and `micromamba` 2.0 and later are supported and are actively devel
 
 The `1.x` branch is only maintained for addressing security issues such as CVEs.
 
-For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [Conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
+For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby)
+or on the [Conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
 ## License
 

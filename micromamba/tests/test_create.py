@@ -672,7 +672,16 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
 
     if platform.system() == "Windows":
         subprocess.run(
-            ["icacls", noperm_root_dir, "/inheritance:r", "/grant:r", "Everyone:(RX)"], check=True
+            [
+                "icacls",
+                noperm_root_dir,
+                "/inheritance:r",
+                "/grant:r",
+                "Everyone:(RX)",
+                "/remove",
+                r"BUILTIN\Administrators",
+            ],
+            check=True,
         )
     else:
         os.chmod(noperm_root_dir, 0o555)
@@ -681,6 +690,9 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
         helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
     finally:
         if platform.system() == "Windows":
+            subprocess.run(
+                ["icacls", noperm_root_dir, "/grant", r"BUILTIN\Administrators:F"], check=True
+            )
             subprocess.run(["icacls", noperm_root_dir, "/reset"], check=True)
         else:
             os.chmod(noperm_root_dir, 0o755)

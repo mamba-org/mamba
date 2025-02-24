@@ -680,6 +680,10 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
                 "Everyone:(RX)",
                 "/remove",
                 r"BUILTIN\Administrators",
+                "/remove",
+                r"NT AUTHORITY\SYSTEM",
+                "/remove",
+                "OWNER RIGHTS",
             ],
             check=True,
         )

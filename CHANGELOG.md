@@ -1,3 +1,32 @@
+## 2025.02.24
+
+Release: 2.0.7.rc0 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [all] Add `x86_64` archspec support for Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/3803>
+- [all] Use correct `url` in metadata and mirrors by @Hind-M in <https://github.com/mamba-org/mamba/pull/3816>
+- [all] Add base flag to info command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3779>
+- [all] Explain unsolvable updates by @k-collie in <https://github.com/mamba-org/mamba/pull/3829>
+- [all] Adapt root prefix' precedence for `envs_dirs` by @holzman in <https://github.com/mamba-org/mamba/pull/3813>
+- [all] Fix windows paths and add tests by @Hind-M in <https://github.com/mamba-org/mamba/pull/3787>
+- [all] Adaptive level for compatible Version formatting by @jjerphan in <https://github.com/mamba-org/mamba/pull/3818>
+- [all] add export flag to list command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3780>
+
+CI fixes and doc:
+
+- [all] Add missing config for RTD by @Hind-M in <https://github.com/mamba-org/mamba/pull/3801>
+- [all] Warning as error default to OFF and enabled in CI by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3814>
+- [all] Write command in multiple lines by @Hind-M in <https://github.com/mamba-org/mamba/pull/3794>
+- [all] Document that mamba 2 only supports trailing globs in version strings by @jdblischak in <https://github.com/mamba-org/mamba/pull/3783>
+
+Maintenance:
+
+- [all] Also run workflows for `feat/*` branches by @jjerphan in <https://github.com/mamba-org/mamba/pull/3823>
+- [all] Add markdownlint pre-commit hook by @mathbunnyru in <https://github.com/mamba-org/mamba/pull/3756>
+- [all] Consistently name `Database` objects by @jjerphan in <https://github.com/mamba-org/mamba/pull/3831>
+- [all] Remove unused structure in update path by @jjerphan in <https://github.com/mamba-org/mamba/pull/3833>
+
 ## 2025.02.04
 
 Release: 2.0.6 (libmamba, mamba, micromamba, libmambapy)

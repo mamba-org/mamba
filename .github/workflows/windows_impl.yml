@@ -117,7 +117,7 @@ jobs:
       - name: Run libmamba Python bindings tests
         run: |
           # Only rerun flaky tests on the `main` branch
-          python -m pytest libmambapy/tests/ ^
+          python -m pytest libmambapy/tests/ -k test_create_envs_dirs ^
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} ^
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 

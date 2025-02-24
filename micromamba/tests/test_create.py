@@ -683,6 +683,11 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
             ],
             check=True,
         )
+
+        res = subprocess.run(
+            ["icacls", noperm_root_dir], stdout=subprocess.PIPE, text=true)
+        print(res)
+        
     else:
         os.chmod(noperm_root_dir, 0o555)
 

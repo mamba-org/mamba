@@ -18,10 +18,10 @@ namespace mamba
     class ChannelContext;
     class Configuration;
     class Context;
-    
+
     namespace details
     {
-        void set_env_list_subcommand(CLI::App* com, Configuration& config, std::string flag, std::string description);
+        void print_envs(Configuration& config);
     }
 }
 

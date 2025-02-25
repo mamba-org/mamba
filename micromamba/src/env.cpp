@@ -42,65 +42,57 @@ get_env_name(const Context& ctx, const mamba::fs::u8path& px)
     }
 }
 
-void details::set_env_list_subcommand(CLI::App* com, Configuration& config, std::string flag, std::string description)
+void
+details::print_envs(Configuration& config)
 {
-    init_general_options(com, config);
-    init_prefix_options(com, config);
+    const auto& ctx = config.context();
+    config.load();
 
-    // env list subcommand
-    auto* list_subcom = com->add_subcommand(flag, description);
-    init_general_options(list_subcom, config);
-    init_prefix_options(list_subcom, config);
+    EnvironmentsManager env_manager{ ctx };
 
-    list_subcom->callback(
-        [&config]
-        {
-            const auto& ctx = config.context();
-            config.load();
+    if (ctx.output_params.json)
+    {
+        nlohmann::json res;
+        const auto pfxs = env_manager.list_all_known_prefixes();
+        std::vector<std::string> envs(pfxs.size());
+        std::transform(
+            pfxs.begin(),
+            pfxs.end(),
+            envs.begin(),
+            [](const mamba::fs::u8path& path) { return path.string(); }
+        );
+        res["envs"] = envs;
+        std::cout << res.dump(4) << std::endl;
+        return;
+    }
 
-            EnvironmentsManager env_manager{ ctx };
-
-            if (ctx.output_params.json)
-            {
-                nlohmann::json res;
-                const auto pfxs = env_manager.list_all_known_prefixes();
-                std::vector<std::string> envs(pfxs.size());
-                std::transform(
-                    pfxs.begin(),
-                    pfxs.end(),
-                    envs.begin(),
-                    [](const mamba::fs::u8path& path) { return path.string(); }
-                );
-                res["envs"] = envs;
-                std::cout << res.dump(4) << std::endl;
-                return;
-            }
-
-            // format and print table
-            printers::Table t({ "Name", "Active", "Path" });
-            t.set_alignment(
-                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
-            );
-            t.set_padding({ 2, 2, 2 });
-
-            for (auto& env : env_manager.list_all_known_prefixes())
-            {
-                bool is_active = (env == ctx.prefix_params.target_prefix);
-                t.add_row({ get_env_name(ctx, env), is_active ? "*" : "", env.string() });
-            }
-            t.print(std::cout);
-        }
+    // format and print table
+    printers::Table t({ "Name", "Active", "Path" });
+    t.set_alignment({ printers::alignment::left, printers::alignment::left, printers::alignment::left }
     );
+    t.set_padding({ 2, 2, 2 });
+
+    for (auto& env : env_manager.list_all_known_prefixes())
+    {
+        bool is_active = (env == ctx.prefix_params.target_prefix);
+        t.add_row({ get_env_name(ctx, env), is_active ? "*" : "", env.string() });
+    }
+    t.print(std::cout);
 }
 
 void
 set_env_command(CLI::App* com, Configuration& config)
 {
-    std::string env_list_flag = "list";
-    std::string env_list_description = "List known environments";
-    
-    details::set_env_list_subcommand(com, config, env_list_flag, env_list_description);
-    
+    init_general_options(com, config);
+    init_prefix_options(com, config);
+
+    // env list subcommand
+    auto* list_subcom = com->add_subcommand("list", "List known environments");
+    init_general_options(list_subcom, config);
+    init_prefix_options(list_subcom, config);
+
+    list_subcom->callback([&config] { details::print_envs(config); });
+
     // env create subcommand
     auto* create_subcom = com->add_subcommand(
         "create",

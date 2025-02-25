@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/env.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -27,7 +28,9 @@ namespace mamba
     {
         struct InfoOptions
         {
+            bool print_licenses = false;
             bool base = false;
+            bool environements = false;
         };
 
         void info_pretty_print(
@@ -79,23 +82,65 @@ namespace mamba
             Console::instance().json_write(items_map);
         }
 
-        void print_info(
-            Context& ctx,
-            ChannelContext& channel_context,
-            const Configuration& config,
-            InfoOptions options
-        )
+        void
+        print_info(Context& ctx, ChannelContext& channel_context, Configuration& config, InfoOptions options)
         {
             assert(&ctx == &config.context());
 
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
-            if (options.base)
+            if (options.print_licenses)
+            {
+                const std::vector<std::pair<std::string, std::string>> licenses = {
+                    { "micromamba",
+                      "BSD license, Copyright 2019 QuantStack and the Mamba contributors." },
+                    { "c_ares",
+                      "MIT license, Copyright (c) 2007 - 2018, Daniel Stenberg with many contributors, see AUTHORS file." },
+                    { "cli11",
+                      "BSD license, CLI11 1.8 Copyright (c) 2017-2019 University of Cincinnati, developed by Henry Schreiner under NSF AWARD 1414736. All rights reserved." },
+                    { "cpp_filesystem",
+                      "MIT license, Copyright (c) 2018, Steffen Schümann <s.schuemann@pobox.com>" },
+                    { "curl",
+                      "MIT license, Copyright (c) 1996 - 2020, Daniel Stenberg, daniel@haxx.se, and many contributors, see the THANKS file." },
+                    { "krb5",
+                      "MIT license, Copyright 1985-2020 by the Massachusetts Institute of Technology." },
+                    { "libarchive",
+                      "New BSD license, The libarchive distribution as a whole is Copyright by Tim Kientzle and is subject to the copyright notice reproduced at the bottom of this file." },
+                    { "libev",
+                      "BSD license, All files in libev are Copyright (c)2007,2008,2009,2010,2011,2012,2013 Marc Alexander Lehmann." },
+                    { "liblz4", "LZ4 Library, Copyright (c) 2011-2016, Yann Collet" },
+                    { "libnghttp2",
+                      "MIT license, Copyright (c) 2012, 2014, 2015, 2016 Tatsuhiro Tsujikawa; 2012, 2014, 2015, 2016 nghttp2 contributors" },
+                    { "libopenssl_3", "Apache license, Version 2.0, January 2004" },
+                    { "libopenssl",
+                      "Apache license, Copyright (c) 1998-2019 The OpenSSL Project, All rights reserved; 1995-1998 Eric Young (eay@cryptsoft.com)" },
+                    { "libsolv", "BSD license, Copyright (c) 2019, SUSE LLC" },
+                    { "nlohmann_json", "MIT license, Copyright (c) 2013-2020 Niels Lohmann" },
+                    { "reproc", "MIT license, Copyright (c) Daan De Meyer" },
+                    { "fmt", "MIT license, Copyright (c) 2012-present, Victor Zverovich." },
+                    { "spdlog", "MIT license, Copyright (c) 2016 Gabi Melman." },
+                    { "zstd",
+                      "BSD license, Copyright (c) 2016-present, Facebook, Inc. All rights reserved." },
+                };
+                for (const auto& [dep, text] : licenses)
+                {
+                    items.push_back({ dep, text });
+                }
+                info_json_print(items);
+                info_pretty_print(items, ctx.output_params);
+                return;
+            }
+            else if (options.base)
             {
                 items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
                 info_json_print(items);
                 info_pretty_print(items, ctx.output_params);
+                return;
+            }
+            else if (options.environements)
+            {
+                mamba::details::print_envs(config);
                 return;
             }
 
@@ -205,7 +250,9 @@ namespace mamba
         config.load();
 
         detail::InfoOptions options;
+        options.print_licenses = config.at("print_licenses").value<bool>();
         options.base = config.at("base").value<bool>();
+        options.environements = config.at("environements").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::print_info(config.context(), channel_context, config, std::move(options));

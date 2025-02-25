@@ -746,8 +746,8 @@ def test_env_dir_idempotence(tmp_path, tmp_home, monkeypatch):
         cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
         helpers.create(*cmd, no_rc=False)
 
-    assert not Path(mamba_root_prefix_envs / env_name).exists()
-    assert Path(condarc_envs_dirs / env_name).exists()
+        assert not Path(mamba_root_prefix_envs / env_name).exists()
+        assert Path(condarc_envs_dirs / env_name).exists()
 
 
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))

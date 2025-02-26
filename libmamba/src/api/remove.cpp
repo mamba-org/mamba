@@ -136,9 +136,9 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            solver::libsolv::Database pool{ channel_context.params() };
-            add_spdlog_logger_to_database(pool);
-            load_installed_packages_in_database(ctx, pool, prefix_data);
+            solver::libsolv::Database database{ channel_context.params() };
+            add_spdlog_logger_to_database(database);
+            load_installed_packages_in_database(ctx, database, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);
@@ -175,7 +175,7 @@ namespace mamba
                         pkgs_to_remove.push_back(iter->second);
                     }
                 }
-                auto transaction = MTransaction(ctx, pool, pkgs_to_remove, {}, package_caches);
+                auto transaction = MTransaction(ctx, database, pkgs_to_remove, {}, package_caches);
                 return execute_transaction(transaction);
             }
             else
@@ -190,14 +190,14 @@ namespace mamba
                     /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                 };
 
-                auto outcome = solver::libsolv::Solver().solve(pool, request).value();
+                auto outcome = solver::libsolv::Solver().solve(database, request).value();
                 if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
                 {
                     if (ctx.output_params.json)
                     {
-                        Console::instance().json_write(
-                            { { "success", false }, { "solver_problems", unsolvable->problems(pool) } }
-                        );
+                        Console::instance().json_write({ { "success", false },
+                                                         { "solver_problems",
+                                                           unsolvable->problems(database) } });
                     }
                     throw mamba_error(
                         "Could not solve for environment specs",
@@ -208,7 +208,7 @@ namespace mamba
                 Console::instance().json_write({ { "success", true } });
                 auto transaction = MTransaction(
                     ctx,
-                    pool,
+                    database,
                     request,
                     std::get<solver::Solution>(outcome),
                     package_caches

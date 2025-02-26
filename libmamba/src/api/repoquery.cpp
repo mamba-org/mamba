@@ -82,7 +82,7 @@ namespace mamba
     }
 
     auto make_repoquery(
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,
@@ -93,7 +93,7 @@ namespace mamba
     {
         if (type == QueryType::Search)
         {
-            auto res = Query::find(db, queries);
+            auto res = Query::find(database, queries);
             switch (format)
             {
                 case QueryResultFormat::Json:
@@ -114,7 +114,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'depends'.");
             }
             auto res = Query::depends(
-                db,
+                database,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable
@@ -141,7 +141,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'whoneeds'.");
             }
             auto res = Query::whoneeds(
-                db,
+                database,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable

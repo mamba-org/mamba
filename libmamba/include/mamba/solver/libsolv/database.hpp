@@ -133,8 +133,8 @@ namespace mamba::solver::libsolv
          */
         class Impl
         {
-            [[nodiscard]] static auto get(Database& pool) -> solv::ObjPool&;
-            [[nodiscard]] static auto get(const Database& pool) -> const solv::ObjPool&;
+            [[nodiscard]] static auto get(Database& database) -> solv::ObjPool&;
+            [[nodiscard]] static auto get(const Database& database) -> const solv::ObjPool&;
 
             friend class Solver;
             friend class UnSolvable;

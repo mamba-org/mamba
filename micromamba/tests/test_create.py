@@ -164,6 +164,9 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     )
 
 
+# TODO: Remove this test once this is fixed:
+# https://github.com/dateutil/dateutil/issues/1419
+@pytest.mark.skip(reason="See https://github.com/mamba-org/mamba/pull/3796#issuecomment-2683061013")
 @pytest.mark.skipif(
     platform.system() not in ["Darwin", "Linux"],
     reason="Used lockfile only handles macOS and Linux.",
@@ -1379,12 +1382,9 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda",
     ],
 )
-def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
+def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
     """Attempts to install a package using an explicit url."""
-    empty_root_prefix = tmp_path / "empty-root-create-from-explicit-url"
     env_name = "env-create-from-explicit-url"
-
-    os.environ["MAMBA_ROOT_PREFIX"] = str(empty_root_prefix)
 
     res = helpers.create(
         spec, "--no-env", "-n", env_name, "--override-channels", "--json", default_channel=False
@@ -1410,6 +1410,33 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, tmp_path, spec):
             == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
         )
         assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+
+
+def test_create_from_mirror(tmp_home, tmp_root_prefix):
+    """
+    Attempts to install a package using an explicit channel/mirror.
+    Non-regression test for https://github.com/mamba-org/mamba/issues/3804
+    """
+    env_name = "env-create-from-mirror"
+
+    res = helpers.create(
+        "cpp-tabulate",
+        "-n",
+        env_name,
+        "-c",
+        "https://repo.prefix.dev/emscripten-forge-dev",
+        "--platform=emscripten-wasm32",
+        "--json",
+        default_channel=False,
+    )
+    assert res["success"]
+
+    assert any(
+        package["name"] == "cpp-tabulate"
+        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["subdir"] == "emscripten-wasm32"
+        for package in res["actions"]["LINK"]
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1533,8 +1560,8 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
     assert pkg["name"] == "pandoc"
     if spec == "pandoc=3.1.13":
         assert pkg["version"] == "3.1.13"
-    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1562,14 +1589,14 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
     assert len(packages) > 2
     assert any(
         package["name"] == "xtensor"
-        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         for package in packages
     )
     assert any(
         package["name"] == "xtl"
-        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         for package in packages
     )
 
@@ -1603,8 +1630,8 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
     assert len(packages) == 1
     pkg = packages[0]
     assert pkg["name"] == "_go_select"
-    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

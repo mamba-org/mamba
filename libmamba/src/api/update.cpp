@@ -171,12 +171,6 @@ namespace mamba
         }
         PrefixData& prefix_data = exp_prefix_data.value();
 
-        std::vector<std::string> prefix_pkgs;
-        for (auto& it : prefix_data.records())
-        {
-            prefix_pkgs.push_back(it.first);
-        }
-
         load_installed_packages_in_database(ctx, db, prefix_data);
 
         auto request = create_update_request(prefix_data, raw_update_specs, update_params);
@@ -200,6 +194,14 @@ namespace mamba
         auto outcome = solver::libsolv::Solver().solve(db, request).value();
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
+            unsolvable->explain_problems_to(
+                db,
+                LOG_ERROR,
+                {
+                    /* .unavailable= */ ctx.graphics_params.palette.failure,
+                    /* .available= */ ctx.graphics_params.palette.success,
+                }
+            );
             if (ctx.output_params.json)
             {
                 Console::instance().json_write({ { "success", false },

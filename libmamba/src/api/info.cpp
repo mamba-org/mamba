@@ -23,25 +23,13 @@ extern "C"
 
 namespace mamba
 {
-    void info(Configuration& config)
-    {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("use_default_prefix_fallback").set_value(true);
-        config.at("use_root_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
-            );
-        config.load();
-
-        auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::print_info(config.context(), channel_context, config);
-
-        config.operation_teardown();
-    }
-
     namespace detail
     {
+        struct InfoOptions
+        {
+            bool base = false;
+        };
+
         void info_pretty_print(
             std::vector<std::tuple<std::string, nlohmann::json>> items,
             const Context::OutputParams& params
@@ -91,10 +79,25 @@ namespace mamba
             Console::instance().json_write(items_map);
         }
 
-        void print_info(Context& ctx, ChannelContext& channel_context, const Configuration& config)
+        void print_info(
+            Context& ctx,
+            ChannelContext& channel_context,
+            const Configuration& config,
+            InfoOptions options
+        )
         {
             assert(&ctx == &config.context());
+
             std::vector<std::tuple<std::string, nlohmann::json>> items;
+
+            if (options.base)
+            {
+                items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
+
+                info_json_print(items);
+                info_pretty_print(items, ctx.output_params);
+                return;
+            }
 
             items.push_back({ "libmamba version", version() });
 
@@ -189,4 +192,24 @@ namespace mamba
             info_pretty_print(items, ctx.output_params);
         }
     }  // detail
+
+    void info(Configuration& config)
+    {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+            );
+        config.load();
+
+        detail::InfoOptions options;
+        options.base = config.at("base").value<bool>();
+
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
+        detail::print_info(config.context(), channel_context, config, std::move(options));
+
+        config.operation_teardown();
+    }
 }  // mamba

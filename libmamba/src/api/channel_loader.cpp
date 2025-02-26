@@ -22,7 +22,7 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& pool,
+            solver::libsolv::Database& database,
             const fs::u8path& pkgs_dir
         ) -> solver::libsolv::RepoInfo
         {
@@ -46,7 +46,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return load_installed_packages_in_database(ctx, pool, prefix_data);
+            return load_installed_packages_in_database(ctx, database, prefix_data);
         }
 
         void create_subdirs(
@@ -125,7 +125,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& pool,
+            solver::libsolv::Database& database,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -196,7 +196,7 @@ namespace mamba
 
             if (!packages.empty())
             {
-                pool.add_repo_from_packages(packages, "packages");
+                database.add_repo_from_packages(packages, "packages");
             }
 
             expected_t<void> download_res;
@@ -227,7 +227,7 @@ namespace mamba
                 LOG_INFO << "Creating repo from pkgs_dir for offline";
                 for (const auto& c : ctx.pkgs_dirs)
                 {
-                    create_repo_from_pkgs_dir(ctx, channel_context, pool, c);
+                    create_repo_from_pkgs_dir(ctx, channel_context, database, c);
                 }
             }
             std::string prev_channel;
@@ -247,9 +247,9 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_database(ctx, pool, subdir)
+                load_subdir_in_database(ctx, database, subdir)
                     .transform([&](solver::libsolv::RepoInfo&& repo)
-                               { pool.set_repo_priority(repo, priorities[i]); })
+                               { database.set_repo_priority(repo, priorities[i]); })
                     .or_else(
                         [&](const auto&)
                         {
@@ -279,7 +279,8 @@ namespace mamba
                 if (!ctx.offline && !is_retry)
                 {
                     LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    return load_channels_impl(ctx, channel_context, pool, package_caches, true);
+                    bool retry = true;
+                    return load_channels_impl(ctx, channel_context, database, package_caches, retry);
                 }
                 error_list.emplace_back(
                     "Could not load repodata. Cache corrupted?",
@@ -295,11 +296,12 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& pool,
+        solver::libsolv::Database& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>
     {
-        return load_channels_impl(ctx, channel_context, pool, package_caches, false);
+        bool retry = false;
+        return load_channels_impl(ctx, channel_context, database, package_caches, retry);
     }
 
     void init_channels(Context& context, ChannelContext& channel_context)

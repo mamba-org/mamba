@@ -72,14 +72,14 @@ namespace mamba::solver::libsolv
         return m_data->pool;
     }
 
-    auto Database::Impl::get(Database& pool) -> solv::ObjPool&
+    auto Database::Impl::get(Database& database) -> solv::ObjPool&
     {
-        return pool.pool();
+        return database.pool();
     }
 
-    auto Database::Impl::get(const Database& pool) -> const solv::ObjPool&
+    auto Database::Impl::get(const Database& database) -> const solv::ObjPool&
     {
-        return pool.pool();
+        return database.pool();
     }
 
     auto Database::channel_params() const -> const specs::ChannelResolveParams&

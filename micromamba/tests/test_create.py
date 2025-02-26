@@ -164,6 +164,9 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     )
 
 
+# TODO: Remove this test once this is fixed:
+# https://github.com/dateutil/dateutil/issues/1419
+@pytest.mark.skip(reason="See https://github.com/mamba-org/mamba/pull/3796#issuecomment-2683061013")
 @pytest.mark.skipif(
     platform.system() not in ["Darwin", "Linux"],
     reason="Used lockfile only handles macOS and Linux.",

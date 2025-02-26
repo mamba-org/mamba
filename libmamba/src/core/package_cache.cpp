@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
 
@@ -168,7 +169,26 @@ namespace mamba
             }
             else
             {
-                LOG_WARNING << "Package tarball '" << tarball_path.string() << "' is invalid";
+                std::stringstream msg;
+                msg << "Package tarball '" << tarball_path.string() << "' is invalid.\n";
+                if (s.size != 0)
+                {
+                    msg << "  - Expected size     : " << s.size << "\n"
+                        << "  - Effective size    : " << fs::file_size(tarball_path) << "\n";
+                }
+                if (!s.md5.empty())
+                {
+                    msg << "  - Expected md5      : " << s.md5 << "\n"
+                        << "  - Effective md5     : " << validation::md5sum(tarball_path) << "\n";
+                }
+                if (!s.sha256.empty())
+                {
+                    msg << "  - Expected sha256   : " << s.sha256 << "\n"
+                        << "  - Effective sha256  : " << validation::sha256sum(tarball_path) << "\n";
+                }
+                msg << "Processing with its deletion.";
+                LOG_TRACE << msg.str();
+                fs::remove(tarball_path);
             }
             m_valid_tarballs[pkg] = valid;
         }

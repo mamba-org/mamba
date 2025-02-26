@@ -140,7 +140,7 @@ namespace mamba
             }
             else if (options.environements)
             {
-                mamba::details::print_envs(config);
+                mamba::detail::print_envs(config);
                 return;
             }
 

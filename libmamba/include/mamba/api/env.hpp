@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_API_LIST_HPP
-#define MAMBA_API_LIST_HPP
+#ifndef MAMBA_API_ENV_HPP
+#define MAMBA_API_ENV_HPP
 
 #include <string>
 
@@ -19,8 +19,9 @@ namespace mamba
     class Configuration;
     class Context;
 
-    namespace details
+    namespace detail
     {
+        std::string get_env_name(const Context& ctx, const mamba::fs::u8path& px);
         void print_envs(Configuration& config);
     }
 }

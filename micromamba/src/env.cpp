@@ -24,61 +24,7 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-std::string
-get_env_name(const Context& ctx, const mamba::fs::u8path& px)
-{
-    auto& ed = ctx.envs_dirs[0];
-    if (px == ctx.prefix_params.root_prefix)
-    {
-        return "base";
-    }
-    else if (util::starts_with(px.string(), ed.string()))
-    {
-        return mamba::fs::relative(px, ed).string();
-    }
-    else
-    {
-        return "";
-    }
-}
-
-void
-details::print_envs(Configuration& config)
-{
-    const auto& ctx = config.context();
-    config.load();
-
-    EnvironmentsManager env_manager{ ctx };
-
-    if (ctx.output_params.json)
-    {
-        nlohmann::json res;
-        const auto pfxs = env_manager.list_all_known_prefixes();
-        std::vector<std::string> envs(pfxs.size());
-        std::transform(
-            pfxs.begin(),
-            pfxs.end(),
-            envs.begin(),
-            [](const mamba::fs::u8path& path) { return path.string(); }
-        );
-        res["envs"] = envs;
-        std::cout << res.dump(4) << std::endl;
-        return;
-    }
-
-    // format and print table
-    printers::Table t({ "Name", "Active", "Path" });
-    t.set_alignment({ printers::alignment::left, printers::alignment::left, printers::alignment::left }
-    );
-    t.set_padding({ 2, 2, 2 });
-
-    for (auto& env : env_manager.list_all_known_prefixes())
-    {
-        bool is_active = (env == ctx.prefix_params.target_prefix);
-        t.add_row({ get_env_name(ctx, env), is_active ? "*" : "", env.string() });
-    }
-    t.print(std::cout);
-}
+namespace md = mamba::detail;
 
 void
 set_env_command(CLI::App* com, Configuration& config)
@@ -91,7 +37,7 @@ set_env_command(CLI::App* com, Configuration& config)
     init_general_options(list_subcom, config);
     init_prefix_options(list_subcom, config);
 
-    list_subcom->callback([&config] { details::print_envs(config); });
+    list_subcom->callback([&config] { detail::print_envs(config); });
 
     // env create subcommand
     auto* create_subcom = com->add_subcommand(
@@ -261,7 +207,7 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
-                std::cout << "  \"name\": \"" << get_env_name(ctx, ctx.prefix_params.target_prefix)
+                std::cout << "  \"name\": \"" << detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
                           << "\",\n";
                 std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
 
@@ -277,7 +223,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 const auto& versions_map = pd.records();
                 const auto& pip_versions_map = pd.pip_records();
 
-                std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
+                std::cout << "name: " << detail::get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
                 auto requested_specs_map = hist.get_requested_specs_map();

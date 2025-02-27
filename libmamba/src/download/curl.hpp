@@ -195,7 +195,6 @@ namespace mamba::download
         response_type pop_message();
         std::size_t get_timeout(std::size_t max_timeout = 1000u) const;
         std::size_t wait(std::size_t timeout);
-        std::size_t poll(std::size_t timeout);
 
     private:
 

@@ -674,14 +674,18 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     os.makedirs(noperm_root_dir, exist_ok=True)
 
     if platform.system() == "Windows":
+        # Make first env_dir read-only on Windows - this requires:
+        #   Removing inherited and granted permissions, removing ownership,
+        #   and granting group Everyone RX access.
+
         subprocess.run(
             [
                 "icacls",
                 noperm_root_dir,
-                "/inheritance:r",
-                "/grant:r",
-                "Everyone:(RX)",
-                "/remove",
+                "/inheritance:r",  # remove inherited permissions
+                "/grant:r",  # remove explicitly granted permissions
+                "Everyone:(RX)",  # grant Read-Execute to everyone
+                "/remove",  # remove ownership from all groups
                 r"BUILTIN\Administrators",
                 "/remove",
                 r"NT AUTHORITY\SYSTEM",
@@ -692,17 +696,20 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
         )
 
     else:
+        # Make first env_dir read-only on Linux
         os.chmod(noperm_root_dir, 0o555)
 
     try:
         helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
     finally:
         if platform.system() == "Windows":
+            # Revert ownership change on Windows so that we can clean up
             subprocess.run(
                 ["icacls", noperm_root_dir, "/grant", r"BUILTIN\Administrators:F"], check=True
             )
             subprocess.run(["icacls", noperm_root_dir, "/reset"], check=True)
         else:
+            # Revert permission change on Linux so that we can clean up
             os.chmod(noperm_root_dir, 0o755)
 
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
@@ -727,22 +734,19 @@ def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, envs_dirs_source):
     assert envs_dir.exists()
 
 
-def test_env_dir_idempotence(tmp_path, tmp_home, monkeypatch):
+def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
     """
     Test that setting envs_dirs to ~/.conda and running twice in a row
     gives the same results
     https://github.com/mamba-org/mamba/issues/3836
     """
 
-    mamba_root_prefix = tmp_path / "envroot"
-    mamba_root_prefix_envs = mamba_root_prefix / "envs"
+    mamba_root_prefix_envs = tmp_root_prefix / "envs"
     condarc_envs_dirs = tmp_home / ".conda"
 
     with open(tmp_home / ".condarc", "w+") as f:
         f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
 
-    os.makedirs(mamba_root_prefix, exist_ok=True)
-    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(mamba_root_prefix))
     env_name = "foo"
 
     for _ in range(2):

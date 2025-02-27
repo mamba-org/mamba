@@ -13,8 +13,7 @@ namespace mamba
 {
     namespace detail
     {
-        std::string
-        get_env_name(const Context& ctx, const mamba::fs::u8path& px)
+        std::string get_env_name(const Context& ctx, const mamba::fs::u8path& px)
         {
             auto& ed = ctx.envs_dirs[0];
             if (px == ctx.prefix_params.root_prefix)
@@ -56,7 +55,8 @@ namespace mamba
 
             // format and print table
             printers::Table t({ "Name", "Active", "Path" });
-            t.set_alignment({ printers::alignment::left, printers::alignment::left, printers::alignment::left }
+            t.set_alignment(
+                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
             );
             t.set_padding({ 2, 2, 2 });
 
@@ -69,4 +69,3 @@ namespace mamba
         }
     }
 }
-

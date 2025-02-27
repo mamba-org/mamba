@@ -21,13 +21,8 @@
 
 #include "common_options.hpp"
 
-
-using namespace mamba;  // NOLINT(build/namespaces)
-
-namespace md = mamba::detail;
-
 void
-set_env_command(CLI::App* com, Configuration& config)
+set_env_command(CLI::App* com, mamba::Configuration& config)
 {
     init_general_options(com, config);
     init_prefix_options(com, config);
@@ -37,7 +32,7 @@ set_env_command(CLI::App* com, Configuration& config)
     init_general_options(list_subcom, config);
     init_prefix_options(list_subcom, config);
 
-    list_subcom->callback([&config] { detail::print_envs(config); });
+    list_subcom->callback([&config] { mamba::detail::print_envs(config); });
 
     // env create subcommand
     auto* create_subcom = com->add_subcommand(
@@ -90,7 +85,8 @@ set_env_command(CLI::App* com, Configuration& config)
             if (explicit_format)
             {
                 // TODO: handle error
-                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
+                auto pd = mamba::PrefixData::create(ctx.prefix_params.target_prefix, channel_context)
+                              .value();
                 auto records = pd.sorted_records();
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
@@ -100,19 +96,19 @@ set_env_command(CLI::App* com, Configuration& config)
                 for (const auto& record : records)
                 {
                     std::cout <<  //
-                        specs::CondaURL::parse(record.package_url)
+                        mamba::specs::CondaURL::parse(record.package_url)
                             .transform(
-                                [](specs::CondaURL&& url)
+                                [](mamba::specs::CondaURL&& url)
                                 {
                                     return url.pretty_str(
-                                        specs::CondaURL::StripScheme::no,
+                                        mamba::specs::CondaURL::StripScheme::no,
                                         0,  // don't strip any path characters
-                                        specs::CondaURL::Credentials::Remove
+                                        mamba::specs::CondaURL::Credentials::Remove
                                     );
                                 }
                             )
                             .or_else(
-                                [&](const auto&) -> specs::expected_parse_t<std::string>
+                                [&](const auto&) -> mamba::specs::expected_parse_t<std::string>
                                 { return record.package_url; }
                             )
                             .value();
@@ -126,8 +122,9 @@ set_env_command(CLI::App* com, Configuration& config)
             }
             else if (json_format)
             {
-                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
-                History& hist = pd.history();
+                auto pd = mamba::PrefixData::create(ctx.prefix_params.target_prefix, channel_context)
+                              .value();
+                mamba::History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
                 const auto& pip_versions_map = pd.pip_records();
@@ -207,7 +204,8 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
-                std::cout << "  \"name\": \"" << detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
+                std::cout << "  \"name\": \""
+                          << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
                           << "\",\n";
                 std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
 
@@ -217,13 +215,16 @@ set_env_command(CLI::App* com, Configuration& config)
             }
             else
             {
-                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
-                History& hist = pd.history();
+                auto pd = mamba::PrefixData::create(ctx.prefix_params.target_prefix, channel_context)
+                              .value();
+                mamba::History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
                 const auto& pip_versions_map = pd.pip_records();
 
-                std::cout << "name: " << detail::get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
+                std::cout << "name: "
+                          << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
+                          << "\n";
                 std::cout << "channels:\n";
 
                 auto requested_specs_map = hist.get_requested_specs_map();
@@ -302,22 +303,22 @@ set_env_command(CLI::App* com, Configuration& config)
         [&config]
         {
             // Remove specs if exist
-            RemoveResult remove_env_result = remove(config, MAMBA_REMOVE_ALL);
+            mamba::RemoveResult remove_env_result = remove(config, mamba::MAMBA_REMOVE_ALL);
 
-            if (remove_env_result == RemoveResult::NO)
+            if (remove_env_result == mamba::RemoveResult::NO)
             {
-                Console::stream() << "The environment was not removed.";
+                mamba::Console::stream() << "The environment was not removed.";
                 return;
             }
 
-            if (remove_env_result == RemoveResult::EMPTY)
+            if (remove_env_result == mamba::RemoveResult::EMPTY)
             {
-                Console::stream() << "No packages to remove from environment.";
+                mamba::Console::stream() << "No packages to remove from environment.";
 
-                auto res = Console::prompt("Do you want to remove the environment?", 'Y');
+                auto res = mamba::Console::prompt("Do you want to remove the environment?", 'Y');
                 if (!res)
                 {
-                    Console::stream() << "The environment was not removed.";
+                    mamba::Console::stream() << "The environment was not removed.";
                     return;
                 }
             }
@@ -327,21 +328,21 @@ set_env_command(CLI::App* com, Configuration& config)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
-                remove_or_rename(ctx, util::expand_home(prefix.string()));
+                remove_or_rename(ctx, mamba::util::expand_home(prefix.string()));
 
-                EnvironmentsManager env_manager{ ctx };
+                mamba::EnvironmentsManager env_manager{ ctx };
                 // Unregister environment
-                env_manager.unregister_env(util::expand_home(prefix.string()));
+                env_manager.unregister_env(mamba::util::expand_home(prefix.string()));
 
-                Console::instance().print(util::join(
+                mamba::Console::instance().print(mamba::util::join(
                     "",
                     std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
                 ));
-                Console::instance().json_write({ { "success", true } });
+                mamba::Console::instance().json_write({ { "success", true } });
             }
             else
             {
-                Console::stream() << "Dry run. The environment was not removed.";
+                mamba::Console::stream() << "Dry run. The environment was not removed.";
             }
         }
     );
@@ -371,11 +372,11 @@ set_env_command(CLI::App* com, Configuration& config)
     update_subcom->callback(
         [&config]
         {
-            auto update_params = UpdateParams{
-                UpdateAll::No,
-                PruneDeps::Yes,
-                EnvUpdate::Yes,
-                remove_not_specified ? RemoveNotSpecified::Yes : RemoveNotSpecified::No,
+            auto update_params = mamba::UpdateParams{
+                mamba::UpdateAll::No,
+                mamba::PruneDeps::Yes,
+                mamba::EnvUpdate::Yes,
+                remove_not_specified ? mamba::RemoveNotSpecified::Yes : mamba::RemoveNotSpecified::No,
             };
 
             update(config, update_params);

@@ -253,6 +253,12 @@ namespace mamba
 
     namespace
     {
+        enum class MenuInstVersion : std::uint8_t
+        {
+            Version1 = 1,
+            Version2 = 2,
+        };
+
         void create_remove_shortcut_impl(
             const Context& ctx,
             const fs::u8path& json_file,
@@ -333,56 +339,85 @@ namespace mamba
                 }
             };
 
+            // Check menuinst schema version (through the presence of "$id" and "$schema" keys)
+            // cf. https://github.com/conda/ceps/blob/3da0fb0ece/cep-11.md#backwards-compatibility
+            auto menuinst_version = MenuInstVersion::Version1;  // v1-legacy
+            if (j.contains("$id") && j.contains("$schema"))
+            {
+                menuinst_version = MenuInstVersion::Version2;  // v2
+            }
+
             for (auto& item : j["menu_items"])
             {
-                std::string name = item["name"];
-                std::string full_name = util::concat(name, name_suffix);
-
+                std::string name;
                 std::vector<std::string> arguments;
                 fs::u8path script;
-                if (item.contains("pywscript"))
+
+                // cf. https://github.com/conda/menuinst/pull/180
+                if (menuinst_version == MenuInstVersion::Version1)
                 {
-                    script = root_pyw;
-                    arguments = cwp_pyw_args;
-                    auto tmp = util::split(item["pywscript"], " ");
-                    std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
-                }
-                else if (item.contains("pyscript"))
-                {
-                    script = root_py;
-                    arguments = cwp_py_args;
-                    auto tmp = util::split(item["pyscript"], " ");
-                    std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
-                }
-                else if (item.contains("webbrowser"))
-                {
-                    script = root_pyw;
-                    arguments = { "-m", "webbrowser", "-t", item["webbrowser"] };
-                }
-                else if (item.contains("script"))
-                {
-                    script = root_py;
-                    arguments = { cwp_path.string(), target_prefix.string() };
-                    auto tmp = util::split(item["script"], " ");
-                    std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
-                    extend_script_args(item, arguments);
-                }
-                else if (item.contains("system"))
-                {
-                    auto tmp = util::split(item["system"], " ");
-                    script = tmp[0];
-                    if (tmp.size() > 1)
+                    name = item["name"];  // Should be a string
+
+                    if (item.contains("pywscript"))
                     {
-                        std::copy(tmp.begin() + 1, tmp.end(), back_inserter(arguments));
+                        script = root_pyw;
+                        arguments = cwp_pyw_args;
+                        auto tmp = util::split(item["pywscript"], " ");
+                        std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     }
-                    extend_script_args(item, arguments);
+                    else if (item.contains("pyscript"))
+                    {
+                        script = root_py;
+                        arguments = cwp_py_args;
+                        auto tmp = util::split(item["pyscript"], " ");
+                        std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
+                    }
+                    else if (item.contains("webbrowser"))
+                    {
+                        script = root_pyw;
+                        arguments = { "-m", "webbrowser", "-t", item["webbrowser"] };
+                    }
+                    else if (item.contains("script"))
+                    {
+                        script = root_py;
+                        arguments = { cwp_path.string(), target_prefix.string() };
+                        auto tmp = util::split(item["script"], " ");
+                        std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
+                        extend_script_args(item, arguments);
+                    }
+                    else if (item.contains("system"))
+                    {
+                        auto tmp = util::split(item["system"], " ");
+                        script = tmp[0];
+                        if (tmp.size() > 1)
+                        {
+                            std::copy(tmp.begin() + 1, tmp.end(), back_inserter(arguments));
+                        }
+                        extend_script_args(item, arguments);
+                    }
+                    else
+                    {
+                        LOG_ERROR << "Unknown shortcut type found in " << json_file;
+                        throw std::runtime_error("Unknown shortcut type.");
+                    }
                 }
-                else
+                else  // MenuInstVersion::Version2
                 {
-                    LOG_ERROR << "Unknown shortcut type found in " << json_file;
-                    throw std::runtime_error("Unknown shortcut type.");
+                    // `item["name"]` should be an object containing items with
+                    // "target_environment_is_base" and "target_environment_is_not_base"(default)
+                    // as keys
+                    name = item["name"]["target_environment_is_not_base"];
+
+                    // cf.
+                    // https://conda.github.io/menuinst/defining-shortcuts/#migrating-pywscript-and-pyscript-to-menuinst-v2
+                    for (const auto& el : item["command"])
+                    {
+                        arguments.push_back(el.get<std::string>());
+                    }
+                    script = arguments[0];
                 }
 
+                std::string full_name = util::concat(name, name_suffix);
                 fs::u8path dst = target_dir / (full_name + ".lnk");
                 fs::u8path workdir = item.value("workdir", "");
                 fs::u8path iconpath = item.value("icon", "");

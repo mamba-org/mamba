@@ -107,4 +107,6 @@ class TestMenuinst:
         env_name = random_string()
         create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
         print("menuinst.win32.dirs_src: ", menuinst.win32.dirs_src)
+        d = menuinst.win32.dirs_src["user"]["start"][0]
+        print("ls: ", os.listdir(d))
         assert False

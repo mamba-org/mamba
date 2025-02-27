@@ -24,7 +24,7 @@ jobs:
             exit 1
           fi
 
-          RELEASE_LABELS=("release::enhancements" "release::bug_fixes" "release::ci_docs")
+          RELEASE_LABELS=("release::enhancements" "release::bug_fixes" "release::ci_docs" "release::maintenance")
           PR_LABELS=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
           NB_RELEASE_LABELS=0
 

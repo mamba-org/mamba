@@ -109,4 +109,7 @@ class TestMenuinst:
         print("menuinst.win32.dirs_src: ", menuinst.win32.dirs_src)
         d = menuinst.win32.dirs_src["user"]["start"][0]
         print("ls: ", os.listdir(d))
+        distribution_name = os.getenv("DISTRIBUTION_NAME")
+        spyder_path = os.path.join(d, f"{distribution_name} spyder")
+        print("ls spyder path: ", os.listdir(spyder_path))
         assert False

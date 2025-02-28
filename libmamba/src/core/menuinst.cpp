@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
 #include <string>
 
 #include "mamba/util/path_manip.hpp"
@@ -260,6 +261,7 @@ namespace mamba
             [[maybe_unused]] bool remove
         )
         {
+            std::cout << "IN create_remove_shortcut_impl" << std::endl;
             std::string json_content = mamba::read_contents(json_file);
             replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
@@ -388,6 +390,7 @@ namespace mamba
                 fs::u8path iconpath = item.value("icon", "");
                 if (remove == false)
                 {
+                    std::cout << "false case" << std::endl;
                     std::string argstring;
                     std::string lscript = util::to_lower(script.string());
 
@@ -429,6 +432,7 @@ namespace mamba
                     }
 
                     mamba::win::create_shortcut(script, full_name, dst, argstring, workdir, iconpath, 0);
+                    std::cout << "END false case" << std::endl;
                 }
                 else
                 {

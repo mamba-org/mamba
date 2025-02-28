@@ -108,8 +108,12 @@ class TestMenuinst:
         create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
         print("menuinst.win32.dirs_src: ", menuinst.win32.dirs_src)
         d = menuinst.win32.dirs_src["user"]["start"][0]
-        print("ls: ", os.listdir(d))
+        list_start_dirs = os.listdir(d)
+        print("ls: ", list_start_dirs)
         # distribution_name = os.getenv("DISTRIBUTION_NAME")
-        spyder_path = os.path.join(d, "spyder")
-        print("ls spyder path: ", os.listdir(spyder_path))
+        for el in list_start_dirs:
+            el_path = os.path.join(d, el)
+            print("ls ", el_path, ": ", os.listdir(el_path))
+        # spyder_path = os.path.join(d, "spyder")
+        # print("ls spyder path: ", os.listdir(spyder_path))
         assert False

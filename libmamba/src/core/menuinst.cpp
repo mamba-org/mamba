@@ -277,6 +277,7 @@ namespace mamba
             }
 
 #ifdef _WIN32
+            std::cout << "#ifdef _WIN32 CASE" << std::endl;
 
             // {
             //     "menu_name": "Miniforge${PY_VER}",
@@ -335,8 +336,10 @@ namespace mamba
                 }
             };
 
+            std::cout << "Before for loop " << std::endl;
             for (auto& item : j["menu_items"])
             {
+                std::cout << "IN for loop " << std::endl;
                 std::string name = item["name"];
                 std::string full_name = util::concat(name, name_suffix);
 

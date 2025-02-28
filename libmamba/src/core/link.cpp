@@ -848,7 +848,7 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
-        std::cout << "IN LinkPackage::execute()" << std::endl;
+        // std::cout << "IN LinkPackage::execute()" << std::endl;
         const auto& context = m_context->context();
 
         nlohmann::json index_json, out_json;
@@ -1075,16 +1075,16 @@ namespace mamba
         }
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
-        std::cout << "Creating all start menu shortcuts" << std::endl;
+        // std::cout << "Creating all start menu shortcuts" << std::endl;
         if (util::on_win && context.shortcuts
             && m_context->target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)
             {
-                std::cout << "path.path is: " << path.path << std::endl;
+                // std::cout << "path.path is: " << path.path << std::endl;
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    std::cout << "yes matching regex " << std::endl;
+                    std::cout << "yes matching regex:  " << path.path << std::endl;
                     create_menu_from_json(context, m_context->target_prefix / path.path, m_context);
                 }
             }

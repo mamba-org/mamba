@@ -112,8 +112,8 @@ class TestMenuinst:
         print("ls: ", list_start_dirs)
         # distribution_name = os.getenv("DISTRIBUTION_NAME")
         for el in list_start_dirs:
-            if os.path.isdir(el):
-                el_path = os.path.join(d, el)
+            el_path = os.path.join(d, el)
+            if os.path.isdir(el_path):
                 print("ls ", el_path, ": ", os.listdir(el_path))
         # spyder_path = os.path.join(d, "spyder")
         # print("ls spyder path: ", os.listdir(spyder_path))

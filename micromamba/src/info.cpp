@@ -26,10 +26,10 @@ init_info_parser(CLI::App* subcom, mamba::Configuration& config)
     );
     subcom->add_flag("--base", base.get_cli_config<bool>(), base.description());
 
-    auto& environements = config.insert(
-        mamba::Configurable("environements", false).group("cli").description("List known environments.")
+    auto& environments = config.insert(
+        mamba::Configurable("environments", false).group("cli").description("List known environments.")
     );
-    subcom->add_flag("-e,--envs", environements.get_cli_config<bool>(), environements.description());
+    subcom->add_flag("-e,--envs", environments.get_cli_config<bool>(), environments.description());
 }
 
 void

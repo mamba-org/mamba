@@ -7,10 +7,6 @@
 #ifndef MAMBA_API_ENV_HPP
 #define MAMBA_API_ENV_HPP
 
-#include <string>
-
-#include <CLI/CLI.hpp>
-
 #include "mamba/api/configuration.hpp"
 
 namespace mamba

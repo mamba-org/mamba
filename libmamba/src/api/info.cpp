@@ -30,13 +30,15 @@ namespace mamba
         {
             bool print_licenses = false;
             bool base = false;
-            bool environements = false;
+            bool environments = false;
         };
 
-        void info_pretty_print(
-            std::vector<std::tuple<std::string, nlohmann::json>> items,
-            const Context::OutputParams& params
-        )
+        // Prints a sequence of string/json-value pairs in a pretty table.
+        // requirements:
+        // - T must be a sequence of pair-like elements;
+        // - the elements of T must be composed of a `std::string` and a `nlhomann::json` objects
+        template <typename T>
+        void info_pretty_print(const T& items, const Context::OutputParams& params)
         {
             if (params.json)
             {
@@ -44,26 +46,24 @@ namespace mamba
             }
 
             std::size_t key_max_length = 0;
-            for (auto& item : items)
+            for (const auto& [key, value] : items)
             {
-                std::size_t key_length = std::get<0>(item).size();
+                std::size_t key_length = key.size();
                 key_max_length = std::max(key_length, key_max_length);
             }
             ++key_max_length;
 
             auto stream = Console::stream();
 
-            for (auto& item : items)
+            for (const auto& [key, value] : items)
             {
-                auto key = std::get<0>(item);
-                auto val = std::get<1>(item);
-                auto blk_size = key_max_length - std::get<0>(item).size();
+                auto blk_size = key_max_length - key.size();
 
                 stream << "\n" << std::string(blk_size, ' ') << key << " : ";
-                for (auto v = val.begin(); v != val.end(); ++v)
+                for (auto v = value.begin(); v != value.end(); ++v)
                 {
-                    stream << (*v).get<std::string>();
-                    if (v != (val.end() - 1))
+                    stream << (*v).template get<std::string>();
+                    if (v != (value.end() - 1))
                     {
                         stream << "\n" << std::string(key_max_length + 3, ' ');
                     }
@@ -71,10 +71,15 @@ namespace mamba
             }
         }
 
-        void info_json_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
+        // Prints a sequence of string/json-value pairs in a json format.
+        // requirements:
+        // - T must be a sequence of pair-like elements;
+        // - the elements of T must be composed of a `std::string` and a `nlhomann::json` objects
+        template <typename T>
+        void info_json_print(const T& items)
         {
             std::map<std::string, nlohmann::json> items_map;
-            for (auto& [key, val] : items)
+            for (const auto& [key, val] : items)
             {
                 items_map.insert({ key, val });
             }
@@ -87,11 +92,11 @@ namespace mamba
         {
             assert(&ctx == &config.context());
 
-            std::vector<std::tuple<std::string, nlohmann::json>> items;
+            using info_sequence = std::vector<std::tuple<std::string, nlohmann::json>>;
 
             if (options.print_licenses)
             {
-                const std::vector<std::pair<std::string, std::string>> licenses = {
+                static const std::vector<std::pair<std::string, nlohmann::json>> licenses = {
                     { "micromamba",
                       "BSD license, Copyright 2019 QuantStack and the Mamba contributors." },
                     { "c_ares",
@@ -122,29 +127,25 @@ namespace mamba
                     { "zstd",
                       "BSD license, Copyright (c) 2016-present, Facebook, Inc. All rights reserved." },
                 };
-                for (const auto& [dep, text] : licenses)
-                {
-                    items.push_back({ dep, text });
-                }
-                info_json_print(items);
-                info_pretty_print(items, ctx.output_params);
+                info_json_print(licenses);
+                info_pretty_print(licenses, ctx.output_params);
                 return;
             }
-            else if (options.base)
+            if (options.base)
             {
-                items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
+                info_sequence items{ { "base environment", ctx.prefix_params.root_prefix.string() } };
 
                 info_json_print(items);
                 info_pretty_print(items, ctx.output_params);
                 return;
             }
-            else if (options.environements)
+            if (options.environments)
             {
                 mamba::detail::print_envs(config);
                 return;
             }
 
-            items.push_back({ "libmamba version", version() });
+            info_sequence items{ { "libmamba version", version() } };
 
             if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
             {
@@ -252,7 +253,7 @@ namespace mamba
         detail::InfoOptions options;
         options.print_licenses = config.at("print_licenses").value<bool>();
         options.base = config.at("base").value<bool>();
-        options.environements = config.at("environements").value<bool>();
+        options.environments = config.at("environments").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::print_info(config.context(), channel_context, config, std::move(options));

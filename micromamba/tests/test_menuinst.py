@@ -105,7 +105,7 @@ class TestMenuinst:
     )
     def test_spyder_shortcut(self):
         env_name = random_string()
-        create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
+        create("python=3.12", "spyder=6.0.3", "-n", env_name, "-v", no_dry_run=True)
         print("menuinst.win32.dirs_src: ", menuinst.win32.dirs_src)
         d = menuinst.win32.dirs_src["user"]["start"][0]
         list_start_dirs = os.listdir(d)

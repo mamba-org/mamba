@@ -182,13 +182,18 @@ def create(
         cmd += ["--dry-run"]
 
     try:
-        res = subprocess_run(*cmd, **kwargs)
+        print(f"Executing cmd:  '{' '.join(cmd)}'")
+        # res = subprocess_run(*cmd, **kwargs)
+        res = subprocess.run(cmd, capture_output=True, **kwargs)
+        print(res.stdout.decode())
+        print(res.stderr.decode())
         if "--json" in args:
             j = json.loads(res)
             return j
         if "--print-config-only" in args:
             return yaml.load(res, Loader=yaml.FullLoader)
-        return res.decode()
+        # return res.decode()
+        return res.stdout.decode()
     except subprocess.CalledProcessError as e:
         print(f"Error when executing '{' '.join(cmd)}'")
         raise (e)

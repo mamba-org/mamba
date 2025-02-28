@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
 #include <string>
 
 #include "mamba/util/path_manip.hpp"
@@ -260,6 +261,7 @@ namespace mamba
             [[maybe_unused]] bool remove
         )
         {
+            std::cout << "IN create_remove_shortcut_impl" << std::endl;
             std::string json_content = mamba::read_contents(json_file);
             replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
@@ -275,6 +277,7 @@ namespace mamba
             }
 
 #ifdef _WIN32
+            std::cout << "#ifdef _WIN32 CASE" << std::endl;
 
             // {
             //     "menu_name": "Miniforge${PY_VER}",
@@ -333,13 +336,22 @@ namespace mamba
                 }
             };
 
+            std::cout << "Before for loop " << std::endl;
             for (auto& item : j["menu_items"])
             {
+                std::cout << "IN for loop " << std::endl;
                 std::string name = item["name"];
+                std::cout << "Item name: " << name << std::endl;
                 std::string full_name = util::concat(name, name_suffix);
+                std::cout << "full name: " << full_name << std::endl;
 
                 std::vector<std::string> arguments;
                 fs::u8path script;
+                for (auto& el : item.items())
+                {
+                    std::cout << "Key: " << el.key() << ", Value: " << el.value() << std::endl;
+                }
+                std::cout << "BEFORE checking content " << std::endl;
                 if (item.contains("pywscript"))
                 {
                     script = root_pyw;
@@ -386,8 +398,10 @@ namespace mamba
                 fs::u8path dst = target_dir / (full_name + ".lnk");
                 fs::u8path workdir = item.value("workdir", "");
                 fs::u8path iconpath = item.value("icon", "");
+                std::cout << "Before checking false case" << std::endl;
                 if (remove == false)
                 {
+                    std::cout << "false case" << std::endl;
                     std::string argstring;
                     std::string lscript = util::to_lower(script.string());
 
@@ -429,6 +443,7 @@ namespace mamba
                     }
 
                     mamba::win::create_shortcut(script, full_name, dst, argstring, workdir, iconpath, 0);
+                    std::cout << "END false case" << std::endl;
                 }
                 else
                 {

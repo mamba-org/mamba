@@ -182,6 +182,7 @@ def create(
         cmd += ["--dry-run"]
 
     try:
+        print(f"Executing cmd:  '{' '.join(cmd)}'")
         res = subprocess_run(*cmd, **kwargs)
         if "--json" in args:
             j = json.loads(res)

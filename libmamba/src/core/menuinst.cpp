@@ -345,6 +345,10 @@ namespace mamba
 
                 std::vector<std::string> arguments;
                 fs::u8path script;
+                for (auto& el : item.items())
+                {
+                    std::cout << "Key: " << el.key() << ", Value: " << el.value() << std::endl;
+                }
                 if (item.contains("pywscript"))
                 {
                     script = root_pyw;
@@ -391,6 +395,7 @@ namespace mamba
                 fs::u8path dst = target_dir / (full_name + ".lnk");
                 fs::u8path workdir = item.value("workdir", "");
                 fs::u8path iconpath = item.value("icon", "");
+                std::cout << "Before checking false case" << std::endl;
                 if (remove == false)
                 {
                     std::cout << "false case" << std::endl;

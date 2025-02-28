@@ -341,7 +341,9 @@ namespace mamba
             {
                 std::cout << "IN for loop " << std::endl;
                 std::string name = item["name"];
+                std::cout << "Item name: " << name << std::endl;
                 std::string full_name = util::concat(name, name_suffix);
+                std::cout << "full name: " << full_name << std::endl;
 
                 std::vector<std::string> arguments;
                 fs::u8path script;
@@ -349,6 +351,7 @@ namespace mamba
                 {
                     std::cout << "Key: " << el.key() << ", Value: " << el.value() << std::endl;
                 }
+                std::cout << "BEFORE checking content " << std::endl;
                 if (item.contains("pywscript"))
                 {
                     script = root_pyw;

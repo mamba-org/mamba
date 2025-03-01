@@ -505,7 +505,7 @@ namespace mamba::specs
     auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
         // Remove comments, i.e. everything after ` #` (space included)
-        if (const auto idx = str.find('#'); idx != std::string::npos && str[idx - 1] == ' ')
+        if (const auto idx = str.find(" #"); idx != std::string::npos)
         {
             str = str.substr(0, idx);
         }

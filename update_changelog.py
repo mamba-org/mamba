@@ -127,6 +127,7 @@ def main():
     enhancements_prs = []  # release::enhancements
     bug_fixes_prs = []  # release::bug_fixes
     ci_docs_prs = []  # release::ci_docs
+    maintenance_prs = []  # release::maintenance
 
     for pr in prs_nbrs:
         # Get labels
@@ -156,6 +157,8 @@ def main():
             bug_fixes_prs.append(pr)
         elif label == "release::ci_docs":
             ci_docs_prs.append(pr)
+        elif label == "release::maintenance":
+            maintenance_prs.append(pr)
         else:
             raise ValueError(f"Unknown release label {label} for PR #{pr}")
 
@@ -177,6 +180,8 @@ def main():
             append_to_file("Bug fixes", bug_fixes_prs, changelog_file)
         if ci_docs_prs:
             append_to_file("CI fixes and doc", ci_docs_prs, changelog_file)
+        if maintenance_prs:
+            append_to_file("Maintenance", maintenance_prs, changelog_file)
 
         # Write back old content of CHANGELOG file
         changelog_file.write("\n" + content_to_restore)

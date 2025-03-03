@@ -164,6 +164,9 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     )
 
 
+# TODO: Remove this test once this is fixed:
+# https://github.com/dateutil/dateutil/issues/1419
+@pytest.mark.skip(reason="See https://github.com/mamba-org/mamba/pull/3796#issuecomment-2683061013")
 @pytest.mark.skipif(
     platform.system() not in ["Darwin", "Linux"],
     reason="Used lockfile only handles macOS and Linux.",
@@ -281,8 +284,6 @@ def test_target_prefix(
     else:
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
 
-    # TODO: Remove this call to `os.makedirs` once
-    # https://github.com/mamba-org/mamba/issues/3790 is fixed
     if root_prefix_env_exists:
         os.makedirs(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs", exist_ok=True)
 
@@ -662,12 +663,98 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
     assert (effective_prefix / "conda-meta" / "history").exists()
 
 
-def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
+def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     """Create an environment when the first env dir is not writable."""
-    os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+
+    noperm_root_dir = Path(tmp_path / "noperm")
+    noperm_envs_dir = noperm_root_dir / "envs"
+
+    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{noperm_envs_dir},{tmp_path}")
     env_name = "myenv"
-    helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    os.makedirs(noperm_root_dir, exist_ok=True)
+
+    if platform.system() == "Windows":
+        # Make first env_dir read-only on Windows - this requires:
+        #   Removing inherited and granted permissions, removing ownership,
+        #   and granting group Everyone RX access.
+
+        subprocess.run(
+            [
+                "icacls",
+                noperm_root_dir,
+                "/inheritance:r",  # remove inherited permissions
+                "/grant:r",  # remove explicitly granted permissions
+                "Everyone:(RX)",  # grant Read-Execute to everyone
+                "/remove",  # remove ownership from all groups
+                r"BUILTIN\Administrators",
+                "/remove",
+                r"NT AUTHORITY\SYSTEM",
+                "/remove",
+                "OWNER RIGHTS",
+            ],
+            check=True,
+        )
+
+    else:
+        # Make first env_dir read-only on Linux
+        os.chmod(noperm_root_dir, 0o555)
+
+    try:
+        helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    finally:
+        if platform.system() == "Windows":
+            # Revert ownership change on Windows so that we can clean up
+            subprocess.run(
+                ["icacls", noperm_root_dir, "/grant", r"BUILTIN\Administrators:F"], check=True
+            )
+            subprocess.run(["icacls", noperm_root_dir, "/reset"], check=True)
+        else:
+            # Revert permission change on Linux so that we can clean up
+            os.chmod(noperm_root_dir, 0o755)
+
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
+
+
+@pytest.mark.parametrize("envs_dirs_source", ("condarc", "env_var"))
+def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, envs_dirs_source):
+    """Test that an env dir is created if it does not exist already"""
+
+    envs_dir = tmp_path / "user_provided_envdir" / "envs"
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        if envs_dirs_source == "env_var":
+            monkeypatch.setenv("CONDA_ENVS_DIRS", str(envs_dir))
+        else:
+            f.write(f"envs_dirs: [{str(envs_dir)}]")
+
+    assert not envs_dir.exists()  # directory doesn't exist yet
+
+    helpers.create("-n", "bar", "--rc-file", tmp_home / ".condarc", no_rc=False)
+
+    assert envs_dir.exists()
+
+
+def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
+    """
+    Test that setting envs_dirs to ~/.conda and running twice in a row
+    gives the same results
+    https://github.com/mamba-org/mamba/issues/3836
+    """
+
+    mamba_root_prefix_envs = tmp_root_prefix / "envs"
+    condarc_envs_dirs = tmp_home / ".conda"
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
+
+    env_name = "foo"
+
+    for _ in range(2):
+        cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
+        helpers.create(*cmd, no_rc=False)
+
+        assert not Path(mamba_root_prefix_envs / env_name).exists()
+        assert Path(condarc_envs_dirs / env_name).exists()
 
 
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
@@ -712,11 +799,6 @@ def test_root_prefix_precedence(
     with open(tmp_home / ".condarc", "w+") as f:
         if set_in_condarc:
             f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
-
-    # TODO: Remove this call to `os.makedirs` once
-    # https://github.com/mamba-org/mamba/issues/3790 is fixed
-    for envs_folder in (condarc_envs_dirs, conda_envs_dirs, cli_provided_root, mamba_root_prefix):
-        os.makedirs(envs_folder, exist_ok=True)
 
     cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
 

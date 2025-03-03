@@ -490,6 +490,16 @@ namespace mamba
             {
                 for (const auto& dir : dirs)
                 {
+                    try
+                    {
+                        fs::create_directories(dir);
+                    }
+                    catch (const fs::filesystem_error& e)
+                    {
+                        LOG_WARNING << "Error creating directory " << dir << ": " << e.what()
+                                    << std::endl;
+                    }
+
                     const auto candidate = dir / name;
                     if (mamba::path::is_writable(candidate))
                     {

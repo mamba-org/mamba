@@ -35,7 +35,6 @@ namespace mamba
         void print_envs(Configuration& config)
         {
             const auto& ctx = config.context();
-            config.load();
 
             EnvironmentsManager env_manager{ ctx };
 

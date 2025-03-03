@@ -77,7 +77,7 @@ jobs:
       # The build_locally.py script will test all Linux builds, which fails outside of linux-64
       - name: Build conda package (Linux emulated)
         if: ${{ matrix.platform == 'linux' && matrix.arch != '64' }}
-        uses: uraimo/run-on-arch-action@v2
+        uses: uraimo/run-on-arch-action@v3
         with:
           arch: ${{ matrix.arch }}
           distro: ubuntu_latest

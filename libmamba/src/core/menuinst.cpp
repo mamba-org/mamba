@@ -265,6 +265,7 @@ namespace mamba
             std::string json_content = mamba::read_contents(json_file);
             replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
+            std::cout << "Printing j dump: " << j.dump(4) << std::endl;
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 

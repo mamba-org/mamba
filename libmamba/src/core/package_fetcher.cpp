@@ -164,9 +164,9 @@ namespace mamba
                           << error.transfer.value().effective_url << " (status "
                           << error.transfer.value().http_status << ")\n"
                           << "If you see this message repeatedly, the state of your installation might be corrupted,\n"
-                          << "in which case running `mamba clean --all` might fix it.\n"
-                          << "If you continue to meet this problem, please report this issue on mamba's issue tracker:\n"
-                          << "https://github.com/mamba-org/mamba/issues/new?template=bug.yml";
+                          << "in which case running `mamba clean --all` might fix it.\n\n"
+                          << "If you continue to meet this problem, please search or report an issue\n"
+                          << "on  mamba's issue tracker: https://github.com/mamba-org/mamba/issues/";
             }
             else
             {

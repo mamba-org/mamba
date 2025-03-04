@@ -186,9 +186,21 @@ namespace mamba
                     msg << "  - Expected sha256   : " << s.sha256 << "\n"
                         << "  - Effective sha256  : " << validation::sha256sum(tarball_path) << "\n";
                 }
-                msg << "Processing with its deletion.";
+                msg << "Deleting '" << tarball_path.string() << "'";
                 LOG_TRACE << msg.str();
-                fs::remove(tarball_path);
+
+                std::error_code ec;
+                fs::remove(tarball_path, ec);
+
+                if (ec)
+                {
+                    LOG_ERROR << "Failed to remove invalid tarball '" << tarball_path.string()
+                              << "' (error_code: " << ec.message() << ")";
+                }
+                else
+                {
+                    LOG_TRACE << "Package tarball '" << tarball_path.string() << "' removed";
+                }
             }
             m_valid_tarballs[pkg] = valid;
         }

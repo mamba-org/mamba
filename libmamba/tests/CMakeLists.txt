@@ -85,11 +85,13 @@ set(
     src/core/test_invoke.cpp
     src/core/test_lockfile.cpp
     src/core/test_output.cpp
+    src/core/test_package_fetcher.cpp
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
+    src/core/test_transaction_context.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp
 )

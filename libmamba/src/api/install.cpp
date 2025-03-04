@@ -419,13 +419,7 @@ namespace mamba
 
             solver::libsolv::Database db{ channel_context.params() };
             add_spdlog_logger_to_database(db);
-            // functions implied in 'and_then' coding-styles must return the same type
-            // which limits this syntax
-            /*auto exp_prefix_data = load_channels(pool, package_caches)
-                                   .and_then([&ctx](const auto&) { return
-               PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const
-               mamba_error& err) { throw std::runtime_error(err.what());
-                                    });*/
+
             auto exp_load = load_channels(ctx, channel_context, db, package_caches);
             if (!exp_load)
             {
@@ -467,6 +461,7 @@ namespace mamba
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;
+                    bool retry = true;
                     return install_specs_impl(
                         ctx,
                         channel_context,
@@ -474,7 +469,7 @@ namespace mamba
                         raw_specs,
                         create_env,
                         remove_prefix_on_failure,
-                        true
+                        retry
                     );
                 }
                 if (freeze_installed)
@@ -574,6 +569,7 @@ namespace mamba
         bool remove_prefix_on_failure
     )
     {
+        auto is_retry = false;
         return install_specs_impl(
             ctx,
             channel_context,
@@ -581,14 +577,14 @@ namespace mamba
             specs,
             create_env,
             remove_prefix_on_failure,
-            false
+            is_retry
         );
     }
 
     namespace
     {
 
-        // TransactionFunc: (Database& pool, MultiPackageCache& package_caches) -> MTransaction
+        // TransactionFunc: (Database& database, MultiPackageCache& package_caches) -> MTransaction
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             Context& ctx,
@@ -599,8 +595,8 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_database(db);
+            solver::libsolv::Database database{ channel_context.params() };
+            add_spdlog_logger_to_database(database);
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty
@@ -619,12 +615,12 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-            load_installed_packages_in_database(ctx, db, prefix_data);
+            load_installed_packages_in_database(ctx, database, prefix_data);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
-            // so they must have been ready in the pool before this line
-            auto transaction = create_transaction(db, pkg_caches, others);
+            // so they must have been ready in the database's pool before this line
+            auto transaction = create_transaction(database, pkg_caches, others);
 
             std::vector<LockFile> lock_pkgs;
 

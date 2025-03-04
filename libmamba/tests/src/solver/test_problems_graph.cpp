@@ -329,7 +329,7 @@ namespace
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         MultiPackageCache& cache,
         std::vector<std::string>&& channels
     )
@@ -353,7 +353,7 @@ namespace
 
         for (auto& sub_dir : sub_dirs)
         {
-            auto repo = load_subdir_in_database(ctx, db, sub_dir);
+            auto repo = load_subdir_in_database(ctx, database, sub_dir);
         }
     }
 

@@ -20,7 +20,7 @@ namespace mamba
 
     namespace detail
     {
-        struct list_options
+        struct ListOptions
         {
             bool full_name = false;
             bool no_pip = false;
@@ -61,7 +61,7 @@ namespace mamba
         }
 
         std::vector<std::string>
-        get_record_keys(list_options options, const PrefixData::package_map& all_records)
+        get_record_keys(ListOptions options, const PrefixData::package_map& all_records)
         {
             std::vector<std::string> keys;
 
@@ -122,7 +122,7 @@ namespace mamba
             const Context& ctx,
             std::string regex,
             ChannelContext& channel_context,
-            list_options options
+            ListOptions options
         )
         {
             auto sprefix_data = PrefixData::create(
@@ -354,7 +354,7 @@ namespace mamba
             );
         config.load();
 
-        detail::list_options options;
+        detail::ListOptions options;
         options.full_name = config.at("full_name").value<bool>();
         options.no_pip = config.at("no_pip").value<bool>();
         options.reverse = config.at("reverse").value<bool>();

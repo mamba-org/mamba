@@ -1,0 +1,9 @@
+# Default state for all rules
+default: true
+
+# MD013/line-length - Line length
+MD013:
+  # Number of characters
+  line_length: 200
+
+no-duplicate-heading: false

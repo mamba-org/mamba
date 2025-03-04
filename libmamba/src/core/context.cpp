@@ -181,7 +181,7 @@ namespace mamba
         prefix_params.root_prefix = detail::get_root_prefix();
         prefix_params.conda_prefix = prefix_params.root_prefix;
 
-        envs_dirs = { prefix_params.root_prefix / "envs" };
+        envs_dirs = {};
         pkgs_dirs = { prefix_params.root_prefix / "pkgs",
                       fs::u8path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32

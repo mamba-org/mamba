@@ -39,22 +39,23 @@ namespace mamba::solver::libsolv
 
         auto operator=(UnSolvable&&) -> UnSolvable&;
 
-        [[nodiscard]] auto problems(Database& pool) const -> std::vector<std::string>;
+        [[nodiscard]] auto problems(Database& database) const -> std::vector<std::string>;
 
-        [[nodiscard]] auto problems_to_str(Database& pool) const -> std::string;
+        [[nodiscard]] auto problems_to_str(Database& database) const -> std::string;
 
-        [[nodiscard]] auto all_problems_to_str(Database& pool) const -> std::string;
+        [[nodiscard]] auto all_problems_to_str(Database& database) const -> std::string;
 
-        [[nodiscard]] auto problems_graph(const Database& pool) const -> ProblemsGraph;
+        [[nodiscard]] auto problems_graph(const Database& database) const -> ProblemsGraph;
 
         auto explain_problems_to(  //
-            Database& pool,
+            Database& database,
             std::ostream& out,
             const ProblemsMessageFormat& format
         ) const -> std::ostream&;
 
         [[nodiscard]] auto
-        explain_problems(Database& pool, const ProblemsMessageFormat& format) const -> std::string;
+        explain_problems(Database& database, const ProblemsMessageFormat& format) const
+            -> std::string;
 
     private:
 

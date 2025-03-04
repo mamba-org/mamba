@@ -36,6 +36,7 @@ namespace mamba
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         bool remove_prefix_on_failure = false;
+        bool create_env = true;
 
         if (!ctx.dry_run)
         {
@@ -105,7 +106,7 @@ namespace mamba
                 channel_context,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
-                true,
+                create_env,
                 remove_prefix_on_failure
             );
         }
@@ -113,11 +114,24 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(ctx, channel_context, create_specs, true, remove_prefix_on_failure);
+                install_explicit_specs(
+                    ctx,
+                    channel_context,
+                    create_specs,
+                    create_env,
+                    remove_prefix_on_failure
+                );
             }
             else
             {
-                install_specs(ctx, channel_context, config, create_specs, true, remove_prefix_on_failure);
+                install_specs(
+                    ctx,
+                    channel_context,
+                    config,
+                    create_specs,
+                    create_env,
+                    remove_prefix_on_failure
+                );
             }
         }
     }

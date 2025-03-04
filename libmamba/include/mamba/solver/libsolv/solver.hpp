@@ -22,12 +22,12 @@ namespace mamba::solver::libsolv
 
         using Outcome = std::variant<Solution, UnSolvable>;
 
-        [[nodiscard]] auto solve(Database& pool, Request&& request) -> expected_t<Outcome>;
-        [[nodiscard]] auto solve(Database& pool, const Request& request) -> expected_t<Outcome>;
+        [[nodiscard]] auto solve(Database& database, Request&& request) -> expected_t<Outcome>;
+        [[nodiscard]] auto solve(Database& database, const Request& request) -> expected_t<Outcome>;
 
     private:
 
-        auto solve_impl(Database& pool, const Request& request) -> expected_t<Outcome>;
+        auto solve_impl(Database& database, const Request& request) -> expected_t<Outcome>;
     };
 }
 #endif

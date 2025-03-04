@@ -20,7 +20,7 @@ namespace mamba
     namespace detail
     {
         std::string get_env_name(const Context& ctx, const mamba::fs::u8path& px);
-        void print_envs_impl(Configuration& config);
+        void print_envs_impl(const Configuration& config);
     }
 }
 

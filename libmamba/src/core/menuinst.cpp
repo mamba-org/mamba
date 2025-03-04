@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
 #include <string>
 
 #include "mamba/util/path_manip.hpp"
@@ -253,6 +254,12 @@ namespace mamba
 
     namespace
     {
+        enum class MenuInstVersion : std::uint8_t
+        {
+            Version1 = 1,
+            Version2 = 2,
+        };
+
         void create_remove_shortcut_impl(
             const Context& ctx,
             const fs::u8path& json_file,
@@ -260,9 +267,11 @@ namespace mamba
             [[maybe_unused]] bool remove
         )
         {
+            std::cout << "IN create_remove_shortcut_impl" << std::endl;
             std::string json_content = mamba::read_contents(json_file);
             replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
+            std::cout << "Printing j dump: " << j.dump(4) << std::endl;
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
@@ -275,6 +284,7 @@ namespace mamba
             }
 
 #ifdef _WIN32
+            std::cout << "#ifdef _WIN32 CASE" << std::endl;
 
             // {
             //     "menu_name": "Miniforge${PY_VER}",
@@ -333,13 +343,42 @@ namespace mamba
                 }
             };
 
+            std::cout << "Before for loop " << std::endl;
+            // Check menuinst schema version (through the presence of "$id" and "$schema" keys)
+            // cf. https://github.com/conda/ceps/blob/3da0fb0ece/cep-11.md#backwards-compatibility
+            auto menuinst_version = MenuInstVersion::Version1;  // v1-legacy
+            if (j.contains("$id") && j.contains("$schema"))
+            {
+                menuinst_version = MenuInstVersion::Version2;  // v2
+            }
+
             for (auto& item : j["menu_items"])
             {
-                std::string name = item["name"];
+                std::cout << "IN for loop " << std::endl;
+                std::string name;
+                // cf. https://github.com/conda/menuinst/pull/180
+                if (menuinst_version == MenuInstVersion::Version1)
+                {
+                    name = item["name"];  // Should be a string
+                }
+                else  // MenuInstVersion::Version2
+                {
+                    // `item["name"]` should be an object containing items with
+                    // "target_environment_is_base" and "target_environment_is_not_base"(default)
+                    // as keys
+                    name = item["name"]["target_environment_is_not_base"];
+                }
+                std::cout << "Item name: " << name << std::endl;
                 std::string full_name = util::concat(name, name_suffix);
+                std::cout << "full name: " << full_name << std::endl;
 
                 std::vector<std::string> arguments;
                 fs::u8path script;
+                for (auto& el : item.items())
+                {
+                    std::cout << "Key: " << el.key() << ", Value: " << el.value() << std::endl;
+                }
+                std::cout << "BEFORE checking content " << std::endl;
                 if (item.contains("pywscript"))
                 {
                     script = root_pyw;
@@ -386,8 +425,10 @@ namespace mamba
                 fs::u8path dst = target_dir / (full_name + ".lnk");
                 fs::u8path workdir = item.value("workdir", "");
                 fs::u8path iconpath = item.value("icon", "");
+                std::cout << "Before checking false case" << std::endl;
                 if (remove == false)
                 {
+                    std::cout << "false case" << std::endl;
                     std::string argstring;
                     std::string lscript = util::to_lower(script.string());
 
@@ -429,6 +470,7 @@ namespace mamba
                     }
 
                     mamba::win::create_shortcut(script, full_name, dst, argstring, workdir, iconpath, 0);
+                    std::cout << "END false case" << std::endl;
                 }
                 else
                 {

@@ -98,3 +98,23 @@ class TestMenuinst:
 
         shutil.rmtree(root_prefix)
         os.environ["MAMBA_ROOT_PREFIX"] = self.root_prefix
+
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="skipping windows-only tests",
+    )
+    def test_spyder_shortcut(self):
+        env_name = random_string()
+        create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
+        print("menuinst.win32.dirs_src: ", menuinst.win32.dirs_src)
+        d = menuinst.win32.dirs_src["user"]["start"][0]
+        list_start_dirs = os.listdir(d)
+        print("ls: ", list_start_dirs)
+        # distribution_name = os.getenv("DISTRIBUTION_NAME")
+        for el in list_start_dirs:
+            el_path = os.path.join(d, el)
+            if os.path.isdir(el_path):
+                print("ls ", el_path, ": ", os.listdir(el_path))
+        # spyder_path = os.path.join(d, "spyder")
+        # print("ls spyder path: ", os.listdir(spyder_path))
+        assert False

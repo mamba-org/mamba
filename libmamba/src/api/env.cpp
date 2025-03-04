@@ -13,6 +13,12 @@
 
 namespace mamba
 {
+    void print_envs(Configuration& config)
+    {
+        config.load();
+        mamba::detail::print_envs_impl(config);
+    }
+
     namespace detail
     {
         std::string get_env_name(const Context& ctx, const mamba::fs::u8path& px)
@@ -32,7 +38,7 @@ namespace mamba
             }
         }
 
-        void print_envs(Configuration& config)
+        void print_envs_impl(Configuration& config)
         {
             const auto& ctx = config.context();
 

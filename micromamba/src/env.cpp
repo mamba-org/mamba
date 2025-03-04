@@ -32,7 +32,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
     init_general_options(list_subcom, config);
     init_prefix_options(list_subcom, config);
 
-    list_subcom->callback([&config] { mamba::detail::print_envs(config); });
+    list_subcom->callback([&config] { mamba::print_envs(config); });
 
     // env create subcommand
     auto* create_subcom = com->add_subcommand(

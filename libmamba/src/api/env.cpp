@@ -38,7 +38,7 @@ namespace mamba
             }
         }
 
-        void print_envs_impl(Configuration& config)
+        void print_envs_impl(const Configuration& config)
         {
             const auto& ctx = config.context();
 

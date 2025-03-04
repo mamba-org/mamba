@@ -962,17 +962,20 @@ namespace mamba
 
         const auto permissions = fs::perms::owner_all | fs::perms::group_all
                                  | fs::perms::others_read | fs::perms::others_exec;
-        fs::permissions(cache_dir.string().c_str(), permissions, fs::perm_options::replace);
+        fs::permissions(cache_dir, permissions, fs::perm_options::replace);
         LOG_TRACE << "Set permissions on cache directory " << cache_dir << " to 'rwxrwxr-x'";
 
-        try
+        std::error_code ec;
+        fs::permissions(cache_dir, fs::perms::set_gid, fs::perm_options::add, ec);
+
+        if (!ec)
         {
-            fs::permissions(cache_dir.string().c_str(), fs::perms::set_gid, fs::perm_options::add);
             LOG_TRACE << "Set setgid bit on cache directory " << cache_dir;
         }
-        catch (...)
+        else
         {
-            LOG_TRACE << "Could not set setgid bit on cache directory " << cache_dir << ": ignoring";
+            LOG_TRACE << "Could not set setgid bit on cache directory " << cache_dir
+                      << "\nReason:" << ec.message() << "; ignoring and continuing";
         }
 
         return cache_dir.string();

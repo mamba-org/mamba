@@ -254,6 +254,12 @@ namespace mamba
 
     namespace
     {
+        enum class MenuInstVersion : std::uint8_t
+        {
+            Version1 = 1,
+            Version2 = 2,
+        };
+
         void create_remove_shortcut_impl(
             const Context& ctx,
             const fs::u8path& json_file,
@@ -338,10 +344,30 @@ namespace mamba
             };
 
             std::cout << "Before for loop " << std::endl;
+            // Check menuinst schema version (through the presence of "$id" and "$schema" keys)
+            // cf. https://github.com/conda/ceps/blob/3da0fb0ece/cep-11.md#backwards-compatibility
+            auto menuinst_version = MenuInstVersion::Version1;  // v1-legacy
+            if (j.contains("$id") && j.contains("$schema"))
+            {
+                menuinst_version = MenuInstVersion::Version2;  // v2
+            }
+
             for (auto& item : j["menu_items"])
             {
                 std::cout << "IN for loop " << std::endl;
-                std::string name = item["name"];
+                std::string name;
+                // cf. https://github.com/conda/menuinst/pull/180
+                if (menuinst_version == MenuInstVersion::Version1)
+                {
+                    name = item["name"];  // Should be a string
+                }
+                else  // MenuInstVersion::Version2
+                {
+                    // `item["name"]` should be an object containing items with
+                    // "target_environment_is_base" and "target_environment_is_not_base"(default)
+                    // as keys
+                    name = item["name"]["target_environment_is_not_base"];
+                }
                 std::cout << "Item name: " << name << std::endl;
                 std::string full_name = util::concat(name, name_suffix);
                 std::cout << "full name: " << full_name << std::endl;

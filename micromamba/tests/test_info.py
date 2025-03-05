@@ -79,21 +79,7 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
     assert f"base environment : {tmp_root_prefix}" in infos
 
 
-@pytest.mark.parametrize("base_flag", ["", "--base"])
-@pytest.mark.parametrize("json_flag", ["", "--json"])
-@pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_base_subcommand(
-    tmp_home, tmp_root_prefix, prefix_selection, base_flag, json_flag, monkeypatch
-):
-    monkeypatch.setenv("CONDA_PREFIX", str(tmp_root_prefix))
-
-    if prefix_selection == "prefix":
-        infos = helpers.info("-p", tmp_root_prefix, base_flag, json_flag)
-    elif prefix_selection == "name":
-        infos = helpers.info("-n", "base", base_flag, json_flag)
-    else:
-        infos = helpers.info(base_flag, json_flag)
-
+def flags_test(tmp_root_prefix, infos, base_flag, envs_flag, json_flag):
     items = [
         "libmamba version",
         "mamba version",
@@ -117,13 +103,68 @@ def test_base_subcommand(
         else:
             assert all(
                 (f"{i} :" not in infos) | (f"\n{i} :" not in infos) for i in items
-            )  # f"\n{i} :" is to handle the case of the "environment" item
+            )  # f"\n{i} :" is there to handle the case of the "environment" item (which appears in "base environment" as well)
             base_environment_path = infos.replace("base environment :", "").strip()
         assert os.path.exists(base_environment_path)
         assert base_environment_path == str(tmp_root_prefix)
+    elif envs_flag in ["-e", "--envs"]:
+        if json_flag == "--json":
+            assert str(tmp_root_prefix) in infos["envs"]
+        else:
+            assert "Name" in infos
+            assert "base" in infos
+            assert str(tmp_root_prefix) in infos
+            all_lines = infos.splitlines()
+            for line in all_lines:
+                if "*" in line:
+                    active_env_l = line
+            assert str(tmp_root_prefix) in active_env_l
     else:
         items += ["base environment"]
         if json_flag == "--json":
             assert all(i in infos.keys() for i in items)
         else:
             assert all(f"{i} :" in infos for i in items)
+
+
+@pytest.mark.parametrize("base_flag", ["", "--base"])
+@pytest.mark.parametrize("envs_flag", ["", "-e", "--envs"])
+@pytest.mark.parametrize("json_flag", ["", "--json"])
+@pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
+def test_base_flags(
+    tmp_home, tmp_root_prefix, prefix_selection, base_flag, envs_flag, json_flag, monkeypatch
+):
+    monkeypatch.setenv("CONDA_PREFIX", str(tmp_root_prefix))
+
+    if prefix_selection == "prefix":
+        infos = helpers.info("-p", tmp_root_prefix, base_flag, envs_flag, json_flag)
+    elif prefix_selection == "name":
+        infos = helpers.info("-n", "base", base_flag, envs_flag, json_flag)
+    else:
+        infos = helpers.info(base_flag, envs_flag, json_flag)
+
+    flags_test(tmp_root_prefix, infos, base_flag, envs_flag, json_flag)
+
+
+@pytest.mark.parametrize("base_flag", ["", "--base"])
+@pytest.mark.parametrize("envs_flag", ["", "-e", "--envs"])
+@pytest.mark.parametrize("json_flag", ["", "--json"])
+@pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
+def test_env_flags(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_env_name,
+    tmp_prefix,
+    prefix_selection,
+    base_flag,
+    envs_flag,
+    json_flag,
+):
+    if prefix_selection == "prefix":
+        infos = helpers.info("-p", tmp_prefix, base_flag, envs_flag, json_flag)
+    elif prefix_selection == "name":
+        infos = helpers.info("-n", tmp_env_name, base_flag, envs_flag, json_flag)
+    else:
+        infos = helpers.info(base_flag, envs_flag, json_flag)
+
+    flags_test(tmp_root_prefix, infos, base_flag, envs_flag, json_flag)

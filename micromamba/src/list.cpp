@@ -39,10 +39,13 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     );
     subcom->add_flag("--reverse", reverse.get_cli_config<bool>(), reverse.description());
 
-    auto& explicit_ = config.insert(Configurable("explicit", false)
-                                        .group("cli")
-                                        .description("List explicitly all installed packages with URL."
-                                        ));
+    auto& explicit_ = config.insert(
+        Configurable("explicit", false)
+            .group("cli")
+            .description(
+                "List explicitly all installed packages with URL. Ignored if --revisions is also provided."
+            )
+    );
     subcom->add_flag("--explicit", explicit_.get_cli_config<bool>(), explicit_.description());
 
     auto& md5 = config.insert(
@@ -53,7 +56,8 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     auto& canonical = config.insert(
         Configurable("canonical", false)
             .group("cli")
-            .description("Output canonical names of packages only. Ignored if --explicit is also provided."
+            .description(
+                "Output canonical names of packages only. Ignored if --revisions or --explicit is also provided."
             )
     );
     subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());
@@ -62,10 +66,15 @@ init_list_parser(CLI::App* subcom, Configuration& config)
         Configurable("export", false)
             .group("cli")
             .description(
-                "Output explicit, machine-readable requirement strings instead of human-readable lists of packages. Ignored if --explicit or --canonical is also provided."
+                "Output explicit, machine-readable requirement strings instead of human-readable lists of packages. Ignored if --revisions, --explicit or --canonical is also provided."
             )
     );
     subcom->add_flag("-e,--export", export_.get_cli_config<bool>(), export_.description());
+
+    auto& revisions = config.insert(
+        Configurable("revisions", false).group("cli").description("List the revision history.")
+    );
+    subcom->add_flag("--revisions", revisions.get_cli_config<bool>(), revisions.description());
 }
 
 void

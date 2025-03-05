@@ -162,7 +162,11 @@ namespace mamba
             {
                 LOG_ERROR << "Failed to download package from "
                           << error.transfer.value().effective_url << " (status "
-                          << error.transfer.value().http_status << ")";
+                          << error.transfer.value().http_status << ")\n"
+                          << "If you see this message repeatedly, the state of your installation might be corrupted,\n"
+                          << "in which case running `mamba clean --all` might fix it.\n\n"
+                          << "If you continue to meet this problem, please search or report an issue\n"
+                          << "on  mamba's issue tracker: https://github.com/mamba-org/mamba/issues/";
             }
             else
             {

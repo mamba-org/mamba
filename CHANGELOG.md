@@ -1,3 +1,18 @@
+## 2025.03.05
+
+Release: 2.0.7.rc1 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [libmamba] fix: Remove invalid cached tarballs by @jjerphan in <https://github.com/mamba-org/mamba/pull/3839>
+- [libmamba, micromamba] fix: Create directories from `envs_dirs` if they do not exist by @holzman in <https://github.com/mamba-org/mamba/pull/3796>
+
+CI fixes and doc:
+
+- [all] build(deps): bump uraimo/run-on-arch-action from 2 to 3 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3850>
+- [all] ci: Add "release::maintenance" Pull Request label by @jjerphan in <https://github.com/mamba-org/mamba/pull/3843>
+- [micromamba] fix: Temporarily skip `test_pip_git_https_lockfile` by @jjerphan in <https://github.com/mamba-org/mamba/pull/3838>
+
 ## 2025.02.24
 
 Release: 2.0.7.rc0 (libmamba, mamba, micromamba, libmambapy)

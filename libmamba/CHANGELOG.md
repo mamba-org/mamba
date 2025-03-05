@@ -1,3 +1,15 @@
+## libmamba 2.0.7.rc1 (March 05, 2025)
+
+Bug fixes:
+
+- fix: Remove invalid cached tarballs by @jjerphan in <https://github.com/mamba-org/mamba/pull/3839>
+- fix: Create directories from `envs_dirs` if they do not exist by @holzman in <https://github.com/mamba-org/mamba/pull/3796>
+
+CI fixes and doc:
+
+- build(deps): bump uraimo/run-on-arch-action from 2 to 3 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3850>
+- ci: Add "release::maintenance" Pull Request label by @jjerphan in <https://github.com/mamba-org/mamba/pull/3843>
+
 ## libmamba 2.0.7.rc0 (February 24, 2025)
 
 Bug fixes:

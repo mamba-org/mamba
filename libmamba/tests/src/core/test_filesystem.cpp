@@ -363,9 +363,7 @@ namespace mamba
                 }
             );
 
-            // Get the information about whether the filesystem supports special bits permissions
-            // For this test, we need to check if the filesystem supports the sticky bit using try
-            // catch
+            // Get the information about whether the filesystem supports the `set_gid` bit.
             bool supports_setgid_bit = false;
 
             try
@@ -381,7 +379,7 @@ namespace mamba
 
             fs::create_directories(create_cache_dir);
 
-            // Check that the permissions of `tmp_dir` are 'rwxr-xr-x'
+            // Check that the permissions of `create_cache_dir` are 'rwxr-xr-x'
             auto create_cache_dir_permissions = fs::status(create_cache_dir).permissions();
 
             REQUIRE((create_cache_dir_permissions & fs::perms::owner_all) == fs::perms::owner_all);

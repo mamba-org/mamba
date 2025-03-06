@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <sstream>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
@@ -64,8 +65,22 @@ namespace mamba
                 }
                 else
                 {
-                    LOG_ERROR << "Non-conda folder exists at prefix";
-                    throw std::runtime_error("Aborting.");
+                    std::stringstream msg;
+
+                    msg << "WARNING: A directory already exists at the target location '";
+                    msg << ctx.prefix_params.target_prefix.string();
+                    msg << "'\nbut it is not a conda environment.\n";
+                    msg << "Continue creating environment?";
+
+                    if (Console::prompt(msg.str(), 'n'))
+                    {
+                        fs::remove_all(ctx.prefix_params.target_prefix);
+                    }
+                    else
+                    {
+                        std::cout << "Exiting." << std::endl;
+                        return;
+                    }
                 }
             }
             if (create_specs.empty())

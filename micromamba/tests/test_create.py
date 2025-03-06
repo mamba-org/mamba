@@ -663,6 +663,20 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
     assert (effective_prefix / "conda-meta" / "history").exists()
 
 
+def test_create_conda_envs_dirs_and_path(tmp_root_prefix, monkeypatch):
+    """Abort when CONDA_ENVS_PATH and CONDA_ENVS_DIRS are both set"""
+    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{tmp_root_prefix / 'env1'}")
+    monkeypatch.setenv("CONDA_ENVS_PATH", f"{tmp_root_prefix / 'env2'}")
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create("-n", "test", "--offline", "--no-rc", no_dry_run=True)
+
+    msg = info.value.stderr.decode()
+    assert (
+        "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared."
+        in msg
+    )
+
+
 def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     """Create an environment when the first env dir is not writable."""
 

@@ -663,13 +663,27 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
     assert (effective_prefix / "conda-meta" / "history").exists()
 
 
+def test_create_conda_envs_dirs_and_path(tmp_root_prefix, monkeypatch):
+    """Abort when CONDA_ENVS_PATH and CONDA_ENVS_DIRS are both set"""
+    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{tmp_root_prefix / 'env1'}")
+    monkeypatch.setenv("CONDA_ENVS_PATH", f"{tmp_root_prefix / 'env2'}")
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create("-n", "test", "--offline", "--no-rc", no_dry_run=True)
+
+    msg = info.value.stderr.decode()
+    assert (
+        "CONDA_ENVS_DIRS and CONDA_ENVS_PATH both set. Must declare only one (prefer CONDA_ENVS_DIRS)"
+        in msg
+    )
+
+
 def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     """Create an environment when the first env dir is not writable."""
 
     noperm_root_dir = Path(tmp_path / "noperm")
     noperm_envs_dir = noperm_root_dir / "envs"
 
-    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{noperm_envs_dir},{tmp_path}")
+    monkeypatch.setenv("CONDA_ENVS_PATH", f"{noperm_envs_dir}:{tmp_path}")
     env_name = "myenv"
     os.makedirs(noperm_root_dir, exist_ok=True)
 
@@ -757,6 +771,7 @@ def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
         assert Path(condarc_envs_dirs / env_name).exists()
 
 
+@pytest.mark.parametrize("conda_envs_x", ("CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"))
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
 @pytest.mark.parametrize("set_in_condarc", (False, True))
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
@@ -765,6 +780,7 @@ def test_root_prefix_precedence(
     tmp_path,
     tmp_home,
     monkeypatch,
+    conda_envs_x,
     set_in_condarc,
     set_in_conda_envs_dirs,
     cli_root_prefix,
@@ -794,7 +810,7 @@ def test_root_prefix_precedence(
     env_name = "foo"
     monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(mamba_root_prefix))
     if set_in_conda_envs_dirs:
-        monkeypatch.setenv("CONDA_ENVS_DIRS", str(conda_envs_dirs))
+        monkeypatch.setenv(conda_envs_x, str(conda_envs_dirs))
 
     with open(tmp_home / ".condarc", "w+") as f:
         if set_in_condarc:

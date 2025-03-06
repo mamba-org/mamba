@@ -1005,24 +1005,29 @@ namespace mamba
 
         void envs_dirs_hook(const Context& context, std::vector<fs::u8path>& dirs)
         {
-            // Check that "root_prefix/envs" is already in the dirs,
-            // and append if not - to match `conda`
-            fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
-            if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
+            // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
+            auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+            auto conda_envs_dirs = util::get_env("CONDA_ENVS_DIRS");
+
+            if (conda_envs_path && conda_envs_dirs)
             {
-                dirs.push_back(default_env_dir);
+                LOG_ERROR << "CONDA_ENVS_DIRS and CONDA_ENVS_PATH both set. Must declare only one (prefer CONDA_ENVS_DIRS)";
+                throw std::runtime_error("Aborting.");
             }
 
-            // Also add all the directories in the environment variable `CONDA_ENVS_PATH`.
-            auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+            if (conda_envs_dirs)
+            {
+                conda_envs_path = conda_envs_dirs;
+            }
+
             if (conda_envs_path)
             {
                 auto paths_separator = util::pathsep();
 
                 auto paths = util::split(conda_envs_path.value(), paths_separator);
-                for (auto& p : paths)
-                {
-                    dirs.push_back(fs::u8path(p));
+                for (auto it = paths.rbegin(); it != paths.rend(); ++it)
+                {  // prepend conda_envs_path to dirs while maintaining order
+                    dirs.insert(dirs.begin(), fs::u8path(*it));
                 }
             }
 
@@ -1035,6 +1040,14 @@ namespace mamba
                     LOG_ERROR << "Env dir specified is not a directory: " << d.string();
                     throw std::runtime_error("Aborting.");
                 }
+            }
+
+            // Check that "root_prefix/envs" is already in the dirs,
+            // and append if not - to match `conda`
+            fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
+            if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
+            {
+                dirs.push_back(default_env_dir);
             }
         }
 
@@ -1350,7 +1363,6 @@ namespace mamba
         insert(Configurable("envs_dirs", &m_context.envs_dirs)
                    .group("Basic")
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
-                   .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
                    .set_post_merge_hook<decltype(m_context.envs_dirs)>(
                        [this](decltype(m_context.envs_dirs)& value)

@@ -349,6 +349,27 @@ namespace mamba
             fs::remove_all(tmp_dir);
             REQUIRE_FALSE(fs::exists(tmp_dir));
         }
+
+        TEST_CASE("create_cache_dir")
+        {
+            const auto tmp_dir = fs::temp_directory_path() / "mamba-fs-create-cache-dir";
+
+            mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });  // Cleanup if not debugging.
+
+            fs::create_directories(tmp_dir);
+
+            // Check that the permissions of `tmp_dir` are 'rwxr-xr-x'
+            REQUIRE((fs::status(tmp_dir).permissions() & fs::perms::owner_all) == fs::perms::owner_all);
+            REQUIRE(
+                (fs::status(tmp_dir).permissions() & fs::perms::group_all)
+                == (fs::perms::group_read | fs::perms::group_exec)
+            );
+            REQUIRE(
+                (fs::status(tmp_dir).permissions() & fs::perms::others_all)
+                == (fs::perms::others_read | fs::perms::others_exec)
+            );
+        }
+
     }
 
 }

@@ -956,7 +956,7 @@ namespace mamba
         fs::create_directories(cache_dir);
 
         // Some filesystems don't support special permissions such as setgid on directories (e.g.
-        // FAT32, NTFS). In this case, we proceed in two steps to set the permissions:
+        // FAT32, NFS). In this case, we proceed in two steps to set the permissions:
         // 1. Set the permissions to the desired value without setgid.
         // 2. Set the setgid bit on the directory and ignore the error if it fails.
 

@@ -1005,10 +1005,7 @@ namespace mamba
 
         void envs_dirs_hook(const Context& context, std::vector<fs::u8path>& dirs)
         {
-            // Check that "root_prefix/envs" is already in the dirs,
-            // and append if not - to match `conda`
-
-            // Also prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
+            // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
             auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
             if (conda_envs_path)
             {
@@ -1032,6 +1029,8 @@ namespace mamba
                 }
             }
 
+            // Check that "root_prefix/envs" is already in the dirs,
+            // and append if not - to match `conda`
             fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
             if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
             {

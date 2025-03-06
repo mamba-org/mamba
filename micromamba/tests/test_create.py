@@ -670,7 +670,6 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
     noperm_envs_dir = noperm_root_dir / "envs"
 
     monkeypatch.setenv("CONDA_ENVS_DIRS", f"{noperm_envs_dir},{tmp_path}")
-    #    monkeypatch.setenv("CONDA_ENVS_PATH", f"{noperm_envs_dir}:{tmp_path}")
     env_name = "myenv"
     os.makedirs(noperm_root_dir, exist_ok=True)
 

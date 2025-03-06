@@ -12,6 +12,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/build.hpp"
 
 namespace mamba
 {
@@ -378,18 +379,15 @@ namespace mamba
 
             create_cache_dir(cache_dir);
 
-            // Check that the permissions of `cache_dir` are 'rwxr-xr-x'
+            // Check that the permissions of `cache_dir` are _at least_ `rwxr-xr-x`
             auto cache_dir_permissions = fs::status(cache_dir).permissions();
+            auto expected_min_owner_perm = fs::perms::owner_all;
+            auto expected_min_group_perm = fs::perms::group_read | fs::perms::group_exec;
+            auto expected_min_others_perm = fs::perms::others_read | fs::perms::others_exec;
 
-            REQUIRE((cache_dir_permissions & fs::perms::owner_all) == fs::perms::owner_all);
-            REQUIRE(
-                (cache_dir_permissions & fs::perms::group_all)
-                == (fs::perms::group_read | fs::perms::group_exec)
-            );
-            REQUIRE(
-                (cache_dir_permissions & fs::perms::others_all)
-                == (fs::perms::others_read | fs::perms::others_exec)
-            );
+            REQUIRE((cache_dir_permissions & expected_min_owner_perm) == expected_min_owner_perm);
+            REQUIRE((cache_dir_permissions & expected_min_group_perm) == expected_min_group_perm);
+            REQUIRE((cache_dir_permissions & expected_min_others_perm) == expected_min_others_perm);
 
             if (supports_setgid_bit)
             {

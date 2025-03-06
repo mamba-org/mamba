@@ -379,6 +379,7 @@ namespace mamba
             }
 
             create_cache_dir(cache_dir);
+            REQUIRE(fs::is_directory(cache_dir));
 
             // Check that the permissions of `cache_dir` are _at least_ `rwxr-xr-x`
             auto cache_dir_permissions = fs::status(cache_dir).permissions();

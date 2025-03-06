@@ -1007,15 +1007,21 @@ namespace mamba
         {
             // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
             auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+
             if (conda_envs_path)
             {
+                if (util::get_env("CONDA_ENVS_DIRS"))
+                {
+                    const auto message = "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared. We recommend setting `CONDA_ENVS_DIRS` only. Aborting.";
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
+                }
+
                 auto paths_separator = util::pathsep();
 
                 auto paths = util::split(conda_envs_path.value(), paths_separator);
-                for (auto it = paths.rbegin(); it != paths.rend(); ++it)
-                {  // prepend conda_envs_path to dirs while maintaining order
-                    dirs.insert(dirs.begin(), fs::u8path(*it));
-                }
+
+                dirs.reserve(dirs.size() + paths.size());
+                dirs.insert(dirs.begin(), paths.rbegin(), paths.rend());
             }
 
             // Check that the values exist as directories
@@ -1031,7 +1037,7 @@ namespace mamba
 
             // Check that "root_prefix/envs" is already in the dirs,
             // and append if not - to match `conda`
-            fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
+            const fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
             if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
             {
                 dirs.push_back(default_env_dir);

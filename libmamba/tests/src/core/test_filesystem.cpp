@@ -8,6 +8,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -352,13 +353,13 @@ namespace mamba
 
         TEST_CASE("create_cache_dir")
         {
-            const auto create_cache_dir = fs::temp_directory_path() / "mamba-fs-create-cache-dir";
+            const auto cache_dir = fs::temp_directory_path() / "mamba-fs-cache-dir";
             const auto set_gid_tmp_dir = fs::temp_directory_path() / "mamba-fs-set_gid_tmp_dir";
 
             mamba::on_scope_exit _(
                 [&]
                 {
-                    fs::remove_all(create_cache_dir);
+                    fs::remove_all(cache_dir);
                     fs::remove_all(set_gid_tmp_dir);
                 }
             );
@@ -375,24 +376,24 @@ namespace mamba
                                       == fs::perms::set_gid;
             }
 
-            fs::create_directories(create_cache_dir);
+            create_cache_dir(cache_dir);
 
-            // Check that the permissions of `create_cache_dir` are 'rwxr-xr-x'
-            auto create_cache_dir_permissions = fs::status(create_cache_dir).permissions();
+            // Check that the permissions of `cache_dir` are 'rwxr-xr-x'
+            auto cache_dir_permissions = fs::status(cache_dir).permissions();
 
-            REQUIRE((create_cache_dir_permissions & fs::perms::owner_all) == fs::perms::owner_all);
+            REQUIRE((cache_dir_permissions & fs::perms::owner_all) == fs::perms::owner_all);
             REQUIRE(
-                (create_cache_dir_permissions & fs::perms::group_all)
+                (cache_dir_permissions & fs::perms::group_all)
                 == (fs::perms::group_read | fs::perms::group_exec)
             );
             REQUIRE(
-                (create_cache_dir_permissions & fs::perms::others_all)
+                (cache_dir_permissions & fs::perms::others_all)
                 == (fs::perms::others_read | fs::perms::others_exec)
             );
 
             if (supports_setgid_bit)
             {
-                REQUIRE((create_cache_dir_permissions & fs::perms::set_gid) == fs::perms::set_gid);
+                REQUIRE((cache_dir_permissions & fs::perms::set_gid) == fs::perms::set_gid);
             }
         }
 

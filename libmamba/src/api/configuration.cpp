@@ -1007,8 +1007,15 @@ namespace mamba
         {
             // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
             auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+
             if (conda_envs_path)
             {
+                if (util::get_env("CONDA_ENVS_DIRS"))
+                {
+                    LOG_ERROR << "CONDA_ENVS_DIRS and CONDA_ENVS_PATH both set. Must declare only one (prefer CONDA_ENVS_DIRS)";
+                    throw std::runtime_error("Aborting.");
+                }
+
                 auto paths_separator = util::pathsep();
 
                 auto paths = util::split(conda_envs_path.value(), paths_separator);

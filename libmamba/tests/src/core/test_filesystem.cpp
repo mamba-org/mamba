@@ -352,22 +352,52 @@ namespace mamba
 
         TEST_CASE("create_cache_dir")
         {
-            const auto tmp_dir = fs::temp_directory_path() / "mamba-fs-create-cache-dir";
+            const auto create_cache_dir = fs::temp_directory_path() / "mamba-fs-create-cache-dir";
+            const auto set_gid_tmp_dir = fs::temp_directory_path() / "mamba-fs-set_gid_tmp_dir";
 
-            mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });  // Cleanup if not debugging.
+            mamba::on_scope_exit _(
+                [&]
+                {
+                    fs::remove_all(create_cache_dir);
+                    fs::remove_all(set_gid_tmp_dir);
+                }
+            );
 
-            fs::create_directories(tmp_dir);
+            // Get the information about whether the filesystem supports special bits permissions
+            // For this test, we need to check if the filesystem supports the sticky bit using try
+            // catch
+            bool supports_setgid_bit = false;
+
+            try
+            {
+                fs::permissions(set_gid_tmp_dir, fs::perms::set_gid, fs::perm_options::add);
+                supports_setgid_bit = (fs::status(set_gid_tmp_dir).permissions() & fs::perms::set_gid)
+                                      == fs::perms::set_gid;
+            }
+            catch (const fs::filesystem_error&)
+            {
+                supports_setgid_bit = false;
+            }
+
+            fs::create_directories(create_cache_dir);
 
             // Check that the permissions of `tmp_dir` are 'rwxr-xr-x'
-            REQUIRE((fs::status(tmp_dir).permissions() & fs::perms::owner_all) == fs::perms::owner_all);
+            auto create_cache_dir_permissions = fs::status(create_cache_dir).permissions();
+
+            REQUIRE((create_cache_dir_permissions & fs::perms::owner_all) == fs::perms::owner_all);
             REQUIRE(
-                (fs::status(tmp_dir).permissions() & fs::perms::group_all)
+                (create_cache_dir_permissions & fs::perms::group_all)
                 == (fs::perms::group_read | fs::perms::group_exec)
             );
             REQUIRE(
-                (fs::status(tmp_dir).permissions() & fs::perms::others_all)
+                (create_cache_dir_permissions & fs::perms::others_all)
                 == (fs::perms::others_read | fs::perms::others_exec)
             );
+
+            if (supports_setgid_bit)
+            {
+                REQUIRE((create_cache_dir_permissions & fs::perms::set_gid) == fs::perms::set_gid);
+            }
         }
 
     }

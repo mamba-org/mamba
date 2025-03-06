@@ -367,6 +367,7 @@ namespace mamba
 
             // Get the information about whether the filesystem supports the `set_gid` bit.
             bool supports_setgid_bit = false;
+            fs::create_directories(set_gid_tmp_dir);
 
             std::error_code ec;
             fs::permissions(set_gid_tmp_dir, fs::perms::set_gid, fs::perm_options::add, ec);

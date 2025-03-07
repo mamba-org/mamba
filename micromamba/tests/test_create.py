@@ -757,6 +757,7 @@ def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
         assert Path(condarc_envs_dirs / env_name).exists()
 
 
+@pytest.mark.parametrize("conda_envs_x", ("CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"))
 @pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
 @pytest.mark.parametrize("set_in_condarc", (False, True))
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
@@ -765,6 +766,7 @@ def test_root_prefix_precedence(
     tmp_path,
     tmp_home,
     monkeypatch,
+    conda_envs_x,
     set_in_condarc,
     set_in_conda_envs_dirs,
     cli_root_prefix,
@@ -794,7 +796,7 @@ def test_root_prefix_precedence(
     env_name = "foo"
     monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(mamba_root_prefix))
     if set_in_conda_envs_dirs:
-        monkeypatch.setenv("CONDA_ENVS_DIRS", str(conda_envs_dirs))
+        monkeypatch.setenv(conda_envs_x, str(conda_envs_dirs))
 
     with open(tmp_home / ".condarc", "w+") as f:
         if set_in_condarc:

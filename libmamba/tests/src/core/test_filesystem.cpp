@@ -354,39 +354,36 @@ namespace mamba
 
         TEST_CASE("create_cache_dir")
         {
-            const auto cache_dir = fs::temp_directory_path() / "mamba-fs-cache-dir";
-            const auto set_gid_tmp_dir = fs::temp_directory_path() / "mamba-fs-set_gid_tmp_dir";
+            // `create_cache_dir` create a `cache` subdirectory at a given path given as an
+            // argument.
+            const auto cache_path = fs::temp_directory_path() / "mamba-fs-cache-path";
+            const auto cache_dir = cache_path / "cache";
 
-            mamba::on_scope_exit _(
-                [&]
-                {
-                    fs::remove_all(cache_dir);
-                    fs::remove_all(set_gid_tmp_dir);
-                }
-            );
+            mamba::on_scope_exit _([&] { fs::remove_all(cache_path); });
 
             // Get the information about whether the filesystem supports the `set_gid` bit.
             bool supports_setgid_bit = false;
-            fs::create_directories(set_gid_tmp_dir);
+            fs::create_directories(cache_path);
 
             std::error_code ec;
-            fs::permissions(set_gid_tmp_dir, fs::perms::set_gid, fs::perm_options::add, ec);
+            fs::permissions(cache_path, fs::perms::set_gid, fs::perm_options::add, ec);
 
             if (!ec)
             {
-                supports_setgid_bit = (fs::status(set_gid_tmp_dir).permissions() & fs::perms::set_gid)
+                supports_setgid_bit = (fs::status(cache_path).permissions() & fs::perms::set_gid)
                                       == fs::perms::set_gid;
             }
 
             // Check that `cache_dir` does not exist before calling `create_cache_dir`
             REQUIRE_FALSE(fs::exists(cache_dir));
 
-            create_cache_dir(cache_dir);
+            create_cache_dir(cache_path);
 
             REQUIRE(fs::exists(cache_dir));
             REQUIRE(fs::is_directory(cache_dir));
 
-            // Check that the permissions of `cache_dir` are _at least_ `rwxr-xr-x`
+            // Check that the permissions of `cache_dir` are _at least_ `rwxr-xr-x` because
+            // `std::fs::temp_directory_path` might not have `rwxrwxr-x` permissions.
             auto cache_dir_permissions = fs::status(cache_dir).permissions();
             auto expected_min_owner_perm = fs::perms::owner_all;
             auto expected_min_group_perm = fs::perms::group_read | fs::perms::group_exec;

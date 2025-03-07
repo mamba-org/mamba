@@ -1066,6 +1066,14 @@ class PackageInfo:
     def license(self, arg0: str) -> None:
         pass
     @property
+    def python_site_packages_path(self) -> str:
+        """
+        :type: str
+        """
+    @python_site_packages_path.setter
+    def python_site_packages_path(self, arg0: str) -> None:
+        pass
+    @property
     def md5(self) -> str:
         """
         :type: str

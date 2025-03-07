@@ -954,9 +954,34 @@ namespace mamba
     {
         const auto cache_dir = cache_path / "cache";
         fs::create_directories(cache_dir);
-        const auto new_permissions = fs::perms::set_gid | fs::perms::owner_all | fs::perms::group_all
-                                     | fs::perms::others_read | fs::perms::others_exec;
-        fs::permissions(cache_dir.string().c_str(), new_permissions, fs::perm_options::replace);
+
+        // Some filesystems don't support special permissions such as setgid on directories (e.g.
+        // NFS). and fail if we try to set the setgid bit on the cache directory.
+        //
+        // We want to set the setgid bit on the cache directory to preserve the permissions as much
+        // as possible if we can; hence we proceed in two steps to set the permissions by
+        //   1. Setting the permissions without the setgid bit to the desired value without.
+        //   2. Trying to set the setgid bit on the directory and report success or failure in log
+        //   without raising an error or propagating an error which was raised.
+
+        const auto permissions = fs::perms::owner_all | fs::perms::group_all
+                                 | fs::perms::others_read | fs::perms::others_exec;
+        fs::permissions(cache_dir, permissions, fs::perm_options::replace);
+        LOG_TRACE << "Set permissions on cache directory " << cache_dir << " to 'rwxrwxr-x'";
+
+        std::error_code ec;
+        fs::permissions(cache_dir, fs::perms::set_gid, fs::perm_options::add, ec);
+
+        if (!ec)
+        {
+            LOG_TRACE << "Set setgid bit on cache directory " << cache_dir;
+        }
+        else
+        {
+            LOG_TRACE << "Could not set setgid bit on cache directory " << cache_dir
+                      << "\nReason:" << ec.message() << "; ignoring and continuing";
+        }
+
         return cache_dir.string();
     }
 }  // namespace mamba

@@ -17,6 +17,16 @@ def yaml_env(tmp_prefix: Path) -> None:
     )
 
 
+@pytest.fixture
+def openmp_mutex_env(tmp_prefix: Path) -> None:
+    helpers.install(
+        "--channel",
+        "conda-forge",
+        "_openmp_mutex",
+        no_dry_run=True,
+    )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_depends_local(yaml_env: Path):
     """Depends with local repository."""
@@ -114,7 +124,7 @@ def test_depends_tree(yaml_env: Path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_whoneeds_windows(yaml_env: Path):
+def test_whoneeds_windows(openmp_mutex_env: Path):
     res = helpers.umamba_repoquery("whoneeds", "_openmp_mutex")
     print("Res: ", res)
     assert False

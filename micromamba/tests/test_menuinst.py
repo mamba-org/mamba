@@ -98,3 +98,23 @@ class TestMenuinst:
 
         shutil.rmtree(root_prefix)
         os.environ["MAMBA_ROOT_PREFIX"] = self.root_prefix
+
+    # Testing a package (spyder) using menuinst v2 schema
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="skipping windows-only tests",
+    )
+    def test_spyder_shortcut(self):
+        env_name = random_string()
+        create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
+        d = menuinst.win32.dirs_src["user"]["start"][0]
+        lnk = os.path.join(
+            d, "{{ DISTRIBUTION_NAME }} spyder", "Spyder 6 ({{ ENV_NAME }}) (" + env_name + ").lnk"
+        )
+        reset_lnk = os.path.join(
+            d,
+            "{{ DISTRIBUTION_NAME }} spyder",
+            "Reset Spyder 6 ({{ ENV_NAME }}) to default settings (" + env_name + ").lnk",
+        )
+        assert os.path.exists(lnk)
+        assert os.path.exists(reset_lnk)

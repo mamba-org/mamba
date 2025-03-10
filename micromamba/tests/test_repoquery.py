@@ -114,6 +114,13 @@ def test_depends_tree(yaml_env: Path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_whoneeds_windows():
+    res = helpers.umamba_repoquery("whoneeds", "_openmp_mutex")
+    print("Res: ", res)
+    assert False
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_whoneeds_local(yaml_env: Path):
     res = helpers.umamba_repoquery("whoneeds", "yaml", "--json")
 

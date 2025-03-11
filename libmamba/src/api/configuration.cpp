@@ -1012,7 +1012,7 @@ namespace mamba
             {
                 if (util::get_env("CONDA_ENVS_DIRS"))
                 {
-                    LOG_ERROR << "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared.\nWe recommend setting `CONDA_ENVS_DIRS` only.)";
+                    LOG_ERROR << "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared.\nWe recommend setting `CONDA_ENVS_DIRS` only.";
                     throw std::runtime_error("Aborting.");
                 }
 

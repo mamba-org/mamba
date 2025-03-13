@@ -147,7 +147,7 @@ namespace mamba::solver::libsolv
         void set_solv_signatures(
             solv::ObjSolvableView solv,
             const std::string& filename,
-            const std::optional<simdjson::dom::object>& signatures
+            std::optional<simdjson::ondemand::object>& signatures
         )
         {
             // NOTE We need to use an intermediate nlohmann::json object to store signatures
@@ -158,11 +158,12 @@ namespace mamba::solver::libsolv
             {
                 if (auto sigs = signatures.value()[filename].get_object(); !sigs.error())
                 {
-                    for (auto dict : sigs)
+                    for (auto field : sigs)
                     {
-                        for (auto nested_dict : dict.value.get_object())
+                        const std::string name = field.key().raw().value();
+                        for (auto nested_dict : field.value().get_object())
                         {
-                            nested_sigs[dict.key]["signature"] = nested_dict.value;
+                            nested_sigs[name]["signature"] = nested_dict.value().get_string().value();
                         }
                         glob_sigs["signatures"] = nested_sigs;
 
@@ -181,8 +182,8 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             solv::ObjSolvableView solv,
             const std::string& filename,
-            const simdjson::dom::element& pkg,
-            const std::optional<simdjson::dom::object>& signatures,
+            simdjson::ondemand::object& pkg,
+            std::optional<simdjson::ondemand::object>& signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -241,9 +242,9 @@ namespace mamba::solver::libsolv
                 return false;
             }
 
-            if (auto subdir = pkg["subdir"].get_c_str(); !subdir.error())
+            if (auto subdir = pkg["subdir"].get_string(); !subdir.error())
             {
-                solv.set_platform(subdir.value_unsafe());
+                solv.set_platform(std::string(subdir.value_unsafe()));
             }
             else
             {
@@ -255,14 +256,14 @@ namespace mamba::solver::libsolv
                 solv.set_size(size.value_unsafe());
             }
 
-            if (auto md5 = pkg["md5"].get_c_str(); !md5.error())
+            if (auto md5 = pkg["md5"].get_string(); !md5.error())
             {
-                solv.set_md5(md5.value_unsafe());
+                solv.set_md5(std::string(md5.value_unsafe()));
             }
 
-            if (auto sha256 = pkg["sha256"].get_c_str(); !sha256.error())
+            if (auto sha256 = pkg["sha256"].get_string(); !sha256.error())
             {
-                solv.set_sha256(sha256.value_unsafe());
+                solv.set_sha256(std::string(sha256.value_unsafe()));
             }
 
             if (auto elem = pkg["noarch"]; !elem.error())
@@ -271,15 +272,15 @@ namespace mamba::solver::libsolv
                 {
                     solv.set_noarch("generic");
                 }
-                else if (auto noarch = elem.get_c_str(); !noarch.error())
+                else if (auto noarch = elem.get_string(); !noarch.error())
                 {
-                    solv.set_noarch(noarch.value_unsafe());
+                    solv.set_noarch(std::string(noarch.value_unsafe()));
                 }
             }
 
-            if (auto license = pkg["license"].get_c_str(); !license.error())
+            if (auto license = pkg["license"].get_string(); !license.error())
             {
-                solv.set_license(license.value_unsafe());
+                solv.set_license(std::string(license.value_unsafe()));
             }
 
             // TODO conda timestamp are not Unix timestamp.
@@ -295,9 +296,9 @@ namespace mamba::solver::libsolv
             {
                 for (auto elem : depends)
                 {
-                    if (auto dep = elem.get_c_str(); !dep.error())
+                    if (auto dep = elem.get_string(); !dep.error())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(dep.value_unsafe()))
+                        if (const auto dep_id = pool.add_conda_dependency(std::string(dep.value_unsafe())))
                         {
                             solv.add_dependency(dep_id);
                         }
@@ -309,9 +310,9 @@ namespace mamba::solver::libsolv
             {
                 for (auto elem : constrains)
                 {
-                    if (auto cons = elem.get_c_str(); !cons.error())
+                    if (auto cons = elem.get_string(); !cons.error())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(cons.value_unsafe()))
+                        if (const auto dep_id = pool.add_conda_dependency(std::string(cons.value_unsafe())))
                         {
                             solv.add_constraint(dep_id);
                         }
@@ -357,19 +358,19 @@ namespace mamba::solver::libsolv
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            const std::optional<simdjson::dom::object>& signatures,
+            simdjson::ondemand::object& packages,
+            std::optional<simdjson::ondemand::object>& signatures,
             Filter&& filter,
             OnParsed&& on_parsed
         )
         {
-            std::string filename = {};
-            for (const auto& [fn, pkg] : packages)
+            for (auto pkg_field : packages)
             {
-                if (filter(fn))
+                std::string filename = pkg_field.key().value().raw();
+                if (filter(filename))
                 {
                     auto [id, solv] = repo.add_solvable();
-                    filename = fn;
+                    auto pkg = pkg_field.value().get_object().value();
                     const bool parsed = set_solvable(
                         pool,
                         repo_url,
@@ -382,12 +383,12 @@ namespace mamba::solver::libsolv
                     );
                     if (parsed)
                     {
-                        on_parsed(fn);
+                        on_parsed(filename);
                     }
                     else
                     {
                         repo.remove_solvable(id, /* reuse_id= */ true);
-                        LOG_WARNING << "Failed to parse from repodata " << fn;
+                        LOG_WARNING << "Failed to parse from repodata " << filename;
                     }
                 }
             }
@@ -399,8 +400,8 @@ namespace mamba::solver::libsolv
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            const std::optional<simdjson::dom::object>& signatures
+            simdjson::ondemand::object& packages,
+            std::optional<simdjson::ondemand::object>& signatures
         )
         {
             return set_repo_solvables_impl(
@@ -422,8 +423,8 @@ namespace mamba::solver::libsolv
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            const std::optional<simdjson::dom::object>& signatures
+            simdjson::ondemand::object& packages,
+            std::optional<simdjson::ondemand::object>& signatures
         ) -> util::flat_set<std::string_view>
         {
             auto filenames = std::vector<std::string_view>();
@@ -449,8 +450,8 @@ namespace mamba::solver::libsolv
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            const std::optional<simdjson::dom::object>& signatures,
+            simdjson::ondemand::object& packages,
+            std::optional<simdjson::ondemand::object>& signatures,
             const util::flat_set<std::string_view>& added
         )
         {
@@ -530,38 +531,42 @@ namespace mamba::solver::libsolv
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using mamba";
 
-        auto parser = simdjson::dom::parser();
+        auto parser = simdjson::ondemand::parser();
         const auto lock = LockFile(filename);
-        const auto repodata = parser.load(filename);
+        const auto json_content = simdjson::padded_string::load(filename.string()); // must be kept alive while reading json
+        auto repodata_doc = parser.iterate(json_content);
+
 
         // An override for missing package subdir is found at the top level
         auto default_subdir = std::string();
-        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); !subdir.error())
+        if (auto subdir = repodata_doc["/info/subdir"].get_string(); !subdir.error())
         {
             default_subdir = std::string(subdir.value_unsafe());
         }
 
+
         // Get `base_url` in case 'repodata_version': 2
         // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
         auto base_url = repo_url;
-        if (auto repodata_version = repodata["repodata_version"].get_int64();
+        if (auto repodata_version = repodata_doc["repodata_version"].get_int64();
             !repodata_version.error())
         {
             if (repodata_version.value_unsafe() == 2)
             {
-                if (auto url = repodata.at_pointer("/info/base_url").get_string(); !url.error())
+                if (auto url = repodata_doc["/info/base_url"].get_string(); !url.error())
                 {
                     base_url = std::string(url.value_unsafe());
                 }
             }
         }
 
+
         const auto parsed_url = specs::CondaURL::parse(base_url)
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 
-        auto signatures = std::optional<simdjson::dom::object>(std::nullopt);
-        if (auto maybe_sigs = repodata["signatures"].get_object();
+        auto signatures = std::optional<simdjson::ondemand::object>(std::nullopt);
+        if (auto maybe_sigs = repodata_doc["signatures"].get_object();
             !maybe_sigs.error() && verify_artifacts)
         {
             signatures = std::move(maybe_sigs).value();
@@ -574,7 +579,7 @@ namespace mamba::solver::libsolv
         if (package_types == PackageTypes::CondaOrElseTarBz2)
         {
             auto added = util::flat_set<std::string_view>();
-            if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error())
+            if (auto pkgs = repodata_doc["packages.conda"].get_object(); !pkgs.error())
             {
                 added = set_repo_solvables_and_return_added_filename_stem(  //
                     pool,
@@ -586,7 +591,7 @@ namespace mamba::solver::libsolv
                     signatures
                 );
             }
-            if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+            if (auto pkgs = repodata_doc["packages"].get_object(); !pkgs.error())
             {
                 set_repo_solvables_if_not_already_set(  //
                     pool,
@@ -602,7 +607,7 @@ namespace mamba::solver::libsolv
         }
         else
         {
-            if (auto pkgs = repodata["packages"].get_object();
+            if (auto pkgs = repodata_doc["packages"].get_object();
                 !pkgs.error() && (package_types != PackageTypes::CondaOnly))
             {
                 set_repo_solvables(  //
@@ -616,7 +621,7 @@ namespace mamba::solver::libsolv
                 );
             }
 
-            if (auto pkgs = repodata["packages.conda"].get_object();
+            if (auto pkgs = repodata_doc["packages.conda"].get_object();
                 !pkgs.error() && (package_types != PackageTypes::TarBz2Only))
             {
                 set_repo_solvables(  //

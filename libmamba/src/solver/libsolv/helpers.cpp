@@ -425,9 +425,9 @@ namespace mamba::solver::libsolv
             const std::string& default_subdir,
             simdjson::ondemand::object& packages,
             std::optional<simdjson::ondemand::object>& signatures
-        ) -> util::flat_set<std::string_view>
+        ) -> util::flat_set<std::string>
         {
-            auto filenames = std::vector<std::string_view>();
+            auto filenames = util::flat_set<std::string>();
             set_repo_solvables_impl(
                 pool,
                 repo,
@@ -438,12 +438,13 @@ namespace mamba::solver::libsolv
                 signatures,
                 /* filter= */ [](const auto&) { return true; },
                 /* on_parsed= */ [&](const auto& fn)
-                { filenames.push_back(specs::strip_archive_extension(fn)); }
+                { filenames.insert(std::string(specs::strip_archive_extension(fn))); }
             );
             // Sort only once
-            return util::flat_set<std::string_view>{ std::move(filenames) };
+            return filenames;
         }
 
+        template<class SortedStringRange>
         void set_repo_solvables_if_not_already_set(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
@@ -452,7 +453,7 @@ namespace mamba::solver::libsolv
             const std::string& default_subdir,
             simdjson::ondemand::object& packages,
             std::optional<simdjson::ondemand::object>& signatures,
-            const util::flat_set<std::string_view>& added
+            const SortedStringRange& added
         )
         {
             return set_repo_solvables_impl(
@@ -578,7 +579,7 @@ namespace mamba::solver::libsolv
 
         if (package_types == PackageTypes::CondaOrElseTarBz2)
         {
-            auto added = util::flat_set<std::string_view>();
+            auto added = util::flat_set<std::string>();
             if (auto pkgs = repodata_doc["packages.conda"].get_object(); !pkgs.error())
             {
                 added = set_repo_solvables_and_return_added_filename_stem(  //

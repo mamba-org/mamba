@@ -9,6 +9,8 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(micromamba)
 
+include(GNUInstallDirs)
+
 # Source files
 # ============
 

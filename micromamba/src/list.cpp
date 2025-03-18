@@ -39,18 +39,42 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     );
     subcom->add_flag("--reverse", reverse.get_cli_config<bool>(), reverse.description());
 
-    auto& explicit_ = config.insert(Configurable("explicit", false)
-                                        .group("cli")
-                                        .description("List explicitly all installed packages with URL."
-                                        ));
+    auto& explicit_ = config.insert(
+        Configurable("explicit", false)
+            .group("cli")
+            .description(
+                "List explicitly all installed packages with URL. Ignored if --revisions is also provided."
+            )
+    );
     subcom->add_flag("--explicit", explicit_.get_cli_config<bool>(), explicit_.description());
 
+    auto& md5 = config.insert(
+        Configurable("md5", false).group("cli").description("Add MD5 hashsum when using --explicit")
+    );
+    subcom->add_flag("--md5", md5.get_cli_config<bool>(), md5.description());
 
-    // TODO: implement this in libmamba/list.cpp
-    /*auto& canonical = config.insert(Configurable("canonical", false)
-                                        .group("cli")
-                                        .description("Output canonical names of packages only."));
-    subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());*/
+    auto& canonical = config.insert(
+        Configurable("canonical", false)
+            .group("cli")
+            .description(
+                "Output canonical names of packages only. Ignored if --revisions or --explicit is also provided."
+            )
+    );
+    subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());
+
+    auto& export_ = config.insert(
+        Configurable("export", false)
+            .group("cli")
+            .description(
+                "Output explicit, machine-readable requirement strings instead of human-readable lists of packages. Ignored if --revisions, --explicit or --canonical is also provided."
+            )
+    );
+    subcom->add_flag("-e,--export", export_.get_cli_config<bool>(), export_.description());
+
+    auto& revisions = config.insert(
+        Configurable("revisions", false).group("cli").description("List the revision history.")
+    );
+    subcom->add_flag("--revisions", revisions.get_cli_config<bool>(), revisions.description());
 }
 
 void

@@ -73,11 +73,16 @@ namespace mamba::fs
     {
     };
 
+    struct Utf8Options
+    {
+        bool normalize_sep = true;
+    };
+
     // Maintain `\` on Windows, `/` on other platforms
     std::filesystem::path normalized_separators(std::filesystem::path path);
 
     // Returns a UTF-8 string given a standard path.
-    std::string to_utf8(const std::filesystem::path& path);
+    std::string to_utf8(const std::filesystem::path& path, Utf8Options utf8_options = {});
 
     // Returns standard path given a UTF-8 string.
     std::filesystem::path from_utf8(std::string_view u8string);
@@ -300,10 +305,10 @@ namespace mamba::fs
 
         //---- Conversions ----
 
-        // Returns a UTF-8 string.
+        // Returns a UTF-8 string with normalized separators.
         std::string string() const
         {
-            return to_utf8(m_path);
+            return to_utf8(m_path, { /*normalize_sep=*/true });
         }
 
         // Returns a default encoded string.
@@ -333,7 +338,7 @@ namespace mamba::fs
         // Returns a UTF-8 string using the ``/`` on all systems.
         std::string generic_string() const
         {
-            return to_utf8(m_path.generic_string());
+            return to_utf8(m_path.generic_string(), { /*normalize_sep=*/false });
         }
 
         // Implicit conversion to standard path.

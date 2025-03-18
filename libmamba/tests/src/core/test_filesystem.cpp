@@ -8,9 +8,11 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/build.hpp"
 
 namespace mamba
 {
@@ -35,6 +37,68 @@ namespace mamba
             REQUIRE(x.u8string() == u8"日本語");  // check assumption
             const auto y = fs::normalized_separators(x);
             REQUIRE(y.u8string() == u8"日本語");
+        }
+
+        TEST_CASE("to_utf8_check_separators")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path = std::filesystem::u8path(some_path_str);
+
+            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/false }) == some_path_str);
+#if defined(_WIN32)
+            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/true }) == u8"a\\b\\c");
+#else
+            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/true }) == some_path_str);
+#endif
+        }
+
+        TEST_CASE("to_utf8_check_separators_unicode")
+        {
+            static constexpr auto some_path_str = u8"日/本/語";
+            std::filesystem::path some_path = std::filesystem::u8path(some_path_str);
+
+            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/false }) == some_path_str);
+#if defined(_WIN32)
+            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/true }) == u8"日\\本\\語");
+#else
+            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/true }) == some_path_str);
+#endif
+        }
+
+        TEST_CASE("from_utf8_check_separators")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+
+#if defined(_WIN32)
+            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::u8path(u8"a\\b\\c"));
+#else
+            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::u8path(u8"a/b/c"));
+#endif
+        }
+
+        TEST_CASE("from_utf8_check_separators_unicode")
+        {
+            static constexpr auto some_path_str = u8"日/本/語";
+
+#if defined(_WIN32)
+            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::u8path(u8"日\\本\\語"));
+#else
+            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::u8path(u8"日/本/語"));
+#endif
+        }
+
+        TEST_CASE("u8path_separators_formatting")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path = std::filesystem::u8path(some_path_str);
+            const fs::u8path u8_path(some_path);
+
+#if defined(_WIN32)
+            REQUIRE(u8_path.string() == u8"a\\b\\c");
+#else
+            REQUIRE(u8_path.string() == some_path_str);
+#endif
+            REQUIRE(u8_path.generic_string() == some_path_str);
         }
 
         TEST_CASE("consistent_encoding")
@@ -287,6 +351,54 @@ namespace mamba
             fs::remove_all(tmp_dir);
             REQUIRE_FALSE(fs::exists(tmp_dir));
         }
+
+        TEST_CASE("create_cache_dir")
+        {
+            // `create_cache_dir` create a `cache` subdirectory at a given path given as an
+            // argument.
+            const auto cache_path = fs::temp_directory_path() / "mamba-fs-cache-path";
+            const auto cache_dir = cache_path / "cache";
+
+            mamba::on_scope_exit _([&] { fs::remove_all(cache_path); });
+
+            // Get the information about whether the filesystem supports the `set_gid` bit.
+            bool supports_setgid_bit = false;
+            fs::create_directories(cache_path);
+
+            std::error_code ec;
+            fs::permissions(cache_path, fs::perms::set_gid, fs::perm_options::add, ec);
+
+            if (!ec)
+            {
+                supports_setgid_bit = (fs::status(cache_path).permissions() & fs::perms::set_gid)
+                                      == fs::perms::set_gid;
+            }
+
+            // Check that `cache_dir` does not exist before calling `create_cache_dir`
+            REQUIRE_FALSE(fs::exists(cache_dir));
+
+            create_cache_dir(cache_path);
+
+            REQUIRE(fs::exists(cache_dir));
+            REQUIRE(fs::is_directory(cache_dir));
+
+            // Check that the permissions of `cache_dir` are _at least_ `rwxr-xr-x` because
+            // `std::fs::temp_directory_path` might not have `rwxrwxr-x` permissions.
+            auto cache_dir_permissions = fs::status(cache_dir).permissions();
+            auto expected_min_owner_perm = fs::perms::owner_all;
+            auto expected_min_group_perm = fs::perms::group_read | fs::perms::group_exec;
+            auto expected_min_others_perm = fs::perms::others_read | fs::perms::others_exec;
+
+            REQUIRE((cache_dir_permissions & expected_min_owner_perm) == expected_min_owner_perm);
+            REQUIRE((cache_dir_permissions & expected_min_group_perm) == expected_min_group_perm);
+            REQUIRE((cache_dir_permissions & expected_min_others_perm) == expected_min_others_perm);
+
+            if (supports_setgid_bit)
+            {
+                REQUIRE((cache_dir_permissions & fs::perms::set_gid) == fs::perms::set_gid);
+            }
+        }
+
     }
 
 }

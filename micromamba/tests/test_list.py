@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 import pytest
+import re
 
 from . import helpers
 
@@ -80,22 +81,52 @@ def test_list_no_json(
 
 
 @pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
+@pytest.mark.parametrize("md5_flag", ["", "--md5"])
+@pytest.mark.parametrize("canonical_flag", ["", "-c", "--canonical"])
+@pytest.mark.parametrize("export_flag", ["", "-e", "--export"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list_explicit_no_json(
-    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, explicit_flag
+def test_list_subcommands(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_env_name,
+    tmp_xtensor_env,
+    env_selector,
+    explicit_flag,
+    md5_flag,
+    canonical_flag,
+    export_flag,
 ):
     if env_selector == "prefix":
-        res = helpers.umamba_list("-p", tmp_xtensor_env, explicit_flag)
+        res = helpers.umamba_list(
+            "-p", tmp_xtensor_env, explicit_flag, md5_flag, canonical_flag, export_flag
+        )
     elif env_selector == "name":
-        res = helpers.umamba_list("-n", tmp_env_name, explicit_flag)
+        res = helpers.umamba_list(
+            "-n", tmp_env_name, explicit_flag, md5_flag, canonical_flag, export_flag
+        )
     else:
-        res = helpers.umamba_list(explicit_flag)
+        res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag, export_flag)
 
-    packages_url_list = res.strip().split("\n")[2:]
+    outputs_list = res.strip().split("\n")[2:]
+    outputs_list = [i for i in outputs_list if i != "" and not i.startswith("Warning")]
+    items = ["conda-forge/", "::"]
     if explicit_flag == "--explicit":
-        for url in packages_url_list:
-            assert "conda-forge" in url
+        for output in outputs_list:
+            assert "/conda-forge/" in output
+            if md5_flag == "--md5":
+                assert "#" in output
+            else:
+                assert "#" not in output
+    elif canonical_flag in ["-c", "--canonical"]:
+        for output in outputs_list:
+            assert all(i in output for i in items)
+            assert " " not in output
+    elif export_flag in ["-e", "--export"]:
+        items += [" "]
+        for output in outputs_list:
+            assert all(i not in output for i in items)
+            assert len(output.split("=")) == 3
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
@@ -179,3 +210,43 @@ def test_regex(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
     filtered_res = helpers.umamba_list("^xt", "--json", quiet_flag)
     filtered_names = sorted([i["name"] for i in filtered_res])
     assert filtered_names == ["xtensor", "xtl"]
+
+
+@pytest.mark.parametrize("revisions_flag", ["", "--revisions"])
+@pytest.mark.parametrize("json_flag", ["", "--json"])
+def test_revisions(revisions_flag, json_flag):
+    env_name = "myenv"
+
+    helpers.create("-n", env_name, "python=3.8")
+    helpers.install("-n", env_name, "xeus=2.0")
+    helpers.update("-n", env_name, "xeus=4.0")
+    helpers.uninstall("-n", env_name, "xeus")
+    res = helpers.umamba_list("-n", env_name, revisions_flag, json_flag)
+
+    if revisions_flag == "--revisions":
+        if json_flag == "--json":
+            # print(res)
+            assert all(res[i]["rev"] == i for i in range(len(res)))
+            assert any("python-3.8" in i for i in res[0]["install"])
+            assert any("xeus-2.0" in i for i in res[2]["remove"])
+            assert any("xeus-4.0" in i for i in res[2]["install"])
+            assert any("xeus-4.0" in i for i in res[3]["remove"])
+            assert len(res[3]["install"]) == 0
+        else:
+            # Splitting on dates (e.g. 2025-02-18) which are at the beginning of each new revision
+            revisions = re.split(r"\d{4}-\d{2}-\d{2}", res)[1:]
+            assert all("rev" in revisions[i] for i in range(len(revisions)))
+            assert "python-3.8" in revisions[0]
+            assert revisions[0].count("+") == len(revisions[0].strip().split("\n")) - 1
+            rev_2 = revisions[2].split("\n")[1:]
+            assert "xeus-2.0" in revisions[2]
+            assert "xeus-4.0" in revisions[2]
+            for line in rev_2:
+                if "xeus-2.0" in line:
+                    assert line.startswith("-")
+                elif "xeus-4.0" in line:
+                    assert line.startswith("+")
+            assert "xeus-4.0" in revisions[3]
+            assert "+" not in revisions[3]
+    else:
+        assert "xeus" not in res

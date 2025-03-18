@@ -264,11 +264,14 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
             }
             if constexpr (std::is_same_v<Op, VersionPredicate::compatible_with>)
             {
+                // Make sure to print the version without loosing information.
+                auto version_level = pred.m_version.version().size();
+                auto format_level = std::max(op.level, version_level);
                 out = fmt::format_to(
                     out,
                     "{}{}",
                     VersionSpec::compatible_str,
-                    pred.m_version.str(op.level)
+                    pred.m_version.str(format_level)
                 );
             }
         },

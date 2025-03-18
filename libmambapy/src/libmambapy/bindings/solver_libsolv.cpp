@@ -140,7 +140,10 @@ namespace mambapy
             )
             .def(
                 "add_repo_from_packages",
-                [](Database& db, py::iterable packages, std::string_view name, PipAsPythonDependency add)
+                [](Database& database,
+                   py::iterable packages,
+                   std::string_view name,
+                   PipAsPythonDependency add)
                 {
                     // TODO(C++20): No need to copy in a vector, simply transform the input range.
                     auto pkg_infos = std::vector<specs::PackageInfo>();
@@ -148,7 +151,7 @@ namespace mambapy
                     {
                         pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
                     }
-                    return db.add_repo_from_packages(pkg_infos, name, add);
+                    return database.add_repo_from_packages(pkg_infos, name, add);
                 },
                 py::arg("packages"),
                 py::arg("name") = "",
@@ -169,12 +172,12 @@ namespace mambapy
             .def("package_count", &Database::package_count)
             .def(
                 "packages_in_repo",
-                [](const Database& db, RepoInfo repo)
+                [](const Database& database, RepoInfo repo)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.
                     auto out = py::list();
-                    db.for_each_package_in_repo(
+                    database.for_each_package_in_repo(
                         repo,
                         [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
                     );
@@ -184,12 +187,12 @@ namespace mambapy
             )
             .def(
                 "packages_matching",
-                [](Database& db, const specs::MatchSpec& ms)
+                [](Database& database, const specs::MatchSpec& ms)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.
                     auto out = py::list();
-                    db.for_each_package_matching(
+                    database.for_each_package_matching(
                         ms,
                         [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
                     );
@@ -199,12 +202,12 @@ namespace mambapy
             )
             .def(
                 "packages_depending_on",
-                [](Database& db, const specs::MatchSpec& ms)
+                [](Database& database, const specs::MatchSpec& ms)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.
                     auto out = py::list();
-                    db.for_each_package_depending_on(
+                    database.for_each_package_depending_on(
                         ms,
                         [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
                     );
@@ -236,8 +239,8 @@ namespace mambapy
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& db, const solver::Request& request)
-                { return self.solve(db, request); }
+                [](Solver& self, Database& database, const solver::Request& request)
+                { return self.solve(database, request); }
             )
             .def("add_jobs", solver_job_v2_migrator)
             .def("add_global_job", solver_job_v2_migrator)

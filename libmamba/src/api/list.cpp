@@ -20,17 +20,21 @@ namespace mamba
 
     namespace detail
     {
-        struct list_options
+        struct ListOptions
         {
-            bool full_name;
-            bool no_pip;
-            bool reverse;
-            bool explicit_;
+            bool full_name = false;
+            bool no_pip = false;
+            bool reverse = false;
+            bool explicit_ = false;
+            bool md5 = false;
+            bool canonical = false;
+            bool export_ = false;
+            bool revisions = false;
         };
 
         struct formatted_pkg
         {
-            std::string name, version, build, channel, url;
+            std::string name, version, build, channel, url, md5, build_string, platform;
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -57,7 +61,7 @@ namespace mamba
         }
 
         std::vector<std::string>
-        get_record_keys(list_options options, const PrefixData::package_map& all_records)
+        get_record_keys(ListOptions options, const PrefixData::package_map& all_records)
         {
             std::vector<std::string> keys;
 
@@ -118,7 +122,7 @@ namespace mamba
             const Context& ctx,
             std::string regex,
             ChannelContext& channel_context,
-            list_options options
+            ListOptions options
         )
         {
             auto sprefix_data = PrefixData::create(
@@ -150,30 +154,52 @@ namespace mamba
             if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
-                std::vector<std::string> keys;
 
-                keys = get_record_keys(options, all_records);
-
-                for (const auto& key : keys)
+                if (options.revisions)
                 {
-                    auto obj = nlohmann::json();
-                    const auto& pkg_info = all_records.find(key)->second;
+                    auto user_requests = prefix_data.history().get_user_requests();
 
-                    if (accept_package(pkg_info))
+                    for (auto r : user_requests)
                     {
-                        auto channels = channel_context.make_channel(pkg_info.package_url);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                        {
+                            auto obj = nlohmann::json();
 
-                        obj["channel"] = get_formatted_channel(pkg_info, channels.front());
-                        obj["base_url"] = get_base_url(pkg_info, channels.front());
-                        obj["url"] = pkg_info.package_url;
-                        obj["build_number"] = pkg_info.build_number;
-                        obj["build_string"] = pkg_info.build_string;
-                        obj["dist_name"] = pkg_info.str();
-                        obj["name"] = pkg_info.name;
-                        obj["platform"] = pkg_info.platform;
-                        obj["version"] = pkg_info.version;
-                        jout.push_back(obj);
+                            obj["date"] = r.date;
+                            obj["install"] = r.link_dists;
+                            obj["remove"] = r.unlink_dists;
+                            obj["rev"] = r.revision_num;
+                            jout.push_back(obj);
+                        }
+                    }
+                }
+                else
+                {
+                    std::vector<std::string> keys;
+                    keys = get_record_keys(options, all_records);
+
+                    for (const auto& key : keys)
+                    {
+                        auto obj = nlohmann::json();
+                        const auto& pkg_info = all_records.find(key)->second;
+
+                        if (accept_package(pkg_info))
+                        {
+                            auto channels = channel_context.make_channel(pkg_info.package_url);
+                            assert(channels.size() == 1);  // A URL can only resolve to one channel
+
+                            obj["channel"] = get_formatted_channel(pkg_info, channels.front());
+                            obj["base_url"] = get_base_url(pkg_info, channels.front());
+                            obj["url"] = pkg_info.package_url;
+                            obj["md5"] = pkg_info.md5;
+                            obj["build_number"] = pkg_info.build_number;
+                            obj["build_string"] = pkg_info.build_string;
+                            obj["dist_name"] = pkg_info.str();
+                            obj["name"] = pkg_info.name;
+                            obj["platform"] = pkg_info.platform;
+                            obj["version"] = pkg_info.version;
+                            jout.push_back(obj);
+                        }
                     }
                 }
                 std::cout << jout.dump(4) << std::endl;
@@ -199,6 +225,9 @@ namespace mamba
                         formatted_pkgs.version = package.second.version;
                         formatted_pkgs.build = package.second.build_string;
                         formatted_pkgs.url = package.second.package_url;
+                        formatted_pkgs.md5 = package.second.md5;
+                        formatted_pkgs.build_string = package.second.build_string;
+                        formatted_pkgs.platform = package.second.platform;
                         packages.push_back(formatted_pkgs);
                     }
                 }
@@ -207,12 +236,84 @@ namespace mamba
                                                   : compare_alphabetically;
                 std::sort(packages.begin(), packages.end(), comparator);
 
-                // format and print table
-                if (options.explicit_)
+                // format and print output
+                if (options.revisions)
+                {
+                    if (options.explicit_)
+                    {
+                        LOG_WARNING
+                            << "Option --explicit ignored because --revisions was also provided.";
+                    }
+                    if (options.canonical)
+                    {
+                        LOG_WARNING
+                            << "Option --canonical ignored because --revisions was also provided.";
+                    }
+                    if (options.export_)
+                    {
+                        LOG_WARNING
+                            << "Option --export ignored because --revisions was also provided.";
+                    }
+                    auto user_requests = prefix_data.history().get_user_requests();
+                    for (auto r : user_requests)
+                    {
+                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                        {
+                            std::cout << r.date << " (rev " << r.revision_num << ")" << std::endl;
+                            for (auto ud : r.unlink_dists)
+                            {
+                                std::cout << "-" << ud << std::endl;
+                            }
+                            for (auto ld : r.link_dists)
+                            {
+                                std::cout << "+" << ld << std::endl;
+                            }
+                            std::cout << std::endl;
+                        }
+                    }
+                }
+                else if (options.explicit_)
+                {
+                    if (options.canonical)
+                    {
+                        LOG_WARNING
+                            << "Option --canonical ignored because --explicit was also provided.";
+                    }
+                    if (options.export_)
+                    {
+                        LOG_WARNING
+                            << "Option --export ignored because --explicit was also provided.";
+                    }
+                    for (auto p : packages)
+                    {
+                        if (options.md5)
+                        {
+                            std::cout << p.url << "#" << p.md5 << std::endl;
+                        }
+                        else
+                        {
+                            std::cout << p.url << std::endl;
+                        }
+                    }
+                }
+                else if (options.canonical)
+                {
+                    if (options.export_)
+                    {
+                        LOG_WARNING
+                            << "Option --export ignored because --canonical was also provided.";
+                    }
+                    for (auto p : packages)
+                    {
+                        std::cout << p.channel << "/" << p.platform << "::" << p.name << "-"
+                                  << p.version << "-" << p.build_string << std::endl;
+                    }
+                }
+                else if (options.export_)
                 {
                     for (auto p : packages)
                     {
-                        std::cout << p.url << std::endl;
+                        std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
                     }
                 }
                 else
@@ -253,11 +354,15 @@ namespace mamba
             );
         config.load();
 
-        detail::list_options options;
+        detail::ListOptions options;
         options.full_name = config.at("full_name").value<bool>();
         options.no_pip = config.at("no_pip").value<bool>();
         options.reverse = config.at("reverse").value<bool>();
         options.explicit_ = config.at("explicit").value<bool>();
+        options.md5 = config.at("md5").value<bool>();
+        options.canonical = config.at("canonical").value<bool>();
+        options.export_ = config.at("export").value<bool>();
+        options.revisions = config.at("revisions").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

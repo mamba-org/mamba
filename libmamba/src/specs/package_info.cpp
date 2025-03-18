@@ -217,7 +217,14 @@ namespace mamba::specs
                     {
                         if (is_hash(hash))
                         {
-                            pkg.md5 = hash;
+                            if (hash.size() == 32) 
+                            {
+                                pkg.md5 = hash;
+                            } 
+                            else if (hash.size() == 64) 
+                            {
+                                pkg.sha256 = hash;
+                            }
                         }
                         return pkg;
                     }

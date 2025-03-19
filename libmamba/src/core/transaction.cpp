@@ -159,6 +159,31 @@ namespace mamba
 
             return { std::move(new_py_ver), std::move(installed_py_ver) };
         }
+
+        auto
+        find_python_site_packages_path(const solver::Solution& solution, const solver::libsolv::Database& database)
+            -> std::string
+        {
+            // We need to find the python version that will be there after this
+            // Transaction is finished in order to compile the noarch packages correctly,
+
+            // We need to look into installed packages in case we are not installing a new python
+            // version but keeping the current one.
+            // Could also be written in term of PrefixData.
+            std::string python_site_packages_path = {};
+            if (auto pkg = installed_python(database))
+            {
+                python_site_packages_path = pkg->python_site_packages_path;
+                LOG_INFO << "Found python in installed packages " << python_site_packages_path;
+            }
+
+            if (auto py = solver::find_new_python_in_solution(solution))
+            {
+                python_site_packages_path = py->get().python_site_packages_path;
+            }
+
+            return { python_site_packages_path };
+        }
     }
 
     MTransaction::MTransaction(const Context& ctx, MultiPackageCache& caches)
@@ -243,6 +268,7 @@ namespace mamba
             ctx.prefix_params.target_prefix,
             ctx.prefix_params.relocate_prefix,
             find_python_version(m_solution, database),
+            find_python_site_packages_path(m_solution, database),
             specs_to_install
         );
     }
@@ -297,6 +323,7 @@ namespace mamba
             ctx.prefix_params.target_prefix,
             ctx.prefix_params.relocate_prefix,
             find_python_version(m_solution, database),
+            find_python_site_packages_path(m_solution, database),
             std::move(requested_specs)
         );
 
@@ -349,6 +376,7 @@ namespace mamba
             ctx.prefix_params.target_prefix,
             ctx.prefix_params.relocate_prefix,
             find_python_version(m_solution, database),
+            find_python_site_packages_path(m_solution, database),
             std::move(specs_to_install)
         );
     }

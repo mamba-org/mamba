@@ -217,11 +217,11 @@ namespace mamba::specs
                     {
                         if (is_hash(hash))
                         {
-                            if (hash.size() == 32) 
+                            if (hash.size() == 32)
                             {
                                 pkg.md5 = hash;
-                            } 
-                            else if (hash.size() == 64) 
+                            }
+                            else if (hash.size() == 64)
                             {
                                 pkg.sha256 = hash;
                             }

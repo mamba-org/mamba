@@ -160,9 +160,10 @@ namespace mamba
             return { std::move(new_py_ver), std::move(installed_py_ver) };
         }
 
-        auto
-        find_python_site_packages_path(const solver::Solution& solution, const solver::libsolv::Database& database)
-            -> std::string
+        auto find_python_site_packages_path(
+            const solver::Solution& solution,
+            const solver::libsolv::Database& database
+        ) -> std::string
         {
             // We need to find the python version that will be there after this
             // Transaction is finished in order to compile the noarch packages correctly,

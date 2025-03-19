@@ -128,9 +128,12 @@ namespace mamba
         {
             short_python_version = compute_short_python_version(python_version);
             python_path = get_python_short_path(short_python_version);
-            if (!python_site_packages_path.empty()) {
+            if (!python_site_packages_path.empty())
+            {
                 site_packages_path = python_site_packages_path;
-            } else {
+            }
+            else
+            {
                 site_packages_path = get_python_site_packages_short_path(short_python_version);
             }
         }
@@ -148,7 +151,13 @@ namespace mamba
         const std::string& python_site_packages_path,
         std::vector<specs::MatchSpec> lrequested_specs
     )
-        : TransactionContext(context, ltarget_prefix, py_versions, python_site_packages_path, std::move(lrequested_specs))
+        : TransactionContext(
+              context,
+              ltarget_prefix,
+              py_versions,
+              python_site_packages_path,
+              std::move(lrequested_specs)
+          )
     {
         if (lrelocate_prefix.empty())
         {

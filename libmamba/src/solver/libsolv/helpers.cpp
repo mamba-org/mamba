@@ -267,7 +267,8 @@ namespace mamba::solver::libsolv
                 solv.set_sha256(sha256.value_unsafe());
             }
 
-            if (auto python_site_packages_path = pkg["python_site_packages_path"].get_c_str(); !python_site_packages_path.error())
+            if (auto python_site_packages_path = pkg["python_site_packages_path"].get_c_str();
+                !python_site_packages_path.error())
             {
                 solv.set_python_site_packages_path(python_site_packages_path.value_unsafe());
             }

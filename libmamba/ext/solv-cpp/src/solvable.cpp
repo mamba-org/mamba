@@ -208,7 +208,8 @@ namespace solv
 
     auto ObjSolvableViewConst::python_site_packages_path() const -> std::string_view
     {
-        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIABASE));
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIABASE)
+        );
     }
 
     void ObjSolvableView::set_python_site_packages_path(raw_str_view str) const

@@ -678,7 +678,8 @@ namespace mambapy
                 py::arg("platform") = decltype(PackageInfo::platform)(),
                 py::arg("filename") = decltype(PackageInfo::filename)(),
                 py::arg("license") = decltype(PackageInfo::license)(),
-                py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(),
+                py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(
+                ),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
                 py::arg("signatures") = decltype(PackageInfo::signatures)(),

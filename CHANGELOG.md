@@ -1,3 +1,13 @@
+## 2025.03.19
+
+Release: 2.0.8 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [micromamba] fix: Correct paths and suggestions in `etc/profile.d/mamba.sh` by @jjerphan in <https://github.com/mamba-org/mamba/pull/3865>
+- [libmamba] Avoid possible out of range index in MatchSpec::parse() by @opoplawski in <https://github.com/mamba-org/mamba/pull/3849>
+- [libmamba] fix: Modify cache directory permissions in two steps by @jjerphan in <https://github.com/mamba-org/mamba/pull/3844>
+
 ## 2025.03.07
 
 Release: 2.0.7 (libmamba, mamba, micromamba, libmambapy)

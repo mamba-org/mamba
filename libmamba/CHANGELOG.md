@@ -1,3 +1,10 @@
+## libmamba 2.0.8 (March 19, 2025)
+
+Bug fixes:
+
+- Avoid possible out of range index in MatchSpec::parse() by @opoplawski in <https://github.com/mamba-org/mamba/pull/3849>
+- fix: Modify cache directory permissions in two steps by @jjerphan in <https://github.com/mamba-org/mamba/pull/3844>
+
 ## libmamba 2.0.7 (March 07, 2025)
 
 Bug fixes:

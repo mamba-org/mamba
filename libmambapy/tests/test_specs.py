@@ -776,6 +776,7 @@ def test_PackageInfo():
     assert pkg.version == "5.1"
     assert pkg.build_string == "xld"
     assert pkg.md5 == "01234012340123401234012340123401"
+    assert pkg.sha256 == ""
 
     # from_url with sha256
     pkg = PackageInfo.from_url(
@@ -785,7 +786,8 @@ def test_PackageInfo():
     assert pkg.name == "bar"
     assert pkg.version == "5.1"
     assert pkg.build_string == "xld"
-    assert pkg.md5 == "0123401234012340123401234012340101234012340123401234012340123401"
+    assert pkg.md5 == ""
+    assert pkg.sha256 == "0123401234012340123401234012340101234012340123401234012340123401"
 
     # getters and setters
     pkg.name = "foo"

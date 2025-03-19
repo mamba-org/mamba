@@ -402,6 +402,10 @@ namespace mamba::specs
         {
             return invoke_field_string(*this, &PackageInfo::license);
         }
+        if (field_name == "python_site_packages_path")
+        {
+            return invoke_field_string(*this, &PackageInfo::python_site_packages_path);
+        }
         if (field_name == "size")
         {
             return invoke_field_string(*this, &PackageInfo::size);

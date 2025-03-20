@@ -1119,6 +1119,7 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     "version,build,cache_tag",
     [
         ["3.10", "*_cpython", "cpython-310"],
+        ["3.13", "*_cp313t", "cpython-313"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
     ],
@@ -1133,7 +1134,10 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
     else:
-        site_packages = env_prefix / "lib" / f"python{version}" / "site-packages"
+        if build.endswith("t"):
+            site_packages = env_prefix / "lib" / f"python{version}t" / "site-packages"
+        else:
+            site_packages = env_prefix / "lib" / f"python{version}" / "site-packages"
 
     if cache_tag:
         pyc_fn = Path("__pycache__") / f"six.{cache_tag}.pyc"

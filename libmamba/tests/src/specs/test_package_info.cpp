@@ -85,7 +85,7 @@ namespace
             REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
             REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
             REQUIRE(pkg.md5 == "");
-            REQUIRE(pkg.sha256 == url.substr(url.rfind('#sha256:') + 8));
+            REQUIRE(pkg.sha256 == url.substr(url.rfind("#sha256:") + 8));
             REQUIRE(pkg.platform == "linux-64");
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }

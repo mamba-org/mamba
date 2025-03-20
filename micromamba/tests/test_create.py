@@ -1172,6 +1172,25 @@ def test_create_check_dirs(tmp_home, tmp_root_prefix):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+    # imagesize is a noarch: python package
+    cmd = ["-n", env_name, "python=3.13", "python-freethreading", "imagesize=1.4.1"]
+    helpers.create(*cmd)
+
+    assert os.path.isdir(env_prefix)
+
+    if platform.system() == "Windows":
+        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "imagesize")
+    else:
+        # check that the noarch: python package installs into the python_site_packages_path directory
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        # and not into the "standard" site-packages directory
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("env_file", env_files)
 def test_requires_pip_install(tmp_home, tmp_root_prefix, env_file):
     cmd = ["-p", "myenv", "-f", env_file]

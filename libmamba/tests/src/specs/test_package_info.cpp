@@ -31,6 +31,7 @@ namespace
             REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
             REQUIRE(pkg.package_url == url);
             REQUIRE(pkg.md5 == "");
+            REQUIRE(pkg.sha256 == "");
             REQUIRE(pkg.platform == "linux-64");
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
@@ -48,6 +49,43 @@ namespace
             REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
             REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
             REQUIRE(pkg.md5 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.sha256 == "");
+            REQUIRE(pkg.platform == "linux-64");
+            REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
+        }
+
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
+        )
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0";
+
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "pkg");
+            REQUIRE(pkg.version == "6.4");
+            REQUIRE(pkg.build_string == "bld");
+            REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == "");
+            REQUIRE(pkg.sha256 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.platform == "linux-64");
+            REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
+        }
+
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
+        )
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0";
+
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "pkg");
+            REQUIRE(pkg.version == "6.4");
+            REQUIRE(pkg.build_string == "bld");
+            REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == "");
+            REQUIRE(pkg.sha256 == url.substr(url.rfind("#sha256:") + 8));
             REQUIRE(pkg.platform == "linux-64");
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
@@ -65,6 +103,7 @@ namespace
             REQUIRE(pkg.filename == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
             REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
             REQUIRE(pkg.md5 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.sha256 == "");
             REQUIRE(pkg.platform == "linux-64");
             // Make sure the token is not censored when setting the channel
             REQUIRE(

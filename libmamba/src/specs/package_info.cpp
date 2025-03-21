@@ -215,9 +215,24 @@ namespace mamba::specs
                 return parse_url(url).transform(
                     [&](PackageInfo&& pkg) -> PackageInfo
                     {
-                        if (is_hash(hash))
+                        if (util::starts_with(hash, "sha256:"))
                         {
-                            pkg.md5 = hash;
+                            hash = hash.substr(7);
+                            if (hash.size() == 64 && is_hash(hash))
+                            {
+                                pkg.sha256 = hash;
+                            }
+                        }
+                        else if (is_hash(hash))
+                        {
+                            if (hash.size() == 32)
+                            {
+                                pkg.md5 = hash;
+                            }
+                            else if (hash.size() == 64)
+                            {
+                                pkg.sha256 = hash;
+                            }
                         }
                         return pkg;
                     }

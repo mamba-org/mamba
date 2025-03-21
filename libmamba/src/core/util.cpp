@@ -14,7 +14,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -1645,14 +1644,6 @@ namespace mamba
         }
 
         return std::nullopt;
-    }
-
-    namespace
-    {
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        inline const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        inline const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
     }
 
     std::string hide_secrets(std::string_view str)

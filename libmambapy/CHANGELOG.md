@@ -1,3 +1,5 @@
+## libmambapy 2.0.8 (March 19, 2025)
+
 ## libmambapy 2.0.7 (March 07, 2025)
 
 Bug fixes:

@@ -1,3 +1,9 @@
+## micromamba 2.0.8 (March 19, 2025)
+
+Bug fixes:
+
+- fix: Correct paths and suggestions in `etc/profile.d/mamba.sh` by @jjerphan in <https://github.com/mamba-org/mamba/pull/3865>
+
 ## micromamba 2.0.7 (March 07, 2025)
 
 Bug fixes:

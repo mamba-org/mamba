@@ -185,7 +185,10 @@ namespace mamba::util
         {
             return tl::make_unexpected(ParseError{ "Empty URL" });
         }
-        return CurlUrl::parse(file_uri_unc2_to_unc4(url), CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME)
+        return CurlUrl::parse(
+                   make_curl_compatible(file_uri_unc2_to_unc4(url)),
+                   CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME
+        )
             .transform(
                 [&](CurlUrl&& handle) -> URL
                 {

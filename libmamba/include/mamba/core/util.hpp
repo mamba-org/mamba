@@ -27,13 +27,8 @@ namespace mamba
 {
     class Context;
 
-    namespace
-    {
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        inline const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        inline const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-    }
+    const std::regex& token_regex();
+    const std::regex& http_basicauth_regex();
 
     // Used when we want a callback which does nothing.
     struct no_op

@@ -335,8 +335,8 @@ namespace mamba
 
     bool PackageFetcher::use_auth() const
     {
-        return std::regex_search(m_package_info.package_url, http_basicauth_regex)
-               || std::regex_search(m_package_info.package_url, token_regex);
+        return std::regex_search(m_package_info.package_url, http_basicauth_regex())
+               || std::regex_search(m_package_info.package_url, token_regex());
     }
 
     // NOTE

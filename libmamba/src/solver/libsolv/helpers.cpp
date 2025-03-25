@@ -144,10 +144,11 @@ namespace mamba::solver::libsolv
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
+        template<class JSONObject>
         void set_solv_signatures(
             solv::ObjSolvableView solv,
             const std::string& filename,
-            std::optional<simdjson::ondemand::object>& signatures
+            std::optional<JSONObject>& signatures
         )
         {
             // NOTE We need to use an intermediate nlohmann::json object to store signatures
@@ -160,8 +161,8 @@ namespace mamba::solver::libsolv
                 {
                     for (auto field : sigs)
                     {
-                        const std::string name = field.key().raw().value();
-                        for (auto nested_dict : field.value().get_object())
+                        const std::string name(field.unescaped_key().value());
+                        for (auto nested_dict : field.value())
                         {
                             nested_sigs[name]["signature"] = nested_dict.value().get_string().value();
                         }
@@ -175,6 +176,7 @@ namespace mamba::solver::libsolv
             }
         }
 
+        template<class JSONObject1, class JSONObject2>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
             // const std::string& repo_url_str,
@@ -182,8 +184,8 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             solv::ObjSolvableView solv,
             const std::string& filename,
-            simdjson::ondemand::object& pkg,
-            std::optional<simdjson::ondemand::object>& signatures,
+            JSONObject1&& pkg,
+            std::optional<JSONObject2>& signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -292,7 +294,7 @@ namespace mamba::solver::libsolv
                 solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
 
-            if (auto depends = pkg["depends"].get_array(); !depends.error())
+            if (auto depends = pkg["depends"]; !depends.error())
             {
                 for (auto elem : depends)
                 {
@@ -306,7 +308,7 @@ namespace mamba::solver::libsolv
                 }
             }
 
-            if (auto constrains = pkg["constrains"].get_array(); !constrains.error())
+            if (auto constrains = pkg["constrains"]; !constrains.error())
             {
                 for (auto elem : constrains)
                 {
@@ -322,23 +324,24 @@ namespace mamba::solver::libsolv
 
             if (auto obj = pkg["track_features"]; !obj.error())
             {
-                if (auto track_features_arr = obj.get_array(); !track_features_arr.error())
+                if (obj.is_string())
                 {
-                    for (auto elem : track_features_arr)
+                    auto splits = lsplit_track_features(obj.get_string().value_unsafe());
+                    while (!splits[0].empty())
+                    {
+                        solv.add_track_feature(splits[0]);
+                        splits = lsplit_track_features(splits[1]);
+                    }
+                }
+                else
+                {
+                    // assuming obj is an array
+                    for (auto elem : obj)
                     {
                         if (auto feat = elem.get_string(); !feat.error())
                         {
                             solv.add_track_feature(feat.value_unsafe());
                         }
-                    }
-                }
-                else if (auto track_features_str = obj.get_string(); !track_features_str.error())
-                {
-                    auto splits = lsplit_track_features(track_features_str.value_unsafe());
-                    while (!splits[0].empty())
-                    {
-                        solv.add_track_feature(splits[0]);
-                        splits = lsplit_track_features(splits[1]);
                     }
                 }
             }
@@ -351,33 +354,37 @@ namespace mamba::solver::libsolv
             return true;
         }
 
-        template <typename Filter, typename OnParsed>
+        template<class T>
+        class showme;
+
+        template <typename JSONObject, typename Filter, typename OnParsed>
         void set_repo_solvables_impl(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            simdjson::ondemand::object& packages,
-            std::optional<simdjson::ondemand::object>& signatures,
+            JSONObject& packages,
+            std::optional<JSONObject>& signatures,
             Filter&& filter,
             OnParsed&& on_parsed
         )
         {
-            for (auto pkg_field : packages)
+            auto packages_as_object = packages.get_object();
+            for (auto pkg_field : packages_as_object)
             {
-                std::string filename = pkg_field.key().value().raw();
+                //showme<decltype(packages)> debug;
+                const std::string filename(pkg_field.unescaped_key().value());
                 if (filter(filename))
                 {
                     auto [id, solv] = repo.add_solvable();
-                    auto pkg = pkg_field.value().get_object().value();
                     const bool parsed = set_solvable(
                         pool,
                         repo_url,
                         channel_id,
                         solv,
                         filename,
-                        pkg,
+                        pkg_field.value(),
                         signatures,
                         default_subdir
                     );
@@ -394,14 +401,15 @@ namespace mamba::solver::libsolv
             }
         }
 
+        template <typename JSONObject>
         void set_repo_solvables(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            simdjson::ondemand::object& packages,
-            std::optional<simdjson::ondemand::object>& signatures
+            JSONObject& packages,
+            std::optional<JSONObject>& signatures
         )
         {
             return set_repo_solvables_impl(
@@ -417,14 +425,15 @@ namespace mamba::solver::libsolv
             );
         }
 
+        template <typename JSONObject>
         auto set_repo_solvables_and_return_added_filename_stem(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            simdjson::ondemand::object& packages,
-            std::optional<simdjson::ondemand::object>& signatures
+            JSONObject& packages,
+            std::optional<JSONObject>& signatures
         ) -> util::flat_set<std::string>
         {
             auto filenames = util::flat_set<std::string>();
@@ -444,15 +453,15 @@ namespace mamba::solver::libsolv
             return filenames;
         }
 
-        template<class SortedStringRange>
+        template <class JSONObject, class SortedStringRange>
         void set_repo_solvables_if_not_already_set(
             solv::ObjPool& pool,
             solv::ObjRepoView repo,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             const std::string& default_subdir,
-            simdjson::ondemand::object& packages,
-            std::optional<simdjson::ondemand::object>& signatures,
+            JSONObject& packages,
+            std::optional<JSONObject>& signatures,
             const SortedStringRange& added
         )
         {
@@ -566,21 +575,23 @@ namespace mamba::solver::libsolv
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 
-        auto signatures = std::optional<simdjson::ondemand::object>(std::nullopt);
-        if (auto maybe_sigs = repodata_doc["signatures"].get_object();
-            !maybe_sigs.error() && verify_artifacts)
-        {
-            signatures = std::move(maybe_sigs).value();
-        }
-        else
-        {
-            LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
-        }
+        auto signatures = [&]{
+            auto maybe_sigs = repodata_doc["signatures"];
+            if (!maybe_sigs.error() && verify_artifacts)
+            {
+                return std::make_optional(maybe_sigs);
+            }
+            else
+            {
+                LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
+                return decltype(std::make_optional(maybe_sigs)){};
+            }
+        }();
 
         if (package_types == PackageTypes::CondaOrElseTarBz2)
         {
             auto added = util::flat_set<std::string>();
-            if (auto pkgs = repodata_doc["packages.conda"].get_object(); !pkgs.error())
+            if (auto pkgs = repodata_doc["packages.conda"]; !pkgs.error())
             {
                 added = set_repo_solvables_and_return_added_filename_stem(  //
                     pool,
@@ -588,11 +599,11 @@ namespace mamba::solver::libsolv
                     parsed_url,
                     channel_id,
                     default_subdir,
-                    pkgs.value(),
+                    pkgs,
                     signatures
                 );
             }
-            if (auto pkgs = repodata_doc["packages"].get_object(); !pkgs.error())
+            if (auto pkgs = repodata_doc["packages"]; !pkgs.error())
             {
                 set_repo_solvables_if_not_already_set(  //
                     pool,
@@ -600,7 +611,7 @@ namespace mamba::solver::libsolv
                     parsed_url,
                     channel_id,
                     default_subdir,
-                    pkgs.value(),
+                    pkgs,
                     signatures,
                     added
                 );
@@ -608,7 +619,7 @@ namespace mamba::solver::libsolv
         }
         else
         {
-            if (auto pkgs = repodata_doc["packages"].get_object();
+            if (auto pkgs = repodata_doc["packages"];
                 !pkgs.error() && (package_types != PackageTypes::CondaOnly))
             {
                 set_repo_solvables(  //
@@ -617,12 +628,12 @@ namespace mamba::solver::libsolv
                     parsed_url,
                     channel_id,
                     default_subdir,
-                    pkgs.value(),
+                    pkgs,
                     signatures
                 );
             }
 
-            if (auto pkgs = repodata_doc["packages.conda"].get_object();
+            if (auto pkgs = repodata_doc["packages.conda"];
                 !pkgs.error() && (package_types != PackageTypes::TarBz2Only))
             {
                 set_repo_solvables(  //
@@ -631,7 +642,7 @@ namespace mamba::solver::libsolv
                     parsed_url,
                     channel_id,
                     default_subdir,
-                    pkgs.value(),
+                    pkgs,
                     signatures
                 );
             }

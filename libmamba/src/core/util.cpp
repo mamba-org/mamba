@@ -14,7 +14,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -74,6 +73,20 @@ namespace mamba
     {
         std::atomic<bool> persist_temporary_files{ false };
         std::atomic<bool> persist_temporary_directories{ false };
+    }
+
+    const std::regex& token_regex()
+    {
+        // usernames on anaconda.org can have a underscore, which influences the
+        // first two characters
+        static const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        return token_regex;
+    }
+
+    const std::regex& http_basicauth_regex()
+    {
+        static const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
+        return http_basicauth_regex;
     }
 
     bool must_persist_temporary_files()
@@ -1647,24 +1660,16 @@ namespace mamba
         return std::nullopt;
     }
 
-    namespace
-    {
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        inline const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        inline const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-    }
-
     std::string hide_secrets(std::string_view str)
     {
         std::string copy(str);
 
         if (util::contains(str, "/t/"))
         {
-            copy = std::regex_replace(copy, token_regex, "/t/*****");
+            copy = std::regex_replace(copy, token_regex(), "/t/*****");
         }
 
-        copy = std::regex_replace(copy, http_basicauth_regex, "$1$2:*****@");
+        copy = std::regex_replace(copy, http_basicauth_regex(), "$1$2:*****@");
 
         return copy;
     }

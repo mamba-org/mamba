@@ -194,9 +194,9 @@ namespace mamba::solver::libsolv
             solv.set_channel(channel_id);
 
             solv.set_file_name(filename);
-            if (auto fn = pkg["fn"].get_string(); !fn.error())
+            if (auto fn = pkg["fn"]; !fn.error())
             {
-                solv.set_name(fn.value_unsafe());
+                solv.set_name(fn.get_string().value_unsafe());
             }
             else
             {
@@ -204,9 +204,9 @@ namespace mamba::solver::libsolv
                 solv.set_file_name(filename);
             }
 
-            if (auto name = pkg["name"].get_string(); !name.error())
+            if (auto name = pkg["name"]; !name.error())
             {
-                solv.set_name(name.value_unsafe());
+                solv.set_name(name.get_string().value_unsafe());
             }
             else
             {
@@ -214,9 +214,9 @@ namespace mamba::solver::libsolv
                 return false;
             }
 
-            if (auto version = pkg["version"].get_string(); !version.error())
+            if (auto version = pkg["version"]; !version.error())
             {
-                solv.set_version(version.value_unsafe());
+                solv.set_version(version.get_string().value_unsafe());
             }
             else
             {
@@ -224,9 +224,9 @@ namespace mamba::solver::libsolv
                 return false;
             }
 
-            if (auto build_string = pkg["build"].get_string(); !build_string.error())
+            if (auto build_string = pkg["build"]; !build_string.error())
             {
-                solv.set_build_string(build_string.value_unsafe());
+                solv.set_build_string(build_string.get_string().value_unsafe());
             }
             else
             {
@@ -234,9 +234,9 @@ namespace mamba::solver::libsolv
                 return false;
             }
 
-            if (auto build_number = pkg["build_number"].get_uint64(); !build_number.error())
+            if (auto build_number = pkg["build_number"]; !build_number.error())
             {
-                solv.set_build_number(build_number.value_unsafe());
+                solv.set_build_number(build_number.get_uint64().value_unsafe());
             }
             else
             {
@@ -244,53 +244,53 @@ namespace mamba::solver::libsolv
                 return false;
             }
 
-            if (auto subdir = pkg["subdir"].get_string(); !subdir.error())
+            if (auto subdir = pkg["subdir"]; !subdir.error())
             {
-                solv.set_platform(std::string(subdir.value_unsafe()));
+                solv.set_platform(std::string(subdir.get_string().value_unsafe()));
             }
             else
             {
                 solv.set_platform(default_subdir);
             }
 
-            if (auto size = pkg["size"].get_uint64(); !size.error())
+            if (auto size = pkg["size"]; !size.error())
             {
-                solv.set_size(size.value_unsafe());
+                solv.set_size(size.get_uint64().value_unsafe());
             }
 
-            if (auto md5 = pkg["md5"].get_string(); !md5.error())
+            if (auto md5 = pkg["md5"]; !md5.error())
             {
-                solv.set_md5(std::string(md5.value_unsafe()));
+                solv.set_md5(std::string(md5.get_string().value_unsafe()));
             }
 
-            if (auto sha256 = pkg["sha256"].get_string(); !sha256.error())
+            if (auto sha256 = pkg["sha256"]; !sha256.error())
             {
-                solv.set_sha256(std::string(sha256.value_unsafe()));
+                solv.set_sha256(std::string(sha256.get_string().value_unsafe()));
             }
 
             if (auto elem = pkg["noarch"]; !elem.error())
             {
-                if (auto val = elem.get_bool(); !val.error() && val.value_unsafe())
+                if (auto noarch = elem.get_bool(); !noarch.error() && noarch.value_unsafe())
                 {
                     solv.set_noarch("generic");
                 }
-                else if (auto noarch = elem.get_string(); !noarch.error())
+                else if (elem.is_string())
                 {
-                    solv.set_noarch(std::string(noarch.value_unsafe()));
+                    solv.set_noarch(std::string(elem.get_string().value_unsafe()));
                 }
             }
 
-            if (auto license = pkg["license"].get_string(); !license.error())
+            if (auto license = pkg["license"]; !license.error())
             {
-                solv.set_license(std::string(license.value_unsafe()));
+                solv.set_license(std::string(license.get_string().value_unsafe()));
             }
 
             // TODO conda timestamp are not Unix timestamp.
             // Libsolv normalize them this way, we need to do the same here otherwise the current
             // package may get arbitrary priority.
-            if (auto timestamp = pkg["timestamp"].get_uint64(); !timestamp.error())
+            if (auto timestamp = pkg["timestamp"]; !timestamp.error())
             {
-                const auto time = timestamp.value_unsafe();
+                const auto time = timestamp.get_uint64().value_unsafe();
                 solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
 
@@ -298,9 +298,9 @@ namespace mamba::solver::libsolv
             {
                 for (auto elem : depends)
                 {
-                    if (auto dep = elem.get_string(); !dep.error())
+                    if (elem.is_string())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(std::string(dep.value_unsafe())))
+                        if (const auto dep_id = pool.add_conda_dependency(std::string(elem.get_string().value_unsafe())))
                         {
                             solv.add_dependency(dep_id);
                         }
@@ -312,9 +312,11 @@ namespace mamba::solver::libsolv
             {
                 for (auto elem : constrains)
                 {
-                    if (auto cons = elem.get_string(); !cons.error())
+                    if (elem.is_string())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(std::string(cons.value_unsafe())))
+                        if (const auto dep_id = pool.add_conda_dependency(
+                                std::string(elem.get_string().value_unsafe())
+                            ))
                         {
                             solv.add_constraint(dep_id);
                         }
@@ -338,9 +340,9 @@ namespace mamba::solver::libsolv
                     // assuming obj is an array
                     for (auto elem : obj)
                     {
-                        if (auto feat = elem.get_string(); !feat.error())
+                        if (elem.is_string())
                         {
-                            solv.add_track_feature(feat.value_unsafe());
+                            solv.add_track_feature(elem.get_string().value_unsafe());
                         }
                     }
                 }
@@ -549,9 +551,9 @@ namespace mamba::solver::libsolv
 
         // An override for missing package subdir is found at the top level
         auto default_subdir = std::string();
-        if (auto subdir = repodata_doc["/info/subdir"].get_string(); !subdir.error())
+        if (auto subdir = repodata_doc["/info/subdir"]; !subdir.error())
         {
-            default_subdir = std::string(subdir.value_unsafe());
+            default_subdir = std::string(subdir.get_string().value_unsafe());
         }
 
 
@@ -563,9 +565,9 @@ namespace mamba::solver::libsolv
         {
             if (repodata_version.value_unsafe() == 2)
             {
-                if (auto url = repodata_doc["/info/base_url"].get_string(); !url.error())
+                if (auto url = repodata_doc["/info/base_url"]; !url.error())
                 {
-                    base_url = std::string(url.value_unsafe());
+                    base_url = std::string(url.get_string().value_unsafe());
                 }
             }
         }

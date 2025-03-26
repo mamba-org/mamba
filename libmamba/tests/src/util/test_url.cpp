@@ -349,7 +349,7 @@ namespace
                 REQUIRE(url.scheme() == "file");
                 REQUIRE(url.host() == "");
                 REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
-                REQUIRE(url.pretty_path() == "/D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.pretty_path() == "D:/a/_temp/popen-gw0/some_other_parts");
                 REQUIRE(url.user() == "");
                 REQUIRE(url.password() == "");
                 REQUIRE(url.port() == "");

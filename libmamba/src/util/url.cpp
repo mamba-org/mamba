@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cassert>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -102,10 +103,12 @@ namespace mamba::util
         auto CurlUrl::parse(const std::string& url, flag_type flags)
             -> tl::expected<CurlUrl, URL::ParseError>
         {
+            std::cout << "CurlUrl::parse, url: " << url << std::endl;
             auto out = CurlUrl();
             const CURLUcode uc = ::curl_url_set(out.m_handle.get(), CURLUPART_URL, url.c_str(), flags);
             if (uc != CURLUE_OK)
             {
+                std::cout << "NOT OK" << std::endl;
                 return tl::make_unexpected(URL::ParseError{
                     fmt::format(R"(Failed to parse URL "{}": {})", url, ::curl_url_strerror(uc)) });
             }
@@ -513,16 +516,19 @@ namespace mamba::util
 
     auto URL::pretty_path() const -> std::string
     {
+        // std::cout << "URL PRETTY PATH: M_PATH: " << m_path << std::endl;
         // All paths start with a '/' except those like "file:///C:/folder/file.txt"
         if (on_win && scheme() == "file")
         {
             assert(util::starts_with(m_path, '/'));
             auto path_no_slash = decode_percent(std::string_view(m_path).substr(1));
+            // std::cout << "path no slash: " << path_no_slash << std::endl;
             if (path_has_drive_letter(path_no_slash))
             {
                 return path_no_slash;
             }
         }
+        // std::cout << "returning decode_percent(m_path): " << decode_percent(m_path) << std::endl;
         return decode_percent(m_path);
     }
 

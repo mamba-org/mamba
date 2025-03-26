@@ -200,7 +200,7 @@ namespace
         }
     }
 
-    TEST_CASE("UTL parse")
+    TEST_CASE("URL parse")
     {
         SECTION("Empty")
         {
@@ -339,6 +339,40 @@ namespace
             REQUIRE(url.port() == "");
             REQUIRE(url.query() == "");
             REQUIRE(url.fragment() == "");
+        }
+
+        SECTION("file:///D:/a/_temp/popen-gw0/some_other_parts")
+        {
+            if (on_win)
+            {
+                const URL url = URL::parse("file:///D:/a/_temp/popen-gw0/some_other_parts").value();
+                REQUIRE(url.scheme() == "file");
+                REQUIRE(url.host() == "");
+                REQUIRE(url.path() == "/home/wolfv/test/document.json");
+                REQUIRE(url.pretty_path() == "/home/wolfv/test/document.json");
+                REQUIRE(url.user() == "");
+                REQUIRE(url.password() == "");
+                REQUIRE(url.port() == "");
+                REQUIRE(url.query() == "");
+                REQUIRE(url.fragment() == "");
+            }
+        }
+
+        SECTION("file:////D:/a/_temp/popen-gw0/some_other_parts")
+        {
+            if (on_win)
+            {
+                const URL url = URL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts").value();
+                REQUIRE(url.scheme() == "file");
+                REQUIRE(url.host() == "");
+                REQUIRE(url.path() == "/home/wolfv/test/document.json");
+                REQUIRE(url.pretty_path() == "/home/wolfv/test/document.json");
+                REQUIRE(url.user() == "");
+                REQUIRE(url.password() == "");
+                REQUIRE(url.port() == "");
+                REQUIRE(url.query() == "");
+                REQUIRE(url.fragment() == "");
+            }
         }
 
         SECTION("file:///home/great:doc.json")

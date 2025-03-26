@@ -103,11 +103,12 @@ namespace mamba::util
     auto make_curl_compatible(std::string uri) -> std::string
     {
         // Convert `file:///` to `file:////` to make it compatible with libcurl
-        auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
-        if (is_file_scheme && slashes.size() == 3)
-        {
-            return util::concat("file:////", rest);
-        }
+        //         auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
+        //         if (on_win && is_file_scheme && slashes.size() == 3 &&
+        //         path_has_drive_letter(rest))
+        //         {
+        //             return util::concat("file:////", rest);
+        //         }
         return uri;
     }
 

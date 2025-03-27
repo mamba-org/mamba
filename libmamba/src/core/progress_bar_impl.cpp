@@ -1286,9 +1286,9 @@ namespace mamba
         : m_progress(0)
         , m_total(total)
         , m_width(width)
-        , m_repr(this)
         , m_options(options)
         , m_is_spinner(false)
+        , m_repr(this)
     {
         m_repr.prefix.set_value(prefix);
     }

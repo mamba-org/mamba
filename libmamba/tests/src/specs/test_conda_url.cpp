@@ -8,6 +8,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/build.hpp"
 
 using namespace mamba::specs;
 
@@ -486,6 +487,31 @@ namespace
                 == "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
             );
             REQUIRE(url.pretty_str() == "https://user@email.com:*****@mamba.org/some /path$/");
+        }
+    }
+
+    TEST_CASE("CondaURL::parse")
+    {
+        SECTION("file:////D:/a/_temp/popen-gw0/some_other_parts")
+        {
+            if (mamba::util::on_win)
+            {
+                auto url = CondaURL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts").value();
+                REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.pretty_str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
+            }
+        }
+
+        SECTION("file:///D:/a/_temp/popen-gw0/some_other_parts")
+        {
+            if (mamba::util::on_win)
+            {
+                auto url = CondaURL::parse("file:///D:/a/_temp/popen-gw0/some_other_parts").value();
+                REQUIRE(url.path() == "D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.str() == "file:///D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.pretty_str() == "file:///D:/a/_temp/popen-gw0/some_other_parts");
+            }
         }
     }
 }

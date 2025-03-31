@@ -82,39 +82,46 @@ namespace mamba
             return found_it->second;
         }
 
-        yaml_file_contents
-        read_yaml_file(const Context& ctx, fs::u8path yaml_file, const std::string platform)
+        std::unique_ptr<TemporaryFile>
+        downloaded_file_from_url(const Context& ctx, const std::string& url_str)
         {
-            // Download content of environment yaml file
-            std::unique_ptr<TemporaryFile> tmp_yaml_file;
-            fs::u8path file;
-
-            auto yaml_file_str = yaml_file.string();
-            if (yaml_file_str.find("://") != std::string::npos)
+            if (url_str.find("://") != std::string::npos)
             {
-                LOG_INFO << "Downloading environment yaml file";
-                auto url_parts = util::rsplit(yaml_file_str, '/');
-                std::string yaml_filename = (url_parts.size() == 1) ? "" : url_parts.back();
-                tmp_yaml_file = std::make_unique<TemporaryFile>(
-                    "mambaf",
-                    util::concat("_", yaml_filename)
-                );
+                LOG_INFO << "Downloading file from " << url_str;
+                auto url_parts = util::rsplit(url_str, '/');
+                std::string filename = (url_parts.size() == 1) ? "" : url_parts.back();
+                auto tmp_file = std::make_unique<TemporaryFile>("mambaf", util::concat("_", filename));
                 download::Request request(
-                    "Environment yaml file",
+                    "Environment lock or yaml file",
                     download::MirrorName(""),
-                    yaml_file_str,
-                    tmp_yaml_file->path()
+                    url_str,
+                    tmp_file->path()
                 );
                 const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
 
                 if (!res || res.value().transfer.http_status != 200)
                 {
                     throw std::runtime_error(
-                        fmt::format("Could not download environment yaml file from {}", yaml_file_str)
+                        fmt::format("Could not download environment lock or yaml file from {}", url_str)
                     );
                 }
 
-                file = tmp_yaml_file->path();
+                return tmp_file;
+            }
+            return nullptr;
+        }
+
+        yaml_file_contents
+        read_yaml_file(const Context& ctx, const fs::u8path yaml_file, const std::string platform)
+        {
+            // Download content of environment yaml file
+            auto yaml_file_str = yaml_file.string();
+            auto tmp_file = downloaded_file_from_url(ctx, yaml_file_str);
+            fs::u8path file;
+
+            if (tmp_file)
+            {
+                file = tmp_file->path();
             }
             else
             {

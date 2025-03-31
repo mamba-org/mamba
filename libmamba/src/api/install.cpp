@@ -116,12 +116,12 @@ namespace mamba
         {
             // Download content of environment yaml file
             auto yaml_file_str = yaml_file.string();
-            auto tmp_file = downloaded_file_from_url(ctx, yaml_file_str);
+            auto tmp_yaml_file = downloaded_file_from_url(ctx, yaml_file_str);
             fs::u8path file;
 
-            if (tmp_file)
+            if (tmp_yaml_file)
             {
-                file = tmp_file->path();
+                file = tmp_yaml_file->path();
             }
             else
             {
@@ -737,28 +737,11 @@ namespace mamba
         bool remove_prefix_on_failure
     )
     {
-        std::unique_ptr<TemporaryFile> tmp_lock_file;
         fs::u8path file;
+        auto tmp_lock_file = detail::downloaded_file_from_url(ctx, lockfile);
 
-        if (lockfile.find("://") != std::string::npos)
+        if (tmp_lock_file)
         {
-            LOG_INFO << "Downloading lockfile";
-            tmp_lock_file = std::make_unique<TemporaryFile>();
-            download::Request request(
-                "Environment Lockfile",
-                download::MirrorName(""),
-                lockfile,
-                tmp_lock_file->path()
-            );
-            const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
-
-            if (!res || res.value().transfer.http_status != 200)
-            {
-                throw std::runtime_error(
-                    fmt::format("Could not download environment lockfile from {}", lockfile)
-                );
-            }
-
             file = tmp_lock_file->path();
         }
         else

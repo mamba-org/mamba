@@ -82,13 +82,48 @@ namespace mamba
             return found_it->second;
         }
 
-        yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform)
+        yaml_file_contents
+        read_yaml_file(const Context& ctx, fs::u8path yaml_file, const std::string platform)
         {
-            auto file = fs::weakly_canonical(util::expand_home(yaml_file.string()));
-            if (!fs::exists(file))
+            // Download content of environment yaml file
+            std::unique_ptr<TemporaryFile> tmp_yaml_file;
+            fs::u8path file;
+
+            auto yaml_file_str = yaml_file.string();
+            if (yaml_file_str.find("://") != std::string::npos)
             {
-                LOG_ERROR << "YAML spec file '" << file.string() << "' not found";
-                throw std::runtime_error("File not found. Aborting.");
+                LOG_INFO << "Downloading environment yaml file";
+                auto url_parts = util::rsplit(yaml_file_str, '/');
+                std::string yaml_filename = (url_parts.size() == 1) ? "" : url_parts.back();
+                tmp_yaml_file = std::make_unique<TemporaryFile>(
+                    "mambaf",
+                    util::concat("_", yaml_filename)
+                );
+                download::Request request(
+                    "Environment yaml file",
+                    download::MirrorName(""),
+                    yaml_file_str,
+                    tmp_yaml_file->path()
+                );
+                const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
+
+                if (!res || res.value().transfer.http_status != 200)
+                {
+                    throw std::runtime_error(
+                        fmt::format("Could not download environment yaml file from {}", yaml_file_str)
+                    );
+                }
+
+                file = tmp_yaml_file->path();
+            }
+            else
+            {
+                file = fs::weakly_canonical(util::expand_home(yaml_file_str));
+                if (!fs::exists(file))
+                {
+                    LOG_ERROR << "YAML spec file '" << file.string() << "' not found";
+                    throw std::runtime_error("File not found. Aborting.");
+                }
             }
 
             yaml_file_contents result;
@@ -833,7 +868,7 @@ namespace mamba
                 }
                 else if (is_yaml_file_name(file))
                 {
-                    const auto parse_result = read_yaml_file(file, context.platform);
+                    const auto parse_result = read_yaml_file(context, file, context.platform);
 
                     if (parse_result.channels.size() != 0)
                     {

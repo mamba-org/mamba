@@ -48,6 +48,7 @@ namespace mamba
             const auto& context = mambatests::context();
             using V = std::vector<std::string>;
             auto res = detail::read_yaml_file(
+                context,
                 mambatests::test_data_dir / "env_file/env_1.yaml",
                 context.platform
             );
@@ -57,6 +58,7 @@ namespace mamba
             REQUIRE_FALSE(res.others_pkg_mgrs_specs.size());
 
             auto res2 = detail::read_yaml_file(
+                context,
                 mambatests::test_data_dir / "env_file/env_2.yaml",
                 context.platform
             );
@@ -77,6 +79,7 @@ namespace mamba
             const auto& context = mambatests::context();
             using V = std::vector<std::string>;
             auto res = detail::read_yaml_file(
+                context,
                 mambatests::test_data_dir / "env_file/env_3.yaml",
                 context.platform
             );

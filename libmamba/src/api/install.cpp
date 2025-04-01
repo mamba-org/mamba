@@ -112,11 +112,10 @@ namespace mamba
         }
 
         yaml_file_contents
-        read_yaml_file(const Context& ctx, const fs::u8path yaml_file, const std::string platform)
+        read_yaml_file(const Context& ctx, const std::string& yaml_file, const std::string& platform)
         {
             // Download content of environment yaml file
-            auto yaml_file_str = yaml_file.string();
-            auto tmp_yaml_file = downloaded_file_from_url(ctx, yaml_file_str);
+            auto tmp_yaml_file = downloaded_file_from_url(ctx, yaml_file);
             fs::u8path file;
 
             if (tmp_yaml_file)
@@ -125,7 +124,7 @@ namespace mamba
             }
             else
             {
-                file = fs::weakly_canonical(util::expand_home(yaml_file_str));
+                file = fs::weakly_canonical(util::expand_home(yaml_file));
                 if (!fs::exists(file))
                 {
                     LOG_ERROR << "YAML spec file '" << file.string() << "' not found";

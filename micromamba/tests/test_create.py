@@ -1231,6 +1231,7 @@ def test_create_from_remote_yaml_file(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
+    print("packages: ", packages)
     assert len(packages) == 1
 
     pkg = packages[0]

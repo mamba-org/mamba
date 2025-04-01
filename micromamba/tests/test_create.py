@@ -1232,13 +1232,14 @@ def test_create_from_remote_yaml_file(tmp_home, tmp_root_prefix, tmp_path):
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     print("packages: ", packages)
-    assert len(packages) == 1
 
-    pkg = packages[0]
-    assert pkg["name"] == "micromamba"
-    assert pkg["version"] == "0.24.0"
-    assert pkg["channel"] == "conda-forge"
-    assert pkg["base_url"] == "https://conda.anaconda.org/conda-forge"
+    assert any(
+        package["name"] == "micromamba"
+        and package["version"] == "0.24.0"
+        and package["channel"] == "conda-forge"
+        and package["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for package in packages
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

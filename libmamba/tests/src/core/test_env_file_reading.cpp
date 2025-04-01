@@ -93,6 +93,20 @@ namespace mamba
             REQUIRE(o.deps == V({ "pytest", "numpy" }));
             REQUIRE(o.cwd == fs::absolute(mambatests::test_data_dir / "env_file"));
         }
+
+        TEST_CASE("remote_yaml_file")
+        {
+            const auto& context = mambatests::context();
+            using V = std::vector<std::string>;
+            auto res = detail::read_yaml_file(
+                context,
+                "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/micromamba/tests/env-create-export.yaml",
+                context.platform
+            );
+            REQUIRE(res.name == "");
+            REQUIRE(res.channels == V({ "https://conda.anaconda.org/conda-forge" }));
+            REQUIRE(res.dependencies == V({ "micromamba=0.24.0" }));
+        }
     }
 
 }  // namespace mamba

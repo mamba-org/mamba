@@ -1,3 +1,15 @@
+## 2025.04.01
+
+Release: 2.1.0 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [micromamba, libmamba] fix: Prohibit conda envs path and conda envs dirs by @holzman in <https://github.com/mamba-org/mamba/pull/3854>
+- [libmamba] fix: ProgressBar member initialization order by @jmakovicka in <https://github.com/mamba-org/mamba/pull/3872>
+- [micromamba, libmamba] Fix authenticated downloading by @Hind-M in <https://github.com/mamba-org/mamba/pull/3868>
+- [micromamba, libmamba] Windows menuinst by @Hind-M in <https://github.com/mamba-org/mamba/pull/3846>
+- [libmamba, libmambapy] Support SHA256 hashes in @EXPLICIT files by @jaimergp in <https://github.com/mamba-org/mamba/pull/3866>
+
 ## 2025.03.19
 
 Release: 2.0.8 (libmamba, mamba, micromamba, libmambapy)

@@ -1,3 +1,9 @@
+## libmambapy 2.1.0 (April 01, 2025)
+
+Bug fixes:
+
+- Support SHA256 hashes in @EXPLICIT files by @jaimergp in <https://github.com/mamba-org/mamba/pull/3866>
+
 ## libmambapy 2.0.8 (March 19, 2025)
 
 ## libmambapy 2.0.7 (March 07, 2025)

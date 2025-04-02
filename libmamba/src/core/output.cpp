@@ -614,15 +614,19 @@ namespace mamba
 
     void MessageLogger::print_buffer(std::ostream& /*ostream*/)
     {
-        for (auto& [msg, level] : MessageLoggerData::m_buffer)
+        decltype(MessageLoggerData::m_buffer) tmp;
+
+        {
+            const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
+            MessageLoggerData::m_buffer.swap(tmp);
+        }
+
+        for (const auto& [msg, level] : tmp)
         {
             emit(msg, level);
         }
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
-
-        const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
-        MessageLoggerData::m_buffer.clear();
     }
 
 

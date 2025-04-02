@@ -70,7 +70,7 @@ jobs:
       - name: Generate coverage report
         run: |
           lcov --directory . --capture --output-file coverage.info
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file coverage.info
+          lcov --remove coverage.info '*/tests/*' '*/build/*' --output-file coverage.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

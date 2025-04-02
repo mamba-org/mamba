@@ -1,0 +1,74 @@
+name: Code Coverage
+
+on:
+  push:
+    branches:
+      - main
+      - feat/*
+  pull_request:
+    branches:
+      - main
+      - feat/*
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ./dev/environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ github.runner.os }}
+          restore-keys: |
+            ccache-libmamba-${{ github.runner.os }}
+      - name: Build mamba with coverage
+        run: |
+          cmake -B build/ -G Ninja \
+            --preset mamba-unix-shared-debug \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -D MAMBA_WARNING_AS_ERROR=ON \
+            -D BUILD_LIBMAMBAPY=OFF \
+            -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF \
+            -D CMAKE_BUILD_TYPE=Debug \
+            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 --coverage" \
+            -D CMAKE_C_FLAGS_DEBUG="-g -O0 --coverage"
+          cmake --build build/ --parallel
+      - name: Show build cache statistics
+        run: sccache --show-stats
+      - name: Run tests with coverage
+        run: |
+          unset CONDARC  # Interferes with tests
+          ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
+          ./build/libmamba/tests/test_libmamba
+      - name: Install lcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+      - name: Generate coverage report
+        run: |
+          lcov --directory . --capture --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file coverage.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.info
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}

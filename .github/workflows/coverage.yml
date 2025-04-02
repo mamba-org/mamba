@@ -37,6 +37,10 @@ jobs:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+      - name: Install dev-extra environment
+        run: micromamba install -n build_env -y -f ./dev/environment-dev-extra.yml
+      - name: Install micromamba-static environment
+        run: micromamba install -n build_env -y -f ./dev/environment-micromamba-static.yml
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

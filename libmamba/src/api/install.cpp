@@ -189,8 +189,15 @@ namespace mamba
                         }
                         else if (key == "pip")
                         {
-                            const auto yaml_parent_path = fs::absolute(yaml_file).parent_path().string(
-                            );
+                            std::string yaml_parent_path;
+                            if (tmp_yaml_file)  // yaml file is fetched remotely
+                            {
+                                yaml_parent_path = yaml_file;
+                            }
+                            else
+                            {
+                                yaml_parent_path = fs::absolute(yaml_file).parent_path().string();
+                            }
                             result.others_pkg_mgrs_specs.push_back({
                                 "pip",
                                 map_el.second.as<std::vector<std::string>>(),

@@ -127,6 +127,9 @@ namespace mamba
                 auto o = res.others_pkg_mgrs_specs[0];
                 REQUIRE(o.pkg_mgr == "pip");
                 REQUIRE(o.deps == V({ "pytest", "numpy" }));
+                REQUIRE(
+                    o.cwd == "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_3.yaml"
+                );
             }
 
             SECTION("env_yaml_file_with_specs_selection")

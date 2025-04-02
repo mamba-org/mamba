@@ -32,6 +32,7 @@ dependencies:
   - pytest-timeout
   - pytest-xprocess
   - pytest-rerunfailures
+  - pytest-cov
   - memory_profiler
   - requests
   - sel(win): pywin32

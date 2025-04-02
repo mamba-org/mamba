@@ -665,6 +665,22 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
+def test_install_python_site_packages_path(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    helpers.create("-n", env_name, "python=3.13", "python-freethreading")
+    helpers.install("-n", env_name, "imagesize")
+
+    if helpers.platform.system() == "Windows":
+        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "imagesize")
+    else:
+        # check that the noarch: python package installs into the python_site_packages_path directory
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        # and not into the "standard" site-packages directory
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
+
+
 @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
 def test_install_check_logs(tmp_home, tmp_root_prefix, output_flag):
     env_name = "env-install-check-logs"

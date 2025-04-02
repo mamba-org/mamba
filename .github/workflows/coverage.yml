@@ -40,9 +40,9 @@ jobs:
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
-          key: ${{ github.job }}-${{ github.runner.os }}-coverage
+          key: ${{ github.job }}-${{ github.runner.os }}
           restore-keys: |
-            ccache-libmamba-${{ github.runner.os }}-coverage
+            ccache-libmamba-${{ github.runner.os }}
       - name: Build mamba with coverage
         run: |
           cmake -B build/ -G Ninja \
@@ -50,15 +50,16 @@ jobs:
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
             -D MAMBA_WARNING_AS_ERROR=ON \
-            -D BUILD_LIBMAMBAPY=OFF \
+            -D BUILD_LIBMAMBAPY=ON \
+            -D BUILD_MICROMAMBA=ON \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF \
             -D CMAKE_BUILD_TYPE=Debug \
-            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 --coverage" \
-            -D CMAKE_C_FLAGS_DEBUG="-g -O0 --coverage"
+            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage" \
+            -D CMAKE_C_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage"
           cmake --build build/ --parallel
       - name: Show build cache statistics
         run: sccache --show-stats
-      - name: Run tests with coverage
+      - name: Run C++ tests with coverage
         run: |
           unset CONDARC  # Interferes with tests
           ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
@@ -67,13 +68,27 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lcov
-      - name: Generate coverage report
+      - name: Generate C++ coverage report
         run: |
-          lcov --directory . --capture --output-file coverage.info
-          lcov --remove coverage.info '*/tests/*' --output-file coverage.info
+          lcov --directory . --capture --output-file cpp_coverage.info
+          lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file cpp_coverage.info --ignore-errors unused
+          lcov --summary cpp_coverage.info --ignore-errors mismatch
+      - name: Install libmambapy
+        run: |
+          cmake --install build/ --prefix "${CONDA_PREFIX}"
+          python -m pip install --no-deps --no-build-isolation ./libmambapy
+      - name: Run Python tests with coverage
+        run: |
+          # Run libmambapy tests with coverage
+          python -m pytest libmambapy/tests/ --cov=libmambapy --cov-report=xml --cov-report=term-missing
+          # Run micromamba tests with coverage
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+          python -m pytest micromamba/tests/ --cov=micromamba --cov-report=xml --cov-report=term-missing
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.info
+          files: |
+            ./cpp_coverage.info
+            ./coverage.xml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}

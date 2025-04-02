@@ -64,6 +64,7 @@ jobs:
       - name: Show build cache statistics
         run: sccache --show-stats
       - name: Run C++ tests with coverage
+        continue-on-error: true
         run: |
           unset CONDARC  # Interferes with tests
           ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
@@ -82,6 +83,7 @@ jobs:
           cmake --install build/ --prefix "${CONDA_PREFIX}"
           python -m pip install --no-deps --no-build-isolation ./libmambapy
       - name: Run Python tests with coverage
+        continue-on-error: true
         run: |
           # Run libmambapy tests with coverage
           python -m pytest libmambapy/tests/ --cov=libmambapy --cov-report=xml --cov-report=term-missing

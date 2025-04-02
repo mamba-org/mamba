@@ -82,13 +82,54 @@ namespace mamba
             return found_it->second;
         }
 
-        yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform)
+        std::unique_ptr<TemporaryFile>
+        downloaded_file_from_url(const Context& ctx, const std::string& url_str)
         {
-            auto file = fs::weakly_canonical(util::expand_home(yaml_file.string()));
-            if (!fs::exists(file))
+            if (url_str.find("://") != std::string::npos)
             {
-                LOG_ERROR << "YAML spec file '" << file.string() << "' not found";
-                throw std::runtime_error("File not found. Aborting.");
+                LOG_INFO << "Downloading file from " << url_str;
+                auto url_parts = util::rsplit(url_str, '/');
+                std::string filename = (url_parts.size() == 1) ? "" : url_parts.back();
+                auto tmp_file = std::make_unique<TemporaryFile>("mambaf", util::concat("_", filename));
+                download::Request request(
+                    "Environment lock or yaml file",
+                    download::MirrorName(""),
+                    url_str,
+                    tmp_file->path()
+                );
+                const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
+
+                if (!res || res.value().transfer.http_status != 200)
+                {
+                    throw std::runtime_error(
+                        fmt::format("Could not download environment lock or yaml file from {}", url_str)
+                    );
+                }
+
+                return tmp_file;
+            }
+            return nullptr;
+        }
+
+        yaml_file_contents
+        read_yaml_file(const Context& ctx, const std::string& yaml_file, const std::string& platform)
+        {
+            // Download content of environment yaml file
+            auto tmp_yaml_file = downloaded_file_from_url(ctx, yaml_file);
+            fs::u8path file;
+
+            if (tmp_yaml_file)
+            {
+                file = tmp_yaml_file->path();
+            }
+            else
+            {
+                file = fs::weakly_canonical(util::expand_home(yaml_file));
+                if (!fs::exists(file))
+                {
+                    LOG_ERROR << "YAML spec file '" << file.string() << "' not found";
+                    throw std::runtime_error("File not found. Aborting.");
+                }
             }
 
             yaml_file_contents result;
@@ -148,8 +189,15 @@ namespace mamba
                         }
                         else if (key == "pip")
                         {
-                            const auto yaml_parent_path = fs::absolute(yaml_file).parent_path().string(
-                            );
+                            std::string yaml_parent_path;
+                            if (tmp_yaml_file)  // yaml file is fetched remotely
+                            {
+                                yaml_parent_path = yaml_file;
+                            }
+                            else
+                            {
+                                yaml_parent_path = fs::absolute(yaml_file).parent_path().string();
+                            }
                             result.others_pkg_mgrs_specs.push_back({
                                 "pip",
                                 map_el.second.as<std::vector<std::string>>(),
@@ -695,28 +743,11 @@ namespace mamba
         bool remove_prefix_on_failure
     )
     {
-        std::unique_ptr<TemporaryFile> tmp_lock_file;
         fs::u8path file;
+        auto tmp_lock_file = detail::downloaded_file_from_url(ctx, lockfile);
 
-        if (lockfile.find("://") != std::string::npos)
+        if (tmp_lock_file)
         {
-            LOG_INFO << "Downloading lockfile";
-            tmp_lock_file = std::make_unique<TemporaryFile>();
-            download::Request request(
-                "Environment Lockfile",
-                download::MirrorName(""),
-                lockfile,
-                tmp_lock_file->path()
-            );
-            const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
-
-            if (!res || res.value().transfer.http_status != 200)
-            {
-                throw std::runtime_error(
-                    fmt::format("Could not download environment lockfile from {}", lockfile)
-                );
-            }
-
             file = tmp_lock_file->path();
         }
         else
@@ -833,7 +864,7 @@ namespace mamba
                 }
                 else if (is_yaml_file_name(file))
                 {
-                    const auto parse_result = read_yaml_file(file, context.platform);
+                    const auto parse_result = read_yaml_file(context, file, context.platform);
 
                     if (parse_result.channels.size() != 0)
                     {

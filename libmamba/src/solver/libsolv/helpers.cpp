@@ -298,7 +298,7 @@ namespace mamba::solver::libsolv
             {
                 for (auto elem : depends)
                 {
-                    if (elem.is_string())
+                    if (!elem.error() && elem.is_string())
                     {
                         if (const auto dep_id = pool.add_conda_dependency(std::string(elem.get_string().value_unsafe())))
                         {
@@ -312,7 +312,7 @@ namespace mamba::solver::libsolv
             {
                 for (auto elem : constrains)
                 {
-                    if (elem.is_string())
+                    if (!elem.error() && elem.is_string())
                     {
                         if (const auto dep_id = pool.add_conda_dependency(
                                 std::string(elem.get_string().value_unsafe())
@@ -326,7 +326,7 @@ namespace mamba::solver::libsolv
 
             if (auto obj = pkg["track_features"]; !obj.error())
             {
-                if (obj.is_string())
+                if (!obj.error() && obj.is_string())
                 {
                     auto splits = lsplit_track_features(obj.get_string().value_unsafe());
                     while (!splits[0].empty())
@@ -340,7 +340,7 @@ namespace mamba::solver::libsolv
                     // assuming obj is an array
                     for (auto elem : obj)
                     {
-                        if (elem.is_string())
+                        if (!elem.error() && elem.is_string())
                         {
                             solv.add_track_feature(elem.get_string().value_unsafe());
                         }

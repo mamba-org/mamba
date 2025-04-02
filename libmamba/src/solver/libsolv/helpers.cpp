@@ -164,7 +164,10 @@ namespace mamba::solver::libsolv
                         const std::string name(field.unescaped_key().value());
                         for (auto nested_dict : field.value())
                         {
-                            nested_sigs[name]["signature"] = nested_dict.value().get_string().value();
+                            if (!nested_dict.error() && nested_dict.is_string())
+                            {
+                                nested_sigs[name]["signature"] = nested_dict.value().get_string().value();
+                            }
                         }
                         glob_sigs["signatures"] = nested_sigs;
 

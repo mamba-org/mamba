@@ -40,9 +40,9 @@ jobs:
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
-          key: ${{ github.job }}-${{ github.runner.os }}
+          key: ${{ github.job }}-${{ github.runner.os }}-coverage
           restore-keys: |
-            ccache-libmamba-${{ github.runner.os }}
+            ccache-libmamba-${{ github.runner.os }}-coverage
       - name: Build mamba with coverage
         run: |
           cmake -B build/ -G Ninja \

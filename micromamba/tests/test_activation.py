@@ -879,12 +879,15 @@ def test_activate_path(tmp_empty_env, tmp_env_name, interpreter, tmp_path):
     assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
 
+@pytest.mark.parametrize("conda_envs_x", ["CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"])
 @pytest.mark.parametrize("interpreter", get_interpreters())
-def test_activate_envs_dirs(tmp_root_prefix: Path, interpreter, tmp_path: Path):
+def test_activate_envs_dirs(
+    tmp_root_prefix: Path, interpreter, tmp_path: Path, conda_envs_x, monkeypatch
+):
     """Activate an environment as the non leading entry in ``envs_dirs``."""
     env_name = "myenv"
     helpers.create("-p", tmp_path / env_name, "--offline", "--no-rc", no_dry_run=True)
-    os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+    monkeypatch.setenv(conda_envs_x, f"{Path('/noperm')}{os.pathsep}{tmp_path}")
     res = helpers.shell("activate", env_name, "-s", interpreter)
     dict_res = env_to_dict(res, interpreter)
     assert any([env_name in p for p in dict_res.values()])

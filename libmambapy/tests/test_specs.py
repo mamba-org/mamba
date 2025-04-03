@@ -218,6 +218,14 @@ def test_CondaURL_parse():
     )
 
 
+def test_CondaURL_parse_file_url():
+    CondaURL = libmambapy.specs.CondaURL
+
+    url = CondaURL.parse("file:///D:/a/_temp/popen-gw0/test_croot_with_spaces0/space%20path")
+
+    assert url.scheme() == ""
+
+
 def test_CondaURL_op():
     CondaURL = libmambapy.specs.CondaURL
     url = CondaURL.parse(

@@ -1,5 +1,6 @@
 channels:
   - conda-forge
+  - defaults
 dependencies:
   # libmamba build dependencies
   - cxx-compiler
@@ -11,7 +12,7 @@ dependencies:
   - cpp-expected
   - fmt
   - libarchive
-  - libcurl >=7.86
+  - defaults::libcurl >=7.86
   - libsodium
   - libsolv >=0.7.18
   - nlohmann_json

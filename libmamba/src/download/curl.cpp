@@ -650,15 +650,4 @@ namespace mamba::download
         return static_cast<std::size_t>(numfds);
     }
 
-    // TODO apparently not used?
-    std::size_t CURLMultiHandle::poll(size_t timeout)
-    {
-        int numfds = 0;
-        CURLMcode code = curl_multi_poll(p_handle, NULL, 0, static_cast<int>(timeout), &numfds);
-        if (code != CURLM_OK)
-        {
-            throw std::runtime_error(curl_multi_strerror(code));
-        }
-        return static_cast<std::size_t>(numfds);
-    }
 }  // namespace mamba

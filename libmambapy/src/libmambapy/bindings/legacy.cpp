@@ -1202,6 +1202,23 @@ bind_submodule_impl(pybind11::module_ m)
         py::arg("compression_threads") = 1
     );
 
+    m.def(
+        "extract_package",
+        [](const fs::u8path& file, const fs::u8path& destination, bool sparse)
+        {
+            return extract(
+                file,
+                destination,
+                ExtractOptions{
+                    /* .sparse= */ sparse,
+                    // Unused by this function so we're not making it part of the API
+                    /* .subproc_mode= */ extract_subproc_mode::mamba_package,
+                }
+            );
+        }
+    );
+
+
     m.def("init_console", &init_console);
 
     // fix extract from error_handling first

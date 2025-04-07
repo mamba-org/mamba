@@ -101,17 +101,20 @@ namespace mamba::util
         return { true, slashes, rest };
     }
 
-    auto make_curl_compatible(std::string uri) -> std::string
+    auto make_curl_compatible(std::string uri) -> std::string  // TODO rename..._on_unix
     {
         // Convert `file:///` to `file:////` to make it compatible with libcurl
-        //         auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
-        //         if (on_win && is_file_scheme && slashes.size() == 3 &&
-        //         path_has_drive_letter(rest))
-        //         {
-        //             std::cout << "Yes we are concatenating, rest has drive_letter: "<< rest <<
-        //             std::endl;
-        //             return util::concat("file:////", rest);
-        //         }
+        // std::cout << "in make_curl_compatible: " << uri << std::endl;
+        auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
+        // std::cout << "CHECKING: " << is_file_scheme << " , " << (slashes.size() == 3) << " , " <<
+        // rest << " , " <<  path_has_drive_letter(rest) << std::endl;
+        if (!on_win && is_file_scheme && path_has_drive_letter(rest)
+            && ((slashes.size() == 2) || (slashes.size() == 3)))
+        {
+            // TODO Add a warning here that the URI is only valid on windows and that the parsing
+            // output should be used cautiously?
+            return util::concat("file:////", rest);
+        }
         return uri;
     }
 

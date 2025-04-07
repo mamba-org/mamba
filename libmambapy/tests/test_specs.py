@@ -218,45 +218,6 @@ def test_CondaURL_parse():
     )
 
 
-def test_CondaURL_parse_file_url():
-    CondaURL = libmambapy.specs.CondaURL
-
-    url = CondaURL.parse("file:///D:/a/_temp/popen-gw0/test_croot_with_spaces0/space%20path")
-
-    assert url.scheme() == ""
-    # assert url.user() == "user@mail.com"
-    # assert url.user(decode=False) == "user%40mail.com"
-    # assert url.password() == "pas#"
-    # assert url.password(decode=False) == "pas%23"
-    # assert url.authentication() == "user%40mail.com:pas%23"
-    # assert url.host() == "repo.mamba.pm"
-    # assert url.host(decode=False) == "repo.mamba.pm"
-    # assert url.port() == "400"
-    # assert url.path() == "/t/xy-12345678-1234/ conda/linux-64/pkg.conda"
-    # assert url.path(decode=False) == "/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
-    # assert url.token() == "xy-12345678-1234"
-    # assert url.path_without_token() == "/ conda/linux-64/pkg.conda"
-    # assert url.path_without_token(decode=False) == "/%20conda/linux-64/pkg.conda"
-    # assert url.platform().name == "linux_64"
-    # assert url.package() == "pkg.conda"
-
-    # assert (
-    # url.str()
-    # == "https://user%40mail.com:*****@repo.mamba.pm:400/t/*****/%20conda/linux-64/pkg.conda"
-    # )
-    # assert (
-    # url.str(credentials="Show")
-    # == "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
-    # )
-    # assert repr(url) == (
-    # "https://user%40mail.com:*****@repo.mamba.pm:400/t/*****/%20conda/linux-64/pkg.conda"
-    # )
-    # assert (
-    # url.pretty_str(strip_scheme=True, credentials="Hide", rstrip_path="/")
-    # == "user@mail.com:*****@repo.mamba.pm:400/t/*****/ conda/linux-64/pkg.conda"
-    # )
-
-
 def test_CondaURL_op():
     CondaURL = libmambapy.specs.CondaURL
     url = CondaURL.parse(

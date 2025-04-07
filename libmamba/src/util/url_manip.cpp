@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -107,6 +108,8 @@ namespace mamba::util
         //         if (on_win && is_file_scheme && slashes.size() == 3 &&
         //         path_has_drive_letter(rest))
         //         {
+        //             std::cout << "Yes we are concatenating, rest has drive_letter: "<< rest <<
+        //             std::endl;
         //             return util::concat("file:////", rest);
         //         }
         return uri;
@@ -114,6 +117,7 @@ namespace mamba::util
 
     auto file_uri_unc2_to_unc4(std::string_view uri) -> std::string
     {
+        std::cout << "In file_uri_unc2_to_unc4, uri: " << uri << std::endl;
         auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
         if (!is_file_scheme)
         {

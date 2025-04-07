@@ -11,14 +11,14 @@
 #include <string>
 
 #define UMAMBA_VERSION_MAJOR 2
-#define UMAMBA_VERSION_MINOR 0
-#define UMAMBA_VERSION_PATCH 7
+#define UMAMBA_VERSION_MINOR 1
+#define UMAMBA_VERSION_PATCH 0
 #define UMAMBA_VERSION_IS_PRERELEASE 0
 #if UMAMBA_VERSION_IS_PRERELEASE == 1
 #define UMAMBA_VERSION_PRERELEASE_NAME ""
 #endif
 
-#define UMAMBA_VERSION_STRING "2.0.7"
+#define UMAMBA_VERSION_STRING "2.1.0"
 #define UMAMBA_VERSION                                                                             \
     (UMAMBA_VERSION_MAJOR * 10000 + UMAMBA_VERSION_MINOR * 100 + UMAMBA_VERSION_PATCH)
 

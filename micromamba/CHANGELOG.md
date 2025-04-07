@@ -1,3 +1,17 @@
+## micromamba 2.1.0 (April 01, 2025)
+
+Bug fixes:
+
+- fix: Prohibit conda envs path and conda envs dirs by @holzman in <https://github.com/mamba-org/mamba/pull/3854>
+- Fix authenticated downloading by @Hind-M in <https://github.com/mamba-org/mamba/pull/3868>
+- Windows menuinst by @Hind-M in <https://github.com/mamba-org/mamba/pull/3846>
+
+## micromamba 2.0.8 (March 19, 2025)
+
+Bug fixes:
+
+- fix: Correct paths and suggestions in `etc/profile.d/mamba.sh` by @jjerphan in <https://github.com/mamba-org/mamba/pull/3865>
+
 ## micromamba 2.0.7 (March 07, 2025)
 
 Bug fixes:

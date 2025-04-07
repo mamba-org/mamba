@@ -11,6 +11,7 @@
 #include <fstream>
 #include <map>
 #include <optional>
+#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -25,6 +26,9 @@
 namespace mamba
 {
     class Context;
+
+    const std::regex& token_regex();
+    const std::regex& http_basicauth_regex();
 
     // Used when we want a callback which does nothing.
     struct no_op

@@ -394,13 +394,14 @@ namespace mamba
         std::string m_last_active_task = "";
         time_point_t m_task_time, m_avg_speed_time;
 
-        ProgressBarRepr m_repr;
         ProgressBarOptions m_options;
 
         bool m_is_spinner;
         bool m_completed = false;
 
         std::mutex m_mutex;
+
+        ProgressBarRepr m_repr;
 
         void run();
 

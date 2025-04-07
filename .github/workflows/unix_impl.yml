@@ -171,8 +171,8 @@ jobs:
               ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
-  verify_pkg_tests:
-    name: mamba-content-trust tests
+  verify_pkg_and_auth_tests:
+    name: mamba-content-trust and auth tests
     needs: ["build_shared_unix"]
     runs-on: ${{ inputs.os }}
     if: startsWith(inputs.os, 'ubuntu')
@@ -198,4 +198,4 @@ jobs:
           unset CONDARC  # Interferes with tests
           cd micromamba/test-server
           ./generate_gpg_keys.sh
-          ./testserver_pkg_signing.sh
+          ./testserver_auth_pkg_signing.sh

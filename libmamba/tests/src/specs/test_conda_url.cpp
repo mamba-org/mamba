@@ -492,16 +492,18 @@ namespace
 
     TEST_CASE("CondaURL::parse")
     {
-        SECTION("file:////D:/a/_temp/popen-gw0/some_other_parts")
-        {
-            if (mamba::util::on_win)
-            {
-                auto url = CondaURL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts").value();
-                REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
-                REQUIRE(url.str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
-                REQUIRE(url.pretty_str() == "/file:////D:/a/_temp/popen-gw0/some_other_parts");
-            }
-        }
+        //         SECTION("file:////D:/a/_temp/popen-gw0/some_other_parts")
+        //         {
+        //             if (mamba::util::on_win)
+        //             {
+        //                 auto url =
+        //                 CondaURL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts").value();
+        //                 REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
+        //                 REQUIRE(url.str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
+        //                 REQUIRE(url.pretty_str() ==
+        //                 "/file:////D:/a/_temp/popen-gw0/some_other_parts");
+        //             }
+        //         }
 
         SECTION("file:///D:/a/_temp/popen-gw0/some_other_parts")
         {

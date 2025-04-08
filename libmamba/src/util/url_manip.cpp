@@ -120,7 +120,7 @@ namespace mamba::util
 
     auto file_uri_unc2_to_unc4(std::string_view uri) -> std::string
     {
-        std::cout << "In file_uri_unc2_to_unc4, uri: " << uri << std::endl;
+        // std::cout << "In file_uri_unc2_to_unc4, uri: " << uri << std::endl;
         auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
         if (!is_file_scheme)
         {

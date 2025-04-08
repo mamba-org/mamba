@@ -103,12 +103,12 @@ namespace mamba::util
         auto CurlUrl::parse(const std::string& url, flag_type flags)
             -> tl::expected<CurlUrl, URL::ParseError>
         {
-            std::cout << "CurlUrl::parse, url: " << url << std::endl;
+            // std::cout << "CurlUrl::parse, url: " << url << std::endl;
             auto out = CurlUrl();
             const CURLUcode uc = ::curl_url_set(out.m_handle.get(), CURLUPART_URL, url.c_str(), flags);
             if (uc != CURLUE_OK)
             {
-                std::cout << "NOT OK" << std::endl;
+                // std::cout << "NOT OK" << std::endl;
                 return tl::make_unexpected(URL::ParseError{
                     fmt::format(R"(Failed to parse URL "{}": {})", url, ::curl_url_strerror(uc)) });
             }

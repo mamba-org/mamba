@@ -1223,6 +1223,24 @@ def test_requires_pip_install_no_parent_dir_specified(
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_from_remote_yaml_file(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/micromamba/tests/env-create-export.yaml"
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        package["name"] == "micromamba"
+        and package["version"] == "0.24.0"
+        and package["channel"] == "conda-forge"
+        and package["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for package in packages
+    )
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
     # We test compatibility with the downstream pre-commit package here because the pre-commit project does not currently accept any code changes related to Conda, see https://github.com/pre-commit/pre-commit/pull/2446#issuecomment-1353394177.
     def create_repo(path: Path) -> str:

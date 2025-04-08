@@ -550,35 +550,74 @@ namespace mamba::solver::libsolv
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using mamba";
 
+        // WARNING:
+        // We use below SimdJson's "on demand" parser, which does not tolerate
+        // reading the same value more than once. This means we need to make
+        // sure that the objects and their fields are read once and kept around
+        // until being used if necessary. This is why the code belows tries hard
+        // to pre-read the general data in a way that prevents jumping up and down
+        // the hierarchy of json objects. When this rule is not followed, the parsing
+        // might end earlier than expected or might skip data that are read when they
+        // shouldnt be, leading to *runtime issues* that might not be visible at first.
+        // Because of these reasons, be careful when modifingy the following parsing
+        // code.
+
         auto parser = simdjson::ondemand::parser();
         const auto lock = LockFile(filename);
         const auto json_content = simdjson::padded_string::load(filename.string()); // must be kept alive while reading json
         auto repodata_doc = parser.iterate(json_content);
 
+        const auto repodata_version = [&] {
+            if (auto version = repodata_doc["repodata_version"].get_int64(); !version.error())
+            {
+                return version.value();
+            }
+            else
+            {
+                return std::int64_t{ 1 };
+            }
+        }();
+
+
+        auto info = [&]{
+            if(auto value = repodata_doc["info"]; !value.error())
+            {
+                if (auto object = value.get_object(); !object.error())
+                {
+                    return std::make_optional(object);
+                }
+            }
+            return decltype(std::make_optional(repodata_doc["info"].get_object())){};
+
+        }();
 
         // An override for missing package subdir is found at the top level
-        auto default_subdir = std::string();
-        if (auto subdir = repodata_doc["/info/subdir"]; !subdir.error())
-        {
-            default_subdir = std::string(subdir.get_string().value_unsafe());
-        }
+        const auto default_subdir = [&]{
+            if (info)
+            {
+                if (auto subdir = info.value()["subdir"]; !subdir.error())
+                {
+                    return std::string(subdir.get_string().value_unsafe());
+                }
+            }
+
+            return std::string{};
+        }();
 
 
         // Get `base_url` in case 'repodata_version': 2
         // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
-        auto base_url = repo_url;
-        if (auto repodata_version = repodata_doc["repodata_version"].get_int64();
-            !repodata_version.error())
-        {
-            if (repodata_version.value_unsafe() == 2)
+        const auto base_url = [&] {
+            if (repodata_version == 2 && info)
             {
-                if (auto url = repodata_doc["/info/base_url"]; !url.error())
+                if (auto url = info.value()["base_url"]; !url.error())
                 {
-                    base_url = std::string(url.get_string().value_unsafe());
+                    return std::string(url.get_string().value_unsafe());
                 }
             }
-        }
 
+            return repo_url;
+        }();
 
         const auto parsed_url = specs::CondaURL::parse(base_url)
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })

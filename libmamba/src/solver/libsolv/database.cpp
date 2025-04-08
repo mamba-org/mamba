@@ -195,7 +195,9 @@ namespace mamba::solver::libsolv
                     return RepoInfo{ p_repo.raw() };
                 }
             )
-            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
+            .or_else([&](const auto&) {
+                pool().remove_repo(repo.id(), /* reuse_ids= */ true);
+            });
     }
 
     auto Database::add_repo_from_native_serialization(

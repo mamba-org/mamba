@@ -144,51 +144,55 @@ namespace mamba::solver::libsolv
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
-        template<class JSONObject>
         void set_solv_signatures(
             solv::ObjSolvableView solv,
             const std::string& filename,
-            std::optional<JSONObject>& signatures
+            const std::optional<nlohmann::json>& signatures
         )
         {
             // NOTE We need to use an intermediate nlohmann::json object to store signatures
             // as simdjson objects are not conceived to be modified smoothly
             // and we need an equivalent structure to how libsolv is storing the signatures
-            nlohmann::json glob_sigs, nested_sigs;
+            nlohmann::json glob_sigs;
             if (signatures)
             {
-                if (auto sigs = signatures.value()[filename].get_object(); !sigs.error())
+                if (auto signatures_for_file = signatures->find(filename);
+                    signatures_for_file != signatures->end())
                 {
-                    for (auto field : sigs)
-                    {
-                        const std::string name(field.unescaped_key().value());
-                        for (auto nested_dict : field.value())
-                        {
-                            if (!nested_dict.error() && nested_dict.is_string())
-                            {
-                                nested_sigs[name]["signature"] = nested_dict.value().get_string().value();
-                            }
-                        }
-                        glob_sigs["signatures"] = nested_sigs;
+                    glob_sigs["signatures"] = *signatures_for_file;
 
-                        solv.set_signatures(glob_sigs.dump());
-                        LOG_INFO << "Signatures for '" << filename
-                                 << "' are set in corresponding solvable.";
-                    }
+                    solv.set_signatures(glob_sigs.dump());
+                    LOG_INFO << "Signatures for '" << filename
+                             << "' are set in corresponding solvable.";
                 }
             }
         }
 
-        template<class JSONObject1, class JSONObject2>
+        template<class SimdJSONValue>
+        std::optional<nlohmann::json> extract_signatures(std::optional<SimdJSONValue>& signatures)
+        {
+            if (!signatures || signatures->error() )
+            {
+                return {};
+            }
+
+            const std::string raw_json(signatures->raw_json().value());
+            auto all_signatures = nlohmann::json::parse(raw_json);
+
+            return all_signatures;
+        }
+
+        template<class JSONObject>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
             // const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             solv::ObjSolvableView solv,
+
             const std::string& filename,
-            JSONObject1&& pkg,
-            std::optional<JSONObject2>& signatures,
+            JSONObject&& pkg,
+            const std::optional<nlohmann::json>& signatures,
             const std::string& default_subdir
         ) -> bool
         {
@@ -297,7 +301,7 @@ namespace mamba::solver::libsolv
                 solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
 
-            if (auto depends = pkg["depends"]; !depends.error())
+            if (auto depends = pkg["depends"].get_array(); !depends.error())
             {
                 for (auto elem : depends)
                 {
@@ -313,7 +317,7 @@ namespace mamba::solver::libsolv
 
             if (auto constrains = pkg["constrains"]; !constrains.error())
             {
-                for (auto elem : constrains)
+                for (auto elem : constrains.get_array())
                 {
                     if (!elem.error() && elem.is_string())
                     {
@@ -329,7 +333,7 @@ namespace mamba::solver::libsolv
 
             if (auto obj = pkg["track_features"]; !obj.error())
             {
-                if (!obj.error() && obj.is_string())
+                if (obj.is_string())
                 {
                     auto splits = lsplit_track_features(obj.get_string().value_unsafe());
                     while (!splits[0].empty())
@@ -341,7 +345,7 @@ namespace mamba::solver::libsolv
                 else
                 {
                     // assuming obj is an array
-                    for (auto elem : obj)
+                    for (auto elem : obj.get_array())
                     {
                         if (!elem.error() && elem.is_string())
                         {
@@ -370,7 +374,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            std::optional<JSONObject>& signatures,
+            const std::optional<nlohmann::json>& signatures,
             Filter&& filter,
             OnParsed&& on_parsed
         )
@@ -414,7 +418,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            std::optional<JSONObject>& signatures
+            const std::optional<nlohmann::json>& signatures
         )
         {
             return set_repo_solvables_impl(
@@ -438,7 +442,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            std::optional<JSONObject>& signatures
+            const std::optional<nlohmann::json>& signatures
         ) -> util::flat_set<std::string>
         {
             auto filenames = util::flat_set<std::string>();
@@ -466,7 +470,7 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            std::optional<JSONObject>& signatures,
+            const std::optional<nlohmann::json>& signatures,
             const SortedStringRange& added
         )
         {
@@ -593,6 +597,9 @@ namespace mamba::solver::libsolv
             }
         }();
 
+
+        const auto json_signatures = extract_signatures(signatures);
+
         if (package_types == PackageTypes::CondaOrElseTarBz2)
         {
             auto added = util::flat_set<std::string>();
@@ -605,7 +612,7 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    signatures
+                    json_signatures
                 );
             }
             if (auto pkgs = repodata_doc["packages"]; !pkgs.error())
@@ -617,7 +624,7 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    signatures,
+                    json_signatures,
                     added
                 );
             }
@@ -634,7 +641,7 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    signatures
+                    json_signatures
                 );
             }
 
@@ -648,7 +655,7 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    signatures
+                    json_signatures
                 );
             }
         }

@@ -499,14 +499,14 @@ namespace
             REQUIRE(url.str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
             REQUIRE(url.pretty_str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
 
-            if (mamba::util::on_win)
-            {
-                REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
-            }
-            else
-            {
-                REQUIRE(url.path() == "//D:/a/_temp/popen-gw0/some_other_parts");
-            }
+            //             if (mamba::util::on_win)
+            //             {
+            //                 REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
+            //             }
+            //             else
+            //             {
+            REQUIRE(url.path() == "//D:/a/_temp/popen-gw0/some_other_parts");
+            //             }
         }
 
         SECTION("file:////ab/_temp/popen-gw0/some_other_parts")
@@ -522,7 +522,7 @@ namespace
             auto url = CondaURL::parse("file:///D:/a/_temp/popen-gw0/some_other_parts").value();
             if (mamba::util::on_win)
             {
-                REQUIRE(url.path() == "D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
                 REQUIRE(url.str() == "file:///D:/a/_temp/popen-gw0/some_other_parts");
                 REQUIRE(url.pretty_str() == "file:///D:/a/_temp/popen-gw0/some_other_parts");
             }

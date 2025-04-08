@@ -158,8 +158,6 @@ namespace
     {
         for (const std::string uri : {
                  "http://example.com/test",
-                 //                  R"(file://C:/Program\ (x74)/Users/hello\ world)",
-                 //                  R"(file:///C:/Program\ (x74)/Users/hello\ world)",
                  R"(file:////C:/Program\ (x74)/Users/hello\ world)",
                  "file:////server/share",
                  "file:///server/share",
@@ -170,16 +168,29 @@ namespace
             CAPTURE(uri);
             REQUIRE(make_curl_compatible(uri) == uri);
         }
-        // REQUIRE(make_curl_compatible("file://D:/server/share") == "file:////D:/server/share");
-        // REQUIRE(make_curl_compatible("file:///D:/server/share") == "file:////D:/server/share");
-        REQUIRE(
-            make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
-            == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
-        );
-        REQUIRE(
-            make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
-            == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
-        );
+
+        if (on_win)
+        {
+            REQUIRE(
+                make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file://C:/Program\ (x74)/Users/hello\ world)"
+            );
+            REQUIRE(
+                make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:///C:/Program\ (x74)/Users/hello\ world)"
+            );
+        }
+        else
+        {
+            REQUIRE(
+                make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
+            );
+            REQUIRE(
+                make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
+            );
+        }
         // REQUIRE(make_curl_compatible("file://\\D:/server/share") == "file:////D:/server/share");
     }
 

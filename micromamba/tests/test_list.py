@@ -82,6 +82,7 @@ def test_list_no_json(
 
 @pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
 @pytest.mark.parametrize("md5_flag", ["", "--md5"])
+@pytest.mark.parametrize("sha256_flag", ["", "--sha256"])
 @pytest.mark.parametrize("canonical_flag", ["", "-c", "--canonical"])
 @pytest.mark.parametrize("export_flag", ["", "-e", "--export"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
@@ -94,19 +95,20 @@ def test_list_subcommands(
     env_selector,
     explicit_flag,
     md5_flag,
+    sha256_flag,
     canonical_flag,
     export_flag,
 ):
     if env_selector == "prefix":
         res = helpers.umamba_list(
-            "-p", tmp_xtensor_env, explicit_flag, md5_flag, canonical_flag, export_flag
+            "-p", tmp_xtensor_env, explicit_flag, md5_flag, sha256_flag, canonical_flag, export_flag
         )
     elif env_selector == "name":
         res = helpers.umamba_list(
-            "-n", tmp_env_name, explicit_flag, md5_flag, canonical_flag, export_flag
+            "-n", tmp_env_name, explicit_flag, md5_flag, sha256_flag, canonical_flag, export_flag
         )
     else:
-        res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag, export_flag)
+        res = helpers.umamba_list(explicit_flag, md5_flag, sha256_flag, canonical_flag, export_flag)
 
     outputs_list = res.strip().split("\n")[2:]
     outputs_list = [i for i in outputs_list if i != "" and not i.startswith("Warning")]
@@ -114,8 +116,13 @@ def test_list_subcommands(
     if explicit_flag == "--explicit":
         for output in outputs_list:
             assert "/conda-forge/" in output
-            if md5_flag == "--md5":
+            if (md5_flag == "--md5") or (sha256_flag == "--sha256"):
                 assert "#" in output
+                hash = output.split("#")[-1]
+                if md5_flag == "--md5":
+                    assert len(hash) == 32
+                else:
+                    assert len(hash) == 64
             else:
                 assert "#" not in output
     elif canonical_flag in ["-c", "--canonical"]:

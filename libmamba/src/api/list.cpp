@@ -27,6 +27,7 @@ namespace mamba
             bool reverse = false;
             bool explicit_ = false;
             bool md5 = false;
+            bool sha256 = false;
             bool canonical = false;
             bool export_ = false;
             bool revisions = false;
@@ -34,7 +35,7 @@ namespace mamba
 
         struct formatted_pkg
         {
-            std::string name, version, build, channel, url, md5, build_string, platform;
+            std::string name, version, build, channel, url, md5, sha256, build_string, platform;
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -192,6 +193,7 @@ namespace mamba
                             obj["base_url"] = get_base_url(pkg_info, channels.front());
                             obj["url"] = pkg_info.package_url;
                             obj["md5"] = pkg_info.md5;
+                            obj["sha256"] = pkg_info.sha256;
                             obj["build_number"] = pkg_info.build_number;
                             obj["build_string"] = pkg_info.build_string;
                             obj["dist_name"] = pkg_info.str();
@@ -226,6 +228,7 @@ namespace mamba
                         formatted_pkgs.build = package.second.build_string;
                         formatted_pkgs.url = package.second.package_url;
                         formatted_pkgs.md5 = package.second.md5;
+                        formatted_pkgs.sha256 = package.second.sha256;
                         formatted_pkgs.build_string = package.second.build_string;
                         formatted_pkgs.platform = package.second.platform;
                         packages.push_back(formatted_pkgs);
@@ -289,6 +292,10 @@ namespace mamba
                         if (options.md5)
                         {
                             std::cout << p.url << "#" << p.md5 << std::endl;
+                        }
+                        else if (options.sha256)
+                        {
+                            std::cout << p.url << "#" << p.sha256 << std::endl;
                         }
                         else
                         {
@@ -360,6 +367,7 @@ namespace mamba
         options.reverse = config.at("reverse").value<bool>();
         options.explicit_ = config.at("explicit").value<bool>();
         options.md5 = config.at("md5").value<bool>();
+        options.sha256 = config.at("sha256").value<bool>();
         options.canonical = config.at("canonical").value<bool>();
         options.export_ = config.at("export").value<bool>();
         options.revisions = config.at("revisions").value<bool>();

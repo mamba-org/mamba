@@ -365,9 +365,6 @@ namespace mamba::solver::libsolv
             return true;
         }
 
-        template <class T>
-        class showme;
-
         template <typename JSONObject, typename Filter, typename OnParsed>
         void set_repo_solvables_impl(
             solv::ObjPool& pool,
@@ -384,7 +381,6 @@ namespace mamba::solver::libsolv
             auto packages_as_object = packages.get_object();
             for (auto pkg_field : packages_as_object)
             {
-                // showme<decltype(packages)> debug;
                 const std::string filename(pkg_field.unescaped_key().value());
                 if (filter(filename))
                 {
@@ -552,23 +548,25 @@ namespace mamba::solver::libsolv
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using mamba";
 
-        // WARNING:
-        // We use below SimdJson's "on demand" parser, which does not tolerate
-        // reading the same value more than once. This means we need to make
-        // sure that the objects and their fields are read once and kept around
-        // until being used if necessary. This is why the code belows tries hard
-        // to pre-read the general data in a way that prevents jumping up and down
-        // the hierarchy of json objects. When this rule is not followed, the parsing
-        // might end earlier than expected or might skip data that are read when they
-        // shouldnt be, leading to *runtime issues* that might not be visible at first.
-        // Because of these reasons, be careful when modifingy the following parsing
-        // code.
+        // BEWARE:
+        // We use below `simdjson`'s "on-demand" parser, which does not tolerate reading the same
+        // value more than once. This means we need to make sure that the objects and their fields
+        // are read and/or concretized only once and if we need to use them more than once we need
+        // to persist them in local memory. This is why the code below tries hard to pre-read the
+        // data needed in several parts of the computing in a way that prevents jumping up and down
+        // the hierarchy of json objects. When this rule is not followed, the parsing might end
+        // earlier than expected or might skip data that are read when they shouldn't be, leading to
+        // *runtime issues* that might not be visible at first. Because of these reasons, be careful
+        // when modifying the following parsing code.
 
         auto parser = simdjson::ondemand::parser();
         const auto lock = LockFile(filename);
-        const auto json_content = simdjson::padded_string::load(filename.string());  // must be kept
-                                                                                     // alive while
-                                                                                     // reading json
+
+        // The json storage must be kept alive as long as we are reading the json data.
+        const auto json_content = simdjson::padded_string::load(filename.string());
+
+        // Note that with the "on-demand" parser, documents/values/objects act as iterators
+        // to go through the document.
         auto repodata_doc = parser.iterate(json_content);
 
         const auto repodata_version = [&]
@@ -584,7 +582,7 @@ namespace mamba::solver::libsolv
         }();
 
 
-        auto info = [&]
+        auto repodata_info = [&]
         {
             if (auto value = repodata_doc["info"]; !value.error())
             {
@@ -596,12 +594,12 @@ namespace mamba::solver::libsolv
             return decltype(std::make_optional(repodata_doc["info"].get_object())){};
         }();
 
-        // An override for missing package subdir is found at the top level
+        // An override for missing package subdir could be found at the top level
         const auto default_subdir = [&]
         {
-            if (info)
+            if (repodata_info)
             {
-                if (auto subdir = info.value()["subdir"]; !subdir.error())
+                if (auto subdir = repodata_info.value()["subdir"]; !subdir.error())
                 {
                     return std::string(subdir.get_string().value_unsafe());
                 }
@@ -615,9 +613,9 @@ namespace mamba::solver::libsolv
         // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
         const auto base_url = [&]
         {
-            if (repodata_version == 2 && info)
+            if (repodata_version == 2 && repodata_info)
             {
-                if (auto url = info.value()["base_url"]; !url.error())
+                if (auto url = repodata_info.value()["base_url"]; !url.error())
                 {
                     return std::string(url.get_string().value_unsafe());
                 }

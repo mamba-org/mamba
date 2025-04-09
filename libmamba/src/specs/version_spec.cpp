@@ -9,9 +9,12 @@
 #include <type_traits>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/string.hpp"
+
+#include "specs/version_spec_impl.hpp"
 
 namespace mamba::specs
 {
@@ -63,6 +66,92 @@ namespace mamba::specs
         -> bool
     {
         return lhs.level == rhs.level;
+    }
+
+    namespace
+    {
+        auto version_match_glob(const CommonVersion& candidate, const CommonVersion& pattern) -> bool
+        {
+            auto cand_it = candidate.cbegin();
+            const auto cand_last = candidate.cend();
+            auto pat_it = pattern.cbegin();
+            const auto pat_last = pattern.cend();
+            auto parts_required = std::size_t(0);
+            auto parts_available = std::size_t(0);
+
+            constexpr auto is_failed = [](auto req, auto avail) -> bool
+            { return (req > avail) || (req == 0 && avail > 0); };
+            constexpr auto is_glob_part = [](const auto& p) -> bool
+            { return p == VERSION_GLOB_SEGMENT; };
+            constexpr auto distance = [](auto i1, auto i2)
+            {
+                assert(i1 <= i2);
+                return static_cast<std::size_t>(std::distance(i1, i2));
+            };
+
+            while (pat_it != pat_last)
+            {
+                // We move forward in the pattern counting all the contiguous glob parts.
+                const auto pat_sub_first = std::find_if_not(pat_it, pat_last, is_glob_part);
+                parts_required += distance(pat_it, pat_sub_first);
+                pat_it = pat_sub_first;
+
+                // No more explicit subpatterns (i.e. not globs) to match
+                if (pat_it == pat_last)
+                {
+                    break;
+                }
+
+                // Find the end of the sub pattern, i.e. to the start of the next glob.
+                // This is required to avoid greedily matching on the first similar character.
+                const auto pat_sub_last = std::find_if(pat_sub_first, pat_last, is_glob_part);
+
+                // At this cand we have a required pattern.
+                // We search for it in the given version and count the parts that were skipped.
+                const auto cand_sub_first = std::search(cand_it, cand_last, pat_sub_first, pat_sub_last);
+                parts_available += distance(cand_it, cand_sub_first);
+                cand_it = cand_sub_first;
+
+                // If we exhause the cand without finding a match for the pattern it's a failure
+                if (cand_it == cand_last)
+                {
+                    return false;
+                }
+
+                // At this cand we have a match.
+                // We compare the number of globs found with the number of unmatched cand parts
+                if (is_failed(parts_required, parts_available))
+                {
+                    return false;
+                }
+
+                // We pass through the match and reset the counts
+                const auto subpat_len = std::distance(pat_sub_first, pat_sub_last);
+                pat_it += subpat_len;
+                cand_it += subpat_len;
+                parts_required = 0;
+                parts_available = 0;
+            }
+
+            parts_available += static_cast<std::size_t>(std::distance(cand_it, cand_last));
+
+            return !is_failed(parts_required, parts_available);
+        }
+
+    }
+
+    auto
+    VersionPredicate::version_glob::operator()(const Version& point, const Version& pattern) const
+        -> bool
+    {
+        return (point.epoch() == pattern.epoch())
+               && version_match_glob(point.version(), pattern.version())
+               && version_match_glob(point.local(), pattern.local());
+    }
+
+    auto operator==(VersionPredicate::version_glob, VersionPredicate::version_glob) -> bool
+    {
+        return true;
     }
 
     static auto operator==(std::equal_to<Version>, std::equal_to<Version>) -> bool
@@ -154,6 +243,11 @@ namespace mamba::specs
         return VersionPredicate(std::move(ver), compatible_with{ level });
     }
 
+    auto VersionPredicate::make_version_glob(Version pattern) -> VersionPredicate
+    {
+        return VersionPredicate(std::move(pattern), version_glob{});
+    }
+
     auto VersionPredicate::str() const -> std::string
     {
         return fmt::format("{}", *this);
@@ -172,7 +266,13 @@ namespace mamba::specs
 
     auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool
     {
-        return (lhs.m_operator == rhs.m_operator) && (lhs.m_version == rhs.m_version);
+        return (lhs.m_operator == rhs.m_operator)  //
+               && (lhs.m_version == rhs.m_version)
+               // In version_glob, the version is not understood purely as a version since ``*``
+               // has different meaning, as explicit trailing zeros.
+               // Versions should be made part of this variant internal and handled there.
+               && (!std::holds_alternative<VersionPredicate::version_glob>(lhs.m_operator)
+                   || lhs.m_version.version().size() == rhs.m_version.version().size());
     }
 
     auto operator!=(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool
@@ -273,6 +373,10 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
                     VersionSpec::compatible_str,
                     pred.m_version.str(format_level)
                 );
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::version_glob>)
+            {
+                out = fmt::format_to(out, "{:g}", pred.m_version);
             }
         },
         pred.m_operator

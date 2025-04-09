@@ -558,12 +558,14 @@ namespace
             REQUIRE(url.pretty_str() == "file:////ab/_temp/popen-gw0/some_other_parts");
         }
 
-        SECTION(R"(file://\\D:/a/_temp/popen-gw0/some_other_parts)")
+        // NOTE This is not valid on any platform:
+        // R"(file://\\D:/a/_temp/popen-gw0/some_other_parts)"
+        SECTION("file://\\D:/a/_temp/popen-gw0/some_other_parts")
         {
-            auto url = CondaURL::parse(R"(file://\\D:/a/_temp/popen-gw0/some_other_parts)").value();
-            REQUIRE(url.path() == R"(\\D:/a/_temp/popen-gw0/some_other_parts)");
-            REQUIRE(url.str() == R"(file://\\D:/a/_temp/popen-gw0/some_other_parts)");
-            REQUIRE(url.pretty_str() == R"(file://\\D:/a/_temp/popen-gw0/some_other_parts)");
+            auto url = CondaURL::parse("file://\\D:/a/_temp/popen-gw0/some_other_parts").value();
+            REQUIRE(url.path() == "file://\\D:/a/_temp/popen-gw0/some_other_parts");
+            REQUIRE(url.str() == "file://\\D:/a/_temp/popen-gw0/some_other_parts");
+            REQUIRE(url.pretty_str() == "file://\\D:/a/_temp/popen-gw0/some_other_parts");
         }
 
         SECTION("file://\\abcd/_temp/popen-gw0/some_other_parts")

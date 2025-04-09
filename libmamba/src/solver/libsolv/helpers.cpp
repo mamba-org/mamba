@@ -168,10 +168,10 @@ namespace mamba::solver::libsolv
             }
         }
 
-        template<class SimdJSONValue>
+        template <class SimdJSONValue>
         std::optional<nlohmann::json> extract_signatures(std::optional<SimdJSONValue>& signatures)
         {
-            if (!signatures || signatures->error() )
+            if (!signatures || signatures->error())
             {
                 return {};
             }
@@ -182,7 +182,7 @@ namespace mamba::solver::libsolv
             return all_signatures;
         }
 
-        template<class JSONObject>
+        template <class JSONObject>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
             // const std::string& repo_url_str,
@@ -307,7 +307,9 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(std::string(elem.get_string().value_unsafe())))
+                        if (const auto dep_id = pool.add_conda_dependency(
+                                std::string(elem.get_string().value_unsafe())
+                            ))
                         {
                             solv.add_dependency(dep_id);
                         }
@@ -363,7 +365,7 @@ namespace mamba::solver::libsolv
             return true;
         }
 
-        template<class T>
+        template <class T>
         class showme;
 
         template <typename JSONObject, typename Filter, typename OnParsed>
@@ -382,7 +384,7 @@ namespace mamba::solver::libsolv
             auto packages_as_object = packages.get_object();
             for (auto pkg_field : packages_as_object)
             {
-                //showme<decltype(packages)> debug;
+                // showme<decltype(packages)> debug;
                 const std::string filename(pkg_field.unescaped_key().value());
                 if (filter(filename))
                 {
@@ -564,10 +566,13 @@ namespace mamba::solver::libsolv
 
         auto parser = simdjson::ondemand::parser();
         const auto lock = LockFile(filename);
-        const auto json_content = simdjson::padded_string::load(filename.string()); // must be kept alive while reading json
+        const auto json_content = simdjson::padded_string::load(filename.string());  // must be kept
+                                                                                     // alive while
+                                                                                     // reading json
         auto repodata_doc = parser.iterate(json_content);
 
-        const auto repodata_version = [&] {
+        const auto repodata_version = [&]
+        {
             if (auto version = repodata_doc["repodata_version"].get_int64(); !version.error())
             {
                 return version.value();
@@ -579,8 +584,9 @@ namespace mamba::solver::libsolv
         }();
 
 
-        auto info = [&]{
-            if(auto value = repodata_doc["info"]; !value.error())
+        auto info = [&]
+        {
+            if (auto value = repodata_doc["info"]; !value.error())
             {
                 if (auto object = value.get_object(); !object.error())
                 {
@@ -588,11 +594,11 @@ namespace mamba::solver::libsolv
                 }
             }
             return decltype(std::make_optional(repodata_doc["info"].get_object())){};
-
         }();
 
         // An override for missing package subdir is found at the top level
-        const auto default_subdir = [&]{
+        const auto default_subdir = [&]
+        {
             if (info)
             {
                 if (auto subdir = info.value()["subdir"]; !subdir.error())
@@ -607,7 +613,8 @@ namespace mamba::solver::libsolv
 
         // Get `base_url` in case 'repodata_version': 2
         // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
-        const auto base_url = [&] {
+        const auto base_url = [&]
+        {
             if (repodata_version == 2 && info)
             {
                 if (auto url = info.value()["base_url"]; !url.error())
@@ -623,7 +630,8 @@ namespace mamba::solver::libsolv
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 
-        auto signatures = [&]{
+        auto signatures = [&]
+        {
             auto maybe_sigs = repodata_doc["signatures"];
             if (!maybe_sigs.error() && verify_artifacts)
             {

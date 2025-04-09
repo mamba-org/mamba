@@ -162,6 +162,7 @@ namespace
                  "file:////server/share",
                  "file:///server/share",
                  "file://absolute/path",
+                 R"(file://\\D:/server/share)",
                  R"(file://\\server\path)",
              })
         {
@@ -191,7 +192,6 @@ namespace
                 == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
             );
         }
-        // REQUIRE(make_curl_compatible("file://\\D:/server/share") == "file:////D:/server/share");
     }
 
     TEST_CASE("file_uri_unc2_to_unc4")

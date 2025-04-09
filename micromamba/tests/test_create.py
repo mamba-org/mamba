@@ -685,16 +685,17 @@ def remove_perms(path, unreadable=False):
 
         perms = [
             "/inheritance:r",  # remove inherited permissions
-            "/grant:r",  # remove explicitly granted permissions
             "/remove",  # remove ownership from all groups
             r"BUILTIN\Administrators",
             "/remove",
             r"NT AUTHORITY\SYSTEM",
             "/remove",
             "OWNER RIGHTS",
+            "/remove:g",
+            "Everyone",
         ]
         if not unreadable:
-            perms.append("Everyone:(RX)")  # grant Read-Execute to everyone
+            perms.extend(["/grant:r", "Everyone:(RX)"])  # grant Read-Execute to everyone
 
         subprocess.run(
             ["icacls", path] + perms,

@@ -103,13 +103,14 @@ namespace mamba::path
 
     bool is_writable(const fs::u8path& path) noexcept
     {
-        const bool path_exists = fs::exists(path);
+        std::error_code ec;
+        const bool path_exists = fs::exists(path, ec);
 
         const auto& path_to_write_in = path_exists ? path : path.parent_path();
 
         static constexpr auto writable_flags = fs::perms::owner_write | fs::perms::group_write
                                                | fs::perms::others_write;
-        std::error_code ec;
+
         const auto status = fs::status(path_to_write_in, ec);
 
         const bool should_be_writable = !ec && status.type() != fs::file_type::not_found

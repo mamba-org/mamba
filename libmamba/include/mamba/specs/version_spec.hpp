@@ -39,6 +39,7 @@ namespace mamba::specs
         [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
             -> VersionPredicate;
+        [[nodiscard]] static auto make_version_glob(Version pattern) -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -80,6 +81,11 @@ namespace mamba::specs
             auto operator()(const Version&, const Version&) const -> bool;
         };
 
+        struct version_glob
+        {
+            auto operator()(const Version&, const Version&) const -> bool;
+        };
+
         /**
          * Operator to compare with the stored version.
          *
@@ -98,8 +104,14 @@ namespace mamba::specs
             std::less_equal<Version>,
             starts_with,
             not_starts_with,
-            compatible_with>;
+            compatible_with,
+            version_glob>;
 
+        // Originally, with only stateless operators, it made sense to have the version factored
+        // in this class' attributes. However, with additions of variants that use the version
+        // for a different meaning (version_glob, compatible_with), or not at all (free interval),
+        // it would make sense to move it to each individual class for better scoping (e.g. see
+        // this class' operator==).
         Version m_version = {};
         BinaryOperator m_operator = free_interval{};
 
@@ -109,6 +121,7 @@ namespace mamba::specs
         friend auto operator==(starts_with, starts_with) -> bool;
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
+        friend auto operator==(version_glob, version_glob) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
         friend struct ::fmt::formatter<VersionPredicate>;
     };

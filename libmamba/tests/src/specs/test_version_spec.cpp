@@ -108,13 +108,74 @@ namespace
         REQUIRE_FALSE(cp3.contains(v4));
         REQUIRE(cp3.str() == "~=2.0.0");
 
-        const auto predicates = std::array{ free, eq, ne, lt, le, gt, ge, sw, cp2, cp3 };
+        const auto g1 = VersionPredicate::make_version_glob("*"_v);
+        REQUIRE(g1.contains(v1));
+        REQUIRE(g1.contains(v2));
+        REQUIRE(g1.contains(v201));
+        REQUIRE(g1.contains(v3));
+        REQUIRE(g1.contains(v4));
+        REQUIRE(g1.str() == "*");
+
+        const auto g2 = VersionPredicate::make_version_glob("*.0.*"_v);
+        REQUIRE_FALSE(g2.contains(v1));
+        REQUIRE_FALSE(g2.contains(v2));
+        REQUIRE(g2.contains(v201));
+        REQUIRE_FALSE(g2.contains(v3));
+        REQUIRE_FALSE(g2.contains(v4));
+        REQUIRE(g2.contains("1.0.1.1.1"_v));
+        REQUIRE(g2.str() == "*.0.*");
+
+        const auto g3 = VersionPredicate::make_version_glob("*.0"_v);
+        REQUIRE(g3.contains(v1));
+        REQUIRE(g3.contains(v2));
+        REQUIRE_FALSE(g3.contains(v201));
+        REQUIRE(g3.contains(v3));
+        REQUIRE(g3.contains(v4));
+        REQUIRE(g3.str() == "*.0");
+
+        const auto g4 = VersionPredicate::make_version_glob("2.*"_v);
+        REQUIRE_FALSE(g4.contains(v1));
+        REQUIRE(g4.contains(v2));
+        REQUIRE(g4.contains(v201));
+        REQUIRE_FALSE(g4.contains(v3));
+        REQUIRE_FALSE(g4.contains(v4));
+        REQUIRE(g4.str() == "2.*");
+
+        const auto g5 = VersionPredicate::make_version_glob("2.0"_v);
+        REQUIRE_FALSE(g5.contains(v1));
+        REQUIRE(g5.contains(v2));
+        REQUIRE_FALSE(g5.contains(v201));
+        REQUIRE_FALSE(g5.contains(v3));
+        REQUIRE_FALSE(g5.contains(v4));
+        REQUIRE(g5.str() == "2.0");
+
+        const auto g6 = VersionPredicate::make_version_glob("2.*.1"_v);
+        REQUIRE_FALSE(g6.contains(v1));
+        REQUIRE_FALSE(g6.contains(v2));
+        REQUIRE(g6.contains(v201));
+        REQUIRE_FALSE(g6.contains(v3));
+        REQUIRE_FALSE(g6.contains(v4));
+        REQUIRE(g6.str() == "2.*.1");
+
+        const auto g7 = VersionPredicate::make_version_glob("2.*.1.1.*"_v);
+        REQUIRE_FALSE(g7.contains(v1));
+        REQUIRE_FALSE(g7.contains(v2));
+        REQUIRE_FALSE(g7.contains(v201));
+        REQUIRE(g7.contains("2.0.1.0.1.1.3"_v));
+        REQUIRE(g7.str() == "2.*.1.1.*");
+
+        const auto predicates = std::array{
+            free, eq, ne, lt, le, gt, ge, sw, cp2, cp3, g1, g2, g3, g4, g5, g6, g7,
+        };
+        REQUIRE("*.0"_v != "*.0.*"_v);
         for (std::size_t i = 0; i < predicates.size(); ++i)
         {
-            REQUIRE(predicates[i] == predicates[i]);
+            CAPTURE(i);
+            CHECK(predicates[i] == predicates[i]);
             for (std::size_t j = i + 1; j < predicates.size(); ++j)
             {
-                REQUIRE(predicates[i] != predicates[j]);
+                CAPTURE(j);
+                CHECK(predicates[i] != predicates[j]);
             }
         }
     }

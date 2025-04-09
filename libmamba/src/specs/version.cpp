@@ -15,6 +15,8 @@
 #include "mamba/util/cast.hpp"
 #include "mamba/util/string.hpp"
 
+#include "specs/version_spec_impl.hpp"
+
 namespace mamba::specs
 {
     namespace
@@ -237,6 +239,11 @@ namespace mamba::specs
         // return fmt::format("{:{}}", *this, level);
         auto fmt = fmt::format("{{:{}}}", level);
         return fmt::format(fmt, *this);
+    }
+
+    auto Version::str_glob() const -> std::string
+    {
+        return fmt::format("{:g}", *this);
     }
 
     namespace
@@ -775,18 +782,36 @@ namespace mamba::specs
 auto
 fmt::formatter<mamba::specs::Version>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
 {
-    // make sure that range is not empty
-    if (ctx.begin() == ctx.end() || *ctx.begin() == '}')
+    const auto end = ctx.end();
+    const auto start = ctx.begin();
+
+    // Make sure that range is not empty
+    if (start == end || *start == '}')
     {
-        return ctx.begin();
+        return start;
     }
+
+    // Check for restricted number of segments at beginning
     std::size_t val = 0;
-    auto [ptr, ec] = std::from_chars(ctx.begin(), ctx.end(), val);
-    if (ec != std::errc())
+    auto [ptr, ec] = std::from_chars(start, end, val);
+    if (ec == std::errc())
     {
-        throw fmt::format_error("Invalid format" + std::string(ctx.begin(), ctx.end()));
+        m_level = val;
     }
-    m_level = val;
+
+    // Check for end of format spec
+    if (ptr == end || *ptr == '}')
+    {
+        return ptr;
+    }
+
+    // Check the custom format type
+    if (*ptr == 'g')
+    {
+        m_type = FormatType::Glob;
+        ++ptr;
+    }
+
     return ptr;
 }
 
@@ -812,9 +837,16 @@ fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, f
             }
             if (i < version.size())
             {
-                for (const auto& atom : version[i])
+                if (m_type == FormatType::Glob && version[i] == mamba::specs::VERSION_GLOB_SEGMENT)
                 {
-                    l_out = fmt::format_to(l_out, "{}", atom);
+                    l_out = fmt::format_to(l_out, "{}", mamba::specs::GLOB_PATTERN_STR);
+                }
+                else
+                {
+                    for (const auto& atom : version[i])
+                    {
+                        l_out = fmt::format_to(l_out, "{}", atom);
+                    }
                 }
             }
             else

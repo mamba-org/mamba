@@ -608,7 +608,7 @@ namespace mambapy
             .def_readonly_static("less_equal_str", &VersionSpec::less_equal_str)
             .def_readonly_static("compatible_str", &VersionSpec::compatible_str)
             .def_readonly_static("glob_suffix_str", &VersionSpec::glob_suffix_str)
-            .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
+            .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_str.back())
             .def_static("parse", &VersionSpec::parse, py::arg("str"))
             .def_static("from_predicate", &VersionSpec::from_predicate, py::arg("pred"))
             .def(py::init<>())

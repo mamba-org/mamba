@@ -149,7 +149,7 @@ namespace mamba::specs
         static constexpr std::string_view less_equal_str = "<=";
         static constexpr std::string_view compatible_str = "~=";
         static constexpr std::string_view glob_suffix_str = ".*";
-        static constexpr char glob_suffix_token = '*';
+        static constexpr std::string_view glob_pattern_str = "*";
 
         [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<VersionSpec>;
 

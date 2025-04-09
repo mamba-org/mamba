@@ -307,7 +307,7 @@ namespace
     {
         SECTION("11a0post.3.4dev")
         {
-            auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
+            auto const v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
             REQUIRE(v.str() == "11a0post.3.4dev");
             REQUIRE(v.str(1) == "11a0post");
             REQUIRE(v.str(2) == "11a0post.3");
@@ -318,7 +318,7 @@ namespace
 
         SECTION("1!11a0.3.4dev")
         {
-            auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
+            auto const v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
             REQUIRE(v.str() == "1!11a0.3.4dev");
             REQUIRE(v.str(1) == "1!11a0");
             REQUIRE(v.str(2) == "1!11a0.3");
@@ -328,7 +328,7 @@ namespace
 
         SECTION("1!11a0.3.4dev+1.2")
         {
-            auto v = Version(
+            auto const v = Version(
                 1,
                 { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
                 { { { 1 } }, { { 2 } } }
@@ -338,6 +338,17 @@ namespace
             REQUIRE(v.str(2) == "1!11a0.3+1.2");
             REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
             REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
+        }
+
+        SECTION("*.1.*")
+        {
+            auto const v = Version(0, { { { 0, "*" } }, { { 1 } }, { { 0, "*" } } }, {});
+            REQUIRE(v.str() == "0*.1.0*");
+            REQUIRE(v.str(1) == "0*");
+            REQUIRE(v.str(2) == "0*.1");
+            REQUIRE(v.str(3) == "0*.1.0*");
+            REQUIRE(v.str(4) == "0*.1.0*.0");
+            REQUIRE(v.str_glob() == "*.1.*");
         }
     }
 
@@ -430,6 +441,19 @@ namespace
         REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1"));
         REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1"));
         REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1"));
+
+        // These are valid versions with the special '*' ordering AND they are also used as such
+        // with version globs in VersionSpec
+        REQUIRE(Version::parse("*") == Version(0, { { { 0, "*" } } }));
+        REQUIRE(Version::parse("*.*") == Version(0, { { { 0, "*" } }, { { 0, "*" } } }));
+        REQUIRE(
+            Version::parse("*.*.*") == Version(0, { { { 0, "*" } }, { { 0, "*" } }, { { 0, "*" } } })
+        );
+        REQUIRE(
+            Version::parse("*.*.2023.12")
+            == Version(0, { { { 0, "*" } }, { { 0, "*" } }, { { 2023, "" } }, { { 12, "" } } })
+        );
+        REQUIRE(Version::parse("1.*") == Version(0, { { { 1, "" } }, { { 0, "*" } } }));
     }
 
     TEST_CASE("parse_invalid")

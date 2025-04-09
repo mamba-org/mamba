@@ -214,7 +214,7 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
                     out,
                     "{}{}",
                     VersionSpec::starts_with_str,
-                    VersionSpec::glob_suffix_token
+                    VersionSpec::glob_pattern_str
                 );
             }
             if constexpr (std::is_same_v<Op, std::equal_to<Version>>)
@@ -437,7 +437,7 @@ namespace mamba::specs
             if (util::is_digit(str.front()) || util::is_lower(str.front()))
             {
                 // Glob suffix does  change meaning for 1.3.* and 1.3*
-                if (util::ends_with(str, VersionSpec::glob_suffix_token))
+                if (util::ends_with(str, VersionSpec::glob_suffix_str.back()))
                 {
                     // either ".*" or "*"
                     static constexpr auto one = std::size_t(1);  // MSVC

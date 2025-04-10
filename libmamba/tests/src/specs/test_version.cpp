@@ -307,7 +307,7 @@ namespace
     {
         SECTION("11a0post.3.4dev")
         {
-            auto const v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
+            const auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
             REQUIRE(v.str() == "11a0post.3.4dev");
             REQUIRE(v.str(1) == "11a0post");
             REQUIRE(v.str(2) == "11a0post.3");
@@ -318,7 +318,7 @@ namespace
 
         SECTION("1!11a0.3.4dev")
         {
-            auto const v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
+            const auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
             REQUIRE(v.str() == "1!11a0.3.4dev");
             REQUIRE(v.str(1) == "1!11a0");
             REQUIRE(v.str(2) == "1!11a0.3");
@@ -328,7 +328,7 @@ namespace
 
         SECTION("1!11a0.3.4dev+1.2")
         {
-            auto const v = Version(
+            const auto v = Version(
                 1,
                 { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
                 { { { 1 } }, { { 2 } } }
@@ -342,7 +342,7 @@ namespace
 
         SECTION("*.1.*")
         {
-            auto const v = Version(0, { { { 0, "*" } }, { { 1 } }, { { 0, "*" } } }, {});
+            const auto v = Version(0, { { { 0, "*" } }, { { 1 } }, { { 0, "*" } } }, {});
             REQUIRE(v.str() == "0*.1.0*");
             REQUIRE(v.str(1) == "0*");
             REQUIRE(v.str(2) == "0*.1");

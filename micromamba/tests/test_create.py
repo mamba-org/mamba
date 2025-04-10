@@ -566,7 +566,7 @@ def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix)
     else:
         p = tmp_root_prefix / "envs" / "myenv"
 
-    res = helpers.create("-p", p, "xtensor", "--json")
+    res = helpers.create("-p", p, "xtensor=0.25", "--json")
 
     assert res["success"]
     assert res["dry_run"] == (helpers.dry_run_tests == helpers.DryRun.DRY)

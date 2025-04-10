@@ -43,7 +43,7 @@ Breaking changes include:
 - **For ``micromamba<=2.1.0``:** Lost support for leading and internal globs in
   version strings (via redesigned ``VersionSpec``, which no longer handles
   version strings as a regex). Only trailing globs were supported.
-- Full version regexes, such as `^3.3+$`, are not implemented.
+- Full version regexes, such as ``^3.3+$``, are not implemented.
 
 .. TODO OCI and mirrors
 
@@ -93,7 +93,8 @@ Changes include:
     **Breaking change (for ``libmambapy<=2.1.0``):** ``VersionSpec`` lost support for
     leading and internal globs in version strings because they are no longer
     handled as a regex. Only trailing globs were supported.
-  - Full version regexes, such as `^3.3+$`, are not implemented in ``VersionSpec`` and ``MatchSpec``.
+  - Full version regexes, such as ``^3.3+$``, are not implemented in ``VersionSpec`` and
+    ``MatchSpec``.
   - ``PackageInfo`` has been moved to this submodule.
     Some attributes have been given a more explicit name ``fn`` > ``filename``,
     ``url`` > ``package_url``.
@@ -140,7 +141,8 @@ The main changes are:
     handled as a regex. Only trailing globs were supported. This
     affects version strings in both the command-line interface and recipe
     requirements.
-  - Full version regexes, such as `^3.3+$`, are not implemented in ``VersionSpec`` and ``MatchSpec``.
+  - Full version regexes, such as ``^3.3+$``, are not implemented in ``VersionSpec`` and
+    ``MatchSpec``.
 
 - A cleanup of ``ChannelContext`` to be a light proxy and parameter holder wrapping the
   ``specs::Channel``.

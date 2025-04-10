@@ -432,7 +432,7 @@ def cache_warming():
     os.environ["CONDA_PKGS_DIRS"] = str(cache)
     tmp_prefix = os.path.expanduser(os.path.join("~", "tmpprefix" + random_string()))
 
-    res = create("-p", tmp_prefix, "xtensor", "--json", no_dry_run=True)
+    res = create("-p", tmp_prefix, "xtensor=0.25", "--json", no_dry_run=True)
     pkg_name = get_concrete_pkg(res, "xtensor")
 
     yield cache, pkg_name

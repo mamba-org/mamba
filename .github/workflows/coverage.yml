@@ -58,8 +58,8 @@ jobs:
             -D BUILD_MICROMAMBA=ON \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF \
             -D CMAKE_BUILD_TYPE=Debug \
-            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage -fprofile-arcs -ftest-coverage -fprofile-update=atomic -fprofile-dir=./coverage" \
-            -D CMAKE_C_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage -fprofile-arcs -ftest-coverage -fprofile-update=atomic -fprofile-dir=./coverage"
+            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage -fprofile-update=atomic" \
+            -D CMAKE_C_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage -fprofile-update=atomic"
           cmake --build build/ --parallel
       - name: Show build cache statistics
         run: sccache --show-stats

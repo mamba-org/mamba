@@ -140,8 +140,7 @@ namespace mamba::specs
 
     }
 
-    auto
-    VersionPredicate::version_glob::operator()(const Version& point, const Version& pattern) const
+    auto VersionPredicate::version_glob::operator()(const Version& point, const Version& pattern) const
         -> bool
     {
         return (point.epoch() == pattern.epoch())
@@ -531,6 +530,21 @@ namespace mamba::specs
                 return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_starts_with(std::move(ver)); });
+            }
+            // At this point, globs that could be handled in a simpler way (free "*",
+            // starts with "=1.*") are already processed.
+            // If we find a glob suffix in the end only, we leave it to be processed as a starts
+            // with in the next block.
+            // The check for whether the "*" is a glob or a valid version character is poorly
+            // defined.
+            const bool is_glob = util::starts_with(str, VersionSpec::glob_pattern_str)
+                                 || (str.find(VersionSpec::glob_suffix_str)
+                                     < std::max(str.size(), std::size_t(2)) - 2);
+            if (is_glob)
+            {
+                return Version::parse(util::lstrip(str))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_version_glob(std::move(ver)); });
             }
             // All versions must start with either a digit or a lowercase letter
             // The version regex should comply with r"^[\*\.\+!_0-9a-z]+$"

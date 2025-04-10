@@ -412,6 +412,17 @@ namespace
             REQUIRE("~=3.3.2|==2.2"_vs.contains("2.2.0"_v));
             REQUIRE("~=3.3.2|==2.2"_vs.contains("3.3.3"_v));
             REQUIRE_FALSE("~=3.3.2|==2.2"_vs.contains("2.2.1"_v));
+            REQUIRE("*.*"_vs.contains("3.3"_v));
+            REQUIRE("*.*"_vs.contains("3.3.3"_v));
+            REQUIRE_FALSE("*.*"_vs.contains("3"_v));
+            REQUIRE("2.*.1.1.*"_vs.contains("2.0.1.0.1.1.3"_v));
+            REQUIRE_FALSE("2.*.1.1.*"_vs.contains("2.1.0.1.1"_v));
+            REQUIRE("*.3"_vs.contains("2.1.0.1.1.3"_v));
+            REQUIRE_FALSE("*.3"_vs.contains("0.3.4"_v));
+            REQUIRE("*.2023_10_12"_vs.contains("2.1.0.2023_10_12"_v));
+            REQUIRE(">=10.0,*.*"_vs.contains("10.1"_v));
+            REQUIRE_FALSE(">=10.0,*.*"_vs.contains("11"_v));
+            REQUIRE("1.*.1"_vs.contains("1.7.1"_v));
 
             // Regex are currently not supported
             // REQUIRE("^1.7.1$"_vs.contains("1.7.1"_v));
@@ -428,7 +439,6 @@ namespace
             // REQUIRE("1.6.*|^0.*$|1.7.1"_vs.contains("1.7.1"_v));
             // REQUIRE("^0.*$|1.7.1"_vs.contains("1.7.1"_v));
             // REQUIRE(R"(1.6.*|^.*\.7\.1$|0.7.1)"_vs.contains("1.7.1"_v));
-            // REQUIRE("1.*.1"_vs.contains("1.7.1"_v));
         }
 
         SECTION("Unsuccessful")

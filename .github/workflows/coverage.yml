@@ -77,7 +77,7 @@ jobs:
         run: |
           lcov --directory . --capture --output-file cpp_coverage.info
           lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file cpp_coverage.info --ignore-errors unused
-          lcov --summary cpp_coverage.info --ignore-errors mismatch
+          lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1
       - name: Install libmambapy
         run: |
           cmake --install build/ --prefix "${CONDA_PREFIX}"

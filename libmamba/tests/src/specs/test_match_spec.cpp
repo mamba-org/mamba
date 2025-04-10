@@ -864,6 +864,14 @@ namespace
             REQUIRE_FALSE(ms.contains_except_channel(pkg));
         }
 
+        SECTION("name *,*.* build*")
+        {
+            const auto ms = "name *,*.* build*"_ms;
+            REQUIRE(ms.contains_except_channel(Pkg{ "name", "3.7"_v, "build_foo" }));
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{ "name", "3"_v, "build_foo" }));
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{ "name", "3.7"_v, "bar" }));
+        }
+
         SECTION("pkg[md5=helloiamnotreallymd5haha]")
         {
             const auto ms = "pkg[md5=helloiamnotreallymd5haha]"_ms;

@@ -102,8 +102,9 @@ namespace mamba::util
 
     auto make_curl_compatible(std::string uri) -> std::string
     {
-        // Convert `file://`, `file:///` and file://\\ to `file:////`
-        // when followed with a drive letter to make it compatible with libcurl
+        // Convert `file://` and `file:///` to `file:////`
+        // when followed with a drive letter
+        // to make it compatible with libcurl on unix
         auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
         if (!on_win && is_file_scheme && path_has_drive_letter(rest)
             && ((slashes.size() == 2) || (slashes.size() == 3)))

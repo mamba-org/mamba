@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <regex>
+#include <stdexcept>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/list.hpp"
@@ -289,17 +290,26 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
-                        if (options.md5)
+                        if (options.md5 && options.sha256)
                         {
-                            std::cout << p.url << "#" << p.md5 << std::endl;
-                        }
-                        else if (options.sha256)
-                        {
-                            std::cout << p.url << "#" << p.sha256 << std::endl;
+                            throw std::invalid_argument(
+                                "Only one of --md5 and --sha256 can be specified at the same time."
+                            );
                         }
                         else
                         {
-                            std::cout << p.url << std::endl;
+                            if (options.md5)
+                            {
+                                std::cout << p.url << "#" << p.md5 << std::endl;
+                            }
+                            else if (options.sha256)
+                            {
+                                std::cout << p.url << "#" << p.sha256 << std::endl;
+                            }
+                            else
+                            {
+                                std::cout << p.url << std::endl;
+                            }
                         }
                     }
                 }

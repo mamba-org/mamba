@@ -116,9 +116,12 @@ def test_list_subcommands(
     if explicit_flag == "--explicit":
         for output in outputs_list:
             assert "/conda-forge/" in output
-            if (md5_flag == "--md5") or (sha256_flag == "--sha256"):
+            if (md5_flag == "--md5") and (sha256_flag == "--sha256"):
+                pass
+            elif (md5_flag == "--md5") or (sha256_flag == "--sha256"):
                 assert "#" in output
                 hash = output.split("#")[-1]
+                hash = hash.replace("\r", "")
                 if md5_flag == "--md5":
                     assert len(hash) == 32
                 else:

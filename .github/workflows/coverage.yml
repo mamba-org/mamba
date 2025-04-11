@@ -58,8 +58,8 @@ jobs:
             -D BUILD_MICROMAMBA=ON \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF \
             -D CMAKE_BUILD_TYPE=Debug \
-            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage" \
-            -D CMAKE_C_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage"
+            -D CMAKE_CXX_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage -fprofile-update=atomic" \
+            -D CMAKE_C_FLAGS_DEBUG="-g -O0 -fno-omit-frame-pointer --coverage -fprofile-update=atomic"
           cmake --build build/ --parallel
       - name: Show build cache statistics
         run: sccache --show-stats
@@ -77,19 +77,22 @@ jobs:
         run: |
           lcov --directory . --capture --output-file cpp_coverage.info
           lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file cpp_coverage.info --ignore-errors unused
-          lcov --summary cpp_coverage.info --ignore-errors mismatch
-      - name: Install libmambapy
-        run: |
-          cmake --install build/ --prefix "${CONDA_PREFIX}"
-          python -m pip install --no-deps --no-build-isolation ./libmambapy
-      - name: Run Python tests with coverage
-        continue-on-error: true
-        run: |
-          # Run libmambapy tests with coverage
-          python -m pytest libmambapy/tests/ --cov=libmambapy --cov-report=xml --cov-report=term-missing
-          # Run micromamba tests with coverage
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
-          python -m pytest micromamba/tests/ --cov=micromamba --cov-report=xml --cov-report=term-missing
+          lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1
+
+      # TODO: Those steps need adaptations so that the coverage reports from the C++ and the python test suites are consolidated.
+      # - name: Install libmambapy
+      #   run: |
+      #     cmake --install build/ --prefix "${CONDA_PREFIX}"
+      #     python -m pip install --no-deps --no-build-isolation ./libmambapy
+      # - name: Run Python tests with coverage
+      #   continue-on-error: true
+      #   run: |
+      #     # Run libmambapy tests with coverage
+      #     python -m pytest libmambapy/tests/ --cov=libmambapy --cov-report=xml --cov-report=term-missing
+      #     # Run micromamba tests with coverage
+      #     export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+      #     python -m pytest micromamba/tests/ --cov=micromamba --cov-report=xml --cov-report=term-missing
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

@@ -63,6 +63,8 @@ namespace mamba::util
     template <typename... Args>
     [[nodiscard]] auto url_concat(const Args&... args) -> std::string;
 
+    [[nodiscard]] auto make_curl_compatible(std::string url) -> std::string;
+
     /**
      * Convert UNC2 file URI to UNC4.
      *

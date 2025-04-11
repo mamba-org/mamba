@@ -34,7 +34,7 @@ def tmp_shared_cache_xtensor(tmp_path_factory: pytest.TempPathFactory):
     root = tmp_path_factory.mktemp("xtensor")
     helpers.create(
         "-n",
-        "xtensor",
+        "xtensor=0.25",
         "--no-env",
         "--no-rc",
         "-r",

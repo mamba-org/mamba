@@ -1007,18 +1007,20 @@ namespace mamba
         {
             // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
             auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+            auto conda_envs_dirs = util::get_env("CONDA_ENVS_DIRS");
 
-            if (conda_envs_path)
+            if (conda_envs_path && conda_envs_dirs)
             {
-                if (util::get_env("CONDA_ENVS_DIRS"))
-                {
-                    const auto message = "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared. We recommend setting `CONDA_ENVS_DIRS` only. Aborting.";
-                    throw mamba_error(message, mamba_error_code::incorrect_usage);
-                }
+                const auto message = "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared. We recommend setting `CONDA_ENVS_DIRS` only. Aborting.";
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
 
+            auto envs_path = conda_envs_dirs.value_or(conda_envs_path.value_or(""));
+
+            if (!envs_path.empty())
+            {
                 auto paths_separator = util::pathsep();
-
-                auto paths = util::split(conda_envs_path.value(), paths_separator);
+                auto paths = util::split(envs_path, paths_separator);
 
                 dirs.reserve(dirs.size() + paths.size());
                 dirs.insert(dirs.begin(), paths.rbegin(), paths.rend());
@@ -1353,10 +1355,11 @@ namespace mamba
                                                      { return detail::env_name_hook(*this, value); })
                    .description("Name of the target prefix"));
 
+        // don't use set_env_var_names for CONDA_ENVS_DIRS, since it is a path-sep delimited
+        // list rather than a YAML list
         insert(Configurable("envs_dirs", &m_context.envs_dirs)
                    .group("Basic")
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
-                   .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
                    .set_post_merge_hook<decltype(m_context.envs_dirs)>(
                        [this](decltype(m_context.envs_dirs)& value)

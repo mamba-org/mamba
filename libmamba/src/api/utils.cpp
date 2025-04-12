@@ -24,7 +24,7 @@ namespace mamba
 {
     namespace
     {
-        tl::expected<command_args, std::runtime_error> get_pip_install_command(
+        tl::expected<command_args, std::runtime_error> get_pkg_mgr_install_command(
             const std::string& name,
             const std::string& target_prefix,
             const fs::u8path& spec_file,
@@ -34,8 +34,28 @@ namespace mamba
             const auto get_python_path = [&]
             { return util::which_in("python", util::get_path_dirs(target_prefix)).string(); };
 
-            command_args cmd = { get_python_path(), "-m", "pip", "install" };
-            command_args cmd_extension = { "-r", spec_file, "--no-input", "--quiet" };
+            const auto get_uv_path = [&]
+            { return util::which_in("uv", util::get_path_dirs(target_prefix)).string(); };
+
+            command_args cmd = [&]
+            {
+                if (name == "uv")
+                {
+                    return command_args{ get_uv_path() };
+                }
+                else
+                {
+                    return command_args{ get_python_path(), "-m" };
+                }
+            }();
+
+            cmd.insert(cmd.end(), { "pip", "install" });
+            command_args cmd_extension = { "-r", spec_file, "--quiet" };
+
+            if (name != "uv")
+            {
+                cmd_extension.push_back("--no-input");
+            }
 
             if (update == pip::Update::Yes)
             {
@@ -50,7 +70,8 @@ namespace mamba
             cmd.insert(cmd.end(), cmd_extension.begin(), cmd_extension.end());
             const std::unordered_map<std::string, command_args> pip_install_command{
                 { "pip", cmd },
-                { "pip --no-deps", cmd }
+                { "pip --no-deps", cmd },
+                { "uv", cmd },
             };
 
             auto found_it = pip_install_command.find(name);
@@ -135,7 +156,7 @@ namespace mamba
 
         command_args command = [&]
         {
-            const auto maybe_command = get_pip_install_command(
+            const auto maybe_command = get_pkg_mgr_install_command(
                 pkg_mgr,
                 ctx.prefix_params.target_prefix.string(),
                 specs.path(),

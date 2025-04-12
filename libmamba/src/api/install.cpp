@@ -117,8 +117,12 @@ namespace mamba
             return nullptr;
         }
 
-        yaml_file_contents
-        read_yaml_file(const Context& ctx, const std::string& yaml_file, const std::string& platform)
+        yaml_file_contents read_yaml_file(
+            const Context& ctx,
+            const std::string& yaml_file,
+            const std::string& platform,
+            bool use_uv
+        )
         {
             // Download content of environment yaml file
             auto tmp_yaml_file = downloaded_file_from_url(ctx, yaml_file);
@@ -205,7 +209,7 @@ namespace mamba
                                 yaml_parent_path = fs::absolute(yaml_file).parent_path().string();
                             }
                             result.others_pkg_mgrs_specs.push_back({
-                                "pip",
+                                use_uv ? "uv" : "pip",
                                 map_el.second.as<std::vector<std::string>>(),
                                 yaml_parent_path,
                             });
@@ -233,7 +237,21 @@ namespace mamba
                 throw e;
             }
 
-            if (has_pip_deps && !std::count(dependencies.begin(), dependencies.end(), "pip"))
+            if (has_pip_deps && use_uv && !std::count(dependencies.begin(), dependencies.end(), "uv"))
+            {
+                dependencies.push_back("uv");
+            }
+            else if (has_pip_deps && std::count(dependencies.begin(), dependencies.end(), "uv"))
+            {
+                for (auto& spec : result.others_pkg_mgrs_specs)
+                {
+                    if (spec.pkg_mgr == "pip")
+                    {
+                        spec.pkg_mgr = "uv";
+                    }
+                }
+            }
+            else if (has_pip_deps && !std::count(dependencies.begin(), dependencies.end(), "pip"))
             {
                 dependencies.push_back("pip");
             }
@@ -890,7 +908,12 @@ namespace mamba
                 }
                 else if (is_yaml_file_name(file))
                 {
-                    const auto parse_result = read_yaml_file(context, file, context.platform);
+                    const auto parse_result = read_yaml_file(
+                        context,
+                        file,
+                        context.platform,
+                        context.use_uv
+                    );
 
                     if (parse_result.channels.size() != 0)
                     {

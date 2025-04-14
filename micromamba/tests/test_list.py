@@ -110,34 +110,35 @@ def test_list_subcommands(
         with pytest.raises(subprocess.CalledProcessError) as excinfo:
             helpers.umamba_list(*args)
             assert "Only one of --md5 and --sha256 can be specified at the same time." in excinfo
-    else:
-        res = helpers.umamba_list(*args)
+        return None
 
-        outputs_list = res.strip().split("\n")[2:]
-        outputs_list = [i for i in outputs_list if i != "" and not i.startswith("Warning")]
-        items = ["conda-forge/", "::"]
-        if explicit_flag == "--explicit":
-            for output in outputs_list:
-                assert "/conda-forge/" in output
-                if (md5_flag == "--md5") or (sha256_flag == "--sha256"):
-                    assert "#" in output
-                    hash = output.split("#")[-1]
-                    hash = hash.replace("\r", "")
-                    if md5_flag == "--md5":
-                        assert len(hash) == 32
-                    else:
-                        assert len(hash) == 64
+    res = helpers.umamba_list(*args)
+
+    outputs_list = res.strip().split("\n")[2:]
+    outputs_list = [i for i in outputs_list if i != "" and not i.startswith("Warning")]
+    items = ["conda-forge/", "::"]
+    if explicit_flag == "--explicit":
+        for output in outputs_list:
+            assert "/conda-forge/" in output
+            if (md5_flag == "--md5") or (sha256_flag == "--sha256"):
+                assert "#" in output
+                hash = output.split("#")[-1]
+                hash = hash.replace("\r", "")
+                if md5_flag == "--md5":
+                    assert len(hash) == 32
                 else:
-                    assert "#" not in output
-        elif canonical_flag in ["-c", "--canonical"]:
-            for output in outputs_list:
-                assert all(i in output for i in items)
-                assert " " not in output
-        elif export_flag in ["-e", "--export"]:
-            items += [" "]
-            for output in outputs_list:
-                assert all(i not in output for i in items)
-                assert len(output.split("=")) == 3
+                    assert len(hash) == 64
+            else:
+                assert "#" not in output
+    elif canonical_flag in ["-c", "--canonical"]:
+        for output in outputs_list:
+            assert all(i in output for i in items)
+            assert " " not in output
+    elif export_flag in ["-e", "--export"]:
+        items += [" "]
+        for output in outputs_list:
+            assert all(i not in output for i in items)
+            assert len(output.split("=")) == 3
 
 
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

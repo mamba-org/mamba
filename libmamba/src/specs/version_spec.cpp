@@ -106,20 +106,21 @@ namespace mamba::specs
                 // This is required to avoid greedily matching on the first similar character.
                 const auto pat_sub_last = std::find_if(pat_sub_first, pat_last, is_glob_part);
 
-                // At this cand we have a required pattern.
+                // At this point we have a required pattern.
                 // We search for it in the given version and count the parts that were skipped.
                 const auto cand_sub_first = std::search(cand_it, cand_last, pat_sub_first, pat_sub_last);
                 parts_available += distance(cand_it, cand_sub_first);
                 cand_it = cand_sub_first;
 
-                // If we exhause the cand without finding a match for the pattern it's a failure
+                // If we exhause the candidate without finding a match for the pattern it's a
+                // failure
                 if (cand_it == cand_last)
                 {
                     return false;
                 }
 
-                // At this cand we have a match.
-                // We compare the number of globs found with the number of unmatched cand parts
+                // At this point we have a match.
+                // We compare the number of globs found with the number of unmatched candidate parts
                 if (is_failed(parts_required, parts_available))
                 {
                     return false;

@@ -489,47 +489,63 @@ namespace mamba
         // TODO the following shouldn't live here but in a shell hook
         content << R"nu(def --env ")nu" << exe_name << R"nu( activate"  [name: string] {)nu";
         content << R"###(
-    #add condabin when base env
-    if $env.MAMBA_SHLVL? == null {
-        $env.MAMBA_SHLVL = 0
-        $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
-    }
-    #ask mamba how to setup the environment and set the environment
-    (^($env.MAMBA_EXE) shell activate --shell nu $name
-      | str replace --regex '\s+' '' --all
-      | split row ";"
-      | parse --regex '(.*)=(.+)'
-      | transpose --header-row
-      | into record
-      | load-env
-    )
-    # update prompt
-    if ($env.CONDA_PROMPT_MODIFIER? != null) {
-      $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
-    }
-})###" << "\n";
+
+        #add condabin when base env
+        if $env.MAMBA_SHLVL? == null {
+            $env.MAMBA_SHLVL = 0
+            $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
+        }
+
+        try {
+            let new_env = ^($env.MAMBA_EXE) shell activate --shell nu $name
+            # Process and load environment only if mamba command succeeded
+            $new_env
+                | lines
+                | str replace --regex '\s+' '' --all
+                | parse --regex '([^=]+)=(.+)'
+                | reduce -f {} { |it, acc|
+                    $acc | merge {
+                        $it.capture0: (
+                            if ($it.capture0 == "PATH") or ($it.capture0 | str ends-with "_PATH") {
+                                $it.capture1 | split row (if $nu.os-info.name == "Windows" { ";" } else { ":" }) | where { |path| $path != "" }
+                            } else {
+                                $it.capture1
+                            }
+                        )
+                    }
+                } | load-env
+
+            # Set up prompt
+            $env.CONDA_PROMPT_MODIFIER = "(" + $name + ")"
+            if ($env.PROMPT_COMMAND_BK? == null) {
+                $env.PROMPT_COMMAND_BK = $env.PROMPT_COMMAND
+            }
+            $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + " " + (do $env.PROMPT_COMMAND_BK)}
+
+        } catch { | err |
+            echo $"Failed to activate ($name) environment: ($err.msg)"
+        }
+    })###" << "\n";
 
         content << R"nu(def --env ")nu" << exe_name << R"nu( deactivate"  [] {)nu";
         content << R"###(
     #remove active environment except base env
-    if $env.CONDA_PROMPT_MODIFIER? != null {
-      # unset set variables
-      for x in (^$env.MAMBA_EXE shell deactivate --shell nu
-              | split row ";") {
-          if ("hide-env" in $x) {
-            hide-env ($x | parse "hide-env {var}").var.0
-          } else if $x != "" {
-            let keyValue = ($x
-            | str replace --regex '\s+' "" --all
-            | parse '{key}={value}'
-            )
-            load-env {$keyValue.0.key: $keyValue.0.value}
-          }
+    for x in (^$env.MAMBA_EXE shell deactivate --shell nu
+            | split row (if $nu.os-info.name == "windows" { ";" } else { ":" })) {
+        if ("hide-env" in $x) {
+          hide-env ($x | parse "hide-env {var}").var.0
+        } else if $x != "" {
+          let keyValue = ($x
+          | str replace --regex '\s+' "" --all
+          | parse '{key}={value}'
+          )
+          load-env {$keyValue.0.key: $keyValue.0.value}
+        }
     }
     # reset prompt
     $env.PROMPT_COMMAND = $env.PROMPT_COMMAND_BK
   }
-})###" << "\n";
+)###" << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }

@@ -492,15 +492,27 @@ namespace
 
     TEST_CASE("CondaURL::parse")
     {
-        SECTION("file:////D:/a/_temp/popen-gw0/some_other_parts")
+        SECTION("File URL with 4 slashes, a drive letter, and percent encoded space")
         {
-            auto url = CondaURL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts").value();
-            REQUIRE(url.path() == "//D:/a/_temp/popen-gw0/some_other_parts");
-            REQUIRE(url.str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
-            REQUIRE(url.pretty_str() == "file:////D:/a/_temp/popen-gw0/some_other_parts");
+            // The URL passed to `CondaURL::parse` must be percent encoded
+            auto url = CondaURL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts%20spaces").value();
+            REQUIRE(url.path() == "//D:/a/_temp/popen-gw0/some_other_parts spaces");
+            REQUIRE(
+                url.path(CondaURL::Decode::no) == "//D:/a/_temp/popen-gw0/some_other_parts%20spaces"
+            );
+            REQUIRE(url.str() == "file:////D:/a/_temp/popen-gw0/some_other_parts%20spaces");
+            REQUIRE(url.pretty_str() == "file:////D:/a/_temp/popen-gw0/some_other_parts spaces");
         }
 
-        SECTION("file:////ab/_temp/popen-gw0/some_other_parts")
+        SECTION("File URL with 4 slashes, a drive letter, and non-encoded space")
+        {
+            // The URL passed to `CondaURL::parse` must be percent encoded
+            REQUIRE_FALSE(
+                CondaURL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts spaces").has_value()
+            );
+        }
+
+        SECTION("File URL with 4 slashes")
         {
             auto url = CondaURL::parse("file:////ab/_temp/popen-gw0/some_other_parts").value();
             REQUIRE(url.path() == "//ab/_temp/popen-gw0/some_other_parts");
@@ -508,7 +520,7 @@ namespace
             REQUIRE(url.pretty_str() == "file:////ab/_temp/popen-gw0/some_other_parts");
         }
 
-        SECTION("file:///D:/a/_temp/popen-gw0/some_other_parts")
+        SECTION("File URL with 3 slashes and drive letter")
         {
             auto url = CondaURL::parse("file:///D:/a/_temp/popen-gw0/some_other_parts").value();
             if (mamba::util::on_win)
@@ -525,7 +537,7 @@ namespace
             }
         }
 
-        SECTION("file:///ab/_temp/popen-gw0/some_other_parts")
+        SECTION("File URL with 3 slashes")
         {
             auto url = CondaURL::parse("file:///ab/_temp/popen-gw0/some_other_parts").value();
             REQUIRE(url.path() == "/ab/_temp/popen-gw0/some_other_parts");
@@ -533,7 +545,7 @@ namespace
             REQUIRE(url.pretty_str() == "file:///ab/_temp/popen-gw0/some_other_parts");
         }
 
-        SECTION("file://D:/a/_temp/popen-gw0/some_other_parts")
+        SECTION("File URL with 2 slashes and drive letter")
         {
             auto url = CondaURL::parse("file://D:/a/_temp/popen-gw0/some_other_parts").value();
             if (mamba::util::on_win)
@@ -550,7 +562,7 @@ namespace
             }
         }
 
-        SECTION("file://ab/_temp/popen-gw0/some_other_parts")
+        SECTION("File URL with 2 slashes")
         {
             auto url = CondaURL::parse("file://ab/_temp/popen-gw0/some_other_parts").value();
             REQUIRE(url.path() == "//ab/_temp/popen-gw0/some_other_parts");

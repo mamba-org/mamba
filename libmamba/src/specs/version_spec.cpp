@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <type_traits>
+#include <variant>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -203,6 +204,12 @@ namespace mamba::specs
     auto VersionPredicate::contains(const Version& point) const -> bool
     {
         return std::visit([&](const auto& op) { return op(point, m_version); }, m_operator);
+    }
+
+    auto VersionPredicate::has_glob() const -> bool
+    {
+        return std::holds_alternative<VersionPredicate::version_glob>(m_operator)
+               || std::holds_alternative<VersionPredicate::not_version_glob>(m_operator);
     }
 
     auto VersionPredicate::make_free() -> VersionPredicate
@@ -429,6 +436,28 @@ namespace mamba::specs
         const auto free_pred = VersionPredicate::make_free();
         const auto is_free_pred = [&free_pred](const auto& node) { return node == free_pred; };
         return m_tree.empty() || ((m_tree.size() == 1) && m_tree.evaluate(is_free_pred));
+    }
+
+    auto VersionSpec::has_glob() const -> bool
+    {
+        if (expression_size() == 0)
+        {
+            return false;
+        }
+
+        auto found = false;
+        m_tree.infix_for_each(
+            [&found](const auto& elem)
+            {
+                using Elem = std::remove_cv_t<std::remove_reference_t<decltype(elem)>>;
+                if constexpr (std::is_same_v<Elem, VersionPredicate>)
+                {
+                    found |= elem.has_glob();
+                }
+            }
+
+        );
+        return found;
     }
 
     auto VersionSpec::str() const -> std::string

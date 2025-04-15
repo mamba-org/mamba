@@ -1023,6 +1023,7 @@ namespace mamba::specs
         // Based on what libsolv and conda_build_form can handle.
         // Glob in names and build_string are fine
         return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
+               && !version().has_glob()                //
                && build_number().is_explicitly_free()  //
                && build_string().is_glob()             //
                && !channel().has_value()               //

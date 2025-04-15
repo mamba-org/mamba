@@ -50,6 +50,13 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
+        /**
+         * True if it contains a glob or negative glob expression.
+         *
+         * Does not return true for predicates that could be written as globs but are not.
+         */
+        [[nodiscard]] auto has_glob() const -> bool;
+
         [[nodiscard]] auto str() const -> std::string;
 
         /**
@@ -196,6 +203,12 @@ namespace mamba::specs
          */
         [[nodiscard]] auto is_explicitly_free() const -> bool;
 
+        /**
+         * True if it contains a glob or negative glob expression anywhere in the tree.
+         *
+         * Does not return true for predicates that could be written as globs but are not.
+         */
+        [[nodiscard]] auto has_glob() const -> bool;
         /**
          * A string representation of the version spec.
          *

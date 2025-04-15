@@ -53,7 +53,7 @@ def test_remove_check_logs(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_n
 @pytest.mark.skipif(sys.platform == "win32", reason="This test is currently failing on Windows")
 def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
     env_pkgs = [p["name"] for p in helpers.umamba_list("-p", tmp_xtensor_env, "--json")]
-    helpers.install("xtensor-python", "-n", tmp_env_name, no_dry_run=True)
+    helpers.install("xtensor-python", "xtensor=0.25", "-n", tmp_env_name, no_dry_run=True)
 
     res = helpers.remove("xtensor-python", "-p", tmp_xtensor_env, "--json")
 

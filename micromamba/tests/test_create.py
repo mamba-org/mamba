@@ -1611,7 +1611,7 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
     rc_file = tmp_path / "config.yaml"
     rc_file.write_text(yaml.dump(oci_registry_config))
 
-    cmd = ["-n", env_name, "xtensor", "--json", "-c", "oci_channel"]
+    cmd = ["-n", env_name, "xtensor=0.25", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
         cmd += ["--no-exp-repodata-parsing"]
 

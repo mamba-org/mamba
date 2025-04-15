@@ -86,8 +86,11 @@ def tmp_cache_xtensor_hpp(tmp_cache_xtensor_dir: Path) -> Path:
 
 class TestPkgCache:
     def test_extracted_file_deleted(self, tmp_home, tmp_cache_xtensor_hpp, tmp_root_prefix):
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
-        os.remove(tmp_cache_xtensor_hpp)
+        if tmp_cache_xtensor_hpp.exists():
+            old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+            os.remove(tmp_cache_xtensor_hpp)
+        else:
+            old_ino = None
 
         env_name = "some_env"
         helpers.create("xtensor=0.25", "-n", env_name, no_dry_run=True)
@@ -158,8 +161,11 @@ class TestPkgCache:
         self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_pkg, tmp_cache_xtensor_hpp
     ):
         xtensor_pkg_size = tmp_cache_xtensor_pkg.stat().st_size
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
-        os.remove(tmp_cache_xtensor_hpp)
+        if tmp_cache_xtensor_hpp.exists():
+            old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+            os.remove(tmp_cache_xtensor_hpp)
+        else:
+            old_ino = None
         os.remove(tmp_cache_xtensor_pkg)
 
         env_name = "x1"
@@ -179,8 +185,11 @@ class TestPkgCache:
         self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_pkg, tmp_cache_xtensor_hpp
     ):
         xtensor_pkg_size = tmp_cache_xtensor_pkg.stat().st_size
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
-        os.remove(tmp_cache_xtensor_hpp)
+        if tmp_cache_xtensor_hpp.exists():
+            old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+            os.remove(tmp_cache_xtensor_hpp)
+        else:
+            old_ino = None
         os.remove(tmp_cache_xtensor_pkg)
         with open(tmp_cache_xtensor_pkg, "w") as f:
             f.write("")

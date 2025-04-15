@@ -323,6 +323,24 @@ namespace
             REQUIRE_FALSE(" != 1.8.*"_vs.contains("1.8alpha"_v));  // Like Conda
             REQUIRE(" != 1.8.*"_vs.contains("1.9"_v));
 
+            REQUIRE(" 1.*.3"_vs.contains("1.7.3"_v));
+            REQUIRE(" 1.*.3"_vs.contains("1.7.0.3"_v));
+            REQUIRE_FALSE(" 1.*.3"_vs.contains("1.7.3.4"_v));
+            REQUIRE_FALSE(" 1.*.3"_vs.contains("1.3"_v));
+            REQUIRE_FALSE(" 1.*.3"_vs.contains("2.0.3"_v));
+
+            REQUIRE(" =1.*.3"_vs.contains("1.7.3"_v));
+            REQUIRE(" =1.*.3"_vs.contains("1.7.0.3"_v));
+            REQUIRE_FALSE(" =1.*.3"_vs.contains("1.7.3.4"_v));
+            REQUIRE_FALSE(" =1.*.3"_vs.contains("1.3"_v));
+            REQUIRE_FALSE(" =1.*.3"_vs.contains("2.0.3"_v));
+
+            REQUIRE_FALSE("!=1.*.3 "_vs.contains("1.7.3"_v));
+            REQUIRE_FALSE("!=1.*.3 "_vs.contains("1.7.0.3"_v));
+            REQUIRE("!=1.*.3 "_vs.contains("1.7.3.4"_v));
+            REQUIRE("!=1.*.3 "_vs.contains("1.3"_v));
+            REQUIRE("!=1.*.3 "_vs.contains("2.0.3"_v));
+
             REQUIRE_FALSE(" ~= 1.8 "_vs.contains("1.7.0.1"_v));
             REQUIRE(" ~= 1.8 "_vs.contains("1.8"_v));
             REQUIRE(" ~= 1.8 "_vs.contains("1.8.0"_v));

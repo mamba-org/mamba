@@ -1213,6 +1213,93 @@ namespace
                 /* .track_features =*/{},
             }));
         }
+
+        SECTION("python=3.*")
+        {
+            const auto ms = "python=3.*"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "2.7.12"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
+
+        SECTION("python=3.*.1")
+        {
+            const auto ms = "python=3.*.1"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.1"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
+
+        SECTION("python=*.13.1")
+        {
+            const auto ms = "python=*.13.1"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.13.1"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
     }
 
     TEST_CASE("MatchSpec comparability and hashability")

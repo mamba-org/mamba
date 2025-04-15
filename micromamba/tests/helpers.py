@@ -56,7 +56,7 @@ def lib_prefix() -> Path:
     return Path("")
 
 
-xtensor_hpp = lib_prefix() / "include/xtensor/xtensor.hpp"
+xtensor_hpp = lib_prefix() / "include/xtensor/xtensor.hpp" # This assume that xtenser<=0.25
 xsimd_hpp = lib_prefix() / "include/xsimd/xsimd.hpp"
 
 
@@ -432,7 +432,7 @@ def cache_warming():
     os.environ["CONDA_PKGS_DIRS"] = str(cache)
     tmp_prefix = os.path.expanduser(os.path.join("~", "tmpprefix" + random_string()))
 
-    res = create("-p", tmp_prefix, "xtensor", "--json", no_dry_run=True)
+    res = create("-p", tmp_prefix, "xtensor=0.25", "--json", no_dry_run=True)
     pkg_name = get_concrete_pkg(res, "xtensor")
 
     yield cache, pkg_name

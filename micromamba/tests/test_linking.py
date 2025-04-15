@@ -10,9 +10,11 @@ from .helpers import *  # noqa: F403
 from . import helpers
 
 if platform.system() == "Windows":
-    xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
+    xtensor_hpp = "Library/include/xtensor/xtensor.hpp" # This assume that xtenser<=0.25
 else:
-    xtensor_hpp = "include/xtensor/xtensor.hpp"
+    xtensor_hpp = "include/xtensor/xtensor.hpp" # This assume that xtenser<=0.25
+
+xtensor_required = "xtensor=0.25"
 
 
 class TestLinking:
@@ -41,7 +43,7 @@ class TestLinking:
             helpers.rmtree(TestLinking.prefix)
 
     def test_link(self, existing_cache, test_pkg):
-        helpers.create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+        helpers.create(xtensor_required, "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
         linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
         assert linked_file.exists()
@@ -53,7 +55,7 @@ class TestLinking:
 
     def test_copy(self, existing_cache, test_pkg):
         helpers.create(
-            "xtensor",
+            xtensor_required,
             "-n",
             TestLinking.env_name,
             "--json",
@@ -74,7 +76,7 @@ class TestLinking:
     )
     def test_always_softlink(self, existing_cache, test_pkg):
         helpers.create(
-            "xtensor",
+            xtensor_required,
             "-n",
             TestLinking.env_name,
             "--json",
@@ -98,7 +100,7 @@ class TestLinking:
         if platform.system() != "Linux":
             pytest.skip("o/s is not linux")
 
-        create_args = ["xtensor", "-n", TestLinking.env_name, "--json"]
+        create_args = [xtensor_required, "-n", TestLinking.env_name, "--json"]
         if allow_softlinks:
             create_args.append("--allow-softlinks")
         if always_copy:
@@ -118,7 +120,7 @@ class TestLinking:
         assert linked_file.is_symlink() == is_softlink
 
     def test_unlink_missing_file(self):
-        helpers.create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+        helpers.create(xtensor_required, "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
         linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
         assert linked_file.exists()

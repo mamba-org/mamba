@@ -86,7 +86,7 @@ def tmp_cache_xtensor_hpp(tmp_cache_xtensor_dir: Path) -> Path:
 
 class TestPkgCache:
     def test_extracted_file_deleted(self, tmp_home, tmp_cache_xtensor_hpp, tmp_root_prefix):
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
         os.remove(tmp_cache_xtensor_hpp)
 
         env_name = "some_env"
@@ -104,7 +104,7 @@ class TestPkgCache:
     def test_extracted_file_corrupted(
         self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_hpp, safety_checks
     ):
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
 
         with open(tmp_cache_xtensor_hpp, "w") as f:
             f.write("//corruption")
@@ -158,7 +158,7 @@ class TestPkgCache:
         self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_pkg, tmp_cache_xtensor_hpp
     ):
         xtensor_pkg_size = tmp_cache_xtensor_pkg.stat().st_size
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
         os.remove(tmp_cache_xtensor_hpp)
         os.remove(tmp_cache_xtensor_pkg)
 
@@ -179,7 +179,7 @@ class TestPkgCache:
         self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_pkg, tmp_cache_xtensor_hpp
     ):
         xtensor_pkg_size = tmp_cache_xtensor_pkg.stat().st_size
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+        old_ino = tmp_cache_xtensor_hpp.stat().st_ino if tmp_cache_xtensor_hpp.exists() else None
         os.remove(tmp_cache_xtensor_hpp)
         os.remove(tmp_cache_xtensor_pkg)
         with open(tmp_cache_xtensor_pkg, "w") as f:
@@ -214,7 +214,7 @@ class TestPkgCache:
 
         env = "x1"
         cmd_args = (
-            "xtensor",
+            "xtensor=0.25",
             "-n",
             "--safety-checks",
             safety_checks,

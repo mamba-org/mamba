@@ -56,7 +56,7 @@ def lib_prefix() -> Path:
     return Path("")
 
 
-xtensor_hpp = lib_prefix() / "include/xtensor/xtensor.hpp"
+xtensor_hpp = lib_prefix() / "include/xtensor/xtensor.hpp" # This assume that xtenser<=0.25
 xsimd_hpp = lib_prefix() / "include/xsimd/xsimd.hpp"
 
 

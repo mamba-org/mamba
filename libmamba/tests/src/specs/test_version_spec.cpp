@@ -164,8 +164,16 @@ namespace
         REQUIRE(g7.contains("2.0.1.0.1.1.3"_v));
         REQUIRE(g7.str() == "2.*.1.1.*");
 
+        const auto ng1 = VersionPredicate::make_not_version_glob("2.*.1"_v);
+        REQUIRE(ng1.contains(v1));
+        REQUIRE(ng1.contains(v2));
+        REQUIRE_FALSE(ng1.contains(v201));
+        REQUIRE(ng1.contains(v3));
+        REQUIRE(ng1.contains(v4));
+        REQUIRE(ng1.str() == "!=2.*.1");
+
         const auto predicates = std::array{
-            free, eq, ne, lt, le, gt, ge, sw, cp2, cp3, g1, g2, g3, g4, g5, g6, g7,
+            free, eq, ne, lt, le, gt, ge, sw, cp2, cp3, g1, g2, g3, g4, g5, g6, g7, ng1,
         };
         REQUIRE("*.0"_v != "*.0.*"_v);
         for (std::size_t i = 0; i < predicates.size(); ++i)

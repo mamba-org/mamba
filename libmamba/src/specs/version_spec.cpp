@@ -154,6 +154,18 @@ namespace mamba::specs
         return true;
     }
 
+    auto
+    VersionPredicate::not_version_glob::operator()(const Version& point, const Version& pattern) const
+        -> bool
+    {
+        return !VersionPredicate::version_glob{}(point, pattern);
+    }
+
+    auto operator==(VersionPredicate::not_version_glob, VersionPredicate::not_version_glob) -> bool
+    {
+        return true;
+    }
+
     static auto operator==(std::equal_to<Version>, std::equal_to<Version>) -> bool
     {
         return true;
@@ -248,6 +260,11 @@ namespace mamba::specs
         return VersionPredicate(std::move(pattern), version_glob{});
     }
 
+    auto VersionPredicate::make_not_version_glob(Version pattern) -> VersionPredicate
+    {
+        return VersionPredicate(std::move(pattern), not_version_glob{});
+    }
+
     auto VersionPredicate::str() const -> std::string
     {
         return fmt::format("{}", *this);
@@ -310,12 +327,7 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
             using Op = std::decay_t<decltype(op)>;
             if constexpr (std::is_same_v<Op, VersionPredicate::free_interval>)
             {
-                out = fmt::format_to(
-                    out,
-                    "{}{}",
-                    VersionSpec::starts_with_str,
-                    VersionSpec::glob_pattern_str
-                );
+                out = fmt::format_to(out, "{}", VersionSpec::preferred_free_str);
             }
             if constexpr (std::is_same_v<Op, std::equal_to<Version>>)
             {
@@ -377,6 +389,10 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
             if constexpr (std::is_same_v<Op, VersionPredicate::version_glob>)
             {
                 out = fmt::format_to(out, "{:g}", pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::not_version_glob>)
+            {
+                out = fmt::format_to(out, "{}{:g}", VersionSpec::not_equal_str, pred.m_version);
             }
         },
         pred.m_operator

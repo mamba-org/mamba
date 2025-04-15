@@ -40,6 +40,7 @@ namespace mamba::specs
         [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
             -> VersionPredicate;
         [[nodiscard]] static auto make_version_glob(Version pattern) -> VersionPredicate;
+        [[nodiscard]] static auto make_not_version_glob(Version pattern) -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -86,6 +87,11 @@ namespace mamba::specs
             auto operator()(const Version&, const Version&) const -> bool;
         };
 
+        struct not_version_glob
+        {
+            auto operator()(const Version&, const Version&) const -> bool;
+        };
+
         /**
          * Operator to compare with the stored version.
          *
@@ -93,6 +99,10 @@ namespace mamba::specs
          * ``VersionSpec`` parsing (hence not user-extensible), and performance-sensitive,
          * we choose an ``std::variant`` for dynamic dispatch.
          * An alternative could be a type-erased wrapper with local storage.
+         *
+         * Not alternatives (``not_starts_with``, ``not_version_glob``) could also be implemented
+         * as a not operator in VersionSpec rather than a predicate, but they are used often enough
+         * to deserve their specialization.
          */
         using BinaryOperator = std::variant<
             free_interval,
@@ -105,6 +115,7 @@ namespace mamba::specs
             starts_with,
             not_starts_with,
             compatible_with,
+            not_version_glob,
             version_glob>;
 
         // Originally, with only stateless operators, it made sense to have the version factored
@@ -122,6 +133,7 @@ namespace mamba::specs
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
         friend auto operator==(version_glob, version_glob) -> bool;
+        friend auto operator==(not_version_glob, not_version_glob) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
         friend struct ::fmt::formatter<VersionPredicate>;
     };

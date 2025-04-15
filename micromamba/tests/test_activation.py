@@ -814,7 +814,7 @@ def test_unicode_activation(
             else:
                 include_dir = tmp_root_prefix / f"envs/{u}/include"
 
-            assert (include_dir / "xtensor/containers/xtensor.hpp").exists()
+            helpers.check_cpp_package_install("xtensor", u)
 
         # unicode activation on win: todo
         if plat == "win":

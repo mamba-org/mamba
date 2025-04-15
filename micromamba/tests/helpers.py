@@ -542,3 +542,48 @@ def create_with_chan_pkg(env_name, channels, package):
     cmd.append(package)
 
     return create(*cmd, default_channel=False, no_rc=False)
+
+
+def check_cpp_package_install(package_name: string, install_prefix_root_dir: Path):
+    # Checks, using `assert`, that the specified package is correctly installed
+    # in the specified prefix directory.
+    #
+    # The checks are based on the following conditions:
+    # - `$install_prefix_root_dir/conda-meta/$package_name-*.json` exists
+    # - that json file has the expected package manifest format
+    # - all the files in the manifest exists in `$install_prefix_root_dir/` (link or not)
+    #
+    # We do not open the installed files.
+    #
+    # Returns f"{package_name}-{version}-{build_string}" for the info found.
+
+    assert package_name
+    assert install_prefix_root_dir
+    assert install_prefix_root_dir.is_dir()
+    assert install_prefix_root_dir.exists()
+
+    manifests_dir = install_prefix_root_dir.joinpath("conda-meta", package_name)
+    assert manifests_dir.is_dir()
+    assert manifests_dir.exists()
+
+    manifest_json_paths = manifests_dir.glob(f"{package_name}-*.*.*-*.json")
+    assert manifest_json_paths
+    assert len(manifest_json_paths) == 1
+
+    manifest_json_path = manifest_json_paths[0]
+    with open(manifest_json_path, 'r') as json_file:
+        manifest_info = json.load(json_file)
+
+    assert manifest_info
+    # TODO: add more checks about the content of this json file vs reality in the installed dir
+
+    for file in manifest_info.files:
+        installed_file_path = install_prefix_root_dir.joinpath(file)
+        assert installed_file_path.exists()
+
+    # We intend to return a name that matches what `get_concrete_pkg` would return.
+    return  f"{package_name}-{manifest_info.version}-{manifest_info.build_string}"
+
+
+
+

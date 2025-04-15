@@ -75,7 +75,7 @@ def test_remove_orphaned(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_nam
     # assert len(res["actions"]["UNLINK"]) == len(env_pkgs) + (
     assert len(res["actions"]["UNLINK"]) == 3 + (
         1 if helpers.dry_run_tests == helpers.DryRun.DRY else 0
-    ) + (1 if platform.system().lower() == "linux" else 0)  # xtl is not removed on Linux
+    ) + (platform.system() == "Linux")  # xtl is not removed on Linux
     for p in res["actions"]["UNLINK"]:
         assert p["name"] in env_pkgs
     assert res["actions"]["PREFIX"] == str(tmp_xtensor_env)
@@ -116,7 +116,7 @@ def test_remove_no_prune_deps(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_en
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name):
     helpers.install("python=3.9", "-n", tmp_env_name, "--json", no_dry_run=True)
-    if platform.system().lower() == "windows":
+    if platform.system() == "Windows":
         pyexe = Path(tmp_xtensor_env) / "python.exe"
     else:
         pyexe = Path(tmp_xtensor_env) / "bin" / "python"
@@ -130,7 +130,7 @@ def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name)
 
     helpers.remove("python", "-v", "-p", str(tmp_xtensor_env), no_dry_run=True)
 
-    if platform.system().lower() == "windows":
+    if platform.system() == "Windows":
         pyexe_trash = Path(str(pyexe) + ".mamba_trash")
         assert pyexe.exists() is False
         pyexe_trash_exists = pyexe_trash.exists()

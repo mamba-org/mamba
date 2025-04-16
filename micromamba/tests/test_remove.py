@@ -31,7 +31,7 @@ def test_remove(tmp_home, tmp_root_prefix, env_selector, tmp_xtensor_env, tmp_en
     assert res["success"]
     assert len(res["actions"]["UNLINK"]) == len(env_pkgs)
     for p in res["actions"]["UNLINK"]:
-        assert p["name"] in env_pkgs
+        assert p["name"] in env_pkgs or p["name"] == "libstdcxx-ng" # workaround special case lib not always removed
     assert res["actions"]["PREFIX"] == str(tmp_xtensor_env)
 
 

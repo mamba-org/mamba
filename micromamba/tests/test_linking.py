@@ -10,9 +10,9 @@ from .helpers import *  # noqa: F403
 from . import helpers
 
 if platform.system() == "Windows":
-    xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
+    xtensor_hpp = "Library/include/xtensor/containers/xtensor.hpp"
 else:
-    xtensor_hpp = "include/xtensor/xtensor.hpp"
+    xtensor_hpp = "include/xtensor/containers/xtensor.hpp"
 
 
 class TestLinking:

@@ -54,7 +54,7 @@ namespace mamba
          *   description: string that is displayed
          *   filename: Link destination filename
          *   arguments: args to the executable (optional)
-         *   work_dir: workdir for the executable
+         *   work_dir (in v1) or working_dir (in v2): working directory for the executable
          *   icon_path: path to an .ico file
          *   icon_index: index for icon
          */
@@ -74,7 +74,7 @@ namespace mamba
             HRESULT hres;
             LOG_DEBUG << "Creating shortcut with " << "\n  Path: " << path
                       << "\n  Description: " << description << "\n  Filename: " << filename
-                      << "\n  Arguments: " << arguments << "\n  Workdir: " << work_dir
+                      << "\n  Arguments: " << arguments << "\n  Working Directory: " << work_dir
                       << "\n  Icon Path: " << icon_path << "\n  Icon Index: " << icon_index;
             try
             {
@@ -345,10 +345,10 @@ namespace mamba
                 }
             };
 
-            // Check menuinst schema version (through the presence of "$id" and "$schema" keys)
+            // Check menuinst schema version (through the presence of "$schema" key)
             // cf. https://github.com/conda/ceps/blob/3da0fb0ece/cep-11.md#backwards-compatibility
             auto menuinst_version = MenuInstVersion::Version1;  // v1-legacy
-            if (j.contains("$id") && j.contains("$schema"))
+            if (j.contains("$schema"))
             {
                 menuinst_version = MenuInstVersion::Version2;  // v2
             }
@@ -358,11 +358,13 @@ namespace mamba
                 std::string name;
                 std::vector<std::string> arguments;
                 fs::u8path script;
+                fs::u8path workdir;
 
                 // cf. https://github.com/conda/menuinst/pull/180
                 if (menuinst_version == MenuInstVersion::Version1)
                 {
                     name = item["name"];  // Should be a string
+                    workdir = item.value("work_dir", "");
 
                     if (item.contains("pywscript"))
                     {
@@ -409,11 +411,20 @@ namespace mamba
                 }
                 else  // MenuInstVersion::Version2
                 {
-                    // `item["name"]` should be an object containing items with
-                    // "target_environment_is_base" and "target_environment_is_not_base"(default)
-                    // as keys
-                    name = item["name"]["target_environment_is_not_base"];
-
+                    workdir = item.value("working_dir", "");
+                    // `item["name"]` should be either a string
+                    // or an object containing items with "target_environment_is_base"
+                    // and "target_environment_is_not_base"(default) as keys.
+                    // cf.
+                    // https://conda.github.io/menuinst/reference/#menuinst._schema.MenuItem.name
+                    if (item["name"].is_string())
+                    {
+                        name = item["name"].get<std::string>();
+                    }
+                    else if (item["name"].is_object())
+                    {
+                        name = item["name"]["target_environment_is_not_base"].get<std::string>();
+                    }
                     // cf.
                     // https://conda.github.io/menuinst/defining-shortcuts/#migrating-pywscript-and-pyscript-to-menuinst-v2
                     for (const auto& el : item["command"])
@@ -425,7 +436,6 @@ namespace mamba
 
                 std::string full_name = util::concat(name, name_suffix);
                 fs::u8path dst = target_dir / (full_name + ".lnk");
-                fs::u8path workdir = item.value("workdir", "");
                 fs::u8path iconpath = item.value("icon", "");
                 if (remove == false)
                 {

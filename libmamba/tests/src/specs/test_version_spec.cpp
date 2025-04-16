@@ -18,7 +18,7 @@ namespace
     using namespace mamba::specs::version_literals;
     using namespace mamba::specs::version_spec_literals;
 
-    TEST_CASE("VersionPredicate")
+    TEST_CASE("VersionPredicate", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         const auto v1 = "1.0"_v;
         const auto v2 = "2.0"_v;
@@ -198,7 +198,7 @@ namespace
         }
     }
 
-    TEST_CASE("Tree construction")
+    TEST_CASE("Tree construction", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         SECTION("empty")
         {
@@ -251,7 +251,7 @@ namespace
         }
     }
 
-    TEST_CASE("VersionSpec::parse")
+    TEST_CASE("VersionSpec::parse", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         SECTION("Successful")
         {
@@ -514,7 +514,7 @@ namespace
         }
     }
 
-    TEST_CASE("VersionSpec::str")
+    TEST_CASE("VersionSpec::str", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         SECTION("2.3")
         {
@@ -552,7 +552,7 @@ namespace
         }
     }
 
-    TEST_CASE("VersionSpec::is_explicitly_free")
+    TEST_CASE("VersionSpec::is_explicitly_free", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         {
             using namespace mamba::util;
@@ -573,7 +573,7 @@ namespace
         REQUIRE_FALSE(VersionSpec::parse("=2.3,<3.0").value().is_explicitly_free());
     }
 
-    TEST_CASE("VersionSpec::has_glob")
+    TEST_CASE("VersionSpec::has_glob", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         REQUIRE(VersionSpec::parse("*.4").value().has_glob());
         REQUIRE(VersionSpec::parse("1.*.0").value().has_glob());
@@ -583,7 +583,7 @@ namespace
         REQUIRE_FALSE(VersionSpec::parse("3.*").value().has_glob());
     }
 
-    TEST_CASE("VersionSpec Comparability and hashability")
+    TEST_CASE("VersionSpec Comparability and hashability", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         auto spec1 = VersionSpec::parse("*").value();
         auto spec2 = VersionSpec::parse("*").value();

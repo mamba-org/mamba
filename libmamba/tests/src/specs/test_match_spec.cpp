@@ -18,7 +18,7 @@ namespace
 {
     using PlatformSet = typename util::flat_set<std::string>;
 
-    TEST_CASE("MatchSpec parse")
+    TEST_CASE("MatchSpec parse", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("<empty>")
         {
@@ -667,7 +667,7 @@ namespace
         }
     }
 
-    TEST_CASE("parse_url")
+    TEST_CASE("parse_url", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("https://conda.com/pkg-2-bld.conda")
         {
@@ -714,7 +714,7 @@ namespace
         }
     }
 
-    TEST_CASE("Conda discrepancies")
+    TEST_CASE("Conda discrepancies", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("python=3.7=bld")
         {
@@ -742,7 +742,7 @@ namespace
         }
     }
 
-    TEST_CASE("is_simple")
+    TEST_CASE("is_simple", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("Positive")
         {
@@ -780,7 +780,7 @@ namespace
         }
     }
 
-    TEST_CASE("MatchSpec::contains")
+    TEST_CASE("MatchSpec::contains", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         // Note that tests for individual ``contains`` functions (``VersionSpec::contains``,
         // ``BuildNumber::contains``, ``GlobSpec::contains``...) are tested in their respective
@@ -1302,7 +1302,7 @@ namespace
         }
     }
 
-    TEST_CASE("MatchSpec comparability and hashability")
+    TEST_CASE("MatchSpec comparability and hashability", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         using namespace specs::match_spec_literals;
         using namespace specs::version_literals;

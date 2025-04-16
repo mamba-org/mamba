@@ -486,6 +486,8 @@ namespace mamba::specs
         auto parse_op_and_version(std::string_view str) -> expected_parse_t<VersionPredicate>
         {
             str = util::strip(str);
+            // Conda-forge repodata.json bug with trailing `.` in `openblas 0.2.18|0.2.18.*.`
+            str = util::remove_suffix(str, Version::part_delim);
             // WARNING order is important since some operator are prefix of others.
             if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
             {

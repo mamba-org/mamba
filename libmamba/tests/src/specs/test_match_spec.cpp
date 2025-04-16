@@ -4,11 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
+
 #include <catch2/catch_all.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
@@ -142,10 +146,10 @@ namespace
             REQUIRE(ms2 == ms);
         }
 
-        // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
-        // which is currently supported but which must not.
         SECTION("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
         {
+            // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+            // which is currently supported but which must not.
             auto ms = MatchSpec::parse("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
                           .value();
             REQUIRE(ms.name().str() == "mingw-w64-ucrt-x86_64-crt-git");
@@ -153,6 +157,15 @@ namespace
             REQUIRE(ms.build_string().str() == "h707e725_0");
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
+        }
+
+        SECTION("openblas 0.2.18|0.2.18.*.")
+        {
+            // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+            // which is currently supported but which must not.
+            auto ms = MatchSpec::parse("openblas 0.2.18|0.2.18.*.").value();
+            REQUIRE(ms.name().str() == "openblas");
+            REQUIRE(ms.version().str() == "==0.2.18|=0.2.18");
         }
 
         SECTION("_libgcc_mutex 0.1 conda_forge")
@@ -1327,5 +1340,62 @@ namespace
 
         REQUIRE(spec1_hash == spec2_hash);
         REQUIRE(spec1_hash != spec3_hash);
+    }
+
+    auto repodata_all_depends(std::string_view path)
+        -> std::vector<std::tuple<std::string, std::string>>
+    {
+        auto input = std::ifstream(path);
+        if (!input.is_open())
+        {
+            throw std::runtime_error("Failed to open file: " + std::string(path));
+        }
+
+        auto j = nlohmann::json::parse(input);
+
+        if (!j.contains("packages") || !j["packages"].is_object())
+        {
+            throw std::runtime_error(R"(Missing or invalid "packages" field)");
+        }
+
+        auto result = std::vector<std::tuple<std::string, std::string>>();
+
+        for (const auto& [pkg_name, pkg] : j["packages"].items())
+        {
+            if (!pkg.contains("depends") || !pkg["depends"].is_array())
+            {
+                throw std::runtime_error(R"(Missing or invalid "depends" in package)");
+            }
+
+            for (const auto& dep : pkg["depends"])
+            {
+                if (!dep.is_string())
+                {
+                    throw std::runtime_error(R"(Non-string entry in "depends")");
+                }
+                result.emplace_back(pkg_name, dep.get<std::string>());
+            }
+        }
+
+        return result;
+    }
+
+    TEST_CASE("Repodata MatchSpec::parse", "[mamba::specs][mamba::specs::MatchSpec][.integration]")
+    {
+        const auto all_ms_str = []()
+        {
+            if (const auto path = util::get_env("MAMBA_TEST_REPODATA_JSON"))
+            {
+                return repodata_all_depends(path.value());
+            }
+            throw std::runtime_error(R"(Please define "MAMBA_TEST_REPODATA_JSON")");
+        }();
+
+        for (const auto& [pkg_name, ms_str] : all_ms_str)
+        {
+            CAPTURE(pkg_name);
+            CAPTURE(ms_str);
+            REQUIRE(MatchSpec::parse(ms_str).has_value());
+        }
     }
 }

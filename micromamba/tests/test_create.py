@@ -730,7 +730,7 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, monkeypatch):
 
 
 @pytest.mark.parametrize("envs_dirs_source", ("condarc", "env_var"))
-def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, envs_dirs_source):
+def test_mkdir_envs_dirs(tmp_home, tmp_root_prefix, tmp_path, monkeypatch, envs_dirs_source):
     """Test that an env dir is created if it does not exist already"""
 
     envs_dir = tmp_path / "user_provided_envdir" / "envs"
@@ -748,7 +748,7 @@ def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, envs_dirs_source):
     assert envs_dir.exists()
 
 
-def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
+def test_env_dir_idempotence(tmp_home, tmp_root_prefix, tmp_path):
     """
     Test that setting envs_dirs to ~/.conda and running twice in a row
     gives the same results
@@ -777,8 +777,9 @@ def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
 @pytest.mark.parametrize("check_config_only", (False, True))
 def test_root_prefix_precedence(
-    tmp_path,
     tmp_home,
+    tmp_clean_env,
+    tmp_path,
     monkeypatch,
     conda_envs_x,
     set_in_condarc,
@@ -1770,7 +1771,7 @@ channels:
 """
 
 
-def test_create_empty_or_absent_dependencies(tmp_path):
+def test_create_empty_or_absent_dependencies(tmp_home, tmp_clean_env, tmp_path):
     env_prefix = tmp_path / "env-empty_dependencies"
     # Write the env specification to a file and pass it to the create command
 
@@ -1822,7 +1823,7 @@ setuptools
 
 
 @pytest.mark.parametrize("env_spec", [env_spec_empty_lines_and_comments, env_repro_1, env_repro_2])
-def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
+def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_path, env_spec):
     # Non-regression test for:
     #  - https://github.com/mamba-org/mamba/issues/3289
     #  - https://github.com/mamba-org/mamba/issues/3659
@@ -1847,7 +1848,7 @@ def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
         )
 
 
-def test_update_spec_list(tmp_path):
+def test_update_spec_list(tmp_home, tmp_clean_env, tmp_path):
     env_prefix = tmp_path / "env-invalid_spec"
 
     env_spec = """
@@ -1874,7 +1875,7 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
     assert update_specs_list in out.replace("\r", "")
 
 
-def test_ca_certificates(tmp_path):
+def test_ca_certificates(tmp_home, tmp_clean_env, tmp_path):
     # Check that CA certificates from conda-forge or that the fall back is used by micromamba.
     env_prefix = tmp_path / "env-ca-certificates"
 
@@ -1904,7 +1905,7 @@ def test_ca_certificates(tmp_path):
     assert root_prefix_ca_certificates_used or fall_back_certificates_used
 
 
-def test_glob_in_build_string(monkeypatch, tmp_path):
+def test_glob_in_build_string(tmp_home, tmp_clean_env, monkeypatch, tmp_path):
     # Non-regression test for https://github.com/mamba-org/mamba/issues/3699
     env_prefix = tmp_path / "test_glob_in_build_string"
 
@@ -1941,7 +1942,7 @@ def test_glob_in_build_string(monkeypatch, tmp_path):
     )
 
 
-def test_non_url_encoding(tmp_path):
+def test_non_url_encoding(tmp_home, tmp_clean_env, tmp_path):
     # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
     env_prefix = tmp_path / "env-non_url_encoding"
 
@@ -1960,7 +1961,7 @@ def test_non_url_encoding(tmp_path):
     assert non_encoded_url_start in out
 
 
-def test_compatible_release(tmp_path):
+def test_compatible_release(tmp_home, tmp_clean_env, tmp_path):
     # Non-regression test for: https://github.com/mamba-org/mamba/issues/3472
     env_prefix = tmp_path / "env-compatible-release"
 

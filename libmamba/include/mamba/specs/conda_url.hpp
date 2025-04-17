@@ -29,6 +29,10 @@ namespace mamba::specs
 
         inline static constexpr std::string_view token_prefix = "/t/";
 
+        /** Parse a string url.
+         * The url must be percent encoded beforehand.
+         * cf. https://en.wikipedia.org/wiki/Percent-encoding
+         */
         [[nodiscard]] static auto parse(std::string_view url) -> expected_parse_t<CondaURL>;
 
         /** Create a local URL. */

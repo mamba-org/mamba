@@ -190,10 +190,10 @@ namespace
         REQUIRE("*.0"_v != "*.0.*"_v);
         for (std::size_t i = 0; i < predicates.size(); ++i)
         {
-            CHECK(predicates[i] == predicates[i]);
+            REQUIRE(predicates[i] == predicates[i]);
             for (std::size_t j = i + 1; j < predicates.size(); ++j)
             {
-                CHECK(predicates[i] != predicates[j]);
+                REQUIRE(predicates[i] != predicates[j]);
             }
         }
     }

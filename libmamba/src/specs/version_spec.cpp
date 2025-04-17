@@ -295,6 +295,8 @@ namespace mamba::specs
                // In version_glob, the version is not understood purely as a version since ``*``
                // has different meaning, as explicit trailing zeros.
                // Versions should be made part of this variant internal and handled there.
+               // On the different meanings of ``*``, see this CEP:
+               // https://github.com/conda/ceps/pull/60
                && (!std::holds_alternative<VersionPredicate::version_glob>(lhs.m_operator)
                    || lhs.m_version.version().size() == rhs.m_version.version().size());
     }
@@ -449,7 +451,7 @@ namespace mamba::specs
         m_tree.infix_for_each(
             [&found](const auto& elem)
             {
-                using Elem = std::remove_cv_t<std::remove_reference_t<decltype(elem)>>;
+                using Elem = std::decay_t<decltype(elem)>;
                 if constexpr (std::is_same_v<Elem, VersionPredicate>)
                 {
                     found |= elem.has_glob();

@@ -533,18 +533,19 @@ namespace mamba::specs
 
             // A simple `.*` check on the end of the version spec string
             const bool has_glob_suffix = util::ends_with(str, VersionSpec::glob_suffix_str);
-            const std::size_t glob_suffix_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
+            const std::size_t glob_suffix_active_len = has_glob_suffix
+                                                       * VersionSpec::glob_suffix_str.size();
             // A more complex glob type of glob used that requires a glob predicate.
             // Needs to be used after stripping a potential leading operator as it may lead
             // to positive or negative glob.
             // The check for whether the "*" is a glob or a valid version character is poorly
             // defined.
-            constexpr auto has_complex_glob = [](std::string_view str) -> bool
+            constexpr auto has_complex_glob = [](std::string_view expr) -> bool
             {
                 constexpr auto glob_suffix_len = VersionSpec::glob_suffix_str.size();
-                return util::starts_with(str, VersionSpec::glob_pattern_str)
-                       || (str.find(VersionSpec::glob_suffix_str)
-                           < std::max(str.size(), glob_suffix_len) - glob_suffix_len);
+                return util::starts_with(expr, VersionSpec::glob_pattern_str)
+                       || (expr.find(VersionSpec::glob_suffix_str)
+                           < std::max(expr.size(), glob_suffix_len) - glob_suffix_len);
             };
 
             if (util::starts_with(str, VersionSpec::equal_str))
@@ -554,7 +555,9 @@ namespace mamba::specs
                 if (has_glob_suffix)
                 {
                     return Version::parse(
-                               util::lstrip(str.substr(start, str.size() - glob_suffix_len - start))
+                               util::lstrip(
+                                   str.substr(start, str.size() - glob_suffix_active_len - start)
+                               )
                     )
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });
@@ -582,7 +585,9 @@ namespace mamba::specs
                 // Glob suffix changes meaning for !=1.3.*
                 else if (has_glob_suffix)
                 {
-                    return Version::parse(str_no_op.substr(0, str_no_op.size() - glob_suffix_len))
+                    return Version::parse(
+                               str_no_op.substr(0, str_no_op.size() - glob_suffix_active_len)
+                    )
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_not_starts_with(std::move(ver)); }
                         );
@@ -609,7 +614,7 @@ namespace mamba::specs
                     );
                 }
                 // Glob suffix does not change meaning for =1.3.*
-                return Version::parse(str_no_op.substr(0, str_no_op.size() - glob_suffix_len))
+                return Version::parse(str_no_op.substr(0, str_no_op.size() - glob_suffix_active_len))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_starts_with(std::move(ver)); });
             }
@@ -634,7 +639,7 @@ namespace mamba::specs
                 {
                     // either ".*" or "*"
                     static constexpr auto one = std::size_t(1);  // MSVC
-                    const std::size_t len = str.size() - std::max(glob_suffix_len, one);
+                    const std::size_t len = str.size() - std::max(glob_suffix_active_len, one);
                     return Version::parse(util::lstrip(str.substr(0, len)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });

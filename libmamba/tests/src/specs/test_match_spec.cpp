@@ -1342,7 +1342,7 @@ namespace
         REQUIRE(spec1_hash != spec3_hash);
     }
 
-    auto repodata_all_depends(std::string_view path)
+    auto repodata_all_depends(const std::string& path)
         -> std::vector<std::tuple<std::string, std::string>>
     {
         auto input = std::ifstream(path);

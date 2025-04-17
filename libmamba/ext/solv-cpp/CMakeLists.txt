@@ -14,6 +14,7 @@ target_include_directories(
     solv-cpp
     PUBLIC $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
+target_compile_definitions(solv-cpp PUBLIC LIBSOLV_SOLVABLE_PREPEND_DEP)
 
 find_package(tl-expected REQUIRED)
 find_package(Libsolv REQUIRED)

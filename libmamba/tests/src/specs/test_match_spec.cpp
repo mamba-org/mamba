@@ -32,6 +32,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "*");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("xtensor==0.12.3")
@@ -40,6 +41,7 @@ namespace
             REQUIRE(ms.name().str() == "xtensor");
             REQUIRE(ms.version().str() == "==0.12.3");
             REQUIRE(ms.str() == "xtensor==0.12.3");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("xtensor      >=       0.12.3")
@@ -50,6 +52,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "xtensor>=0.12.3");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("python > 3.11")
@@ -60,6 +63,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "python>3.11");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("numpy < 2.0")
@@ -70,6 +74,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "numpy<2.0");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("pytorch-cpu = 1.13.0")
@@ -80,6 +85,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "pytorch-cpu=1.13.0");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("scipy   >=    1.5.0,  < 2.0.0")
@@ -90,6 +96,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "scipy[version=\">=1.5.0,<2.0.0\"]");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("scikit-learn >1.0.0")
@@ -194,6 +201,7 @@ namespace
             REQUIRE(ms.name().str() == "ipykernel");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.str() == "ipykernel");
+            REQUIRE(ms.is_only_package_name());
         }
 
         SECTION("ipykernel ")
@@ -201,6 +209,7 @@ namespace
             auto ms = MatchSpec::parse("ipykernel ").value();
             REQUIRE(ms.name().str() == "ipykernel");
             REQUIRE(ms.version().is_explicitly_free());
+            REQUIRE(ms.is_only_package_name());
         }
 
         SECTION("disperse=v0.9.24")
@@ -790,6 +799,28 @@ namespace
                 const auto ms = MatchSpec::parse(str).value();
                 REQUIRE_FALSE(ms.is_simple());
             }
+        }
+    }
+
+    TEST_CASE("MatchSpec::to_named_spec", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Alrealy name only")
+        {
+            const auto str = GENERATE("foo", "foo ");
+            const auto ms = MatchSpec::parse(str).value();
+            const auto ms_named = ms.to_named_spec();
+            REQUIRE(ms == ms_named);
+        }
+
+        SECTION("With more restrictions")
+        {
+            const auto str = GENERATE("foo>1.0", "foo =*", "foo=3=bld");
+            const auto ms = MatchSpec::parse(str).value();
+            const auto ms_named = ms.to_named_spec();
+            REQUIRE(ms_named.name() == ms.name());
+            REQUIRE(ms_named.version().is_explicitly_free());
+            REQUIRE(ms_named.build_string().is_explicitly_free());
+            REQUIRE(ms_named.build_number().is_explicitly_free());
         }
     }
 

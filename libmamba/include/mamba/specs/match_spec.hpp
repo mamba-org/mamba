@@ -118,6 +118,11 @@ namespace mamba::specs
         [[nodiscard]] auto is_only_package_name() const -> bool;
 
         /**
+         * Make a new MatchSpec that matches only on the name part.
+         */
+        [[nodiscard]] auto to_named_spec() const -> MatchSpec;
+
+        /**
          * Check if the MatchSpec matches the given package.
          *
          * The check exclude anything related to the channel, du to the difficulties in

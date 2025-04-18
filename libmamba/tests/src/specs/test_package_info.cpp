@@ -143,6 +143,7 @@ namespace
         pkg.platform = "linux-64";
         pkg.filename = "foo-4.0-mybld.conda";
         pkg.license = "MIT";
+        pkg.python_site_packages_path = "lib/python3.99t/site-packages";
         pkg.size = 3200;
         pkg.timestamp = 4532;
         pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
@@ -167,6 +168,7 @@ namespace
             REQUIRE(pkg.field("subdir") == "linux-64");
             REQUIRE(pkg.field("filename") == "foo-4.0-mybld.conda");
             REQUIRE(pkg.field("license") == "MIT");
+            REQUIRE(pkg.field("python_site_packages_path") == "lib/python3.99t/site-packages");
             REQUIRE(pkg.field("size") == "3200");
             REQUIRE(pkg.field("timestamp") == "4532");
         }
@@ -184,6 +186,7 @@ namespace
             REQUIRE(j.at("subdir") == "linux-64");
             REQUIRE(j.at("fn") == "foo-4.0-mybld.conda");
             REQUIRE(j.at("license") == "MIT");
+            REQUIRE(j.at("python_site_packages_path") == "lib/python3.99t/site-packages");
             REQUIRE(j.at("size") == 3200);
             REQUIRE(j.at("timestamp") == 4532);
             REQUIRE(
@@ -212,6 +215,7 @@ namespace
             j["subdir"] = "linux-64";
             j["fn"] = "foo-4.0-mybld.conda";
             j["license"] = "MIT";
+            j["python_site_packages_path"] = "lib/python3.99t/site-packages";
             j["size"] = 3200;
             j["timestamp"] = 4532;
             j["sha256"] = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
@@ -273,6 +277,7 @@ namespace
             pkg2.platform = "linux-64";
             pkg2.filename = "foo-4.0-mybld.conda";
             pkg2.license = "MIT";
+            pkg2.python_site_packages_path = "lib/python3.99t/site-packages";
             pkg2.size = 3200;
             pkg2.timestamp = 4532;
             pkg2.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";

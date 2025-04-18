@@ -53,6 +53,7 @@ namespace solv
         auto build_string() const -> std::string_view;
         auto file_name() const -> std::string_view;
         auto license() const -> std::string_view;
+        auto python_site_packages_path() const -> std::string_view;
         auto md5() const -> std::string_view;
         auto noarch() const -> std::string_view;
         auto sha256() const -> std::string_view;
@@ -167,6 +168,17 @@ namespace solv
          */
         void set_license(raw_str_view str) const;
         void set_license(const std::string& str) const;
+
+        /**
+         * Set the python_site_packages_path of the solvable.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_python_site_packages_path(raw_str_view str) const;
+        void set_python_site_packages_path(const std::string& str) const;
 
         /**
          * Set the md5 hash of the solvable file.

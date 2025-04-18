@@ -43,6 +43,7 @@ namespace
             solv.set_build_string("build");
             solv.set_file_name("file.tar.gz");
             solv.set_license("MIT");
+            solv.set_python_site_packages_path("dummy_pspp");
             solv.set_md5("6f29ba77e8b03b191c9d667f331bf2a0");
             solv.set_sha256("ecde63af23e0d49c0ece19ec539d873ea408a6f966d3126994c6d33ae1b9d3f7");
             solv.set_signatures(
@@ -62,6 +63,7 @@ namespace
                 REQUIRE(solv.build_string() == "");
                 REQUIRE(solv.file_name() == "");
                 REQUIRE(solv.license() == "");
+                REQUIRE(solv.python_site_packages_path() == "");
                 REQUIRE(solv.md5() == "");
                 REQUIRE(solv.sha256() == "");
                 REQUIRE(solv.signatures() == "");
@@ -83,6 +85,7 @@ namespace
                 REQUIRE(solv.build_string() == "build");
                 REQUIRE(solv.file_name() == "file.tar.gz");
                 REQUIRE(solv.license() == "MIT");
+                REQUIRE(solv.python_site_packages_path() == "dummy_pspp");
                 REQUIRE(solv.md5() == "6f29ba77e8b03b191c9d667f331bf2a0");
                 REQUIRE(
                     solv.sha256() == "ecde63af23e0d49c0ece19ec539d873ea408a6f966d3126994c6d33ae1b9d3f7"

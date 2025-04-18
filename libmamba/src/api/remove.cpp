@@ -51,9 +51,15 @@ namespace mamba
                 );
             }
             PrefixData& prefix_data = sprefix_data.value();
-            for (const auto& package : prefix_data.records())
+            for (const auto& [name, version_map] : prefix_data.records())
             {
-                remove_specs.push_back(package.second.name);
+                for (const auto& [version, builds] : version_map)
+                {
+                    for (const auto& package : builds)
+                    {
+                        remove_specs.push_back(package.name);
+                    }
+                }
             }
         }
 
@@ -161,18 +167,18 @@ namespace mamba
             if (force)
             {
                 std::vector<specs::PackageInfo> pkgs_to_remove;
-                pkgs_to_remove.reserve(raw_specs.size());
-                for (const auto& str : raw_specs)
+                for (const auto& [name, version_map] : prefix_data.records())
                 {
-                    auto spec = specs::MatchSpec::parse(str)
-                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                    .value();
-                    const auto& installed = prefix_data.records();
-                    // TODO should itreate over all packages and use MatchSpec.contains
-                    // TODO should move such method over Pool for consistent use
-                    if (auto iter = installed.find(spec.name().str()); iter != installed.cend())
+                    for (const auto& [version, builds] : version_map)
                     {
-                        pkgs_to_remove.push_back(iter->second);
+                        for (const auto& pkg : builds)
+                        {
+                            if (std::find(raw_specs.begin(), raw_specs.end(), pkg.name)
+                                != raw_specs.end())
+                            {
+                                pkgs_to_remove.push_back(pkg);
+                            }
+                        }
                     }
                 }
                 auto transaction = MTransaction(ctx, database, pkgs_to_remove, {}, package_caches);

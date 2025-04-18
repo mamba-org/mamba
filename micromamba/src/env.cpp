@@ -133,46 +133,53 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 std::set<std::string> channels;
 
                 bool first_dependency_printed = false;
-                for (const auto& [k, v] : versions_map)
+                for (const auto& [name, version_map] : versions_map)
                 {
-                    if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    for (const auto& [version, builds] : version_map)
                     {
-                        continue;
-                    }
-
-                    dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
-                    first_dependency_printed = true;
-
-                    auto chans = channel_context.make_channel(v.channel);
-
-                    if (from_history)
-                    {
-                        dependencies << requested_specs_map[k].str() << "\"";
-                    }
-                    else
-                    {
-                        if (channel_subdir)
+                        for (const auto& pkg_info : builds)
                         {
-                            dependencies
-                                // If the size is not one, it's a custom multi channel
-                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.platform << "::";
-                        }
-                        dependencies << v.name << "=" << v.version;
-                        if (!no_build)
-                        {
-                            dependencies << "=" << v.build_string;
-                        }
-                        if (no_md5 == -1)
-                        {
-                            dependencies << "[md5=" << v.md5 << "]";
-                        }
-                        dependencies << "\"";
-                    }
+                            auto chans = channel_context.make_channel(pkg_info.channel);
+                            dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
+                            first_dependency_printed = true;
 
-                    for (const auto& chan : chans)
-                    {
-                        channels.insert(chan.display_name());
+                            if (from_history
+                                && requested_specs_map.find(name) == requested_specs_map.end())
+                            {
+                                continue;
+                            }
+
+                            if (from_history)
+                            {
+                                dependencies << requested_specs_map[name].str() << "\"";
+                            }
+                            else
+                            {
+                                if (channel_subdir)
+                                {
+                                    dependencies
+                                        // If the size is not one, it's a custom multi channel
+                                        << ((chans.size() == 1) ? chans.front().display_name()
+                                                                : pkg_info.channel)
+                                        << "/" << pkg_info.platform << "::";
+                                }
+                                dependencies << pkg_info.name << "=" << pkg_info.version;
+                                if (!no_build)
+                                {
+                                    dependencies << "=" << pkg_info.build_string;
+                                }
+                                if (no_md5 == -1)
+                                {
+                                    dependencies << "[md5=" << pkg_info.md5 << "]";
+                                }
+                                dependencies << "\"";
+                            }
+
+                            for (const auto& chan : chans)
+                            {
+                                channels.insert(chan.display_name());
+                            }
+                        }
                     }
                 }
 
@@ -181,11 +188,17 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 {
                     dependencies << (first_dependency_printed ? ",\n" : "") << "     { \"pip\": [\n";
                     first_dependency_printed = false;
-                    for (const auto& [k, v] : pip_versions_map)
+                    for (const auto& [name, version_map] : pip_versions_map)
                     {
-                        dependencies << (first_dependency_printed ? ",\n" : "") << "      \""
-                                     << v.name << "==" << v.version << "\"";
-                        first_dependency_printed = true;
+                        for (const auto& [version, builds] : version_map)
+                        {
+                            for (const auto& pkg_info : builds)
+                            {
+                                dependencies << (first_dependency_printed ? ",\n" : "") << "      \""
+                                             << pkg_info.name << "==" << pkg_info.version << "\"";
+                                first_dependency_printed = true;
+                            }
+                        }
                     }
                     dependencies << "\n    ]\n    }";
                 }
@@ -231,53 +244,54 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 std::stringstream dependencies;
                 std::set<std::string> channels;
 
-                for (const auto& [k, v] : versions_map)
+                for (const auto& [name, version_map] : versions_map)
                 {
-                    if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    for (const auto& [version, builds] : version_map)
                     {
-                        continue;
-                    }
-
-                    auto chans = channel_context.make_channel(v.channel);
-
-                    if (from_history)
-                    {
-                        dependencies << "  - " << requested_specs_map[k].str() << "\n";
-                    }
-                    else
-                    {
-                        dependencies << "  - ";
-                        if (channel_subdir)
+                        for (const auto& pkg_info : builds)
                         {
-                            dependencies
-                                // If the size is not one, it's a custom multi channel
-                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.platform << "::";
-                        }
-                        dependencies << v.name << "=" << v.version;
-                        if (!no_build)
-                        {
-                            dependencies << "=" << v.build_string;
-                        }
-                        if (no_md5 == -1)
-                        {
-                            dependencies << "[md5=" << v.md5 << "]";
-                        }
-                        dependencies << "\n";
-                    }
+                            auto chans = channel_context.make_channel(pkg_info.channel);
+                            dependencies << "  - ";
+                            if (channel_subdir)
+                            {
+                                dependencies
+                                    // If the size is not one, it's a custom multi channel
+                                    << ((chans.size() == 1) ? chans.front().display_name()
+                                                            : pkg_info.channel)
+                                    << "/" << pkg_info.platform << "::";
+                            }
+                            dependencies << pkg_info.name << "=" << pkg_info.version;
+                            if (!no_build)
+                            {
+                                dependencies << "=" << pkg_info.build_string;
+                            }
+                            if (no_md5 == -1)
+                            {
+                                dependencies << "[md5=" << pkg_info.md5 << "]";
+                            }
+                            dependencies << "\n";
 
-                    for (const auto& chan : chans)
-                    {
-                        channels.insert(chan.display_name());
+                            for (const auto& chan : chans)
+                            {
+                                channels.insert(chan.display_name());
+                            }
+                        }
                     }
                 }
                 // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
                 if (!pip_versions_map.empty())
                 {
                     dependencies << "  - pip:\n";
-                    for (const auto& [k, v] : pip_versions_map)
+                    for (const auto& [name, version_map] : pip_versions_map)
                     {
-                        dependencies << "    - " << v.name << "==" << v.version << "\n";
+                        for (const auto& [version, builds] : version_map)
+                        {
+                            for (const auto& pkg_info : builds)
+                            {
+                                dependencies << "    - " << pkg_info.name
+                                             << "==" << pkg_info.version << "\n";
+                            }
+                        }
                     }
                 }
 

@@ -20,9 +20,14 @@ namespace mamba
         std::string py_version;
 
         auto iter = prefix_data.records().find("python");
-        if (iter != prefix_data.records().end())
+        if (iter != prefix_data.records().end() && !iter->second.empty())
         {
-            py_version = iter->second.version;
+            // Get the first version's first build
+            const auto& first_version = iter->second.begin()->second;
+            if (!first_version.empty())
+            {
+                py_version = first_version[0].version;
+            }
         }
         else
         {

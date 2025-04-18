@@ -183,6 +183,9 @@ namespace mamba
             /* no_py_pin = */ config.at("no_py_pin").value<bool>()
         );
 
+        // Add a reference to the prefix data to the context
+        ctx.prefix_data = prefix_data;
+
         request.flags = ctx.solver_flags;
 
         {

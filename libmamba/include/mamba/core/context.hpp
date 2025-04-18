@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
+#include <functional>
 #include <map>
 #include <optional>
 #include <string>
@@ -14,6 +15,7 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/palette.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -246,6 +248,9 @@ namespace mamba
         // Notice that we cannot build this map directly from mirrored_channels,
         // since we need to add a single "mirror" for non mirrored channels
         download::mirror_map mirrors;
+
+        // Optional reference to PrefixData
+        std::optional<std::reference_wrapper<PrefixData>> prefix_data;
 
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;

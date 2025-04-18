@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/history.hpp"
@@ -22,7 +23,8 @@ namespace mamba
     {
     public:
 
-        using package_map = std::map<std::string, specs::PackageInfo>;
+        using package_version_map = std::map<std::string, std::vector<specs::PackageInfo>>;
+        using package_map = std::map<std::string, package_version_map>;
 
         static expected_t<PrefixData>
         create(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip = false);
@@ -48,6 +50,7 @@ namespace mamba
         PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip);
 
         void load_site_packages();
+        void insert_package_record(specs::PackageInfo&& pkg, bool is_pip = false);
 
         History m_history;
         package_map m_package_records;

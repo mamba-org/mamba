@@ -17,7 +17,7 @@ using namespace mamba::specs;
 
 namespace
 {
-    TEST_CASE("atom_comparison")
+    TEST_CASE("atom_comparison", "[mamba::specs][mamba::specs::Version]")
     {
         // No literal
         REQUIRE(VersionPartAtom(1) == VersionPartAtom(1, ""));
@@ -59,13 +59,13 @@ namespace
         REQUIRE(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()) == sorted_atoms.cend());
     }
 
-    TEST_CASE("atom_format")
+    TEST_CASE("atom_format", "[mamba::specs][mamba::specs::Version]")
     {
         REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
         REQUIRE(VersionPartAtom(2).str() == "2");
     }
 
-    TEST_CASE("version_comparison")
+    TEST_CASE("version_comparison", "[mamba::specs][mamba::specs::Version]")
     {
         auto v = Version(0, { { { 1, "post" } } });
         REQUIRE(v.version().size() == 1);
@@ -97,7 +97,7 @@ namespace
         REQUIRE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }) >= Version(0, { { { 2 }, { 0 } } }));
     }
 
-    TEST_CASE("Version starts_with")
+    TEST_CASE("Version starts_with", "[mamba::specs][mamba::specs::Version]")
     {
         SECTION("positive")
         {
@@ -188,7 +188,7 @@ namespace
         }
     }
 
-    TEST_CASE("compatible_with")
+    TEST_CASE("compatible_with", "[mamba::specs][mamba::specs::Version]")
     {
         SECTION("positive")
         {
@@ -303,11 +303,11 @@ namespace
         }
     }
 
-    TEST_CASE("version_format")
+    TEST_CASE("version_format", "[mamba::specs][mamba::specs::Version]")
     {
         SECTION("11a0post.3.4dev")
         {
-            auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
+            const auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
             REQUIRE(v.str() == "11a0post.3.4dev");
             REQUIRE(v.str(1) == "11a0post");
             REQUIRE(v.str(2) == "11a0post.3");
@@ -318,7 +318,7 @@ namespace
 
         SECTION("1!11a0.3.4dev")
         {
-            auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
+            const auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
             REQUIRE(v.str() == "1!11a0.3.4dev");
             REQUIRE(v.str(1) == "1!11a0");
             REQUIRE(v.str(2) == "1!11a0.3");
@@ -328,7 +328,7 @@ namespace
 
         SECTION("1!11a0.3.4dev+1.2")
         {
-            auto v = Version(
+            const auto v = Version(
                 1,
                 { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
                 { { { 1 } }, { { 2 } } }
@@ -339,6 +339,17 @@ namespace
             REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
             REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
         }
+
+        SECTION("*.1.*")
+        {
+            const auto v = Version(0, { { { 0, "*" } }, { { 1 } }, { { 0, "*" } } }, {});
+            REQUIRE(v.str() == "0*.1.0*");
+            REQUIRE(v.str(1) == "0*");
+            REQUIRE(v.str(2) == "0*.1");
+            REQUIRE(v.str(3) == "0*.1.0*");
+            REQUIRE(v.str(4) == "0*.1.0*.0");
+            REQUIRE(v.str_glob() == "*.1.*");
+        }
     }
 
     /**
@@ -346,7 +357,7 @@ namespace
      *
      * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
      */
-    TEST_CASE("Version parse")
+    TEST_CASE("Version parse", "[mamba::specs][mamba::specs::Version]")
     {
         // clang-format off
             auto sorted_version = std::vector<std::pair<std::string_view, Version>>{
@@ -430,9 +441,22 @@ namespace
         REQUIRE(Version::parse("0.4").value() != Version::parse("0.4.1"));
         REQUIRE(Version::parse("0.4.a1").value() == Version::parse("0.4.0a1"));
         REQUIRE(Version::parse("0.4.a1").value() != Version::parse("0.4.1a1"));
+
+        // These are valid versions with the special '*' ordering AND they are also used as such
+        // with version globs in VersionSpec
+        REQUIRE(Version::parse("*") == Version(0, { { { 0, "*" } } }));
+        REQUIRE(Version::parse("*.*") == Version(0, { { { 0, "*" } }, { { 0, "*" } } }));
+        REQUIRE(
+            Version::parse("*.*.*") == Version(0, { { { 0, "*" } }, { { 0, "*" } }, { { 0, "*" } } })
+        );
+        REQUIRE(
+            Version::parse("*.*.2023.12")
+            == Version(0, { { { 0, "*" } }, { { 0, "*" } }, { { 2023, "" } }, { { 12, "" } } })
+        );
+        REQUIRE(Version::parse("1.*") == Version(0, { { { 1, "" } }, { { 0, "*" } } }));
     }
 
-    TEST_CASE("parse_invalid")
+    TEST_CASE("parse_invalid", "[mamba::specs][mamba::specs::Version]")
     {
         // Wrong epoch
         REQUIRE_FALSE(Version::parse("!1.1").has_value());
@@ -481,7 +505,7 @@ namespace
      *
      * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
      */
-    TEST_CASE("parse_openssl")
+    TEST_CASE("parse_openssl", "[mamba::specs][mamba::specs::Version]")
     {
         // clang-format off
             auto versions = std::vector{
@@ -517,7 +541,7 @@ namespace
      * @see https://github.com/conda/conda/blob/main/tests/models/test_version.py
      * @see https://github.com/pypa/packaging/blob/master/tests/test_version.py
      */
-    TEST_CASE("parse_pep440")
+    TEST_CASE("parse_pep440", "[mamba::specs][mamba::specs::Version]")
     {
         auto versions = std::vector{
             // Implicit epoch of 0

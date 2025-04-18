@@ -131,6 +131,14 @@ namespace mamba::specs
          */
         [[nodiscard]] auto str(std::size_t level) const -> std::string;
 
+        /**
+         * String representation that treats ``*`` as glob pattern.
+         *
+         * Instead of printing them as ``0*`` (as a special literal), it formats them as ``*``.
+         * In full, a version like ``*.1.*`` will print as such instead of ``0*.1.0*``.
+         */
+        [[nodiscard]] auto str_glob() const -> std::string;
+
         [[nodiscard]] auto operator==(const Version& other) const -> bool;
         [[nodiscard]] auto operator!=(const Version& other) const -> bool;
         [[nodiscard]] auto operator<(const Version& other) const -> bool;
@@ -184,7 +192,19 @@ struct fmt::formatter<mamba::specs::VersionPartAtom>
 template <>
 struct fmt::formatter<mamba::specs::Version>
 {
+    enum struct FormatType
+    {
+        Normal,
+        /**
+         * The Glob pattern, as used internally ``VersionPredicate``, lets you treat ``*`` as a
+         * glob pattern instead of the special character.
+         * It lets you format ``*.*`` as such instead of ``0*.0*``.
+         */
+        Glob,
+    };
+
     std::optional<std::size_t> m_level;
+    FormatType m_type = FormatType::Normal;
 
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 

@@ -30,11 +30,22 @@ namespace mamba
             bool canonical = false;
             bool export_ = false;
             bool revisions = false;
+            enum class Format
+            {
+                JSON,
+                TABLE
+            } format
+                = Format::TABLE;
         };
 
         struct formatted_pkg
         {
             std::string name, version, build, channel, url, md5, build_string, platform;
+
+            void print(std::ostream& out) const
+            {
+                out << name << " " << version << " " << build << " " << channel << std::endl;
+            }
         };
 
         bool compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
@@ -146,63 +157,51 @@ namespace mamba
 
             std::regex spec_pat(regex);
 
-            auto accept_package = [&regex, &spec_pat](const specs::PackageInfo& pkg_info) -> bool
-            { return (regex.empty() || std::regex_search(pkg_info.name, spec_pat)); };
-
-            auto all_records = prefix_data.all_pkg_mgr_records();
-
-            if (ctx.output_params.json)
+            auto accept_package = [&regex, &spec_pat, &options](const specs::PackageInfo& pkg_info
+                                  ) -> bool
             {
-                auto jout = nlohmann::json::array();
-
-                if (options.revisions)
+                if (regex.empty())
                 {
-                    auto user_requests = prefix_data.history().get_user_requests();
+                    return true;
+                }
+                if (options.full_name)
+                {
+                    return std::regex_match(pkg_info.name, spec_pat);
+                }
+                return std::regex_search(pkg_info.name, spec_pat);
+            };
 
-                    for (auto r : user_requests)
+            if (options.format == ListOptions::Format::JSON)
+            {
+                nlohmann::json j;
+                for (const auto& [name, version_map] : prefix_data.records())
+                {
+                    for (const auto& [version, builds] : version_map)
                     {
-                        if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                        for (const auto& pkg_info : builds)
                         {
-                            auto obj = nlohmann::json();
+                            if (accept_package(pkg_info))
+                            {
+                                nlohmann::json obj;
+                                auto channels = channel_context.make_channel(pkg_info.channel);
+                                assert(channels.size() == 1);  // A URL can only resolve to one
+                                                               // channel
 
-                            obj["date"] = r.date;
-                            obj["install"] = r.link_dists;
-                            obj["remove"] = r.unlink_dists;
-                            obj["rev"] = r.revision_num;
-                            jout.push_back(obj);
+                                obj["channel"] = get_formatted_channel(pkg_info, channels.front());
+                                obj["url"] = pkg_info.package_url;
+                                obj["md5"] = pkg_info.md5;
+                                obj["build_number"] = pkg_info.build_number;
+                                obj["build_string"] = pkg_info.build_string;
+                                obj["dist_name"] = pkg_info.str();
+                                obj["name"] = pkg_info.name;
+                                obj["platform"] = pkg_info.platform;
+                                obj["version"] = pkg_info.version;
+                                j.push_back(obj);
+                            }
                         }
                     }
                 }
-                else
-                {
-                    std::vector<std::string> keys;
-                    keys = get_record_keys(options, all_records);
-
-                    for (const auto& key : keys)
-                    {
-                        auto obj = nlohmann::json();
-                        const auto& pkg_info = all_records.find(key)->second;
-
-                        if (accept_package(pkg_info))
-                        {
-                            auto channels = channel_context.make_channel(pkg_info.package_url);
-                            assert(channels.size() == 1);  // A URL can only resolve to one channel
-
-                            obj["channel"] = get_formatted_channel(pkg_info, channels.front());
-                            obj["base_url"] = get_base_url(pkg_info, channels.front());
-                            obj["url"] = pkg_info.package_url;
-                            obj["md5"] = pkg_info.md5;
-                            obj["build_number"] = pkg_info.build_number;
-                            obj["build_string"] = pkg_info.build_string;
-                            obj["dist_name"] = pkg_info.str();
-                            obj["name"] = pkg_info.name;
-                            obj["platform"] = pkg_info.platform;
-                            obj["version"] = pkg_info.version;
-                            jout.push_back(obj);
-                        }
-                    }
-                }
-                std::cout << jout.dump(4) << std::endl;
+                std::cout << j.dump(4) << std::endl;
             }
             else
             {
@@ -213,22 +212,32 @@ namespace mamba
 
                 std::vector<formatted_pkg> packages;
 
-                // order list of packages from prefix_data by alphabetical order
-                for (const auto& package : all_records)
+                for (const auto& [name, version_map] : prefix_data.records())
                 {
-                    if (accept_package(package.second))
+                    for (const auto& [version, builds] : version_map)
                     {
-                        auto channels = channel_context.make_channel(package.second.channel);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = get_formatted_channel(package.second, channels.front());
-                        formatted_pkgs.name = package.second.name;
-                        formatted_pkgs.version = package.second.version;
-                        formatted_pkgs.build = package.second.build_string;
-                        formatted_pkgs.url = package.second.package_url;
-                        formatted_pkgs.md5 = package.second.md5;
-                        formatted_pkgs.build_string = package.second.build_string;
-                        formatted_pkgs.platform = package.second.platform;
-                        packages.push_back(formatted_pkgs);
+                        for (const auto& pkg_info : builds)
+                        {
+                            if (accept_package(pkg_info))
+                            {
+                                auto channels = channel_context.make_channel(pkg_info.channel);
+                                assert(channels.size() == 1);  // A URL can only resolve to one
+                                                               // channel
+
+                                formatted_pkgs.channel = get_formatted_channel(
+                                    pkg_info,
+                                    channels.front()
+                                );
+                                formatted_pkgs.name = pkg_info.name;
+                                formatted_pkgs.version = pkg_info.version;
+                                formatted_pkgs.build = pkg_info.build_string;
+                                formatted_pkgs.url = pkg_info.package_url;
+                                formatted_pkgs.md5 = pkg_info.md5;
+                                formatted_pkgs.build_string = pkg_info.build_string;
+                                formatted_pkgs.platform = pkg_info.platform;
+                                packages.push_back(formatted_pkgs);
+                            }
+                        }
                     }
                 }
 

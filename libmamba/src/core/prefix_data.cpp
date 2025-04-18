@@ -76,7 +76,7 @@ namespace mamba
         {
             LOG_DEBUG << "Adding virtual package: " << pkg.name << "=" << pkg.version << "="
                       << pkg.build_string;
-            m_package_records.insert({ pkg.name, std::move(pkg) });
+            insert_package_record(specs::PackageInfo(pkg), /* is_pip = */ false);
         }
     }
 
@@ -112,10 +112,17 @@ namespace mamba
             auto name_to_node_id = std::unordered_map<std::string_view, node_id>();
 
             // Add all nodes
-            for (const auto& [name, record] : records())
+            for (const auto& [name, version_map] : records())
             {
-                name_to_node_id[name] = dep_graph.add_node(&record);
+                for (const auto& [version, builds] : version_map)
+                {
+                    for (const auto& record : builds)
+                    {
+                        name_to_node_id[name] = dep_graph.add_node(&record);
+                    }
+                }
             }
+
             // Add all inverse dependency edges.
             // Since there must be only one package with a given name, we assume that the dependency
             // version are matched properly and that only names must be checked.
@@ -198,7 +205,8 @@ namespace mamba
         assert(channels.size() == 1);
         using Credentials = specs::CondaURL::Credentials;
         prec.channel = channels.front().platform_url(prec.platform).str(Credentials::Remove);
-        m_package_records.insert({ prec.name, std::move(prec) });
+
+        insert_package_record(std::move(prec), /* is_pip = */ false);
     }
 
     // Load python packages installed with pip in the site-packages of the prefix.
@@ -327,10 +335,18 @@ namespace mamba
                             prec.platform = j["environment"]["sys_platform"].get<std::string>() + "-"
                                             + j["environment"]["platform_machine"].get<std::string>();
                         }
-                        m_pip_package_records.insert({ prec.name, std::move(prec) });
+                        insert_package_record(std::move(prec), /* is_pip = */ true);
                     }
                 }
             }
         }
+    }
+
+    void PrefixData::insert_package_record(specs::PackageInfo&& pkg, bool is_pip)
+    {
+        auto& records = is_pip ? m_pip_package_records : m_package_records;
+        auto& version_map = records[pkg.name];
+        auto& builds = version_map[pkg.version];
+        builds.push_back(std::move(pkg));
     }
 }  // namespace mamba

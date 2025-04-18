@@ -857,12 +857,10 @@ namespace mamba
         auto paths_data = read_paths(m_source);
 
         LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
-
         std::ifstream repodata_f = open_ifstream(m_source / "info" / "repodata_record.json");
         repodata_f >> index_json;
 
         std::string f_name = m_pkg_info.str();
-
         LOG_DEBUG << "Linking package '" << f_name << "' from '" << m_source.string() << "'";
 
         // handle noarch packages
@@ -936,66 +934,77 @@ namespace mamba
             paths_json["paths"].push_back(json_record);
         }
 
-        for (std::size_t i = 0; i < paths_data.size(); ++i)
-        {
-            auto& path = paths_data[i];
-            if (path.path_type == PathType::SOFTLINK)
-            {
-                // here we try to avoid recomputing the costly sha256 sum
-                std::error_code ec;
-                auto points_to = fs::canonical(m_context->target_prefix / files_record[i], ec);
-                bool found = false;
-                if (!ec)
-                {
-                    for (std::size_t pix = 0; pix < files_record.size(); ++pix)
-                    {
-                        if ((m_context->target_prefix / files_record[pix]) == points_to)
-                        {
-                            if (paths_json["paths"][pix].contains("sha256_in_prefix"))
-                            {
-                                LOG_TRACE << "Found symlink and target " << files_record[i]
-                                          << " -> " << files_record[pix];
-                                // use already computed value
-                                paths_json["paths"][i]["sha256_in_prefix"] = paths_json["paths"][pix]
-                                                                                       ["sha256_in_prefix"];
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!found)
-                {
-                    bool exists = fs::exists(m_context->target_prefix / files_record[i], ec);
-                    if (ec)
-                    {
-                        LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
-                                    << ec.message();
-                        exists = false;
-                    }
+        LOG_DEBUG << paths_data.size() << " files linked";
 
-                    if (exists)
+        // Get the existing PrefixData instance
+        if (!context.prefix_data.has_value())
+        {
+            throw std::runtime_error("No prefix data available in context");
+        }
+        auto& prefix_data = context.prefix_data.value();
+
+        // Find the existing package record
+        const auto& records = prefix_data.get().records();
+        const auto& version_map = records.at(m_pkg_info.name);
+        const auto& builds = version_map.at(m_pkg_info.version);
+
+        // Find the package with matching build number and checksums
+        const specs::PackageInfo* pkg_record = nullptr;
+        for (const auto& build : builds)
+        {
+            if (build.build_string == m_pkg_info.build_string)
+            {
+                // Check sha256 if present in both records
+                if (!m_pkg_info.sha256.empty() && !build.sha256.empty())
+                {
+                    if (m_pkg_info.sha256 != build.sha256)
                     {
-                        paths_json["paths"][i]["sha256_in_prefix"] = validation::sha256sum(
-                            m_context->target_prefix / files_record[i]
-                        );
-                    }
-                    else
-                    {
-                        // for broken symlinks (that don't yet point anywhere valid) we record the
-                        // sha256 for an empty string
-                        paths_json["paths"][i]["sha256_in_prefix"] = MAMBA_EMPTY_SHA;
+                        LOG_DEBUG << "sha256 mismatch for " << m_pkg_info.str() << " "
+                                  << m_pkg_info.build_string << " " << build.sha256 << " "
+                                  << m_pkg_info.sha256;
+                        continue;
                     }
                 }
+                // Check md5 if present in both records
+                if (!m_pkg_info.md5.empty() && !build.md5.empty())
+                {
+                    if (m_pkg_info.md5 != build.md5)
+                    {
+                        LOG_DEBUG << "md5 mismatch for " << m_pkg_info.str() << " "
+                                  << m_pkg_info.build_string << " " << build.md5 << " "
+                                  << m_pkg_info.md5;
+                        continue;
+                    }
+                }
+                pkg_record = &build;
+                break;
             }
         }
 
-        LOG_DEBUG << paths_data.size() << " files linked";
+        if (!pkg_record)
+        {
+            throw std::runtime_error("Could not find package record for " + m_pkg_info.str());
+        }
 
-        out_json = index_json;
-        out_json["paths_data"] = paths_json;
-        out_json["files"] = files_record;
+        // Create the conda-meta JSON file
+        fs::u8path prefix_meta = m_context->target_prefix / "conda-meta";
+        if (!fs::exists(prefix_meta))
+        {
+            fs::create_directory(prefix_meta);
+        }
 
+        auto meta = prefix_meta / (f_name + ".json");
+        LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
+
+        // Convert the package record to JSON
+        nlohmann::json pkg_json = *pkg_record;
+        pkg_json["paths_data"] = paths_json;
+        pkg_json["files"] = files_record;
+        pkg_json["package_tarball_full_path"] = m_source.string() + ".tar.bz2";
+        pkg_json["extracted_package_dir"] = m_source.string();
+        pkg_json["link"] = { { "source", m_source.string() }, { "type", 1 } };
+
+        // Add requested spec if available
         specs::MatchSpec* requested_spec = nullptr;
         for (auto& ms : m_context->requested_specs)
         {
@@ -1004,13 +1013,9 @@ namespace mamba
                 requested_spec = &ms;
             }
         }
-        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
-        out_json["package_tarball_full_path"] = m_source.string() + ".tar.bz2";
-        out_json["extracted_package_dir"] = m_source.string();
+        pkg_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
 
-        // TODO find out what `1` means
-        out_json["link"] = { { "source", m_source.string() }, { "type", 1 } };
-
+        // Handle Python noarch packages
         if (noarch_type == NoarchType::PYTHON)
         {
             fs::u8path link_json_path = m_source / "info" / "link.json";
@@ -1036,10 +1041,10 @@ namespace mamba
             std::vector<fs::u8path> pyc_files = compile_pyc_files(for_compilation);
             for (const fs::u8path& pyc_path : pyc_files)
             {
-                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.generic_string() },
+                pkg_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.generic_string() },
                                                             { "path_type", "pyc_file" } });
 
-                out_json["files"].push_back(pyc_path.generic_string());
+                pkg_json["files"].push_back(pyc_path.generic_string());
             }
 
             if (link_json.find("noarch") != link_json.end()
@@ -1055,19 +1060,19 @@ namespace mamba
                     auto files = create_python_entry_point(entry_point_path, entry_point_parsed);
 
 #ifdef _WIN32
-                    out_json["paths_data"]["paths"].push_back(
+                    pkg_json["paths_data"]["paths"].push_back(
                         { { "_path", files[0] }, { "path_type", "windows_python_entry_point_script" } }
                     );
-                    out_json["paths_data"]["paths"].push_back(
+                    pkg_json["paths_data"]["paths"].push_back(
                         { { "_path", files[1] }, { "path_type", "windows_python_entry_point_exe" } }
                     );
-                    out_json["files"].push_back(files[0]);
-                    out_json["files"].push_back(files[1]);
+                    pkg_json["files"].push_back(files[0]);
+                    pkg_json["files"].push_back(files[1]);
 #else
-                    out_json["paths_data"]["paths"].push_back(
+                    pkg_json["paths_data"]["paths"].push_back(
                         { { "_path", files }, { "path_type", "unix_python_entry_point" } }
                     );
-                    out_json["files"].push_back(files);
+                    pkg_json["files"].push_back(files);
 #endif
                 }
             }
@@ -1088,17 +1093,9 @@ namespace mamba
 
         run_script(context, m_context->target_prefix, m_pkg_info, "post-link", "", true);
 
-        fs::u8path prefix_meta = m_context->target_prefix / "conda-meta";
-        if (!fs::exists(prefix_meta))
-        {
-            fs::create_directory(prefix_meta);
-        }
-
-        LOG_DEBUG << "Finalizing linking";
-        auto meta = prefix_meta / (f_name + ".json");
-        LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
+        // Write the JSON file
         std::ofstream out_file = open_ofstream(meta);
-        out_file << out_json.dump(4);
+        out_file << pkg_json.dump(4);
 
         if (!m_clobber_warnings.empty())
         {

@@ -9,6 +9,23 @@
 
 #include "mamba/fs/filesystem.hpp"
 
+// The ODR warning occurs because pybind11's type_caster is defined in multiple translation units.
+// This is unavoidable because:
+//
+// 1. The `type_caster` specialization must be defined in a header file to be available to all
+// translation units
+// 2. pybind11's own type_caster is defined in `cast.h` which is included in multiple places
+// 3. We cannot make the specialization inline or move it to a source file without breaking
+// pybind11's type system.
+//
+// Therefore, we silence the warning as it's a false positive in this case -
+// the definitions are identical.
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wodr"
+#endif
+
 namespace PYBIND11_NAMESPACE
 {
     namespace detail
@@ -19,3 +36,7 @@ namespace PYBIND11_NAMESPACE
         };
     }
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif

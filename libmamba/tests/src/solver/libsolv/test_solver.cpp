@@ -1006,6 +1006,56 @@ namespace
             REQUIRE(std::holds_alternative<Solution::Install>(bar_actions.front()));
             REQUIRE(std::get<Solution::Install>(bar_actions.front()).install.version == "1.0");
         }
+
+        SECTION("Uneeded pins are not installed")
+        {
+            auto pkg1 = PackageInfo("foo");
+            pkg1.version = "1.0";
+            auto pkg2 = PackageInfo("bar");
+            pkg2.version = "1.0";
+
+            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "bar"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            const auto foo_actions = find_actions_with_name(solution, "foo");
+            REQUIRE(foo_actions.empty());
+
+            const auto bar_actions = find_actions_with_name(solution, "bar");
+            REQUIRE(bar_actions.size() == 1);
+        }
+
+        SECTION("Invalid pins are not an error")
+        {
+            auto pkg = PackageInfo("bar");
+            pkg.version = "1.0";
+
+            db.add_repo_from_packages(std::array{ pkg });
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "bar"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            const auto foo_actions = find_actions_with_name(solution, "foo");
+            REQUIRE(foo_actions.empty());
+
+            const auto bar_actions = find_actions_with_name(solution, "bar");
+            REQUIRE(bar_actions.size() == 1);
+        }
     }
 
     TEST_CASE("Handle complex matchspecs")

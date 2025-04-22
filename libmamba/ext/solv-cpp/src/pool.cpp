@@ -389,6 +389,11 @@ namespace solv
 
     ObjPool::~ObjPool() = default;
 
+    auto ObjPool::view() const -> ObjPoolView
+    {
+        return *static_cast<const ObjPoolView*>(this);
+    }
+
     void ObjPool::set_namespace_callback(UserCallback&& callback)
     {
         m_user_namespace_callback = std::make_unique<NamespaceCallbackWrapper>();

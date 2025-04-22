@@ -323,6 +323,8 @@ namespace solv
         ObjPool();
         ~ObjPool();
 
+        [[nodiscard]] auto view() const -> ObjPoolView;
+
         using ObjPoolView::raw;
         using ObjPoolView::current_error;
         using ObjPoolView::set_current_error;

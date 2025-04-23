@@ -324,7 +324,8 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        auto matchspec2id(solv::ObjPool& pool, const specs::MatchSpec& ms) -> solv::DependencyId
+        auto pool_add_matchspec_throwing(solv::ObjPool& pool, const specs::MatchSpec& ms)
+            -> solv::DependencyId
         {
             return pool_add_matchspec(pool, ms, MatchSpecParser::Mixed)
                 .or_else([](mamba_error&& error) { throw std::move(error); })
@@ -337,7 +338,7 @@ namespace mamba::solver::libsolv
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), ms);
+        const auto ms_id = pool_add_matchspec_throwing(pool(), ms);
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(
@@ -354,7 +355,7 @@ namespace mamba::solver::libsolv
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), ms);
+        const auto ms_id = pool_add_matchspec_throwing(pool(), ms);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(

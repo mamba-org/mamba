@@ -433,16 +433,20 @@ namespace mamba
         std::ifstream index_file = open_ifstream(index_path);
         index_file >> index;
 
-        const nlohmann::json solvable_json = m_package_info;
-        index.insert(solvable_json.cbegin(), solvable_json.cend());
+        nlohmann::json repodata_record = m_package_info;
 
-        if (index.find("size") == index.end() || index["size"] == 0)
+        // To take correction of packages metadata (e.g. made using repodata patches) into account,
+        // we insert the index into the repodata record to only add new fields from the index
+        // while keeping the existing fields from the repodata record.
+        repodata_record.insert(index.cbegin(), index.cend());
+
+        if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
         {
-            index["size"] = fs::file_size(m_tarball_path);
+            repodata_record["size"] = fs::file_size(m_tarball_path);
         }
 
-        std::ofstream repodata_record(repodata_record_path.std_path());
-        repodata_record << index.dump(4);
+        std::ofstream repodata_record_file(repodata_record_path.std_path());
+        repodata_record_file << repodata_record.dump(4);
     }
 
     namespace

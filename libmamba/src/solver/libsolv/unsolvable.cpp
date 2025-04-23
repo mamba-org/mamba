@@ -338,7 +338,15 @@ namespace mamba::solver::libsolv
         void ProblemsGraphCreator::parse_problems()
         {
             // TODO Throwing error for now but we should use expected in UnSolvable API
-            auto make_match_spec = [&](std::string_view str) -> specs::MatchSpec
+            auto make_match_spec = [&](solv::DependencyId dep) -> specs::MatchSpec
+            {
+                return pool_get_matchspec(m_pool.view(), dep)
+                    .or_else([](auto&& err) { throw std::move(err); })
+                    .value();
+            };
+            // Re-create a MatchSpec from string. This is not the prefer way, as libsolv
+            // representation may not be the same as ours.
+            auto make_match_spec_str = [&](std::string_view str) -> specs::MatchSpec
             {
                 return specs::MatchSpec::parse(str)
                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
@@ -392,9 +400,9 @@ namespace mamba::solver::libsolv
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{ make_match_spec(dep.value()) }
+                            ConstraintNode{ make_match_spec(problem.dep_id) }
                         );
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -414,7 +422,7 @@ namespace mamba::solver::libsolv
                             problem.source_id,
                             PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -433,7 +441,7 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -453,10 +461,10 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ make_match_spec(dep.value()) }
+                            UnresolvedDependencyNode{ make_match_spec(problem.dep_id) }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -472,14 +480,14 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ make_match_spec(dep.value()) }
+                            UnresolvedDependencyNode{ make_match_spec(problem.dep_id) }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -522,7 +530,7 @@ namespace mamba::solver::libsolv
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.
-                        auto edge = make_match_spec(source.value().name);
+                        auto edge = make_match_spec_str(source.value().name);
                         // The package cannot exist without its name in the pool
                         assert(m_pool.find_string(edge.name().str()).has_value());
                         const auto dep_id = m_pool.find_string(edge.name().str()).value();

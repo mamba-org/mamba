@@ -111,6 +111,11 @@ namespace mamba::solver::libsolv
         const specs::MatchSpec& pin_ms
     ) -> expected_t<solv::ObjSolvableView>;
 
+    [[nodiscard]] auto pool_get_matchspec(  //
+        solv::ObjPoolView pool,
+        solv::DependencyId dep
+    ) -> expected_t<specs::MatchSpec>;
+
     [[nodiscard]] auto transaction_to_solution_all(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans

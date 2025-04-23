@@ -453,7 +453,8 @@ namespace mamba::solver::libsolv
                 packages,
                 signatures,
                 /* filter= */ [](const auto&) { return true; },
-                /* on_parsed= */ [&](const auto& fn)
+                /* on_parsed= */
+                [&](const auto& fn)
                 { filenames.insert(std::string(specs::strip_archive_extension(fn))); }
             );
             // Sort only once
@@ -480,8 +481,8 @@ namespace mamba::solver::libsolv
                 default_subdir,
                 packages,
                 signatures,
-                /* filter= */ [&](const auto& fn)
-                { return !added.contains(specs::strip_archive_extension(fn)); },
+                /* filter= */
+                [&](const auto& fn) { return !added.contains(specs::strip_archive_extension(fn)); },
                 /* on_parsed= */ [&](const auto&) {}
             );
         }
@@ -1019,6 +1020,45 @@ namespace mamba::solver::libsolv
 
                 return cons_solv;
             }
+        );
+    }
+
+    auto pool_get_matchspec(  //
+        solv::ObjPoolView pool,
+        solv::DependencyId dep
+    ) -> expected_t<specs::MatchSpec>
+    {
+        constexpr auto make_ms = [](const auto& str) -> expected_t<specs::MatchSpec>
+        {
+            return specs::MatchSpec::parse(str).transform_error(
+                [](auto&& err) -> mamba_error
+                { return mamba_error(err.what(), mamba_error_code::invalid_spec); }
+            );
+        };
+
+        if (!ISRELDEP(dep))
+        {
+            return make_ms(pool.get_string(dep));
+        }
+
+        const auto rel = GETRELDEP(pool.raw(), dep);
+        assert(rel != nullptr);
+
+        switch (rel->flags)
+        {
+            case REL_CONDA:
+            {
+                return make_ms(pool.dependency_to_string(dep));
+            }
+            case REL_NAMESPACE:
+            {
+                auto [str, _flags] = get_abused_namespace_callback_args(pool, rel->name, rel->evr);
+                return make_ms(str);
+            }
+        }
+        return make_unexpected(
+            "An unknown relation was added to libsolv",
+            mamba_error_code::incorrect_usage
         );
     }
 

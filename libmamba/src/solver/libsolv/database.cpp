@@ -326,7 +326,7 @@ namespace mamba::solver::libsolv
     {
         auto matchspec2id(solv::ObjPool& pool, const specs::MatchSpec& ms) -> solv::DependencyId
         {
-            return pool_add_matchspec(pool, ms)
+            return pool_add_matchspec(pool, ms, MatchSpecParser::Mixed)
                 .or_else([](mamba_error&& error) { throw std::move(error); })
                 .value_or(0);
         }

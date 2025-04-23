@@ -913,7 +913,8 @@ namespace mamba::solver::libsolv
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& ms
+        const specs::MatchSpec& ms,
+        MatchSpecParser parser
     ) -> expected_t<solv::DependencyId>
     {
         auto check_not_zero = [&](solv::DependencyId id) -> expected_t<solv::DependencyId>
@@ -928,12 +929,22 @@ namespace mamba::solver::libsolv
             return id;
         };
 
-        if (ms.is_simple())
+        if (parser == MatchSpecParser::Mixed)
+        {
+            parser = ms.is_simple() ? MatchSpecParser::Libsolv : MatchSpecParser::Mamba;
+        }
+
+        if (parser == MatchSpecParser::Libsolv)
         {
             return check_not_zero(pool.add_legacy_conda_dependency(ms.conda_build_form()));
         }
-        const auto [first, second] = make_abused_namespace_dep_args(pool, ms.str());
-        return check_not_zero(pool.add_dependency(first, REL_NAMESPACE, second));
+        else if (parser == MatchSpecParser::Mamba)
+        {
+            const auto [first, second] = make_abused_namespace_dep_args(pool, ms.str());
+            return check_not_zero(pool.add_dependency(first, REL_NAMESPACE, second));
+        }
+
+        return make_unexpected("Invalid parser enum", mamba_error_code::incorrect_usage);
     }
 
     auto pool_add_pin(  //
@@ -991,36 +1002,37 @@ namespace mamba::solver::libsolv
             return repo;
         }();
 
-        return pool_add_matchspec(pool, pin).transform(
-            [&](solv::DependencyId cons)
-            {
-                // Add dummy solvable with a constraint on the pin (not installed if not
-                // present)
-                auto [cons_solv_id, cons_solv] = installed.add_solvable();
-                const std::string cons_solv_name = fmt::format(
-                    "pin-{}",
-                    util::generate_random_alphanumeric_string(10)
-                );
-                cons_solv.set_name(cons_solv_name);
-                cons_solv.set_version("1");
+        return pool_add_matchspec(pool, pin, MatchSpecParser::Mixed)
+            .transform(
+                [&](solv::DependencyId cons)
+                {
+                    // Add dummy solvable with a constraint on the pin (not installed if not
+                    // present)
+                    auto [cons_solv_id, cons_solv] = installed.add_solvable();
+                    const std::string cons_solv_name = fmt::format(
+                        "pin-{}",
+                        util::generate_random_alphanumeric_string(10)
+                    );
+                    cons_solv.set_name(cons_solv_name);
+                    cons_solv.set_version("1");
 
-                cons_solv.add_constraint(cons);
+                    cons_solv.add_constraint(cons);
 
-                // Solvable need to provide itself
-                cons_solv.add_self_provide();
+                    // Solvable need to provide itself
+                    cons_solv.add_self_provide();
 
-                // Even if we lock it, libsolv may still try to remove it with
-                // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
-                // it out in the transaction
-                cons_solv.set_type(solv::SolvableType::Pin);
+                    // Even if we lock it, libsolv may still try to remove it with
+                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
+                    // it out in the transaction
+                    cons_solv.set_type(solv::SolvableType::Pin);
 
-                // Necessary for attributes to be properly stored
-                // TODO move this at the end of all job requests
-                installed.internalize();
+                    // Necessary for attributes to be properly stored
+                    // TODO move this at the end of all job requests
+                    installed.internalize();
 
-                return cons_solv;
-            }
-        );
+                    return cons_solv;
+                }
+            );
     }
 
     auto pool_get_matchspec(  //
@@ -1440,8 +1452,8 @@ namespace mamba::solver::libsolv
             }
 
             // We are not reinstalling but simply installing.
-            return pool_add_matchspec(pool, ms).transform([&](auto id)
-                                                          { jobs.push_back(SOLVER_INSTALL, id); });
+            return pool_add_matchspec(pool, ms, MatchSpecParser::Mixed)
+                .transform([&](auto id) { jobs.push_back(SOLVER_INSTALL, id); });
         }
 
         [[nodiscard]] auto has_installed_package(  //
@@ -1477,13 +1489,13 @@ namespace mamba::solver::libsolv
                 }
                 else
                 {
-                    return pool_add_matchspec(pool, job.spec)
+                    return pool_add_matchspec(pool, job.spec, MatchSpecParser::Mixed)
                         .transform([&](auto id) { raw_jobs.push_back(SOLVER_INSTALL, id); });
                 }
             }
             if constexpr (std::is_same_v<Job, Request::Remove>)
             {
-                return pool_add_matchspec(pool, job.spec)
+                return pool_add_matchspec(pool, job.spec, MatchSpecParser::Mixed)
                     .transform(
                         [&](auto id)
                         {
@@ -1496,7 +1508,7 @@ namespace mamba::solver::libsolv
             }
             if constexpr (std::is_same_v<Job, Request::Update>)
             {
-                return pool_add_matchspec(pool, job.spec)
+                return pool_add_matchspec(pool, job.spec, MatchSpecParser::Mixed)
                     .transform(
                         [&](auto id)
                         {
@@ -1547,13 +1559,13 @@ namespace mamba::solver::libsolv
             }
             if constexpr (std::is_same_v<Job, Request::Freeze>)
             {
-                return pool_add_matchspec(pool, job.spec)
+                return pool_add_matchspec(pool, job.spec, MatchSpecParser::Mixed)
                     .transform([&](auto id) { raw_jobs.push_back(SOLVER_LOCK, id); });
             }
             if constexpr (std::is_same_v<Job, Request::Keep>)
             {
-                raw_jobs.push_back(SOLVER_USERINSTALLED, pool_add_matchspec(pool, job.spec).value());
-                return {};
+                return pool_add_matchspec(pool, job.spec, MatchSpecParser::Mixed)
+                    .transform([&](auto id) { raw_jobs.push_back(SOLVER_USERINSTALLED, id); });
             }
             if constexpr (std::is_same_v<Job, Request::Pin>)
             {

@@ -103,7 +103,8 @@ namespace mamba::solver::libsolv
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& ms
+        const specs::MatchSpec& ms,
+        MatchSpecParser parser
     ) -> expected_t<solv::DependencyId>;
 
     [[nodiscard]] auto pool_add_pin(  //

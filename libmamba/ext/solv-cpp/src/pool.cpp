@@ -100,7 +100,7 @@ namespace solv
 
         [[nodiscard]] auto get_reldep(const ::Pool* pool, ::Id id) -> const ::Reldep*
         {
-            return GETRELDEP(pool, id);
+            return GETRELDEP(pool, static_cast<std::make_unsigned_t<::Id>>(id));
         }
     }
 

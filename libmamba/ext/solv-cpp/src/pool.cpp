@@ -139,14 +139,14 @@ namespace solv
         return id;
     }
 
-    auto ObjPoolView::add_conda_dependency(raw_str_view dep) -> DependencyId
+    auto ObjPoolView::add_legacy_conda_dependency(raw_str_view dep) -> DependencyId
     {
         return ::pool_conda_matchspec(raw(), dep);
     }
 
-    auto ObjPoolView::add_conda_dependency(const std::string& dep) -> DependencyId
+    auto ObjPoolView::add_legacy_conda_dependency(const std::string& dep) -> DependencyId
     {
-        return add_conda_dependency(dep.c_str());
+        return add_legacy_conda_dependency(dep.c_str());
     }
 
     auto ObjPoolView::get_dependency(DependencyId id) const -> std::optional<ObjDependencyViewConst>

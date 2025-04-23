@@ -73,7 +73,7 @@ namespace mamba::solver::libsolv
         for (const auto& dep : pkg.dependencies)
         {
             // TODO pool's matchspec2id
-            const solv::DependencyId dep_id = pool.add_conda_dependency(dep);
+            const solv::DependencyId dep_id = pool.add_legacy_conda_dependency(dep);
             assert(dep_id);
             solv.add_dependency(dep_id);
         }
@@ -81,7 +81,7 @@ namespace mamba::solver::libsolv
         for (const auto& cons : pkg.constrains)
         {
             // TODO pool's matchspec2id
-            const solv::DependencyId dep_id = pool.add_conda_dependency(cons);
+            const solv::DependencyId dep_id = pool.add_legacy_conda_dependency(cons);
             assert(dep_id);
             solv.add_constraint(dep_id);
         }
@@ -307,7 +307,7 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(
+                        if (const auto dep_id = pool.add_legacy_conda_dependency(
                                 std::string(elem.get_string().value_unsafe())
                             ))
                         {
@@ -323,7 +323,7 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        if (const auto dep_id = pool.add_conda_dependency(
+                        if (const auto dep_id = pool.add_legacy_conda_dependency(
                                 std::string(elem.get_string().value_unsafe())
                             ))
                         {
@@ -871,8 +871,8 @@ namespace mamba::solver::libsolv
 
     void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo)
     {
-        const solv::DependencyId python_id = pool.add_conda_dependency("python");
-        const solv::DependencyId pip_id = pool.add_conda_dependency("pip");
+        const solv::DependencyId python_id = pool.add_legacy_conda_dependency("python");
+        const solv::DependencyId pip_id = pool.add_legacy_conda_dependency("pip");
         repo.for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
@@ -930,7 +930,7 @@ namespace mamba::solver::libsolv
 
         if (ms.is_simple())
         {
-            return check_not_zero(pool.add_conda_dependency(ms.conda_build_form()));
+            return check_not_zero(pool.add_legacy_conda_dependency(ms.conda_build_form()));
         }
         const auto [first, second] = make_abused_namespace_dep_args(pool, ms.str());
         return check_not_zero(pool.add_dependency(first, REL_NAMESPACE, second));

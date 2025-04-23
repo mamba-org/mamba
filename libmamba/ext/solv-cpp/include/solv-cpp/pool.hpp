@@ -108,10 +108,13 @@ namespace solv
         auto add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId;
 
         /**
-         * Parse a dependency from string and add it to the pool.
+         * Parse a conda dependency from string and add it to the pool.
+         *
+         * This is currently the most efficient and stable way of adding dependencies.
+         * We do not control the MatchSpec parser with this method so it may not be complete.
          */
-        auto add_conda_dependency(raw_str_view dep) -> DependencyId;
-        auto add_conda_dependency(const std::string& dep) -> DependencyId;
+        auto add_legacy_conda_dependency(raw_str_view dep) -> DependencyId;
+        auto add_legacy_conda_dependency(const std::string& dep) -> DependencyId;
 
         /**
          * Get the dependency object associated with the dependency id.
@@ -346,7 +349,7 @@ namespace solv
         using ObjPoolView::get_string;
         using ObjPoolView::find_dependency;
         using ObjPoolView::add_dependency;
-        using ObjPoolView::add_conda_dependency;
+        using ObjPoolView::add_legacy_conda_dependency;
         using ObjPoolView::get_dependency_name;
         using ObjPoolView::get_dependency_version;
         using ObjPoolView::get_dependency_relation;

@@ -82,7 +82,7 @@ namespace
 
             SECTION("Parse a conda dependency")
             {
-                const auto id_conda = pool.add_conda_dependency("rattler < 0.1");
+                const auto id_conda = pool.add_legacy_conda_dependency("rattler < 0.1");
                 REQUIRE(pool.get_dependency_name(id_conda) == "rattler");
                 REQUIRE(pool.get_dependency_version(id_conda) == "<0.1");
             }

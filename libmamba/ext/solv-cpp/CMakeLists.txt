@@ -8,7 +8,13 @@ cmake_minimum_required(VERSION 3.16)
 
 add_library(
     solv-cpp OBJECT
-    src/pool.cpp src/queue.cpp src/repo.cpp src/solvable.cpp src/solver.cpp src/transaction.cpp src/dependency.cpp
+    src/pool.cpp
+    src/queue.cpp
+    src/repo.cpp
+    src/solvable.cpp
+    src/solver.cpp
+    src/transaction.cpp
+    src/dependency.cpp
 )
 target_include_directories(
     solv-cpp

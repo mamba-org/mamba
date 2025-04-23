@@ -1036,7 +1036,7 @@ namespace mamba::solver::libsolv
             );
         };
 
-        auto const dependency = pool.get_dependency(dep);
+        const auto dependency = pool.get_dependency(dep);
 
         if (!dependency.has_value())
         {
@@ -1051,12 +1051,16 @@ namespace mamba::solver::libsolv
             }
             case REL_NAMESPACE:
             {
-                auto [str, _flags] = get_abused_namespace_callback_args(pool, dependency->name(), dependency->version_range());
+                auto [str, _flags] = get_abused_namespace_callback_args(
+                    pool,
+                    dependency->name(),
+                    dependency->version_range()
+                );
                 return make_ms(str);
             }
         }
         return make_unexpected(
-            "An unknown relation was added to libsolv",
+            fmt::format("An unknown relation ({}) was added to libsolv", dependency->flags()),
             mamba_error_code::incorrect_usage
         );
     }

@@ -1007,7 +1007,7 @@ namespace
             REQUIRE(std::get<Solution::Install>(bar_actions.front()).install.version == "1.0");
         }
 
-        SECTION("Uneeded pins are not installed")
+        SECTION("Unneeded pins are not installed")
         {
             auto pkg1 = PackageInfo("foo");
             pkg1.version = "1.0";

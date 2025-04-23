@@ -55,7 +55,12 @@ namespace mamba::solver::libsolv
         auto& pool = Database::Impl::get(mpool);
         const auto& flags = request.flags;
 
-        return solver::libsolv::request_to_decision_queue(request, pool, flags.force_reinstall)
+        return solver::libsolv::request_to_decision_queue(
+                   request,
+                   pool,
+                   flags.force_reinstall,
+                   MatchSpecParser::Mixed
+        )
             .transform(
                 [&](auto&& jobs) -> Outcome
                 {

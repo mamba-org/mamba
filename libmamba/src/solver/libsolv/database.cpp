@@ -170,6 +170,7 @@ namespace mamba::solver::libsolv
                     std::string(url),
                     channel_id,
                     package_types,
+                    MatchSpecParser::Libsolv,  // Backward compatibility
                     verify_artifacts
                 );
             }
@@ -240,7 +241,12 @@ namespace mamba::solver::libsolv
     {
         auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         auto [id, solv] = s_repo.add_solvable();
-        set_solvable(pool(), solv, pkg);
+        set_solvable(
+            pool(),
+            solv,
+            pkg,
+            MatchSpecParser::Libsolv  // Backward compatibility
+        );
     }
 
     void Database::add_repo_from_packages_impl_post(const RepoInfo& repo, PipAsPythonDependency add)

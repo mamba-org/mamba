@@ -438,6 +438,7 @@ namespace mamba
         // To take correction of packages metadata (e.g. made using repodata patches) into account,
         // we insert the index into the repodata record to only add new fields from the index
         // while keeping the existing fields from the repodata record.
+        // See the issue it addresses: https://github.com/mamba-org/mamba/issues/3883
         repodata_record.insert(index.cbegin(), index.cend());
 
         if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)

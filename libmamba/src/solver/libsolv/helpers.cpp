@@ -899,7 +899,7 @@ namespace mamba::solver::libsolv
     }
 
     auto get_abused_namespace_callback_args(  //
-        solv::ObjPoolView& pool,
+        solv::ObjPoolView pool,
         solv::StringId name,
         solv::StringId ver
     ) -> std::pair<std::string_view, MatchFlags>

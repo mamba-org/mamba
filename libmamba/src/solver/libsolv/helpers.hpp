@@ -96,7 +96,7 @@ namespace mamba::solver::libsolv
      * callback to pass our own information.
      */
     [[nodiscard]] auto get_abused_namespace_callback_args(  //
-        solv::ObjPoolView& pool,
+        solv::ObjPoolView pool,
         solv::StringId first,
         solv::StringId second
     ) -> std::pair<std::string_view, MatchFlags>;

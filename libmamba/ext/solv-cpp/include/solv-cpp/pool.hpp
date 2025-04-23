@@ -18,6 +18,7 @@
 
 #include <solv/pool.h>
 
+#include "solv-cpp/dependency.hpp"
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
@@ -111,6 +112,16 @@ namespace solv
          */
         auto add_conda_dependency(raw_str_view dep) -> DependencyId;
         auto add_conda_dependency(const std::string& dep) -> DependencyId;
+
+        /**
+         * Get the dependency object associated with the dependency id.
+         *
+         * Return nothing if not given a dependency id, which can be the case when string
+         * ids are used as dependencies.
+         * Can also be used to check if an id is a dependency id or not.
+         */
+        auto get_dependency(DependencyId /* OR StringId */ id) const
+            -> std::optional<ObjDependencyViewConst>;
 
         /** Get the registered name of a dependency. */
         auto get_dependency_name(DependencyId id) const -> std::string_view;

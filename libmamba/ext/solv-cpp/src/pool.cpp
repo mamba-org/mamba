@@ -93,21 +93,15 @@ namespace solv
 
     namespace
     {
-// This function is only used in `assert()` expressions
-// That's why it might get reported as unused in Release builds
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#endif
-
-        auto is_reldep(::Id id) -> bool
+        [[nodiscard]] auto is_reldep(::Id id) -> bool
         {
             return ISRELDEP(static_cast<std::make_unsigned_t<::Id>>(id)) != 0;
         }
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+        [[nodiscard]] auto get_reldep(const ::Pool* pool, ::Id id) -> const ::Reldep*
+        {
+            return GETRELDEP(pool, id);
+        }
     }
 
     auto ObjPoolView::get_string(StringId id) const -> std::string_view
@@ -153,6 +147,17 @@ namespace solv
     auto ObjPoolView::add_conda_dependency(const std::string& dep) -> DependencyId
     {
         return add_conda_dependency(dep.c_str());
+    }
+
+    auto ObjPoolView::get_dependency(DependencyId id) const -> std::optional<ObjDependencyViewConst>
+    {
+        if (!is_reldep(id))
+        {
+            return {};
+        }
+        const auto rel = get_reldep(raw(), id);
+        assert(rel != nullptr);
+        return { ObjDependencyViewConst(*rel) };
     }
 
     auto ObjPoolView::get_dependency_name(DependencyId id) const -> std::string_view

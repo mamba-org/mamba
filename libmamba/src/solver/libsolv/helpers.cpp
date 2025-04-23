@@ -1036,15 +1036,14 @@ namespace mamba::solver::libsolv
             );
         };
 
-        if (!ISRELDEP(dep))
+        auto const dependency = pool.get_dependency(dep);
+
+        if (!dependency.has_value())
         {
             return make_ms(pool.get_string(dep));
         }
 
-        const auto rel = GETRELDEP(pool.raw(), dep);
-        assert(rel != nullptr);
-
-        switch (rel->flags)
+        switch (dependency->flags())
         {
             case REL_CONDA:
             {
@@ -1052,7 +1051,7 @@ namespace mamba::solver::libsolv
             }
             case REL_NAMESPACE:
             {
-                auto [str, _flags] = get_abused_namespace_callback_args(pool, rel->name, rel->evr);
+                auto [str, _flags] = get_abused_namespace_callback_args(pool, dependency->name(), dependency->version_range());
                 return make_ms(str);
             }
         }

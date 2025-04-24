@@ -50,17 +50,13 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto Solver::solve_impl(Database& mpool, const Request& request) -> expected_t<Outcome>
+    auto Solver::solve_impl(Database& mpool, const Request& request, MatchSpecParser ms_parser)
+        -> expected_t<Outcome>
     {
         auto& pool = Database::Impl::get(mpool);
         const auto& flags = request.flags;
 
-        return solver::libsolv::request_to_decision_queue(
-                   request,
-                   pool,
-                   flags.force_reinstall,
-                   MatchSpecParser::Mixed
-        )
+        return solver::libsolv::request_to_decision_queue(request, pool, flags.force_reinstall, ms_parser)
             .transform(
                 [&](auto&& jobs) -> Outcome
                 {
@@ -90,24 +86,26 @@ namespace mamba::solver::libsolv
             );
     }
 
-    auto Solver::solve(Database& mpool, Request&& request) -> expected_t<Outcome>
+    auto Solver::solve(Database& mpool, Request&& request, MatchSpecParser ms_parser)
+        -> expected_t<Outcome>
     {
         if (request.flags.order_request)
         {
             std::sort(request.jobs.begin(), request.jobs.end(), make_request_cmp());
         }
-        return solve_impl(mpool, request);
+        return solve_impl(mpool, request, ms_parser);
     }
 
-    auto Solver::solve(Database& mpool, const Request& request) -> expected_t<Outcome>
+    auto Solver::solve(Database& mpool, const Request& request, MatchSpecParser ms_parser)
+        -> expected_t<Outcome>
     {
         if (request.flags.order_request)
         {
             auto sorted_request = request;
             std::sort(sorted_request.jobs.begin(), sorted_request.jobs.end(), make_request_cmp());
-            return solve_impl(mpool, sorted_request);
+            return solve_impl(mpool, sorted_request, ms_parser);
         }
-        return solve_impl(mpool, request);
+        return solve_impl(mpool, request, ms_parser);
     }
 
 }  // namespace mamba

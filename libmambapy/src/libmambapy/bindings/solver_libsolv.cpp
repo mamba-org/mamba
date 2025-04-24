@@ -136,7 +136,7 @@ namespace mambapy
                 py::arg("package_types") = PackageTypes::CondaOrElseTarBz2,
                 py::arg("verify_packages") = VerifyPackages::No,
                 py::arg("repodata_parser") = RepodataParser::Mamba,
-                py::arg("matchspec_parser") = RepodataParser::Libsolv
+                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
             )
             .def(
                 "add_repo_from_native_serialization",
@@ -165,7 +165,7 @@ namespace mambapy
                 py::arg("packages"),
                 py::arg("name") = "",
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
-                py::arg("matchspec_parser") = RepodataParser::Libsolv
+                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
             )
             .def(
                 "native_serialize_repo",
@@ -245,12 +245,15 @@ namespace mambapy
         constexpr auto solver_job_v2_migrator = [](Solver&, py::args, py::kwargs)
         { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
 
-        py::class_<Solver>(m, "Solver")  //
+        py::class_<Solver>(m, "Solver")
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& database, const solver::Request& request)
-                { return self.solve(database, request); }
+                [](Solver& self, Database& database, const solver::Request& request, MatchSpecParser ms_parser
+                ) { return self.solve(database, request, ms_parser); },
+                py::arg("database"),
+                py::arg("request"),
+                py::arg("matchspec_parser") = MatchSpecParser::Mixed
             )
             .def("add_jobs", solver_job_v2_migrator)
             .def("add_global_job", solver_job_v2_migrator)

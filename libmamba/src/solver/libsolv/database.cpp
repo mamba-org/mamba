@@ -144,7 +144,8 @@ namespace mamba::solver::libsolv
         PipAsPythonDependency add,
         PackageTypes package_types,
         VerifyPackages verify_packages,
-        RepodataParser parser
+        RepodataParser repo_parser,
+        MatchSpecParser ms_parser
     ) -> expected_t<RepoInfo>
     {
         const auto verify_artifacts = static_cast<bool>(verify_packages);
@@ -161,7 +162,7 @@ namespace mamba::solver::libsolv
 
         auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
         {
-            if (parser == RepodataParser::Mamba)
+            if (repo_parser == RepodataParser::Mamba)
             {
                 return mamba_read_json(
                     pool(),
@@ -170,8 +171,16 @@ namespace mamba::solver::libsolv
                     std::string(url),
                     channel_id,
                     package_types,
-                    MatchSpecParser::Libsolv,  // Backward compatibility
+                    ms_parser,
                     verify_artifacts
+                );
+            }
+
+            if (ms_parser != MatchSpecParser::Libsolv)
+            {
+                return make_unexpected(
+                    "Libsolv repodata parser uses only its own MatchSpec parser",
+                    mamba_error_code::incorrect_usage
                 );
             }
             return libsolv_read_json(repo, path, package_types, verify_artifacts)
@@ -236,17 +245,15 @@ namespace mamba::solver::libsolv
         return RepoInfo(pool().add_repo(name).second.raw());
     }
 
-    void
-    Database::add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg)
+    void Database::add_repo_from_packages_impl_loop(
+        const RepoInfo& repo,
+        const specs::PackageInfo& pkg,
+        MatchSpecParser ms_parser
+    )
     {
         auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         auto [id, solv] = s_repo.add_solvable();
-        set_solvable(
-            pool(),
-            solv,
-            pkg,
-            MatchSpecParser::Libsolv  // Backward compatibility
-        );
+        set_solvable(pool(), solv, pkg, ms_parser);
     }
 
     void Database::add_repo_from_packages_impl_post(const RepoInfo& repo, PipAsPythonDependency add)

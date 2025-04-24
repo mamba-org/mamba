@@ -33,6 +33,13 @@ namespace mambapy
             .def(py::init(&enum_from_str<RepodataParser>));
         py::implicitly_convertible<py::str, RepodataParser>();
 
+        py::enum_<MatchSpecParser>(m, "MatchSpecParser")
+            .value("Mixed", MatchSpecParser::Mixed)
+            .value("Mamba", MatchSpecParser::Mamba)
+            .value("Libsolv", MatchSpecParser::Libsolv)
+            .def(py::init(&enum_from_str<MatchSpecParser>));
+        py::implicitly_convertible<py::str, MatchSpecParser>();
+
         py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
             .value("No", PipAsPythonDependency::No)
             .value("Yes", PipAsPythonDependency::Yes)
@@ -128,7 +135,8 @@ namespace mambapy
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
                 py::arg("package_types") = PackageTypes::CondaOrElseTarBz2,
                 py::arg("verify_packages") = VerifyPackages::No,
-                py::arg("repodata_parser") = RepodataParser::Mamba
+                py::arg("repodata_parser") = RepodataParser::Mamba,
+                py::arg("matchspec_parser") = RepodataParser::Libsolv
             )
             .def(
                 "add_repo_from_native_serialization",
@@ -143,7 +151,8 @@ namespace mambapy
                 [](Database& database,
                    py::iterable packages,
                    std::string_view name,
-                   PipAsPythonDependency add)
+                   PipAsPythonDependency add,
+                   MatchSpecParser ms_parser)
                 {
                     // TODO(C++20): No need to copy in a vector, simply transform the input range.
                     auto pkg_infos = std::vector<specs::PackageInfo>();
@@ -151,11 +160,12 @@ namespace mambapy
                     {
                         pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
                     }
-                    return database.add_repo_from_packages(pkg_infos, name, add);
+                    return database.add_repo_from_packages(pkg_infos, name, add, ms_parser);
                 },
                 py::arg("packages"),
                 py::arg("name") = "",
-                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No
+                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
+                py::arg("matchspec_parser") = RepodataParser::Libsolv
             )
             .def(
                 "native_serialize_repo",

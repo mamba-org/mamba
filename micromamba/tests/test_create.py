@@ -1969,3 +1969,45 @@ def test_compatible_release(tmp_home, tmp_clean_env, tmp_path):
 
     jupyterlab_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "jupyterlab")
     assert Version(jupyterlab_package["version"]) >= Version("4.3.0")
+
+
+def test_repodata_record_patch(tmp_home, tmp_clean_env, tmp_path):
+    # Non-regression test for: https://github.com/mamba-org/mamba/issues/3883
+
+    # Create an environment with `libarchive==3.7.7=h*_3` which has an out-of-date
+    # repodata record for its dependency on `libxml2`.
+    env_prefix = tmp_path / "env-repodata-record-patch"
+    out = helpers.create("--json", "libarchive==3.7.7=h*_3", "-p", env_prefix)
+    assert out["success"]
+
+    version_3_7_7 = Version("3.7.7")
+
+    originally_linked_libarchive = next(
+        pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive"
+    )
+    assert Version(originally_linked_libarchive["version"]) == version_3_7_7
+    assert originally_linked_libarchive["build_number"] == 3
+
+    # Test that updating all the environment respect the repodata record patch introduced
+    # for libarchive==3.7.7=h_*_4 and that no other package than libarchive is updated.
+    out = helpers.update("--json", "-p", env_prefix, "--all")
+    assert out["success"]
+
+    assert len(out["actions"]["UNLINK"]) == 1
+    unlink_libarchive = next(pkg for pkg in out["actions"]["UNLINK"] if pkg["name"] == "libarchive")
+
+    # TODO: understand why the original linked libarchive has a full URL for the channel
+    # while the unlink libarchive has a short channel name (`conda-forge`) and removed the
+    # the line below.
+    unlink_libarchive["channel"] = originally_linked_libarchive["channel"]
+    assert unlink_libarchive == originally_linked_libarchive
+
+    assert len(out["actions"]["LINK"]) == 1
+    linked_libarchive = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive")
+
+    linked_libarchive_version = Version(linked_libarchive["version"])
+
+    assert linked_libarchive_version >= version_3_7_7
+
+    if linked_libarchive_version == version_3_7_7:
+        assert linked_libarchive["build_number"] > 3

@@ -44,9 +44,9 @@ namespace
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                pool.add_conda_dependency("menu"),
+                pool.add_legacy_conda_dependency("menu"),
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                pool.add_conda_dependency("icons=2.*"),
+                pool.add_legacy_conda_dependency("icons=2.*"),
             };
             REQUIRE(solver.solve(pool, jobs));
             REQUIRE(solver.problem_count() == 0);
@@ -56,9 +56,12 @@ namespace
         {
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
-                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("menu"),
-                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("icons=1.*"),
-                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("intl=5.*"),
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                pool.add_legacy_conda_dependency("menu"),
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                pool.add_legacy_conda_dependency("icons=1.*"),
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                pool.add_legacy_conda_dependency("intl=5.*"),
             };
 
             REQUIRE_FALSE(solver.solve(pool, jobs));
@@ -80,7 +83,7 @@ namespace
             // The job is matched with the ``provides`` field of the solvable
             auto jobs = ObjQueue{
                 SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                pool.add_conda_dependency("does-not-exists"),
+                pool.add_legacy_conda_dependency("does-not-exists"),
             };
 
             REQUIRE_FALSE(solver.solve(pool, jobs));

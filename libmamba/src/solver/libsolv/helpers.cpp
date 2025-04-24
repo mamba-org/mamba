@@ -1009,17 +1009,17 @@ namespace mamba::solver::libsolv
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,
-        const char* ms,
+        const char* ms_str,
         MatchSpecParser parser
     ) -> expected_t<solv::DependencyId>
     {
         // Avoid at all parsing Matchspecs when using Libsolv
         if (parser == MatchSpecParser::Libsolv)
         {
-            return check_dep_error(pool.add_legacy_conda_dependency(ms), [&]() { return ms; });
+            return check_dep_error(pool.add_legacy_conda_dependency(ms_str), [&]() { return ms_str; });
         }
 
-        return specs::MatchSpec::parse(ms)
+        return specs::MatchSpec::parse(ms_str)
             .transform_error(  //
                 [](auto&& err) { return mamba_error(err.what(), mamba_error_code::invalid_spec); }
             )

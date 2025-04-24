@@ -52,8 +52,10 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config);
 void
 set_update_command(CLI::App* subcom, mamba::Configuration& config);
 
+#ifdef BUILDING_MICROMAMBA
 void
 set_self_update_command(CLI::App* subcom, mamba::Configuration& config);
+#endif
 
 void
 set_repoquery_search_command(CLI::App* subcmd, mamba::Configuration& config);

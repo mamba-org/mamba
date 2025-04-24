@@ -1023,6 +1023,7 @@ namespace mamba::specs
         // Based on what libsolv and conda_build_form can handle.
         // Glob in names and build_string are fine
         return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
+               && !version().has_glob()                //
                && build_number().is_explicitly_free()  //
                && build_string().is_glob()             //
                && !channel().has_value()               //
@@ -1037,12 +1038,19 @@ namespace mamba::specs
                && !track_features().has_value();
     }
 
-    [[nodiscard]] auto MatchSpec::is_only_package_name() const -> bool
+    auto MatchSpec::is_only_package_name() const -> bool
     {
         return name().is_exact()                       //
                && version().is_explicitly_free()       //
                && build_string().is_explicitly_free()  //
                && is_simple();
+    }
+
+    auto MatchSpec::to_named_spec() const -> MatchSpec
+    {
+        auto out = MatchSpec();
+        out.m_name = this->m_name;
+        return out;
     }
 
     auto MatchSpec::contains_except_channel(const PackageInfo& pkg) const -> bool

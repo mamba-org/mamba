@@ -18,6 +18,7 @@
 
 #include <solv/pool.h>
 
+#include "solv-cpp/dependency.hpp"
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
@@ -107,10 +108,23 @@ namespace solv
         auto add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId;
 
         /**
-         * Parse a dependency from string and add it to the pool.
+         * Parse a conda dependency from string and add it to the pool.
+         *
+         * This is currently the most efficient and stable way of adding dependencies.
+         * We do not control the MatchSpec parser with this method so it may not be complete.
          */
-        auto add_conda_dependency(raw_str_view dep) -> DependencyId;
-        auto add_conda_dependency(const std::string& dep) -> DependencyId;
+        auto add_legacy_conda_dependency(raw_str_view dep) -> DependencyId;
+        auto add_legacy_conda_dependency(const std::string& dep) -> DependencyId;
+
+        /**
+         * Get the dependency object associated with the dependency id.
+         *
+         * Return nothing if not given a dependency id, which can be the case when string
+         * ids are used as dependencies.
+         * Can also be used to check if an id is a dependency id or not.
+         */
+        auto get_dependency(DependencyId /* OR StringId */ id) const
+            -> std::optional<ObjDependencyViewConst>;
 
         /** Get the registered name of a dependency. */
         auto get_dependency_name(DependencyId id) const -> std::string_view;
@@ -323,6 +337,8 @@ namespace solv
         ObjPool();
         ~ObjPool();
 
+        [[nodiscard]] auto view() const -> ObjPoolView;
+
         using ObjPoolView::raw;
         using ObjPoolView::current_error;
         using ObjPoolView::set_current_error;
@@ -333,7 +349,7 @@ namespace solv
         using ObjPoolView::get_string;
         using ObjPoolView::find_dependency;
         using ObjPoolView::add_dependency;
-        using ObjPoolView::add_conda_dependency;
+        using ObjPoolView::add_legacy_conda_dependency;
         using ObjPoolView::get_dependency_name;
         using ObjPoolView::get_dependency_version;
         using ObjPoolView::get_dependency_relation;

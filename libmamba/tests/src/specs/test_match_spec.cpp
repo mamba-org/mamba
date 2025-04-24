@@ -4,11 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
+
 #include <catch2/catch_all.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
@@ -18,7 +22,7 @@ namespace
 {
     using PlatformSet = typename util::flat_set<std::string>;
 
-    TEST_CASE("MatchSpec parse")
+    TEST_CASE("MatchSpec parse", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("<empty>")
         {
@@ -28,6 +32,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "*");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("xtensor==0.12.3")
@@ -36,6 +41,7 @@ namespace
             REQUIRE(ms.name().str() == "xtensor");
             REQUIRE(ms.version().str() == "==0.12.3");
             REQUIRE(ms.str() == "xtensor==0.12.3");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("xtensor      >=       0.12.3")
@@ -46,6 +52,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "xtensor>=0.12.3");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("python > 3.11")
@@ -56,6 +63,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "python>3.11");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("numpy < 2.0")
@@ -66,6 +74,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "numpy<2.0");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("pytorch-cpu = 1.13.0")
@@ -76,6 +85,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "pytorch-cpu=1.13.0");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("scipy   >=    1.5.0,  < 2.0.0")
@@ -86,6 +96,7 @@ namespace
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "scipy[version=\">=1.5.0,<2.0.0\"]");
+            REQUIRE_FALSE(ms.is_only_package_name());
         }
 
         SECTION("scikit-learn >1.0.0")
@@ -142,10 +153,10 @@ namespace
             REQUIRE(ms2 == ms);
         }
 
-        // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
-        // which is currently supported but which must not.
         SECTION("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
         {
+            // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+            // which is currently supported but which must not.
             auto ms = MatchSpec::parse("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
                           .value();
             REQUIRE(ms.name().str() == "mingw-w64-ucrt-x86_64-crt-git");
@@ -153,6 +164,15 @@ namespace
             REQUIRE(ms.build_string().str() == "h707e725_0");
             REQUIRE(ms.build_number().is_explicitly_free());
             REQUIRE(ms.str() == "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
+        }
+
+        SECTION("openblas 0.2.18|0.2.18.*.")
+        {
+            // Invalid case from `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+            // which is currently supported but which must not.
+            auto ms = MatchSpec::parse("openblas 0.2.18|0.2.18.*.").value();
+            REQUIRE(ms.name().str() == "openblas");
+            REQUIRE(ms.version().str() == "==0.2.18|=0.2.18");
         }
 
         SECTION("_libgcc_mutex 0.1 conda_forge")
@@ -181,6 +201,7 @@ namespace
             REQUIRE(ms.name().str() == "ipykernel");
             REQUIRE(ms.version().is_explicitly_free());
             REQUIRE(ms.str() == "ipykernel");
+            REQUIRE(ms.is_only_package_name());
         }
 
         SECTION("ipykernel ")
@@ -188,6 +209,7 @@ namespace
             auto ms = MatchSpec::parse("ipykernel ").value();
             REQUIRE(ms.name().str() == "ipykernel");
             REQUIRE(ms.version().is_explicitly_free());
+            REQUIRE(ms.is_only_package_name());
         }
 
         SECTION("disperse=v0.9.24")
@@ -667,7 +689,7 @@ namespace
         }
     }
 
-    TEST_CASE("parse_url")
+    TEST_CASE("parse_url", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("https://conda.com/pkg-2-bld.conda")
         {
@@ -714,7 +736,7 @@ namespace
         }
     }
 
-    TEST_CASE("Conda discrepancies")
+    TEST_CASE("Conda discrepancies", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("python=3.7=bld")
         {
@@ -742,7 +764,7 @@ namespace
         }
     }
 
-    TEST_CASE("is_simple")
+    TEST_CASE("is_simple", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("Positive")
         {
@@ -780,7 +802,29 @@ namespace
         }
     }
 
-    TEST_CASE("MatchSpec::contains")
+    TEST_CASE("MatchSpec::to_named_spec", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Alrealy name only")
+        {
+            const auto str = GENERATE("foo", "foo ");
+            const auto ms = MatchSpec::parse(str).value();
+            const auto ms_named = ms.to_named_spec();
+            REQUIRE(ms == ms_named);
+        }
+
+        SECTION("With more restrictions")
+        {
+            const auto str = GENERATE("foo>1.0", "foo =*", "foo=3=bld");
+            const auto ms = MatchSpec::parse(str).value();
+            const auto ms_named = ms.to_named_spec();
+            REQUIRE(ms_named.name() == ms.name());
+            REQUIRE(ms_named.version().is_explicitly_free());
+            REQUIRE(ms_named.build_string().is_explicitly_free());
+            REQUIRE(ms_named.build_number().is_explicitly_free());
+        }
+    }
+
+    TEST_CASE("MatchSpec::contains", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         // Note that tests for individual ``contains`` functions (``VersionSpec::contains``,
         // ``BuildNumber::contains``, ``GlobSpec::contains``...) are tested in their respective
@@ -862,6 +906,14 @@ namespace
             REQUIRE(ms.contains_except_channel(pkg));
             pkg.build_number = 2;
             REQUIRE_FALSE(ms.contains_except_channel(pkg));
+        }
+
+        SECTION("name *,*.* build*")
+        {
+            const auto ms = "name *,*.* build*"_ms;
+            REQUIRE(ms.contains_except_channel(Pkg{ "name", "3.7"_v, "build_foo" }));
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{ "name", "3"_v, "build_foo" }));
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{ "name", "3.7"_v, "bar" }));
         }
 
         SECTION("pkg[md5=helloiamnotreallymd5haha]")
@@ -1205,9 +1257,96 @@ namespace
                 /* .track_features =*/{},
             }));
         }
+
+        SECTION("python=3.*")
+        {
+            const auto ms = "python=3.*"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "2.7.12"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
+
+        SECTION("python=3.*.1")
+        {
+            const auto ms = "python=3.*.1"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.1"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
+
+        SECTION("python=*.13.1")
+        {
+            const auto ms = "python=*.13.1"_ms;
+
+            REQUIRE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.13.1"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+
+            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
+                /* .name= */ "python",
+                /* .version= */ "3.12.0"_v,
+                /* .build_string= */ "bld",
+                /* .build_number= */ 0,
+                /* .md5= */ "lemd5",
+                /* .sha256= */ "somesha256",
+                /* .license= */ "some-license",
+                /* .platform= */ "linux-64",
+                /* .track_features =*/{},
+            }));
+        }
     }
 
-    TEST_CASE("MatchSpec comparability and hashability")
+    TEST_CASE("MatchSpec comparability and hashability", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         using namespace specs::match_spec_literals;
         using namespace specs::version_literals;
@@ -1232,5 +1371,62 @@ namespace
 
         REQUIRE(spec1_hash == spec2_hash);
         REQUIRE(spec1_hash != spec3_hash);
+    }
+
+    auto repodata_all_depends(const std::string& path)
+        -> std::vector<std::tuple<std::string, std::string>>
+    {
+        auto input = std::ifstream(path);
+        if (!input.is_open())
+        {
+            throw std::runtime_error("Failed to open file: " + std::string(path));
+        }
+
+        auto j = nlohmann::json::parse(input);
+
+        if (!j.contains("packages") || !j["packages"].is_object())
+        {
+            throw std::runtime_error(R"(Missing or invalid "packages" field)");
+        }
+
+        auto result = std::vector<std::tuple<std::string, std::string>>();
+
+        for (const auto& [pkg_name, pkg] : j["packages"].items())
+        {
+            if (!pkg.contains("depends") || !pkg["depends"].is_array())
+            {
+                throw std::runtime_error(R"(Missing or invalid "depends" in package)");
+            }
+
+            for (const auto& dep : pkg["depends"])
+            {
+                if (!dep.is_string())
+                {
+                    throw std::runtime_error(R"(Non-string entry in "depends")");
+                }
+                result.emplace_back(pkg_name, dep.get<std::string>());
+            }
+        }
+
+        return result;
+    }
+
+    TEST_CASE("Repodata MatchSpec::parse", "[mamba::specs][mamba::specs::MatchSpec][.integration]")
+    {
+        const auto all_ms_str = []()
+        {
+            if (const auto path = util::get_env("MAMBA_TEST_REPODATA_JSON"))
+            {
+                return repodata_all_depends(path.value());
+            }
+            throw std::runtime_error(R"(Please define "MAMBA_TEST_REPODATA_JSON")");
+        }();
+
+        for (const auto& [pkg_name, ms_str] : all_ms_str)
+        {
+            CAPTURE(pkg_name);
+            CAPTURE(ms_str);
+            REQUIRE(MatchSpec::parse(ms_str).has_value());
+        }
     }
 }

@@ -16,7 +16,7 @@ using namespace mamba::util;
 
 namespace
 {
-    TEST_CASE("constructor")
+    TEST_CASE("flat_set constructor")
     {
         const auto s1 = flat_set<int>();
         REQUIRE(s1.size() == 0);
@@ -35,7 +35,7 @@ namespace
         static_assert(std::is_same_v<decltype(s6)::value_type, decltype(s5)::value_type>);
     }
 
-    TEST_CASE("equality")
+    TEST_CASE("flat_set equality")
     {
         REQUIRE(flat_set<int>() == flat_set<int>());
         REQUIRE(flat_set<int>({ 1, 2 }) == flat_set<int>({ 1, 2 }));
@@ -45,7 +45,7 @@ namespace
         REQUIRE(flat_set<int>({ 2 }) != flat_set<int>({}));
     }
 
-    TEST_CASE("insert")
+    TEST_CASE("flat_set insert")
     {
         auto s = flat_set<int>();
         s.insert(33);
@@ -62,7 +62,7 @@ namespace
         REQUIRE(s == flat_set<int>({ 0, 17, 22, 33 }));
     }
 
-    TEST_CASE("insert conversion")
+    TEST_CASE("flat_set insert conversion")
     {
         auto s = flat_set<std::string>();
         const auto v = std::array<std::string_view, 2>{ "hello", "world" };
@@ -72,7 +72,7 @@ namespace
         REQUIRE(s.at(1) == "world");
     }
 
-    TEST_CASE("erase")
+    TEST_CASE("flat_set erase")
     {
         auto s = flat_set<int>{ 4, 3, 2, 1 };
         REQUIRE(s.erase(4) == 1);
@@ -85,19 +85,32 @@ namespace
         REQUIRE(s == flat_set<int>({ 2, 3 }));
     }
 
-    TEST_CASE("set_contains")
+    TEST_CASE("flat_set set_contains")
     {
-        const auto s = flat_set<int>({ 1, 3, 4, 5 });
-        REQUIRE_FALSE(s.contains(0));
-        REQUIRE(s.contains(1));
-        REQUIRE_FALSE(s.contains(2));
-        REQUIRE(s.contains(3));
-        REQUIRE(s.contains(4));
-        REQUIRE(s.contains(5));
-        REQUIRE_FALSE(s.contains(6));
+        {
+            const auto s = flat_set<int>({ 1, 3, 4, 5 });
+            REQUIRE_FALSE(s.contains(0));
+            REQUIRE(s.contains(1));
+            REQUIRE_FALSE(s.contains(2));
+            REQUIRE(s.contains(3));
+            REQUIRE(s.contains(4));
+            REQUIRE(s.contains(5));
+            REQUIRE_FALSE(s.contains(6));
+            REQUIRE_FALSE(s.contains(0.0));
+            REQUIRE(s.contains(1.0));
+            REQUIRE_FALSE(s.contains(10.0f));
+        }
+
+        {
+            const auto s = flat_set<std::string>{ "hello", "world" };
+            const std::string_view v = "hello";
+            const char* c = "world";
+            REQUIRE(s.contains(v));
+            REQUIRE(s.contains(c));
+        }
     }
 
-    TEST_CASE("key_compare")
+    TEST_CASE("flat_set key_compare")
     {
         auto s = flat_set({ 1, 3, 4, 5 }, std::greater{});
         REQUIRE(s.front() == 5);
@@ -106,7 +119,7 @@ namespace
         REQUIRE(s.front() == 6);
     }
 
-    TEST_CASE("Set operations")
+    TEST_CASE("flat_set Set operations")
     {
         const auto s1 = flat_set<int>({ 1, 3, 4, 5 });
         const auto s2 = flat_set<int>({ 3, 5 });

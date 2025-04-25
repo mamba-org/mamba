@@ -69,6 +69,12 @@ namespace
 
     TEST_CASE("Solve a fresh environment with one repository", "[mamba::solver][mamba::solver::libsolv]")
     {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({});
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
@@ -76,7 +82,11 @@ namespace
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
             "conda-forge",
-            libsolv::PipAsPythonDependency::No
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::VerifyPackages::No,
+            libsolv::RepodataParser::Mamba,
+            matchspec_parser
         );
         REQUIRE(repo.has_value());
 
@@ -86,7 +96,7 @@ namespace
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "numpy"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -111,7 +121,7 @@ namespace
                 /* .flags= */ std::move(flags),
                 /* .jobs= */ { Request::Install{ "numpy"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -137,7 +147,7 @@ namespace
                 },
                 /* .jobs= */ { Request::Install{ "numpy"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -163,7 +173,7 @@ namespace
                 },
                 /* .jobs= */ { Request::Install{ "numpy"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -189,7 +199,7 @@ namespace
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "does-not-exist"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
@@ -205,7 +215,7 @@ namespace
                 },
                 /* .jobs= */ { Request::Install{ "numpy"_ms }, Request::Install{ "python=2.7"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
@@ -214,13 +224,24 @@ namespace
 
     TEST_CASE("Remove packages", "[mamba::solver][mamba::solver::libsolv]")
     {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({});
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo = db.add_repo_from_repodata_json(
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
-            "conda-forge"
+            "conda-forge",
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::VerifyPackages::No,
+            libsolv::RepodataParser::Mamba,
+            matchspec_parser
         );
         REQUIRE(repo.has_value());
         db.set_installed_repo(repo.value());
@@ -231,7 +252,7 @@ namespace
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Remove{ "numpy"_ms, true } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -253,7 +274,7 @@ namespace
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Remove{ "numpy"_ms, true }, Request::Remove{ "pip"_ms, true } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -278,7 +299,7 @@ namespace
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Remove{ "numpy"_ms, false } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -296,7 +317,7 @@ namespace
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Remove{ "does-not-exist"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -308,20 +329,36 @@ namespace
 
     TEST_CASE("Reinstall packages", "[mamba::solver][mamba::solver::libsolv]")
     {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({});
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo_installed = db.add_repo_from_repodata_json(
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "installed",
-            "installed"
+            "installed",
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::VerifyPackages::No,
+            libsolv::RepodataParser::Mamba,
+            matchspec_parser
         );
         REQUIRE(repo_installed.has_value());
         db.set_installed_repo(repo_installed.value());
         const auto repo = db.add_repo_from_repodata_json(
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
-            "conda-forge"
+            "conda-forge",
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::VerifyPackages::No,
+            libsolv::RepodataParser::Mamba,
+            matchspec_parser
         );
         REQUIRE(repo.has_value());
 
@@ -333,7 +370,7 @@ namespace
                 /* .flags= */ std::move(flags),
                 /* .jobs= */ { Request::Install{ "numpy"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -347,6 +384,11 @@ namespace
 
     TEST_CASE("Solve a existing environment with one repository", "[mamba::solver][mamba::solver::libsolv]")
     {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
         auto db = libsolv::Database({});
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
@@ -354,15 +396,24 @@ namespace
             mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
             "conda-forge",
-            libsolv::PipAsPythonDependency::No
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::VerifyPackages::No,
+            libsolv::RepodataParser::Mamba,
+            matchspec_parser
         );
         REQUIRE(repo.has_value());
 
         SECTION("numpy 1.0 is installed")
         {
-            const auto installed = db.add_repo_from_packages(std::array{
-                specs::PackageInfo("numpy", "1.0.0", "phony", 0),
-            });
+            const auto installed = db.add_repo_from_packages(
+                std::array{
+                    specs::PackageInfo("numpy", "1.0.0", "phony", 0),
+                },
+                "installed",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             db.set_installed_repo(installed);
 
             SECTION("Installing numpy does not upgrade")
@@ -371,7 +422,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "numpy"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -385,7 +436,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Update{ "numpy"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -413,7 +464,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Update{ "numpy<=1.1"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -426,11 +477,16 @@ namespace
         {
             auto pkg_numpy = specs::PackageInfo("numpy", "1.0.0", "phony", 0);
             pkg_numpy.dependencies = { "python=2.0", "foo" };
-            const auto installed = db.add_repo_from_packages(std::array{
-                pkg_numpy,
-                specs::PackageInfo("python", "2.0.0", "phony", 0),
-                specs::PackageInfo("foo"),
-            });
+            const auto installed = db.add_repo_from_packages(
+                std::array{
+                    pkg_numpy,
+                    specs::PackageInfo("python", "2.0.0", "phony", 0),
+                    specs::PackageInfo("foo"),
+                },
+                "installed",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             db.set_installed_repo(installed);
 
             SECTION("numpy is upgraded with cleaning dependencies")
@@ -439,7 +495,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Update{ "numpy"_ms, true } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -470,7 +526,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Update{ "numpy"_ms, true }, Request::Keep{ "foo"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -500,7 +556,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Update{ "numpy"_ms, false } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -529,7 +585,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Update{ "python"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -559,11 +615,12 @@ namespace
             pkg_numpy.dependencies = { "python=4.0", "foo" };
             auto pkg_foo = specs::PackageInfo("foo", "1.0.0", "phony", 0);
             pkg_foo.constrains = { "numpy=1.0.0", "foo" };
-            const auto installed = db.add_repo_from_packages(std::array{
-                pkg_numpy,
-                pkg_foo,
-                specs::PackageInfo("python", "4.0.0", "phony", 0),
-            });
+            const auto installed = db.add_repo_from_packages(
+                std::array{ pkg_numpy, pkg_foo, specs::PackageInfo("python", "4.0.0", "phony", 0) },
+                "installed",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             db.set_installed_repo(installed);
 
             SECTION("numpy upgrade lead to allowed python downgrade")
@@ -578,7 +635,7 @@ namespace
                     },
                     /* .jobs= */ { Request::Update{ "numpy"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -613,7 +670,7 @@ namespace
                     },
                     /* .jobs= */ { Request::Update{ "numpy"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -627,14 +684,25 @@ namespace
 
     TEST_CASE("Solve a fresh environment with multiple repositories", "[mamba::solver][mamba::solver::libsolv]")
     {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
         auto db = libsolv::Database({});
 
-        const auto repo1 = db.add_repo_from_packages(std::array{
-            specs::PackageInfo("numpy", "1.0.0", "repo1", 0),
-        });
-        const auto repo2 = db.add_repo_from_packages(std::array{
-            specs::PackageInfo("numpy", "2.0.0", "repo2", 0),
-        });
+        const auto repo1 = db.add_repo_from_packages(
+            std::array{ specs::PackageInfo("numpy", "1.0.0", "repo1", 0) },
+            "repo1",
+            libsolv::PipAsPythonDependency::No,
+            matchspec_parser
+        );
+        const auto repo2 = db.add_repo_from_packages(
+            std::array{ specs::PackageInfo("numpy", "2.0.0", "repo2", 0) },
+            "installed",
+            libsolv::PipAsPythonDependency::No,
+            matchspec_parser
+        );
         db.set_repo_priority(repo1, { 2, 0 });
         db.set_repo_priority(repo2, { 1, 0 });
 
@@ -645,7 +713,7 @@ namespace
                 /* .jobs= */ { Request::Install{ "numpy>=2.0"_ms } },
             };
             request.flags.strict_repo_priority = false;
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -664,7 +732,7 @@ namespace
                 /* .jobs= */ { Request::Install{ "numpy>=2.0"_ms } },
             };
             request.flags.strict_repo_priority = true;
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
@@ -673,6 +741,12 @@ namespace
 
     TEST_CASE("Install highest priority package", "[mamba::solver][mamba::solver::libsolv]")
     {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({});
 
         auto mkfoo = [](std::string version,
@@ -690,16 +764,21 @@ namespace
 
         SECTION("Pins are respected")
         {
-            db.add_repo_from_packages(std::array{
-                mkfoo("1.0.0", 0, { "feat" }, 0),
-                mkfoo("2.0.0", 1, {}, 1),
-            });
+            db.add_repo_from_packages(
+                std::array{
+                    mkfoo("1.0.0", 0, { "feat" }, 0),
+                    mkfoo("2.0.0", 1, {}, 1),
+                },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo"_ms }, Request::Pin{ "foo==1.0"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -713,15 +792,20 @@ namespace
 
         SECTION("Track features has highest priority")
         {
-            db.add_repo_from_packages(std::array{
-                mkfoo("1.0.0", 0, {}, 0),
-                mkfoo("2.0.0", 1, { "feat" }, 1),
-            });
+            db.add_repo_from_packages(
+                std::array{
+                    mkfoo("1.0.0", 0, {}, 0),
+                    mkfoo("2.0.0", 1, { "feat" }, 1),
+                },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -735,15 +819,20 @@ namespace
 
         SECTION("Version has second highest priority")
         {
-            db.add_repo_from_packages(std::array{
-                mkfoo("2.0.0", 0, {}, 0),
-                mkfoo("1.0.0", 1, {}, 1),
-            });
+            db.add_repo_from_packages(
+                std::array{
+                    mkfoo("2.0.0", 0, {}, 0),
+                    mkfoo("1.0.0", 1, {}, 1),
+                },
+                "installed",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -757,15 +846,20 @@ namespace
 
         SECTION("Build number has third highest priority")
         {
-            db.add_repo_from_packages(std::array{
-                mkfoo("2.0.0", 1, {}, 0),
-                mkfoo("2.0.0", 0, {}, 1),
-            });
+            db.add_repo_from_packages(
+                std::array{
+                    mkfoo("2.0.0", 1, {}, 0),
+                    mkfoo("2.0.0", 0, {}, 1),
+                },
+                "installed",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -779,15 +873,20 @@ namespace
 
         SECTION("Timestamp has lowest priority")
         {
-            db.add_repo_from_packages(std::array{
-                mkfoo("2.0.0", 0, {}, 0),
-                mkfoo("2.0.0", 0, {}, 1),
-            });
+            db.add_repo_from_packages(
+                std::array{
+                    mkfoo("2.0.0", 0, {}, 0),
+                    mkfoo("2.0.0", 0, {}, 1),
+                },
+                "installed",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -802,6 +901,12 @@ namespace
 
     TEST_CASE("Respect channel-specific MatchSpec", "[mamba::solver][mamba::solver::libsolv]")
     {
+        // Libsolv MatchSpec parser is not able to handle channels
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({
             /* .platforms= */ { "linux-64", "noarch" },
             /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
@@ -811,10 +916,20 @@ namespace
         {
             auto pkg1 = specs::PackageInfo("foo", "1.0.0", "conda", 0);
             pkg1.package_url = "https://conda.anaconda.org/conda-forge/linux-64/foo-1.0.0-phony.conda";
-            db.add_repo_from_packages(std::array{ pkg1 });
+            db.add_repo_from_packages(
+                std::array{ pkg1 },
+                "repo1",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
             auto pkg2 = specs::PackageInfo("foo", "1.0.0", "mamba", 0);
             pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
-            db.add_repo_from_packages(std::array{ pkg2 });
+            db.add_repo_from_packages(
+                std::array{ pkg2 },
+                "repo2",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             SECTION("conda-forge::foo")
             {
@@ -822,7 +937,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "conda-forge::foo"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -840,7 +955,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "mamba-forge::foo"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -859,7 +974,7 @@ namespace
                     /* .jobs= */ { Request::Install{ "pixi-forge::foo"_ms } },
                 };
 
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
@@ -871,7 +986,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "https://conda.anaconda.org/mamba-forge::foo"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -890,7 +1005,11 @@ namespace
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
                 "https://conda.anaconda.org/conda-forge/linux-64",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba,
+                matchspec_parser
             );
             REQUIRE(repo_linux.has_value());
 
@@ -901,7 +1020,11 @@ namespace
                 mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json",
                 "https://conda.anaconda.org/conda-forge/noarch",
                 "conda-forge",
-                libsolv::PipAsPythonDependency::No
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba,
+                matchspec_parser
             );
             REQUIRE(repo_noarch.has_value());
 
@@ -911,7 +1034,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "conda-forge/win-64::numpy"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
@@ -923,7 +1046,7 @@ namespace
                     /* .flags= */ {},
                     /* .jobs= */ { Request::Install{ "conda-forge::numpy[subdir=linux-64]"_ms } },
                 };
-                const auto outcome = libsolv::Solver().solve(db, request);
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
                 REQUIRE(outcome.has_value());
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -944,6 +1067,12 @@ namespace
     {
         using PackageInfo = specs::PackageInfo;
 
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({});
 
         SECTION("Respect pins through direct dependencies")
@@ -953,13 +1082,18 @@ namespace
             auto pkg2 = PackageInfo("foo");
             pkg2.version = "2.0";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(
+                std::array{ pkg1, pkg2 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "foo"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -984,13 +1118,18 @@ namespace
             pkg4.version = "2.0";
             pkg4.dependencies = { "foo=2.0" };
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3, pkg4 });
+            db.add_repo_from_packages(
+                std::array{ pkg1, pkg2, pkg3, pkg4 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "bar"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -1014,13 +1153,18 @@ namespace
             auto pkg2 = PackageInfo("bar");
             pkg2.version = "1.0";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(
+                std::array{ pkg1, pkg2 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "bar"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -1038,13 +1182,18 @@ namespace
             auto pkg = PackageInfo("bar");
             pkg.version = "1.0";
 
-            db.add_repo_from_packages(std::array{ pkg });
+            db.add_repo_from_packages(
+                std::array{ pkg },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Pin{ "foo=1.0"_ms }, Request::Install{ "bar"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -1062,6 +1211,12 @@ namespace
     {
         using PackageInfo = specs::PackageInfo;
 
+        // Libsolv MatchSpec parser cannot handle complex specs
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
         auto db = libsolv::Database({});
 
         SECTION("*[md5=0bab699354cbd66959550eb9b9866620]")
@@ -1071,13 +1226,18 @@ namespace
             auto pkg2 = PackageInfo("foo");
             pkg2.md5 = "bad";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(
+                std::array{ pkg1, pkg2 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "*[md5=0bab699354cbd66959550eb9b9866620]"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -1096,13 +1256,18 @@ namespace
             auto pkg1 = PackageInfo("foo");
             pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
 
-            db.add_repo_from_packages(std::array{ pkg1 });
+            db.add_repo_from_packages(
+                std::array{ pkg1 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo[md5=notreallymd5]"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
@@ -1115,13 +1280,18 @@ namespace
             auto pkg2 = PackageInfo("foo");
             pkg2.build_string = "bld";
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2 });
+            db.add_repo_from_packages(
+                std::array{ pkg1, pkg2 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo[build=bld]"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -1146,13 +1316,18 @@ namespace
             pkg3.build_string = "bld";
             pkg3.build_number = 4;
 
-            db.add_repo_from_packages(std::array{ pkg1, pkg2, pkg3 });
+            db.add_repo_from_packages(
+                std::array{ pkg1, pkg2, pkg3 },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo[build=bld]"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
@@ -1172,13 +1347,18 @@ namespace
             pkg.version = "=*,=*";
             pkg.build_string = "pyhd*";
 
-            db.add_repo_from_packages(std::array{ pkg });
+            db.add_repo_from_packages(
+                std::array{ pkg },
+                "repo",
+                libsolv::PipAsPythonDependency::No,
+                matchspec_parser
+            );
 
             auto request = Request{
                 /* .flags= */ {},
                 /* .jobs= */ { Request::Install{ "foo[version='=*,=*', build='pyhd*']"_ms } },
             };
-            const auto outcome = libsolv::Solver().solve(db, request);
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
 
             REQUIRE(outcome.has_value());
             REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));

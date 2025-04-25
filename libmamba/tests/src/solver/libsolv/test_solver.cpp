@@ -67,7 +67,7 @@ namespace
 {
     using namespace specs::match_spec_literals;
 
-    TEST_CASE("Solve a fresh environment with one repository")
+    TEST_CASE("Solve a fresh environment with one repository", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
 
@@ -212,7 +212,7 @@ namespace
         }
     }
 
-    TEST_CASE("Remove packages")
+    TEST_CASE("Remove packages", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
 
@@ -306,7 +306,7 @@ namespace
         }
     }
 
-    TEST_CASE("Reinstall packages")
+    TEST_CASE("Reinstall packages", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
 
@@ -345,7 +345,7 @@ namespace
         }
     }
 
-    TEST_CASE("Solve a existing environment with one repository")
+    TEST_CASE("Solve a existing environment with one repository", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
 
@@ -625,7 +625,7 @@ namespace
         }
     }
 
-    TEST_CASE("Solve a fresh environment with multiple repositories")
+    TEST_CASE("Solve a fresh environment with multiple repositories", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
 
@@ -671,7 +671,7 @@ namespace
         }
     }
 
-    TEST_CASE("Install highest priority package")
+    TEST_CASE("Install highest priority package", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
 
@@ -800,7 +800,7 @@ namespace
         }
     }
 
-    TEST_CASE("Respect channel-specific MatchSpec")
+    TEST_CASE("Respect channel-specific MatchSpec", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({
             /* .platforms= */ { "linux-64", "noarch" },
@@ -940,7 +940,7 @@ namespace
         }
     }
 
-    TEST_CASE("Respect pins")
+    TEST_CASE("Respect pins", "[mamba::solver][mamba::solver::libsolv]")
     {
         using PackageInfo = specs::PackageInfo;
 
@@ -1058,7 +1058,7 @@ namespace
         }
     }
 
-    TEST_CASE("Handle complex matchspecs")
+    TEST_CASE("Handle complex matchspecs", "[mamba::solver][mamba::solver::libsolv]")
     {
         using PackageInfo = specs::PackageInfo;
 

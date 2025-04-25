@@ -17,7 +17,7 @@ namespace
 {
     using PackageInfo = specs::PackageInfo;
 
-    TEST_CASE("Create a Solution")
+    TEST_CASE("Create a Solution", "[mamba::solver]")
     {
         auto solution = Solution{ {
             Solution::Omit{ PackageInfo("omit") },

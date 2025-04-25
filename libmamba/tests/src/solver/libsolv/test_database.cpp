@@ -37,7 +37,7 @@ namespace
 {
     using PackageInfo = specs::PackageInfo;
 
-    TEST_CASE("Create a database")
+    TEST_CASE("Create a database", "[mamba::solver][mamba::solver::libsolv]")
     {
         auto db = libsolv::Database({});
         REQUIRE(std::is_move_constructible_v<libsolv::Database>);

@@ -31,6 +31,17 @@ def test_RepodataParser():
         libsolv.RepodataParser("NoParser")
 
 
+def test_MatchSpecParser():
+    assert libsolv.MatchSpecParser.Mamba.name == "Mamba"
+    assert libsolv.MatchSpecParser.Libsolv.name == "Libsolv"
+    assert libsolv.MatchSpecParser.Mixed.name == "Mixed"
+
+    assert libsolv.MatchSpecParser("Libsolv") == libsolv.MatchSpecParser.Libsolv
+
+    with pytest.raises(KeyError):
+        libsolv.MatchSpecParser("NoParser")
+
+
 def test_PipASPythonDependency():
     assert libsolv.PipAsPythonDependency.No.name == "No"
     assert libsolv.PipAsPythonDependency.Yes.name == "Yes"

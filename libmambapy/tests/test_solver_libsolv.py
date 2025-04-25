@@ -129,7 +129,8 @@ def test_Database_logger():
 
 
 @pytest.mark.parametrize("add_pip_as_python_dependency", [True, False])
-def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency):
+@pytest.mark.parametrize("matchspec_parser", ["Mixed", "Mamba", "Libsolv"])
+def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec_parser):
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
     assert db.repo_count() == 0
     assert db.installed_repo() is None
@@ -139,6 +140,7 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency):
         [libmambapy.specs.PackageInfo(name="python")],
         name="duck",
         add_pip_as_python_dependency=add_pip_as_python_dependency,
+        matchspec_parser=matchspec_parser,
     )
     db.set_installed_repo(repo)
 
@@ -193,31 +195,41 @@ def tmp_repodata_json(tmp_path):
     return file
 
 
-@pytest.mark.parametrize(
-    ["add_pip_as_python_dependency", "package_types", "repodata_parser"],
-    itertools.product(
-        [True, False],
-        ["TarBz2Only", "CondaOrElseTarBz2"],
-        ["Mamba", "Libsolv"],
-    ),
-)
+@pytest.mark.parametrize("add_pip_as_python_dependency", [True, False])
+@pytest.mark.parametrize("package_types", ["TarBz2Only", "CondaOrElseTarBz2"])
+@pytest.mark.parametrize("repodata_parser", ["Mamba", "Libsolv"])
+@pytest.mark.parametrize("matchspec_parser", ["Mixed", "Mamba", "Libsolv"])
 def test_Database_RepoInfo_from_repodata(
-    tmp_path, tmp_repodata_json, add_pip_as_python_dependency, package_types, repodata_parser
+    tmp_path,
+    tmp_repodata_json,
+    add_pip_as_python_dependency,
+    package_types,
+    repodata_parser,
+    matchspec_parser,
 ):
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
 
     url = "https://repo.mamba.pm"
     channel_id = "conda-forge"
 
-    # Json
-    repo = db.add_repo_from_repodata_json(
-        path=tmp_repodata_json,
-        url=url,
-        channel_id=channel_id,
-        add_pip_as_python_dependency=add_pip_as_python_dependency,
-        package_types=package_types,
-        repodata_parser=repodata_parser,
-    )
+    def add_repo_json():
+        return db.add_repo_from_repodata_json(
+            path=tmp_repodata_json,
+            url=url,
+            channel_id=channel_id,
+            add_pip_as_python_dependency=add_pip_as_python_dependency,
+            package_types=package_types,
+            repodata_parser=repodata_parser,
+            matchspec_parser=matchspec_parser,
+        )
+
+    if (repodata_parser == "Libsolv") and (matchspec_parser != "Libsolv"):
+        with pytest.raises(libmambapy.MambaNativeException) as e:
+            add_repo_json()
+            assert "Libsolv repodata parser uses only its own MatchSpec parser" in e
+        return
+
+    repo = add_repo_json()
     db.set_installed_repo(repo)
 
     assert repo.package_count() == 1 if package_types in ["TarBz2Only", "CondaOnly"] else 2
@@ -248,7 +260,7 @@ def test_Database_RepoInfo_from_repodata(
     assert repo_loaded.package_count() == 1 if package_types in ["TarBz2Only", "CondaOnly"] else 2
 
 
-def test_Database_RepoInfo_from_repodata_error():
+def test_Database_RepoInfo_from_repodata_missing():
     db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
     channel_id = "conda-forge"
 

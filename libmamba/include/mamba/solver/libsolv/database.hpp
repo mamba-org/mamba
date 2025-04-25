@@ -53,9 +53,18 @@ namespace mamba::solver::libsolv
     {
     public:
 
+        /**
+         * Global Database settings.
+         */
+        struct Settings
+        {
+            MatchSpecParser matchspec_parser = MatchSpecParser::Libsolv;
+        };
+
         using logger_type = std::function<void(LogLevel, std::string_view)>;
 
         explicit Database(specs::ChannelResolveParams channel_params);
+        Database(specs::ChannelResolveParams channel_params, Settings settings);
         Database(const Database&) = delete;
         Database(Database&&);
 
@@ -66,6 +75,8 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
+        [[nodiscard]] auto settings() const -> const Settings&;
+
         void set_logger(logger_type callback);
 
         auto add_repo_from_repodata_json(
@@ -75,8 +86,7 @@ namespace mamba::solver::libsolv
             PipAsPythonDependency add = PipAsPythonDependency::No,
             PackageTypes package_types = PackageTypes::CondaOrElseTarBz2,
             VerifyPackages verify_packages = VerifyPackages::No,
-            RepodataParser repo_parser = RepodataParser::Mamba,
-            MatchSpecParser ms_parser = MatchSpecParser::Libsolv
+            RepodataParser repo_parser = RepodataParser::Mamba
         ) -> expected_t<RepoInfo>;
 
         auto add_repo_from_native_serialization(
@@ -91,16 +101,14 @@ namespace mamba::solver::libsolv
             Iter first_package,
             Iter last_package,
             std::string_view name = "",
-            PipAsPythonDependency add = PipAsPythonDependency::No,
-            MatchSpecParser ms_parser = MatchSpecParser::Libsolv
+            PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
 
         template <typename Range>
         auto add_repo_from_packages(
             const Range& packages,
             std::string_view name = "",
-            PipAsPythonDependency add = PipAsPythonDependency::No,
-            MatchSpecParser ms_parser = MatchSpecParser::Libsolv
+            PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
 
         auto
@@ -154,11 +162,7 @@ namespace mamba::solver::libsolv
         [[nodiscard]] auto pool() const -> const solv::ObjPool&;
 
         auto add_repo_from_packages_impl_pre(std::string_view name) -> RepoInfo;
-        void add_repo_from_packages_impl_loop(
-            const RepoInfo& repo,
-            const specs::PackageInfo& pkg,
-            MatchSpecParser ms_parser
-        );
+        void add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg);
         void add_repo_from_packages_impl_post(const RepoInfo& repo, PipAsPythonDependency add);
 
         enum class PackageId : int;
@@ -183,28 +187,24 @@ namespace mamba::solver::libsolv
         Iter first_package,
         Iter last_package,
         std::string_view name,
-        PipAsPythonDependency add,
-        MatchSpecParser ms_parser
+        PipAsPythonDependency add
     ) -> RepoInfo
     {
         auto repo = add_repo_from_packages_impl_pre(name);
         for (; first_package != last_package; ++first_package)
         {
-            add_repo_from_packages_impl_loop(repo, *first_package, ms_parser);
+            add_repo_from_packages_impl_loop(repo, *first_package);
         }
         add_repo_from_packages_impl_post(repo, add);
         return repo;
     }
 
     template <typename Range>
-    auto Database::add_repo_from_packages(
-        const Range& packages,
-        std::string_view name,
-        PipAsPythonDependency add,
-        MatchSpecParser ms_parser
-    ) -> RepoInfo
+    auto
+    Database::add_repo_from_packages(const Range& packages, std::string_view name, PipAsPythonDependency add)
+        -> RepoInfo
     {
-        return add_repo_from_packages(packages.begin(), packages.end(), name, add, ms_parser);
+        return add_repo_from_packages(packages.begin(), packages.end(), name, add);
     }
 
     // TODO(C++20): Use ranges::transform

@@ -75,7 +75,7 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo = db.add_repo_from_repodata_json(
@@ -85,8 +85,7 @@ namespace
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
             libsolv::VerifyPackages::No,
-            libsolv::RepodataParser::Mamba,
-            matchspec_parser
+            libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
 
@@ -230,7 +229,7 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo = db.add_repo_from_repodata_json(
@@ -240,8 +239,7 @@ namespace
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
             libsolv::VerifyPackages::No,
-            libsolv::RepodataParser::Mamba,
-            matchspec_parser
+            libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
         db.set_installed_repo(repo.value());
@@ -335,7 +333,7 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo_installed = db.add_repo_from_repodata_json(
@@ -345,8 +343,7 @@ namespace
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
             libsolv::VerifyPackages::No,
-            libsolv::RepodataParser::Mamba,
-            matchspec_parser
+            libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo_installed.has_value());
         db.set_installed_repo(repo_installed.value());
@@ -357,8 +354,7 @@ namespace
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
             libsolv::VerifyPackages::No,
-            libsolv::RepodataParser::Mamba,
-            matchspec_parser
+            libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
 
@@ -389,7 +385,7 @@ namespace
             libsolv::MatchSpecParser::Mixed,
             libsolv::MatchSpecParser::Mamba
         );
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         // A conda-forge/linux-64 subsample with one version of numpy and pip and their dependencies
         const auto repo = db.add_repo_from_repodata_json(
@@ -399,8 +395,7 @@ namespace
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
             libsolv::VerifyPackages::No,
-            libsolv::RepodataParser::Mamba,
-            matchspec_parser
+            libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
 
@@ -411,8 +406,7 @@ namespace
                     specs::PackageInfo("numpy", "1.0.0", "phony", 0),
                 },
                 "installed",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
             db.set_installed_repo(installed);
 
@@ -484,8 +478,7 @@ namespace
                     specs::PackageInfo("foo"),
                 },
                 "installed",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
             db.set_installed_repo(installed);
 
@@ -618,8 +611,7 @@ namespace
             const auto installed = db.add_repo_from_packages(
                 std::array{ pkg_numpy, pkg_foo, specs::PackageInfo("python", "4.0.0", "phony", 0) },
                 "installed",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
             db.set_installed_repo(installed);
 
@@ -689,19 +681,17 @@ namespace
             libsolv::MatchSpecParser::Mixed,
             libsolv::MatchSpecParser::Mamba
         );
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         const auto repo1 = db.add_repo_from_packages(
             std::array{ specs::PackageInfo("numpy", "1.0.0", "repo1", 0) },
             "repo1",
-            libsolv::PipAsPythonDependency::No,
-            matchspec_parser
+            libsolv::PipAsPythonDependency::No
         );
         const auto repo2 = db.add_repo_from_packages(
             std::array{ specs::PackageInfo("numpy", "2.0.0", "repo2", 0) },
-            "installed",
-            libsolv::PipAsPythonDependency::No,
-            matchspec_parser
+            "repo2",
+            libsolv::PipAsPythonDependency::No
         );
         db.set_repo_priority(repo1, { 2, 0 });
         db.set_repo_priority(repo2, { 1, 0 });
@@ -747,7 +737,7 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         auto mkfoo = [](std::string version,
                         std::size_t build_number = 0,
@@ -770,8 +760,7 @@ namespace
                     mkfoo("2.0.0", 1, {}, 1),
                 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -798,8 +787,7 @@ namespace
                     mkfoo("2.0.0", 1, { "feat" }, 1),
                 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
             auto request = Request{
                 /* .flags= */ {},
@@ -824,9 +812,8 @@ namespace
                     mkfoo("2.0.0", 0, {}, 0),
                     mkfoo("1.0.0", 1, {}, 1),
                 },
-                "installed",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                "repo",
+                libsolv::PipAsPythonDependency::No
             );
             auto request = Request{
                 /* .flags= */ {},
@@ -851,9 +838,8 @@ namespace
                     mkfoo("2.0.0", 1, {}, 0),
                     mkfoo("2.0.0", 0, {}, 1),
                 },
-                "installed",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                "repo",
+                libsolv::PipAsPythonDependency::No
             );
             auto request = Request{
                 /* .flags= */ {},
@@ -878,9 +864,8 @@ namespace
                     mkfoo("2.0.0", 0, {}, 0),
                     mkfoo("2.0.0", 0, {}, 1),
                 },
-                "installed",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                "repo",
+                libsolv::PipAsPythonDependency::No
             );
             auto request = Request{
                 /* .flags= */ {},
@@ -907,29 +892,22 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({
-            /* .platforms= */ { "linux-64", "noarch" },
-            /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
-        });
+        auto db = libsolv::Database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            },
+            { matchspec_parser }
+        );
 
         SECTION("Different channels")
         {
             auto pkg1 = specs::PackageInfo("foo", "1.0.0", "conda", 0);
             pkg1.package_url = "https://conda.anaconda.org/conda-forge/linux-64/foo-1.0.0-phony.conda";
-            db.add_repo_from_packages(
-                std::array{ pkg1 },
-                "repo1",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
-            );
+            db.add_repo_from_packages(std::array{ pkg1 }, "repo1", libsolv::PipAsPythonDependency::No);
             auto pkg2 = specs::PackageInfo("foo", "1.0.0", "mamba", 0);
             pkg2.package_url = "https://conda.anaconda.org/mamba-forge/linux-64/foo-1.0.0-phony.conda";
-            db.add_repo_from_packages(
-                std::array{ pkg2 },
-                "repo2",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
-            );
+            db.add_repo_from_packages(std::array{ pkg2 }, "repo2", libsolv::PipAsPythonDependency::No);
 
             SECTION("conda-forge::foo")
             {
@@ -1008,8 +986,7 @@ namespace
                 libsolv::PipAsPythonDependency::No,
                 libsolv::PackageTypes::CondaOrElseTarBz2,
                 libsolv::VerifyPackages::No,
-                libsolv::RepodataParser::Mamba,
-                matchspec_parser
+                libsolv::RepodataParser::Mamba
             );
             REQUIRE(repo_linux.has_value());
 
@@ -1023,8 +1000,7 @@ namespace
                 libsolv::PipAsPythonDependency::No,
                 libsolv::PackageTypes::CondaOrElseTarBz2,
                 libsolv::VerifyPackages::No,
-                libsolv::RepodataParser::Mamba,
-                matchspec_parser
+                libsolv::RepodataParser::Mamba
             );
             REQUIRE(repo_noarch.has_value());
 
@@ -1073,7 +1049,7 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         SECTION("Respect pins through direct dependencies")
         {
@@ -1085,8 +1061,7 @@ namespace
             db.add_repo_from_packages(
                 std::array{ pkg1, pkg2 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -1121,8 +1096,7 @@ namespace
             db.add_repo_from_packages(
                 std::array{ pkg1, pkg2, pkg3, pkg4 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -1156,8 +1130,7 @@ namespace
             db.add_repo_from_packages(
                 std::array{ pkg1, pkg2 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -1182,12 +1155,7 @@ namespace
             auto pkg = PackageInfo("bar");
             pkg.version = "1.0";
 
-            db.add_repo_from_packages(
-                std::array{ pkg },
-                "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
-            );
+            db.add_repo_from_packages(std::array{ pkg }, "repo", libsolv::PipAsPythonDependency::No);
 
             auto request = Request{
                 /* .flags= */ {},
@@ -1217,7 +1185,7 @@ namespace
             libsolv::MatchSpecParser::Mamba
         );
 
-        auto db = libsolv::Database({});
+        auto db = libsolv::Database({}, { matchspec_parser });
 
         SECTION("*[md5=0bab699354cbd66959550eb9b9866620]")
         {
@@ -1229,8 +1197,7 @@ namespace
             db.add_repo_from_packages(
                 std::array{ pkg1, pkg2 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -1256,12 +1223,7 @@ namespace
             auto pkg1 = PackageInfo("foo");
             pkg1.md5 = "0bab699354cbd66959550eb9b9866620";
 
-            db.add_repo_from_packages(
-                std::array{ pkg1 },
-                "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
-            );
+            db.add_repo_from_packages(std::array{ pkg1 }, "repo", libsolv::PipAsPythonDependency::No);
 
             auto request = Request{
                 /* .flags= */ {},
@@ -1283,8 +1245,7 @@ namespace
             db.add_repo_from_packages(
                 std::array{ pkg1, pkg2 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -1319,8 +1280,7 @@ namespace
             db.add_repo_from_packages(
                 std::array{ pkg1, pkg2, pkg3 },
                 "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
+                libsolv::PipAsPythonDependency::No
             );
 
             auto request = Request{
@@ -1347,12 +1307,7 @@ namespace
             pkg.version = "=*,=*";
             pkg.build_string = "pyhd*";
 
-            db.add_repo_from_packages(
-                std::array{ pkg },
-                "repo",
-                libsolv::PipAsPythonDependency::No,
-                matchspec_parser
-            );
+            db.add_repo_from_packages(std::array{ pkg }, "repo", libsolv::PipAsPythonDependency::No);
 
             auto request = Request{
                 /* .flags= */ {},

@@ -124,7 +124,21 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
 
         py::class_<Database>(m, "Database")
-            .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
+            .def(
+                py::init(
+                    [](specs::ChannelResolveParams channel_params, MatchSpecParser matchspec_parser)
+                    {
+                        return Database(
+                            channel_params,
+                            Database::Settings{
+                                matchspec_parser,
+                            }
+                        );
+                    }
+                ),
+                py::arg("channel_params"),
+                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
+            )
             .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
             .def(
                 "add_repo_from_repodata_json",
@@ -135,8 +149,7 @@ namespace mambapy
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
                 py::arg("package_types") = PackageTypes::CondaOrElseTarBz2,
                 py::arg("verify_packages") = VerifyPackages::No,
-                py::arg("repodata_parser") = RepodataParser::Mamba,
-                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
+                py::arg("repodata_parser") = RepodataParser::Mamba
             )
             .def(
                 "add_repo_from_native_serialization",
@@ -151,8 +164,7 @@ namespace mambapy
                 [](Database& database,
                    py::iterable packages,
                    std::string_view name,
-                   PipAsPythonDependency add,
-                   MatchSpecParser ms_parser)
+                   PipAsPythonDependency add)
                 {
                     // TODO(C++20): No need to copy in a vector, simply transform the input range.
                     auto pkg_infos = std::vector<specs::PackageInfo>();
@@ -160,12 +172,11 @@ namespace mambapy
                     {
                         pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
                     }
-                    return database.add_repo_from_packages(pkg_infos, name, add, ms_parser);
+                    return database.add_repo_from_packages(pkg_infos, name, add);
                 },
                 py::arg("packages"),
                 py::arg("name") = "",
-                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
-                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
+                py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No
             )
             .def(
                 "native_serialize_repo",

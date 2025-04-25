@@ -131,7 +131,10 @@ def test_Database_logger():
 @pytest.mark.parametrize("add_pip_as_python_dependency", [True, False])
 @pytest.mark.parametrize("matchspec_parser", ["Mixed", "Mamba", "Libsolv"])
 def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec_parser):
-    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        matchspec_parser=matchspec_parser,
+    )
     assert db.repo_count() == 0
     assert db.installed_repo() is None
     assert db.package_count() == 0
@@ -140,7 +143,6 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
         [libmambapy.specs.PackageInfo(name="python")],
         name="duck",
         add_pip_as_python_dependency=add_pip_as_python_dependency,
-        matchspec_parser=matchspec_parser,
     )
     db.set_installed_repo(repo)
 
@@ -207,7 +209,10 @@ def test_Database_RepoInfo_from_repodata(
     repodata_parser,
     matchspec_parser,
 ):
-    db = libsolv.Database(libmambapy.specs.ChannelResolveParams())
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        matchspec_parser=matchspec_parser,
+    )
 
     url = "https://repo.mamba.pm"
     channel_id = "conda-forge"
@@ -220,7 +225,6 @@ def test_Database_RepoInfo_from_repodata(
             add_pip_as_python_dependency=add_pip_as_python_dependency,
             package_types=package_types,
             repodata_parser=repodata_parser,
-            matchspec_parser=matchspec_parser,
         )
 
     if (repodata_parser == "Libsolv") and (matchspec_parser != "Libsolv"):

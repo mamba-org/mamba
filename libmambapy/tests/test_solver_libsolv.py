@@ -1,6 +1,5 @@
 import copy
 import json
-import itertools
 
 import pytest
 

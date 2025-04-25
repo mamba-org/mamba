@@ -29,8 +29,8 @@ namespace mamba::solver::libsolv
 {
     struct Database::DatabaseImpl
     {
-        explicit DatabaseImpl(specs::ChannelResolveParams p_channel_params, Settings settings)
-            : settings(std::move(settings))
+        explicit DatabaseImpl(specs::ChannelResolveParams p_channel_params, Settings settings_)
+            : settings(std::move(settings_))
             , matcher(std::move(p_channel_params))
         {
         }

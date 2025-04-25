@@ -136,7 +136,13 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            solver::libsolv::Database database{ channel_context.params() };
+            solver::libsolv::Database database{
+                channel_context.params(),
+                {
+                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                       : solver::libsolv::MatchSpecParser::Libsolv,
+                },
+            };
             add_spdlog_logger_to_database(database);
             load_installed_packages_in_database(ctx, database, prefix_data);
 

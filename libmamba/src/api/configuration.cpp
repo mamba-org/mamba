@@ -1423,6 +1423,14 @@ namespace mamba
                    .set_env_var_names()
                    .set_post_merge_hook(detail::not_supported_option_hook));
 
+        insert(Configurable("experimental_matchspec_parsing", &m_context.experimental_matchspec_parsing)
+                   .group("Basic")
+                   .description(  //
+                       "Enable experimental parsing and matching of MatchSpecs using Mamba implementation.\n"
+                       "This is not mean for production"
+                   )
+                   .set_env_var_names());
+
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
                    .set_env_var_names()

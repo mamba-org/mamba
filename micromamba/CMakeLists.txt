@@ -68,10 +68,6 @@ macro(mambaexe_create_target target_name linkage output_name)
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
 
-    if(${target_name} STREQUAL "micromamba")
-        target_compile_definitions(${target_name} PRIVATE BUILDING_MICROMAMBA)
-    endif()
-
     target_link_libraries(${target_name} PRIVATE Threads::Threads reproc reproc++)
 
     # Static build
@@ -106,6 +102,7 @@ endif()
 if(BUILD_STATIC)
     message(STATUS "Adding executable micromamba")
     mambaexe_create_target(micromamba STATIC micromamba)
+    target_compile_definitions(micromamba PRIVATE BUILDING_MICROMAMBA)
 endif()
 
 # Installation

@@ -102,6 +102,7 @@ endif()
 if(BUILD_STATIC)
     message(STATUS "Adding executable micromamba")
     mambaexe_create_target(micromamba STATIC micromamba)
+    target_compile_definitions(micromamba PRIVATE BUILDING_MICROMAMBA)
 endif()
 
 # Installation

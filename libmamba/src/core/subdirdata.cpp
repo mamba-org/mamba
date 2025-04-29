@@ -307,7 +307,7 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            LOG_WARNING << "Could not parse mod/etag header";
+            LOG_DEBUG << "Could not parse mod/etag header";
             return make_unexpected(
                 fmt::format("File: {}: Could not parse mod/etag header ({})", repodata_file, e.what()),
                 mamba_error_code::cache_not_loaded

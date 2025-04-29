@@ -23,6 +23,7 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/resolvo/solver.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -471,14 +472,22 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            solver::libsolv::Database db{
-                channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
-            add_spdlog_logger_to_database(db);
+            std::variant<solver::libsolv::Database, solver::resolvo::Database> db;
+            if (ctx.use_resolvo_solver)
+            {
+                db.emplace<solver::resolvo::Database>();
+            }
+            else
+            {
+                db.emplace<solver::libsolv::Database>(
+                    channel_context.params(),
+                    {
+                        ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                           : solver::libsolv::MatchSpecParser::Libsolv,
+                    },
+                    );
+                add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
+            }
 
             auto exp_load = load_channels(ctx, channel_context, db, package_caches);
             if (!exp_load)
@@ -495,7 +504,6 @@ namespace mamba
 
             load_installed_packages_in_database(ctx, db, prefix_data);
 
-
             auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;
@@ -506,20 +514,40 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
-            auto outcome = solver::libsolv::Solver()
-                               .solve(
-                                   db,
-                                   request,
-                                   ctx.experimental_matchspec_parsing
-                                       ? solver::libsolv::MatchSpecParser::Mamba
-                                       : solver::libsolv::MatchSpecParser::Mixed
-                               )
-                               .value();
+            auto outcome =
+                [&]() -> expected_t<std::variant<solver::Solution, solver::libsolv::UnSolvable>>
+            {
+                if (ctx.use_resolvo_solver)
+                {
+                    auto resolvo_outcome = solver::resolvo::Solver().solve(
+                        std::get<solver::resolvo::Database>(db),
+                        request
+                    );
+                    if (!resolvo_outcome)
+                    {
+                        return make_unexpected(resolvo_outcome.error());
+                    }
+                    return std::get<solver::Solution>(resolvo_outcome.value());
+                }
+                else
+                {
+                    return solver::libsolv::Solver().solve(
+                        std::get<solver::libsolv::Database>(db),
+                        request,
+                        ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba : solver::libsolv::MatchSpecParser::Mixed
+                    );
+                }
+            }();
 
-            if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
+            if (!outcome)
+            {
+                throw std::runtime_error(outcome.error().what());
+            }
+
+            if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome.value()))
             {
                 unsolvable->explain_problems_to(
-                    db,
+                    std::get<solver::libsolv::Database>(db),
                     LOG_ERROR,
                     {
                         /* .unavailable= */ ctx.graphics_params.palette.failure,
@@ -549,7 +577,9 @@ namespace mamba
                 if (ctx.output_params.json)
                 {
                     Console::instance().json_write(
-                        { { "success", false }, { "solver_problems", unsolvable->problems(db) } }
+                        { { "success", false },
+                          { "solver_problems",
+                            unsolvable->problems(std::get<solver::libsolv::Database>(db)) } }
                     );
                 }
                 throw mamba_error(
@@ -579,7 +609,7 @@ namespace mamba
                     ctx,
                     database,
                     request,
-                    std::get<solver::Solution>(outcome),
+                    std::get<solver::Solution>(outcome.value()),
                     package_caches
                 );
             }(std::move(db));

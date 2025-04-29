@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string_view>
+#include <variant>
 
 #include <fmt/format.h>
 #include <solv/evr.h>
@@ -138,9 +139,9 @@ namespace mamba
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
         const PrefixData& prefix
-    ) -> solver::libsolv::RepoInfo
+    ) -> expected_t<void>
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();
@@ -152,12 +153,25 @@ namespace mamba
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
-        auto repo = database.add_repo_from_packages(
-            pkgs,
-            "installed",
-            solver::libsolv::PipAsPythonDependency::No
-        );
-        database.set_installed_repo(repo);
-        return repo;
+        if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+        {
+            auto repo = libsolv_db->add_repo_from_packages(
+                pkgs,
+                "installed",
+                solver::libsolv::PipAsPythonDependency::No
+            );
+            libsolv_db->set_installed_repo(repo);
+            return {};
+        }
+        else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+        {
+            resolvo_db->add_repo_from_packages(pkgs, "installed");
+            resolvo_db->set_installed_repo("installed");
+            return {};
+        }
+        else
+        {
+            return make_unexpected("Unknown database type", mamba_error_code::unknown);
+        }
     }
 }

@@ -125,7 +125,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& database,
+            std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -196,7 +196,14 @@ namespace mamba
 
             if (!packages.empty())
             {
-                database.add_repo_from_packages(packages, "packages");
+                if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+                {
+                    libsolv_db->add_repo_from_packages(packages, "packages");
+                }
+                else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+                {
+                    resolvo_db->add_repo_from_packages(packages, "packages");
+                }
             }
 
             expected_t<void> download_res;
@@ -243,7 +250,15 @@ namespace mamba
                 LOG_INFO << "Creating repo from pkgs_dir for offline";
                 for (const auto& c : ctx.pkgs_dirs)
                 {
-                    create_repo_from_pkgs_dir(ctx, channel_context, database, c);
+                    if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+                    {
+                        create_repo_from_pkgs_dir(ctx, channel_context, *libsolv_db, c);
+                    }
+                    else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+                    {
+                        // TODO: Implement this for resolvo
+                        throw std::runtime_error("Offline mode not supported with resolvo solver yet");
+                    }
                 }
             }
             std::string prev_channel;
@@ -251,43 +266,41 @@ namespace mamba
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 auto& subdir = subdirs[i];
-                if (!subdir.valid_cache_found())
+                auto channel = subdir.channel();
+                if (channel != prev_channel)
                 {
-                    if (!ctx.offline && subdir.is_noarch())
+                    prev_channel = channel;
+                    if (i != 0)
                     {
-                        error_list.push_back(mamba_error(
-                            "Subdir " + subdir.name() + " not loaded!",
-                            mamba_error_code::subdirdata_not_loaded
-                        ));
+                        Console::instance().print("\n");
                     }
-                    continue;
+                    Console::instance().print(fmt::format("{} {}", channel, subdir.platform()));
+                }
+                else
+                {
+                    Console::instance().print(fmt::format(" {}", subdir.platform()));
                 }
 
-                load_subdir_in_database(ctx, database, subdir)
-                    .transform([&](solver::libsolv::RepoInfo&& repo)
-                               { database.set_repo_priority(repo, priorities[i]); })
-                    .or_else(
-                        [&](const auto&)
-                        {
-                            if (is_retry)
-                            {
-                                std::stringstream ss;
-                                ss << "Could not load repodata.json for " << subdir.name()
-                                   << " after retry." << "Please check repodata source. Exiting."
-                                   << std::endl;
-                                error_list.push_back(
-                                    mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
-                                );
-                            }
-                            else
-                            {
-                                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                                            << ". Deleting cache, and retrying.";
-                                subdir.clear_cache_files();
-                                loading_failed = true;
-                            }
-                        }
-                    );
+                if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+                {
+                    auto exp_repo = load_subdir_in_database(ctx, *libsolv_db, subdir);
+                    if (!exp_repo)
+                    {
+                        error_list.push_back(exp_repo.error());
+                        loading_failed = true;
+                        continue;
+                    }
+                    auto repo = exp_repo.value();
+                    if (i < priorities.size())
+                    {
+                        libsolv_db->set_repo_priority(repo, priorities[i]);
+                    }
+                }
+                else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+                {
+                    // TODO: Implement this for resolvo
+                    throw std::runtime_error("Loading subdirs not supported with resolvo solver yet");
+                }
             }
 
             if (loading_failed)
@@ -312,7 +325,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& database,
+        std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>
     {

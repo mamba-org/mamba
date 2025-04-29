@@ -1259,10 +1259,7 @@ namespace mamba
             out << YAML::Comment(std::string(54, '#'));
         }
 
-        void dump_configurable(nl::json& node, const Configurable& c, const std::string& name)
-        {
-            c.dump_json(node, name);
-        }
+        void dump_configurable(nl::json& node, const Configurable& c, const std::string& name);
     }
 
     /********************************
@@ -1629,6 +1626,17 @@ namespace mamba
                            m_context.solver_flags.strict_repo_priority = (value == ChannelPriority::Strict);
                        }
                    ));
+
+        insert(Configurable("experimental_resolvo_solver", false)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Use the experimental resolvo solver instead of libsolv")
+                   .long_description(unindent(R"(
+                        When enabled, use the experimental resolvo solver instead of libsolv.
+                        This is an experimental feature and may not be fully functional.)"))
+                   .set_post_merge_hook<bool>([&](bool& value)
+                                              { m_context.use_resolvo_solver = value; }));
 
         insert(Configurable("explicit_install", false)
                    .group("Solver")

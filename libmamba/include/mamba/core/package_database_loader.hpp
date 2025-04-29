@@ -9,18 +9,23 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/resolvo/database.hpp"
 #include "mamba/specs/channel.hpp"
 
 namespace mamba
 {
-    class Context;
-    class PrefixData;
-    class SubdirData;
-
     namespace solver::libsolv
     {
         class Database;
     }
+
+    namespace solver::resolvo
+    {
+        class Database;
+    }
+    class Context;
+    class PrefixData;
+    class SubdirData;
 
     void add_spdlog_logger_to_database(solver::libsolv::Database& database);
 
@@ -32,8 +37,8 @@ namespace mamba
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
         const PrefixData& prefix
-    ) -> solver::libsolv::RepoInfo;
+    ) -> expected_t<void>;
 }
 #endif

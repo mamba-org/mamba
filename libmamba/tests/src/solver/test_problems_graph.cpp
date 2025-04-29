@@ -539,28 +539,28 @@ namespace
         auto db = solver::libsolv::Database{ channel_context.params() };
         const auto xpt = db.add_repo_from_repodata_json(
             mambatests::test_data_dir / "repodata/sudoku.json",
-            "https://conda.anaconda.org/jjhelmus/label/game/noarch/repodata.json",
+            "https://conda.anaconda.org/jjhelmus/label/sudoku/noarch/repodata.json",
             "sudoku"
         );
 
         auto request = Request{
             {},
             {
-                Request::Install{ "sudoku-0-0 == 5"_ms }, Request::Install{ "sudoku-1-0 == 3"_ms },
-                Request::Install{ "sudoku-4-0 == 7"_ms }, Request::Install{ "sudoku-0-1 == 6"_ms },
-                Request::Install{ "sudoku-3-1 == 1"_ms }, Request::Install{ "sudoku-4-1 == 9"_ms },
-                Request::Install{ "sudoku-5-1 == 5"_ms }, Request::Install{ "sudoku-1-2 == 9"_ms },
-                Request::Install{ "sudoku-2-2 == 8"_ms }, Request::Install{ "sudoku-7-2 == 6"_ms },
-                Request::Install{ "sudoku-0-3 == 8"_ms }, Request::Install{ "sudoku-4-3 == 6"_ms },
-                Request::Install{ "sudoku-8-3 == 3"_ms }, Request::Install{ "sudoku-0-4 == 4"_ms },
-                Request::Install{ "sudoku-3-4 == 8"_ms }, Request::Install{ "sudoku-5-4 == 3"_ms },
-                Request::Install{ "sudoku-8-4 == 1"_ms }, Request::Install{ "sudoku-0-5 == 7"_ms },
-                Request::Install{ "sudoku-4-5 == 2"_ms }, Request::Install{ "sudoku-8-5 == 6"_ms },
-                Request::Install{ "sudoku-1-6 == 6"_ms }, Request::Install{ "sudoku-6-6 == 2"_ms },
-                Request::Install{ "sudoku-7-6 == 8"_ms }, Request::Install{ "sudoku-3-7 == 4"_ms },
-                Request::Install{ "sudoku-4-7 == 1"_ms }, Request::Install{ "sudoku-5-7 == 9"_ms },
-                Request::Install{ "sudoku-8-7 == 5"_ms }, Request::Install{ "sudoku-4-8 == 8"_ms },
-                Request::Install{ "sudoku-7-8 == 7"_ms }, Request::Install{ "sudoku-8-8 == 9"_ms },
+                Request::Install{ "sudoku_0_0 == 5"_ms }, Request::Install{ "sudoku_1_0 == 3"_ms },
+                Request::Install{ "sudoku_4_0 == 7"_ms }, Request::Install{ "sudoku_0_1 == 6"_ms },
+                Request::Install{ "sudoku_3_1 == 1"_ms }, Request::Install{ "sudoku_4_1 == 9"_ms },
+                Request::Install{ "sudoku_5_1 == 5"_ms }, Request::Install{ "sudoku_1_2 == 9"_ms },
+                Request::Install{ "sudoku_2_2 == 8"_ms }, Request::Install{ "sudoku_7_2 == 6"_ms },
+                Request::Install{ "sudoku_0_3 == 8"_ms }, Request::Install{ "sudoku_4_3 == 6"_ms },
+                Request::Install{ "sudoku_8_3 == 3"_ms }, Request::Install{ "sudoku_0_4 == 4"_ms },
+                Request::Install{ "sudoku_3_4 == 8"_ms }, Request::Install{ "sudoku_5_4 == 3"_ms },
+                Request::Install{ "sudoku_8_4 == 1"_ms }, Request::Install{ "sudoku_0_5 == 7"_ms },
+                Request::Install{ "sudoku_4_5 == 2"_ms }, Request::Install{ "sudoku_8_5 == 6"_ms },
+                Request::Install{ "sudoku_1_6 == 6"_ms }, Request::Install{ "sudoku_6_6 == 2"_ms },
+                Request::Install{ "sudoku_7_6 == 8"_ms }, Request::Install{ "sudoku_3_7 == 4"_ms },
+                Request::Install{ "sudoku_4_7 == 1"_ms }, Request::Install{ "sudoku_5_7 == 9"_ms },
+                Request::Install{ "sudoku_8_7 == 5"_ms }, Request::Install{ "sudoku_4_8 == 8"_ms },
+                Request::Install{ "sudoku_7_8 == 7"_ms }, Request::Install{ "sudoku_8_8 == 9"_ms },
             },
         };
 
@@ -643,7 +643,8 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
         std::pair{ "R base", &create_r_base },
         std::pair{ "SCIP", &create_scip },
         std::pair{ "Two different Python", &create_double_python },
-        std::pair{ "Numba", &create_numba }
+        std::pair{ "Numba", &create_numba },
+        std::pair{ "Sudoku", &create_sudoku }
     );
 
     auto& ctx = mambatests::context();

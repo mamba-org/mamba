@@ -19,8 +19,10 @@
 #include <unistd.h>
 #endif
 
+#include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/history.hpp"
+#include "mamba/core/prefix_data.hpp"
 
 #include "mambatests.hpp"
 
@@ -103,6 +105,44 @@ namespace mamba
             );
             // Must not throw
             std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
+        }
+
+        TEST_CASE("parse_all_formats")
+        {
+            std::vector<std::string> test_list{
+                "conda-forge/linux-64::xtl-0.8.0-h84d6215_0",
+                "conda-forge::xtl-0.8.0-h84d6215_0",
+                "https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0"
+            };
+            for (auto s : test_list)
+            {
+                specs::PackageInfo pkg_info = mamba::detail::pkg_info_builder(s);
+                REQUIRE(pkg_info.name == "xtl");
+                REQUIRE(pkg_info.version == "0.8.0");
+                REQUIRE(pkg_info.channel == "conda-forge");
+                REQUIRE(pkg_info.build_string == "h84d6215_0");
+            }
+        }
+
+        TEST_CASE("revision_diff")
+        {
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
+
+            // Gather history from current history file.
+            History history_instance(mambatests::test_data_dir / "history/parse", channel_context);
+            std::vector<History::UserRequest> user_requests = history_instance.get_user_requests();
+            int REVISION = 1;
+
+            auto revision_pkg_diff = detail::get_revision_pkg_diff(user_requests, REVISION);
+            const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
+            const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
+
+            REQUIRE(removed_pkg_diff.find("nlohmann_json")->second.version == "3.12.0");
+            REQUIRE(removed_pkg_diff.find("xtl")->second.version == "0.7.2");
+            REQUIRE(installed_pkg_diff.find("cpp-tabulate")->second.version == "1.5");
+            REQUIRE(installed_pkg_diff.find("wheel")->second.version == "0.40.0");
+            REQUIRE(installed_pkg_diff.find("openssl")->second.version == "3.5.0");
+            REQUIRE(installed_pkg_diff.find("xtl")->second.version == "0.8.0");
         }
 
 #ifndef _WIN32

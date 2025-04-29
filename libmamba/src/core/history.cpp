@@ -81,12 +81,12 @@ namespace mamba
             {
                 if (res.size() > 0)
                 {
-                    res[res.size() - 1].diff.insert(line);
+                    res[res.size() - 1].diff.push_back(line);
                 }
                 else
                 {
                     res.push_back(ParseResult());
-                    res[0].diff.insert(line);
+                    res[0].diff.push_back(line);
                 }
             }
         }

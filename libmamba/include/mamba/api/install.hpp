@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "mamba/core/history.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/request.hpp"
 
@@ -117,6 +118,10 @@ namespace mamba
             std::map<std::string, specs::PackageInfo> removed_pkg_diff;
             std::map<std::string, specs::PackageInfo> installed_pkg_diff;
         };
+
+        specs::PackageInfo pkg_info_builder(std::string s);
+        PackageDiff
+        get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int REVISION);
     }
 
 }

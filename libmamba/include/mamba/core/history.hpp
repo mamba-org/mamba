@@ -29,7 +29,7 @@ namespace mamba
         struct ParseResult
         {
             std::string head_line;
-            std::set<std::string> diff;
+            std::vector<std::string> diff;
             std::vector<std::string> comments;
         };
 

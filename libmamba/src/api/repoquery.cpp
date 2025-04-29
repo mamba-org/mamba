@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <variant>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
@@ -23,6 +24,7 @@ namespace mamba
     {
         auto
         repoquery_init(Context& ctx, Configuration& config, QueryResultFormat format, bool use_local)
+            -> solver::libsolv::Database&
         {
             config.at("use_target_prefix_fallback").set_value(true);
             config.at("use_default_prefix_fallback").set_value(true);
@@ -34,14 +36,14 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            solver::libsolv::Database db{
+            static std::variant<solver::libsolv::Database, solver::resolvo::Database> db(
+                std::in_place_type<solver::libsolv::Database>,
                 channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
-            add_spdlog_logger_to_database(db);
+                solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing
+                                                         ? solver::libsolv::MatchSpecParser::Mamba
+                                                         : solver::libsolv::MatchSpecParser::Libsolv }
+            );
+            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -62,7 +64,11 @@ namespace mamba
                 }
                 PrefixData& prefix_data = exp_prefix_data.value();
 
-                load_installed_packages_in_database(ctx, db, prefix_data);
+                load_installed_packages_in_database(
+                    ctx,
+                    std::get<solver::libsolv::Database>(db),
+                    prefix_data
+                );
 
                 if (format != QueryResultFormat::Json)
                 {
@@ -83,7 +89,7 @@ namespace mamba
                     throw std::runtime_error(exp_load.error().what());
                 }
             }
-            return db;
+            return std::get<solver::libsolv::Database>(db);
         }
     }
 
@@ -189,7 +195,7 @@ namespace mamba
     )
     {
         auto& ctx = config.context();
-        auto db = repoquery_init(ctx, config, format, use_local);
+        auto& db = repoquery_init(ctx, config, format, use_local);
         return make_repoquery(
             db,
             type,

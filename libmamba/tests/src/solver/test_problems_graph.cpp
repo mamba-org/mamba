@@ -35,7 +35,7 @@ using namespace mamba::solver;
 
 namespace
 {
-    TEST_CASE("symmetric")
+    TEST_CASE("conflict_map::symmetric", "[mamba::solver]")
     {
         auto c = conflict_map<std::size_t>();
         REQUIRE(c.size() == 0);
@@ -55,7 +55,7 @@ namespace
         REQUIRE(c.in_conflict(5, 5));
     }
 
-    TEST_CASE("remove")
+    TEST_CASE("conflict_map::remove", "[mamba::solver]")
     {
         auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
         REQUIRE(c.size() == 4);
@@ -110,7 +110,7 @@ namespace
     }
 }
 
-TEST_CASE("Test create_pkgs_database utility")
+TEST_CASE("Test create_pkgs_database utility", "[mamba::solver]")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -120,7 +120,7 @@ TEST_CASE("Test create_pkgs_database utility")
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
-TEST_CASE("Test empty specs")
+TEST_CASE("Test empty specs", "[mamba::solver]")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -396,7 +396,7 @@ namespace
     }
 }
 
-TEST_CASE("Test create_conda_forge utility")
+TEST_CASE("Test create_conda_forge utility", "[mamba::solver]")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -560,7 +560,7 @@ namespace
     };
 }
 
-TEST_CASE("NamedList")
+TEST_CASE("NamedList", "[mamba::solver]")
 {
     auto l = CompressedProblemsGraph::PackageListNode();
     static constexpr std::size_t n_packages = 9;
@@ -592,7 +592,7 @@ TEST_CASE("NamedList")
     }
 }
 
-TEST_CASE("Create problem graph")
+TEST_CASE("Create problem graph", "[mamba::solver]")
 {
     using PbGr = ProblemsGraph;
     using CpPbGr = CompressedProblemsGraph;

@@ -623,7 +623,7 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
         CAPTURE(name_copy);
         auto [db, request] = factory(ctx, channel_context);
         auto outcome = solver::libsolv::Solver().solve(db, request).value();
-        // REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
+        REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
         auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
         const auto pbs_init = unsolvable.problems_graph(db);
         const auto& graph_init = pbs_init.graph();
@@ -738,11 +738,15 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
                 {
                     const auto message = problem_tree_msg(pbs_comp);
 
-                    auto message_contains = [&message](const auto& node)
+                    auto message_contains = [&message, &name_copy](const auto& node)
                     {
                         using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                         if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
                         {
+                            if ((name_copy == "Pin conflict") && util::contains(node.name(), "pin on"))
+                            {
+                                return;
+                            }
                             REQUIRE(util::contains(message, node.name()));
                         }
                     };

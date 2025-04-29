@@ -1426,7 +1426,7 @@ namespace mamba
         insert(Configurable("experimental_matchspec_parsing", &m_context.experimental_matchspec_parsing)
                    .group("Basic")
                    .description(  //
-                       "Enable experimental parsing and matching of MatchSpecs using Mamba implementation.\n"
+                       "Enable internal parsing and matching of MatchSpecs using Mamba's experimental implementation rather than Libsolv's.\n"
                        "This is not mean for production"
                    )
                    .set_env_var_names());

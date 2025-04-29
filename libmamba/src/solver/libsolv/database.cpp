@@ -189,7 +189,9 @@ namespace mamba::solver::libsolv
             if (settings().matchspec_parser != MatchSpecParser::Libsolv)
             {
                 return make_unexpected(
-                    "Libsolv repodata parser uses only its own MatchSpec parser",
+                    " Libsolv repodata parser can only be used with Libsolv MatchSpec parser."
+                    "A Libsolv Repodata parser option been passed to this function while a"
+                    " non-Libsolv MatchSpec parser option has been give to the Database constructor.",
                     mamba_error_code::incorrect_usage
                 );
             }

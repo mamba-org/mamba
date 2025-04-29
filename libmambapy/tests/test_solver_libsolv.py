@@ -240,7 +240,7 @@ def test_Database_RepoInfo_from_repodata(
     if (repodata_parser == "Libsolv") and (matchspec_parser != "Libsolv"):
         with pytest.raises(libmambapy.MambaNativeException) as e:
             add_repo_json()
-            assert "Libsolv repodata parser uses only its own MatchSpec parser" in e
+            assert "Libsolv repodata parser can only be used with Libsolv MatchSpec parser" in e
         return
 
     repo = add_repo_json()

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string_view>
+#include <variant>
 
 #include <fmt/format.h>
 #include <solv/evr.h>
@@ -140,26 +141,40 @@ namespace mamba
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<
+            std::reference_wrapper<solver::libsolv::Database>,
+            std::reference_wrapper<solver::resolvo::Database>> database,
         const PrefixData& prefix
-    ) -> solver::libsolv::RepoInfo
+    ) -> expected_t<void>
     {
-        // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();
-        // TODO(C++20): We only need a range that concatenate both
         for (auto&& pkg : get_virtual_packages(ctx.platform))
         {
             pkgs.push_back(std::move(pkg));
         }
 
-        // Not adding Pip dependency since it might needlessly make the installed/active environment
-        // broken if pip is not already installed (debatable).
-        auto repo = database.add_repo_from_packages(
-            pkgs,
-            "installed",
-            solver::libsolv::PipAsPythonDependency::No
-        );
-        database.set_installed_repo(repo);
-        return repo;
+        if (auto* libsolv_db = std::get_if<std::reference_wrapper<solver::libsolv::Database>>(&database
+            ))
+        {
+            auto repo = libsolv_db->get().add_repo_from_packages(
+                pkgs,
+                "installed",
+                solver::libsolv::PipAsPythonDependency::No
+            );
+            libsolv_db->get().set_installed_repo(repo);
+            return {};
+        }
+        else if (auto* resolvo_db = std::get_if<std::reference_wrapper<solver::resolvo::Database>>(
+                     &database
+                 ))
+        {
+            resolvo_db->get().add_repo_from_packages(pkgs, "installed");
+            resolvo_db->get().set_installed_repo("installed");
+            return {};
+        }
+        else
+        {
+            return make_unexpected("Unknown database type", mamba_error_code::unknown);
+        }
     }
 }

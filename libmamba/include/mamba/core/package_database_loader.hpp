@@ -9,6 +9,7 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/resolvo/database.hpp"
 #include "mamba/specs/channel.hpp"
 
 namespace mamba
@@ -18,6 +19,11 @@ namespace mamba
     class SubdirIndexLoader;
 
     namespace solver::libsolv
+    {
+        class Database;
+    }
+
+    namespace solver::resolvo
     {
         class Database;
     }
@@ -32,8 +38,10 @@ namespace mamba
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<
+            std::reference_wrapper<solver::libsolv::Database>,
+            std::reference_wrapper<solver::resolvo::Database>> database,
         const PrefixData& prefix
-    ) -> solver::libsolv::RepoInfo;
+    ) -> expected_t<void>;
 }
 #endif

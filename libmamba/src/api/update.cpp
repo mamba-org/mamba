@@ -156,14 +156,14 @@ namespace mamba
 
         populate_context_channels_from_specs(raw_update_specs, ctx);
 
-        solver::libsolv::Database db{
+        std::variant<solver::libsolv::Database, solver::resolvo::Database> db(
+            std::in_place_type<solver::libsolv::Database>,
             channel_context.params(),
-            {
-                ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                   : solver::libsolv::MatchSpecParser::Libsolv,
-            },
-        };
-        add_spdlog_logger_to_database(db);
+            solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing
+                                                     ? solver::libsolv::MatchSpecParser::Mamba
+                                                     : solver::libsolv::MatchSpecParser::Libsolv }
+        );
+        add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
@@ -181,7 +181,7 @@ namespace mamba
         }
         PrefixData& prefix_data = exp_prefix_data.value();
 
-        load_installed_packages_in_database(ctx, db, prefix_data);
+        load_installed_packages_in_database(ctx, std::get<solver::libsolv::Database>(db), prefix_data);
 
         auto request = create_update_request(prefix_data, raw_update_specs, update_params);
         add_pins_to_request(
@@ -203,7 +203,7 @@ namespace mamba
 
         auto outcome = solver::libsolv::Solver()
                            .solve(
-                               db,
+                               std::get<solver::libsolv::Database>(db),
                                request,
                                ctx.experimental_matchspec_parsing
                                    ? solver::libsolv::MatchSpecParser::Mamba
@@ -213,7 +213,7 @@ namespace mamba
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
             unsolvable->explain_problems_to(
-                db,
+                std::get<solver::libsolv::Database>(db),
                 LOG_ERROR,
                 {
                     /* .unavailable= */ ctx.graphics_params.palette.failure,
@@ -222,8 +222,11 @@ namespace mamba
             );
             if (ctx.output_params.json)
             {
-                Console::instance().json_write({ { "success", false },
-                                                 { "solver_problems", unsolvable->problems(db) } });
+                Console::instance().json_write(
+                    { { "success", false },
+                      { "solver_problems",
+                        unsolvable->problems(std::get<solver::libsolv::Database>(db)) } }
+                );
             }
             throw mamba_error(
                 "Could not solve for environment specs",
@@ -234,7 +237,7 @@ namespace mamba
         Console::instance().json_write({ { "success", true } });
         auto transaction = MTransaction(
             ctx,
-            db,
+            std::get<solver::libsolv::Database>(db),
             request,
             std::get<solver::Solution>(outcome),
             package_caches

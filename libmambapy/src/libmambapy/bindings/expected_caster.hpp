@@ -10,6 +10,7 @@
 #include <exception>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
@@ -88,6 +89,128 @@ namespace PYBIND11_NAMESPACE
             }
 
             PYBIND11_TYPE_CASTER(value_type, const_name("None"));
+
+        /**
+         * A caster for std::variant with reference_wrapper types.
+         */
+        template <typename... Types>
+        struct type_caster<std::variant<std::reference_wrapper<Types>...>>
+        {
+            using value_type = std::variant<std::reference_wrapper<Types>...>;
+
+            bool load(handle src, bool convert)
+            {
+                return false;  // We don't support loading from Python
+            }
+
+            static handle cast(const value_type& src, return_value_policy policy, handle parent)
+            {
+                return std::visit(
+                    [policy, parent](const auto& v) -> handle
+                    {
+                        using T = std::decay_t<decltype(v.get())>;
+                        return make_caster<T>::cast(v.get(), policy, parent);
+                    },
+                    src
+                );
+            }
+
+            PYBIND11_TYPE_CASTER(value_type, _("variant"));
+        };
+
+        /**
+         * A caster for std::reference_wrapper.
+         */
+        template <typename T>
+        struct type_caster<std::reference_wrapper<T>>
+        {
+            using value_type = std::reference_wrapper<T>;
+
+            bool load(handle src, bool convert)
+            {
+                return false;  // We don't support loading from Python
+            }
+
+            static handle cast(const value_type& src, return_value_policy policy, handle parent)
+            {
+                return make_caster<T>::cast(src.get(), policy, parent);
+            }
+
+            PYBIND11_TYPE_CASTER(value_type, _("reference_wrapper"));
+        };
+
+        /**
+         * Specialization for the specific variant type used in the database.
+         */
+        template <>
+        struct type_caster<std::variant<
+            std::reference_wrapper<mamba::solver::libsolv::Database>,
+            std::reference_wrapper<mamba::solver::resolvo::Database>>>
+        {
+            using value_type = std::variant<
+                std::reference_wrapper<mamba::solver::libsolv::Database>,
+                std::reference_wrapper<mamba::solver::resolvo::Database>>;
+
+            bool load(handle src, bool convert)
+            {
+                return false;  // We don't support loading from Python
+            }
+
+            static handle cast(const value_type& src, return_value_policy policy, handle parent)
+            {
+                return std::visit(
+                    [policy, parent](const auto& v) -> handle
+                    {
+                        using T = std::decay_t<decltype(v.get())>;
+                        return make_caster<T>::cast(v.get(), policy, parent);
+                    },
+                    src
+                );
+            }
+
+            PYBIND11_TYPE_CASTER(value_type, _("variant"));
+        };
+
+        /**
+         * A caster for mamba::Context.
+         */
+        template <>
+        struct type_caster<mamba::Context>
+        {
+            using value_type = mamba::Context;
+
+            bool load(handle src, bool convert)
+            {
+                return false;  // We don't support loading from Python
+            }
+
+            static handle cast(const value_type& src, return_value_policy policy, handle parent)
+            {
+                return make_caster<value_type>::cast(src, policy, parent);
+            }
+
+            PYBIND11_TYPE_CASTER(value_type, _("Context"));
+        };
+
+        /**
+         * A caster for mamba::PrefixData.
+         */
+        template <>
+        struct type_caster<mamba::PrefixData>
+        {
+            using value_type = mamba::PrefixData;
+
+            bool load(handle src, bool convert)
+            {
+                return false;  // We don't support loading from Python
+            }
+
+            static handle cast(const value_type& src, return_value_policy policy, handle parent)
+            {
+                return make_caster<value_type>::cast(src, policy, parent);
+            }
+
+            PYBIND11_TYPE_CASTER(value_type, _("PrefixData"));
         };
     }
 }

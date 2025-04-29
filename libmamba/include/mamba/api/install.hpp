@@ -111,6 +111,12 @@ namespace mamba
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {
         }
+
+        struct PackageDiff
+        {
+            std::map<std::string, specs::PackageInfo> removed_pkg_diff;
+            std::map<std::string, specs::PackageInfo> installed_pkg_diff;
+        };
     }
 
 }

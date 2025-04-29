@@ -8,10 +8,16 @@
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/solver/resolvo/database.hpp"
 
 namespace mamba
 {
     namespace solver::libsolv
+    {
+        class Database;
+    }
+
+    namespace solver::resolvo
     {
         class Database;
     }
@@ -30,7 +36,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& database,
+        std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>;
 

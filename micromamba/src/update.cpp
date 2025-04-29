@@ -107,10 +107,13 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(ctx, channel_context, database, package_caches);
-    if (!exp_loaded)
+    // Create a variant containing the database
+    std::variant<solver::libsolv::Database, solver::resolvo::Database> db_variant = std::move(database
+    );
+    auto exp_load = load_channels(ctx, channel_context, db_variant, package_caches);
+    if (!exp_load)
     {
-        throw exp_loaded.error();
+        throw exp_load.error();
     }
 
     auto matchspec = specs::MatchSpec::parse(

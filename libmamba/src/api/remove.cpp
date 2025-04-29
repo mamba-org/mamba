@@ -144,7 +144,14 @@ namespace mamba
                 },
             };
             add_spdlog_logger_to_database(database);
-            load_installed_packages_in_database(ctx, database, prefix_data);
+
+            load_installed_packages_in_database(
+                ctx,
+                std::variant<
+                    std::reference_wrapper<solver::libsolv::Database>,
+                    std::reference_wrapper<solver::resolvo::Database>>(std::ref(database)),
+                prefix_data
+            );
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);

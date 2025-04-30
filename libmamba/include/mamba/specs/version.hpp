@@ -89,6 +89,9 @@ namespace mamba::specs
 
         VersionPart();
         VersionPart(std::initializer_list<VersionPartAtom> init);
+        VersionPart(std::vector<VersionPartAtom> atoms, bool implicit_leading_zero);
+
+        [[nodiscard]] auto str() const -> std::string;
 
         auto operator==(const VersionPart& other) const -> bool;
         auto operator!=(const VersionPart& other) const -> bool;

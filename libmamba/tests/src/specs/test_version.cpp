@@ -17,7 +17,7 @@ using namespace mamba::specs;
 
 namespace
 {
-    TEST_CASE("atom_comparison", "[mamba::specs][mamba::specs::Version]")
+    TEST_CASE("VersionPartAtom", "[mamba::specs][mamba::specs::Version]")
     {
         // No literal
         REQUIRE(VersionPartAtom(1) == VersionPartAtom(1, ""));
@@ -37,20 +37,20 @@ namespace
         REQUIRE(VersionPartAtom(1, "a") >= VersionPartAtom(1, "dev"));
 
         // clang-format off
-            auto sorted_atoms = std::array{
-               VersionPartAtom{ 1, "*" },
-               VersionPartAtom{ 1, "dev" },
-               VersionPartAtom{ 1, "_" },
-               VersionPartAtom{ 1, "a" },
-               VersionPartAtom{ 1, "alpha" },
-               VersionPartAtom{ 1, "b" },
-               VersionPartAtom{ 1, "beta" },
-               VersionPartAtom{ 1, "c" },
-               VersionPartAtom{ 1, "r" },
-               VersionPartAtom{ 1, "rc" },
-               VersionPartAtom{ 1, "" },
-               VersionPartAtom{ 1, "post" },
-            };
+        auto const sorted_atoms = std::array{
+           VersionPartAtom{ 1, "*" },
+           VersionPartAtom{ 1, "dev" },
+           VersionPartAtom{ 1, "_" },
+           VersionPartAtom{ 1, "a" },
+           VersionPartAtom{ 1, "alpha" },
+           VersionPartAtom{ 1, "b" },
+           VersionPartAtom{ 1, "beta" },
+           VersionPartAtom{ 1, "c" },
+           VersionPartAtom{ 1, "r" },
+           VersionPartAtom{ 1, "rc" },
+           VersionPartAtom{ 1, "" },
+           VersionPartAtom{ 1, "post" },
+        };
         // clang-format on
 
         // Strict ordering
@@ -59,13 +59,50 @@ namespace
         REQUIRE(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()) == sorted_atoms.cend());
     }
 
-    TEST_CASE("atom_format", "[mamba::specs][mamba::specs::Version]")
+    TEST_CASE("VersionPartAtom::str", "[mamba::specs][mamba::specs::Version]")
     {
         REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
         REQUIRE(VersionPartAtom(2).str() == "2");
     }
 
-    TEST_CASE("version_comparison", "[mamba::specs][mamba::specs::Version]")
+    TEST_CASE("VersionPart", "[mamba::specs][mamba::specs::Version]")
+    {
+        // clang-format off
+        REQUIRE(VersionPart{{1, "dev"}} == VersionPart{{1, "dev"}});
+        REQUIRE(VersionPart{{1, "dev"}} == VersionPart{{1, "dev"}, {0, ""}});
+        REQUIRE(VersionPart{{1, "dev"}, {2, ""}} == VersionPart{{1, "dev"}, {2, ""}});
+        REQUIRE(VersionPart({{0, "dev"}, {2, ""}}, true) == VersionPart{{0, "dev"}, {2, ""}});
+        REQUIRE(VersionPart{{0, "dev"} } != VersionPart{{0, "dev"}, {2, ""}});
+
+        auto const sorted_parts = std::array{
+            VersionPart{{0, ""}}, 
+            VersionPart{{1, "dev"}, {0, "alpha"}},
+            VersionPart{{1, "dev"}},
+            VersionPart{{1, "dev"}, {1, "dev"}},
+            VersionPart{{2, "dev"}, {1, "dev"}},
+            VersionPart{{2, ""}},
+            VersionPart{{2, ""}, {0, "post"}},
+        };
+        // clang-format on
+
+        // Strict ordering
+        REQUIRE(std::is_sorted(sorted_parts.cbegin(), sorted_parts.cend()));
+        // None compare equal (given the is_sorted assumption)
+        REQUIRE(std::adjacent_find(sorted_parts.cbegin(), sorted_parts.cend()) == sorted_parts.cend());
+    }
+
+    TEST_CASE("VersionPart::str", "[mamba::specs][mamba::specs::Version]")
+    {
+        REQUIRE(VersionPart{ { 1, "dev" } }.str() == "1dev");
+        REQUIRE(VersionPart{ { 1, "dev" }, { 2, "" } }.str() == "1dev2");
+        REQUIRE(VersionPart{ { 1, "dev" }, { 2, "foo" }, { 33, "bar" } }.str() == "1dev2foo33bar");
+        REQUIRE(VersionPart({ { 0, "dev" }, { 2, "" } }, false).str() == "0dev2");
+        REQUIRE(VersionPart({ { 0, "dev" }, { 2, "" } }, true).str() == "dev2");
+        REQUIRE(VersionPart({ { 0, "dev" } }, true).str() == "dev");
+        REQUIRE(VersionPart({ { 0, "" } }, true).str() == "0");
+    }
+
+    TEST_CASE("Version cmp", "[mamba::specs][mamba::specs::Version]")
     {
         auto v = Version(0, { { { 1, "post" } } });
         REQUIRE(v.version().size() == 1);

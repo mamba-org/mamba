@@ -291,25 +291,26 @@ namespace mamba::specs
      *  Implementation of VersionPart  *
      ***********************************/
 
-    VersionPart::VersionPart(std::initializer_list<VersionPartAtom> init)
-        : atoms(init)
-    {
-    }
-
     VersionPart::VersionPart()
         : atoms()
         , implicit_leading_zero(false)
     {
     }
 
-    auto VersionPart::operator==(const VersionPart& other) const -> bool
+    VersionPart::VersionPart(std::initializer_list<VersionPartAtom> init)
+        : atoms(init)
     {
-        return atoms == other.atoms;
     }
 
-    auto VersionPart::operator!=(const VersionPart& other) const -> bool
+    VersionPart::VersionPart(std::vector<VersionPartAtom> atoms, bool implicit_leading_zero)
+        : atoms(std::move(atoms))
+        , implicit_leading_zero(implicit_leading_zero)
     {
-        return !(*this == other);
+    }
+
+    auto VersionPart::str() const -> std::string
+    {
+        return fmt::format("{}", *this);
     }
 
     namespace
@@ -326,6 +327,16 @@ namespace mamba::specs
                        [](const auto& x, const auto& y) { return compare_three_way(x, y); }
             ).first;
         }
+    }
+
+    auto VersionPart::operator==(const VersionPart& other) const -> bool
+    {
+        return compare_three_way(*this, other) == strong_ordering::equal;
+    }
+
+    auto VersionPart::operator!=(const VersionPart& other) const -> bool
+    {
+        return !(*this == other);
     }
 
     auto VersionPart::operator<(const VersionPart& other) const -> bool

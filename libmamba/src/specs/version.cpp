@@ -302,9 +302,9 @@ namespace mamba::specs
     {
     }
 
-    VersionPart::VersionPart(std::vector<VersionPartAtom> atoms, bool implicit_leading_zero)
-        : atoms(std::move(atoms))
-        , implicit_leading_zero(implicit_leading_zero)
+    VersionPart::VersionPart(std::vector<VersionPartAtom> p_atoms, bool p_implicit_leading_zero)
+        : atoms(std::move(p_atoms))
+        , implicit_leading_zero(p_implicit_leading_zero)
     {
     }
 
@@ -722,6 +722,7 @@ namespace mamba::specs
             assert(!str.empty());
 
             auto atoms = VersionPart();
+            atoms.implicit_leading_zero = !util::is_digit(str.front());
 
             while (!str.empty())
             {

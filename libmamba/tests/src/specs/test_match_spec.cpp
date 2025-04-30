@@ -160,10 +160,10 @@ namespace
             auto ms = MatchSpec::parse("mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0")
                           .value();
             REQUIRE(ms.name().str() == "mingw-w64-ucrt-x86_64-crt-git");
-            REQUIRE(ms.version().str() == "==0v12.0.0.0r2.0ggc561118da");
+            REQUIRE(ms.version().str() == "==v12.0.0.r2.ggc561118da");
             REQUIRE(ms.build_string().str() == "h707e725_0");
             REQUIRE(ms.build_number().is_explicitly_free());
-            REQUIRE(ms.str() == "mingw-w64-ucrt-x86_64-crt-git==0v12.0.0.0r2.0ggc561118da=h707e725_0");
+            REQUIRE(ms.str() == "mingw-w64-ucrt-x86_64-crt-git==v12.0.0.r2.ggc561118da=h707e725_0");
         }
 
         SECTION("openblas 0.2.18|0.2.18.*.")
@@ -216,20 +216,20 @@ namespace
         {
             auto ms = MatchSpec::parse("disperse=v0.9.24").value();
             REQUIRE(ms.name().str() == "disperse");
-            REQUIRE(ms.version().str() == "=0v0.9.24");
+            REQUIRE(ms.version().str() == "=v0.9.24");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            REQUIRE(ms.str() == "disperse=0v0.9.24");
+            REQUIRE(ms.str() == "disperse=v0.9.24");
         }
 
         SECTION("disperse v0.9.24")
         {
             auto ms = MatchSpec::parse("disperse v0.9.24").value();
             REQUIRE(ms.name().str() == "disperse");
-            REQUIRE(ms.version().str() == "==0v0.9.24");
+            REQUIRE(ms.version().str() == "==v0.9.24");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            REQUIRE(ms.str() == "disperse==0v0.9.24");
+            REQUIRE(ms.str() == "disperse==v0.9.24");
         }
 
         SECTION("foo V0.9.24")
@@ -252,10 +252,10 @@ namespace
         {
             auto ms = MatchSpec::parse("foo=V0.9.24").value();
             REQUIRE(ms.name().str() == "foo");
-            REQUIRE(ms.version().str() == "=0v0.9.24");
+            REQUIRE(ms.version().str() == "=v0.9.24");
             REQUIRE(ms.build_string().is_explicitly_free());
             REQUIRE(ms.build_number().is_explicitly_free());
-            REQUIRE(ms.str() == "foo=0v0.9.24");
+            REQUIRE(ms.str() == "foo=v0.9.24");
         }
 
         SECTION("numpy 1.7*")
@@ -396,7 +396,7 @@ namespace
             };
             auto ms = MatchSpec::parse(str).value();
             REQUIRE(ms.name().str() == "conda");
-            REQUIRE(ms.version().str() == "==4.3.21.0post699+1dab973");  // Note the ``.0post``
+            REQUIRE(ms.version().str() == "==4.3.21.post699+1dab973");
             REQUIRE(ms.build_string().str() == "py36h4a561cd_0");
             REQUIRE(ms.str() == str);
         }
@@ -673,11 +673,9 @@ namespace
             REQUIRE(ms.channel().value().str() == "conda-canary[linux-64]");
             REQUIRE(ms.platforms().value().get() == MatchSpec::platform_set{ "linux-64" });
             REQUIRE(ms.name().str() == "conda");
-            REQUIRE(ms.version().str() == "==4.3.21.0post699+1dab973");  // Not ``.0post`` diff
+            REQUIRE(ms.version().str() == "==4.3.21.post699+1dab973");
             REQUIRE(ms.build_string().str() == "py36h4a561cd_0");
-            REQUIRE(
-                ms.str() == "conda-canary[linux-64]::conda==4.3.21.0post699+1dab973=py36h4a561cd_0"
-            );
+            REQUIRE(ms.str() == "conda-canary[linux-64]::conda==4.3.21.post699+1dab973=py36h4a561cd_0");
         }
 
         SECTION("libblas[build=^.*(accelerate|mkl)$]")

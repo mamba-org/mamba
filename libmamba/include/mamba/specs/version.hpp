@@ -92,6 +92,10 @@ namespace mamba::specs
 
         auto operator==(const VersionPart& other) const -> bool;
         auto operator!=(const VersionPart& other) const -> bool;
+        auto operator<(const VersionPart& other) const -> bool;
+        auto operator<=(const VersionPart& other) const -> bool;
+        auto operator>(const VersionPart& other) const -> bool;
+        auto operator>=(const VersionPart& other) const -> bool;
     };
 
     /**

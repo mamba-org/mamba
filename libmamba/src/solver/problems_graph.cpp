@@ -984,8 +984,9 @@ namespace mamba::solver
         auto TreeDFS::explore() -> std::vector<TreeNode>
         {
             // Using the number of edges as an upper bound on the number of split nodes inserted
+            // and another time as the number of visited nodes
             auto path = std::vector<TreeNode>(
-                m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
+                2 * m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
             );
             auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
             path.resize(static_cast<std::size_t>(out - path.begin()));
@@ -1178,6 +1179,9 @@ namespace mamba::solver
             {
                 return { out, status.value() };
             }
+            // This placeholder is required in case of directed loops, which we don't how to handle,
+            // but we need to avoid infinite loops.
+            m_node_visited[id] = std::optional{ false };
 
             Status status = true;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``

@@ -296,6 +296,12 @@ namespace mamba::specs
     {
     }
 
+    VersionPart::VersionPart()
+        : atoms()
+        , implicit_leading_zero(false)
+    {
+    }
+
     auto VersionPart::operator==(const VersionPart& other) const -> bool
     {
         return atoms == other.atoms;
@@ -341,6 +347,48 @@ namespace mamba::specs
     {
         return compare_three_way(*this, other) != strong_ordering::less;
     }
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPart>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
+{
+    // make sure that range is empty
+    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+    {
+        throw fmt::format_error("Invalid format");
+    }
+    return ctx.begin();
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPart>::format(
+    const ::mamba::specs::VersionPart part,
+    format_context& ctx
+) const -> decltype(ctx.out())
+{
+    auto out = ctx.out();
+    if (part.atoms.empty())
+    {
+        return out;
+    }
+
+    const auto& first = part.atoms.front();
+    if (part.implicit_leading_zero && (first.numeral() == 0) && (!first.literal().empty()))
+    {
+        // The implicit leading zero is omitted
+        out = fmt::format_to(out, "{}", first.literal());
+    }
+    else
+    {
+        out = fmt::format_to(out, "{}", first);
+    }
+
+    const auto n_atoms = part.atoms.size();
+    for (std::size_t i = 1; i < n_atoms; ++i)
+    {
+        out = fmt::format_to(out, "{}", part.atoms[i]);
+    }
+    return out;
 }
 
 namespace mamba::specs
@@ -663,7 +711,6 @@ namespace mamba::specs
             assert(!str.empty());
 
             auto atoms = VersionPart();
-            atoms.implicit_leading_zero = !util::is_digit(str.front());
 
             while (!str.empty())
             {
@@ -892,10 +939,7 @@ fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, f
                 }
                 else
                 {
-                    for (const auto& atom : version[i].atoms)
-                    {
-                        l_out = fmt::format_to(l_out, "{}", atom);
-                    }
+                    l_out = fmt::format_to(l_out, "{}", version[i]);
                 }
             }
             else

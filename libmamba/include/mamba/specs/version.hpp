@@ -87,7 +87,7 @@ namespace mamba::specs
          */
         bool implicit_leading_zero = false;
 
-        VersionPart() = default;
+        VersionPart();
         VersionPart(std::initializer_list<VersionPartAtom> init);
 
         auto operator==(const VersionPart& other) const -> bool;
@@ -214,6 +214,15 @@ struct fmt::formatter<mamba::specs::VersionPartAtom>
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
     auto format(const ::mamba::specs::VersionPartAtom atom, format_context& ctx) const
+        -> decltype(ctx.out());
+};
+
+template <>
+struct fmt::formatter<mamba::specs::VersionPart>
+{
+    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+    auto format(const ::mamba::specs::VersionPart atom, format_context& ctx) const
         -> decltype(ctx.out());
 };
 

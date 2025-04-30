@@ -69,8 +69,8 @@ namespace
     {
         auto v = Version(0, { { { 1, "post" } } });
         REQUIRE(v.version().size() == 1);
-        REQUIRE(v.version().front().size() == 1);
-        REQUIRE(v.version().front().front() == VersionPartAtom(1, "post"));
+        REQUIRE(v.version().front().atoms.size() == 1);
+        REQUIRE(v.version().front().atoms.front() == VersionPartAtom(1, "post"));
 
         // Same empty 0!1post version
         REQUIRE(Version(0, { { { 1, "post" } } }) == Version(0, { { { 1, "post" } } }));

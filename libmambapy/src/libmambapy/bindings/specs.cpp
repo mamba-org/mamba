@@ -20,6 +20,7 @@
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"
+#include "mamba/version.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -27,8 +28,10 @@
 #include "flat_set_caster.hpp"
 #include "weakening_map_bind.hpp"
 
-PYBIND11_MAKE_OPAQUE(mamba::specs::VersionPart);
-PYBIND11_MAKE_OPAQUE(mamba::specs::CommonVersion);
+using OldVersionPart = std::vector<mamba::specs::VersionPartAtom>;
+using OldCommonVersion = std::vector<OldVersionPart>;
+PYBIND11_MAKE_OPAQUE(OldVersionPart);
+PYBIND11_MAKE_OPAQUE(OldCommonVersion);
 
 namespace mambapy
 {
@@ -529,11 +532,28 @@ namespace mambapy
             .def("__copy__", &copy<VersionPartAtom>)
             .def("__deepcopy__", &deepcopy<VersionPartAtom>, py::arg("memo"));
 
-        // Type made opaque at the top of this file
-        py::bind_vector<VersionPart>(m, "VersionPart");
+        // TODO(3.0): Align the Python API of VersionPart (and thus break CommonVersion,
+        // Version::version, Version::local), with the C++ one.
+        static_assert(LIBMAMBA_VERSION_MAJOR < 3, "Take the major release opportunity to clean APIs.");
 
         // Type made opaque at the top of this file
-        py::bind_vector<CommonVersion>(m, "CommonVersion");
+        py::bind_vector<OldVersionPart>(m, "VersionPart");
+
+        // Type made opaque at the top of this file
+        py::bind_vector<OldCommonVersion>(m, "CommonVersion");
+
+        constexpr auto common_version_backport = [](const CommonVersion& version) -> OldCommonVersion
+        {
+            auto old = OldCommonVersion();
+            old.reserve(version.size());
+            std::transform(
+                version.cbegin(),
+                version.cend(),
+                std::back_inserter(old),
+                [](const auto& a) { return a.atoms; }
+            );
+            return old;
+        };
 
         py::class_<Version>(m, "Version")
             .def_readonly_static("epoch_delim", &Version::epoch_delim)
@@ -549,8 +569,14 @@ namespace mambapy
                 py::arg("local") = CommonVersion()
             )
             .def_property_readonly("epoch", &Version::epoch)
-            .def_property_readonly("version", &Version::version)
-            .def_property_readonly("local", &Version::local)
+            .def_property_readonly(
+                "version",
+                [=](const Version& self) { return common_version_backport(self.version()); }
+            )
+            .def_property_readonly(
+                "local",
+                [=](const Version& self) { return common_version_backport(self.local()); }
+            )
             .def("starts_with", &Version::starts_with, py::arg("prefix"))
             .def("compatible_with", &Version::compatible_with, py::arg("older"), py::arg("level"))
             .def("__str__", [](const Version& v) { return v.str(); })

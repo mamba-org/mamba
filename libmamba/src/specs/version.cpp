@@ -201,6 +201,29 @@ fmt::formatter<mamba::specs::VersionPartAtom>::format(
 namespace mamba::specs
 {
 
+    /***********************************
+     *  Implementation of VersionPart  *
+     ***********************************/
+
+    VersionPart::VersionPart(std::initializer_list<VersionPartAtom> init)
+        : atoms(init)
+    {
+    }
+
+    auto VersionPart::operator==(const VersionPart& other) const -> bool
+    {
+        return atoms == other.atoms;
+    }
+
+    auto VersionPart::operator!=(const VersionPart& other) const -> bool
+    {
+        return !(*this == other);
+    }
+}
+
+namespace mamba::specs
+{
+
     /*******************************
      *  Implementation of Version  *
      *******************************/
@@ -337,10 +360,10 @@ namespace mamba::specs
         auto compare_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
-                       a.cbegin(),
-                       a.cend(),
-                       b.cbegin(),
-                       b.cend(),
+                       a.atoms.cbegin(),
+                       a.atoms.cend(),
+                       b.atoms.cbegin(),
+                       b.atoms.cend(),
                        VersionPartAtom{},
                        [](const auto& x, const auto& y) { return compare_three_way(x, y); }
             ).first;
@@ -444,10 +467,10 @@ namespace mamba::specs
         auto starts_with_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
-                       a.cbegin(),
-                       a.cend(),
-                       b.cbegin(),
-                       b.cend(),
+                       a.atoms.cbegin(),
+                       a.atoms.cend(),
+                       b.atoms.cbegin(),
+                       b.atoms.cend(),
                        VersionPartAtom{},
                        AlwaysEqual{},
                        [](const auto& x, const auto& y) { return starts_with_three_way(x, y); }
@@ -615,11 +638,13 @@ namespace mamba::specs
         {
             assert(!str.empty());
 
-            VersionPart atoms = {};
+            auto atoms = VersionPart();
+            atoms.implicit_leading_zero = !util::is_digit(str.front());
+
             while (!str.empty())
             {
-                atoms.emplace_back();
-                std::tie(atoms.back(), str) = parse_leading_part_atom(str);
+                atoms.atoms.emplace_back();
+                std::tie(atoms.atoms.back(), str) = parse_leading_part_atom(str);
             }
             return atoms;
         }
@@ -843,7 +868,7 @@ fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, f
                 }
                 else
                 {
-                    for (const auto& atom : version[i])
+                    for (const auto& atom : version[i].atoms)
                     {
                         l_out = fmt::format_to(l_out, "{}", atom);
                     }

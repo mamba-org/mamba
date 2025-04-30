@@ -598,8 +598,10 @@ def test_VersionPart():
     VersionPartAtom = libmambapy.specs.VersionPartAtom
     VersionPart = libmambapy.specs.VersionPart
 
-    p = VersionPart([VersionPartAtom(1, "a"), VersionPartAtom(3)])
-    assert len(p) == 2
+    atoms = [VersionPartAtom(1, "a"), VersionPartAtom(3)]
+    p = VersionPart(atoms)
+    assert len(p) == len(atoms)
+    assert p == p
 
 
 def test_CommonVersion():

@@ -543,47 +543,67 @@ def create_with_chan_pkg(env_name, channels, package):
 
     return create(*cmd, default_channel=False, no_rc=False)
 
+class PackageChecker:
+    # Provides integrity checking operations for an installed package, based on it's manifest.
 
-def check_cpp_package_install(package_name: string, install_prefix_root_dir: Path):
-    # Checks, using `assert`, that the specified package is correctly installed
-    # in the specified prefix directory.
-    #
-    # The checks are based on the following conditions:
-    # - `$install_prefix_root_dir/conda-meta/$package_name-*.json` exists
-    # - that json file has the expected package manifest format
-    # - all the files in the manifest exists in `$install_prefix_root_dir/` (link or not)
-    #
-    # We do not open the installed files.
-    #
-    # Returns f"{package_name}-{version}-{build_string}" for the info found.
+    package_name : string
+    install_prefix_root_dir: Path
+    manifests_dir: Path
 
-    assert package_name
-    assert install_prefix_root_dir
-    assert install_prefix_root_dir.is_dir()
-    assert install_prefix_root_dir.exists()
-
-    manifests_dir = install_prefix_root_dir.joinpath("conda-meta", package_name)
-    assert manifests_dir.is_dir()
-    assert manifests_dir.exists()
-
-    manifest_json_paths = manifests_dir.glob(f"{package_name}-*.*.*-*.json")
-    assert manifest_json_paths
-    assert len(manifest_json_paths) == 1
-
-    manifest_json_path = manifest_json_paths[0]
-    with open(manifest_json_path, 'r') as json_file:
-        manifest_info = json.load(json_file)
-
-    assert manifest_info
-    # TODO: add more checks about the content of this json file vs reality in the installed dir
-
-    for file in manifest_info.files:
-        installed_file_path = install_prefix_root_dir.joinpath(file)
-        assert installed_file_path.exists()
-
-    # We intend to return a name that matches what `get_concrete_pkg` would return.
-    return  f"{package_name}-{manifest_info.version}-{manifest_info.build_string}"
+    _manifest_info : object
+    _manifest_json_path : Path
 
 
+    def __init__(self, package_name: string, install_prefix_root_dir: Path):
 
+        assert package_name
+        self.package_name = package_name
+
+        assert install_prefix_root_dir
+        assert os.path.isdir(install_prefix_root_dir), f"not a directory or doesnt exist: {install_prefix_root_dir}"
+        self.install_prefix_root_dir = install_prefix_root_dir
+
+        self.manifests_dir = self.install_prefix_root_dir / "conda-meta"
+        assert os.path.isdir(self.manifests_dir), f"not a directory or doesnt exist: {self.manifests_dir}"
+
+
+    def check_install_integrity(self):
+        # TODO: check every files listed in the manifest, including links
+        manifest_info = self.get_manifest_info()
+
+        for file in manifest_info['files']:
+            installed_file_path = self.install_prefix_root_dir.joinpath(file)
+            assert installed_file_path.is_file()
+
+
+    def get_manifest_info(self) -> object:
+        if not hasattr(self, "_manifest_info") or not self._manifest_info:
+
+            manifest_json_paths = list(self.manifests_dir.glob(f"{self.package_name}-*.*.*-*.json"))
+            assert manifest_json_paths
+            assert len(manifest_json_paths) == 1
+
+            manifest_json_path = manifest_json_paths[0]
+            with open(manifest_json_path, 'r') as json_file:
+                self._manifest_info = json.load(json_file)
+
+        assert self._manifest_info
+        return self._manifest_info
+
+    def find_installed(self, name_or_relative_path: string) -> Path:
+        # Returns the absolute location the file having the given name or relative path if found, none otherwise.
+
+        manifest_info = self.get_manifest_info()
+
+        for file in manifest_info['files']:
+            if file.endswith(name_or_relative_path):
+                absolute_path = self.install_prefix_root_dir.joinpath(file).absolute()
+                return absolute_path
+
+        return None
+
+    def get_name_version_build(self) -> string:
+        # A name that matches what `get_concrete_pkg` would return.
+        manifest_info = self.get_manifest_info()
+        return f"{manifest_info['name']}-{manifest_info['version']}-{manifest_info['build_string']}"
 

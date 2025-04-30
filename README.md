@@ -107,6 +107,33 @@ While `mamba` and `micromamba` are generally a drop-in replacement for `conda` t
 
 Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/dev_environment.html).
 
+## API and ABI stability
+
+The Mamba project uses semantic versioning of the form `MAJOR.MINOR.PATCH`.
+While we try to keep things stable for users, we also need to make breaking changes to improve
+Mamba and reduce technical debt.
+Future versions of Mamba may give stronger guarantees.
+
+_libmamba_ (C++):
+We are not aware of consumers of the C++ API, so we give ourselves room for improvements.
+
+- `PATCH` releases are API and ABI backward compatible;
+- `MINOR` releases are API compatible for elements in `mamba/api`, they can break API elsewhere
+  and ABI anywhere;
+- `MAJOR` releases make no guarantees.
+
+_libmambapy_ (Python):
+
+- `PATCH` releases are API backward compatible;
+- `MINOR` releases are API backward compatible;
+- `MAJOR` releases make no guarantees.
+
+_mamba_ and _micromamba_ (executables):
+
+- `PATCH` releases are API backward compatible;
+- `MINOR` releases are API backward compatible;
+- `MAJOR` releases make no guarantees.
+
 ## Support us
 
 Only `mamba` and `micromamba` 2.0 and later are supported and are actively developed.

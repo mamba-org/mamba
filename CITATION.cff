@@ -10,7 +10,7 @@ authors:
     website: "https://github.com/mamba-org/mamba"
 repository-code: "https://github.com/mamba-org/mamba"
 url: "https://mamba.readthedocs.io/"
-abstract: "mamba is a fast, robust, and cross-platform package manager. It is a drop-in replacement for conda, with much faster dependency resolution and package installation."
+abstract: "Mamba is a fast, robust, and cross-platform package manager. It is a drop-in replacement for Conda, with much faster dependency resolution and package installation."
 license: "BSD-3-Clause"
 keywords:
   - "package manager"

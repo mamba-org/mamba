@@ -57,8 +57,31 @@ target_compile_features(bindings PRIVATE cxx_std_17)
 if(SKBUILD)
     install(TARGETS bindings DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR})
 else()
-    # WARNING: this default should probably not be used as it is but set externally by a proper
-    # Python packager tool
+    # WARNING: this default should probably not be used for installation but only for local
+    # development and testing. Proper installation should be controlled externally by a Python
+    # packager tool
+
+    # Build bindings in a self-contain libmambapy/ folder inside the build tree
+    set_target_properties(
+        bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libmambapy"
+    )
+
+    # Copy all source files in the same libmambapy folder inside the build tree. This creates a
+    # valid, development-only folder that can be imported by Python (e.g. via PYTHONPATH).
+    file(GLOB_RECURSE MAMBAPY_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/libmambapy/*")
+    add_custom_command(
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/libmambapy/__init__.py"
+        DEPENDS ${MAMBAPY_FILES}
+        COMMENT "Copying libmambapy/ to build directory"
+        COMMAND
+            "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/libmambapy/"
+            "${CMAKE_CURRENT_BINARY_DIR}/libmambapy"
+    )
+    add_custom_target(
+        libmambapy_copy_files ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/libmambapy/__init__.py"
+    )
+    add_dependencies(bindings libmambapy_copy_files)
+
     set(
         MAMBA_INSTALL_PYTHON_EXT_LIBDIR
         "lib"

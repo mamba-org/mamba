@@ -109,7 +109,7 @@ Please refer to the instructions given by the [official documentation](https://m
 
 ## API and ABI stability
 
-The Mamba project uses semantic versioning of the form `MAJOR.MINOR.PATCH`.
+The Mamba project uses [semantic versioning](https://semver.org/) of the form `MAJOR.MINOR.PATCH`.
 While we try to keep things stable for users, we also need to make breaking changes to improve
 Mamba and reduce technical debt.
 Future versions of Mamba may give stronger guarantees.

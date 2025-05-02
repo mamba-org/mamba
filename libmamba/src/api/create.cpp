@@ -47,6 +47,15 @@ namespace mamba
                     LOG_ERROR << "Overwriting root prefix is not permitted";
                     throw std::runtime_error("Aborting.");
                 }
+                else if (!fs::is_directory(ctx.prefix_params.target_prefix))
+                {
+                    LOG_ERROR << "Target prefix already exists and is not a folder";
+                    throw std::runtime_error("Aborting.");
+                }
+                else if (fs::is_empty(ctx.prefix_params.target_prefix))
+                {
+                    LOG_WARNING << "Using existing empty folder as target prefix";
+                }
                 else if (fs::exists(ctx.prefix_params.target_prefix / "conda-meta"))
                 {
                     if (Console::prompt(

@@ -147,7 +147,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
                     if (from_history)
                     {
-                        dependencies << requested_specs_map[k].str() << "\"";
+                        dependencies << requested_specs_map[k].to_string() << "\"";
                     }
                     else
                     {
@@ -242,7 +242,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
                     if (from_history)
                     {
-                        dependencies << "  - " << requested_specs_map[k].str() << "\n";
+                        dependencies << "  - " << requested_specs_map[k].to_string() << "\n";
                     }
                     else
                     {

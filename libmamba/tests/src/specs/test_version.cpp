@@ -62,8 +62,8 @@ namespace
 
     TEST_CASE("VersionPartAtom::str", "[mamba::specs][mamba::specs::Version]")
     {
-        REQUIRE(VersionPartAtom(1, "dev").str() == "1dev");
-        REQUIRE(VersionPartAtom(2).str() == "2");
+        REQUIRE(VersionPartAtom(1, "dev").to_string() == "1dev");
+        REQUIRE(VersionPartAtom(2).to_string() == "2");
     }
 
     TEST_CASE("VersionPart", "[mamba::specs][mamba::specs::Version]")
@@ -94,13 +94,15 @@ namespace
 
     TEST_CASE("VersionPart::str", "[mamba::specs][mamba::specs::Version]")
     {
-        REQUIRE(VersionPart{ { 1, "dev" } }.str() == "1dev");
-        REQUIRE(VersionPart{ { 1, "dev" }, { 2, "" } }.str() == "1dev2");
-        REQUIRE(VersionPart{ { 1, "dev" }, { 2, "foo" }, { 33, "bar" } }.str() == "1dev2foo33bar");
-        REQUIRE(VersionPart({ { 0, "dev" }, { 2, "" } }, false).str() == "0dev2");
-        REQUIRE(VersionPart({ { 0, "dev" }, { 2, "" } }, true).str() == "dev2");
-        REQUIRE(VersionPart({ { 0, "dev" } }, true).str() == "dev");
-        REQUIRE(VersionPart({ { 0, "" } }, true).str() == "0");
+        REQUIRE(VersionPart{ { 1, "dev" } }.to_string() == "1dev");
+        REQUIRE(VersionPart{ { 1, "dev" }, { 2, "" } }.to_string() == "1dev2");
+        REQUIRE(
+            VersionPart{ { 1, "dev" }, { 2, "foo" }, { 33, "bar" } }.to_string() == "1dev2foo33bar"
+        );
+        REQUIRE(VersionPart({ { 0, "dev" }, { 2, "" } }, false).to_string() == "0dev2");
+        REQUIRE(VersionPart({ { 0, "dev" }, { 2, "" } }, true).to_string() == "dev2");
+        REQUIRE(VersionPart({ { 0, "dev" } }, true).to_string() == "dev");
+        REQUIRE(VersionPart({ { 0, "" } }, true).to_string() == "0");
     }
 
     TEST_CASE("Version cmp", "[mamba::specs][mamba::specs::Version]")
@@ -185,7 +187,11 @@ namespace
             for (const auto& [prefix, ver] : versions)
             {
                 // Working around clang compilation issue.
-                const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
+                const auto msg = fmt::format(
+                    R"(prefix="{}" version="{}")",
+                    prefix.to_string(),
+                    ver.to_string()
+                );
                 CAPTURE(msg);
                 REQUIRE(ver.starts_with(prefix));
             }
@@ -219,7 +225,11 @@ namespace
             for (const auto& [prefix, ver] : versions)
             {
                 // Working around clang compilation issue.
-                const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
+                const auto msg = fmt::format(
+                    R"(prefix="{}" version="{}")",
+                    prefix.to_string(),
+                    ver.to_string()
+                );
                 CAPTURE(msg);
                 REQUIRE_FALSE(ver.starts_with(prefix));
             }
@@ -283,8 +293,8 @@ namespace
                 const auto msg = fmt::format(
                     R"(level={} prefix="{}" version="{}")",
                     level,
-                    older.str(),
-                    newer.str()
+                    older.to_string(),
+                    newer.to_string()
                 );
                 CAPTURE(msg);
                 REQUIRE(newer.compatible_with(older, level));
@@ -332,8 +342,8 @@ namespace
                 const auto msg = fmt::format(
                     R"(level={} prefix="{}" version="{}")",
                     level,
-                    older.str(),
-                    newer.str()
+                    older.to_string(),
+                    newer.to_string()
                 );
                 CAPTURE(msg);
                 REQUIRE_FALSE(newer.compatible_with(older, level));
@@ -346,22 +356,22 @@ namespace
         SECTION("11a0post.3.4dev")
         {
             const auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
-            REQUIRE(v.str() == "11a0post.3.4dev");
-            REQUIRE(v.str(1) == "11a0post");
-            REQUIRE(v.str(2) == "11a0post.3");
-            REQUIRE(v.str(3) == "11a0post.3.4dev");
-            REQUIRE(v.str(4) == "11a0post.3.4dev.0");
-            REQUIRE(v.str(5) == "11a0post.3.4dev.0.0");
+            REQUIRE(v.to_string() == "11a0post.3.4dev");
+            REQUIRE(v.to_string(1) == "11a0post");
+            REQUIRE(v.to_string(2) == "11a0post.3");
+            REQUIRE(v.to_string(3) == "11a0post.3.4dev");
+            REQUIRE(v.to_string(4) == "11a0post.3.4dev.0");
+            REQUIRE(v.to_string(5) == "11a0post.3.4dev.0.0");
         }
 
         SECTION("1!11a0.3.4dev")
         {
             const auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
-            REQUIRE(v.str() == "1!11a0.3.4dev");
-            REQUIRE(v.str(1) == "1!11a0");
-            REQUIRE(v.str(2) == "1!11a0.3");
-            REQUIRE(v.str(3) == "1!11a0.3.4dev");
-            REQUIRE(v.str(4) == "1!11a0.3.4dev.0");
+            REQUIRE(v.to_string() == "1!11a0.3.4dev");
+            REQUIRE(v.to_string(1) == "1!11a0");
+            REQUIRE(v.to_string(2) == "1!11a0.3");
+            REQUIRE(v.to_string(3) == "1!11a0.3.4dev");
+            REQUIRE(v.to_string(4) == "1!11a0.3.4dev.0");
         }
 
         SECTION("1!11a0.3.4dev+1.2")
@@ -371,22 +381,22 @@ namespace
                 { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
                 { { { 1 } }, { { 2 } } }
             );
-            REQUIRE(v.str() == "1!11a0.3.4dev+1.2");
-            REQUIRE(v.str(1) == "1!11a0+1");
-            REQUIRE(v.str(2) == "1!11a0.3+1.2");
-            REQUIRE(v.str(3) == "1!11a0.3.4dev+1.2.0");
-            REQUIRE(v.str(4) == "1!11a0.3.4dev.0+1.2.0.0");
+            REQUIRE(v.to_string() == "1!11a0.3.4dev+1.2");
+            REQUIRE(v.to_string(1) == "1!11a0+1");
+            REQUIRE(v.to_string(2) == "1!11a0.3+1.2");
+            REQUIRE(v.to_string(3) == "1!11a0.3.4dev+1.2.0");
+            REQUIRE(v.to_string(4) == "1!11a0.3.4dev.0+1.2.0.0");
         }
 
         SECTION("*.1.*")
         {
             const auto v = Version(0, { { { 0, "*" } }, { { 1 } }, { { 0, "*" } } }, {});
-            REQUIRE(v.str() == "0*.1.0*");
-            REQUIRE(v.str(1) == "0*");
-            REQUIRE(v.str(2) == "0*.1");
-            REQUIRE(v.str(3) == "0*.1.0*");
-            REQUIRE(v.str(4) == "0*.1.0*.0");
-            REQUIRE(v.str_glob() == "*.1.*");
+            REQUIRE(v.to_string() == "0*.1.0*");
+            REQUIRE(v.to_string(1) == "0*");
+            REQUIRE(v.to_string(2) == "0*.1");
+            REQUIRE(v.to_string(3) == "0*.1.0*");
+            REQUIRE(v.to_string(4) == "0*.1.0*.0");
+            REQUIRE(v.to_string_glob() == "*.1.*");
         }
     }
 
@@ -482,8 +492,8 @@ namespace
 
         // Parse implicit zeros
         REQUIRE(Version::parse("0.4.a1").value().version()[2].implicit_leading_zero);
-        REQUIRE(Version::parse("0.4.a1").value().str() == "0.4.a1");
-        REQUIRE(Version::parse("g56ffd88f").value().str() == "g56ffd88f");
+        REQUIRE(Version::parse("0.4.a1").value().to_string() == "0.4.a1");
+        REQUIRE(Version::parse("g56ffd88f").value().to_string() == "g56ffd88f");
 
         // These are valid versions with the special '*' ordering AND they are also used as such
         // with version globs in VersionSpec

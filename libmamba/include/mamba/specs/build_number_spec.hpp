@@ -44,7 +44,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(const BuildNumber& point) const -> bool;
 
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
     private:
 
@@ -118,7 +118,7 @@ namespace mamba::specs
          * May not always be the same as the parsed string (due to reconstruction) but reparsing
          * this string will give the same build number spec.
          */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * True if the set described by the BuildNumberSpec contains the given version.
@@ -172,7 +172,7 @@ struct std::hash<mamba::specs::BuildNumberSpec>
 {
     auto operator()(const mamba::specs::BuildNumberSpec& spec) const -> std::size_t
     {
-        return mamba::util::hash_vals(spec.str());
+        return mamba::util::hash_vals(spec.to_string());
     }
 };
 

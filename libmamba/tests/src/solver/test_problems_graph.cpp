@@ -581,7 +581,7 @@ namespace
                 else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode>
                                    || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
                 {
-                    return util::starts_with(std::invoke(&Node::name, n).str(), "__");
+                    return util::starts_with(std::invoke(&Node::name, n).to_string(), "__");
                 }
                 else
                 {

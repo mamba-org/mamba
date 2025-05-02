@@ -1004,7 +1004,7 @@ namespace mamba
                 requested_spec = &ms;
             }
         }
-        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
+        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->to_string() : "";
         out_json["package_tarball_full_path"] = m_source.string() + ".tar.bz2";
         out_json["extracted_package_dir"] = m_source.string();
 

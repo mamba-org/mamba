@@ -16,7 +16,7 @@ namespace mamba::specs
     void to_json(nlohmann::json& j, const RepoDataPackage& p)
     {
         j["name"] = p.name;
-        j["version"] = p.version.str();
+        j["version"] = p.version.to_string();
         j["build"] = p.build_string;
         j["build_number"] = p.build_number;
         j["subdir"] = p.subdir;

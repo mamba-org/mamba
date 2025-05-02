@@ -69,7 +69,7 @@ namespace mamba::specs
         return BuildNumberPredicate(std::move(ver), std::less_equal<BuildNumber>{});
     }
 
-    auto BuildNumberPredicate::str() const -> std::string
+    auto BuildNumberPredicate::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
@@ -231,7 +231,7 @@ namespace mamba::specs
         return m_predicate == BuildNumberPredicate::make_free();
     }
 
-    auto BuildNumberSpec::str() const -> std::string
+    auto BuildNumberSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }

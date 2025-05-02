@@ -175,7 +175,7 @@ namespace mamba::specs
         return std::move(m_literal);
     }
 
-    auto VersionPartAtom::str() const -> std::string
+    auto VersionPartAtom::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
@@ -308,7 +308,7 @@ namespace mamba::specs
     {
     }
 
-    auto VersionPart::str() const -> std::string
+    auto VersionPart::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
@@ -431,12 +431,12 @@ namespace mamba::specs
         return m_local;
     }
 
-    auto Version::str() const -> std::string
+    auto Version::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
 
-    auto Version::str(std::size_t level) const -> std::string
+    auto Version::to_string(std::size_t level) const -> std::string
     {
         // We should be able to do, as it works with numbers but it is not clear how this works
         // with the custom parser
@@ -445,7 +445,7 @@ namespace mamba::specs
         return fmt::format(fmt, *this);
     }
 
-    auto Version::str_glob() const -> std::string
+    auto Version::to_string_glob() const -> std::string
     {
         return fmt::format("{:g}", *this);
     }

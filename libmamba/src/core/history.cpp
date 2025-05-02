@@ -256,17 +256,17 @@ namespace mamba
             auto remove_specs = to_specs(request.remove);
             for (auto& spec : remove_specs)
             {
-                map.erase(spec.name().str());
+                map.erase(spec.name().to_string());
             }
             auto update_specs = to_specs(request.update);
             for (auto& spec : update_specs)
             {
-                map[spec.name().str()] = spec;
+                map[spec.name().to_string()] = spec;
             }
             auto neutered_specs = to_specs(request.neutered);
             for (auto& spec : neutered_specs)
             {
-                map[spec.name().str()] = spec;
+                map[spec.name().to_string()] = spec;
             }
         }
 

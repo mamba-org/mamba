@@ -417,7 +417,7 @@ namespace mamba
                             out << "\nPinned packages:\n\n";
                             first = false;
                         }
-                        out << "  - " << item.spec.str() << '\n';
+                        out << "  - " << item.spec.to_string() << '\n';
                     }
                 },
                 req

@@ -82,15 +82,19 @@ namespace mamba
                                                  { throw std::move(err); })
                                         .value()
                                         .name()
-                                        .str();
+                                        .to_string();
                                 }
                             );
 
-                            if (std::find(spec_names.begin(), spec_names.end(), it.second.name().str())
+                            if (std::find(
+                                    spec_names.begin(),
+                                    spec_names.end(),
+                                    it.second.name().to_string()
+                                )
                                 == spec_names.end())
                             {
                                 request.jobs.emplace_back(Request::Remove{
-                                    specs::MatchSpec::parse(it.second.name().str())
+                                    specs::MatchSpec::parse(it.second.name().to_string())
                                         .or_else([](specs::ParseError&& err)
                                                  { throw std::move(err); })
                                         .value(),

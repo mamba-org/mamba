@@ -522,7 +522,7 @@ namespace mambapy
                 "literal",
                 [](const VersionPartAtom& atom) { return atom.literal(); }
             )
-            .def("__str__", &VersionPartAtom::str)
+            .def("__str__", &VersionPartAtom::to_string)
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def(py::self < py::self)
@@ -579,11 +579,11 @@ namespace mambapy
             )
             .def("starts_with", &Version::starts_with, py::arg("prefix"))
             .def("compatible_with", &Version::compatible_with, py::arg("older"), py::arg("level"))
-            .def("__str__", [](const Version& v) { return v.str(); })
-            .def("str", [](const Version& v) { return v.str(); })
+            .def("__str__", [](const Version& v) { return v.to_string(); })
+            .def("str", [](const Version& v) { return v.to_string(); })
             .def(
                 "str",
-                [](const Version& v, std::size_t level) { return v.str(level); },
+                [](const Version& v, std::size_t level) { return v.to_string(level); },
                 py::arg("level")
             )
             .def(py::self == py::self)
@@ -608,8 +608,8 @@ namespace mambapy
             .def_static("make_compatible_with", &VersionPredicate::make_compatible_with)
             .def(py::init())
             .def("contains", &VersionPredicate::contains)
-            .def("str_conda_build", &VersionPredicate::str_conda_build)
-            .def("__str__", &VersionPredicate::str)
+            .def("str_conda_build", &VersionPredicate::to_string_conda_build)
+            .def("__str__", &VersionPredicate::to_string)
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<VersionPredicate>)
@@ -641,8 +641,8 @@ namespace mambapy
             .def("contains", &VersionSpec::contains, py::arg("point"))
             .def("is_explicitly_free", &VersionSpec::is_explicitly_free)
             .def("expression_size", &VersionSpec::expression_size)
-            .def("str_conda_build", &VersionSpec::str_conda_build)
-            .def("__str__", &VersionSpec::str)
+            .def("str_conda_build", &VersionSpec::to_string_conda_build)
+            .def("__str__", &VersionSpec::to_string)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
 
@@ -760,7 +760,7 @@ namespace mambapy
             .def("contains", &GlobSpec::contains)
             .def("is_free", &GlobSpec::is_free)
             .def("is_exact", &GlobSpec::is_exact)
-            .def("__str__", &GlobSpec::str)
+            .def("__str__", &GlobSpec::to_string)
             .def("__copy__", &copy<GlobSpec>)
             .def("__deepcopy__", &deepcopy<GlobSpec>, py::arg("memo"));
 
@@ -773,7 +773,7 @@ namespace mambapy
             .def("contains", &RegexSpec::contains)
             .def("is_explicitly_free", &RegexSpec::is_explicitly_free)
             .def("is_exact", &RegexSpec::is_exact)
-            .def("__str__", &RegexSpec::str)
+            .def("__str__", &RegexSpec::to_string)
             .def("__copy__", &copy<RegexSpec>)
             .def("__deepcopy__", &deepcopy<RegexSpec>, py::arg("memo"));
 
@@ -784,7 +784,7 @@ namespace mambapy
             .def("is_explicitly_free", &ChimeraStringSpec::is_explicitly_free)
             .def("is_exact", &ChimeraStringSpec::is_exact)
             .def("is_glob", &ChimeraStringSpec::is_glob)
-            .def("__str__", &ChimeraStringSpec::str)
+            .def("__str__", &ChimeraStringSpec::to_string)
             .def("__copy__", &copy<ChimeraStringSpec>)
             .def("__deepcopy__", &deepcopy<ChimeraStringSpec>, py::arg("memo"));
 
@@ -888,7 +888,7 @@ namespace mambapy
             .def("is_simple", &MatchSpec::is_simple)
             .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
-            .def("__str__", &MatchSpec::str)
+            .def("__str__", &MatchSpec::to_string)
             .def("__copy__", &copy<MatchSpec>)
             .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));
     }

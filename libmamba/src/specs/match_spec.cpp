@@ -1013,7 +1013,7 @@ namespace mamba::specs
         };
     }
 
-    auto MatchSpec::str() const -> std::string
+    auto MatchSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }

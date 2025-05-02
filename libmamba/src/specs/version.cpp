@@ -228,38 +228,38 @@ namespace mamba::specs
         }
     }
 
-    auto VersionPartAtom::operator==(const VersionPartAtom& other) const -> bool
+    auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
     {
         // More efficient than three way comparison because of edge cases
         auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&>
         { return { a.numeral(), a.literal() }; };
-        return attrs(*this) == attrs(other);
+        return attrs(left) == attrs(right);
     }
 
-    auto VersionPartAtom::operator!=(const VersionPartAtom& other) const -> bool
+    auto operator!=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
     {
         // More efficient than three way comparison
-        return !(*this == other);
+        return !(left == right);
     }
 
-    auto VersionPartAtom::operator<(const VersionPartAtom& other) const -> bool
+    auto operator<(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::less;
+        return compare_three_way(left, right) == strong_ordering::less;
     }
 
-    auto VersionPartAtom::operator<=(const VersionPartAtom& other) const -> bool
+    auto operator<=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::greater;
+        return compare_three_way(left, right) != strong_ordering::greater;
     }
 
-    auto VersionPartAtom::operator>(const VersionPartAtom& other) const -> bool
+    auto operator>(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::greater;
+        return compare_three_way(left, right) == strong_ordering::greater;
     }
 
-    auto VersionPartAtom::operator>=(const VersionPartAtom& other) const -> bool
+    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& other) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::less;
+        return compare_three_way(left, other) != strong_ordering::less;
     }
 }
 
@@ -329,34 +329,34 @@ namespace mamba::specs
         }
     }
 
-    auto VersionPart::operator==(const VersionPart& other) const -> bool
+    auto operator==(const VersionPart& left, const VersionPart& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::equal;
+        return compare_three_way(left, right) == strong_ordering::equal;
     }
 
-    auto VersionPart::operator!=(const VersionPart& other) const -> bool
+    auto operator!=(const VersionPart& left, const VersionPart& right) -> bool
     {
-        return !(*this == other);
+        return !(left == right);
     }
 
-    auto VersionPart::operator<(const VersionPart& other) const -> bool
+    auto operator<(const VersionPart& left, const VersionPart& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::less;
+        return compare_three_way(left, right) == strong_ordering::less;
     }
 
-    auto VersionPart::operator<=(const VersionPart& other) const -> bool
+    auto operator<=(const VersionPart& left, const VersionPart& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::greater;
+        return compare_three_way(left, right) != strong_ordering::greater;
     }
 
-    auto VersionPart::operator>(const VersionPart& other) const -> bool
+    auto operator>(const VersionPart& left, const VersionPart& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::greater;
+        return compare_three_way(left, right) == strong_ordering::greater;
     }
 
-    auto VersionPart::operator>=(const VersionPart& other) const -> bool
+    auto operator>=(const VersionPart& left, const VersionPart& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::less;
+        return compare_three_way(left, right) != strong_ordering::less;
     }
 }
 
@@ -481,34 +481,34 @@ namespace mamba::specs
     }
 
     // TODO(C++20) use operator<=> to simplify code and improve operator<=
-    auto Version::operator==(const Version& other) const -> bool
+    auto operator==(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::equal;
+        return compare_three_way(left, right) == strong_ordering::equal;
     }
 
-    auto Version::operator!=(const Version& other) const -> bool
+    auto operator!=(const Version& left, const Version& right) -> bool
     {
-        return !(*this == other);
+        return !(left == right);
     }
 
-    auto Version::operator<(const Version& other) const -> bool
+    auto operator<(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::less;
+        return compare_three_way(left, right) == strong_ordering::less;
     }
 
-    auto Version::operator<=(const Version& other) const -> bool
+    auto operator<=(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::greater;
+        return compare_three_way(left, right) != strong_ordering::greater;
     }
 
-    auto Version::operator>(const Version& other) const -> bool
+    auto operator>(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::greater;
+        return compare_three_way(left, right) == strong_ordering::greater;
     }
 
-    auto Version::operator>=(const Version& other) const -> bool
+    auto operator>=(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::less;
+        return compare_three_way(left, right) != strong_ordering::less;
     }
 
     namespace

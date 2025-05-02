@@ -43,19 +43,19 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> std::string;
 
-        auto operator==(const VersionPartAtom& other) const -> bool;
-        auto operator!=(const VersionPartAtom& other) const -> bool;
-        auto operator<(const VersionPartAtom& other) const -> bool;
-        auto operator<=(const VersionPartAtom& other) const -> bool;
-        auto operator>(const VersionPartAtom& other) const -> bool;
-        auto operator>=(const VersionPartAtom& other) const -> bool;
-
     private:
 
         // Stored in decreasing size order for performance
         std::string m_literal = "";
         std::size_t m_numeral = 0;
     };
+
+    auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator!=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator<(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator<=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator>(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
 
     extern template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
 
@@ -92,14 +92,14 @@ namespace mamba::specs
         VersionPart(std::vector<VersionPartAtom> atoms, bool implicit_leading_zero);
 
         [[nodiscard]] auto str() const -> std::string;
-
-        auto operator==(const VersionPart& other) const -> bool;
-        auto operator!=(const VersionPart& other) const -> bool;
-        auto operator<(const VersionPart& other) const -> bool;
-        auto operator<=(const VersionPart& other) const -> bool;
-        auto operator>(const VersionPart& other) const -> bool;
-        auto operator>=(const VersionPart& other) const -> bool;
     };
+
+    auto operator==(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator!=(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator<(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator<=(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator>(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator>=(const VersionPart& left, const VersionPart& other) -> bool;
 
     /**
      * A sequence of VersionPart meant to represent all parts of a version.
@@ -170,13 +170,6 @@ namespace mamba::specs
          */
         [[nodiscard]] auto str_glob() const -> std::string;
 
-        [[nodiscard]] auto operator==(const Version& other) const -> bool;
-        [[nodiscard]] auto operator!=(const Version& other) const -> bool;
-        [[nodiscard]] auto operator<(const Version& other) const -> bool;
-        [[nodiscard]] auto operator<=(const Version& other) const -> bool;
-        [[nodiscard]] auto operator>(const Version& other) const -> bool;
-        [[nodiscard]] auto operator>=(const Version& other) const -> bool;
-
         /**
          * Return true if this version starts with the other prefix.
          *
@@ -204,6 +197,13 @@ namespace mamba::specs
         CommonVersion m_local = {};
         std::size_t m_epoch = 0;
     };
+
+    auto operator==(const Version& left, const Version& other) -> bool;
+    auto operator!=(const Version& left, const Version& other) -> bool;
+    auto operator<(const Version& left, const Version& other) -> bool;
+    auto operator<=(const Version& left, const Version& other) -> bool;
+    auto operator>(const Version& left, const Version& other) -> bool;
+    auto operator>=(const Version& left, const Version& other) -> bool;
 
     namespace version_literals
     {

@@ -9,12 +9,6 @@ import re
 from . import helpers
 
 
-@pytest.fixture
-def tmp_xtensor_env(tmp_home, tmp_root_prefix, tmp_env_name, shared_pkgs_dirs):
-    helpers.install("xtensor", "-n", tmp_env_name)
-    return helpers.get_env_path(tmp_env_name)
-
-
 @pytest.mark.parametrize("reverse_flag", ["", "--reverse"])
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])

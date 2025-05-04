@@ -187,7 +187,8 @@ namespace mamba
                         auto obj = nlohmann::json();
                         const auto& pkg_info = all_records.find(key)->second;
 
-                        if (options.direct_deps_only && requested_specs.find(pkg_info.name) == requested_specs.end())
+                        if (options.direct_deps_only
+                            && requested_specs.find(pkg_info.name) == requested_specs.end())
                         {
                             continue;
                         }
@@ -297,7 +298,8 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        if (options.direct_deps_only
+                            && requested_specs.find(p.name) == requested_specs.end())
                         {
                             continue;
                         }
@@ -332,7 +334,8 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        if (options.direct_deps_only
+                            && requested_specs.find(p.name) == requested_specs.end())
                         {
                             continue;
                         }
@@ -345,7 +348,8 @@ namespace mamba
                 {
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        if (options.direct_deps_only
+                            && requested_specs.find(p.name) == requested_specs.end())
                         {
                             continue;
                         }
@@ -364,7 +368,8 @@ namespace mamba
 
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        if (options.direct_deps_only
+                            && requested_specs.find(p.name) == requested_specs.end())
                         {
                             continue;
                         }

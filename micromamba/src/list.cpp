@@ -86,7 +86,11 @@ init_list_parser(CLI::App* subcom, Configuration& config)
             .group("cli")
             .description("Show only directly installed packages (user requested).")
     );
-    subcom->add_flag("--direct-deps-only", direct_deps_only.get_cli_config<bool>(), direct_deps_only.description());
+    subcom->add_flag(
+        "--direct-deps-only",
+        direct_deps_only.get_cli_config<bool>(),
+        direct_deps_only.description()
+    );
 }
 
 void

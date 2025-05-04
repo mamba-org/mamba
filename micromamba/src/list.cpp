@@ -80,6 +80,13 @@ init_list_parser(CLI::App* subcom, Configuration& config)
         Configurable("revisions", false).group("cli").description("List the revision history.")
     );
     subcom->add_flag("--revisions", revisions.get_cli_config<bool>(), revisions.description());
+
+    auto& direct_deps_only = config.insert(
+        Configurable("direct_deps_only", false)
+            .group("cli")
+            .description("Show only directly installed packages (user requested).")
+    );
+    subcom->add_flag("--direct-deps-only", direct_deps_only.get_cli_config<bool>(), direct_deps_only.description());
 }
 
 void

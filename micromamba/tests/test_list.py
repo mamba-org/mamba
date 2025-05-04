@@ -1,11 +1,18 @@
 import platform
 import subprocess
 import sys
+import json
 
 import pytest
 import re
 
 from . import helpers
+
+
+@pytest.fixture
+def tmp_xtensor_env(tmp_home, tmp_root_prefix, tmp_env_name, shared_pkgs_dirs):
+    helpers.install("xtensor", "-n", tmp_env_name)
+    return helpers.get_env_path(tmp_env_name)
 
 
 @pytest.mark.parametrize("reverse_flag", ["", "--reverse"])
@@ -152,6 +159,68 @@ def test_list_name(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
     full_res = helpers.umamba_list("xtensor", "--full-name", "--json", quiet_flag)
     full_names = sorted([i["name"] for i in full_res])
     assert full_names == ["xtensor"]
+
+
+@pytest.mark.parametrize("direct_deps_flag", ["", "--direct-deps-only"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_direct_deps_only_json(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, direct_deps_flag
+):
+    """Check filtering with --direct-deps-only and JSON output."""
+    if env_selector == "prefix":
+        res_str = helpers.umamba_list("-p", tmp_xtensor_env, "--json", direct_deps_flag)
+    elif env_selector == "name":
+        res_str = helpers.umamba_list("-n", tmp_env_name, "--json", direct_deps_flag)
+    else:
+        # Use current env
+        res_str = helpers.umamba_list("--json", direct_deps_flag)
+
+    res = json.loads(res_str)
+    names = [i["name"] for i in res]
+
+    if direct_deps_flag == "--direct-deps-only":
+        assert "xtensor" in names  # Explicitly installed
+        assert "xtl" not in names  # Dependency
+        assert len(names) == 1  # Only xtensor should be listed
+    else:
+        assert "xtensor" in names
+        assert "xtl" in names  # Dependency should be included without the flag
+        assert len(names) > 1
+
+    assert all(
+        i["channel"] == "conda-forge" and i["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for i in res
+    )
+
+
+@pytest.mark.parametrize("direct_deps_flag", ["", "--direct-deps-only"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_direct_deps_only_no_json(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, direct_deps_flag
+):
+    """Check filtering with --direct-deps-only and table output."""
+    if env_selector == "prefix":
+        res = helpers.umamba_list("-p", tmp_xtensor_env, direct_deps_flag)
+    elif env_selector == "name":
+        res = helpers.umamba_list("-n", tmp_env_name, direct_deps_flag)
+    else:
+        # Use current env
+        res = helpers.umamba_list(direct_deps_flag)
+
+    # Split lines and ignore header/blank lines
+    lines = [line.strip() for line in res.strip().split('\n') if line]
+    package_lines = [line for line in lines if not line.startswith("#") and "Name" not in line and "Version" not in line]
+
+    if direct_deps_flag == "--direct-deps-only":
+        assert any("xtensor" in line for line in package_lines)
+        assert not any("xtl" in line for line in package_lines)
+        assert len(package_lines) == 1  # Only xtensor should be listed
+    else:
+        assert any("xtensor" in line for line in package_lines)
+        assert any("xtl" in line for line in package_lines)
+        assert len(package_lines) > 1
 
 
 env_yaml_content_to_install_numpy_with_pip = """

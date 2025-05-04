@@ -32,6 +32,7 @@ namespace mamba
             bool canonical = false;
             bool export_ = false;
             bool revisions = false;
+            bool direct_deps_only = false;
         };
 
         struct formatted_pkg
@@ -152,6 +153,7 @@ namespace mamba
             { return (regex.empty() || std::regex_search(pkg_info.name, spec_pat)); };
 
             auto all_records = prefix_data.all_pkg_mgr_records();
+            auto requested_specs = prefix_data.history().get_requested_specs_map();
 
             if (ctx.output_params.json)
             {
@@ -184,6 +186,11 @@ namespace mamba
                     {
                         auto obj = nlohmann::json();
                         const auto& pkg_info = all_records.find(key)->second;
+
+                        if (options.direct_deps_only && requested_specs.find(pkg_info.name) == requested_specs.end())
+                        {
+                            continue;
+                        }
 
                         if (accept_package(pkg_info))
                         {
@@ -290,6 +297,11 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
+                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        {
+                            continue;
+                        }
+
                         if (options.md5 && options.sha256)
                         {
                             throw mamba_error(
@@ -320,6 +332,11 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
+                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        {
+                            continue;
+                        }
+
                         std::cout << p.channel << "/" << p.platform << "::" << p.name << "-"
                                   << p.version << "-" << p.build_string << std::endl;
                     }
@@ -328,12 +345,16 @@ namespace mamba
                 {
                     for (auto p : packages)
                     {
+                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        {
+                            continue;
+                        }
+
                         std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
                     }
                 }
                 else
                 {
-                    auto requested_specs = prefix_data.history().get_requested_specs_map();
                     printers::Table t({ "Name", "Version", "Build", "Channel" });
                     t.set_alignment({ printers::alignment::left,
                                       printers::alignment::left,
@@ -343,6 +364,11 @@ namespace mamba
 
                     for (auto p : packages)
                     {
+                        if (options.direct_deps_only && requested_specs.find(p.name) == requested_specs.end())
+                        {
+                            continue;
+                        }
+
                         printers::FormattedString formatted_name(p.name);
                         if (requested_specs.find(p.name) != requested_specs.end())
                         {
@@ -379,6 +405,7 @@ namespace mamba
         options.canonical = config.at("canonical").value<bool>();
         options.export_ = config.at("export").value<bool>();
         options.revisions = config.at("revisions").value<bool>();
+        options.direct_deps_only = config.at("direct_deps_only").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

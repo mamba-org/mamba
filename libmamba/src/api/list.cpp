@@ -221,25 +221,29 @@ namespace mamba
                           << "\n\n";
 
                 formatted_pkg formatted_pkgs;
-
                 std::vector<formatted_pkg> packages;
 
-                // order list of packages from prefix_data by alphabetical order
-                for (const auto& package : all_records)
+                for (const auto& [key, pkg_info] : all_records)
                 {
-                    if (accept_package(package.second))
+                    if (options.direct_deps_only
+                        && requested_specs.find(pkg_info.name) == requested_specs.end())
                     {
-                        auto channels = channel_context.make_channel(package.second.channel);
-                        assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        formatted_pkgs.channel = get_formatted_channel(package.second, channels.front());
-                        formatted_pkgs.name = package.second.name;
-                        formatted_pkgs.version = package.second.version;
-                        formatted_pkgs.build = package.second.build_string;
-                        formatted_pkgs.url = package.second.package_url;
-                        formatted_pkgs.md5 = package.second.md5;
-                        formatted_pkgs.sha256 = package.second.sha256;
-                        formatted_pkgs.build_string = package.second.build_string;
-                        formatted_pkgs.platform = package.second.platform;
+                        continue;
+                    }
+
+                    if (accept_package(pkg_info))
+                    {
+                        auto channels = channel_context.make_channel(pkg_info.channel);
+                        assert(channels.size() == 1);
+                        formatted_pkgs.channel = get_formatted_channel(pkg_info, channels.front());
+                        formatted_pkgs.name = pkg_info.name;
+                        formatted_pkgs.version = pkg_info.version;
+                        formatted_pkgs.build = pkg_info.build_string;
+                        formatted_pkgs.url = pkg_info.package_url;
+                        formatted_pkgs.md5 = pkg_info.md5;
+                        formatted_pkgs.sha256 = pkg_info.sha256;
+                        formatted_pkgs.build_string = pkg_info.build_string;
+                        formatted_pkgs.platform = pkg_info.platform;
                         packages.push_back(formatted_pkgs);
                     }
                 }
@@ -248,7 +252,6 @@ namespace mamba
                                                   : compare_alphabetically;
                 std::sort(packages.begin(), packages.end(), comparator);
 
-                // format and print output
                 if (options.revisions)
                 {
                     if (options.explicit_)
@@ -298,12 +301,6 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only
-                            && requested_specs.find(p.name) == requested_specs.end())
-                        {
-                            continue;
-                        }
-
                         if (options.md5 && options.sha256)
                         {
                             throw mamba_error(
@@ -334,12 +331,6 @@ namespace mamba
                     }
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only
-                            && requested_specs.find(p.name) == requested_specs.end())
-                        {
-                            continue;
-                        }
-
                         std::cout << p.channel << "/" << p.platform << "::" << p.name << "-"
                                   << p.version << "-" << p.build_string << std::endl;
                     }
@@ -348,12 +339,6 @@ namespace mamba
                 {
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only
-                            && requested_specs.find(p.name) == requested_specs.end())
-                        {
-                            continue;
-                        }
-
                         std::cout << p.name << "=" << p.version << "=" << p.build_string << std::endl;
                     }
                 }
@@ -368,12 +353,6 @@ namespace mamba
 
                     for (auto p : packages)
                     {
-                        if (options.direct_deps_only
-                            && requested_specs.find(p.name) == requested_specs.end())
-                        {
-                            continue;
-                        }
-
                         printers::FormattedString formatted_name(p.name);
                         if (requested_specs.find(p.name) != requested_specs.end())
                         {

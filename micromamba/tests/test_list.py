@@ -210,8 +210,12 @@ def test_list_direct_deps_only_no_json(
         res = helpers.umamba_list(direct_deps_flag)
 
     # Split lines and ignore header/blank lines
-    lines = [line.strip() for line in res.strip().split('\n') if line]
-    package_lines = [line for line in lines if not line.startswith("#") and "Name" not in line and "Version" not in line]
+    lines = [line.strip() for line in res.strip().split("\n") if line]
+    package_lines = [
+        line
+        for line in lines
+        if not line.startswith("#") and "Name" not in line and "Version" not in line
+    ]
 
     if direct_deps_flag == "--direct-deps-only":
         assert any("xtensor" in line for line in package_lines)

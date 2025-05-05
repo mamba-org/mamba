@@ -2,6 +2,7 @@ import os
 import platform
 import shutil
 import subprocess
+import glob
 from pathlib import Path
 from typing import Optional
 
@@ -9,6 +10,8 @@ import pytest
 
 from . import helpers
 
+package_to_check = "xtensor"
+file_to_find_in_package = "xtensor.hpp"
 
 def find_cache_archive(cache: Path, pkg_name: str) -> Optional[Path]:
     """Find the archive used in cache from the complete build name."""
@@ -29,12 +32,12 @@ def find_pkg_build(cache: Path, name: str) -> str:
 
 
 @pytest.fixture(scope="module")
-def tmp_shared_cache_xtensor(tmp_path_factory: pytest.TempPathFactory):
-    """Create shared cache folder with an xtensor package."""
-    root = tmp_path_factory.mktemp("xtensor")
+def tmp_shared_cache_test_pkg(tmp_path_factory: pytest.TempPathFactory):
+    """Create shared cache folder with a test package."""
+    root = tmp_path_factory.mktemp(package_to_check)
     helpers.create(
         "-n",
-        "xtensor",
+        package_to_check,
         "--no-env",
         "--no-rc",
         "-r",
@@ -42,7 +45,7 @@ def tmp_shared_cache_xtensor(tmp_path_factory: pytest.TempPathFactory):
         "-c",
         "conda-forge",
         "--no-deps",
-        "xtensor",
+        package_to_check,
         no_dry_run=True,
     )
     return root / "pkgs"
@@ -56,62 +59,65 @@ def tmp_cache_writable(request) -> bool:
 
 @pytest.fixture
 def tmp_cache(
-    tmp_root_prefix: Path, tmp_shared_cache_xtensor: Path, tmp_cache_writable: bool
+    tmp_root_prefix: Path, tmp_shared_cache_test_pkg: Path, tmp_cache_writable: bool
 ) -> Path:
-    """The default cache folder associated with the root_prefix and an xtensor package."""
+    """The default cache folder associated with the root_prefix and a test package."""
     cache: Path = tmp_root_prefix / "pkgs"
-    shutil.copytree(tmp_shared_cache_xtensor, cache, dirs_exist_ok=True)
+    shutil.copytree(tmp_shared_cache_test_pkg, cache, dirs_exist_ok=True)
     if not tmp_cache_writable:
         helpers.recursive_chmod(cache, 0o500)
     return cache
 
 
 @pytest.fixture
-def tmp_cache_xtensor_dir(tmp_cache: Path) -> Path:
-    """The location of the Xtensor cache directory within the package cache."""
-    return tmp_cache / find_pkg_build(tmp_cache, "xtensor")
+def tmp_cache_test_package_dir(tmp_cache: Path) -> Path:
+    """The location of the package-t-test's cache directory within the package cache."""
+    return tmp_cache / find_pkg_build(tmp_cache, package_to_check)
 
 
 @pytest.fixture
-def tmp_cache_xtensor_pkg(tmp_cache: Path) -> Path:
-    """The location of the Xtensor cache artifact (tarball) within the cache directory."""
-    return find_cache_archive(tmp_cache, find_pkg_build(tmp_cache, "xtensor"))
+def tmp_cache_test_pkg(tmp_cache: Path) -> Path:
+    """The location of the package-to-test's cache artifact (tarball) within the cache directory."""
+    return find_cache_archive(tmp_cache, find_pkg_build(tmp_cache, package_to_check))
 
 
 @pytest.fixture
-def tmp_cache_xtensor_hpp(tmp_cache_xtensor_dir: Path) -> Path:
-    """The location of the Xtensor header (part of the package) within the cache directory."""
-    return tmp_cache_xtensor_dir / helpers.xtensor_hpp
+def tmp_cache_file_in_test_package(tmp_cache_test_package_dir: Path) -> Path:
+    """The location of the file in the package to test within the cache directory."""
+    pkg_checker = helpers.PackageChecker(package_to_check, tmp_cache_test_package_dir, require_manifest=False)
+    return pkg_checker.find_installed(file_to_find_in_package)
 
 
 class TestPkgCache:
-    def test_extracted_file_deleted(self, tmp_home, tmp_cache_xtensor_hpp, tmp_root_prefix):
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
-        os.remove(tmp_cache_xtensor_hpp)
+    def test_extracted_file_deleted(self, tmp_home, tmp_cache_file_in_test_package, tmp_root_prefix):
+        old_ino = tmp_cache_file_in_test_package.stat().st_ino
+        os.remove(tmp_cache_file_in_test_package)
 
         env_name = "some_env"
-        helpers.create("xtensor", "-n", env_name, no_dry_run=True)
+        helpers.create(package_to_check, "-n", env_name, no_dry_run=True)
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
         linked_file_stats = linked_file.stat()
 
-        assert tmp_cache_xtensor_hpp.stat().st_dev == linked_file_stats.st_dev
-        assert tmp_cache_xtensor_hpp.stat().st_ino == linked_file_stats.st_ino
+        assert tmp_cache_file_in_test_package.stat().st_dev == linked_file_stats.st_dev
+        assert tmp_cache_file_in_test_package.stat().st_ino == linked_file_stats.st_ino
         assert old_ino != linked_file_stats.st_ino
 
     @pytest.mark.parametrize("safety_checks", ["disabled", "warn", "enabled"])
     def test_extracted_file_corrupted(
-        self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_hpp, safety_checks
+        self, tmp_home, tmp_root_prefix, tmp_cache_file_in_test_package, safety_checks
     ):
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+        old_ino = tmp_cache_file_in_test_package.stat().st_ino
 
-        with open(tmp_cache_xtensor_hpp, "w") as f:
+        with open(tmp_cache_file_in_test_package, "w") as f:
             f.write("//corruption")
 
         env_name = "x1"
         helpers.create(
-            "xtensor",
+            package_to_check,
             "-n",
             env_name,
             "--json",
@@ -120,12 +126,14 @@ class TestPkgCache:
             no_dry_run=True,
         )
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
         linked_file_stats = linked_file.stat()
 
-        assert tmp_cache_xtensor_hpp.stat().st_dev == linked_file_stats.st_dev
-        assert tmp_cache_xtensor_hpp.stat().st_ino == linked_file_stats.st_ino
+        assert tmp_cache_file_in_test_package.stat().st_dev == linked_file_stats.st_dev
+        assert tmp_cache_file_in_test_package.stat().st_ino == linked_file_stats.st_ino
 
         if safety_checks == "enabled":
             assert old_ino != linked_file_stats.st_ino
@@ -136,66 +144,72 @@ class TestPkgCache:
         self,
         tmp_home,
         tmp_root_prefix,
-        tmp_cache_xtensor_pkg,
-        tmp_cache_xtensor_hpp,
+        tmp_cache_test_pkg,
+        tmp_cache_file_in_test_package,
         tmp_cache,
     ):
-        assert tmp_cache_xtensor_pkg.exists()
-        os.remove(tmp_cache_xtensor_pkg)
+        assert tmp_cache_test_pkg.exists()
+        os.remove(tmp_cache_test_pkg)
 
         env_name = "x1"
-        helpers.create("xtensor", "-n", env_name, "--json", no_dry_run=True)
+        helpers.create(package_to_check, "-n", env_name, "--json", no_dry_run=True)
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
         linked_file_stats = linked_file.stat()
 
-        assert not tmp_cache_xtensor_pkg.exists()
-        assert tmp_cache_xtensor_hpp.stat().st_dev == linked_file_stats.st_dev
-        assert tmp_cache_xtensor_hpp.stat().st_ino == linked_file_stats.st_ino
+        assert not tmp_cache_test_pkg.exists()
+        assert tmp_cache_file_in_test_package.stat().st_dev == linked_file_stats.st_dev
+        assert tmp_cache_file_in_test_package.stat().st_ino == linked_file_stats.st_ino
 
     def test_tarball_and_extracted_file_deleted(
-        self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_pkg, tmp_cache_xtensor_hpp
+        self, tmp_home, tmp_root_prefix, tmp_cache_test_pkg, tmp_cache_file_in_test_package
     ):
-        xtensor_pkg_size = tmp_cache_xtensor_pkg.stat().st_size
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
-        os.remove(tmp_cache_xtensor_hpp)
-        os.remove(tmp_cache_xtensor_pkg)
+        test_pkg_size = tmp_cache_test_pkg.stat().st_size
+        old_ino = tmp_cache_file_in_test_package.stat().st_ino
+        os.remove(tmp_cache_file_in_test_package)
+        os.remove(tmp_cache_test_pkg)
 
         env_name = "x1"
-        helpers.create("xtensor", "-n", env_name, "--json", no_dry_run=True)
+        helpers.create(package_to_check, "-n", env_name, "--json", no_dry_run=True)
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
         linked_file_stats = linked_file.stat()
 
-        assert tmp_cache_xtensor_pkg.exists()
-        assert xtensor_pkg_size == tmp_cache_xtensor_pkg.stat().st_size
-        assert tmp_cache_xtensor_hpp.stat().st_dev == linked_file_stats.st_dev
-        assert tmp_cache_xtensor_hpp.stat().st_ino == linked_file_stats.st_ino
+        assert tmp_cache_test_pkg.exists()
+        assert test_pkg_size == tmp_cache_test_pkg.stat().st_size
+        assert tmp_cache_file_in_test_package.stat().st_dev == linked_file_stats.st_dev
+        assert tmp_cache_file_in_test_package.stat().st_ino == linked_file_stats.st_ino
         assert old_ino != linked_file_stats.st_ino
 
     def test_tarball_corrupted_and_extracted_file_deleted(
-        self, tmp_home, tmp_root_prefix, tmp_cache_xtensor_pkg, tmp_cache_xtensor_hpp
+        self, tmp_home, tmp_root_prefix, tmp_cache_test_pkg, tmp_cache_file_in_test_package
     ):
-        xtensor_pkg_size = tmp_cache_xtensor_pkg.stat().st_size
-        old_ino = tmp_cache_xtensor_hpp.stat().st_ino
-        os.remove(tmp_cache_xtensor_hpp)
-        os.remove(tmp_cache_xtensor_pkg)
-        with open(tmp_cache_xtensor_pkg, "w") as f:
+        test_pkg_size = tmp_cache_test_pkg.stat().st_size
+        old_ino = tmp_cache_file_in_test_package.stat().st_ino
+        os.remove(tmp_cache_file_in_test_package)
+        os.remove(tmp_cache_test_pkg)
+        with open(tmp_cache_test_pkg, "w") as f:
             f.write("")
 
         env_name = "x1"
-        helpers.create("xtensor", "-n", env_name, "--json", no_dry_run=True)
+        helpers.create(package_to_check, "-n", env_name, "--json", no_dry_run=True)
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
         linked_file_stats = linked_file.stat()
 
-        assert tmp_cache_xtensor_pkg.exists()
-        assert xtensor_pkg_size == tmp_cache_xtensor_pkg.stat().st_size
-        assert tmp_cache_xtensor_hpp.stat().st_dev == linked_file_stats.st_dev
-        assert tmp_cache_xtensor_hpp.stat().st_ino == linked_file_stats.st_ino
+        assert tmp_cache_test_pkg.exists()
+        assert test_pkg_size == tmp_cache_test_pkg.stat().st_size
+        assert tmp_cache_file_in_test_package.stat().st_dev == linked_file_stats.st_dev
+        assert tmp_cache_file_in_test_package.stat().st_ino == linked_file_stats.st_ino
         assert old_ino != linked_file_stats.st_ino
 
     @pytest.mark.parametrize("safety_checks", ("disabled", "warn", "enabled"))
@@ -203,18 +217,18 @@ class TestPkgCache:
         self,
         tmp_home,
         tmp_root_prefix,
-        tmp_cache_xtensor_pkg,
-        tmp_cache_xtensor_hpp,
+        tmp_cache_test_pkg,
+        tmp_cache_file_in_test_package,
         safety_checks,
     ):
-        with open(tmp_cache_xtensor_hpp, "w") as f:
+        with open(tmp_cache_file_in_test_package, "w") as f:
             f.write("//corruption")
-        helpers.recursive_chmod(tmp_cache_xtensor_pkg, 0o500)
-        #  old_ino = tmp_cache_xtensor_hpp.stat().st_ino
+        helpers.recursive_chmod(tmp_cache_test_pkg, 0o500)
+        #  old_ino = tmp_cache_file_in_test_package.stat().st_ino
 
         env = "x1"
         cmd_args = (
-            "xtensor",
+            package_to_check,
             "-n",
             "--safety-checks",
             safety_checks,
@@ -228,10 +242,10 @@ class TestPkgCache:
 
 
 @pytest.fixture
-def tmp_cache_alt(tmp_root_prefix: Path, tmp_shared_cache_xtensor: Path) -> Path:
+def tmp_cache_alt(tmp_root_prefix: Path, tmp_shared_cache_test_pkg: Path) -> Path:
     """Make an alternative package cache outside the root prefix."""
     cache = tmp_root_prefix / "more-pkgs"  # Creating under root prefix to leverage eager cleanup
-    shutil.copytree(tmp_shared_cache_xtensor, cache, dirs_exist_ok=True)
+    shutil.copytree(tmp_shared_cache_test_pkg, cache, dirs_exist_ok=True)
     return cache
 
 
@@ -257,13 +271,16 @@ class TestMultiplePkgCaches:
 
         os.environ["CONDA_PKGS_DIRS"] = f"{cache}"
         env_name = "some_env"
-        res = helpers.create("-n", env_name, "xtensor", "-v", "--json", no_dry_run=True)
+        res = helpers.create("-n", env_name, package_to_check, "-v", "--json", no_dry_run=True)
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
-        pkg_name = helpers.get_concrete_pkg(res, "xtensor")
-        cache_file = cache / pkg_name / helpers.xtensor_hpp
+        pkg_name = helpers.get_concrete_pkg(res, package_to_check)
+        installed_file_rel_path = linked_file.relative_to(env_dir)
+        cache_file = cache / pkg_name / installed_file_rel_path
 
         assert cache_file.exists()
 
@@ -282,17 +299,20 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
 
         env_name = "some_env"
-        res = helpers.create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+        res = helpers.create("-n", env_name, package_to_check, "--json", no_dry_run=True)
 
-        linked_file = tmp_root_prefix / "envs" / env_name / helpers.xtensor_hpp
+        env_dir = tmp_root_prefix / "envs" / env_name
+        pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
-        pkg_name = helpers.get_concrete_pkg(res, "xtensor")
+        pkg_name = helpers.get_concrete_pkg(res, package_to_check)
+        installed_file_rel_path = linked_file.relative_to(env_dir)
         # A previous version of this test was attempting to test that the installed file
         # was linked from the first writable pkgs dir, however it passed only because of a bug
         # in how it used pytest.
         # The first pkgs dir can be used to link, even if it is not writable.
-        cache_file = tmp_cache / pkg_name / helpers.xtensor_hpp
+        cache_file = tmp_cache / pkg_name / installed_file_rel_path
 
         assert cache_file.exists()
 
@@ -300,38 +320,49 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_ino == cache_file.stat().st_ino
 
     def test_no_writable(self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt):
-        helpers.rmtree(tmp_cache / find_pkg_build(tmp_cache, "xtensor"))
+        helpers.rmtree(tmp_cache / find_pkg_build(tmp_cache, package_to_check))
         helpers.recursive_chmod(tmp_cache, 0o500)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
 
-        helpers.create("-n", "myenv", "xtensor", "--json", no_dry_run=True)
+        helpers.create("-n", "myenv", package_to_check, "--json", no_dry_run=True)
 
     def test_no_writable_extracted_dir_corrupted(self, tmp_home, tmp_root_prefix, tmp_cache):
-        (tmp_cache / find_pkg_build(tmp_cache, "xtensor") / helpers.xtensor_hpp).unlink()
+        old_cache_dir = tmp_cache / find_pkg_build(tmp_cache, package_to_check)
+        if old_cache_dir.is_dir():
+            files = glob.glob(f"**{file_to_find_in_package}", recursive=True, root_dir=old_cache_dir)
+            for file in files:
+                file.unlink()
         helpers.recursive_chmod(tmp_cache, 0o500)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache}"
 
         with pytest.raises(subprocess.CalledProcessError):
-            helpers.create("-n", "myenv", "xtensor", "-vv", "--json", no_dry_run=True)
+            helpers.create("-n", "myenv", package_to_check, "-vv", "--json", no_dry_run=True)
 
     def test_first_writable_extracted_dir_corrupted(
         self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
     ):
-        xtensor_bld = find_pkg_build(tmp_cache, "xtensor")
+        test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
         helpers.rmtree(tmp_cache)  # convenience for cache teardown
         os.makedirs(tmp_cache)
         open(tmp_cache / "urls.txt", "w")  # chmod only set read-only flag on Windows
         helpers.recursive_chmod(tmp_cache, 0o500)
-        helpers.rmtree(tmp_cache_alt / xtensor_bld / helpers.xtensor_hpp)
+
+        tmp_cache_alt_pkg_dir = tmp_cache_alt / test_pkg_bld
+        if tmp_cache_alt_pkg_dir.is_dir():
+            files = tmp_cache_alt_pkg_dir.glob(f"**/{file_to_find_in_package}")
+            for file in files:
+                helpers.rmtree(file)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
 
-        helpers.create("-n", env_name, "xtensor", "-vv", "--json", no_dry_run=True)
+        helpers.create("-n", env_name, package_to_check, "-vv", "--json", no_dry_run=True)
 
-        linked_file = helpers.get_env(env_name, helpers.xtensor_hpp)
+        install_env_dir = helpers.get_env(env_name)
+        pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
         # check repodata files
@@ -341,11 +372,12 @@ class TestMultiplePkgCaches:
             assert same_repodata_json_solv(tmp_cache_alt)
 
         # check tarballs
-        assert find_cache_archive(tmp_cache, xtensor_bld) is None
-        assert find_cache_archive(tmp_cache_alt, xtensor_bld).exists()
+        assert find_cache_archive(tmp_cache, test_pkg_bld) is None
+        assert find_cache_archive(tmp_cache_alt, test_pkg_bld).exists()
 
-        non_writable_cache_file = tmp_cache / xtensor_bld / helpers.xtensor_hpp
-        writable_cache_file = tmp_cache_alt / xtensor_bld / helpers.xtensor_hpp
+        linked_file_rel_path = linked_file.relative_to(install_env_dir)
+        non_writable_cache_file = tmp_cache / test_pkg_bld / linked_file_rel_path
+        writable_cache_file = tmp_cache_alt / test_pkg_bld / linked_file_rel_path
 
         # check extracted files
         assert not non_writable_cache_file.exists()
@@ -361,19 +393,21 @@ class TestMultiplePkgCaches:
         tmp_home,
         tmp_cache,
         tmp_cache_alt,
-        tmp_cache_xtensor_dir,
+        tmp_cache_test_package_dir,
     ):
-        xtensor_bld = find_pkg_build(tmp_cache, "xtensor")
-        helpers.rmtree(find_cache_archive(tmp_cache, xtensor_bld))
+        test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
+        helpers.rmtree(find_cache_archive(tmp_cache, test_pkg_bld))
         helpers.rmtree(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
 
-        helpers.create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+        helpers.create("-n", env_name, package_to_check, "--json", no_dry_run=True)
 
-        linked_file = helpers.get_env(env_name, helpers.xtensor_hpp)
+        install_env_dir = helpers.get_env(env_name)
+        pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
         # check repodata files
@@ -383,11 +417,12 @@ class TestMultiplePkgCaches:
         assert repodata_json(tmp_cache_alt) == set()
 
         # check tarballs
-        assert find_cache_archive(tmp_cache, xtensor_bld) is None
-        assert find_cache_archive(tmp_cache_alt, xtensor_bld) is None
+        assert find_cache_archive(tmp_cache, test_pkg_bld) is None
+        assert find_cache_archive(tmp_cache_alt, test_pkg_bld) is None
 
-        non_writable_cache_file = tmp_cache / xtensor_bld / helpers.xtensor_hpp
-        writable_cache_file = tmp_cache_alt / xtensor_bld / helpers.xtensor_hpp
+        linked_file_rel_path = linked_file.relative_to(install_env_dir)
+        non_writable_cache_file = tmp_cache / test_pkg_bld / linked_file_rel_path
+        writable_cache_file = tmp_cache_alt / test_pkg_bld / linked_file_rel_path
 
         # check extracted files
         assert non_writable_cache_file.exists()
@@ -400,21 +435,24 @@ class TestMultiplePkgCaches:
     def test_missing_extracted_dir_in_non_writable_cache(
         self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
     ):
-        xtensor_bld = find_pkg_build(tmp_cache, "xtensor")
-        helpers.rmtree(tmp_cache / xtensor_bld)
+        test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
+        helpers.rmtree(tmp_cache / test_pkg_bld)
         helpers.rmtree(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
 
-        helpers.create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+        helpers.create("-n", env_name, package_to_check, "--json", no_dry_run=True)
 
-        linked_file = helpers.get_env(env_name, helpers.xtensor_hpp)
+        install_env_dir = helpers.get_env(env_name)
+        pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
-        non_writable_cache_file = tmp_cache / xtensor_bld / helpers.xtensor_hpp
-        writable_cache_file = tmp_cache_alt / xtensor_bld / helpers.xtensor_hpp
+        linked_file_rel_path = linked_file.relative_to(install_env_dir)
+        non_writable_cache_file = tmp_cache / test_pkg_bld / linked_file_rel_path
+        writable_cache_file = tmp_cache_alt / test_pkg_bld / linked_file_rel_path
 
         # check repodata files
         assert repodata_json(tmp_cache) != set()
@@ -423,8 +461,8 @@ class TestMultiplePkgCaches:
         assert repodata_json(tmp_cache_alt) == set()
 
         # check tarballs
-        assert find_cache_archive(tmp_cache, xtensor_bld).exists()
-        assert find_cache_archive(tmp_cache_alt, xtensor_bld) is None
+        assert find_cache_archive(tmp_cache, test_pkg_bld).exists()
+        assert find_cache_archive(tmp_cache_alt, test_pkg_bld) is None
 
         # check extracted files
         assert not non_writable_cache_file.exists()
@@ -437,8 +475,13 @@ class TestMultiplePkgCaches:
     def test_corrupted_extracted_dir_in_non_writable_cache(
         self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
     ):
-        xtensor_bld = find_pkg_build(tmp_cache, "xtensor")
-        helpers.rmtree(tmp_cache / xtensor_bld / helpers.xtensor_hpp)
+        test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
+        tmp_cache_test_pkg_dir = Path(tmp_cache / test_pkg_bld)
+        if tmp_cache_test_pkg_dir.is_dir():
+            files = tmp_cache_test_pkg_dir.glob(f"**/{file_to_find_in_package}")
+            for file in files:
+                helpers.rmtree(file)
+
         helpers.rmtree(tmp_cache_alt)  # convenience for cache teardown
         os.makedirs(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
@@ -446,9 +489,11 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
 
-        helpers.create("-n", env_name, "-vv", "xtensor", "--json", no_dry_run=True)
+        helpers.create("-n", env_name, "-vv", package_to_check, "--json", no_dry_run=True)
 
-        linked_file = helpers.get_env(env_name, helpers.xtensor_hpp)
+        install_env_dir = helpers.get_env(env_name)
+        pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
         # check repodata files
@@ -458,15 +503,16 @@ class TestMultiplePkgCaches:
         assert repodata_json(tmp_cache_alt) == set()
 
         # check tarballs
-        assert find_cache_archive(tmp_cache, xtensor_bld).exists()
-        assert find_cache_archive(tmp_cache_alt, xtensor_bld) is None
+        assert find_cache_archive(tmp_cache, test_pkg_bld).exists()
+        assert find_cache_archive(tmp_cache_alt, test_pkg_bld) is None
 
         # check extracted dir
-        assert (tmp_cache / xtensor_bld).exists()
-        assert (tmp_cache_alt / xtensor_bld).exists()
+        assert (tmp_cache / test_pkg_bld).exists()
+        assert (tmp_cache_alt / test_pkg_bld).exists()
 
-        non_writable_cache_file = tmp_cache / xtensor_bld / helpers.xtensor_hpp
-        writable_cache_file = tmp_cache_alt / xtensor_bld / helpers.xtensor_hpp
+        linked_file_rel_path = linked_file.relative_to(install_env_dir)
+        non_writable_cache_file = tmp_cache / test_pkg_bld / linked_file_rel_path
+        writable_cache_file = tmp_cache_alt / test_pkg_bld / linked_file_rel_path
 
         # check extracted files
         assert not non_writable_cache_file.exists()
@@ -484,19 +530,21 @@ class TestMultiplePkgCaches:
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
-        xtensor_bld = find_pkg_build(tmp_cache, "xtensor")
+        test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
 
         helpers.create(
             "-n",
             env_name,
-            "xtensor",
+            package_to_check,
             "-vv",
             "--json",
             "--repodata-ttl=0",
             no_dry_run=True,
         )
 
-        linked_file = helpers.get_env(env_name, helpers.xtensor_hpp)
+        install_env_dir = helpers.get_env(env_name)
+        pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)
+        linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
         # check repodata files
@@ -508,15 +556,17 @@ class TestMultiplePkgCaches:
             assert same_repodata_json_solv(tmp_cache_alt)
 
         # check tarballs
-        assert find_cache_archive(tmp_cache, xtensor_bld).exists()
-        assert find_cache_archive(tmp_cache_alt, xtensor_bld) is None
+        assert find_cache_archive(tmp_cache, test_pkg_bld).exists()
+        assert find_cache_archive(tmp_cache_alt, test_pkg_bld) is None
 
         # check extracted dir
-        assert (tmp_cache / xtensor_bld).exists()
-        assert not (tmp_cache_alt / xtensor_bld).exists()
+        assert (tmp_cache / test_pkg_bld).exists()
+        assert not (tmp_cache_alt / test_pkg_bld).exists()
 
-        non_writable_cache_file = tmp_cache / xtensor_bld / helpers.xtensor_hpp
-        writable_cache_file = tmp_cache_alt / xtensor_bld / helpers.xtensor_hpp
+
+        linked_file_rel_path = linked_file.relative_to(install_env_dir)
+        non_writable_cache_file = tmp_cache / test_pkg_bld / linked_file_rel_path
+        writable_cache_file = tmp_cache_alt / test_pkg_bld / linked_file_rel_path
 
         # check extracted files
         assert non_writable_cache_file.exists()

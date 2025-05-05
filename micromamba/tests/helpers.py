@@ -56,10 +56,6 @@ def lib_prefix() -> Path:
     return Path("")
 
 
-xtensor_hpp = lib_prefix() / "include/xtensor/containers/xtensor.hpp"
-xsimd_hpp = lib_prefix() / "include/xsimd/xsimd.hpp"
-
-
 def get_umamba(cwd=os.getcwd()):
     if os.getenv("TEST_MAMBA_EXE"):
         umamba = os.getenv("TEST_MAMBA_EXE")
@@ -550,13 +546,16 @@ class PackageChecker:
     install_prefix_root_dir: Path
     manifests_dir: Path
 
+
     _manifest_info : object
     _manifest_json_path : Path
 
 
-    def __init__(self, package_name: string, install_prefix_root_dir: Path):
+    def __init__(self, package_name: string, install_prefix_root_dir: Path, require_manifest: bool = True):
         # package_name : the name of the package to work with, without version or build name, for example 'xtensor'
         # install_prefix_root_dir : the absolute path to the directory in which the package should be installed and found
+
+        self._require_manifest = require_manifest
 
         assert install_prefix_root_dir.is_absolute()
         assert package_name
@@ -566,8 +565,9 @@ class PackageChecker:
         assert os.path.isdir(install_prefix_root_dir), f"not a directory or doesnt exist: {install_prefix_root_dir}"
         self.install_prefix_root_dir = install_prefix_root_dir
 
-        self.manifests_dir = self.install_prefix_root_dir / "conda-meta"
-        assert os.path.isdir(self.manifests_dir), f"not a directory or doesnt exist: {self.manifests_dir}"
+        if require_manifest:
+            self.manifests_dir = self.install_prefix_root_dir / "conda-meta"
+            assert os.path.isdir(self.manifests_dir), f"not a directory or doesnt exist: {self.manifests_dir}"
 
     def check_install_integrity(self):
         # Checks that the manifest of the package is installed and checks that every file listed in it
@@ -599,18 +599,23 @@ class PackageChecker:
         # Returns the absolute path to that file once found, or None if not found.
         # An assertion will fail if the file is found in the manifst but does not exist in the install directory.
 
-        manifest_info = self.get_manifest_info()
+        if self._require_manifest:
+            manifest_info = self.get_manifest_info()
 
-        for file in manifest_info['files']:
-            if file.endswith(name_or_relative_path):
-                absolute_path = self.install_prefix_root_dir.joinpath(file).absolute()
-                assert absolute_path.exists()
-                return absolute_path
+            for file in manifest_info['files']:
+                if file.endswith(name_or_relative_path):
+                    absolute_path = self.install_prefix_root_dir.joinpath(file).absolute()
+                    assert absolute_path.exists()
+                    return absolute_path
+        else:
+            # We search for the file in the directory, without assuming it must exist in the manifest
+            for file in self.install_prefix_root_dir.glob(f"**/{name_or_relative_path}"):
+                return file.absolute()
 
         return None
 
     def get_name_version_build(self) -> string:
         # A name that matches what `get_concrete_pkg` would return: `package_name-X.Y.Z-build_number``
         manifest_info = self.get_manifest_info()
-        return f"{manifest_info['name']}-{manifest_info['version']}-{manifest_info['build_string']}"e
+        return f"{manifest_info['name']}-{manifest_info['version']}-{manifest_info['build_string']}"
 

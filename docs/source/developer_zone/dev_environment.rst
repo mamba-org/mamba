@@ -77,15 +77,15 @@ The tests for libmamba are written in C++.
 
     ./build/libmamba/tests/test_libmamba
 
-``micromamba`` integration tests
-********************************
+``mamba``/``micromamba`` integration tests
+******************************************
 
-Many ``micromamba`` integration tests are written through a pytest Python wrapper.
+Many ``mamba`` integration tests are written through a pytest Python wrapper.
 The environment variable ``TEST_MAMBA_EXE`` controls which executable is being tested.
 
 .. code:: bash
 
-   export TEST_MAMBA_EXE="${PWD}/build/micromamba/micromamba"
+   export TEST_MAMBA_EXE="${PWD}/build/micromamba/mamba"
    python -m pytest micromamba/tests
 
 ``libmambapy`` tests

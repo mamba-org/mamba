@@ -43,13 +43,6 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> std::string;
 
-        auto operator==(const VersionPartAtom& other) const -> bool;
-        auto operator!=(const VersionPartAtom& other) const -> bool;
-        auto operator<(const VersionPartAtom& other) const -> bool;
-        auto operator<=(const VersionPartAtom& other) const -> bool;
-        auto operator>(const VersionPartAtom& other) const -> bool;
-        auto operator>=(const VersionPartAtom& other) const -> bool;
-
     private:
 
         // Stored in decreasing size order for performance
@@ -57,18 +50,56 @@ namespace mamba::specs
         std::size_t m_numeral = 0;
     };
 
+    auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator!=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator<(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator<=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator>(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+
     extern template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
 
     /**
      * A sequence of VersionPartAtom meant to represent a part of a version (e.g. major, minor).
      *
+     * In a version like ``1.3.0post1dev``, the parts are ``1``, ``3``, and ``0post1dev``.
      * Version parts can have a arbitrary number of atoms, such as {0, "post"} {1, "dev"}
-     * in 0post1dev
+     * in ``0post1dev``.
      *
      * @see  Version::parse for how this is computed from strings.
      * @todo Use a small vector of expected size 1 if performance ar not good enough.
      */
-    using VersionPart = std::vector<VersionPartAtom>;
+    struct VersionPart
+    {
+        /** The atoms of the version part */
+        std::vector<VersionPartAtom> atoms = {};
+
+        /**
+         * Whether a potential leading zero in the first atom should be considered implicit.
+         *
+         * During parsing of ``Version``, if a part starts with a literal atom, it is considered
+         * the same as if it started with a leading ``0``.
+         * For instance ``0post1dev`` is parsed in the same way as ``post1dev``.
+         * Marking it as implicit enables the possibility to remove it when reconstructing a string
+         * representation.
+         * This is desirable for compatibility with other version formats, such as Python, where
+         * a version modifier might be expressed as ``1.3.0.dev3``.
+         */
+        bool implicit_leading_zero = false;
+
+        VersionPart();
+        VersionPart(std::initializer_list<VersionPartAtom> init);
+        VersionPart(std::vector<VersionPartAtom> atoms, bool implicit_leading_zero);
+
+        [[nodiscard]] auto str() const -> std::string;
+    };
+
+    auto operator==(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator!=(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator<(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator<=(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator>(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator>=(const VersionPart& left, const VersionPart& other) -> bool;
 
     /**
      * A sequence of VersionPart meant to represent all parts of a version.
@@ -139,13 +170,6 @@ namespace mamba::specs
          */
         [[nodiscard]] auto str_glob() const -> std::string;
 
-        [[nodiscard]] auto operator==(const Version& other) const -> bool;
-        [[nodiscard]] auto operator!=(const Version& other) const -> bool;
-        [[nodiscard]] auto operator<(const Version& other) const -> bool;
-        [[nodiscard]] auto operator<=(const Version& other) const -> bool;
-        [[nodiscard]] auto operator>(const Version& other) const -> bool;
-        [[nodiscard]] auto operator>=(const Version& other) const -> bool;
-
         /**
          * Return true if this version starts with the other prefix.
          *
@@ -174,6 +198,13 @@ namespace mamba::specs
         std::size_t m_epoch = 0;
     };
 
+    auto operator==(const Version& left, const Version& other) -> bool;
+    auto operator!=(const Version& left, const Version& other) -> bool;
+    auto operator<(const Version& left, const Version& other) -> bool;
+    auto operator<=(const Version& left, const Version& other) -> bool;
+    auto operator>(const Version& left, const Version& other) -> bool;
+    auto operator>=(const Version& left, const Version& other) -> bool;
+
     namespace version_literals
     {
         auto operator""_v(const char* str, std::size_t len) -> Version;
@@ -186,6 +217,15 @@ struct fmt::formatter<mamba::specs::VersionPartAtom>
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
     auto format(const ::mamba::specs::VersionPartAtom atom, format_context& ctx) const
+        -> decltype(ctx.out());
+};
+
+template <>
+struct fmt::formatter<mamba::specs::VersionPart>
+{
+    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+    auto format(const ::mamba::specs::VersionPart atom, format_context& ctx) const
         -> decltype(ctx.out());
 };
 

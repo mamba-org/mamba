@@ -107,6 +107,68 @@ While `mamba` and `micromamba` are generally a drop-in replacement for `conda` t
 
 Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/dev_environment.html).
 
+## API and ABI stability
+
+The Mamba project uses [semantic versioning](https://semver.org/) of the form `MAJOR.MINOR.PATCH`.
+While we try to keep things stable for users, we also need to make breaking changes to improve
+Mamba and reduce technical debt.
+Future versions of Mamba may give stronger guarantees.
+
+### `libmamba` (C++)
+
+We are not aware of consumers of the C++ API, so we give ourselves room for improvements.
+For `libmamba`, the term _backward compatible_ is understood as follows:
+
+- _ABI backward compatible_ means that you can replace the library binary files without recompiling
+  your code with the updated headers.
+  The observed behavior will be the same, except for bugs (disappearing, hopefully) and performance.
+- _API backward compatible_ means that you must recompile your code with the new library
+  version code, but you won't need to change your code, just re-build it.
+  This applies as long as you did not use any declaration understood to be private, for instance
+  in the `detail` sub-namespaces.
+  The observed behavior will be the same, except for bugs (disappearing, hopefully) and performance.
+  When declarations are deprecated but not removed and still functional, we consider it also
+  backward compatible, as only the observed behavior during compilation changes.
+
+With this in mind, `libmamba` offers the following guarantees:
+
+- `PATCH` releases are API and ABI backward compatible;
+- `MINOR` releases are API compatible for declarations in `mamba/api`,
+  They can break API elsewhere and ABI anywhere;
+- `MAJOR` releases make no guarantees.
+
+### `libmambapy` (Python)
+
+For `libmambapy`, the term _API backward compatible_ implies that your Python code will work the
+same for a newer version of `libmambapy` as long as you did not use any declaration understood to
+be private, for instance accessed with a name starting with an `_`.
+The observed behavior will be the same, except for bugs (disappearing, hopefully) and performance.
+When declarations are deprecated but not removed and still functional, we consider it also
+backward compatible, as the behavior is only observable when activating Python
+`DeprecationWarning`, which is usually only activated in development.
+
+With this in mind, `libmambapy` offers the following guarantees:
+
+- `PATCH` releases are API backward compatible;
+- `MINOR` releases are API backward compatible;
+- `MAJOR` releases make no guarantees.
+
+### `mamba` and `micromamba` (executables)
+
+For executables, the term _backward compatible_ applies to programmable inputs and outputs and means
+that your code (including shell scripts) will work with newer versions of the executable without
+modifications.
+Programmable inputs/outputs include executable name, command line arguments, configuration files,
+environment variables, JSON command line outputs, and files created.
+It _excludes_ human-readable output and error messages, and thus deprecation warnings written
+in the human-readable output.
+
+With this in mind, `mamba` and `micromamba` offer the following guarantees:
+
+- `PATCH` releases are backward compatible;
+- `MINOR` releases are backward compatible;
+- `MAJOR` releases make no guarantees.
+
 ## Support us
 
 Only `mamba` and `micromamba` 2.0 and later are supported and are actively developed.

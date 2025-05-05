@@ -17,6 +17,7 @@
 #include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
@@ -146,6 +147,7 @@ namespace mamba
         // Configurable
         bool experimental = false;
         bool experimental_repodata_parsing = true;
+        bool experimental_matchspec_parsing = false;
         bool debug = false;
 
         // TODO check writable and add other potential dirs

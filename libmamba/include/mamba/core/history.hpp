@@ -15,6 +15,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -61,6 +62,22 @@ namespace mamba
         ChannelContext& m_channel_context;
     };
 
+    namespace detail
+    {
+        /** PackageDiff contains two maps of packages and their package info, one being for the
+         * installed packagege, the other for the removed ones. This is used while looping on
+         * revisions to get the diff between the target revision and the current one. */
+        struct PackageDiff
+        {
+            std::map<std::string, specs::PackageInfo> removed_pkg_diff;
+            std::map<std::string, specs::PackageInfo> installed_pkg_diff;
+
+            PackageDiff
+            get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int target_revision);
+        };
+
+        specs::PackageInfo pkg_info_builder(std::string s);
+    }
 }  // namespace mamba
 
 #endif

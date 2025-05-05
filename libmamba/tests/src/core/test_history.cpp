@@ -19,7 +19,7 @@
 #include <unistd.h>
 #endif
 
-#include "mamba/api/install.hpp"
+// #include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -133,7 +133,8 @@ namespace mamba
             std::vector<History::UserRequest> user_requests = history_instance.get_user_requests();
             int REVISION = 1;
 
-            auto revision_pkg_diff = detail::get_revision_pkg_diff(user_requests, REVISION);
+            detail::PackageDiff pkg_diff{};
+            auto revision_pkg_diff = pkg_diff.get_revision_pkg_diff(user_requests, REVISION);
             const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
             const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
 

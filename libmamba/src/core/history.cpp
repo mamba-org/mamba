@@ -325,4 +325,186 @@ namespace mamba
             out << specs_output("neutered", entry.neutered);
         }
     }
+
+    namespace detail
+    {
+        // The following function parses the different formats that can be found in the history
+        // file. conda/mamba1 format: installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0 mamba2 broken format: installed:
+        // +conda-forge::xtl-0.8.0-h84d6215_0 removed:
+        // -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0 mamba2 new format:
+        // installed: +https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        specs::PackageInfo pkg_info_builder(std::string s)
+        {
+            std::string s_pkg;
+            std::string channel;
+            std::size_t pos_0 = s.rfind("/");
+            if (pos_0 != std::string::npos)
+            {
+                std::string s_begin = s.substr(0, pos_0);
+                std::string s_end = s.substr(pos_0 + 1, s.size());
+                std::size_t pos = s_begin.rfind("/");
+                if (pos != std::string::npos)
+                {
+                    channel = s_begin.substr(pos + 1, s_begin.size());
+                }
+                else
+                {
+                    channel = s_begin;
+                }
+                s_pkg = std::get<1>(util::rsplit_once(s_end, "::"));
+            }
+            else
+            {
+                channel = std::get<0>(util::split_once(s, "::"));
+                s_pkg = std::get<1>(util::rsplit_once(s, "::"));
+            }
+
+            std::size_t pos_1 = s_pkg.rfind("-");
+            std::string s_pkg_ = s_pkg.substr(0, pos_1);
+            std::string build_string = s_pkg.substr(pos_1 + 1, s_pkg.size());
+
+            std::size_t pos_2 = s_pkg_.rfind("-");
+            std::string name = s_pkg_.substr(0, pos_2);
+            std::string version = s_pkg_.substr(pos_2 + 1, s_pkg_.size());
+
+            specs::PackageInfo pkg_info{ name, version, build_string, channel };
+            return pkg_info;
+        }
+
+        PackageDiff PackageDiff::get_revision_pkg_diff(
+            std::vector<History::UserRequest> user_requests,
+            int target_revision
+        )
+        {
+            struct revision
+            {
+                int key = -1;
+                std::map<std::string, specs::PackageInfo> removed_pkg = {};
+                std::map<std::string, specs::PackageInfo> installed_pkg = {};
+            };
+
+            std::vector<revision> revisions;
+            for (auto r : user_requests)
+            {
+                if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+                {
+                    if (r.revision_num > target_revision)
+                    {
+                        revision rev{ /*.key = */ r.revision_num };
+                        for (auto ud : r.unlink_dists)
+                        {
+                            auto pkg_info = pkg_info_builder(ud);
+                            auto name = pkg_info.name;
+                            rev.removed_pkg[name] = std::move(pkg_info);
+                        }
+                        for (auto ld : r.link_dists)
+                        {
+                            auto pkg_info = pkg_info_builder(ld);
+                            auto name = pkg_info.name;
+                            rev.installed_pkg[name] = std::move(pkg_info);
+                        }
+                        revisions.push_back(rev);
+                    }
+                }
+            }
+
+            std::map<std::string, specs::PackageInfo> removed_pkg_diff;
+            std::map<std::string, specs::PackageInfo> installed_pkg_diff;
+
+            auto handle_install =
+                [&installed_pkg_diff, &removed_pkg_diff](revision& rev, const std::string& pkg_name)
+            {
+                bool res = false;
+                if (auto rev_iter = rev.installed_pkg.find(pkg_name);
+                    rev_iter != rev.installed_pkg.end())
+                {
+                    auto version = rev.installed_pkg[pkg_name].version;
+                    auto iter = removed_pkg_diff.find(pkg_name);
+                    if (iter != removed_pkg_diff.end() && iter->second.version == version)
+                    {
+                        removed_pkg_diff.erase(iter);
+                    }
+                    else
+                    {
+                        installed_pkg_diff[pkg_name] = rev_iter->second;
+                    }
+                    rev.installed_pkg.erase(rev_iter);
+                    res = true;
+                }
+                return res;
+            };
+
+            auto handle_remove =
+                [&installed_pkg_diff, &removed_pkg_diff](revision& rev, const std::string& pkg_name)
+            {
+                bool res = false;
+                if (auto rev_iter = rev.removed_pkg.find(pkg_name); rev_iter != rev.removed_pkg.end())
+                {
+                    auto version = rev.removed_pkg[pkg_name].version;
+                    auto iter = installed_pkg_diff.find(pkg_name);
+                    if (iter != installed_pkg_diff.end() && iter->second.version == version)
+                    {
+                        installed_pkg_diff.erase(iter);
+                    }
+                    else
+                    {
+                        removed_pkg_diff[pkg_name] = rev_iter->second;
+                    }
+                    rev.removed_pkg.erase(rev_iter);
+                    res = true;
+                }
+                return res;
+            };
+
+            while (!revisions.empty())
+            {
+                auto& revision = *(revisions.begin());
+                while (!revision.removed_pkg.empty())
+                {
+                    auto [pkg_name, pkg_info] = *(revision.removed_pkg.begin());
+                    removed_pkg_diff[pkg_name] = pkg_info;
+                    revision.removed_pkg.erase(pkg_name);
+                    bool lastly_removed = true;  // whether last operation on package was a removal
+                    lastly_removed = !handle_install(revision, pkg_name);
+                    for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
+                    {
+                        if (lastly_removed)
+                        {
+                            lastly_removed = !handle_install(*rev, pkg_name);
+                        }
+                        else
+                        {
+                            lastly_removed = handle_remove(*rev, pkg_name);
+                            if (lastly_removed)
+                            {
+                                lastly_removed = !handle_install(*rev, pkg_name);
+                            }
+                        }
+                    }
+                }
+                while (!revision.installed_pkg.empty())
+                {
+                    auto [pkg_name, pkg_info] = *(revision.installed_pkg.begin());
+                    installed_pkg_diff[pkg_name] = pkg_info;
+                    revision.installed_pkg.erase(pkg_name);
+                    bool lastly_removed = false;
+                    for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
+                    {
+                        if (!lastly_removed)
+                        {
+                            lastly_removed = handle_remove(*rev, pkg_name);
+                            if (lastly_removed)
+                            {
+                                lastly_removed = !handle_install(*rev, pkg_name);
+                            }
+                        }
+                    }
+                }
+                revisions.erase(revisions.begin());
+            }
+            return { removed_pkg_diff, installed_pkg_diff };
+        }
+    }  // namespace detail
 }  // namespace mamba

@@ -3,6 +3,9 @@ Contributing
 ==============
 
 The mamba repository is hosted at https://github.com/mamba-org/mamba.
+The general developer documentation is hosted at https://mamba.readthedocs.io/en/latest/developer_zone/contributing.html.
+See also https://mamba.readthedocs.io/en/latest/developer_zone/dev_environment.html for setting up
+a development environment.
 
 When contributing to this repository, it is always a good idea to first
 discuss the change you wish to make via issue, email, or any other method with

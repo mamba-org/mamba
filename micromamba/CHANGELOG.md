@@ -1,3 +1,23 @@
+## micromamba 2.1.1 (May 05, 2025)
+
+Bug fixes:
+
+- Make `self-update` a command for micromamba only by @jjerphan in <https://github.com/mamba-org/mamba/pull/3906>
+- fix: Give precedence to repodata when constructing `repodata_record` files by @jjerphan in <https://github.com/mamba-org/mamba/pull/3901>
+- feat: add sha256 flag to list command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3885>
+- hotfix: in integration tests assume xtensor is v0.26 by @Klaim in <https://github.com/mamba-org/mamba/pull/3898>
+
+CI fixes and doc:
+
+- Explicit API and ABI stability commitments by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3913>
+- Add minimal citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3914>
+
+Maintenance:
+
+- Some test isolation by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3900>
+- build(deps): bump codecov/codecov-action from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3896>
+- ci: Adapt code coverage workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/3890>
+
 ## micromamba 2.1.0 (April 01, 2025)
 
 Bug fixes:

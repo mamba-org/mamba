@@ -1,3 +1,36 @@
+## 2025.05.05
+
+Release: 2.1.1 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [libmamba] Use Simdjson ondemand parser instead of DOM parser by @Klaim in <https://github.com/mamba-org/mamba/pull/3878>
+
+Bug fixes:
+
+- [libmamba] Fix segfault in error messages by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3912>
+- [libmamba] fix: Requalify warning when parsing the "mod/etag" header by @jjerphan in <https://github.com/mamba-org/mamba/pull/3910>
+- [micromamba] Make `self-update` a command for micromamba only by @jjerphan in <https://github.com/mamba-org/mamba/pull/3906>
+- [libmamba] Fix nushell env for Windows by @cvanelteren in <https://github.com/mamba-org/mamba/pull/3880>
+- [libmamba, micromamba] fix: Give precedence to repodata when constructing `repodata_record` files by @jjerphan in <https://github.com/mamba-org/mamba/pull/3901>
+- [libmamba, micromamba] feat: add sha256 flag to list command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3885>
+- [libmamba, libmambapy] Fix VersionSpec globs by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3889>
+- [micromamba] hotfix: in integration tests assume xtensor is v0.26 by @Klaim in <https://github.com/mamba-org/mamba/pull/3898>
+
+CI fixes and doc:
+
+- [all] Explicit API and ABI stability commitments by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3913>
+- [all] Add minimal citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3914>
+
+Maintenance:
+
+- [libmambapy] DX: libmambapy import in build tree by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3916>
+- [libmamba] Internally add flag for switching MatchSpec parser by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3905>
+- [micromamba] Some test isolation by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3900>
+- [libmamba] Ready Libsolv for C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3899>
+- [all] build(deps): bump codecov/codecov-action from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3896>
+- [all] ci: Adapt code coverage workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/3890>
+
 ## 2025.04.01
 
 Release: 2.1.0 (libmamba, mamba, micromamba, libmambapy)

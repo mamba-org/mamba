@@ -13,6 +13,7 @@ from . import helpers
 package_to_check = "xtensor"
 file_to_find_in_package = "xtensor.hpp"
 
+
 def find_cache_archive(cache: Path, pkg_name: str) -> Optional[Path]:
     """Find the archive used in cache from the complete build name."""
     tar_bz2 = cache / f"{pkg_name}.tar.bz2"
@@ -84,12 +85,16 @@ def tmp_cache_test_pkg(tmp_cache: Path) -> Path:
 @pytest.fixture
 def tmp_cache_file_in_test_package(tmp_cache_test_package_dir: Path) -> Path:
     """The location of the file in the package to test within the cache directory."""
-    pkg_checker = helpers.PackageChecker(package_to_check, tmp_cache_test_package_dir, require_manifest=False)
+    pkg_checker = helpers.PackageChecker(
+        package_to_check, tmp_cache_test_package_dir, require_manifest=False
+    )
     return pkg_checker.find_installed(file_to_find_in_package)
 
 
 class TestPkgCache:
-    def test_extracted_file_deleted(self, tmp_home, tmp_cache_file_in_test_package, tmp_root_prefix):
+    def test_extracted_file_deleted(
+        self, tmp_home, tmp_cache_file_in_test_package, tmp_root_prefix
+    ):
         old_ino = tmp_cache_file_in_test_package.stat().st_ino
         os.remove(tmp_cache_file_in_test_package)
 
@@ -330,7 +335,9 @@ class TestMultiplePkgCaches:
     def test_no_writable_extracted_dir_corrupted(self, tmp_home, tmp_root_prefix, tmp_cache):
         old_cache_dir = tmp_cache / find_pkg_build(tmp_cache, package_to_check)
         if old_cache_dir.is_dir():
-            files = glob.glob(f"**{file_to_find_in_package}", recursive=True, root_dir=old_cache_dir)
+            files = glob.glob(
+                f"**{file_to_find_in_package}", recursive=True, root_dir=old_cache_dir
+            )
             for file in files:
                 file.unlink()
         helpers.recursive_chmod(tmp_cache, 0o500)
@@ -562,7 +569,6 @@ class TestMultiplePkgCaches:
         # check extracted dir
         assert (tmp_cache / test_pkg_bld).exists()
         assert not (tmp_cache_alt / test_pkg_bld).exists()
-
 
         linked_file_rel_path = linked_file.relative_to(install_env_dir)
         non_writable_cache_file = tmp_cache / test_pkg_bld / linked_file_rel_path

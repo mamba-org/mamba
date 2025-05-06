@@ -539,19 +539,20 @@ def create_with_chan_pkg(env_name, channels, package):
 
     return create(*cmd, default_channel=False, no_rc=False)
 
+
 class PackageChecker:
     # Provides integrity checking operations for an installed package, based on it's manifest.
 
-    package_name : string
+    package_name: string
     install_prefix_root_dir: Path
     manifests_dir: Path
 
+    _manifest_info: object
+    _manifest_json_path: Path
 
-    _manifest_info : object
-    _manifest_json_path : Path
-
-
-    def __init__(self, package_name: string, install_prefix_root_dir: Path, require_manifest: bool = True):
+    def __init__(
+        self, package_name: string, install_prefix_root_dir: Path, require_manifest: bool = True
+    ):
         # package_name : the name of the package to work with, without version or build name, for example 'xtensor'
         # install_prefix_root_dir : the absolute path to the directory in which the package should be installed and found
 
@@ -562,19 +563,23 @@ class PackageChecker:
         self.package_name = package_name
 
         assert install_prefix_root_dir
-        assert os.path.isdir(install_prefix_root_dir), f"not a directory or doesnt exist: {install_prefix_root_dir}"
+        assert os.path.isdir(install_prefix_root_dir), (
+            f"not a directory or doesnt exist: {install_prefix_root_dir}"
+        )
         self.install_prefix_root_dir = install_prefix_root_dir
 
         if require_manifest:
             self.manifests_dir = self.install_prefix_root_dir / "conda-meta"
-            assert os.path.isdir(self.manifests_dir), f"not a directory or doesnt exist: {self.manifests_dir}"
+            assert os.path.isdir(self.manifests_dir), (
+                f"not a directory or doesnt exist: {self.manifests_dir}"
+            )
 
     def check_install_integrity(self):
         # Checks that the manifest of the package is installed and checks that every file listed in it
         # exists. An assertion will fail otherwise.
         manifest_info = self.get_manifest_info()
 
-        for file in manifest_info['files']:
+        for file in manifest_info["files"]:
             installed_file_path = self.install_prefix_root_dir.joinpath(file)
             assert installed_file_path.is_file()
 
@@ -582,13 +587,12 @@ class PackageChecker:
         # Look for and read the manifest file for the package and returns a dict with it's content.
         # If the manifest file is not found or if opening it fails, an assertion will fail.
         if not hasattr(self, "_manifest_info") or not self._manifest_info:
-
             manifest_json_paths = list(self.manifests_dir.glob(f"{self.package_name}-*.*.*-*.json"))
             assert manifest_json_paths
             assert len(manifest_json_paths) == 1
 
             manifest_json_path = manifest_json_paths[0]
-            with open(manifest_json_path, 'r') as json_file:
+            with open(manifest_json_path) as json_file:
                 self._manifest_info = json.load(json_file)
 
         assert self._manifest_info
@@ -602,7 +606,7 @@ class PackageChecker:
         if self._require_manifest:
             manifest_info = self.get_manifest_info()
 
-            for file in manifest_info['files']:
+            for file in manifest_info["files"]:
                 if file.endswith(name_or_relative_path):
                     absolute_path = self.install_prefix_root_dir.joinpath(file).absolute()
                     assert absolute_path.exists()
@@ -618,4 +622,3 @@ class PackageChecker:
         # A name that matches what `get_concrete_pkg` would return: `package_name-X.Y.Z-build_number``
         manifest_info = self.get_manifest_info()
         return f"{manifest_info['name']}-{manifest_info['version']}-{manifest_info['build_string']}"
-

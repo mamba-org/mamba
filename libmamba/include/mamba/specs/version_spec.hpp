@@ -57,14 +57,14 @@ namespace mamba::specs
          */
         [[nodiscard]] auto has_glob() const -> bool;
 
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * An alternative string representation of the version spec.
          *
          * Attempts to be compatible with conda-build/libsolv.
          */
-        [[nodiscard]] auto str_conda_build() const -> std::string;
+        [[nodiscard]] auto to_string_conda_build() const -> std::string;
 
     private:
 
@@ -215,14 +215,14 @@ namespace mamba::specs
          * May not always be the same as the parsed string (due to reconstruction) but reparsing
          * this string will give the same version spec.
          */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * An alternative string representation of the version spec.
          *
          * Attempts to be compatible with conda-build/libsolv.
          */
-        [[nodiscard]] auto str_conda_build() const -> std::string;
+        [[nodiscard]] auto to_string_conda_build() const -> std::string;
 
         /**
          * True if the set described by the VersionSpec contains the given version.
@@ -290,7 +290,7 @@ struct std::hash<mamba::specs::VersionPredicate>
 {
     auto operator()(const mamba::specs::VersionPredicate& pred) const -> std::size_t
     {
-        return mamba::util::hash_vals(pred.str());
+        return mamba::util::hash_vals(pred.to_string());
     }
 };
 
@@ -299,7 +299,7 @@ struct std::hash<mamba::specs::VersionSpec>
 {
     auto operator()(const mamba::specs::VersionSpec& spec) const -> std::size_t
     {
-        return mamba::util::hash_vals(spec.str());
+        return mamba::util::hash_vals(spec.to_string());
     }
 };
 

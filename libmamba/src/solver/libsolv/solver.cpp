@@ -42,7 +42,7 @@ namespace mamba::solver::libsolv
                     using Itm = std::decay_t<decltype(lhs)>;
                     if constexpr (!std::is_same_v<Itm, Request::UpdateAll>)
                     {
-                        return lhs.spec.name().str() < rhs.spec.name().str();
+                        return lhs.spec.name().to_string() < rhs.spec.name().to_string();
                     }
                     return false;
                 }

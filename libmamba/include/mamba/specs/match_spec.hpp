@@ -105,7 +105,7 @@ namespace mamba::specs
         void set_optional(bool opt);
 
         [[nodiscard]] auto conda_build_form() const -> std::string;
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * Return true if the MatchSpec can be written as ``<name> <version> <build_string>``.

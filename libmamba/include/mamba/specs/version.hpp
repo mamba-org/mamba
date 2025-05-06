@@ -41,7 +41,7 @@ namespace mamba::specs
         [[nodiscard]] auto literal() const& noexcept -> const std::string&;
         auto literal() && noexcept -> std::string;
 
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
     private:
 
@@ -91,7 +91,7 @@ namespace mamba::specs
         VersionPart(std::initializer_list<VersionPartAtom> init);
         VersionPart(std::vector<VersionPartAtom> atoms, bool implicit_leading_zero);
 
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
     };
 
     auto operator==(const VersionPart& left, const VersionPart& other) -> bool;
@@ -149,9 +149,9 @@ namespace mamba::specs
          *
          * May not always be the same as the parsed string (due to reconstruction) but reparsing
          * this string will give the same version.
-         * ``v == Version::parse(v.str())``.
+         * ``v == Version::parse(v.to_string())``.
          */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * A string truncated of extended representation of the version.
@@ -160,7 +160,7 @@ namespace mamba::specs
          * If the actual number of parts is larger, then the string is truncated.
          * If the actual number of parts is smalle, then the string is expanded with zeros.
          */
-        [[nodiscard]] auto str(std::size_t level) const -> std::string;
+        [[nodiscard]] auto to_string(std::size_t level) const -> std::string;
 
         /**
          * String representation that treats ``*`` as glob pattern.
@@ -168,7 +168,7 @@ namespace mamba::specs
          * Instead of printing them as ``0*`` (as a special literal), it formats them as ``*``.
          * In full, a version like ``*.1.*`` will print as such instead of ``0*.1.0*``.
          */
-        [[nodiscard]] auto str_glob() const -> std::string;
+        [[nodiscard]] auto to_string_glob() const -> std::string;
 
         /**
          * Return true if this version starts with the other prefix.

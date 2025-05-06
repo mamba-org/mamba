@@ -182,7 +182,7 @@ namespace mamba
             auto spec = explicit_spec(pkg);
             if (!database_has_package(database, spec))
             {
-                not_found << "\n - " << spec.str();
+                not_found << "\n - " << spec.to_string();
             }
         }
 
@@ -207,12 +207,12 @@ namespace mamba
         m_history_entry.update.reserve(pkgs_to_install.size());
         for (auto& pkg : pkgs_to_install)
         {
-            m_history_entry.update.push_back(explicit_spec(pkg).str());
+            m_history_entry.update.push_back(explicit_spec(pkg).to_string());
         }
         m_history_entry.remove.reserve(pkgs_to_remove.size());
         for (auto& pkg : pkgs_to_remove)
         {
-            m_history_entry.remove.push_back(explicit_spec(pkg).str());
+            m_history_entry.remove.push_back(explicit_spec(pkg).to_string());
         }
 
         m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
@@ -264,11 +264,11 @@ namespace mamba
             using Request = solver::Request;
             solver::for_each_of<Request::Install, Request::Update>(
                 request,
-                [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
+                [&](const auto& item) { m_history_entry.update.push_back(item.spec.to_string()); }
             );
             solver::for_each_of<Request::Remove, Request::Update>(
                 request,
-                [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
+                [&](const auto& item) { m_history_entry.remove.push_back(item.spec.to_string()); }
             );
         }
         else

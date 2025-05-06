@@ -272,12 +272,12 @@ namespace mamba::specs
         return VersionPredicate(std::move(pattern), not_version_glob{});
     }
 
-    auto VersionPredicate::str() const -> std::string
+    auto VersionPredicate::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
 
-    auto VersionPredicate::str_conda_build() const -> std::string
+    auto VersionPredicate::to_string_conda_build() const -> std::string
     {
         return fmt::format("{:b}", *this);
     }
@@ -392,7 +392,7 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
                     out,
                     "{}{}",
                     VersionSpec::compatible_str,
-                    pred.m_version.str(format_level)
+                    pred.m_version.to_string(format_level)
                 );
             }
             if constexpr (std::is_same_v<Op, VersionPredicate::version_glob>)
@@ -462,12 +462,12 @@ namespace mamba::specs
         return found;
     }
 
-    auto VersionSpec::str() const -> std::string
+    auto VersionSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
 
-    auto VersionSpec::str_conda_build() const -> std::string
+    auto VersionSpec::to_string_conda_build() const -> std::string
     {
         return fmt::format("{:b}", *this);
     }

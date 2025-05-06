@@ -38,7 +38,7 @@ namespace mamba::specs
         return !util::contains(m_pattern, glob_pattern);
     }
 
-    auto GlobSpec::str() const -> const std::string&
+    auto GlobSpec::to_string() const -> const std::string&
     {
         return m_pattern;
     }
@@ -59,5 +59,5 @@ auto
 fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const
     -> decltype(ctx.out())
 {
-    return fmt::format_to(ctx.out(), "{}", spec.str());
+    return fmt::format_to(ctx.out(), "{}", spec.to_string());
 }

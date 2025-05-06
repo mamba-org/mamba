@@ -992,15 +992,15 @@ namespace mamba::solver::libsolv
         {
             return check_dep_error(
                 pool.add_legacy_conda_dependency(ms.conda_build_form()),
-                [&]() { return ms.str(); }
+                [&]() { return ms.to_string(); }
             );
         }
         else if (parser == MatchSpecParser::Mamba)
         {
-            const auto [first, second] = make_abused_namespace_dep_args(pool, ms.str());
+            const auto [first, second] = make_abused_namespace_dep_args(pool, ms.to_string());
             return check_dep_error(
                 pool.add_dependency(first, REL_NAMESPACE, second),
-                [&]() { return ms.str(); }
+                [&]() { return ms.to_string(); }
             );
         }
 
@@ -1062,7 +1062,10 @@ namespace mamba::solver::libsolv
         if (pool.disttype() != DISTTYPE_CONDA)
         {
             return make_unexpected(
-                fmt::format(R"(Cannot add pin "{}" to a pool that is not of Conda distype)", pin.str()),
+                fmt::format(
+                    R"(Cannot add pin "{}" to a pool that is not of Conda distype)",
+                    pin.to_string()
+                ),
                 mamba_error_code::incorrect_usage
             );
         }
@@ -1526,7 +1529,7 @@ namespace mamba::solver::libsolv
                 // This has the effect of reinstalling in libsolv.
                 const auto [first, second] = make_abused_namespace_dep_args(
                     pool,
-                    match_as_closely(solvable.value()).str(),
+                    match_as_closely(solvable.value()).to_string(),
                     { /* .skip_installed= */ true }
                 );
                 const auto job_id = pool.add_dependency(first, REL_NAMESPACE, second);
@@ -1622,7 +1625,7 @@ namespace mamba::solver::libsolv
                                 // package name, not the full spec.
                                 if (job.spec.name().is_exact())
                                 {
-                                    auto name_id = pool.add_string(job.spec.name().str());
+                                    auto name_id = pool.add_string(job.spec.name().to_string());
                                     raw_jobs.push_back(SOLVER_UPDATE | clean_deps, name_id);
                                 }
                                 // And we add an install statement to be sure the full spec is

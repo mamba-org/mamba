@@ -315,7 +315,7 @@ namespace mamba::solver::libsolv
             // They are added with a install top-level dependency
             // ``Install{ "pin-fsej43208fsd"_ms }``.
             // We need to change their name to make them look more readable.
-            if (auto id = pool.find_string(ms.name().str()))
+            if (auto id = pool.find_string(ms.name().to_string()))
             {
                 pool.for_each_whatprovides(
                     *id,
@@ -540,8 +540,8 @@ namespace mamba::solver::libsolv
                         // dependency.
                         auto edge = make_match_spec_str(source.value().name);
                         // The package cannot exist without its name in the pool
-                        assert(m_pool.find_string(edge.name().str()).has_value());
-                        const auto dep_id = m_pool.find_string(edge.name().str()).value();
+                        assert(m_pool.find_string(edge.name().to_string()).has_value());
+                        const auto dep_id = m_pool.find_string(edge.name().to_string()).value();
                         const bool added = add_expanded_deps_edges(m_root_node, dep_id, edge);
                         if (!added)
                         {

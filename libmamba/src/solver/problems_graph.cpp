@@ -278,7 +278,7 @@ namespace mamba::solver
             Ver v = std::invoke(&TT::version, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(v)>, specs::VersionSpec>)
             {
-                return std::forward<Ver>(v).str();
+                return std::forward<Ver>(v).to_string();
             }
             else
             {
@@ -294,7 +294,7 @@ namespace mamba::solver
             Num num = std::invoke(&TT::build_number, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(num)>, specs::BuildNumberSpec>)
             {
-                return std::forward<Num>(num).str();
+                return std::forward<Num>(num).to_string();
             }
             else
             {
@@ -310,7 +310,7 @@ namespace mamba::solver
             Build bld = std::invoke(&TT::build_string, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(bld)>, specs::ChimeraStringSpec>)
             {
-                return std::forward<Build>(bld).str();
+                return std::forward<Build>(bld).to_string();
             }
             else
             {
@@ -326,7 +326,7 @@ namespace mamba::solver
             Name name = std::invoke(&TT::name, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(name)>, specs::GlobSpec>)
             {
-                return std::forward<Name>(name).str();
+                return std::forward<Name>(name).to_string();
             }
             else
             {

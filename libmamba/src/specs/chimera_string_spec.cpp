@@ -37,7 +37,7 @@ namespace mamba::specs
                         }
                         if (spec.is_exact())
                         {
-                            return ChimeraStringSpec{ GlobSpec(std::move(spec).str()) };
+                            return ChimeraStringSpec{ GlobSpec(std::move(spec).to_string()) };
                         }
                         return ChimeraStringSpec{ std::move(spec) };
                     }
@@ -119,9 +119,9 @@ namespace mamba::specs
         return std::holds_alternative<GlobSpec>(m_spec);
     }
 
-    auto ChimeraStringSpec::str() const -> const std::string&
+    auto ChimeraStringSpec::to_string() const -> const std::string&
     {
-        return std::visit([](const auto& s) -> decltype(auto) { return s.str(); }, m_spec);
+        return std::visit([](const auto& s) -> decltype(auto) { return s.to_string(); }, m_spec);
     }
 }
 
@@ -143,5 +143,5 @@ fmt::formatter<mamba::specs::ChimeraStringSpec>::format(
     format_context& ctx
 ) const -> decltype(ctx.out())
 {
-    return fmt::format_to(ctx.out(), "{}", spec.str());
+    return fmt::format_to(ctx.out(), "{}", spec.to_string());
 }

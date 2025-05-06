@@ -30,7 +30,7 @@ namespace
 
         const nl::json j = p;
         REQUIRE(j.at("name") == p.name);
-        REQUIRE(j.at("version") == p.version.str());
+        REQUIRE(j.at("version") == p.version.to_string());
         REQUIRE(j.at("build") == p.build_string);
         REQUIRE(j.at("build_number") == p.build_number);
         REQUIRE(j.at("subdir") == p.subdir);
@@ -55,7 +55,7 @@ namespace
             const auto p = j.get<RepoDataPackage>();
             REQUIRE(p.name == j.at("name"));
             // Note Version::parse is not injective
-            REQUIRE(p.version.str() == j.at("version"));
+            REQUIRE(p.version.to_string() == j.at("version"));
             REQUIRE(p.build_string == j.at("build"));
             REQUIRE(p.build_number == j.at("build_number"));
             REQUIRE(p.subdir == j.at("subdir"));

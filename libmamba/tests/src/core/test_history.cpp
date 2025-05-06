@@ -134,9 +134,9 @@ namespace mamba
             int REVISION = 1;
 
             detail::PackageDiff pkg_diff{};
-            auto revision_pkg_diff = pkg_diff.get_revision_pkg_diff(user_requests, REVISION);
-            const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
-            const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
+            pkg_diff = pkg_diff.get_revision_pkg_diff(user_requests, REVISION);
+            const auto& removed_pkg_diff = pkg_diff.removed_pkg_diff;
+            const auto& installed_pkg_diff = pkg_diff.installed_pkg_diff;
 
             REQUIRE(removed_pkg_diff.find("nlohmann_json")->second.version == "3.12.0");
             REQUIRE(removed_pkg_diff.find("xtl")->second.version == "0.7.2");

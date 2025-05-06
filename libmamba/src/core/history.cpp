@@ -410,25 +410,23 @@ namespace mamba
                 }
             }
 
-            std::map<std::string, specs::PackageInfo> removed_pkg_diff;
-            std::map<std::string, specs::PackageInfo> installed_pkg_diff;
+            PackageDiff pkg_diff{};
 
-            auto handle_install =
-                [&installed_pkg_diff, &removed_pkg_diff](revision& rev, const std::string& pkg_name)
+            auto handle_install = [&pkg_diff](revision& rev, const std::string& pkg_name)
             {
                 bool res = false;
                 if (auto rev_iter = rev.installed_pkg.find(pkg_name);
                     rev_iter != rev.installed_pkg.end())
                 {
                     auto version = rev.installed_pkg[pkg_name].version;
-                    auto iter = removed_pkg_diff.find(pkg_name);
-                    if (iter != removed_pkg_diff.end() && iter->second.version == version)
+                    auto iter = pkg_diff.removed_pkg_diff.find(pkg_name);
+                    if (iter != pkg_diff.removed_pkg_diff.end() && iter->second.version == version)
                     {
-                        removed_pkg_diff.erase(iter);
+                        pkg_diff.removed_pkg_diff.erase(iter);
                     }
                     else
                     {
-                        installed_pkg_diff[pkg_name] = rev_iter->second;
+                        pkg_diff.installed_pkg_diff[pkg_name] = rev_iter->second;
                     }
                     rev.installed_pkg.erase(rev_iter);
                     res = true;
@@ -436,21 +434,20 @@ namespace mamba
                 return res;
             };
 
-            auto handle_remove =
-                [&installed_pkg_diff, &removed_pkg_diff](revision& rev, const std::string& pkg_name)
+            auto handle_remove = [&pkg_diff](revision& rev, const std::string& pkg_name)
             {
                 bool res = false;
                 if (auto rev_iter = rev.removed_pkg.find(pkg_name); rev_iter != rev.removed_pkg.end())
                 {
                     auto version = rev.removed_pkg[pkg_name].version;
-                    auto iter = installed_pkg_diff.find(pkg_name);
-                    if (iter != installed_pkg_diff.end() && iter->second.version == version)
+                    auto iter = pkg_diff.installed_pkg_diff.find(pkg_name);
+                    if (iter != pkg_diff.installed_pkg_diff.end() && iter->second.version == version)
                     {
-                        installed_pkg_diff.erase(iter);
+                        pkg_diff.installed_pkg_diff.erase(iter);
                     }
                     else
                     {
-                        removed_pkg_diff[pkg_name] = rev_iter->second;
+                        pkg_diff.removed_pkg_diff[pkg_name] = rev_iter->second;
                     }
                     rev.removed_pkg.erase(rev_iter);
                     res = true;
@@ -464,7 +461,7 @@ namespace mamba
                 while (!revision.removed_pkg.empty())
                 {
                     auto [pkg_name, pkg_info] = *(revision.removed_pkg.begin());
-                    removed_pkg_diff[pkg_name] = pkg_info;
+                    pkg_diff.removed_pkg_diff[pkg_name] = pkg_info;
                     revision.removed_pkg.erase(pkg_name);
                     bool lastly_removed = true;  // whether last operation on package was a removal
                     lastly_removed = !handle_install(revision, pkg_name);
@@ -487,7 +484,7 @@ namespace mamba
                 while (!revision.installed_pkg.empty())
                 {
                     auto [pkg_name, pkg_info] = *(revision.installed_pkg.begin());
-                    installed_pkg_diff[pkg_name] = pkg_info;
+                    pkg_diff.installed_pkg_diff[pkg_name] = pkg_info;
                     revision.installed_pkg.erase(pkg_name);
                     bool lastly_removed = false;
                     for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
@@ -504,7 +501,7 @@ namespace mamba
                 }
                 revisions.erase(revisions.begin());
             }
-            return { removed_pkg_diff, installed_pkg_diff };
+            return pkg_diff;
         }
     }  // namespace detail
 }  // namespace mamba

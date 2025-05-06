@@ -72,7 +72,7 @@ namespace mamba
         // Solv files are too slow on Windows.
         if (!util::on_win)
         {
-            auto maybe_repo = subdir.valid_solv_cache().and_then(
+            auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)
                 {
                     return database.add_repo_from_native_serialization(
@@ -89,7 +89,7 @@ namespace mamba
             }
         }
 
-        return subdir.valid_json_cache()
+        return subdir.valid_json_cache_path()
             .and_then(
                 [&](fs::u8path&& repodata_json)
                 {
@@ -115,13 +115,18 @@ namespace mamba
                     if (!util::on_win)
                     {
                         database
-                            .native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
+                            .native_serialize_repo(
+                                repo,
+                                subdir.writable_libsolv_cache_path(),
+                                expected_cache_origin
+                            )
                             .or_else(
                                 [&](const auto& err)
                                 {
                                     LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                                << subdir.writable_solv_cache() << R"(" for repo ")"
-                                                << subdir.name() << ": " << err.what();
+                                                << subdir.writable_libsolv_cache_path()
+                                                << R"(" for repo ")" << subdir.name() << ": "
+                                                << err.what();
                                     ;
                                 }
                             );

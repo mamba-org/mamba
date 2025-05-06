@@ -267,7 +267,7 @@ namespace mamba
                             {
                                 LOG_WARNING << "Could not load repodata.json for " << subdir.name()
                                             << ". Deleting cache, and retrying.";
-                                subdir.clear_cache();
+                                subdir.clear_cache_files();
                                 loading_failed = true;
                             }
                         }

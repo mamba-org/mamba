@@ -396,14 +396,21 @@ namespace mamba
         Context& ctx,
         ChannelContext& channel_context,
         const specs::Channel& channel,
-        const std::string& platform,
+        specs::DynamicPlatform platform,
         MultiPackageCache& caches,
-        const std::string& repodata_fn
+        std::string repodata_filename
     )
     {
         try
         {
-            return SubdirData(ctx, channel_context, channel, platform, caches, repodata_fn);
+            return SubdirData(
+                ctx,
+                channel_context,
+                channel,
+                std::move(platform),
+                caches,
+                std::move(repodata_filename)
+            );
         }
         catch (std::exception& e)
         {
@@ -421,7 +428,7 @@ namespace mamba
 
     bool SubdirData::is_noarch() const
     {
-        return m_is_noarch;
+        return specs::platform_is_noarch(m_platform);
     }
 
     bool SubdirData::is_loaded() const
@@ -429,15 +436,15 @@ namespace mamba
         return m_loaded;
     }
 
-    void SubdirData::clear_cache()
+    void SubdirData::clear_cache_files()
     {
-        if (fs::is_regular_file(m_json_fn))
+        if (fs::is_regular_file(m_json_filename))
         {
-            fs::remove(m_json_fn);
+            fs::remove(m_json_filename);
         }
-        if (fs::is_regular_file(m_solv_fn))
+        if (fs::is_regular_file(m_solv_filename))
         {
-            fs::remove(m_solv_fn);
+            fs::remove(m_solv_filename);
         }
     }
 
@@ -451,7 +458,7 @@ namespace mamba
         return m_channel_id;
     }
 
-    const std::string& SubdirData::platform() const
+    const specs::DynamicPlatform& SubdirData::platform() const
     {
         return m_platform;
     }
@@ -461,25 +468,25 @@ namespace mamba
         return m_metadata;
     }
 
-    expected_t<fs::u8path> SubdirData::valid_solv_cache() const
+    expected_t<fs::u8path> SubdirData::valid_libsolv_cache_path() const
     {
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_solv_fn).string();
+            return (get_cache_dir(m_valid_cache_path) / m_solv_filename).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    fs::u8path SubdirData::writable_solv_cache() const
+    fs::u8path SubdirData::writable_libsolv_cache_path() const
     {
-        return m_writable_pkgs_dir / "cache" / m_solv_fn;
+        return m_writable_pkgs_dir / "cache" / m_solv_filename;
     }
 
-    expected_t<fs::u8path> SubdirData::valid_json_cache() const
+    expected_t<fs::u8path> SubdirData::valid_json_cache_path() const
     {
         if (m_json_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_json_fn).string();
+            return (get_cache_dir(m_valid_cache_path) / m_json_filename).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
@@ -489,11 +496,11 @@ namespace mamba
         // TODO invalidate solv cache on version updates!!
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_solv_fn).string();
+            return (get_cache_dir(m_valid_cache_path) / m_solv_filename).string();
         }
         else if (m_json_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_json_fn).string();
+            return (get_cache_dir(m_valid_cache_path) / m_json_filename).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
@@ -569,20 +576,19 @@ namespace mamba
         Context& ctx,
         ChannelContext& channel_context,
         const specs::Channel& channel,
-        const std::string& platform,
+        std::string platform,
         MultiPackageCache& caches,
-        const std::string& repodata_fn
+        std::string repodata_fn
     )
         : m_valid_cache_path("")
         , m_expired_cache_path("")
         , m_writable_pkgs_dir(caches.first_writable_path())
+        , m_platform(std::move(platform))
         , m_channel_id(channel.id())
-        , m_platform(platform)
         , m_name(get_name(m_channel_id, m_platform))
-        , m_repodata_fn(repodata_fn)
-        , m_json_fn(cache_fn_url(name()))
-        , m_solv_fn(m_json_fn.substr(0, m_json_fn.size() - 4) + "solv")
-        , m_is_noarch(platform == "noarch")
+        , m_repodata_fn(std::move(repodata_fn))
+        , m_json_filename(cache_fn_url(name()))
+        , m_solv_filename(m_json_filename.substr(0, m_json_filename.size() - 4) + "solv")
     {
         m_full_url = util::url_concat(channel.url().str(), "/", repodata_url_path());
         assert(!channel.is_package());
@@ -639,7 +645,7 @@ namespace mamba
         for (const fs::u8path& cache_path : cache_paths)
         {
             // TODO: rewrite this with pipe chains of ranges
-            fs::u8path json_file = cache_path / "cache" / m_json_fn;
+            fs::u8path json_file = cache_path / "cache" / m_json_filename;
             if (!fs::is_regular_file(json_file))
             {
                 continue;
@@ -681,7 +687,7 @@ namespace mamba
                 }
 
                 // check libsolv cache
-                fs::u8path solv_file = cache_path / "cache" / m_solv_fn;
+                fs::u8path solv_file = cache_path / "cache" / m_solv_filename;
                 file_duration solv_age = get_cache_age(solv_file, now);
 
                 if (is_valid(solv_age) && solv_age <= cache_age)
@@ -775,7 +781,7 @@ namespace mamba
             repodata_url_path() + (use_zst ? ".zst" : ""),
             m_temp_file->path().string(),
             /*head_only*/ false,
-            /*ignore_failure*/ !m_is_noarch
+            /*ignore_failure*/ !is_noarch()
         );
         request.etag = m_metadata.etag();
         request.last_modified = m_metadata.last_modified();
@@ -820,8 +826,8 @@ namespace mamba
     {
         LOG_INFO << "Cache is still valid";
 
-        fs::u8path json_file = m_expired_cache_path / "cache" / m_json_fn;
-        fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_fn;
+        fs::u8path json_file = m_expired_cache_path / "cache" / m_json_filename;
+        fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_filename;
 
         if (path::is_writable(json_file)
             && (!fs::is_regular_file(solv_file) || path::is_writable(solv_file)))
@@ -845,12 +851,12 @@ namespace mamba
             fs::u8path writable_cache_dir = get_cache_dir(m_writable_pkgs_dir);
             auto lock = LockFile(writable_cache_dir);
 
-            fs::u8path copied_json_file = writable_cache_dir / m_json_fn;
+            fs::u8path copied_json_file = writable_cache_dir / m_json_filename;
             json_file = replace_file(copied_json_file, json_file);
 
             if (fs::is_regular_file(solv_file))
             {
-                auto copied_solv_file = writable_cache_dir / m_solv_fn;
+                auto copied_solv_file = writable_cache_dir / m_solv_filename;
                 solv_file = replace_file(copied_solv_file, solv_file);
             }
 
@@ -880,7 +886,7 @@ namespace mamba
         m_metadata.set_http_metadata(std::move(http_data));
 
         fs::u8path writable_cache_dir = get_cache_dir(m_writable_pkgs_dir);
-        fs::u8path json_file = writable_cache_dir / m_json_fn;
+        fs::u8path json_file = writable_cache_dir / m_json_filename;
         auto lock = LockFile(writable_cache_dir);
 
         fs::u8path state_file = json_file;

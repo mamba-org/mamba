@@ -17,6 +17,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/platform.hpp"
 
 namespace mamba
 {
@@ -117,35 +118,26 @@ namespace mamba
             Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
-            const std::string& platform,
+            specs::DynamicPlatform platform,
             MultiPackageCache& caches,
-            const std::string& repodata_fn = "repodata.json"
+            std::string repodata_filename = "repodata.json"
         );
 
-        ~SubdirData() = default;
+        [[nodiscard]] auto is_noarch() const -> bool;
+        [[nodiscard]] auto is_loaded() const -> bool;
+        [[nodiscard]] auto name() const -> const std::string&;
+        [[nodiscard]] auto channel_id() const -> const std::string&;
+        [[nodiscard]] auto platform() const -> const specs::DynamicPlatform&;
+        [[nodiscard]] auto metadata() const -> const SubdirMetadata&;
 
-        SubdirData(const SubdirData&) = delete;
-        SubdirData& operator=(const SubdirData&) = delete;
+        [[nodiscard]] auto valid_libsolv_cache_path() const -> expected_t<fs::u8path>;
+        [[nodiscard]] auto writable_libsolv_cache_path() const -> fs::u8path;
+        [[nodiscard]] auto valid_json_cache_path() const -> expected_t<fs::u8path>;
 
-        SubdirData(SubdirData&&) = default;
-        SubdirData& operator=(SubdirData&&) = default;
-
-        bool is_noarch() const;
-        bool is_loaded() const;
-        void clear_cache();
-
-        const std::string& name() const;
-        const std::string& channel_id() const;
-        const std::string& platform() const;
-
-        const SubdirMetadata& metadata() const;
-
-        expected_t<fs::u8path> valid_solv_cache() const;
-        fs::u8path writable_solv_cache() const;
-        expected_t<fs::u8path> valid_json_cache() const;
+        void clear_cache_files();
 
         [[deprecated("since version 2.0 use ``valid_solv_cache`` or ``valid_json_cache`` instead")]]
-        expected_t<std::string> cache_path() const;
+        auto cache_path() const -> expected_t<std::string>;
 
         static expected_t<void> download_indexes(
             std::vector<SubdirData>& subdirs,
@@ -162,9 +154,9 @@ namespace mamba
             Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
-            const std::string& platform,
+            std::string platform,
             MultiPackageCache& caches,
-            const std::string& repodata_fn = "repodata.json"
+            std::string repodata_fn = "repodata.json"
         );
 
         std::string repodata_url_path() const;
@@ -196,13 +188,12 @@ namespace mamba
         fs::u8path m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
 
+        specs::DynamicPlatform m_platform;
         std::string m_channel_id;
-        std::string m_platform;
         std::string m_name;
         std::string m_repodata_fn;
-        std::string m_json_fn;
-        std::string m_solv_fn;
-        bool m_is_noarch;
+        std::string m_json_filename;
+        std::string m_solv_filename;
 
         std::string m_full_url;
 

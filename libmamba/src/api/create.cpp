@@ -44,13 +44,15 @@ namespace mamba
             {
                 if (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)
                 {
-                    LOG_ERROR << "Overwriting root prefix is not permitted";
-                    throw std::runtime_error("Aborting.");
+                    const auto message = "Overwriting root prefix is not permitted - aborting.";
+                    LOG_ERROR << message;
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
                 }
                 else if (!fs::is_directory(ctx.prefix_params.target_prefix))
                 {
-                    LOG_ERROR << "Target prefix already exists and is not a folder";
-                    throw std::runtime_error("Aborting.");
+                    const auto message = "Target prefix already exists and is not a folder - aborting.";
+                    LOG_ERROR << message;
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
                 }
                 else if (fs::is_empty(ctx.prefix_params.target_prefix))
                 {
@@ -73,8 +75,9 @@ namespace mamba
                 }
                 else
                 {
-                    LOG_ERROR << "Non-conda folder exists at prefix";
-                    throw std::runtime_error("Aborting.");
+                    const auto message = "Non-conda folder exists at prefix - aborting.";
+                    LOG_ERROR << message;
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
                 }
             }
             if (create_specs.empty())

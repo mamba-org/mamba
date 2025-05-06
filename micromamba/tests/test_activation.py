@@ -807,14 +807,15 @@ def test_unicode_activation(
         call(s3)
 
         for u in [u1, u2, u3]:
-            assert (tmp_root_prefix / f"envs/{u}/conda-meta").is_dir()
-            assert (tmp_root_prefix / f"envs/{u}/conda-meta/history").exists()
+            install_prefix_root_dir = tmp_root_prefix / f"envs/{u}"
+            assert (install_prefix_root_dir / "conda-meta").is_dir()
+            assert (install_prefix_root_dir / "conda-meta/history").exists()
             if plat == "win":
-                include_dir = tmp_root_prefix / f"envs/{u}/Library/include"
+                include_dir = install_prefix_root_dir / "Library/include"
             else:
-                include_dir = tmp_root_prefix / f"envs/{u}/include"
-
-            assert (include_dir / "xtensor/containers/xtensor.hpp").exists()
+                include_dir = install_prefix_root_dir / "include"
+            assert include_dir.is_dir()
+            helpers.PackageChecker("xtensor", install_prefix_root_dir).check_install_integrity()
 
         # unicode activation on win: todo
         if plat == "win":

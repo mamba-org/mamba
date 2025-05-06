@@ -39,7 +39,7 @@ namespace mamba::download
             "/usr/local/share/certs/ca-root.crt",
         };
 
-        void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
+        void init_remote_fetch_params(RemoteFetchParams& remote_fetch_params)
         {
             if (!remote_fetch_params.curl_initialized)
             {

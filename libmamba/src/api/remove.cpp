@@ -136,7 +136,13 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            solver::libsolv::Database database{ channel_context.params() };
+            solver::libsolv::Database database{
+                channel_context.params(),
+                {
+                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                       : solver::libsolv::MatchSpecParser::Libsolv,
+                },
+            };
             add_spdlog_logger_to_database(database);
             load_installed_packages_in_database(ctx, database, prefix_data);
 
@@ -190,7 +196,15 @@ namespace mamba
                     /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                 };
 
-                auto outcome = solver::libsolv::Solver().solve(database, request).value();
+                auto outcome = solver::libsolv::Solver()
+                                   .solve(
+                                       database,
+                                       request,
+                                       ctx.experimental_matchspec_parsing
+                                           ? solver::libsolv::MatchSpecParser::Mamba
+                                           : solver::libsolv::MatchSpecParser::Mixed
+                                   )
+                                   .value();
                 if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
                 {
                     if (ctx.output_params.json)

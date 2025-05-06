@@ -325,8 +325,9 @@ namespace mamba::solver::libsolv
                         {
                             auto pin = make_package_info(pool, solv_pin);
                             // There should really just be one constraint
-                            ms.set_name(specs::MatchSpec::NameSpec(
-                                fmt::format("pin on {}", fmt::join(pin.constrains, " and "))
+                            assert(pin.constrains.size() == 1);
+                            ms = specs::MatchSpec::parse(pin.constrains.front()).value();
+                            ms.set_name(specs::MatchSpec::NameSpec(fmt::format("pin on {}", ms.name())
                             ));
                         }
                         return solv::LoopControl::Break;
@@ -342,6 +343,13 @@ namespace mamba::solver::libsolv
             {
                 return pool_get_matchspec(m_pool.view(), dep)
                     .or_else([](auto&& err) { throw std::move(err); })
+                    .transform(
+                        [&](specs::MatchSpec&& ms) -> specs::MatchSpec
+                        {
+                            fixup_dep_on_pin_solvable(m_pool, ms);
+                            return std::move(ms);
+                        }
+                    )
                     .value();
             };
             // Re-create a MatchSpec from string. This is not the prefer way, as libsolv

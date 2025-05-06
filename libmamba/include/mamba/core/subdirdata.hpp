@@ -27,8 +27,13 @@ namespace mamba
 
     class Context;
     class ChannelContext;
-    class DownloadMonitor;
 
+    /**
+     * Handling of a subdirectory metadata.
+     *
+     * These metadata are used and stored to check if a subdirectory index is up to date,
+     * where it comes from, and what protocols are supported to fetch it.
+     */
     class SubdirMetadata
     {
     public:
@@ -43,36 +48,44 @@ namespace mamba
 
         using expected_subdir_metadata = tl::expected<SubdirMetadata, mamba_error>;
 
-        static expected_subdir_metadata read(const fs::u8path& file);
-        void write(const fs::u8path& file);
-        bool check_valid_metadata(const fs::u8path& file);
+        /** Read the metadata from a lightweight file containing only these metadata. */
+        static auto read_state_file(  //
+            const fs::u8path& state_file,
+            const fs::u8path& repodata_file
+        ) -> expected_subdir_metadata;
 
-        const std::string& url() const;
-        const std::string& etag() const;
-        const std::string& last_modified() const;
-        const std::string& cache_control() const;
+        /** Read the metadata from the ``repodata.json`` header. */
+        static auto read_from_repodata_json(const fs::u8path& json) -> expected_subdir_metadata;
 
-        bool has_zst() const;
+        /** Read from any of state file or ``repodata.json``depending on extension. */
+        static auto read(const fs::u8path& file) -> expected_subdir_metadata;
 
-        void store_http_metadata(HttpMetadata data);
-        void store_file_metadata(const fs::u8path& file);
+        [[nodiscard]] auto is_valid_metadata(const fs::u8path& file) const -> bool;
+        [[nodiscard]] auto url() const -> const std::string&;
+        [[nodiscard]] auto etag() const -> const std::string&;
+        [[nodiscard]] auto last_modified() const -> const std::string&;
+        [[nodiscard]] auto cache_control() const -> const std::string&;
+
+        /** Check if zst is available and freshly checked. */
+        [[nodiscard]] auto has_up_to_date_zst() const -> bool;
+
+        void set_http_metadata(HttpMetadata data);
         void set_zst(bool value);
+        void store_file_metadata(const fs::u8path& file);
+
+        /** Write the metadata to a lightweight file. */
+        void write_state_file(const fs::u8path& file);
+
+        friend void to_json(nlohmann::json& j, const SubdirMetadata& data);
+        friend void from_json(const nlohmann::json& j, SubdirMetadata& data);
 
     private:
-
-        static expected_subdir_metadata
-        from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file);
-        static expected_subdir_metadata from_repodata_file(const fs::u8path& json);
 
 #ifdef _WIN32
         using time_type = std::chrono::system_clock::time_point;
 #else
         using time_type = fs::file_time_type;
 #endif
-
-        HttpMetadata m_http;
-        time_type m_stored_mtime;
-        std::size_t m_stored_file_size;
 
         struct CheckedAt
         {
@@ -82,13 +95,13 @@ namespace mamba
             bool has_expired() const;
         };
 
+        HttpMetadata m_http;
         std::optional<CheckedAt> m_has_zst;
+        time_type m_stored_mtime;
+        std::size_t m_stored_file_size;
 
         friend void to_json(nlohmann::json& j, const CheckedAt& ca);
         friend void from_json(const nlohmann::json& j, CheckedAt& ca);
-
-        friend void to_json(nlohmann::json& j, const SubdirMetadata& data);
-        friend void from_json(const nlohmann::json& j, SubdirMetadata& data);
     };
 
     /**

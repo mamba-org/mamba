@@ -115,10 +115,6 @@ namespace mamba
         }
     }
 
-    /*******************
-     * MSubdirMetadata *
-     *******************/
-
     void to_json(nlohmann::json& j, const SubdirMetadata::CheckedAt& ca)
     {
         j["value"] = ca.value;
@@ -168,22 +164,22 @@ namespace mamba
         state_file.replace_extension(".state.json");
         if (fs::is_regular_file(state_file))
         {
-            return from_state_file(state_file, file);
+            return read_state_file(state_file, file);
         }
         else
         {
-            return from_repodata_file(file);
+            return read_from_repodata_json(file);
         }
     }
 
-    void SubdirMetadata::write(const fs::u8path& file)
+    void SubdirMetadata::write_state_file(const fs::u8path& file)
     {
         nlohmann::json j = *this;
         std::ofstream out = open_ofstream(file);
         out << j.dump(4);
     }
 
-    bool SubdirMetadata::check_valid_metadata(const fs::u8path& file)
+    bool SubdirMetadata::is_valid_metadata(const fs::u8path& file) const
     {
         if (const auto new_size = fs::file_size(file); new_size != m_stored_file_size)
         {
@@ -223,12 +219,12 @@ namespace mamba
         return m_http.cache_control;
     }
 
-    bool SubdirMetadata::has_zst() const
+    bool SubdirMetadata::has_up_to_date_zst() const
     {
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
-    void SubdirMetadata::store_http_metadata(HttpMetadata data)
+    void SubdirMetadata::set_http_metadata(HttpMetadata data)
     {
         m_http = std::move(data);
     }
@@ -250,7 +246,7 @@ namespace mamba
     }
 
     auto
-    SubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
+    SubdirMetadata::read_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
         std::ifstream infile = open_ifstream(state_file);
@@ -275,7 +271,7 @@ namespace mamba
             );
         }
 
-        if (!m.check_valid_metadata(repodata_file))
+        if (!m.is_valid_metadata(repodata_file))
         {
             LOG_WARNING << "Cache file " << repodata_file << " was modified by another program";
             return make_unexpected(
@@ -286,7 +282,7 @@ namespace mamba
         return m;
     }
 
-    auto SubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
+    auto SubdirMetadata::read_from_repodata_json(const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
         const std::string json = [](const fs::u8path& file) -> std::string
@@ -720,7 +716,7 @@ namespace mamba
     {
         if (!context.offline || m_forbid_cache)
         {
-            m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));
+            m_metadata.set_zst(m_metadata.has_up_to_date_zst() || channel_context.has_zst(channel));
         }
     }
 
@@ -728,7 +724,8 @@ namespace mamba
     {
         download::MultiRequest request;
 
-        if ((!ctx.offline || m_forbid_cache) && ctx.repodata_use_zst && !m_metadata.has_zst())
+        if ((!ctx.offline || m_forbid_cache) && ctx.repodata_use_zst
+            && !m_metadata.has_up_to_date_zst())
         {
             request.push_back(download::Request(
                 name() + " (check zst)",
@@ -770,7 +767,7 @@ namespace mamba
         auto lock = LockFile(writable_cache_dir);
         m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
 
-        bool use_zst = m_metadata.has_zst();
+        bool use_zst = m_metadata.has_up_to_date_zst();
 
         download::Request request(
             name(),
@@ -880,7 +877,7 @@ namespace mamba
 
         LOG_DEBUG << "Finalized transfer of '" << http_data.url << "'";
 
-        m_metadata.store_http_metadata(std::move(http_data));
+        m_metadata.set_http_metadata(std::move(http_data));
 
         fs::u8path writable_cache_dir = get_cache_dir(m_writable_pkgs_dir);
         fs::u8path json_file = writable_cache_dir / m_json_fn;
@@ -903,7 +900,7 @@ namespace mamba
         }
 
         m_metadata.store_file_metadata(json_file);
-        m_metadata.write(state_file);
+        m_metadata.write_state_file(state_file);
 
         m_temp_file.reset();
         m_valid_cache_path = m_writable_pkgs_dir;
@@ -937,7 +934,7 @@ namespace mamba
         state_file.replace_extension(".state.json");
         auto lock = LockFile(state_file);
         m_metadata.store_file_metadata(json_file);
-        m_metadata.write(state_file);
+        m_metadata.write_state_file(state_file);
     }
 
     std::string cache_name_from_url(std::string_view url)

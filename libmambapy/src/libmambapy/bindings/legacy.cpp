@@ -528,7 +528,7 @@ bind_submodule_impl(pybind11::module_ m)
             // TODO make a proper well tested type caster for expected types.
             [](const SubdirData& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_solv_cache())
+                if (auto f = self.valid_libsolv_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -539,7 +539,7 @@ bind_submodule_impl(pybind11::module_ m)
             "valid_json_cache",
             [](const SubdirData& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_json_cache())
+                if (auto f = self.valid_json_cache_path())
                 {
                     return { *std::move(f) };
                 }

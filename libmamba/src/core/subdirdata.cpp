@@ -514,7 +514,7 @@ namespace mamba
         {
             if (!subdir.is_loaded())
             {
-                download::MultiRequest check_list = subdir.build_check_requests();
+                download::MultiRequest check_list = subdir.build_check_requests(context);
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
             }
         }
@@ -587,13 +587,12 @@ namespace mamba
         , m_json_fn(cache_fn_url(name()))
         , m_solv_fn(m_json_fn.substr(0, m_json_fn.size() - 4) + "solv")
         , m_is_noarch(platform == "noarch")
-        , p_context(&(ctx))
     {
         m_full_url = util::url_concat(channel.url().str(), "/", repodata_url_path());
         assert(!channel.is_package());
         m_forbid_cache = (channel.mirror_urls().size() == 1u)
                          && util::starts_with(channel.url().str(), "file://");
-        load(caches, channel_context, channel);
+        load(caches, channel_context, ctx, channel);
     }
 
     std::string SubdirData::repodata_url_path() const
@@ -606,12 +605,16 @@ namespace mamba
         return m_full_url;
     }
 
-    void
-    SubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel)
+    void SubdirData::load(
+        MultiPackageCache& caches,
+        ChannelContext& channel_context,
+        const Context& ctx,
+        const specs::Channel& channel
+    )
     {
         if (!m_forbid_cache)
         {
-            load_cache(caches);
+            load_cache(caches, ctx);
         }
 
         if (m_loaded)
@@ -626,16 +629,15 @@ namespace mamba
                 LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
                          << m_expired_cache_path.string() << "'";
             }
-            update_metadata_zst(channel_context, channel);
+            update_metadata_zst(channel_context, ctx, channel);
         }
     }
 
-    void SubdirData::load_cache(MultiPackageCache& caches)
+    void SubdirData::load_cache(MultiPackageCache& caches, const Context& context)
     {
         LOG_INFO << "Searching index cache file for repo '" << name() << "'";
         file_time_point now = fs::file_time_type::clock::now();
 
-        const Context& context = *p_context;
         const auto cache_paths = without_duplicates(caches.paths());
 
         for (const fs::u8path& cache_path : cache_paths)
@@ -710,22 +712,23 @@ namespace mamba
         }
     }
 
-    void
-    SubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
+    void SubdirData::update_metadata_zst(
+        ChannelContext& channel_context,
+        const Context& context,
+        const specs::Channel& channel
+    )
     {
-        const Context& context = *p_context;
         if (!context.offline || m_forbid_cache)
         {
             m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));
         }
     }
 
-    download::MultiRequest SubdirData::build_check_requests()
+    download::MultiRequest SubdirData::build_check_requests(const Context& ctx)
     {
         download::MultiRequest request;
 
-        if ((!p_context->offline || m_forbid_cache) && p_context->repodata_use_zst
-            && !m_metadata.has_zst())
+        if ((!ctx.offline || m_forbid_cache) && ctx.repodata_use_zst && !m_metadata.has_zst())
         {
             request.push_back(download::Request(
                 name() + " (check zst)",

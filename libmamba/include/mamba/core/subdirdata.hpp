@@ -157,12 +157,17 @@ namespace mamba
         std::string repodata_url_path() const;
         const std::string& repodata_full_url() const;
 
+        void load(
+            MultiPackageCache& caches,
+            ChannelContext& channel_context,
+            const Context& ctx,
+            const specs::Channel& channel
+        );
+        void load_cache(MultiPackageCache& caches, const Context& ctx);
         void
-        load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel);
-        void load_cache(MultiPackageCache& caches);
-        void update_metadata_zst(ChannelContext& context, const specs::Channel& channel);
+        update_metadata_zst(ChannelContext& context, const Context& ctx, const specs::Channel& channel);
 
-        download::MultiRequest build_check_requests();
+        download::MultiRequest build_check_requests(const Context& ctx);
         download::Request build_index_request();
 
         expected_t<void> use_existing_cache();
@@ -190,7 +195,6 @@ namespace mamba
 
         SubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
-        const Context* p_context;
     };
 
     [[nodiscard]] std::string cache_name_from_url(std::string_view url);

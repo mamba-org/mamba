@@ -10,14 +10,13 @@
 #include <functional>
 #include <optional>
 #include <string>
-#include <variant>
 
 #include <tl/expected.hpp>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/error_handling.hpp"
 #include "mamba/download/mirror_map.hpp"
+#include "mamba/download/parameters.hpp"
 #include "mamba/download/request.hpp"
+#include "mamba/specs/authentication_info.hpp"
 
 namespace mamba::download
 {
@@ -25,8 +24,10 @@ namespace mamba::download
     {
         using termination_function = std::optional<std::function<void()>>;
 
+        std::size_t download_threads = 1;
         bool fail_fast = false;
         bool sort = true;
+        bool verbose = false;
         termination_function on_unexpected_termination = std::nullopt;
     };
 
@@ -59,7 +60,8 @@ namespace mamba::download
     MultiResult download(
         MultiRequest requests,
         const mirror_map& mirrors,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
         Options options = {},
         Monitor* monitor = nullptr
     );
@@ -67,12 +69,13 @@ namespace mamba::download
     Result download(
         Request request,
         const mirror_map& mirrors,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
         Options options = {},
         Monitor* monitor = nullptr
     );
 
-    bool check_resource_exists(const std::string& url, const Context& context);
+    bool check_resource_exists(const std::string& url, const RemoteFetchParams& params);
 }
 
 #endif

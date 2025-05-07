@@ -14,6 +14,7 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/subdir_parameters.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -114,14 +115,14 @@ namespace mamba
     {
     public:
 
-        static expected_t<SubdirData> create(
-            Context& ctx,
+        static auto create(
+            const SubdirParams& params,
             ChannelContext& channel_context,
             const specs::Channel& channel,
             specs::DynamicPlatform platform,
             MultiPackageCache& caches,
             std::string repodata_filename = "repodata.json"
-        );
+        ) -> expected_t<SubdirData>;
 
         [[nodiscard]] auto is_noarch() const -> bool;
         [[nodiscard]] auto is_loaded() const -> bool;
@@ -139,19 +140,20 @@ namespace mamba
         [[deprecated("since version 2.0 use ``valid_solv_cache`` or ``valid_json_cache`` instead")]]
         auto cache_path() const -> expected_t<std::string>;
 
-        static expected_t<void> download_indexes(
+        static auto download_indexes(
             std::vector<SubdirData>& subdirs,
             const Context& context,
             download::Monitor* check_monitor = nullptr,
             download::Monitor* download_monitor = nullptr
-        );
+        ) -> expected_t<void>;
 
     private:
 
-        static std::string get_name(const std::string& channel_id, const std::string& platform);
+        static auto get_name(const std::string& channel_id, const std::string& platform)
+            -> std::string;
 
         SubdirData(
-            Context& ctx,
+            const SubdirParams& params,
             ChannelContext& channel_context,
             const specs::Channel& channel,
             std::string platform,
@@ -159,24 +161,27 @@ namespace mamba
             std::string repodata_fn = "repodata.json"
         );
 
-        std::string repodata_url_path() const;
-        const std::string& repodata_full_url() const;
+        [[nodiscard]] auto repodata_url_path() const -> std::string;
+        [[nodiscard]] auto repodata_full_url() const -> const std::string&;
 
         void load(
             MultiPackageCache& caches,
             ChannelContext& channel_context,
-            const Context& ctx,
+            const SubdirParams& params,
             const specs::Channel& channel
         );
-        void load_cache(MultiPackageCache& caches, const Context& ctx);
-        void
-        update_metadata_zst(ChannelContext& context, const Context& ctx, const specs::Channel& channel);
+        void load_cache(MultiPackageCache& caches, const SubdirParams& params);
+        void update_metadata_zst(
+            ChannelContext& context,
+            const SubdirParams& params,
+            const specs::Channel& channel
+        );
 
-        download::MultiRequest build_check_requests(const Context& ctx);
-        download::Request build_index_request();
+        auto build_check_requests(const SubdirParams& params) -> download::MultiRequest;
+        auto build_index_request() -> download::Request;
 
-        expected_t<void> use_existing_cache();
-        expected_t<void> finalize_transfer(SubdirMetadata::HttpMetadata http_data);
+        auto use_existing_cache() -> expected_t<void>;
+        auto finalize_transfer(SubdirMetadata::HttpMetadata http_data) -> expected_t<void>;
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         bool m_loaded = false;

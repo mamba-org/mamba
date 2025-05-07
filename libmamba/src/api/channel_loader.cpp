@@ -77,7 +77,7 @@ namespace mamba
                 }
 
                 auto sdires = SubdirData::create(
-                    ctx,
+                    ctx.subdir_params(),
                     channel_context,
                     channel,
                     platform,

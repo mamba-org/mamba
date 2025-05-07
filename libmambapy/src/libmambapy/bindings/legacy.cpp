@@ -162,7 +162,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                SubdirData::create(ctx, channel_context, channel, platform, caches, repodata_fn)
+                SubdirData::create(ctx.subdir_params(), channel_context, channel, platform, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)

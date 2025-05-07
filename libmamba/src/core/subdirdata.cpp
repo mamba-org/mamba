@@ -393,7 +393,7 @@ namespace mamba
     }
 
     expected_t<SubdirData> SubdirData::create(
-        Context& ctx,
+        const SubdirParams& params,
         ChannelContext& channel_context,
         const specs::Channel& channel,
         specs::DynamicPlatform platform,
@@ -404,7 +404,7 @@ namespace mamba
         try
         {
             return SubdirData(
-                ctx,
+                params,
                 channel_context,
                 channel,
                 std::move(platform),
@@ -517,7 +517,9 @@ namespace mamba
         {
             if (!subdir.is_loaded())
             {
-                download::MultiRequest check_list = subdir.build_check_requests(context);
+                download::MultiRequest check_list = subdir.build_check_requests(
+                    context.subdir_params()
+                );
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
             }
         }
@@ -573,7 +575,7 @@ namespace mamba
     }
 
     SubdirData::SubdirData(
-        Context& ctx,
+        const SubdirParams& params,
         ChannelContext& channel_context,
         const specs::Channel& channel,
         std::string platform,
@@ -594,7 +596,7 @@ namespace mamba
         assert(!channel.is_package());
         m_forbid_cache = (channel.mirror_urls().size() == 1u)
                          && util::starts_with(channel.url().str(), "file://");
-        load(caches, channel_context, ctx, channel);
+        load(caches, channel_context, params, channel);
     }
 
     std::string SubdirData::repodata_url_path() const
@@ -610,13 +612,13 @@ namespace mamba
     void SubdirData::load(
         MultiPackageCache& caches,
         ChannelContext& channel_context,
-        const Context& ctx,
+        const SubdirParams& params,
         const specs::Channel& channel
     )
     {
         if (!m_forbid_cache)
         {
-            load_cache(caches, ctx);
+            load_cache(caches, params);
         }
 
         if (m_loaded)
@@ -631,11 +633,11 @@ namespace mamba
                 LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
                          << m_expired_cache_path.string() << "'";
             }
-            update_metadata_zst(channel_context, ctx, channel);
+            update_metadata_zst(channel_context, params, channel);
         }
     }
 
-    void SubdirData::load_cache(MultiPackageCache& caches, const Context& context)
+    void SubdirData::load_cache(MultiPackageCache& caches, const SubdirParams& context)
     {
         LOG_INFO << "Searching index cache file for repo '" << name() << "'";
         file_time_point now = fs::file_time_type::clock::now();
@@ -716,7 +718,7 @@ namespace mamba
 
     void SubdirData::update_metadata_zst(
         ChannelContext& channel_context,
-        const Context& context,
+        const SubdirParams& context,
         const specs::Channel& channel
     )
     {
@@ -726,11 +728,11 @@ namespace mamba
         }
     }
 
-    download::MultiRequest SubdirData::build_check_requests(const Context& ctx)
+    download::MultiRequest SubdirData::build_check_requests(const SubdirParams& params)
     {
         download::MultiRequest request;
 
-        if ((!ctx.offline || m_forbid_cache) && ctx.repodata_use_zst
+        if ((!params.offline || m_forbid_cache) && params.repodata_use_zst
             && !m_metadata.has_up_to_date_zst())
         {
             request.push_back(download::Request(

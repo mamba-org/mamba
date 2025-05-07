@@ -523,12 +523,7 @@ namespace mamba
             context.mirrors,
             context.remote_fetch_params,
             context.authentication_info(),
-            download::Options{
-                /* .download_threads */ context.threads_params.download_threads,
-                /* .fail_fast */ false,
-                /* .sort */ true,
-                /* .verbose */ context.output_params.verbosity >= 2,
-            },
+            context.download_options(),
             check_monitor
         );
 
@@ -556,12 +551,7 @@ namespace mamba
                     context.mirrors,
                     context.remote_fetch_params,
                     context.authentication_info(),
-                    download::Options{
-                        /* .download_threads */ context.threads_params.download_threads,
-                        /* .fail_fast */ false,
-                        /* .sort */ true,
-                        /* .verbose */ context.output_params.verbosity >= 2,
-                    },
+                    context.download_options(),
                     download_monitor
                 );
             }

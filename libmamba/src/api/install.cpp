@@ -102,12 +102,7 @@ namespace mamba
                     ctx.mirrors,
                     ctx.remote_fetch_params,
                     ctx.authentication_info(),
-                    download::Options{
-                        /* .download_threads */ ctx.threads_params.download_threads,
-                        /* .fail_fast */ false,
-                        /* .sort */ true,
-                        /* .verbose */ ctx.output_params.verbosity >= 2,
-                    }
+                    ctx.download_options()
                 );
 
                 if (!res || res.value().transfer.http_status != 200)

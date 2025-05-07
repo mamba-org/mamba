@@ -234,12 +234,7 @@ namespace mamba::validation
                         m_context.get().mirrors,
                         m_context.get().remote_fetch_params,
                         m_context.get().authentication_info(),
-                        download::Options{
-                            /* .download_threads */ m_context.get().threads_params.download_threads,
-                            /* .fail_fast */ false,
-                            /* .sort */ true,
-                            /* .verbose */ m_context.get().output_params.verbosity >= 2,
-                        }
+                        m_context.get().download_options()
                     );
 
                     if (res)

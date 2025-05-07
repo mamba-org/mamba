@@ -185,6 +185,17 @@ namespace mamba
             /* .max_retries */ 3,
             /* .proxy_servers */ {},
         };
+
+        download::Options download_options() const
+        {
+            return {
+                /* .download_threads */ this->threads_params.download_threads,
+                /* .fail_fast */ false,
+                /* .sort */ true,
+                /* .verbose */ this->output_params.verbosity >= 2,
+            };
+        }
+
         OutputParams output_params;
         GraphicsParams graphics_params;
         SrcParams src_params;

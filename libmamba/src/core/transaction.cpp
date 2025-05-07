@@ -786,12 +786,8 @@ namespace mamba
         );
 
         std::unique_ptr<PackageDownloadMonitor> monitor = nullptr;
-        download::Options download_options{
-            /* .download_threads */ ctx.threads_params.download_threads,
-            /* .fail_fast */ true,
-            /* .sort */ true,
-            /* .verbose */ ctx.output_params.verbosity >= 2,
-        };
+        auto download_options = ctx.download_options();
+        download_options.fail_fast = true;
         if (PackageDownloadMonitor::can_monitor(ctx))
         {
             monitor = std::make_unique<PackageDownloadMonitor>();

@@ -6,6 +6,7 @@
 
 #include <string>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
@@ -224,14 +225,21 @@ namespace mamba::validation
                 auto url = util::concat(m_base_url, "/", f.string());
                 tmp_file_path = tmp_dir_path / f;
 
-                if (download::check_resource_exists(url, m_context))
+                if (download::check_resource_exists(url, m_context.get().remote_fetch_params))
                 {
                     download::Request
                         request(f.string(), download::MirrorName(""), url, tmp_file_path.string());
                     download::Result res = download::download(
                         std::move(request),
                         m_context.get().mirrors,
-                        m_context
+                        m_context.get().remote_fetch_params,
+                        m_context.get().authentication_info(),
+                        download::Options{
+                            /* .download_threads */ m_context.get().threads_params.download_threads,
+                            /* .fail_fast */ false,
+                            /* .sort */ true,
+                            /* .verbose */ m_context.get().output_params.verbosity >= 2,
+                        }
                     );
 
                     if (res)

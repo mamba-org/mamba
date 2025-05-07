@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/invoke.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"

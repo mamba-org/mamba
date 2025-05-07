@@ -7,6 +7,7 @@
 #include <fstream>
 #include <utility>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
@@ -204,7 +205,7 @@ namespace mamba::validation::v0_6
                              .value()
                          / "key_mgr.json";
 
-        if (download::check_resource_exists(url.pretty_str(), context))
+        if (download::check_resource_exists(url.pretty_str(), context.remote_fetch_params))
         {
             download::Request request(
                 "key_mgr.json",
@@ -212,7 +213,18 @@ namespace mamba::validation::v0_6
                 url.str(util::URL::Credentials::Show),
                 tmp_metadata_path.string()
             );
-            download::Result res = download::download(std::move(request), context.mirrors, context);
+            download::Result res = download::download(
+                std::move(request),
+                context.mirrors,
+                context.remote_fetch_params,
+                context.authentication_info(),
+                download::Options{
+                    /* .download_threads */ context.threads_params.download_threads,
+                    /* .fail_fast */ false,
+                    /* .sort */ true,
+                    /* .verbose */ context.output_params.verbosity >= 2,
+                }
+            );
             if (res)
             {
                 KeyMgrRole key_mgr = create_key_mgr(tmp_metadata_path);
@@ -365,7 +377,7 @@ namespace mamba::validation::v0_6
 
         const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json").value();
 
-        if (download::check_resource_exists(url.pretty_str(), context))
+        if (download::check_resource_exists(url.pretty_str(), context.remote_fetch_params))
         {
             download::Request request(
                 "pkg_mgr.json",
@@ -373,7 +385,18 @@ namespace mamba::validation::v0_6
                 url.pretty_str(),
                 tmp_metadata_path.string()
             );
-            download::Result res = download::download(std::move(request), context.mirrors, context);
+            download::Result res = download::download(
+                std::move(request),
+                context.mirrors,
+                context.remote_fetch_params,
+                context.authentication_info(),
+                download::Options{
+                    /* .download_threads */ context.threads_params.download_threads,
+                    /* .fail_fast */ false,
+                    /* .sort */ true,
+                    /* .verbose */ context.output_params.verbosity >= 2,
+                }
+            );
 
             if (res)
             {

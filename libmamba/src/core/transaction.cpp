@@ -715,7 +715,14 @@ namespace mamba
             PackageDownloadMonitor* monitor
         )
         {
-            auto result = download::download(std::move(requests), context.mirrors, context, options, monitor);
+            auto result = download::download(
+                std::move(requests),
+                context.mirrors,
+                context.remote_fetch_params,
+                context.authentication_info(),
+                options,
+                monitor
+            );
             bool all_downloaded = std::all_of(
                 result.begin(),
                 result.end(),
@@ -779,7 +786,12 @@ namespace mamba
         );
 
         std::unique_ptr<PackageDownloadMonitor> monitor = nullptr;
-        download::Options download_options{ true, true };
+        download::Options download_options{
+            /* .download_threads */ ctx.threads_params.download_threads,
+            /* .fail_fast */ true,
+            /* .sort */ true,
+            /* .verbose */ ctx.output_params.verbosity >= 2,
+        };
         if (PackageDownloadMonitor::can_monitor(ctx))
         {
             monitor = std::make_unique<PackageDownloadMonitor>();

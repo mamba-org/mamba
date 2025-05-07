@@ -7,6 +7,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/util/string.hpp"
 
@@ -20,7 +21,7 @@ namespace mamba
                 "test",
                 download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
-                "test_download_repodata.json",
+                "test_download_repodata_1.json",
                 false,
                 true
             );
@@ -38,7 +39,7 @@ namespace mamba
                 "test",
                 download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
-                "test_download_repodata.json"
+                "test_download_repodata_2.json"
             );
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
             REQUIRE_THROWS_AS(download::download(dl_request, {}, {}, {}), std::runtime_error);
@@ -46,6 +47,8 @@ namespace mamba
 
         TEST_CASE("Use CA certificate from the root prefix", "[mamba::download]")
         {
+            const auto tmp_dir = TemporaryDirectory();
+
             // Set the context values to the default ones
             auto params = download::RemoteFetchParams{};
             params.curl_initialized = false;
@@ -55,7 +58,7 @@ namespace mamba
                 "test",
                 download::MirrorName(""),
                 "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
-                "test_download_repodata.json"
+                tmp_dir.path() / "test_download_repodata_3.json"
             );
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
 

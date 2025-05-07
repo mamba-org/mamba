@@ -246,6 +246,27 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
 
+@pytest.mark.parametrize("target_prefix", ("file", "empty_dir", "non_empty_dir"))
+def test_existing_target_prefix(tmp_root_prefix, tmp_path, target_prefix):
+    p = tmp_path / "myenv"
+    expected_p = p.resolve()
+    cmd = ["-p", p]
+
+    if target_prefix == "file":
+        expected_p.touch()
+    else:
+        expected_p.mkdir()
+        if target_prefix == "non_empty_dir":
+            (expected_p / "foo").touch()
+
+    if target_prefix in ("file", "non_empty_dir"):
+        with pytest.raises(subprocess.CalledProcessError):
+            helpers.create(*cmd)
+    else:
+        helpers.create(*cmd)
+        assert (expected_p / "conda-meta").exists()
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("root_prefix_type", (None, "env_var", "cli"))
 @pytest.mark.parametrize("target_is_root", (False, True))

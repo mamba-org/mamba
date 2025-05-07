@@ -7,8 +7,6 @@
 #ifndef MAMBA_DOWNLOAD_DOWNLOADER_HPP
 #define MAMBA_DOWNLOAD_DOWNLOADER_HPP
 
-#include <functional>
-#include <optional>
 #include <string>
 
 #include <tl/expected.hpp>
@@ -20,17 +18,6 @@
 
 namespace mamba::download
 {
-    struct Options
-    {
-        using termination_function = std::optional<std::function<void()>>;
-
-        std::size_t download_threads = 1;
-        bool fail_fast = false;
-        bool sort = true;
-        bool verbose = false;
-        termination_function on_unexpected_termination = std::nullopt;
-    };
-
     class Monitor
     {
     public:

@@ -7,7 +7,9 @@
 #ifndef MAMBA_DOWNLOAD_PARAMETERS_HPP
 #define MAMBA_DOWNLOAD_PARAMETERS_HPP
 
+#include <functional>
 #include <map>
+#include <optional>
 #include <string>
 
 namespace mamba::download
@@ -31,5 +33,17 @@ namespace mamba::download
 
         std::map<std::string, std::string> proxy_servers;
     };
+
+    struct Options
+    {
+        using termination_function = std::optional<std::function<void()>>;
+
+        std::size_t download_threads = 1;
+        bool fail_fast = false;
+        bool sort = true;
+        bool verbose = false;
+        termination_function on_unexpected_termination = std::nullopt;
+    };
+
 }
 #endif

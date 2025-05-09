@@ -355,7 +355,14 @@ namespace
             }
         }
 
-        const auto result = SubdirData::download_required_indexes(sub_dirs, mambatests::context());
+        const auto result = SubdirData::download_required_indexes(
+            sub_dirs,
+            mambatests::context().subdir_params(),
+            mambatests::context().authentication_info(),
+            mambatests::context().mirrors,
+            mambatests::context().download_options(),
+            mambatests::context().remote_fetch_params
+        );
         REQUIRE(result.has_value());
 
         for (auto& sub_dir : sub_dirs)

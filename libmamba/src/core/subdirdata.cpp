@@ -8,7 +8,6 @@
 #include <stdexcept>
 
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
@@ -507,7 +506,11 @@ namespace mamba
 
     expected_t<void> SubdirData::download_required_indexes(
         std::vector<SubdirData>& subdirs,
-        const Context& context,
+        const SubdirParams& subdir_params,
+        const specs::AuthenticationDataBase& auth_info,
+        const download::mirror_map& mirrors,
+        const download::Options& download_options,
+        const download::RemoteFetchParams& remote_fetch_params,
         download::Monitor* check_monitor,
         download::Monitor* download_monitor
     )
@@ -517,18 +520,16 @@ namespace mamba
         {
             if (!subdir.valid_cache_found())
             {
-                download::MultiRequest check_list = subdir.build_check_requests(
-                    context.subdir_params()
-                );
+                download::MultiRequest check_list = subdir.build_check_requests(subdir_params);
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
             }
         }
         download::download(
             std::move(check_requests),
-            context.mirrors,
-            context.remote_fetch_params,
-            context.authentication_info(),
-            context.download_options(),
+            mirrors,
+            remote_fetch_params,
+            auth_info,
+            download_options,
             check_monitor
         );
 
@@ -538,7 +539,7 @@ namespace mamba
         }
 
         // TODO load local channels even when offline if (!ctx.offline)
-        if (!context.offline)
+        if (!subdir_params.offline)
         {
             download::MultiRequest index_requests;
             for (auto& subdir : subdirs)
@@ -553,10 +554,10 @@ namespace mamba
             {
                 download::download(
                     std::move(index_requests),
-                    context.mirrors,
-                    context.remote_fetch_params,
-                    context.authentication_info(),
-                    context.download_options(),
+                    mirrors,
+                    remote_fetch_params,
+                    auth_info,
+                    download_options,
                     download_monitor
                 );
             }

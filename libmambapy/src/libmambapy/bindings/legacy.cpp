@@ -181,11 +181,16 @@ namespace mambapy
             {
                 SubdirDataMonitor check_monitor({ true, true });
                 SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_indexes(m_subdirs, ctx, &check_monitor, &index_monitor);
+                download_res = SubdirData::download_required_indexes(
+                    m_subdirs,
+                    ctx,
+                    &check_monitor,
+                    &index_monitor
+                );
             }
             else
             {
-                download_res = SubdirData::download_indexes(m_subdirs, ctx);
+                download_res = SubdirData::download_required_indexes(m_subdirs, ctx);
             }
             return download_res.has_value();
         }
@@ -522,7 +527,7 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("context"),
             py::arg("db")
         )
-        .def("loaded", &SubdirData::is_loaded)
+        .def("loaded", &SubdirData::valid_cache_found)
         .def(
             "valid_solv_cache",
             // TODO make a proper well tested type caster for expected types.
@@ -602,7 +607,16 @@ bind_submodule_impl(pybind11::module_ m)
             py::keep_alive<0, 1>()
         );
 
-    m.def("cache_fn_url", &cache_fn_url);
+    m.def("cache_name_from_url", &cache_name_from_url);
+    m.def(
+        "cache_fn_url",
+        [](std::string url)
+        {
+            deprecated("This function was renamed `cache_filename_from_url` in libmambapy 2.2.0.");
+            return cache_filename_from_url(std::move(url));
+        }
+    );
+    m.def("cache_filename_from_url", &cache_filename_from_url);
     m.def("create_cache_dir", &create_cache_dir);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")

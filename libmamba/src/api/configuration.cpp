@@ -1857,6 +1857,13 @@ namespace mamba
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
 
+        insert(Configurable("use_uv", &m_context.use_uv)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Whether to use uv for installing pip dependencies. Defaults to false."
+                   ));
+
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &m_context.always_yes)
                    .group("Output, Prompt and Flow Control")

@@ -1,0 +1,9 @@
+name: env_4
+channels: [conda-forge, bioconda]
+dependencies:
+  - test1
+  - test2
+  - uv
+  - pip:
+      - pytest
+      - numpy

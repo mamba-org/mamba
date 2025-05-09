@@ -130,6 +130,7 @@ namespace mamba
         bool experimental_repodata_parsing = true;
         bool experimental_matchspec_parsing = false;
         bool debug = false;
+        bool use_uv = false;
 
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;

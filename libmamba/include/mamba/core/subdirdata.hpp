@@ -166,6 +166,23 @@ namespace mamba
 
     private:
 
+        SubdirMetadata m_metadata;
+        fs::u8path m_valid_cache_path;
+        fs::u8path m_expired_cache_path;
+        fs::u8path m_writable_pkgs_dir;
+        specs::DynamicPlatform m_platform;
+        std::string m_channel_id;
+        std::string m_name;
+        std::string m_repodata_filename;
+        std::string m_json_filename;
+        std::string m_solv_filename;
+        std::string m_full_url;
+        bool m_valid_cache_found = false;
+        bool m_forbid_cache = false;
+        bool m_json_cache_valid = false;
+        bool m_solv_cache_valid = false;
+        std::unique_ptr<TemporaryFile> m_temp_file;
+
         [[nodiscard]] static auto get_name(std::string_view channel_id, std::string_view platform)
             -> std::string;
 
@@ -200,27 +217,6 @@ namespace mamba
         auto use_existing_cache() -> expected_t<void>;
         auto finalize_transfer(SubdirMetadata::HttpMetadata http_data) -> expected_t<void>;
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
-
-        bool m_valid_cache_found = false;
-        bool m_forbid_cache = false;
-        bool m_json_cache_valid = false;
-        bool m_solv_cache_valid = false;
-
-        fs::u8path m_valid_cache_path;
-        fs::u8path m_expired_cache_path;
-        fs::u8path m_writable_pkgs_dir;
-
-        specs::DynamicPlatform m_platform;
-        std::string m_channel_id;
-        std::string m_name;
-        std::string m_repodata_filename;
-        std::string m_json_filename;
-        std::string m_solv_filename;
-
-        std::string m_full_url;
-
-        SubdirMetadata m_metadata;
-        std::unique_ptr<TemporaryFile> m_temp_file;
     };
 
     /**

@@ -19,6 +19,8 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/channel.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/platform.hpp"
 
 namespace mamba
@@ -142,18 +144,22 @@ namespace mamba
         static auto create(
             const SubdirParams& params,
             ChannelContext& channel_context,
-            const specs::Channel& channel,
+            specs::Channel channel,
             specs::DynamicPlatform platform,
             MultiPackageCache& caches,
             std::string repodata_filename = "repodata.json"
         ) -> expected_t<SubdirData>;
 
         [[nodiscard]] auto is_noarch() const -> bool;
-        [[nodiscard]] auto name() const -> const std::string&;
+        [[nodiscard]] auto is_local() const -> bool;
+        [[nodiscard]] auto channel() const -> const specs::Channel&;
+        [[nodiscard]] auto name() const -> std::string;
         [[nodiscard]] auto channel_id() const -> const std::string&;
         [[nodiscard]] auto platform() const -> const specs::DynamicPlatform&;
         [[nodiscard]] auto metadata() const -> const SubdirMetadata&;
+        [[nodiscard]] auto repodata_url() const -> specs::CondaURL;
 
+        [[nodiscard]] auto caching_is_forbidden() const -> bool;
         [[nodiscard]] auto valid_cache_found() const -> bool;
         [[nodiscard]] auto valid_libsolv_cache_path() const -> expected_t<fs::u8path>;
         [[nodiscard]] auto writable_libsolv_cache_path() const -> fs::u8path;
@@ -167,36 +173,29 @@ namespace mamba
     private:
 
         SubdirMetadata m_metadata;
+        specs::Channel m_channel;
         fs::u8path m_valid_cache_path;
         fs::u8path m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
         specs::DynamicPlatform m_platform;
-        std::string m_channel_id;
-        std::string m_name;
         std::string m_repodata_filename;
         std::string m_json_filename;
         std::string m_solv_filename;
-        std::string m_full_url;
         bool m_valid_cache_found = false;
-        bool m_forbid_cache = false;
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
         std::unique_ptr<TemporaryFile> m_temp_file;
 
-        [[nodiscard]] static auto get_name(std::string_view channel_id, std::string_view platform)
-            -> std::string;
-
         SubdirData(
             const SubdirParams& params,
             ChannelContext& channel_context,
-            const specs::Channel& channel,
+            specs::Channel channel,
             std::string platform,
             MultiPackageCache& caches,
             std::string repodata_fn = "repodata.json"
         );
 
         [[nodiscard]] auto repodata_url_path() const -> std::string;
-        [[nodiscard]] auto repodata_full_url() const -> const std::string&;
 
         void load(
             const MultiPackageCache& caches,

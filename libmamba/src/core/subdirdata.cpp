@@ -389,12 +389,19 @@ namespace mamba
             fs::copy(new_file, old_file);
             return old_file;
         }
+
+        [[nodiscard]] auto get_name(std::string_view channel_id, std::string_view platform)
+            -> std::string
+        {
+            return util::url_concat(channel_id, "/", platform);
+        }
+
     }
 
     expected_t<SubdirData> SubdirData::create(
         const SubdirParams& params,
         ChannelContext& channel_context,
-        const specs::Channel& channel,
+        specs::Channel channel,
         specs::DynamicPlatform platform,
         MultiPackageCache& caches,
         std::string repodata_filename
@@ -408,12 +415,13 @@ namespace mamba
             );
         }
 
+        auto name = get_name(channel.id(), platform);
         try
         {
             return SubdirData(
                 params,
                 channel_context,
-                channel,
+                std::move(channel),
                 std::move(platform),
                 caches,
                 std::move(repodata_filename)
@@ -426,8 +434,7 @@ namespace mamba
         catch (...)
         {
             return make_unexpected(
-                "Unknown error when trying to load subdir data "
-                    + SubdirData::get_name(channel.id(), platform),
+                "Unknown error when trying to load subdir data " + name,
                 mamba_error_code::unknown
             );
         }
@@ -436,6 +443,22 @@ namespace mamba
     bool SubdirData::is_noarch() const
     {
         return specs::platform_is_noarch(m_platform);
+    }
+
+    auto SubdirData::is_local() const -> bool
+    {
+        return (channel().mirror_urls().size() == 1u) && (channel().url().scheme() == "file");
+    }
+
+    auto SubdirData::channel() const -> const specs::Channel&
+    {
+        return m_channel;
+    }
+
+    auto SubdirData::caching_is_forbidden() const -> bool
+    {
+        // The only condition yet
+        return is_local();
     }
 
     bool SubdirData::valid_cache_found() const
@@ -455,14 +478,14 @@ namespace mamba
         }
     }
 
-    const std::string& SubdirData::name() const
+    std::string SubdirData::name() const
     {
-        return m_name;
+        return get_name(channel_id(), m_platform);
     }
 
     const std::string& SubdirData::channel_id() const
     {
-        return m_channel_id;
+        return m_channel.id();
     }
 
     const specs::DynamicPlatform& SubdirData::platform() const
@@ -578,44 +601,35 @@ namespace mamba
         return expected_t<void>();
     }
 
-    std::string SubdirData::get_name(std::string_view channel_id, std::string_view platform)
-    {
-        return util::url_concat(channel_id, "/", platform);
-    }
-
     SubdirData::SubdirData(
         const SubdirParams& params,
         ChannelContext& channel_context,
-        const specs::Channel& channel,
+        specs::Channel channel,
         std::string platform,
         MultiPackageCache& caches,
-        std::string repodata_fn
+        std::string repodata_filename
     )
-        : m_valid_cache_path("")
+        : m_channel(std::move(channel))
+        , m_valid_cache_path("")
         , m_expired_cache_path("")
         , m_writable_pkgs_dir(caches.first_writable_path())
         , m_platform(std::move(platform))
-        , m_channel_id(channel.id())
-        , m_name(get_name(m_channel_id, m_platform))
-        , m_repodata_filename(std::move(repodata_fn))
+        , m_repodata_filename(std::move(repodata_filename))
         , m_json_filename(cache_filename_from_url(name()))
         , m_solv_filename(m_json_filename.substr(0, m_json_filename.size() - 4) + "solv")
     {
-        m_full_url = util::url_concat(channel.url().str(), "/", repodata_url_path());
-        assert(!channel.is_package());
-        m_forbid_cache = (channel.mirror_urls().size() == 1u)
-                         && util::starts_with(channel.url().str(), "file://");
-        load(caches, channel_context, params, channel);
+        assert(!this->channel().is_package());
+        load(caches, channel_context, params, this->channel());
     }
 
     std::string SubdirData::repodata_url_path() const
     {
-        return util::concat(m_platform, "/", m_repodata_filename);
+        return util::url_concat(m_platform, "/", m_repodata_filename);
     }
 
-    const std::string& SubdirData::repodata_full_url() const
+    specs::CondaURL SubdirData::repodata_url() const
     {
-        return m_full_url;
+        return channel().platform_url(m_platform) / m_repodata_filename;
     }
 
     void SubdirData::load(
@@ -625,7 +639,7 @@ namespace mamba
         const specs::Channel& channel
     )
     {
-        if (!m_forbid_cache)
+        if (!caching_is_forbidden())
         {
             load_cache(caches, params);
         }
@@ -731,7 +745,7 @@ namespace mamba
         const specs::Channel& channel
     )
     {
-        if (!params.offline || m_forbid_cache)
+        if (!params.offline || caching_is_forbidden())
         {
             m_metadata.set_zst(m_metadata.has_up_to_date_zst() || channel_context.has_zst(channel));
         }
@@ -741,12 +755,12 @@ namespace mamba
     {
         download::MultiRequest request;
 
-        if ((!params.offline || m_forbid_cache) && params.repodata_use_zst
+        if ((!params.offline || caching_is_forbidden()) && params.repodata_use_zst
             && !m_metadata.has_up_to_date_zst())
         {
             request.push_back(download::Request(
                 name() + " (check zst)",
-                download::MirrorName(m_channel_id),
+                download::MirrorName(channel_id()),
                 repodata_url_path() + ".zst",
                 "",
                 /* lhead_only = */ true,
@@ -788,7 +802,7 @@ namespace mamba
 
         download::Request request(
             name(),
-            download::MirrorName(m_channel_id),
+            download::MirrorName(channel_id()),
             repodata_url_path() + (use_zst ? ".zst" : ""),
             m_temp_file->path().string(),
             /*head_only*/ false,
@@ -805,10 +819,12 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(SubdirMetadata::HttpMetadata{ repodata_full_url(),
-                                                                       success.etag,
-                                                                       success.last_modified,
-                                                                       success.cache_control });
+                return finalize_transfer(SubdirMetadata::HttpMetadata{
+                    repodata_url().str(),
+                    success.etag,
+                    success.last_modified,
+                    success.cache_control,
+                });
             }
         };
 

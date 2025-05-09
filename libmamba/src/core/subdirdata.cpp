@@ -400,6 +400,14 @@ namespace mamba
         std::string repodata_filename
     )
     {
+        if (channel.is_package())
+        {
+            return make_unexpected(
+                "Channel pointing to a single package artifacts do not have an index.",
+                mamba_error_code::incorrect_usage
+            );
+        }
+
         try
         {
             return SubdirData(

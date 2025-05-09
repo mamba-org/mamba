@@ -102,6 +102,7 @@ namespace mamba
         const Context& context,
         const fs::u8path& ltarget_prefix,
         const std::pair<std::string, std::string>& py_versions,
+        const std::string& python_site_packages_path,
         std::vector<specs::MatchSpec> lrequested_specs
     )
         : has_python(py_versions.first.size() != 0)
@@ -127,7 +128,14 @@ namespace mamba
         {
             short_python_version = compute_short_python_version(python_version);
             python_path = get_python_short_path(short_python_version);
-            site_packages_path = get_python_site_packages_short_path(short_python_version);
+            if (!python_site_packages_path.empty())
+            {
+                site_packages_path = python_site_packages_path;
+            }
+            else
+            {
+                site_packages_path = get_python_site_packages_short_path(short_python_version);
+            }
         }
         if (!old_python_version.empty())
         {
@@ -140,9 +148,16 @@ namespace mamba
         const fs::u8path& ltarget_prefix,
         const fs::u8path& lrelocate_prefix,
         const std::pair<std::string, std::string>& py_versions,
+        const std::string& python_site_packages_path,
         std::vector<specs::MatchSpec> lrequested_specs
     )
-        : TransactionContext(context, ltarget_prefix, py_versions, std::move(lrequested_specs))
+        : TransactionContext(
+              context,
+              ltarget_prefix,
+              py_versions,
+              python_site_packages_path,
+              std::move(lrequested_specs)
+          )
     {
         if (lrelocate_prefix.empty())
         {

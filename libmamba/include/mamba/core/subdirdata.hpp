@@ -213,7 +213,7 @@ namespace mamba
         specs::DynamicPlatform m_platform;
         std::string m_channel_id;
         std::string m_name;
-        std::string m_repodata_fn;
+        std::string m_repodata_filename;
         std::string m_json_filename;
         std::string m_solv_filename;
 

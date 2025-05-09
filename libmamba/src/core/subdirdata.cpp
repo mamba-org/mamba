@@ -589,7 +589,7 @@ namespace mamba
         , m_platform(std::move(platform))
         , m_channel_id(channel.id())
         , m_name(get_name(m_channel_id, m_platform))
-        , m_repodata_fn(std::move(repodata_fn))
+        , m_repodata_filename(std::move(repodata_fn))
         , m_json_filename(cache_filename_from_url(name()))
         , m_solv_filename(m_json_filename.substr(0, m_json_filename.size() - 4) + "solv")
     {
@@ -602,7 +602,7 @@ namespace mamba
 
     std::string SubdirData::repodata_url_path() const
     {
-        return util::concat(m_platform, "/", m_repodata_fn);
+        return util::concat(m_platform, "/", m_repodata_filename);
     }
 
     const std::string& SubdirData::repodata_full_url() const

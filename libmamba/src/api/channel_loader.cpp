@@ -77,7 +77,7 @@ namespace mamba
                 }
 
                 auto sdires = SubdirData::create(
-                    ctx,
+                    ctx.subdir_params(),
                     channel_context,
                     channel,
                     platform,
@@ -204,11 +204,27 @@ namespace mamba
             {
                 SubdirDataMonitor check_monitor({ true, true });
                 SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
+                download_res = SubdirData::download_required_indexes(
+                    subdirs,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    &check_monitor,
+                    &index_monitor
+                );
             }
             else
             {
-                download_res = SubdirData::download_indexes(subdirs, ctx);
+                download_res = SubdirData::download_required_indexes(
+                    subdirs,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params
+                );
             }
 
             if (!download_res)
@@ -235,7 +251,7 @@ namespace mamba
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 auto& subdir = subdirs[i];
-                if (!subdir.is_loaded())
+                if (!subdir.valid_cache_found())
                 {
                     if (!ctx.offline && subdir.is_noarch())
                     {
@@ -267,7 +283,7 @@ namespace mamba
                             {
                                 LOG_WARNING << "Could not load repodata.json for " << subdir.name()
                                             << ". Deleting cache, and retrying.";
-                                subdir.clear_cache();
+                                subdir.clear_cache_files();
                                 loading_failed = true;
                             }
                         }

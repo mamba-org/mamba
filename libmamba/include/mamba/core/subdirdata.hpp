@@ -17,6 +17,7 @@
 #include "mamba/core/subdir_parameters.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
+#include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/platform.hpp"
 
@@ -27,7 +28,6 @@ namespace mamba
         class Channel;
     }
 
-    class Context;
     class ChannelContext;
 
     /**
@@ -129,7 +129,11 @@ namespace mamba
          */
         [[nodiscard]] static auto download_required_indexes(
             std::vector<SubdirData>& subdirs,
-            const Context& context,
+            const SubdirParams& subdir_params,
+            const specs::AuthenticationDataBase& auth_info,
+            const download::mirror_map& mirrors,
+            const download::Options& download_options,
+            const download::RemoteFetchParams& remote_fetch_params,
             download::Monitor* check_monitor = nullptr,
             download::Monitor* download_monitor = nullptr
         ) -> expected_t<void>;

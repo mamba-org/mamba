@@ -183,14 +183,26 @@ namespace mambapy
                 SubdirDataMonitor index_monitor;
                 download_res = SubdirData::download_required_indexes(
                     m_subdirs,
-                    ctx,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
                     &check_monitor,
                     &index_monitor
                 );
             }
             else
             {
-                download_res = SubdirData::download_required_indexes(m_subdirs, ctx);
+                download_res = SubdirData::download_required_indexes(
+                    m_subdirs,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params
+
+                );
             }
             return download_res.has_value();
         }

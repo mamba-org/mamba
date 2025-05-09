@@ -206,14 +206,25 @@ namespace mamba
                 SubdirDataMonitor index_monitor;
                 download_res = SubdirData::download_required_indexes(
                     subdirs,
-                    ctx,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
                     &check_monitor,
                     &index_monitor
                 );
             }
             else
             {
-                download_res = SubdirData::download_required_indexes(subdirs, ctx);
+                download_res = SubdirData::download_required_indexes(
+                    subdirs,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params
+                );
             }
 
             if (!download_res)

@@ -39,7 +39,7 @@ namespace mamba::download
             "/usr/local/share/certs/ca-root.crt",
         };
 
-        void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
+        void init_remote_fetch_params(RemoteFetchParams& remote_fetch_params)
         {
             if (!remote_fetch_params.curl_initialized)
             {
@@ -145,7 +145,7 @@ namespace mamba::download
             bool set_ssl_no_revoke = false;
         };
 
-        EnvRemoteParams get_env_remote_params(const Context& context)
+        EnvRemoteParams get_env_remote_params(const RemoteFetchParams& params)
         {
             // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in
             // RemoteFetchParams if the request is slower than 30b/s for 60 seconds, cancel.
@@ -154,8 +154,7 @@ namespace mamba::download
             const bool set_low_speed_opt = (no_low_speed_limit == "0");
 
             const std::string ssl_no_revoke_env = util::get_env("MAMBA_SSL_NO_REVOKE").value_or("0");
-            const bool set_ssl_no_revoke = context.remote_fetch_params.ssl_no_revoke
-                                           || (ssl_no_revoke_env != "0");
+            const bool set_ssl_no_revoke = params.ssl_no_revoke || (ssl_no_revoke_env != "0");
 
             return { set_low_speed_opt, set_ssl_no_revoke };
         }
@@ -169,12 +168,22 @@ namespace mamba::download
         CURLHandle& handle,
         const MirrorRequest& request,
         CURLMultiHandle& downloader,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
+        bool verbose,
         on_success_callback success,
         on_failure_callback error
     )
-        : p_impl(std::make_unique<
-                 Impl>(handle, request, downloader, context, std::move(success), std::move(error)))
+        : p_impl(std::make_unique<Impl>(
+              handle,
+              request,
+              downloader,
+              params,
+              auth_info,
+              verbose,
+              std::move(success),
+              std::move(error)
+          ))
     {
     }
 
@@ -188,7 +197,9 @@ namespace mamba::download
         CURLHandle& handle,
         const MirrorRequest& request,
         CURLMultiHandle& downloader,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
+        bool verbose,
         on_success_callback success,
         on_failure_callback error
     )
@@ -196,14 +207,14 @@ namespace mamba::download
         , p_request(&request)
         , m_success_callback(std::move(success))
         , m_failure_callback(std::move(error))
-        , m_retry_wait_seconds(static_cast<std::size_t>(context.remote_fetch_params.retry_timeout))
+        , m_retry_wait_seconds(static_cast<std::size_t>(params.retry_timeout))
     {
         p_stream = make_compression_stream(
             p_request->url,
             p_request->is_repodata_zst,
             [this](char* in, std::size_t size) { return this->write_data(in, size); }
         );
-        configure_handle(context);
+        configure_handle(params, auth_info, verbose);
         downloader.add_handle(*p_handle);
     }
 
@@ -313,17 +324,21 @@ namespace mamba::download
         }
     }
 
-    void DownloadAttempt::Impl::configure_handle(const Context& context)
+    void DownloadAttempt::Impl::configure_handle(
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
+        bool verbose
+    )
     {
-        const auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
+        const auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(params);
 
         p_handle->configure_handle(
             util::file_uri_unc2_to_unc4(p_request->url),
             set_low_speed_opt,
-            context.remote_fetch_params.connect_timeout_secs,
+            params.connect_timeout_secs,
             set_ssl_no_revoke,
-            proxy_match(p_request->url, context.remote_fetch_params.proxy_servers),
-            context.remote_fetch_params.ssl_verify
+            proxy_match(p_request->url, params.proxy_servers),
+            params.ssl_verify
         );
 
         if (!p_request->username.empty())
@@ -358,24 +373,23 @@ namespace mamba::download
             p_handle->add_header("Content-Type: application/json");
         }
 
-        p_handle->set_opt(CURLOPT_VERBOSE, context.output_params.verbosity >= 2);
+        p_handle->set_opt(CURLOPT_VERBOSE, verbose);
 
-        configure_handle_headers(context);
+        configure_handle_headers(params, auth_info);
 
         auto logger = spdlog::get("libcurl");
         p_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
         p_handle->set_opt(CURLOPT_DEBUGDATA, logger.get());
     }
 
-    void DownloadAttempt::Impl::configure_handle_headers(const Context& context)
+    void DownloadAttempt::Impl::configure_handle_headers(
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info
+    )
     {
         p_handle->reset_headers();
 
-        std::string user_agent = fmt::format(
-            "User-Agent: {} {}",
-            context.remote_fetch_params.user_agent,
-            curl_version()
-        );
+        std::string user_agent = fmt::format("User-Agent: {} {}", params.user_agent, curl_version());
         p_handle->add_header(user_agent);
 
         // get url host
@@ -389,7 +403,6 @@ namespace mamba::download
 
         // TODO How should this be handled if not empty?
         // (think about precedence with request token auth header added below)
-        const auto& auth_info = context.authentication_info();
         if (auto it = auth_info.find_weaken(host); it != auth_info.end())
         {
             if (const auto& auth = it->second; std::holds_alternative<specs::BearerToken>(auth))
@@ -671,7 +684,9 @@ namespace mamba::download
     auto MirrorAttempt::prepare_attempt(
         CURLHandle& handle,
         CURLMultiHandle& downloader,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
+        bool verbose,
         on_success_callback success,
         on_failure_callback error
     ) -> completion_function
@@ -682,7 +697,9 @@ namespace mamba::download
             handle,
             m_request.value(),
             downloader,
-            context,
+            params,
+            auth_info,
+            verbose,
             std::move(success),
             std::move(error)
         );
@@ -798,8 +815,13 @@ namespace mamba::download
         }
     }
 
-    auto DownloadTracker::prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
-        -> completion_map_entry
+    auto DownloadTracker::prepare_new_attempt(
+        CURLMultiHandle& handle,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
+        bool verbose
+
+    ) -> completion_map_entry
     {
         m_state = State::PREPARING;
 
@@ -807,7 +829,9 @@ namespace mamba::download
         auto completion_func = m_mirror_attempt.prepare_attempt(
             m_handle,
             handle,
-            context,
+            params,
+            auth_info,
+            verbose,
             [this](Success res)
             {
                 expected_t<void> finalize_res = invoke_on_success(res);
@@ -1031,14 +1055,16 @@ namespace mamba::download
         MultiRequest requests,
         const mirror_map& mirrors,
         Options options,
-        const Context& context
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info
     )
         : m_requests(std::move(requests))
-        , p_mirrors(&mirrors)
-        , m_options(std::move(options))
-        , p_context(&context)
-        , m_curl_handle(context.threads_params.download_threads)
         , m_trackers()
+        , m_curl_handle(options.download_threads)
+        , m_options(std::move(options))
+        , p_mirrors(&mirrors)
+        , p_params(&params)
+        , p_auth_info(&auth_info)
     {
         if (m_options.sort)
         {
@@ -1051,7 +1077,7 @@ namespace mamba::download
         }
 
         m_trackers.reserve(m_requests.size());
-        std::size_t max_retries = static_cast<std::size_t>(context.remote_fetch_params.max_retries);
+        std::size_t max_retries = static_cast<std::size_t>(params.max_retries);
         DownloadTrackerOptions tracker_options{ max_retries, options.fail_fast };
         std::transform(
             m_requests.begin(),
@@ -1089,7 +1115,7 @@ namespace mamba::download
     void Downloader::prepare_next_downloads()
     {
         size_t running_attempts = m_completion_map.size();
-        const size_t max_parallel_downloads = p_context->threads_params.download_threads;
+        const size_t max_parallel_downloads = m_options.download_threads;
         auto start_filter = mamba::util::filter(
             m_trackers,
             [&](DownloadTracker& tracker)
@@ -1100,7 +1126,7 @@ namespace mamba::download
         for (auto& tracker : start_filter)
         {
             auto [iter, success] = m_completion_map.insert(
-                tracker.prepare_new_attempt(m_curl_handle, *p_context)
+                tracker.prepare_new_attempt(m_curl_handle, *p_params, *p_auth_info, m_options.verbose)
             );
             if (success)
             {
@@ -1196,30 +1222,31 @@ namespace mamba::download
     MultiResult download(
         MultiRequest requests,
         const mirror_map& mirrors,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
         Options options,
         Monitor* monitor
     )
     {
-        if (!context.remote_fetch_params.curl_initialized)
+        if (!params.curl_initialized)
         {
             // TODO: Move this into an object that would be automatically initialized
             // upon construction, and passed by const reference to this function instead
             // of context.
-            Context& ctx = const_cast<Context&>(context);
-            init_remote_fetch_params(ctx.remote_fetch_params);
+            auto& params_ = const_cast<RemoteFetchParams&>(params);
+            init_remote_fetch_params(params_);
         }
 
         if (monitor)
         {
             monitor->observe(requests, options);
             on_scope_exit guard([monitor]() { monitor->on_done(); });
-            Downloader dl(std::move(requests), mirrors, std::move(options), context);
+            Downloader dl(std::move(requests), mirrors, std::move(options), params, auth_info);
             return dl.download();
         }
         else
         {
-            Downloader dl(std::move(requests), mirrors, std::move(options), context);
+            Downloader dl(std::move(requests), mirrors, std::move(options), params, auth_info);
             return dl.download();
         }
     }
@@ -1227,36 +1254,37 @@ namespace mamba::download
     Result download(
         Request request,
         const mirror_map& mirrors,
-        const Context& context,
+        const RemoteFetchParams& params,
+        const specs::AuthenticationDataBase& auth_info,
         Options options,
         Monitor* monitor
     )
     {
         MultiRequest req(1u, std::move(request));
-        auto res = download(std::move(req), mirrors, context, std::move(options), monitor);
+        auto res = download(std::move(req), mirrors, params, auth_info, std::move(options), monitor);
         return std::move(res.front());
     }
 
-    bool check_resource_exists(const std::string& url, const Context& context)
+    bool check_resource_exists(const std::string& url, const RemoteFetchParams& params)
     {
-        if (!context.remote_fetch_params.curl_initialized)
+        if (!params.curl_initialized)
         {
             // TODO: Move this into an object that would be automatically initialized
             // upon construction, and passed by const reference to this function instead
             // of context.
-            Context& ctx = const_cast<Context&>(context);
-            init_remote_fetch_params(ctx.remote_fetch_params);
+            auto& params_ = const_cast<RemoteFetchParams&>(params);
+            init_remote_fetch_params(params_);
         }
 
-        const auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
+        const auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(params);
 
         return curl::check_resource_exists(
             util::file_uri_unc2_to_unc4(url),
             set_low_speed_opt,
-            context.remote_fetch_params.connect_timeout_secs,
+            params.connect_timeout_secs,
             set_ssl_no_revoke,
-            proxy_match(url, context.remote_fetch_params.proxy_servers),
-            context.remote_fetch_params.ssl_verify
+            proxy_match(url, params.proxy_servers),
+            params.ssl_verify
         );
     }
 }

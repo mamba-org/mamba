@@ -8,11 +8,14 @@
 #define MAMBA_DL_DOWNLOADER_IMPL_HPP
 
 #include <chrono>
+#include <fstream>
 #include <optional>
 #include <unordered_map>
 
 #include "mamba/download/downloader.hpp"
 #include "mamba/download/mirror_map.hpp"
+#include "mamba/download/parameters.hpp"
+#include "mamba/specs/authentication_info.hpp"
 #include "mamba/util/flat_set.hpp"
 
 #include "compression.hpp"
@@ -37,7 +40,9 @@ namespace mamba::download
             CURLHandle& handle,
             const MirrorRequest& request,
             CURLMultiHandle& downloader,
-            const Context& context,
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info,
+            bool verbose,
             on_success_callback success,
             on_failure_callback error
         );
@@ -55,7 +60,9 @@ namespace mamba::download
                 CURLHandle& handle,
                 const MirrorRequest& request,
                 CURLMultiHandle& downloader,
-                const Context& context,
+                const RemoteFetchParams& params,
+                const specs::AuthenticationDataBase& auth_info,
+                bool verbose,
                 on_success_callback success,
                 on_failure_callback error
             );
@@ -64,8 +71,15 @@ namespace mamba::download
             void clean_attempt(CURLMultiHandle& downloader, bool erase_downloaded);
             void invoke_progress_callback(const Event&) const;
 
-            void configure_handle(const Context& context);
-            void configure_handle_headers(const Context& context);
+            void configure_handle(
+                const RemoteFetchParams& params,
+                const specs::AuthenticationDataBase& auth_info,
+                bool verbose
+            );
+            void configure_handle_headers(
+                const RemoteFetchParams& params,
+                const specs::AuthenticationDataBase& auth_info
+            );
 
             size_t write_data(char* buffer, size_t data);
 
@@ -128,7 +142,9 @@ namespace mamba::download
         auto prepare_attempt(
             CURLHandle& handle,
             CURLMultiHandle& downloader,
-            const Context& context,
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info,
+            bool verbose,
             on_success_callback success,
             on_failure_callback error
         ) -> completion_function;
@@ -193,8 +209,12 @@ namespace mamba::download
             DownloadTrackerOptions options
         );
 
-        auto prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
-            -> completion_map_entry;
+        auto prepare_new_attempt(
+            CURLMultiHandle& handle,
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info,
+            bool verbose
+        ) -> completion_map_entry;
 
         bool has_failed() const;
         bool can_start_transfer() const;
@@ -261,7 +281,8 @@ namespace mamba::download
             MultiRequest requests,
             const mirror_map& mirrors,
             Options options,
-            const Context& context
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info
         );
 
         MultiResult download();
@@ -275,12 +296,13 @@ namespace mamba::download
         void invoke_unexpected_termination() const;
 
         MultiRequest m_requests;
-        const mirror_map* p_mirrors;
-        Options m_options;
-        const Context* p_context;
-        CURLMultiHandle m_curl_handle;
         std::vector<DownloadTracker> m_trackers;
-        size_t m_waiting_count;
+        CURLMultiHandle m_curl_handle;
+        Options m_options;
+        const mirror_map* p_mirrors;
+        const RemoteFetchParams* p_params;
+        const specs::AuthenticationDataBase* p_auth_info;
+        std::size_t m_waiting_count;
 
         using completion_function = DownloadTracker::completion_function;
         std::unordered_map<CURLId, completion_function> m_completion_map;

@@ -97,7 +97,13 @@ namespace mamba
                     url_str,
                     tmp_file->path()
                 );
-                const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
+                const download::Result res = download::download(
+                    std::move(request),
+                    ctx.mirrors,
+                    ctx.remote_fetch_params,
+                    ctx.authentication_info(),
+                    ctx.download_options()
+                );
 
                 if (!res || res.value().transfer.http_status != 200)
                 {

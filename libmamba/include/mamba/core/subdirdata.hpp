@@ -167,9 +167,6 @@ namespace mamba
 
         void clear_cache_files();
 
-        [[deprecated("since version 2.0 use ``valid_solv_cache`` or ``valid_json_cache`` instead")]]
-        auto cache_path() const -> expected_t<std::string>;
-
     private:
 
         SubdirMetadata m_metadata;

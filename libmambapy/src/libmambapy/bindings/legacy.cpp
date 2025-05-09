@@ -571,7 +571,15 @@ bind_submodule_impl(pybind11::module_ m)
                     "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",
                     "2.0"
                 );
-                return extract(self.cache_path());
+                if (auto solv_path = self.valid_libsolv_cache_path())
+                {
+                    return solv_path->string();
+                }
+                else if (auto json_path = self.valid_json_cache_path())
+                {
+                    return json_path->string();
+                }
+                throw mamba_error("Cache not loaded", mamba_error_code::cache_not_loaded);
             }
         );
 

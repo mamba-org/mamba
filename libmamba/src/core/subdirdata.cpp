@@ -521,20 +521,6 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    expected_t<std::string> SubdirData::cache_path() const
-    {
-        // TODO invalidate solv cache on version updates!!
-        if (m_json_cache_valid && m_solv_cache_valid)
-        {
-            return (get_cache_dir(m_valid_cache_path) / m_solv_filename).string();
-        }
-        else if (m_json_cache_valid)
-        {
-            return (get_cache_dir(m_valid_cache_path) / m_json_filename).string();
-        }
-        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
-    }
-
     expected_t<void> SubdirData::download_required_indexes(
         std::vector<SubdirData>& subdirs,
         const SubdirParams& subdir_params,

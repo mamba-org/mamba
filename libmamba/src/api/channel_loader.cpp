@@ -204,11 +204,16 @@ namespace mamba
             {
                 SubdirDataMonitor check_monitor({ true, true });
                 SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
+                download_res = SubdirData::download_required_indexes(
+                    subdirs,
+                    ctx,
+                    &check_monitor,
+                    &index_monitor
+                );
             }
             else
             {
-                download_res = SubdirData::download_indexes(subdirs, ctx);
+                download_res = SubdirData::download_required_indexes(subdirs, ctx);
             }
 
             if (!download_res)
@@ -235,7 +240,7 @@ namespace mamba
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 auto& subdir = subdirs[i];
-                if (!subdir.is_loaded())
+                if (!subdir.valid_cache_found())
                 {
                     if (!ctx.offline && subdir.is_noarch())
                     {

@@ -355,7 +355,8 @@ namespace
             }
         }
 
-        SubdirData::download_indexes(sub_dirs, mambatests::context());
+        const auto result = SubdirData::download_required_indexes(sub_dirs, mambatests::context());
+        REQUIRE(result.has_value());
 
         for (auto& sub_dir : sub_dirs)
         {

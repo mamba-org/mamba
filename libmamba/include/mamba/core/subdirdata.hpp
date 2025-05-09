@@ -107,14 +107,34 @@ namespace mamba
     };
 
     /**
-     * Represents a channel subdirectory (i.e. a platform)
-     * packages index. Handles downloading of the index
-     * from the server and cache generation as well.
+     * Channel sub-directory (i.e. a platform) packages index.
+     *
+     * Handles downloading of the index from the server and cache generation.
+     * This only handle traditional ``repodata.json`` full index.
+     * This abstraction does not load the index in memory, with is done by the @ref Database.
+     *
+     * Upon creation, the caches are checked for a valid and up to date index.
+     * This can be inspected with @ref valid_cache_found.
+     * The created subdirs are typically used with @ref SubdirData::download_required_indexes
+     * which will download the missing, invalid, or outdaded indexes as needed.
      */
     class SubdirData
     {
     public:
 
+        /**
+         * Download the missing, invalid, or outdaded indexes as needed in parallel.
+         *
+         * It first creates check requests to update some metadata, then download the indexes.
+         */
+        [[nodiscard]] static auto download_required_indexes(
+            std::vector<SubdirData>& subdirs,
+            const Context& context,
+            download::Monitor* check_monitor = nullptr,
+            download::Monitor* download_monitor = nullptr
+        ) -> expected_t<void>;
+
+        /** Check existing caches for a valid index validity and freshness. */
         static auto create(
             const SubdirParams& params,
             ChannelContext& channel_context,
@@ -125,12 +145,12 @@ namespace mamba
         ) -> expected_t<SubdirData>;
 
         [[nodiscard]] auto is_noarch() const -> bool;
-        [[nodiscard]] auto is_loaded() const -> bool;
         [[nodiscard]] auto name() const -> const std::string&;
         [[nodiscard]] auto channel_id() const -> const std::string&;
         [[nodiscard]] auto platform() const -> const specs::DynamicPlatform&;
         [[nodiscard]] auto metadata() const -> const SubdirMetadata&;
 
+        [[nodiscard]] auto valid_cache_found() const -> bool;
         [[nodiscard]] auto valid_libsolv_cache_path() const -> expected_t<fs::u8path>;
         [[nodiscard]] auto writable_libsolv_cache_path() const -> fs::u8path;
         [[nodiscard]] auto valid_json_cache_path() const -> expected_t<fs::u8path>;
@@ -140,16 +160,9 @@ namespace mamba
         [[deprecated("since version 2.0 use ``valid_solv_cache`` or ``valid_json_cache`` instead")]]
         auto cache_path() const -> expected_t<std::string>;
 
-        static auto download_indexes(
-            std::vector<SubdirData>& subdirs,
-            const Context& context,
-            download::Monitor* check_monitor = nullptr,
-            download::Monitor* download_monitor = nullptr
-        ) -> expected_t<void>;
-
     private:
 
-        static auto get_name(const std::string& channel_id, const std::string& platform)
+        [[nodiscard]] static auto get_name(std::string_view channel_id, std::string_view platform)
             -> std::string;
 
         SubdirData(
@@ -165,12 +178,12 @@ namespace mamba
         [[nodiscard]] auto repodata_full_url() const -> const std::string&;
 
         void load(
-            MultiPackageCache& caches,
+            const MultiPackageCache& caches,
             ChannelContext& channel_context,
             const SubdirParams& params,
             const specs::Channel& channel
         );
-        void load_cache(MultiPackageCache& caches, const SubdirParams& params);
+        void load_cache(const MultiPackageCache& caches, const SubdirParams& params);
         void update_metadata_zst(
             ChannelContext& context,
             const SubdirParams& params,
@@ -184,7 +197,7 @@ namespace mamba
         auto finalize_transfer(SubdirMetadata::HttpMetadata http_data) -> expected_t<void>;
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
-        bool m_loaded = false;
+        bool m_valid_cache_found = false;
         bool m_forbid_cache = false;
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
@@ -206,16 +219,31 @@ namespace mamba
         std::unique_ptr<TemporaryFile> m_temp_file;
     };
 
-    [[nodiscard]] std::string cache_name_from_url(std::string_view url);
+    /**
+     * Compute an id from a URL.
+     *
+     * This is intended to keep unique, filesystem-safe, cache entries in the cache directory.
+     * @see cache_filename_from_url
+     */
+    [[nodiscard]] auto cache_name_from_url(std::string url) -> std::string;
 
-    // Contrary to conda original function, this one expects a full url
-    // (that is channel url + / + repodata_fn). It is not the
-    // responsibility of this function to decide whether it should
-    // concatenate base url and repodata depending on repodata value
-    // and old behavior support.
-    std::string cache_fn_url(const std::string& url);
-    std::string create_cache_dir(const fs::u8path& cache_path);
+    /**
+     * Compute a filename from a URL.
+     *
+     * This is intended to keep unique, filesystem-safe, cache entries in the cache directory.
+     * Contrary to conda original function, this one expects a full url (that is
+     * channel url + / + repodata_fn).
+     * It is not the responsibility of this function to decide whether it should concatenate base
+     * url and repodata depending on repodata value and old behavior support.
+     */
+    [[nodiscard]] auto cache_filename_from_url(std::string url) -> std::string;
 
-}  // namespace mamba
+    /**
+     * Create cache directory with correct permissions
+     *
+     * @return The path to the directory created
+     */
+    auto create_cache_dir(const fs::u8path& cache_path) -> std::string;
 
-#endif  // MAMBA_SUBDIRDATA_HPP
+}
+#endif

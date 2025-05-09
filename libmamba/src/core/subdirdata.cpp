@@ -431,9 +431,9 @@ namespace mamba
         return specs::platform_is_noarch(m_platform);
     }
 
-    bool SubdirData::is_loaded() const
+    bool SubdirData::valid_cache_found() const
     {
-        return m_loaded;
+        return m_valid_cache_found;
     }
 
     void SubdirData::clear_cache_files()
@@ -505,7 +505,7 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    expected_t<void> SubdirData::download_indexes(
+    expected_t<void> SubdirData::download_required_indexes(
         std::vector<SubdirData>& subdirs,
         const Context& context,
         download::Monitor* check_monitor,
@@ -515,7 +515,7 @@ namespace mamba
         download::MultiRequest check_requests;
         for (auto& subdir : subdirs)
         {
-            if (!subdir.is_loaded())
+            if (!subdir.valid_cache_found())
             {
                 download::MultiRequest check_list = subdir.build_check_requests(
                     context.subdir_params()
@@ -543,7 +543,7 @@ namespace mamba
             download::MultiRequest index_requests;
             for (auto& subdir : subdirs)
             {
-                if (!subdir.is_loaded())
+                if (!subdir.valid_cache_found())
                 {
                     index_requests.push_back(subdir.build_index_request());
                 }
@@ -569,7 +569,7 @@ namespace mamba
         return expected_t<void>();
     }
 
-    std::string SubdirData::get_name(const std::string& channel_id, const std::string& platform)
+    std::string SubdirData::get_name(std::string_view channel_id, std::string_view platform)
     {
         return util::url_concat(channel_id, "/", platform);
     }
@@ -589,7 +589,7 @@ namespace mamba
         , m_channel_id(channel.id())
         , m_name(get_name(m_channel_id, m_platform))
         , m_repodata_fn(std::move(repodata_fn))
-        , m_json_filename(cache_fn_url(name()))
+        , m_json_filename(cache_filename_from_url(name()))
         , m_solv_filename(m_json_filename.substr(0, m_json_filename.size() - 4) + "solv")
     {
         m_full_url = util::url_concat(channel.url().str(), "/", repodata_url_path());
@@ -610,7 +610,7 @@ namespace mamba
     }
 
     void SubdirData::load(
-        MultiPackageCache& caches,
+        const MultiPackageCache& caches,
         ChannelContext& channel_context,
         const SubdirParams& params,
         const specs::Channel& channel
@@ -621,7 +621,7 @@ namespace mamba
             load_cache(caches, params);
         }
 
-        if (m_loaded)
+        if (m_valid_cache_found)
         {
             Console::stream() << fmt::format("{:<50} {:>20}", name(), std::string("Using cache"));
         }
@@ -637,7 +637,7 @@ namespace mamba
         }
     }
 
-    void SubdirData::load_cache(MultiPackageCache& caches, const SubdirParams& context)
+    void SubdirData::load_cache(const MultiPackageCache& caches, const SubdirParams& params)
     {
         LOG_INFO << "Searching index cache file for repo '" << name() << "'";
         file_time_point now = fs::file_time_type::clock::now();
@@ -670,22 +670,22 @@ namespace mamba
 
             const int max_age = get_max_age(
                 m_metadata.cache_control(),
-                static_cast<int>(context.local_repodata_ttl)
+                static_cast<int>(params.local_repodata_ttl)
             );
             const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
                                                .count();
 
-            if ((max_age > cache_age_seconds || context.offline || context.use_index_cache))
+            if ((max_age > cache_age_seconds || params.offline || params.use_index_cache))
             {
                 // valid json cache found
-                if (!m_loaded)
+                if (!m_valid_cache_found)
                 {
                     LOG_DEBUG << "Using JSON cache";
                     LOG_TRACE << "Cache age: " << cache_age_seconds << "/" << max_age << "s";
 
                     m_valid_cache_path = cache_path;
                     m_json_cache_valid = true;
-                    m_loaded = true;
+                    m_valid_cache_found = true;
                 }
 
                 // check libsolv cache
@@ -718,11 +718,11 @@ namespace mamba
 
     void SubdirData::update_metadata_zst(
         ChannelContext& channel_context,
-        const SubdirParams& context,
+        const SubdirParams& params,
         const specs::Channel& channel
     )
     {
-        if (!context.offline || m_forbid_cache)
+        if (!params.offline || m_forbid_cache)
         {
             m_metadata.set_zst(m_metadata.has_up_to_date_zst() || channel_context.has_zst(channel));
         }
@@ -868,7 +868,7 @@ namespace mamba
         refresh_last_write_time(json_file, solv_file);
 
         m_temp_file.reset();
-        m_loaded = true;
+        m_valid_cache_found = true;
         return expected_t<void>();
     }
 
@@ -913,7 +913,7 @@ namespace mamba
         m_temp_file.reset();
         m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
-        m_loaded = true;
+        m_valid_cache_found = true;
 
         return expected_t<void>();
     }
@@ -945,26 +945,25 @@ namespace mamba
         m_metadata.write_state_file(state_file);
     }
 
-    std::string cache_name_from_url(std::string_view url)
+    std::string cache_name_from_url(std::string url)
     {
-        auto u = std::string(url);
-        if (u.empty() || (u.back() != '/' && !util::ends_with(u, ".json")))
+        if (url.empty() || (url.back() != '/' && !util::ends_with(url, ".json")))
         {
-            u += '/';
+            url += '/';
         }
 
         // mimicking conda's behavior by special handling repodata.json
         // todo support .zst
-        if (util::ends_with(u, "/repodata.json"))
+        if (util::ends_with(url, "/repodata.json"))
         {
-            u = u.substr(0, u.size() - 13);
+            url = url.substr(0, url.size() - 13);
         }
-        return util::Md5Hasher().str_hex_str(u).substr(0, 8u);
+        return util::Md5Hasher().str_hex_str(url).substr(0, 8u);
     }
 
-    std::string cache_fn_url(const std::string& url)
+    std::string cache_filename_from_url(std::string url)
     {
-        return cache_name_from_url(url) + ".json";
+        return cache_name_from_url(std::move(url)) + ".json";
     }
 
     std::string create_cache_dir(const fs::u8path& cache_path)
@@ -1001,4 +1000,4 @@ namespace mamba
 
         return cache_dir.string();
     }
-}  // namespace mamba
+}

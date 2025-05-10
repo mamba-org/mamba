@@ -513,21 +513,31 @@ namespace mamba
         content << R"nu(def --env ")nu" << exe_name << R"nu( deactivate"  [] {)nu";
         content << R"###(
     #remove active environment except base env
-    for x in (^$env.MAMBA_EXE shell deactivate --shell nu
-            | split row (if $nu.os-info.name == "windows" { ";" } else { ":" })) {
-        if ("hide-env" in $x) {
-          hide-env ($x | parse "hide-env {var}").var.0
-        } else if $x != "" {
-          let keyValue = ($x
-          | str replace --regex '\s+' "" --all
-          | parse '{key}={value}'
-          )
-          load-env {$keyValue.0.key: $keyValue.0.value}
+    def --env "micromamba deactivate"  [] {
+        for x in (^$env.MAMBA_EXE shell deactivate --shell nu | lines) {
+            if ("hide-env" in $x) {
+                hide-env (($x | parse "hide-env {var}").0.var)
+            } else if ($x =~ "=") {
+                let keyValue = ($x
+                    | str replace --regex '\s+' "" --all
+                    | parse '{key}={value}'
+                )
+            if ($keyValue | is-empty) == false {
+                let k = $keyValue.0.key
+                let v = $keyValue.0.value
+                # special-case PATH: convert to list
+                if $k == "PATH" {
+                    let path_list = ($v | split row ":")
+                    load-env { PATH: $path_list }
+                } else {
+                    load-env { $k: $v }
+                    }
+                }
+            }
         }
-    }
     # reset prompt
     $env.PROMPT_COMMAND = $env.PROMPT_COMMAND_BK
-  }
+    }
 )###" << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();

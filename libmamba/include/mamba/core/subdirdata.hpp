@@ -241,21 +241,12 @@ namespace mamba
             -> download::MultiRequest;
         auto build_check_requests(const SubdirParams& params) -> download::MultiRequest;
 
-        static auto process_all_check_requests(
-            download::MultiRequest check_requests,
-            const specs::AuthenticationDataBase& auth_info,
-            const download::mirror_map& mirrors,
-            const download::Options& download_options,
-            const download::RemoteFetchParams& remote_fetch_params,
-            download::Monitor* check_monitor
-        ) -> expected_t<void>;
-
         template <typename First, typename End>
         static auto build_all_index_requests(First&& subdirs_first, End&& subdirs_last)
             -> download::MultiRequest;
         auto build_index_request() -> download::Request;
 
-        static auto process_all_index_requests(
+        [[nodiscard]] static auto download_requests(
             download::MultiRequest index_requests,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
@@ -308,9 +299,8 @@ namespace mamba
         download::Monitor* download_monitor
     ) -> expected_t<void>
     {
-        auto check_requests = build_all_check_requests(subdirs_first, subdirs_last, subdir_params);
-        process_all_check_requests(
-            std::move(check_requests),
+        auto result = download_requests(
+            build_all_check_requests(subdirs_first, subdirs_last, subdir_params),
             auth_info,
             mirrors,
             download_options,
@@ -318,15 +308,22 @@ namespace mamba
             check_monitor
         );
 
+        // Allow to continue if failed checks, unless asked to stop.
+        constexpr auto is_interrupted = [](const auto& e)
+        { return e.error_code() == mamba_error_code::user_interrupted; };
+        if (!result.has_value() && result.map_error(is_interrupted).error())
+        {
+            return result;
+        }
+
         // TODO load local channels even when offline if (!ctx.offline)
         if (subdir_params.offline)
         {
             return expected_t<void>();
         }
 
-        auto index_requests = build_all_index_requests(subdirs_first, subdirs_last);
-        return process_all_index_requests(
-            std::move(index_requests),
+        return download_requests(
+            build_all_index_requests(subdirs_first, subdirs_last),
             auth_info,
             mirrors,
             download_options,

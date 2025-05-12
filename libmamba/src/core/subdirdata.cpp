@@ -521,55 +521,33 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    auto SubdirData::process_all_check_requests(
-        download::MultiRequest check_requests,
+    auto SubdirData::download_requests(
+        download::MultiRequest requests,
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
         const download::Options& download_options,
         const download::RemoteFetchParams& remote_fetch_params,
-        download::Monitor* check_monitor
-    ) -> expected_t<void>
-    {
-        // TODO why no try and why not check is_sig_interrupted in other?
-        download::download(
-            std::move(check_requests),
-            mirrors,
-            remote_fetch_params,
-            auth_info,
-            download_options,
-            check_monitor
-        );
-
-        if (is_sig_interrupted())
-        {
-            return make_unexpected("Interrupted by user", mamba_error_code::user_interrupted);
-        }
-        return expected_t<void>();
-    }
-
-    auto SubdirData::process_all_index_requests(
-        download::MultiRequest index_requests,
-        const specs::AuthenticationDataBase& auth_info,
-        const download::mirror_map& mirrors,
-        const download::Options& download_options,
-        const download::RemoteFetchParams& remote_fetch_params,
-        download::Monitor* download_monitor
+        download::Monitor* monitor
     ) -> expected_t<void>
     {
         try
         {
             download::download(
-                std::move(index_requests),
+                std::move(requests),
                 mirrors,
                 remote_fetch_params,
                 auth_info,
                 download_options,
-                download_monitor
+                monitor
             );
         }
         catch (const std::runtime_error& e)
         {
             return make_unexpected(e.what(), mamba_error_code::repodata_not_loaded);
+        }
+        if (is_sig_interrupted())
+        {
+            return make_unexpected("Interrupted by user", mamba_error_code::user_interrupted);
         }
 
         return expected_t<void>();

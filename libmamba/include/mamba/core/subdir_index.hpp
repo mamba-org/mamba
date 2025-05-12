@@ -117,10 +117,10 @@ namespace mamba
      *
      * Upon creation, the caches are checked for a valid and up to date index.
      * This can be inspected with @ref valid_cache_found.
-     * The created subdirs are typically used with @ref SubdirData::download_required_indexes
+     * The created subdirs are typically used with @ref SubdirIndexLoader::download_required_indexes
      * which will download the missing, invalid, or outdated indexes as needed.
      */
-    class SubdirData
+    class SubdirIndexLoader
     {
     public:
 
@@ -163,7 +163,7 @@ namespace mamba
             specs::DynamicPlatform platform,
             MultiPackageCache& caches,
             std::string repodata_filename = "repodata.json"
-        ) -> expected_t<SubdirData>;
+        ) -> expected_t<SubdirIndexLoader>;
 
         [[nodiscard]] auto is_noarch() const -> bool;
         [[nodiscard]] auto is_local() const -> bool;
@@ -197,7 +197,7 @@ namespace mamba
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
 
-        SubdirData(
+        SubdirIndexLoader(
             const SubdirParams& params,
             ChannelContext& channel_context,
             specs::Channel channel,
@@ -208,9 +208,9 @@ namespace mamba
 
         [[nodiscard]] auto repodata_url_path() const -> std::string;
 
-        /**************************************************
-         *  Implementation details of SubdirData::create  *
-         **************************************************/
+        /*********************************************************
+         *  Implementation details of SubdirIndexLoader::create  *
+         *********************************************************/
 
         void load(
             const MultiPackageCache& caches,
@@ -225,9 +225,9 @@ namespace mamba
             const specs::Channel& channel
         );
 
-        /*********************************************************************
-         *  Implementation details of SubdirData::download_required_indexes  *
-         *********************************************************************/
+        /****************************************************************************
+         *  Implementation details of SubdirIndexLoader::download_required_indexes  *
+         ****************************************************************************/
 
         auto use_existing_cache() -> expected_t<void>;
         auto finalize_transfer(SubdirMetadata::HttpMetadata http_data, const fs::u8path& artifact)
@@ -282,12 +282,12 @@ namespace mamba
      */
     auto create_cache_dir(const fs::u8path& cache_path) -> std::string;
 
-    /**********************************
-     *  Implementation of Subdirdata  *
-     **********************************/
+    /*****************************************
+     *  Implementation of SubdirIndexLoader  *
+     *****************************************/
 
     template <typename SubdirIter1, typename SubdirIter2>
-    auto SubdirData::download_required_indexes(
+    auto SubdirIndexLoader::download_required_indexes(
         SubdirIter1 subdirs_first,
         SubdirIter2 subdirs_last,
         const SubdirParams& subdir_params,
@@ -328,7 +328,7 @@ namespace mamba
     }
 
     template <typename Subdirs>
-    auto SubdirData::download_required_indexes(
+    auto SubdirIndexLoader::download_required_indexes(
         Subdirs& subdirs,
         const SubdirParams& subdir_params,
         const specs::AuthenticationDataBase& auth_info,
@@ -353,9 +353,11 @@ namespace mamba
     }
 
     template <typename First, typename End>
-    auto
-    SubdirData::build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
-        -> download::MultiRequest
+    auto SubdirIndexLoader::build_all_check_requests(
+        First subdirs_first,
+        End subdirs_last,
+        const SubdirParams& params
+    ) -> download::MultiRequest
     {
         download::MultiRequest requests;
         for (; subdirs_first != subdirs_last; ++subdirs_first)
@@ -370,9 +372,11 @@ namespace mamba
     }
 
     template <typename First, typename End>
-    auto
-    SubdirData::build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
-        -> download::MultiRequest
+    auto SubdirIndexLoader::build_all_index_requests(
+        First subdirs_first,
+        End subdirs_last,
+        const SubdirParams& params
+    ) -> download::MultiRequest
     {
         download::MultiRequest requests;
         for (; subdirs_first != subdirs_last; ++subdirs_first)

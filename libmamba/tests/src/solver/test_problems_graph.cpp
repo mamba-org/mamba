@@ -17,7 +17,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -334,7 +334,7 @@ namespace
         std::vector<std::string>&& channels
     )
     {
-        auto sub_dirs = std::vector<SubdirData>();
+        auto sub_dirs = std::vector<SubdirIndexLoader>();
         for (const auto& location : channels)
         {
             for (const auto& chan : channel_context.make_channel(location))
@@ -342,7 +342,7 @@ namespace
                 create_mirrors(ctx, chan);
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = SubdirData::create(
+                    auto sub_dir = SubdirIndexLoader::create(
                                        ctx.subdir_params(),
                                        channel_context,
                                        chan,
@@ -355,7 +355,7 @@ namespace
             }
         }
 
-        const auto result = SubdirData::download_required_indexes(
+        const auto result = SubdirIndexLoader::download_required_indexes(
             sub_dirs,
             mambatests::context().subdir_params(),
             mambatests::context().authentication_info(),

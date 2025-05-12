@@ -27,7 +27,7 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -139,7 +139,7 @@ namespace mambapy
 
         struct Entry
         {
-            mamba::SubdirData* p_subdirdata = nullptr;
+            mamba::SubdirIndexLoader* p_subdirdata = nullptr;
             std::string m_platform = "";
             const mamba::specs::Channel* p_channel = nullptr;
             std::string m_url = "";
@@ -161,9 +161,14 @@ namespace mambapy
         )
         {
             using namespace mamba;
-            m_subdirs.push_back(extract(
-                SubdirData::create(ctx.subdir_params(), channel_context, channel, platform, caches, repodata_fn)
-            ));
+            m_subdirs.push_back(extract(SubdirIndexLoader::create(
+                ctx.subdir_params(),
+                channel_context,
+                channel,
+                platform,
+                caches,
+                repodata_fn
+            )));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
             {
@@ -177,11 +182,11 @@ namespace mambapy
             // TODO: expose SubdirDataMonitor to libmambapy and remove this
             //  logic
             expected_t<void> download_res;
-            if (SubdirDataMonitor::can_monitor(ctx))
+            if (SubdirIndexMonitor::can_monitor(ctx))
             {
-                SubdirDataMonitor check_monitor({ true, true });
-                SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_required_indexes(
+                SubdirIndexMonitor check_monitor({ true, true });
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_required_indexes(
                     m_subdirs,
                     ctx.subdir_params(),
                     ctx.authentication_info(),
@@ -194,7 +199,7 @@ namespace mambapy
             }
             else
             {
-                download_res = SubdirData::download_required_indexes(
+                download_res = SubdirIndexLoader::download_required_indexes(
                     m_subdirs,
                     ctx.subdir_params(),
                     ctx.authentication_info(),
@@ -228,7 +233,7 @@ namespace mambapy
 
     private:
 
-        std::vector<mamba::SubdirData> m_subdirs;
+        std::vector<mamba::SubdirIndexLoader> m_subdirs;
         entry_list m_entries;
     };
 }
@@ -526,10 +531,10 @@ bind_submodule_impl(pybind11::module_ m)
         .def_static("whoneeds", &Query::whoneeds)
         .def_static("depends", &Query::depends);
 
-    py::class_<SubdirData>(m, "SubdirData")
+    py::class_<SubdirIndexLoader>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& self, Context& context, solver::libsolv::Database& database
+            [](SubdirIndexLoader& self, Context& context, solver::libsolv::Database& database
             ) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
@@ -538,11 +543,11 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("context"),
             py::arg("db")
         )
-        .def("loaded", &SubdirData::valid_cache_found)
+        .def("loaded", &SubdirIndexLoader::valid_cache_found)
         .def(
             "valid_solv_cache",
             // TODO make a proper well tested type caster for expected types.
-            [](const SubdirData& self) -> std::optional<fs::u8path>
+            [](const SubdirIndexLoader& self) -> std::optional<fs::u8path>
             {
                 if (auto f = self.valid_libsolv_cache_path())
                 {
@@ -553,7 +558,7 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "valid_json_cache",
-            [](const SubdirData& self) -> std::optional<fs::u8path>
+            [](const SubdirIndexLoader& self) -> std::optional<fs::u8path>
             {
                 if (auto f = self.valid_json_cache_path())
                 {
@@ -564,7 +569,7 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "cache_path",
-            [](const SubdirData& self) -> std::string
+            [](const SubdirIndexLoader& self) -> std::string
             {
                 deprecated(
                     "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",

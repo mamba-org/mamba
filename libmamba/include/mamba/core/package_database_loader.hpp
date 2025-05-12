@@ -15,7 +15,7 @@ namespace mamba
 {
     class Context;
     class PrefixData;
-    class SubdirData;
+    class SubdirIndexLoader;
 
     namespace solver::libsolv
     {
@@ -27,7 +27,7 @@ namespace mamba
     auto load_subdir_in_database(  //
         const Context& ctx,
         solver::libsolv::Database& database,
-        const SubdirData& subdir
+        const SubdirIndexLoader& subdir
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
     auto load_installed_packages_in_database(

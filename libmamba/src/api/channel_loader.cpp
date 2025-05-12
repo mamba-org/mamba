@@ -10,7 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -54,7 +54,7 @@ namespace mamba
             ChannelContext& channel_context,
             const specs::Channel& channel,
             MultiPackageCache& package_caches,
-            std::vector<SubdirData>& subdirs,
+            std::vector<SubdirIndexLoader>& subdirs,
             std::vector<mamba_error>& error_list,
             std::vector<solver::libsolv::Priorities>& priorities,
             int& max_prio,
@@ -76,7 +76,7 @@ namespace mamba
                     LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
                 }
 
-                auto sdires = SubdirData::create(
+                auto sdires = SubdirIndexLoader::create(
                     ctx.subdir_params(),
                     channel_context,
                     channel,
@@ -130,7 +130,7 @@ namespace mamba
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
         {
-            std::vector<SubdirData> subdirs;
+            std::vector<SubdirIndexLoader> subdirs;
 
             std::vector<solver::libsolv::Priorities> priorities;
             int max_prio = static_cast<int>(ctx.channels.size());
@@ -200,11 +200,11 @@ namespace mamba
             }
 
             expected_t<void> download_res;
-            if (SubdirDataMonitor::can_monitor(ctx))
+            if (SubdirIndexMonitor::can_monitor(ctx))
             {
-                SubdirDataMonitor check_monitor({ true, true });
-                SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_required_indexes(
+                SubdirIndexMonitor check_monitor({ true, true });
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_required_indexes(
                     subdirs,
                     ctx.subdir_params(),
                     ctx.authentication_info(),
@@ -217,7 +217,7 @@ namespace mamba
             }
             else
             {
-                download_res = SubdirData::download_required_indexes(
+                download_res = SubdirIndexLoader::download_required_indexes(
                     subdirs,
                     ctx.subdir_params(),
                     ctx.authentication_info(),

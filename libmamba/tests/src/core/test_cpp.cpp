@@ -16,7 +16,7 @@
 #include "mamba/core/history.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 

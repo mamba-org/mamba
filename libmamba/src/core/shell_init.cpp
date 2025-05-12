@@ -1284,7 +1284,15 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
-            fs::u8path zshrc_path = home / ".zshrc";
+            fs::u8path zshrc_path
+            // use ZDOTDIR if set and fallback to HOME
+            const char* zdotdir = std::getenv("ZDOTDIR");
+            if (zdotdir != nullptr && zdotdir[0] != '\0')
+            {
+                zshrc_path = fs::u8path(zdotdir) / ".zshrc";
+            } else {
+                zshrc_path = home / ".zshrc";
+            }
             modify_rc_file(context, zshrc_path, conda_prefix, shell, mamba_exe);
         }
         else if (shell == "csh")
@@ -1358,7 +1366,15 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
-            fs::u8path zshrc_path = home / ".zshrc";
+            fs::u8path zshrc_path
+            // use ZDOTDIR if set and fallback to HOME
+            const char* zdotdir = std::getenv("ZDOTDIR");
+            if (zdotdir != nullptr && zdotdir[0] != '\0')
+            {
+                zshrc_path = fs::u8path(zdotdir) / ".zshrc";
+            } else {
+                zshrc_path = home / ".zshrc";
+            }
             reset_rc_file(context, zshrc_path, shell, mamba_exe);
         }
         else if (shell == "xonsh")
@@ -1424,7 +1440,14 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
-            config_path = home / ".zshrc";
+            // use ZDOTDIR if set and fallback to HOME
+            const char* zdotdir = std::getenv("ZDOTDIR");
+            if (zdotdir != nullptr && zdotdir[0] != '\0')
+            {
+                config_path = fs::u8path(zdotdir) / ".zshrc";
+            } else {
+                config_path = home / ".zshrc";
+            }
         }
         else if (shell == "xonsh")
         {

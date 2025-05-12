@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <optional>
 #include <string>
+#include <type_traits>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -362,9 +363,21 @@ namespace mamba
         download::MultiRequest requests;
         for (; subdirs_first != subdirs_last; ++subdirs_first)
         {
-            if (!subdirs_first->valid_cache_found())
+            // TODO(C++23): We make a special handling of iterators of pointers due to the
+            // difficulty and necessity to create a range of references from Python objects.
+            SubdirIndexLoader* p_subdir = nullptr;
+            if constexpr (std::is_pointer_v<std::remove_reference_t<decltype(*subdirs_first)>>)
             {
-                auto check_list = subdirs_first->build_check_requests(params);
+                p_subdir = *subdirs_first;
+            }
+            else
+            {
+                p_subdir = &(*subdirs_first);
+            }
+
+            if (p_subdir != nullptr && !p_subdir->valid_cache_found())
+            {
+                auto check_list = p_subdir->build_check_requests(params);
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(requests));
             }
         }
@@ -381,9 +394,21 @@ namespace mamba
         download::MultiRequest requests;
         for (; subdirs_first != subdirs_last; ++subdirs_first)
         {
-            if (!subdirs_first->valid_cache_found())
+            // TODO(C++23): We make a special handling of iterators of pointers due to the
+            // difficulty and necessity to create a range of references from Python objects.
+            SubdirIndexLoader* p_subdir = nullptr;
+            if constexpr (std::is_pointer_v<std::remove_reference_t<decltype(*subdirs_first)>>)
             {
-                if (auto request = subdirs_first->build_index_request(params))
+                p_subdir = *subdirs_first;
+            }
+            else
+            {
+                p_subdir = &(*subdirs_first);
+            }
+
+            if (!p_subdir->valid_cache_found())
+            {
+                if (auto request = p_subdir->build_index_request(params))
                 {
                     requests.push_back(*std::move(request));
                 }

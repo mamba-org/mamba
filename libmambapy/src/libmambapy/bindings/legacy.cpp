@@ -606,11 +606,11 @@ bind_submodule_impl(pybind11::module_ m)
                const download::RemoteFetchParams& remote_fetch_params)
             {
                 // TODO(C++23): Pass range to SubdirIndexLoader::create
-                auto subdirs = std::vector<SubdirIndexLoader>();
+                auto subdirs = std::vector<SubdirIndexLoader*>();
                 subdirs.reserve(py::len_hint(py_subdirs));
                 for (py::handle item : py_subdirs)
                 {
-                    subdirs.push_back(py::cast<SubdirIndexLoader>(item));
+                    subdirs.push_back(py::cast<SubdirIndexLoader*>(item));
                 }
                 return SubdirIndexLoader::download_required_indexes(
                     subdirs,

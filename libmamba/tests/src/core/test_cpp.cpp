@@ -425,7 +425,7 @@ namespace mamba
             REQUIRE(j.etag() == "something else");
             REQUIRE(j.last_modified() == "Fri, 11 Feb 2022 13:52:44 GMT");
             REQUIRE(j.url() == "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
-            REQUIRE(j.has_zst() == false);
+            REQUIRE(j.has_up_to_date_zst() == false);
         }
     }
 }  // namespace mamba

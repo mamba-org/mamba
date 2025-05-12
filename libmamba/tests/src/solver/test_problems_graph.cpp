@@ -342,14 +342,28 @@ namespace
                 create_mirrors(ctx, chan);
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = SubdirData::create(ctx, channel_context, chan, platform, cache)
+                    auto sub_dir = SubdirData::create(
+                                       ctx.subdir_params(),
+                                       channel_context,
+                                       chan,
+                                       platform,
+                                       cache
+                    )
                                        .value();
                     sub_dirs.push_back(std::move(sub_dir));
                 }
             }
         }
 
-        SubdirData::download_indexes(sub_dirs, mambatests::context());
+        const auto result = SubdirData::download_required_indexes(
+            sub_dirs,
+            mambatests::context().subdir_params(),
+            mambatests::context().authentication_info(),
+            mambatests::context().mirrors,
+            mambatests::context().download_options(),
+            mambatests::context().remote_fetch_params
+        );
+        REQUIRE(result.has_value());
 
         for (auto& sub_dir : sub_dirs)
         {

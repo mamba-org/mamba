@@ -78,6 +78,9 @@ namespace mamba::specs
     [[nodiscard]] auto platform_is_win(KnownPlatform plat) -> bool;
     [[nodiscard]] auto platform_is_win(DynamicPlatform plat) -> bool;
 
+    [[nodiscard]] auto platform_is_noarch(KnownPlatform plat) -> bool;
+    [[nodiscard]] auto platform_is_noarch(DynamicPlatform plat) -> bool;
+
     /**
      * Detect the platform on which mamba was built.
      */

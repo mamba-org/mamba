@@ -14,6 +14,7 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/palette.hpp"
+#include "mamba/core/subdir_parameters.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/download/parameters.hpp"
@@ -174,6 +175,14 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
+        OutputParams output_params;
+        GraphicsParams graphics_params;
+        SrcParams src_params;
+        CommandParams command_params;
+        ThreadsParams threads_params;
+        PrefixParams prefix_params;
+        ValidationParams validation_params;
+
         download::RemoteFetchParams remote_fetch_params = {
             /* .ssl_verify */ { "" },
             /* .ssl_no_revoke */ false,
@@ -196,13 +205,15 @@ namespace mamba
             };
         }
 
-        OutputParams output_params;
-        GraphicsParams graphics_params;
-        SrcParams src_params;
-        CommandParams command_params;
-        ThreadsParams threads_params;
-        PrefixParams prefix_params;
-        ValidationParams validation_params;
+        SubdirParams subdir_params() const
+        {
+            return {
+                /* .local_repodata_ttl */ this->local_repodata_ttl,
+                /* .offline */ this->offline,
+                /* .use_index_cache */ this->use_index_cache,
+                /* .repodata_use_zst */ this->repodata_use_zst,
+            };
+        }
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;

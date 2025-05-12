@@ -68,7 +68,19 @@ namespace mamba::specs
     auto platform_is_win(DynamicPlatform plat) -> bool
     {
         static constexpr auto repr = std::string_view("win");
-        return (plat.size() >= repr.size()) && util::starts_with(util::to_lower(plat), repr);
+        return (plat.size() >= repr.size())
+               && util::starts_with(util::to_lower(std::move(plat)), repr);
+    }
+
+    auto platform_is_noarch(KnownPlatform plat) -> bool
+    {
+        return plat == KnownPlatform::noarch;
+    }
+
+    auto platform_is_noarch(DynamicPlatform plat) -> bool
+    {
+        static constexpr auto repr = std::string_view("noarch");
+        return util::starts_with(util::to_lower(std::move(plat)), repr);
     }
 
     /**

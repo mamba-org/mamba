@@ -162,7 +162,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                SubdirData::create(ctx, channel_context, channel, platform, caches, repodata_fn)
+                SubdirData::create(ctx.subdir_params(), channel_context, channel, platform, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -181,11 +181,27 @@ namespace mambapy
             {
                 SubdirDataMonitor check_monitor({ true, true });
                 SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_indexes(m_subdirs, ctx, &check_monitor, &index_monitor);
+                download_res = SubdirData::download_required_indexes(
+                    m_subdirs,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    &check_monitor,
+                    &index_monitor
+                );
             }
             else
             {
-                download_res = SubdirData::download_indexes(m_subdirs, ctx);
+                download_res = SubdirData::download_required_indexes(
+                    m_subdirs,
+                    ctx.subdir_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params
+                );
             }
             return download_res.has_value();
         }
@@ -522,13 +538,13 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("context"),
             py::arg("db")
         )
-        .def("loaded", &SubdirData::is_loaded)
+        .def("loaded", &SubdirData::valid_cache_found)
         .def(
             "valid_solv_cache",
             // TODO make a proper well tested type caster for expected types.
             [](const SubdirData& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_solv_cache())
+                if (auto f = self.valid_libsolv_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -539,7 +555,7 @@ bind_submodule_impl(pybind11::module_ m)
             "valid_json_cache",
             [](const SubdirData& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_json_cache())
+                if (auto f = self.valid_json_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -554,7 +570,15 @@ bind_submodule_impl(pybind11::module_ m)
                     "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",
                     "2.0"
                 );
-                return extract(self.cache_path());
+                if (auto solv_path = self.valid_libsolv_cache_path())
+                {
+                    return solv_path->string();
+                }
+                else if (auto json_path = self.valid_json_cache_path())
+                {
+                    return json_path->string();
+                }
+                throw mamba_error("Cache not loaded", mamba_error_code::cache_not_loaded);
             }
         );
 
@@ -602,7 +626,16 @@ bind_submodule_impl(pybind11::module_ m)
             py::keep_alive<0, 1>()
         );
 
-    m.def("cache_fn_url", &cache_fn_url);
+    m.def("cache_name_from_url", &cache_name_from_url);
+    m.def(
+        "cache_fn_url",
+        [](std::string url)
+        {
+            deprecated("This function was renamed `cache_filename_from_url`.", "2.3.0");
+            return cache_filename_from_url(std::move(url));
+        }
+    );
+    m.def("cache_filename_from_url", &cache_filename_from_url);
     m.def("create_cache_dir", &create_cache_dir);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")

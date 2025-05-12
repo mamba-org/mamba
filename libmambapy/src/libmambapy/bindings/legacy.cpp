@@ -741,16 +741,16 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
-    py::class_<Context::RemoteFetchParams>(ctx, "RemoteFetchParams")
+    py::class_<download::RemoteFetchParams>(ctx, "RemoteFetchParams")
         .def(py::init<>())
-        .def_readwrite("ssl_verify", &Context::RemoteFetchParams::ssl_verify)
-        .def_readwrite("max_retries", &Context::RemoteFetchParams::max_retries)
-        .def_readwrite("retry_timeout", &Context::RemoteFetchParams::retry_timeout)
-        .def_readwrite("retry_backoff", &Context::RemoteFetchParams::retry_backoff)
-        .def_readwrite("user_agent", &Context::RemoteFetchParams::user_agent)
+        .def_readwrite("ssl_verify", &download::RemoteFetchParams::ssl_verify)
+        .def_readwrite("max_retries", &download::RemoteFetchParams::max_retries)
+        .def_readwrite("retry_timeout", &download::RemoteFetchParams::retry_timeout)
+        .def_readwrite("retry_backoff", &download::RemoteFetchParams::retry_backoff)
+        .def_readwrite("user_agent", &download::RemoteFetchParams::user_agent)
         // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
-        .def_readwrite("proxy_servers", &Context::RemoteFetchParams::proxy_servers)
-        .def_readwrite("connect_timeout_secs", &Context::RemoteFetchParams::connect_timeout_secs);
+        .def_readwrite("proxy_servers", &download::RemoteFetchParams::proxy_servers)
+        .def_readwrite("connect_timeout_secs", &download::RemoteFetchParams::connect_timeout_secs);
 
     py::class_<Context::OutputParams>(ctx, "OutputParams")
         .def(py::init<>())

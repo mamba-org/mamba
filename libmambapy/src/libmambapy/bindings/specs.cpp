@@ -20,6 +20,7 @@
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"
+#include "mamba/version.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -27,8 +28,10 @@
 #include "flat_set_caster.hpp"
 #include "weakening_map_bind.hpp"
 
-PYBIND11_MAKE_OPAQUE(mamba::specs::VersionPart);
-PYBIND11_MAKE_OPAQUE(mamba::specs::CommonVersion);
+using OldVersionPart = std::vector<mamba::specs::VersionPartAtom>;
+using OldCommonVersion = std::vector<OldVersionPart>;
+PYBIND11_MAKE_OPAQUE(OldVersionPart);
+PYBIND11_MAKE_OPAQUE(OldCommonVersion);
 
 namespace mambapy
 {
@@ -519,7 +522,7 @@ namespace mambapy
                 "literal",
                 [](const VersionPartAtom& atom) { return atom.literal(); }
             )
-            .def("__str__", &VersionPartAtom::str)
+            .def("__str__", &VersionPartAtom::to_string)
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def(py::self < py::self)
@@ -529,11 +532,28 @@ namespace mambapy
             .def("__copy__", &copy<VersionPartAtom>)
             .def("__deepcopy__", &deepcopy<VersionPartAtom>, py::arg("memo"));
 
-        // Type made opaque at the top of this file
-        py::bind_vector<VersionPart>(m, "VersionPart");
+        // TODO(3.0): Align the Python API of VersionPart (and thus break CommonVersion,
+        // Version::version, Version::local), with the C++ one.
+        static_assert(LIBMAMBA_VERSION_MAJOR < 3, "Take the major release opportunity to clean APIs.");
 
         // Type made opaque at the top of this file
-        py::bind_vector<CommonVersion>(m, "CommonVersion");
+        py::bind_vector<OldVersionPart>(m, "VersionPart");
+
+        // Type made opaque at the top of this file
+        py::bind_vector<OldCommonVersion>(m, "CommonVersion");
+
+        constexpr auto common_version_backport = [](const CommonVersion& version) -> OldCommonVersion
+        {
+            auto old = OldCommonVersion();
+            old.reserve(version.size());
+            std::transform(
+                version.cbegin(),
+                version.cend(),
+                std::back_inserter(old),
+                [](const auto& a) { return a.atoms; }
+            );
+            return old;
+        };
 
         py::class_<Version>(m, "Version")
             .def_readonly_static("epoch_delim", &Version::epoch_delim)
@@ -549,15 +569,21 @@ namespace mambapy
                 py::arg("local") = CommonVersion()
             )
             .def_property_readonly("epoch", &Version::epoch)
-            .def_property_readonly("version", &Version::version)
-            .def_property_readonly("local", &Version::local)
+            .def_property_readonly(
+                "version",
+                [=](const Version& self) { return common_version_backport(self.version()); }
+            )
+            .def_property_readonly(
+                "local",
+                [=](const Version& self) { return common_version_backport(self.local()); }
+            )
             .def("starts_with", &Version::starts_with, py::arg("prefix"))
             .def("compatible_with", &Version::compatible_with, py::arg("older"), py::arg("level"))
-            .def("__str__", [](const Version& v) { return v.str(); })
-            .def("str", [](const Version& v) { return v.str(); })
+            .def("__str__", [](const Version& v) { return v.to_string(); })
+            .def("str", [](const Version& v) { return v.to_string(); })
             .def(
                 "str",
-                [](const Version& v, std::size_t level) { return v.str(level); },
+                [](const Version& v, std::size_t level) { return v.to_string(level); },
                 py::arg("level")
             )
             .def(py::self == py::self)
@@ -582,8 +608,8 @@ namespace mambapy
             .def_static("make_compatible_with", &VersionPredicate::make_compatible_with)
             .def(py::init())
             .def("contains", &VersionPredicate::contains)
-            .def("str_conda_build", &VersionPredicate::str_conda_build)
-            .def("__str__", &VersionPredicate::str)
+            .def("str_conda_build", &VersionPredicate::to_string_conda_build)
+            .def("__str__", &VersionPredicate::to_string)
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<VersionPredicate>)
@@ -608,15 +634,15 @@ namespace mambapy
             .def_readonly_static("less_equal_str", &VersionSpec::less_equal_str)
             .def_readonly_static("compatible_str", &VersionSpec::compatible_str)
             .def_readonly_static("glob_suffix_str", &VersionSpec::glob_suffix_str)
-            .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
+            .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_str.back())
             .def_static("parse", &VersionSpec::parse, py::arg("str"))
             .def_static("from_predicate", &VersionSpec::from_predicate, py::arg("pred"))
             .def(py::init<>())
             .def("contains", &VersionSpec::contains, py::arg("point"))
             .def("is_explicitly_free", &VersionSpec::is_explicitly_free)
             .def("expression_size", &VersionSpec::expression_size)
-            .def("str_conda_build", &VersionSpec::str_conda_build)
-            .def("__str__", &VersionSpec::str)
+            .def("str_conda_build", &VersionSpec::to_string_conda_build)
+            .def("__str__", &VersionSpec::to_string)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
 
@@ -734,7 +760,7 @@ namespace mambapy
             .def("contains", &GlobSpec::contains)
             .def("is_free", &GlobSpec::is_free)
             .def("is_exact", &GlobSpec::is_exact)
-            .def("__str__", &GlobSpec::str)
+            .def("__str__", &GlobSpec::to_string)
             .def("__copy__", &copy<GlobSpec>)
             .def("__deepcopy__", &deepcopy<GlobSpec>, py::arg("memo"));
 
@@ -747,7 +773,7 @@ namespace mambapy
             .def("contains", &RegexSpec::contains)
             .def("is_explicitly_free", &RegexSpec::is_explicitly_free)
             .def("is_exact", &RegexSpec::is_exact)
-            .def("__str__", &RegexSpec::str)
+            .def("__str__", &RegexSpec::to_string)
             .def("__copy__", &copy<RegexSpec>)
             .def("__deepcopy__", &deepcopy<RegexSpec>, py::arg("memo"));
 
@@ -758,7 +784,7 @@ namespace mambapy
             .def("is_explicitly_free", &ChimeraStringSpec::is_explicitly_free)
             .def("is_exact", &ChimeraStringSpec::is_exact)
             .def("is_glob", &ChimeraStringSpec::is_glob)
-            .def("__str__", &ChimeraStringSpec::str)
+            .def("__str__", &ChimeraStringSpec::to_string)
             .def("__copy__", &copy<ChimeraStringSpec>)
             .def("__deepcopy__", &deepcopy<ChimeraStringSpec>, py::arg("memo"));
 
@@ -862,7 +888,7 @@ namespace mambapy
             .def("is_simple", &MatchSpec::is_simple)
             .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
-            .def("__str__", &MatchSpec::str)
+            .def("__str__", &MatchSpec::to_string)
             .def("__copy__", &copy<MatchSpec>)
             .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));
     }

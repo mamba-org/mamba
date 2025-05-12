@@ -76,7 +76,7 @@ namespace mamba::solver::libsolv
         if (ms.name().is_exact())
         {
             // Name does not have glob so we can use it as index into packages with exact name.
-            auto name_id = pool.add_string(ms.name().str());
+            auto name_id = pool.add_string(ms.name().to_string());
             pool.for_each_whatprovides(name_id, add_pkg_if_matching);
         }
         else

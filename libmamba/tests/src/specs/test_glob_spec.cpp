@@ -21,7 +21,7 @@ namespace
         REQUIRE(spec.contains(""));
         REQUIRE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "*");
+        REQUIRE(spec.to_string() == "*");
         REQUIRE(spec.is_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -35,7 +35,7 @@ namespace
         REQUIRE_FALSE(spec.contains("nomkl"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "mkl");
+        REQUIRE(spec.to_string() == "mkl");
         REQUIRE_FALSE(spec.is_free());
         REQUIRE(spec.is_exact());
     }
@@ -51,7 +51,7 @@ namespace
         REQUIRE_FALSE(spec.contains("rust"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "*py*");
+        REQUIRE(spec.to_string() == "*py*");
         REQUIRE_FALSE(spec.is_free());
         REQUIRE_FALSE(spec.is_exact());
     }

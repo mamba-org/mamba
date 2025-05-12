@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include "mamba/core/channel_context.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
@@ -307,7 +308,7 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            LOG_WARNING << "Could not parse mod/etag header";
+            LOG_DEBUG << "Could not parse mod/etag header";
             return make_unexpected(
                 fmt::format("File: {}: Could not parse mod/etag header ({})", repodata_file, e.what()),
                 mamba_error_code::cache_not_loaded
@@ -517,7 +518,14 @@ namespace mamba
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
             }
         }
-        download::download(std::move(check_requests), context.mirrors, context, {}, check_monitor);
+        download::download(
+            std::move(check_requests),
+            context.mirrors,
+            context.remote_fetch_params,
+            context.authentication_info(),
+            context.download_options(),
+            check_monitor
+        );
 
         if (is_sig_interrupted())
         {
@@ -541,8 +549,9 @@ namespace mamba
                 download::download(
                     std::move(index_requests),
                     context.mirrors,
-                    context,
-                    { /*fail_fast=*/true },
+                    context.remote_fetch_params,
+                    context.authentication_info(),
+                    context.download_options(),
                     download_monitor
                 );
             }

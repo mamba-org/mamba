@@ -901,6 +901,10 @@ def tmp_umamba():
     os.chmod(mamba_exe, 0o755)
 
 
+@pytest.mark.skipif(
+    "micromamba" not in Path(helpers.get_umamba()).stem,
+    reason="micromamba-only test",
+)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
 def test_self_update(

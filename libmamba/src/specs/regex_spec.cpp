@@ -121,7 +121,7 @@ namespace mamba::specs
         return std::all_of(m_raw_pattern.cbegin() + 1, m_raw_pattern.cend() - 1, no_special_meaning);
     }
 
-    auto RegexSpec::str() const -> const std::string&
+    auto RegexSpec::to_string() const -> const std::string&
     {
         return m_raw_pattern;
     }
@@ -144,5 +144,5 @@ fmt::formatter<mamba::specs::RegexSpec>::format(
     format_context& ctx
 ) const -> decltype(ctx.out())
 {
-    return fmt::format_to(ctx.out(), "{}", spec.str());
+    return fmt::format_to(ctx.out(), "{}", spec.to_string());
 }

@@ -7,79 +7,68 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
-
-#include "mambatests.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
     namespace
     {
-        TEST_CASE("file_does_not_exist")
+        TEST_CASE("file_does_not_exist", "[mamba::download]")
         {
             download::Request request(
                 "test",
                 download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
-                "test_download_repodata.json",
+                "test_download_repodata_1.json",
                 false,
                 true
             );
-            auto& context = mambatests::singletons().context;
-            const auto previous_quiet = context.output_params.quiet;
-            auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
 
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
-            context.output_params.quiet = true;
-            download::MultiResult res = download::download(dl_request, context.mirrors, context);
+            download::MultiResult res = download::download(dl_request, {}, {}, {});
             REQUIRE(res.size() == std::size_t(1));
             REQUIRE(!res[0]);
             REQUIRE(res[0].error().attempt_number == std::size_t(1));
         }
 
-        TEST_CASE("file_does_not_exist_throw")
+        TEST_CASE("file_does_not_exist_throw", "[mamba::download]")
         {
             download::Request request(
                 "test",
                 download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
-                "test_download_repodata.json"
+                "test_download_repodata_2.json"
             );
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
-            auto& context = mambatests::singletons().context;
-            const auto previous_quiet = context.output_params.quiet;
-            auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
-            context.output_params.quiet = true;
-            REQUIRE_THROWS_AS(
-                download::download(dl_request, context.mirrors, context),
-                std::runtime_error
-            );
+            REQUIRE_THROWS_AS(download::download(dl_request, {}, {}, {}), std::runtime_error);
         }
 
-        TEST_CASE("Use CA certificate from the root prefix")
+        TEST_CASE("Use CA certificate from the root prefix", "[mamba::download]")
         {
-            // Create a context, make a request and check that ssl_verify is set to the correct path
-            auto& context = mambatests::singletons().context;
+            const auto tmp_dir = TemporaryDirectory();
 
             // Set the context values to the default ones
-            context.remote_fetch_params.curl_initialized = false;
-            context.remote_fetch_params.ssl_verify = "<system>";
+            auto params = download::RemoteFetchParams{};
+            params.curl_initialized = false;
+            params.ssl_verify = "<system>";
 
             download::Request request(
                 "test",
                 download::MirrorName(""),
                 "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
-                "test_download_repodata.json"
+                tmp_dir.path() / "test_download_repodata_3.json"
             );
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
 
             // Downloading must initialize curl and set `ssl_verify` to the path of the CA
             // certificate
-            REQUIRE(!context.remote_fetch_params.curl_initialized);
-            download::MultiResult res = download::download(dl_request, context.mirrors, context);
-            REQUIRE(context.remote_fetch_params.curl_initialized);
+            REQUIRE(!params.curl_initialized);
+            download::MultiResult res = download::download(dl_request, {}, params, {});
+            REQUIRE(params.curl_initialized);
 
-            auto certificates = context.remote_fetch_params.ssl_verify;
+            auto certificates = params.ssl_verify;
             const fs::u8path root_prefix = detail::get_root_prefix();
             const fs::u8path expected_certificates = root_prefix / "ssl" / "cert.pem";
 

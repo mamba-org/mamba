@@ -97,7 +97,13 @@ namespace mamba
                     url_str,
                     tmp_file->path()
                 );
-                const download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
+                const download::Result res = download::download(
+                    std::move(request),
+                    ctx.mirrors,
+                    ctx.remote_fetch_params,
+                    ctx.authentication_info(),
+                    ctx.download_options()
+                );
 
                 if (!res || res.value().transfer.http_status != 200)
                 {
@@ -417,7 +423,7 @@ namespace mamba
                             out << "\nPinned packages:\n\n";
                             first = false;
                         }
-                        out << "  - " << item.spec.str() << '\n';
+                        out << "  - " << item.spec.to_string() << '\n';
                     }
                 },
                 req
@@ -465,7 +471,13 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            solver::libsolv::Database db{ channel_context.params() };
+            solver::libsolv::Database db{
+                channel_context.params(),
+                {
+                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                       : solver::libsolv::MatchSpecParser::Libsolv,
+                },
+            };
             add_spdlog_logger_to_database(db);
 
             auto exp_load = load_channels(ctx, channel_context, db, package_caches);
@@ -494,7 +506,15 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
-            auto outcome = solver::libsolv::Solver().solve(db, request).value();
+            auto outcome = solver::libsolv::Solver()
+                               .solve(
+                                   db,
+                                   request,
+                                   ctx.experimental_matchspec_parsing
+                                       ? solver::libsolv::MatchSpecParser::Mamba
+                                       : solver::libsolv::MatchSpecParser::Mixed
+                               )
+                               .value();
 
             if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
@@ -643,7 +663,13 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            solver::libsolv::Database database{ channel_context.params() };
+            solver::libsolv::Database database{
+                channel_context.params(),
+                {
+                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                       : solver::libsolv::MatchSpecParser::Libsolv,
+                },
+            };
             add_spdlog_logger_to_database(database);
 
             init_channels(ctx, channel_context);

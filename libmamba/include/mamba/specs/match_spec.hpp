@@ -105,7 +105,7 @@ namespace mamba::specs
         void set_optional(bool opt);
 
         [[nodiscard]] auto conda_build_form() const -> std::string;
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * Return true if the MatchSpec can be written as ``<name> <version> <build_string>``.
@@ -116,6 +116,11 @@ namespace mamba::specs
          * Return true if the MatchSpec contains an exact package name and nothing else.
          */
         [[nodiscard]] auto is_only_package_name() const -> bool;
+
+        /**
+         * Make a new MatchSpec that matches only on the name part.
+         */
+        [[nodiscard]] auto to_named_spec() const -> MatchSpec;
 
         /**
          * Check if the MatchSpec matches the given package.

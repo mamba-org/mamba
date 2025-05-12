@@ -382,7 +382,7 @@ namespace solv
 
     void ObjSolvableView::add_dependency(DependencyId dep, DependencyMarker marker) const
     {
-        raw()->requires = ::repo_addid_dep(raw()->repo, raw()->requires, dep, marker);
+        raw()->dep_requires = ::repo_addid_dep(raw()->repo, raw()->dep_requires, dep, marker);
     }
 
     auto ObjSolvableViewConst::provides() const -> ObjQueue
@@ -409,7 +409,7 @@ namespace solv
 
     void ObjSolvableView::add_provide(DependencyId dep) const
     {
-        raw()->provides = ::repo_addid_dep(raw()->repo, raw()->provides, dep, /* marker= */ 0);
+        raw()->dep_provides = ::repo_addid_dep(raw()->repo, raw()->dep_provides, dep, /* marker= */ 0);
     }
 
     void ObjSolvableView::add_self_provide() const

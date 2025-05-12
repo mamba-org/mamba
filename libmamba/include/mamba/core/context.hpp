@@ -16,7 +16,9 @@
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
+#include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
@@ -76,26 +78,6 @@ namespace mamba
 
         static void use_default_signal_handler(bool val);
 
-        struct RemoteFetchParams
-        {
-            // ssl_verify can be either an empty string (regular SSL verification),
-            // the string "<false>" to indicate no SSL verification, or a path to
-            // a directory with cert files, or a cert file.
-            std::string ssl_verify{ "" };
-            bool ssl_no_revoke{ false };
-            bool curl_initialized{ false };  // non configurable, used in fetch only
-
-            std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
-
-            double connect_timeout_secs{ 10. };
-            // int read_timeout_secs { 60 };
-            int retry_timeout{ 2 };  // seconds
-            int retry_backoff{ 3 };  // retry_timeout * retry_backoff
-            int max_retries{ 3 };    // max number of retries
-
-            std::map<std::string, std::string> proxy_servers;
-        };
-
         struct OutputParams
         {
             int verbosity{ 0 };
@@ -146,6 +128,7 @@ namespace mamba
         // Configurable
         bool experimental = false;
         bool experimental_repodata_parsing = true;
+        bool experimental_matchspec_parsing = false;
         bool debug = false;
 
         // TODO check writable and add other potential dirs
@@ -191,7 +174,28 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        RemoteFetchParams remote_fetch_params;
+        download::RemoteFetchParams remote_fetch_params = {
+            /* .ssl_verify */ { "" },
+            /* .ssl_no_revoke */ false,
+            /* .curl_initialized */ false,
+            /* .user_agent */ { "mamba/" LIBMAMBA_VERSION_STRING },
+            /* .connect_timeout_secs */ 10.,
+            /* .retry_timeout */ 2,
+            /* .retry_backoff */ 3,
+            /* .max_retries */ 3,
+            /* .proxy_servers */ {},
+        };
+
+        download::Options download_options() const
+        {
+            return {
+                /* .download_threads */ this->threads_params.download_threads,
+                /* .fail_fast */ false,
+                /* .sort */ true,
+                /* .verbose */ this->output_params.verbosity >= 2,
+            };
+        }
+
         OutputParams output_params;
         GraphicsParams graphics_params;
         SrcParams src_params;

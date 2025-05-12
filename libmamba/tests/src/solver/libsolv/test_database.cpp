@@ -37,9 +37,16 @@ namespace
 {
     using PackageInfo = specs::PackageInfo;
 
-    TEST_CASE("Create a database")
+    TEST_CASE("Create a database", "[mamba::solver][mamba::solver::libsolv]")
     {
-        auto db = libsolv::Database({});
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+        CAPTURE(matchspec_parser);
+
+        auto db = libsolv::Database({}, { matchspec_parser });
         REQUIRE(std::is_move_constructible_v<libsolv::Database>);
         REQUIRE(db.repo_count() == 0);
 
@@ -162,6 +169,12 @@ namespace
 
                 SECTION("Depending on a given dependency")
                 {
+                    // Complex repoqueries do not work with namespace callbacks
+                    if (matchspec_parser != libsolv::MatchSpecParser::Libsolv)
+                    {
+                        return;
+                    }
+
                     std::size_t count = 0;
                     db.for_each_package_depending_on(
                         specs::MatchSpec::parse("x").value(),
@@ -351,6 +364,14 @@ namespace
                     libsolv::VerifyPackages::Yes,
                     libsolv::RepodataParser::Libsolv
                 );
+
+                // Libsolv repodata parser only works with its own matchspec
+                if (matchspec_parser != libsolv::MatchSpecParser::Libsolv)
+                {
+                    REQUIRE_FALSE(repo1.has_value());
+                    return;
+                }
+
                 REQUIRE(repo1.has_value());
                 REQUIRE(repo1->package_count() == 33);
 
@@ -420,6 +441,14 @@ namespace
                     libsolv::VerifyPackages::No,
                     libsolv::RepodataParser::Libsolv
                 );
+
+                // Libsolv repodata parser only works with its own matchspec
+                if (matchspec_parser != libsolv::MatchSpecParser::Libsolv)
+                {
+                    REQUIRE_FALSE(repo1.has_value());
+                    return;
+                }
+
                 REQUIRE(repo1.has_value());
                 REQUIRE(repo1->package_count() == 33);
 

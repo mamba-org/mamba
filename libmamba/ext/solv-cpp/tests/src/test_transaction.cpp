@@ -108,7 +108,9 @@ namespace
             pool.create_whatprovides();
 
             auto solver = ObjSolver(pool);
-            REQUIRE(solver.solve(pool, { SOLVER_INSTALL, pool.add_conda_dependency("menu>=1.4") }));
+            REQUIRE(
+                solver.solve(pool, { SOLVER_INSTALL, pool.add_legacy_conda_dependency("menu>=1.4") })
+            );
             auto trans = ObjTransaction::from_solver(pool, solver);
             REQUIRE_FALSE(trans.empty());
             REQUIRE(trans.size() == 4);

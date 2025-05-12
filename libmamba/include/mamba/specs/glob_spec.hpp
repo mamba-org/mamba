@@ -41,7 +41,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto is_exact() const -> bool;
 
-        [[nodiscard]] auto str() const -> const std::string&;
+        [[nodiscard]] auto to_string() const -> const std::string&;
 
         // TODO(C++20): replace by the `= default` implementation of `operator==`
         [[nodiscard]] auto operator==(const GlobSpec& other) const -> bool
@@ -74,7 +74,7 @@ struct std::hash<mamba::specs::GlobSpec>
 {
     auto operator()(const mamba::specs::GlobSpec& spec) const -> std::size_t
     {
-        return std::hash<std::string>{}(spec.str());
+        return std::hash<std::string>{}(spec.to_string());
     }
 };
 

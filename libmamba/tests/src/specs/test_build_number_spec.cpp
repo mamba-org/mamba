@@ -20,43 +20,43 @@ namespace
         REQUIRE(free.contains(0));
         REQUIRE(free.contains(1));
         REQUIRE(free.contains(2));
-        REQUIRE(free.str() == "=*");
+        REQUIRE(free.to_string() == "=*");
 
         const auto eq = BuildNumberPredicate::make_equal_to(1);
         REQUIRE_FALSE(eq.contains(0));
         REQUIRE(eq.contains(1));
         REQUIRE_FALSE(eq.contains(2));
-        REQUIRE(eq.str() == "=1");
+        REQUIRE(eq.to_string() == "=1");
 
         const auto ne = BuildNumberPredicate::make_not_equal_to(1);
         REQUIRE(ne.contains(0));
         REQUIRE_FALSE(ne.contains(1));
         REQUIRE(ne.contains(2));
-        REQUIRE(ne.str() == "!=1");
+        REQUIRE(ne.to_string() == "!=1");
 
         const auto gt = BuildNumberPredicate::make_greater(1);
         REQUIRE_FALSE(gt.contains(0));
         REQUIRE_FALSE(gt.contains(1));
         REQUIRE(gt.contains(2));
-        REQUIRE(gt.str() == ">1");
+        REQUIRE(gt.to_string() == ">1");
 
         const auto ge = BuildNumberPredicate::make_greater_equal(1);
         REQUIRE_FALSE(ge.contains(0));
         REQUIRE(ge.contains(1));
         REQUIRE(ge.contains(2));
-        REQUIRE(ge.str() == ">=1");
+        REQUIRE(ge.to_string() == ">=1");
 
         const auto lt = BuildNumberPredicate::make_less(1);
         REQUIRE(lt.contains(0));
         REQUIRE_FALSE(lt.contains(1));
         REQUIRE_FALSE(lt.contains(2));
-        REQUIRE(lt.str() == "<1");
+        REQUIRE(lt.to_string() == "<1");
 
         const auto le = BuildNumberPredicate::make_less_equal(1);
         REQUIRE(le.contains(0));
         REQUIRE(le.contains(1));
         REQUIRE_FALSE(le.contains(2));
-        REQUIRE(le.str() == "<=1");
+        REQUIRE(le.to_string() == "<=1");
 
         const auto predicates = std::array{ free, eq, ne, lt, le, gt, ge };
         for (std::size_t i = 0; i < predicates.size(); ++i)
@@ -126,9 +126,9 @@ namespace
 
     TEST_CASE("BuildNumberSepc::str")
     {
-        REQUIRE(BuildNumberSpec::parse("=3").value().str() == "=3");
-        REQUIRE(BuildNumberSpec::parse("<2").value().str() == "<2");
-        REQUIRE(BuildNumberSpec::parse("*").value().str() == "=*");
+        REQUIRE(BuildNumberSpec::parse("=3").value().to_string() == "=3");
+        REQUIRE(BuildNumberSpec::parse("<2").value().to_string() == "<2");
+        REQUIRE(BuildNumberSpec::parse("*").value().to_string() == "=*");
     }
 
     TEST_CASE("BuildNumberSepc::is_explicitly_free")

@@ -82,15 +82,19 @@ namespace mamba
                                                  { throw std::move(err); })
                                         .value()
                                         .name()
-                                        .str();
+                                        .to_string();
                                 }
                             );
 
-                            if (std::find(spec_names.begin(), spec_names.end(), it.second.name().str())
+                            if (std::find(
+                                    spec_names.begin(),
+                                    spec_names.end(),
+                                    it.second.name().to_string()
+                                )
                                 == spec_names.end())
                             {
                                 request.jobs.emplace_back(Request::Remove{
-                                    specs::MatchSpec::parse(it.second.name().str())
+                                    specs::MatchSpec::parse(it.second.name().to_string())
                                         .or_else([](specs::ParseError&& err)
                                                  { throw std::move(err); })
                                         .value(),
@@ -152,7 +156,13 @@ namespace mamba
 
         populate_context_channels_from_specs(raw_update_specs, ctx);
 
-        solver::libsolv::Database db{ channel_context.params() };
+        solver::libsolv::Database db{
+            channel_context.params(),
+            {
+                ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                   : solver::libsolv::MatchSpecParser::Libsolv,
+            },
+        };
         add_spdlog_logger_to_database(db);
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -191,7 +201,15 @@ namespace mamba
             // Console stream prints on destruction
         }
 
-        auto outcome = solver::libsolv::Solver().solve(db, request).value();
+        auto outcome = solver::libsolv::Solver()
+                           .solve(
+                               db,
+                               request,
+                               ctx.experimental_matchspec_parsing
+                                   ? solver::libsolv::MatchSpecParser::Mamba
+                                   : solver::libsolv::MatchSpecParser::Mixed
+                           )
+                           .value();
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
             unsolvable->explain_problems_to(

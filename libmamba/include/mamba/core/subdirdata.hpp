@@ -8,6 +8,7 @@
 #define MAMBA_CORE_SUBDIRDATA_HPP
 
 #include <algorithm>
+#include <optional>
 #include <string>
 
 #include <nlohmann/json_fwd.hpp>
@@ -240,9 +241,10 @@ namespace mamba
         auto build_check_requests(const SubdirParams& params) -> download::MultiRequest;
 
         template <typename First, typename End>
-        static auto build_all_index_requests(First subdirs_first, End subdirs_last)
+        static auto
+        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
             -> download::MultiRequest;
-        auto build_index_request() -> download::Request;
+        auto build_index_request(const SubdirParams& params) -> std::optional<download::Request>;
 
         [[nodiscard]] static auto download_requests(
             download::MultiRequest index_requests,
@@ -309,19 +311,14 @@ namespace mamba
         // Allow to continue if failed checks, unless asked to stop.
         constexpr auto is_interrupted = [](const auto& e)
         { return e.error_code() == mamba_error_code::user_interrupted; };
+
         if (!result.has_value() && result.map_error(is_interrupted).error())
         {
             return result;
         }
 
-        // TODO load local channels even when offline if (!ctx.offline)
-        if (subdir_params.offline)
-        {
-            return expected_t<void>();
-        }
-
         return download_requests(
-            build_all_index_requests(subdirs_first, subdirs_last),
+            build_all_index_requests(subdirs_first, subdirs_last, subdir_params),
             auth_info,
             mirrors,
             download_options,
@@ -373,7 +370,8 @@ namespace mamba
     }
 
     template <typename First, typename End>
-    auto SubdirData::build_all_index_requests(First subdirs_first, End subdirs_last)
+    auto
+    SubdirData::build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
         -> download::MultiRequest
     {
         download::MultiRequest requests;
@@ -381,7 +379,10 @@ namespace mamba
         {
             if (!subdirs_first->valid_cache_found())
             {
-                requests.push_back(subdirs_first->build_index_request());
+                if (auto request = subdirs_first->build_index_request(params))
+                {
+                    requests.push_back(*std::move(request));
+                }
             }
         }
         return requests;

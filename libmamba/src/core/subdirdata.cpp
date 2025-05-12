@@ -746,8 +746,14 @@ namespace mamba
         return request;
     }
 
-    download::Request SubdirData::build_index_request()
+    auto SubdirData::build_index_request(const SubdirParams& params)
+        -> std::optional<download::Request>
     {
+        if (params.offline && !caching_is_forbidden())
+        {
+            return std::nullopt;
+        }
+
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
 
@@ -805,7 +811,7 @@ namespace mamba
             }
         };
 
-        return request;
+        return { std::move(request) };
     }
 
     expected_t<void> SubdirData::use_existing_cache()

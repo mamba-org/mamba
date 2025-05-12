@@ -8,7 +8,6 @@
 #define MAMBA_CORE_SUBDIRDATA_HPP
 
 #include <algorithm>
-#include <memory>
 #include <string>
 
 #include <nlohmann/json_fwd.hpp>
@@ -16,7 +15,6 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdir_parameters.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -197,7 +195,6 @@ namespace mamba
         bool m_valid_cache_found = false;
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
-        std::unique_ptr<TemporaryFile> m_temp_file;
 
         SubdirData(
             const SubdirParams& params,
@@ -232,7 +229,8 @@ namespace mamba
          *********************************************************************/
 
         auto use_existing_cache() -> expected_t<void>;
-        auto finalize_transfer(SubdirMetadata::HttpMetadata http_data) -> expected_t<void>;
+        auto finalize_transfer(SubdirMetadata::HttpMetadata http_data, const fs::u8path& artifact)
+            -> expected_t<void>;
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         template <typename First, typename End>

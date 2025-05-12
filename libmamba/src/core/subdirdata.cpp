@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <memory>
 #include <regex>
 #include <stdexcept>
 
@@ -12,6 +13,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/util/cryptography.hpp"
@@ -748,7 +750,9 @@ namespace mamba
     {
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
-        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
+
+        // TODO(C++23): Use std::make_unique when std::move_only_function is available
+        auto artifact = std::make_shared<TemporaryFile>("mambaf", "", writable_cache_dir);
 
         bool use_zst = m_metadata.has_up_to_date_zst();
 
@@ -756,14 +760,14 @@ namespace mamba
             name(),
             download::MirrorName(channel_id()),
             repodata_url_path() + (use_zst ? ".zst" : ""),
-            m_temp_file->path().string(),
+            artifact->path().string(),
             /*head_only*/ false,
             /*ignore_failure*/ !is_noarch()
         );
         request.etag = m_metadata.etag();
         request.last_modified = m_metadata.last_modified();
 
-        request.on_success = [this](const download::Success& success)
+        request.on_success = [this, artifact = std::move(artifact)](const download::Success& success)
         {
             if (success.transfer.http_status == 304)
             {
@@ -771,12 +775,15 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(SubdirMetadata::HttpMetadata{
-                    repodata_url().str(),
-                    success.etag,
-                    success.last_modified,
-                    success.cache_control,
-                });
+                return finalize_transfer(
+                    SubdirMetadata::HttpMetadata{
+                        repodata_url().str(),
+                        success.etag,
+                        success.last_modified,
+                        success.cache_control,
+                    },
+                    artifact->path()
+                );
             }
         };
 
@@ -844,12 +851,12 @@ namespace mamba
 
         refresh_last_write_time(json_file, solv_file);
 
-        m_temp_file.reset();
         m_valid_cache_found = true;
         return expected_t<void>();
     }
 
-    expected_t<void> SubdirData::finalize_transfer(SubdirMetadata::HttpMetadata http_data)
+    expected_t<void>
+    SubdirData::finalize_transfer(SubdirMetadata::HttpMetadata http_data, const fs::u8path& artifact)
     {
         if (m_writable_pkgs_dir.empty())
         {
@@ -871,12 +878,12 @@ namespace mamba
         fs::u8path state_file = json_file;
         state_file.replace_extension(".state.json");
         std::error_code ec;
-        mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
+        mamba_fs::rename_or_move(artifact, json_file, ec);
         if (ec)
         {
             std::string error = fmt::format(
                 "Could not move repodata file from {} to {}: {}",
-                m_temp_file->path(),
+                artifact,
                 json_file,
                 strerror(errno)
             );
@@ -887,7 +894,6 @@ namespace mamba
         m_metadata.store_file_metadata(json_file);
         m_metadata.write_state_file(state_file);
 
-        m_temp_file.reset();
         m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
         m_valid_cache_found = true;

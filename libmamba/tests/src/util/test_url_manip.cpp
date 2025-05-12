@@ -154,6 +154,46 @@ namespace
         );
     }
 
+    TEST_CASE("make_curl_compatible")
+    {
+        for (const std::string uri : {
+                 "http://example.com/test",
+                 R"(file:////C:/Program\ (x74)/Users/hello\ world)",
+                 "file:////server/share",
+                 "file:///server/share",
+                 "file://absolute/path",
+                 R"(file://\\D:/server/share)",
+                 R"(file://\\server\path)",
+             })
+        {
+            CAPTURE(uri);
+            REQUIRE(make_curl_compatible(uri) == uri);
+        }
+
+        if (on_win)
+        {
+            REQUIRE(
+                make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file://C:/Program\ (x74)/Users/hello\ world)"
+            );
+            REQUIRE(
+                make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:///C:/Program\ (x74)/Users/hello\ world)"
+            );
+        }
+        else
+        {
+            REQUIRE(
+                make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
+            );
+            REQUIRE(
+                make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
+            );
+        }
+    }
+
     TEST_CASE("file_uri_unc2_to_unc4")
     {
         for (const std::string uri : {

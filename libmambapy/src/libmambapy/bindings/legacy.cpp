@@ -133,6 +133,8 @@ namespace mambapy
     // replicate the move semantics in Python, we encapsulate the creation
     // and the storage of MSubdirData objects in this class, to avoid
     // potential dangling references in Python.
+    //
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
     class SubdirIndex
     {
     public:
@@ -531,25 +533,35 @@ bind_submodule_impl(pybind11::module_ m)
         .def_static("whoneeds", &Query::whoneeds)
         .def_static("depends", &Query::depends);
 
-    py::class_<SubdirIndexLoader>(m, "SubdirData")
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
+    struct SubdirDataMigrator
+    {
+        mamba::SubdirIndexLoader* p_subdir_index;
+    };
+
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
+    py::class_<SubdirDataMigrator>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirIndexLoader& self, Context& context, solver::libsolv::Database& database
+            [](SubdirDataMigrator& self, Context& context, solver::libsolv::Database& database
             ) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
-                return extract(load_subdir_in_database(context, database, self));
+                return extract(load_subdir_in_database(context, database, *self.p_subdir_index));
             },
             py::arg("context"),
             py::arg("db")
         )
-        .def("loaded", &SubdirIndexLoader::valid_cache_found)
+        .def(
+            "loaded",
+            [](const SubdirDataMigrator& self) { return self.p_subdir_index->valid_cache_found(); }
+        )
         .def(
             "valid_solv_cache",
             // TODO make a proper well tested type caster for expected types.
-            [](const SubdirIndexLoader& self) -> std::optional<fs::u8path>
+            [](const SubdirDataMigrator& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_libsolv_cache_path())
+                if (auto f = self.p_subdir_index->valid_libsolv_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -558,9 +570,9 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "valid_json_cache",
-            [](const SubdirIndexLoader& self) -> std::optional<fs::u8path>
+            [](const SubdirDataMigrator& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_json_cache_path())
+                if (auto f = self.p_subdir_index->valid_json_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -569,17 +581,17 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "cache_path",
-            [](const SubdirIndexLoader& self) -> std::string
+            [](const SubdirDataMigrator& self) -> std::string
             {
                 deprecated(
                     "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",
                     "2.0"
                 );
-                if (auto solv_path = self.valid_libsolv_cache_path())
+                if (auto solv_path = self.p_subdir_index->valid_libsolv_cache_path())
                 {
                     return solv_path->string();
                 }
-                else if (auto json_path = self.valid_json_cache_path())
+                else if (auto json_path = self.p_subdir_index->valid_json_cache_path())
                 {
                     return json_path->string();
                 }
@@ -590,15 +602,32 @@ bind_submodule_impl(pybind11::module_ m)
     using mambapy::SubdirIndex;
     using SubdirIndexEntry = SubdirIndex::Entry;
 
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
     py::class_<SubdirIndexEntry>(m, "SubdirIndexEntry")
-        .def(py::init<>())
-        .def_readonly("subdir", &SubdirIndexEntry::p_subdirdata, py::return_value_policy::reference)
+        .def(py::init(
+            []()
+            {
+                deprecated("Use SubdirIndexLoader", "2.3.0");
+                return SubdirIndexEntry();
+            }
+        ))
+        .def_property_readonly(
+            "subdir",
+            [](const SubdirIndexEntry& self) { return SubdirDataMigrator{ self.p_subdirdata }; },
+            py::return_value_policy::reference
+        )
         .def_readonly("platform", &SubdirIndexEntry::m_platform)
         .def_readonly("channel", &SubdirIndexEntry::p_channel, py::return_value_policy::reference)
         .def_readonly("url", &SubdirIndexEntry::m_url);
 
     py::class_<SubdirIndex>(m, "SubdirIndex")
-        .def(py::init<>())
+        .def(py::init(
+            []()
+            {
+                deprecated("Use SubdirIndexLoader", "2.3.0");
+                return SubdirIndex();
+            }
+        ))
         .def(
             "create",
             [](SubdirIndex& self,

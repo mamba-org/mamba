@@ -631,7 +631,7 @@ bind_submodule_impl(pybind11::module_ m)
         "cache_fn_url",
         [](std::string url)
         {
-            deprecated("This function was renamed `cache_filename_from_url`.", "2.2.0");
+            deprecated("This function was renamed `cache_filename_from_url`.", "2.3.0");
             return cache_filename_from_url(std::move(url));
         }
     );

@@ -134,8 +134,8 @@ namespace mamba
          */
         template <typename SubdirIter1, typename SubdirIter2>
         [[nodiscard]] static auto download_required_indexes(
-            SubdirIter1&& subdirs_first,
-            SubdirIter2&& subdirs_last,
+            SubdirIter1 subdirs_first,
+            SubdirIter2 subdirs_last,
             const SubdirParams& subdir_params,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
@@ -237,12 +237,12 @@ namespace mamba
 
         template <typename First, typename End>
         static auto
-        build_all_check_requests(First&& subdirs_first, End&& subdirs_last, const SubdirParams& params)
+        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
             -> download::MultiRequest;
         auto build_check_requests(const SubdirParams& params) -> download::MultiRequest;
 
         template <typename First, typename End>
-        static auto build_all_index_requests(First&& subdirs_first, End&& subdirs_last)
+        static auto build_all_index_requests(First subdirs_first, End subdirs_last)
             -> download::MultiRequest;
         auto build_index_request() -> download::Request;
 
@@ -288,8 +288,8 @@ namespace mamba
 
     template <typename SubdirIter1, typename SubdirIter2>
     auto SubdirData::download_required_indexes(
-        SubdirIter1&& subdirs_first,
-        SubdirIter2&& subdirs_last,
+        SubdirIter1 subdirs_first,
+        SubdirIter2 subdirs_last,
         const SubdirParams& subdir_params,
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
@@ -358,11 +358,9 @@ namespace mamba
     }
 
     template <typename First, typename End>
-    auto SubdirData::build_all_check_requests(
-        First&& subdirs_first,
-        End&& subdirs_last,
-        const SubdirParams& params
-    ) -> download::MultiRequest
+    auto
+    SubdirData::build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
+        -> download::MultiRequest
     {
         download::MultiRequest requests;
         for (; subdirs_first != subdirs_last; ++subdirs_first)
@@ -377,7 +375,7 @@ namespace mamba
     }
 
     template <typename First, typename End>
-    auto SubdirData::build_all_index_requests(First&& subdirs_first, End&& subdirs_last)
+    auto SubdirData::build_all_index_requests(First subdirs_first, End subdirs_last)
         -> download::MultiRequest
     {
         download::MultiRequest requests;

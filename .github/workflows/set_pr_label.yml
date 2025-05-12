@@ -1,0 +1,71 @@
+name: Set release label to PR based on template checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+
+jobs:
+  set_label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read PR description
+        id: pr_description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr_body = context.payload.pull_request.body;
+            return pr_body;
+
+      - name: Parse labels from PR description with release labels mapping
+        id: parse_labels
+        run: |
+          # Define mapping from checkbox label to release label
+          declare -A label_map=(
+            ["Bugfix"]="release::bug_fixes"
+            ["Feature / enhancement"]="release::enhancements"
+            ["CI / Documentation"]="release::ci_docs"
+            ["Maintenance"]="release::maintenance"
+          )
+          # List of labels to check
+          LABELS=("Bugfix" "Feature / enhancement" "CI / Documentation" "Maintenance")
+
+          # Initialize an array to hold labels to add
+          labels_to_add=()
+
+          # Get PR body from previous step
+          pr_body="${{ steps.pr_description.outputs.result }}"
+
+          # For each label, check if its checkbox is checked
+          for label in "${LABELS[@]}"; do
+            # Check for '- [x] label' (case-insensitive)
+            if echo "$pr_body" | grep -iE "- $$x$$ $label"; then
+              labels_to_add+=("${label_map[$label]}")
+            fi
+          done
+
+          # Convert the array to a JSON array string
+          labels_json=$(printf '%s
+          ' "${labels_to_add[@]}" | jq -R . | jq -s .)
+
+          # Output the JSON array as an environment variable
+          echo "labels_json=${labels_json}" >> "$GITHUB_OUTPUT"
+
+      - name: Add labels to PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labels = JSON.parse("${{ steps.parse_labels.outputs.labels_json }}");
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels
+              });
+            }

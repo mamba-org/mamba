@@ -61,7 +61,7 @@ namespace mamba
         /** Read the metadata from the ``repodata.json`` header. */
         static auto read_from_repodata_json(const fs::u8path& json) -> expected_subdir_metadata;
 
-        /** Read from any of state file or ``repodata.json``depending on extension. */
+        /** Read from any of state file or ``repodata.json`` depending on extension. */
         static auto read(const fs::u8path& file) -> expected_subdir_metadata;
 
         [[nodiscard]] auto is_valid_metadata(const fs::u8path& file) const -> bool;
@@ -112,20 +112,20 @@ namespace mamba
      * Channel sub-directory (i.e. a platform) packages index.
      *
      * Handles downloading of the index from the server and cache generation.
-     * This only handle traditional ``repodata.json`` full index.
+     * This only handles traditional ``repodata.json`` full indexes.
      * This abstraction does not load the index in memory, with is done by the @ref Database.
      *
      * Upon creation, the caches are checked for a valid and up to date index.
      * This can be inspected with @ref valid_cache_found.
      * The created subdirs are typically used with @ref SubdirData::download_required_indexes
-     * which will download the missing, invalid, or outdaded indexes as needed.
+     * which will download the missing, invalid, or outdated indexes as needed.
      */
     class SubdirData
     {
     public:
 
         /**
-         * Download the missing, invalid, or outdaded indexes as needed in parallel.
+         * Download the missing, invalid, or outdated indexes as needed in parallel.
          *
          * It first creates check requests to update some metadata, then download the indexes.
          * The result can be inspected with the input subdirs methods, such as

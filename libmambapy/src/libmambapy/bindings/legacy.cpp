@@ -201,7 +201,6 @@ namespace mambapy
                     ctx.mirrors,
                     ctx.download_options(),
                     ctx.remote_fetch_params
-
                 );
             }
             return download_res.has_value();

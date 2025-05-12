@@ -128,6 +128,8 @@ namespace mamba
          * Download the missing, invalid, or outdaded indexes as needed in parallel.
          *
          * It first creates check requests to update some metadata, then download the indexes.
+         * The result can be inspected with the input subdirs methods, such as
+         * @ref valid_cache_found, @ref valid_json_cache_path etc.
          */
         [[nodiscard]] static auto download_required_indexes(
             std::vector<SubdirData>& subdirs,

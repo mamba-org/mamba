@@ -66,7 +66,7 @@ jobs:
             let assigned_label = null;
 
             for (const [checkbox_label, release_label] of Object.entries(label_map)) {
-              const checkbox_regex = new RegExp(`- $$x$$ ${checkbox_label}`, 'i');
+              const checkbox_regex = new RegExp(`- \\[x\\] ${checkbox_label}`, 'mi');
               if (checkbox_regex.test(pr_body)) {
                 assigned_label = release_label;
                 break; // Assign first matching label

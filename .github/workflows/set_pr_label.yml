@@ -31,9 +31,9 @@ jobs:
             let assigned_label = null;
 
             // Check each pattern
-            for (const [label, pattern] of Object.entries(label_patterns_map)) {
+            for (const [release_label, pattern] of Object.entries(label_patterns_map)) {
               if (pattern.test(pr_title)) {
-                assigned_label = label;
+                assigned_label = release_label;
                 break; // Assign first matching label
               }
             }
@@ -67,7 +67,7 @@ jobs:
             for (const [checkbox_label, release_label] of Object.entries(label_map)) {
               const checkbox_regex = new RegExp(`- $$x$$ ${checkbox_label}`, 'i');
               if (checkbox_regex.test(pr_body)) {
-                assigned_label = label;
+                assigned_label = release_label;
                 break; // Assign first matching label
               }
             }

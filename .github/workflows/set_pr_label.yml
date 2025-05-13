@@ -1,13 +1,13 @@
 name: Set release label to PR based on title and description
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - edited
 
 permissions:
-  contents: write
+  contents: read
   issues: write
   pull-requests: write
 
@@ -43,7 +43,6 @@ jobs:
               }
             }
 
-            console.log("assigned_label: ", assigned_label);
             // If a label was matched, add it to PR
             if (assigned_label) {
               await github.rest.issues.addLabels({
@@ -61,7 +60,6 @@ jobs:
           script: |
             const pr_body = context.payload.pull_request.body;
 
-            console.log("PR BODY: ", pr_body);
             const label_map = {
               "Bugfix": "release::bug_fixes",
               "Feature / enhancement": "release::enhancements",
@@ -78,7 +76,6 @@ jobs:
                 break; // Assign first matching label
               }
             }
-            console.log("assigned_label: ", assigned_label);
 
             // If a label was matched, add it to PR
             if (assigned_label) {

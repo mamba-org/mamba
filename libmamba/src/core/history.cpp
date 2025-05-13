@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <list>
 #include <regex>
 
 #include "mamba/core/channel_context.hpp"
@@ -378,6 +379,9 @@ namespace mamba
             int target_revision
         )
         {
+            assert(target_revision >= 0);
+            assert(!user_requests.empty());
+
             struct revision
             {
                 int key = -1;
@@ -385,7 +389,7 @@ namespace mamba
                 std::map<std::string, specs::PackageInfo> installed_pkg = {};
             };
 
-            std::vector<revision> revisions;
+            std::list<revision> revisions;
             for (auto r : user_requests)
             {
                 if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
@@ -396,13 +400,13 @@ namespace mamba
                         for (auto ud : r.unlink_dists)
                         {
                             auto pkg_info = pkg_info_builder(ud);
-                            auto name = pkg_info.name;
+                            const auto name = pkg_info.name;
                             rev.removed_pkg[name] = std::move(pkg_info);
                         }
                         for (auto ld : r.link_dists)
                         {
                             auto pkg_info = pkg_info_builder(ld);
-                            auto name = pkg_info.name;
+                            const auto name = pkg_info.name;
                             rev.installed_pkg[name] = std::move(pkg_info);
                         }
                         revisions.push_back(rev);
@@ -412,13 +416,13 @@ namespace mamba
 
             PackageDiff pkg_diff{};
 
-            auto handle_install = [&pkg_diff](revision& rev, const std::string& pkg_name)
+            const auto handle_install = [&pkg_diff](revision& rev, const std::string& pkg_name)
             {
                 bool res = false;
                 if (auto rev_iter = rev.installed_pkg.find(pkg_name);
                     rev_iter != rev.installed_pkg.end())
                 {
-                    auto version = rev.installed_pkg[pkg_name].version;
+                    const auto version = rev_iter->second.version;
                     auto iter = pkg_diff.removed_pkg_diff.find(pkg_name);
                     if (iter != pkg_diff.removed_pkg_diff.end() && iter->second.version == version)
                     {
@@ -439,7 +443,7 @@ namespace mamba
                 bool res = false;
                 if (auto rev_iter = rev.removed_pkg.find(pkg_name); rev_iter != rev.removed_pkg.end())
                 {
-                    auto version = rev.removed_pkg[pkg_name].version;
+                    const auto version = rev_iter->second.version;
                     auto iter = pkg_diff.installed_pkg_diff.find(pkg_name);
                     if (iter != pkg_diff.installed_pkg_diff.end() && iter->second.version == version)
                     {
@@ -465,7 +469,7 @@ namespace mamba
                     revision.removed_pkg.erase(pkg_name);
                     bool lastly_removed = true;  // whether last operation on package was a removal
                     lastly_removed = !handle_install(revision, pkg_name);
-                    for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
+                    for (auto rev = std::next(revisions.begin()); rev != revisions.end(); ++rev)
                     {
                         if (lastly_removed)
                         {
@@ -499,7 +503,7 @@ namespace mamba
                         }
                     }
                 }
-                revisions.erase(revisions.begin());
+                revisions.pop_front();
             }
             return pkg_diff;
         }

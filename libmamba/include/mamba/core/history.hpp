@@ -69,8 +69,8 @@ namespace mamba
          * revisions to get the diff between the target revision and the current one. */
         struct PackageDiff
         {
-            std::map<std::string, specs::PackageInfo> removed_pkg_diff;
-            std::map<std::string, specs::PackageInfo> installed_pkg_diff;
+            std::unordered_map<std::string, specs::PackageInfo> removed_pkg_diff;
+            std::unordered_map<std::string, specs::PackageInfo> installed_pkg_diff;
 
             PackageDiff
             get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int target_revision);

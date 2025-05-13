@@ -30,7 +30,8 @@ namespace mamba
     namespace
     {
 #ifdef _WIN32
-        filetime_to_unix(const fs::file_time_type& filetime)
+        auto filetime_to_unix(const fs::file_time_type& filetime)
+            -> std::chrono::system_clock::time_point
         {
             // windows filetime is in 100ns intervals since 1601-01-01
             static constexpr auto epoch_offset = std::chrono::seconds(11644473600ULL);

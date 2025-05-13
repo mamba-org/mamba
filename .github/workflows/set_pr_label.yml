@@ -43,6 +43,7 @@ jobs:
               }
             }
 
+            console.log("assigned_label: ", assigned_label);
             // If a label was matched, add it to PR
             if (assigned_label) {
               await github.rest.issues.addLabels({

@@ -13,6 +13,7 @@
 #include <pybind11/stl_bind.h>
 
 #include "bind_utils.hpp"
+#include "path_caster.hpp"
 
 namespace mambapy
 {

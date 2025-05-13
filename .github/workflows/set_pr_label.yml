@@ -13,6 +13,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Assign label based on PR title
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr_title = context.payload.pull_request.title;
+
+            // Define regex patterns for labels
+            const label_patterns = {
+              "release::bug_fixes": /^(fix)\b/i,
+              "release::enhancements": /^(feat|refactor|perf)\b/i,
+              "release::ci_docs": /^(ci|docs)\b/i,
+              "release::maintenance": /^(chore|style|test|build|revert)\b/i,
+            };
+
+            let assigned_label = null;
+
+            // Check each pattern
+            for (const [label, pattern] of Object.entries(label_patterns)) {
+              if (pattern.test(pr_title)) {
+                assigned_label = label;
+                break; // Assign first matching label
+              }
+            }
+
+            // If a label was matched, add it to PR
+            if (assigned_label) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: [assigned_label]
+              });
+            }
+
       - name: Read PR description
         id: pr_description
         uses: actions/github-script@v7

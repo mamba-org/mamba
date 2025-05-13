@@ -4,6 +4,8 @@
 
 ## Type of Change
 
+<!-- Please skip this part if you are already using conventional commit keywords in the PR title. -->
+
 - [ ] Bugfix
 - [ ] Feature / enhancement
 - [ ] CI / Documentation

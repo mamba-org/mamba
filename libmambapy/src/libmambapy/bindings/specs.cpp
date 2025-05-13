@@ -26,6 +26,7 @@
 #include "bindings.hpp"
 #include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
+#include "path_caster.hpp"
 #include "weakening_map_bind.hpp"
 
 using OldVersionPart = std::vector<mamba::specs::VersionPartAtom>;

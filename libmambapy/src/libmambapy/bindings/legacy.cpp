@@ -166,7 +166,7 @@ namespace mambapy
             auto subdir_params = ctx.subdir_params();
             subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
             m_subdirs.push_back(extract(
-                SubdirIndexLoader::create(ctx.subdir_params(), channel, platform, caches, repodata_fn)
+                SubdirIndexLoader::create(subdir_params, channel, platform, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)

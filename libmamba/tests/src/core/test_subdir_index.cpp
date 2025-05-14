@@ -170,13 +170,9 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
         REQUIRE(result.has_value());
 
-        const auto cache_dir = tmp_dir.path() / "cache";
         CHECK_FALSE(subdirs[0].valid_cache_found());
         CHECK(subdirs[1].valid_cache_found());
         CHECK(subdirs[1].valid_json_cache_path().has_value());
-        // TODO Local path are copied!
-        // CHECK(is_in_directory(local_repo_path / "noarch",
-        // subdirs[1].valid_json_cache_path().value()));
     }
 
     SECTION("Download indexes repodata ttl")

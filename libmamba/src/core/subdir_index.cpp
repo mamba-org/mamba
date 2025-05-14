@@ -605,6 +605,7 @@ namespace mamba
         const specs::Channel& channel
     )
     {
+        // For local channel subdirs, we still go through the downloaders
         if (!caching_is_forbidden())
         {
             load_cache(caches, params);

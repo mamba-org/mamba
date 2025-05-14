@@ -209,7 +209,10 @@ namespace mamba
         SubdirParams subdir_params() const
         {
             return {
-                /* .local_repodata_ttl */ this->local_repodata_ttl,
+                // This is legacy where from where 1 meant to read from header
+                /* .local_repodata_ttl */ (this->local_repodata_ttl == 1)
+                    ? std::nullopt
+                    : std::optional(this->local_repodata_ttl),
                 /* .offline */ this->offline,
                 /* .use_index_cache */ this->use_index_cache,
                 /* .repodata_use_zst */ this->repodata_use_zst,

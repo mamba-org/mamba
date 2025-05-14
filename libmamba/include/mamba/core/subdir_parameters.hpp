@@ -7,13 +7,18 @@
 #ifndef MAMBA_CORE_SUBDIR_PARAMETERS_HPP
 #define MAMBA_CORE_SUBDIR_PARAMETERS_HPP
 
-#include <cstddef>
+#include <optional>
 
 namespace mamba
 {
     struct SubdirParams
     {
-        std::size_t local_repodata_ttl = 1;
+        /**
+         * Repodata cache time to live in seconds.
+         *
+         * If not specified, then it is read from server headers.
+         */
+        std::optional<std::size_t> local_repodata_ttl_s = std::nullopt;
         bool offline = false;
         bool use_index_cache = true;
         bool repodata_use_zst = true;

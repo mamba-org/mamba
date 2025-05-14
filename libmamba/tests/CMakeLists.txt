@@ -136,8 +136,10 @@ add_dependencies(test_libmamba test_libmamba_data)
 
 target_compile_definitions(
     test_libmamba
-    PRIVATE MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
-            MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
+    PRIVATE
+        MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+        MAMBA_REPO_DIR="${CMAKE_SOURCE_DIR}"
+        MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )
 
 target_compile_features(test_libmamba PUBLIC cxx_std_17)

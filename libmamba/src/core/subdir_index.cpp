@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <charconv>
 #include <memory>
 #include <regex>
 #include <stdexcept>
@@ -358,24 +359,25 @@ namespace mamba
             return age != file_duration::max();
         }
 
-        auto get_max_age(const std::string& cache_control, int local_repodata_ttl) -> int
+        [[nodiscard]] auto get_cache_control_max_age(const std::string& cache_control)
+            -> std::optional<std::size_t>
         {
-            int max_age = local_repodata_ttl;
-            if (local_repodata_ttl == 1)
+            static const std::regex max_age_re("max-age=(\\d+)");
+            std::smatch max_age_match;
+            const bool matches = std::regex_search(cache_control, max_age_match, max_age_re);
+            if (!matches)
             {
-                static std::regex max_age_re("max-age=(\\d+)");
-                std::smatch max_age_match;
-                bool matches = std::regex_search(cache_control, max_age_match, max_age_re);
-                if (!matches)
-                {
-                    max_age = 0;
-                }
-                else
-                {
-                    max_age = std::stoi(max_age_match[1]);
-                }
+                return std::nullopt;
             }
-            return max_age;
+
+            std::size_t max_age = 0;
+            const auto& match = max_age_match[1].str();
+            auto [_, ec] = std::from_chars(match.data(), match.data() + match.size(), max_age);
+            if (ec == std::errc())
+            {
+                return { max_age };
+            }
+            return std::nullopt;
         }
 
         auto get_cache_dir(const fs::u8path& cache_path) -> fs::u8path
@@ -652,14 +654,26 @@ namespace mamba
             }
             m_metadata = std::move(metadata_temp.value());
 
-            const int max_age = get_max_age(
-                m_metadata.cache_control(),
-                static_cast<int>(params.local_repodata_ttl)
-            );
+
+            // TODO(C++23): Use std::optional::and_then
+            const std::size_t max_age = [&]()
+            {
+                static constexpr std::size_t max_age_default = 60 * 60;
+                if (params.local_repodata_ttl_s)
+                {
+                    return params.local_repodata_ttl_s.value();
+                }
+                if (auto max_age = get_cache_control_max_age(m_metadata.cache_control()))
+                {
+                    return max_age.value();
+                }
+                return max_age_default;
+            }();
+
             const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
                                                .count();
-
-            if ((max_age > cache_age_seconds || params.offline || params.use_index_cache))
+            if (util::cmp_greater(max_age, cache_age_seconds) || params.offline
+                || params.use_index_cache)
             {
                 // valid json cache found
                 if (!m_valid_cache_found)

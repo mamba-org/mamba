@@ -163,14 +163,11 @@ namespace mambapy
         )
         {
             using namespace mamba;
-            m_subdirs.push_back(extract(SubdirIndexLoader::create(
-                ctx.subdir_params(),
-                channel_context,
-                channel,
-                platform,
-                caches,
-                repodata_fn
-            )));
+            auto subdir_params = ctx.subdir_params();
+            subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
+            m_subdirs.push_back(extract(
+                SubdirIndexLoader::create(ctx.subdir_params(), channel, platform, caches, repodata_fn)
+            ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
             {
@@ -560,7 +557,8 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirParams>(m, "SubdirParams")
         .def_readwrite("local_repodata_ttl_s", &SubdirParams::local_repodata_ttl_s)
         .def_readwrite("offline", &SubdirParams::offline)
-        .def_readwrite("repodata_check_zst", &SubdirParams::repodata_check_zst);
+        .def_readwrite("repodata_check_zst", &SubdirParams::repodata_check_zst)
+        .def_readwrite("repodata_force_use_zst", &SubdirParams::repodata_force_use_zst);
 
     auto subdir_metadata = py::class_<SubdirMetadata>(m, "SubdirMetadata");
 
@@ -589,7 +587,6 @@ bind_submodule_impl(pybind11::module_ m)
             "create",
             SubdirIndexLoader::create,
             py::arg("params"),
-            py::arg("channel_context"),
             py::arg("channel"),
             py::arg("platform"),
             py::arg("caches"),

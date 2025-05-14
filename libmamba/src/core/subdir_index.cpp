@@ -405,7 +405,6 @@ namespace mamba
 
     auto SubdirIndexLoader::create(
         const SubdirParams& params,
-        ChannelContext& channel_context,
         specs::Channel channel,
         specs::DynamicPlatform platform,
         MultiPackageCache& caches,
@@ -425,7 +424,6 @@ namespace mamba
         {
             return SubdirIndexLoader(
                 params,
-                channel_context,
                 std::move(channel),
                 std::move(platform),
                 caches,
@@ -569,7 +567,6 @@ namespace mamba
 
     SubdirIndexLoader::SubdirIndexLoader(
         const SubdirParams& params,
-        ChannelContext& channel_context,
         specs::Channel channel,
         std::string platform,
         MultiPackageCache& caches,
@@ -585,7 +582,7 @@ namespace mamba
         , m_solv_filename(m_json_filename.substr(0, m_json_filename.size() - 4) + "solv")
     {
         assert(!this->channel().is_package());
-        load(caches, channel_context, params, this->channel());
+        load(caches, params);
     }
 
     auto SubdirIndexLoader::repodata_url_path() const -> std::string
@@ -598,29 +595,23 @@ namespace mamba
         return channel().platform_url(m_platform) / m_repodata_filename;
     }
 
-    void SubdirIndexLoader::load(
-        const MultiPackageCache& caches,
-        ChannelContext& channel_context,
-        const SubdirParams& params,
-        const specs::Channel& channel
-    )
+    void SubdirIndexLoader::load(const MultiPackageCache& caches, const SubdirParams& params)
     {
         // For local channel subdirs, we still go through the downloaders
         if (!caching_is_forbidden())
         {
             load_cache(caches, params);
         }
+        if (params.repodata_force_use_zst)
+        {
+            m_metadata.set_zst(true);
+        }
 
         LOG_INFO << "Valid cache found  for '" << name() << "': " << valid_cache_found();
-
-        if (!valid_cache_found())
+        if (!valid_cache_found() && !m_expired_cache_path.empty())
         {
-            if (!m_expired_cache_path.empty())
-            {
-                LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
-                         << m_expired_cache_path.string() << "'";
-            }
-            update_metadata_zst(channel_context, params, channel);
+            LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
+                     << m_expired_cache_path.string() << "'";
         }
     }
 
@@ -711,18 +702,6 @@ namespace mamba
                 }
                 LOG_DEBUG << "Expired cache or invalid mod/etag headers";
             }
-        }
-    }
-
-    void SubdirIndexLoader::update_metadata_zst(
-        ChannelContext& channel_context,
-        const SubdirParams& params,
-        const specs::Channel& channel
-    )
-    {
-        if (!params.offline || caching_is_forbidden())
-        {
-            m_metadata.set_zst(m_metadata.has_up_to_date_zst() || channel_context.has_zst(channel));
         }
     }
 

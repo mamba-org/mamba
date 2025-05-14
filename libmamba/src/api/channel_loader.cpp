@@ -76,9 +76,10 @@ namespace mamba
                     LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
                 }
 
+                auto subdir_params = ctx.subdir_params();
+                subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
                 auto sdires = SubdirIndexLoader::create(
-                    ctx.subdir_params(),
-                    channel_context,
+                    subdir_params,
                     channel,
                     platform,
                     package_caches,

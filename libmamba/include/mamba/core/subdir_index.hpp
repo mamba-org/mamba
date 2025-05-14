@@ -31,8 +31,6 @@ namespace mamba
         class Channel;
     }
 
-    class ChannelContext;
-
     /**
      * Handling of a subdirectory metadata.
      *
@@ -159,7 +157,6 @@ namespace mamba
         /** Check existing caches for a valid index validity and freshness. */
         static auto create(
             const SubdirParams& params,
-            ChannelContext& channel_context,
             specs::Channel channel,
             specs::DynamicPlatform platform,
             MultiPackageCache& caches,
@@ -200,7 +197,6 @@ namespace mamba
 
         SubdirIndexLoader(
             const SubdirParams& params,
-            ChannelContext& channel_context,
             specs::Channel channel,
             std::string platform,
             MultiPackageCache& caches,
@@ -213,18 +209,8 @@ namespace mamba
          *  Implementation details of SubdirIndexLoader::create  *
          *********************************************************/
 
-        void load(
-            const MultiPackageCache& caches,
-            ChannelContext& channel_context,
-            const SubdirParams& params,
-            const specs::Channel& channel
-        );
+        void load(const MultiPackageCache& caches, const SubdirParams& params);
         void load_cache(const MultiPackageCache& caches, const SubdirParams& params);
-        void update_metadata_zst(
-            ChannelContext& context,
-            const SubdirParams& params,
-            const specs::Channel& channel
-        );
 
         /****************************************************************************
          *  Implementation details of SubdirIndexLoader::download_required_indexes  *

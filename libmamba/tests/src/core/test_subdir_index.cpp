@@ -37,20 +37,30 @@ namespace
         ss << file.rdbuf();
         return ss.str();
     }
+
+    [[nodiscard]] auto make_simple_channel(std::string_view chan) -> specs::Channel
+    {
+        const auto resolve_params = ChannelContext::ChannelResolveParams{
+            { "linux-64", "osx-64", "noarch" },
+            specs::CondaURL::parse("https://conda.anaconda.org").value()
+        };
+
+        return specs::Channel::resolve(specs::UnresolvedChannel::parse(chan).value(), resolve_params)
+            .value()
+            .front();
+    }
 }
 
 TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
 {
-    auto channel_context = ChannelContext(
-        ChannelContext::ChannelResolveParams{
-            { "linux-64", "osx-64", "noarch" },
-            specs::CondaURL::parse("https://conda.anaconda.org").value() },
-        {}
-    );
+    const auto resolve_params = ChannelContext::ChannelResolveParams{
+        { "linux-64", "osx-64", "noarch" },
+        specs::CondaURL::parse("https://conda.anaconda.org").value()
+    };
 
-    const auto qs_channel = channel_context.make_channel("quantstack").front();
+    const auto qs_channel = make_simple_channel("quantstack");
     const auto local_repo_path = mambatests::repo_dir / "micromamba/test-server/repo/";
-    const auto local_channel = channel_context.make_channel(local_repo_path.string()).front();
+    const auto local_channel = make_simple_channel(local_repo_path.string());
 
     auto mirrors = download::mirror_map();
     for (const auto& chan : { qs_channel, local_channel })
@@ -66,14 +76,7 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         const auto tmp_dir = TemporaryDirectory();
         auto caches = MultiPackageCache({ tmp_dir.path() }, ValidationParams{});
 
-        auto subdir = SubdirIndexLoader::create(
-            {},
-            channel_context,
-            qs_channel,
-            platform,
-            caches,
-            repodata_filename
-        );
+        auto subdir = SubdirIndexLoader::create({}, qs_channel, platform, caches, repodata_filename);
 
         REQUIRE(subdir.has_value());
         CHECK_FALSE(subdir->is_noarch());
@@ -106,8 +109,8 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "noarch", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
         };
 
         auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
@@ -136,8 +139,8 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "noarch", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
         };
 
         auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
@@ -161,8 +164,8 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             /* .offline */ true,
         };
         auto subdirs = std::array{
-            SubdirIndexLoader::create(params, channel_context, local_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, channel_context, local_channel, "noarch", caches).value(),
+            SubdirIndexLoader::create(params, local_channel, "linux-64", caches).value(),
+            SubdirIndexLoader::create(params, local_channel, "noarch", caches).value(),
         };
 
         auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
@@ -184,8 +187,8 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "noarch", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
         };
 
         CAPTURE(tmp_dir.path());
@@ -201,8 +204,8 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         }
 
         subdirs = std::array{
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, channel_context, qs_channel, "noarch", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
+            SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
         };
         for (const auto& subdir : subdirs)
         {

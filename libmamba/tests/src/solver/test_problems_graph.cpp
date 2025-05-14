@@ -342,13 +342,7 @@ namespace
                 create_mirrors(ctx, chan);
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = SubdirIndexLoader::create(
-                                       ctx.subdir_params(),
-                                       channel_context,
-                                       chan,
-                                       platform,
-                                       cache
-                    )
+                    auto sub_dir = SubdirIndexLoader::create(ctx.subdir_params(), chan, platform, cache)
                                        .value();
                     sub_dirs.push_back(std::move(sub_dir));
                 }

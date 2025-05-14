@@ -730,7 +730,7 @@ namespace mamba
     {
         download::MultiRequest request;
 
-        if ((!params.offline || caching_is_forbidden()) && params.repodata_use_zst
+        if ((!params.offline || caching_is_forbidden()) && params.repodata_check_zst
             && !m_metadata.has_up_to_date_zst())
         {
             request.push_back(download::Request(

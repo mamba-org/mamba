@@ -226,7 +226,7 @@ namespace mamba
             return {
                 /* .local_repodata_ttl */ get_local_repodata_ttl(),
                 /* .offline */ this->offline,
-                /* .repodata_use_zst */ this->repodata_use_zst,
+                /* .repodata_check_zst */ this->repodata_use_zst,
             };
         }
 

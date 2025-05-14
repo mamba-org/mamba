@@ -246,6 +246,27 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
 
+@pytest.mark.parametrize("target_prefix", ("file", "empty_dir", "non_empty_dir"))
+def test_existing_target_prefix(tmp_root_prefix, tmp_path, target_prefix):
+    p = tmp_path / "myenv"
+    expected_p = p.resolve()
+    cmd = ["-p", p]
+
+    if target_prefix == "file":
+        expected_p.touch()
+    else:
+        expected_p.mkdir()
+        if target_prefix == "non_empty_dir":
+            (expected_p / "foo").touch()
+
+    if target_prefix in ("file", "non_empty_dir"):
+        with pytest.raises(subprocess.CalledProcessError):
+            helpers.create(*cmd)
+    else:
+        helpers.create(*cmd)
+        assert (expected_p / "conda-meta").exists()
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("root_prefix_type", (None, "env_var", "cli"))
 @pytest.mark.parametrize("target_is_root", (False, True))
@@ -750,7 +771,7 @@ def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, conda_envs_x, envs_dir
     assert envs_dir.exists()
 
 
-def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
+def test_env_dir_idempotence(tmp_home, tmp_root_prefix, tmp_path):
     """
     Test that setting envs_dirs to ~/.conda and running twice in a row
     gives the same results
@@ -779,8 +800,9 @@ def test_env_dir_idempotence(tmp_path, tmp_home, tmp_root_prefix):
 @pytest.mark.parametrize("cli_root_prefix", (False, True))
 @pytest.mark.parametrize("check_config_only", (False, True))
 def test_root_prefix_precedence(
-    tmp_path,
     tmp_home,
+    tmp_clean_env,
+    tmp_path,
     monkeypatch,
     conda_envs_x,
     set_in_condarc,
@@ -1222,6 +1244,24 @@ def test_requires_pip_install_no_parent_dir_specified(
         helpers.create(*cmd)
     finally:
         os.chdir(initial_working_dir)  # Switch back to original working dir.
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_from_remote_yaml_file(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/micromamba/tests/env-create-export.yaml"
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        package["name"] == "micromamba"
+        and package["version"] == "0.24.0"
+        and package["channel"] == "conda-forge"
+        and package["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for package in packages
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1754,7 +1794,7 @@ channels:
 """
 
 
-def test_create_empty_or_absent_dependencies(tmp_path):
+def test_create_empty_or_absent_dependencies(tmp_home, tmp_clean_env, tmp_path):
     env_prefix = tmp_path / "env-empty_dependencies"
     # Write the env specification to a file and pass it to the create command
 
@@ -1806,11 +1846,11 @@ setuptools
 
 
 @pytest.mark.parametrize("env_spec", [env_spec_empty_lines_and_comments, env_repro_1, env_repro_2])
-def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
+def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_path, env_spec):
     # Non-regression test for:
     #  - https://github.com/mamba-org/mamba/issues/3289
     #  - https://github.com/mamba-org/mamba/issues/3659
-    memory_limit = 100  # in MB
+    memory_limit = 150  # in MB
 
     def memory_intensive_operation():
         env_prefix = tmp_path / "env-one_empty_line"
@@ -1831,7 +1871,7 @@ def test_create_with_empty_lines_and_comments(tmp_path, env_spec):
         )
 
 
-def test_update_spec_list(tmp_path):
+def test_update_spec_list(tmp_home, tmp_clean_env, tmp_path):
     env_prefix = tmp_path / "env-invalid_spec"
 
     env_spec = """
@@ -1858,7 +1898,7 @@ https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#7660
     assert update_specs_list in out.replace("\r", "")
 
 
-def test_ca_certificates(tmp_path):
+def test_ca_certificates(tmp_home, tmp_clean_env, tmp_path):
     # Check that CA certificates from conda-forge or that the fall back is used by micromamba.
     env_prefix = tmp_path / "env-ca-certificates"
 
@@ -1888,7 +1928,7 @@ def test_ca_certificates(tmp_path):
     assert root_prefix_ca_certificates_used or fall_back_certificates_used
 
 
-def test_glob_in_build_string(monkeypatch, tmp_path):
+def test_glob_in_build_string(tmp_home, tmp_clean_env, monkeypatch, tmp_path):
     # Non-regression test for https://github.com/mamba-org/mamba/issues/3699
     env_prefix = tmp_path / "test_glob_in_build_string"
 
@@ -1925,7 +1965,7 @@ def test_glob_in_build_string(monkeypatch, tmp_path):
     )
 
 
-def test_non_url_encoding(tmp_path):
+def test_non_url_encoding(tmp_home, tmp_clean_env, tmp_path):
     # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
     env_prefix = tmp_path / "env-non_url_encoding"
 
@@ -1944,7 +1984,7 @@ def test_non_url_encoding(tmp_path):
     assert non_encoded_url_start in out
 
 
-def test_compatible_release(tmp_path):
+def test_compatible_release(tmp_home, tmp_clean_env, tmp_path):
     # Non-regression test for: https://github.com/mamba-org/mamba/issues/3472
     env_prefix = tmp_path / "env-compatible-release"
 
@@ -1952,3 +1992,45 @@ def test_compatible_release(tmp_path):
 
     jupyterlab_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "jupyterlab")
     assert Version(jupyterlab_package["version"]) >= Version("4.3.0")
+
+
+def test_repodata_record_patch(tmp_home, tmp_clean_env, tmp_path):
+    # Non-regression test for: https://github.com/mamba-org/mamba/issues/3883
+
+    # Create an environment with `libarchive==3.7.7=h*_3` which has an out-of-date
+    # repodata record for its dependency on `libxml2`.
+    env_prefix = tmp_path / "env-repodata-record-patch"
+    out = helpers.create("--json", "libarchive==3.7.7=h*_3", "-p", env_prefix)
+    assert out["success"]
+
+    version_3_7_7 = Version("3.7.7")
+
+    originally_linked_libarchive = next(
+        pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive"
+    )
+    assert Version(originally_linked_libarchive["version"]) == version_3_7_7
+    assert originally_linked_libarchive["build_number"] == 3
+
+    # Test that updating all the environment respect the repodata record patch introduced
+    # for libarchive==3.7.7=h_*_4 and that no other package than libarchive is updated.
+    out = helpers.update("--json", "-p", env_prefix, "--all")
+    assert out["success"]
+
+    assert len(out["actions"]["UNLINK"]) == 1
+    unlink_libarchive = next(pkg for pkg in out["actions"]["UNLINK"] if pkg["name"] == "libarchive")
+
+    # TODO: understand why the original linked libarchive has a full URL for the channel
+    # while the unlink libarchive has a short channel name (`conda-forge`) and removed the
+    # the line below.
+    unlink_libarchive["channel"] = originally_linked_libarchive["channel"]
+    assert unlink_libarchive == originally_linked_libarchive
+
+    assert len(out["actions"]["LINK"]) == 1
+    linked_libarchive = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive")
+
+    linked_libarchive_version = Version(linked_libarchive["version"])
+
+    assert linked_libarchive_version >= version_3_7_7
+
+    if linked_libarchive_version == version_3_7_7:
+        assert linked_libarchive["build_number"] > 3

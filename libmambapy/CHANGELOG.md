@@ -1,3 +1,26 @@
+## libmambapy 2.1.1 (May 05, 2025)
+
+Bug fixes:
+
+- Fix VersionSpec globs by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3889>
+
+CI fixes and doc:
+
+- Explicit API and ABI stability commitments by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3913>
+- Add minimal citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3914>
+
+Maintenance:
+
+- DX: libmambapy import in build tree by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3916>
+- build(deps): bump codecov/codecov-action from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3896>
+- ci: Adapt code coverage workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/3890>
+
+## libmambapy 2.1.0 (April 01, 2025)
+
+Bug fixes:
+
+- Support SHA256 hashes in @EXPLICIT files by @jaimergp in <https://github.com/mamba-org/mamba/pull/3866>
+
 ## libmambapy 2.0.8 (March 19, 2025)
 
 ## libmambapy 2.0.7 (March 07, 2025)

@@ -36,7 +36,12 @@ namespace mamba::fs
 
 namespace mamba::solver::libsolv
 {
-    void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg);
+    void set_solvable(
+        solv::ObjPool& pool,
+        solv::ObjSolvableView solv,
+        const specs::PackageInfo& pkg,
+        MatchSpecParser parser
+    );
 
     auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
         -> specs::PackageInfo;
@@ -55,6 +60,7 @@ namespace mamba::solver::libsolv
         const std::string& repo_url,
         const std::string& channel_id,
         PackageTypes types,
+        MatchSpecParser parser,
         bool verify_artifacts
     ) -> expected_t<solv::ObjRepoView>;
 
@@ -96,20 +102,33 @@ namespace mamba::solver::libsolv
      * callback to pass our own information.
      */
     [[nodiscard]] auto get_abused_namespace_callback_args(  //
-        solv::ObjPoolView& pool,
+        solv::ObjPoolView pool,
         solv::StringId first,
         solv::StringId second
     ) -> std::pair<std::string_view, MatchFlags>;
 
     [[nodiscard]] auto pool_add_matchspec(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& ms
+        const specs::MatchSpec& ms,
+        MatchSpecParser parser
+    ) -> expected_t<solv::DependencyId>;
+
+    [[nodiscard]] auto pool_add_matchspec(  //
+        solv::ObjPool& pool,
+        const char* ms,
+        MatchSpecParser parser
     ) -> expected_t<solv::DependencyId>;
 
     [[nodiscard]] auto pool_add_pin(  //
         solv::ObjPool& pool,
-        const specs::MatchSpec& pin_ms
+        const specs::MatchSpec& pin_ms,
+        MatchSpecParser parser
     ) -> expected_t<solv::ObjSolvableView>;
+
+    [[nodiscard]] auto pool_get_matchspec(  //
+        solv::ObjPoolView pool,
+        solv::DependencyId dep
+    ) -> expected_t<specs::MatchSpec>;
 
     [[nodiscard]] auto transaction_to_solution_all(  //
         const solv::ObjPool& pool,
@@ -149,8 +168,12 @@ namespace mamba::solver::libsolv
         std::string_view noarch_type
     ) -> Solution;
 
-    [[nodiscard]] auto
-    request_to_decision_queue(const Request& request, solv::ObjPool& pool, bool force_reinstall)
-        -> expected_t<solv::ObjQueue>;
+    [[nodiscard]] auto request_to_decision_queue(
+        const Request& request,
+        solv::ObjPool& pool,
+        bool force_reinstall,
+        MatchSpecParser parser
+
+    ) -> expected_t<solv::ObjQueue>;
 }
 #endif

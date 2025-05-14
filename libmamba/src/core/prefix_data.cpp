@@ -129,7 +129,7 @@ namespace mamba
                                   .value();
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
-                    const auto from_iter = name_to_node_id.find(ms.name().str());
+                    const auto from_iter = name_to_node_id.find(ms.name().to_string());
                     if (from_iter != name_to_node_id.cend())
                     {
                         dep_graph.add_edge(from_iter->second, to_id);

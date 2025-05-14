@@ -7,11 +7,15 @@
 #include <algorithm>
 #include <array>
 #include <type_traits>
+#include <variant>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/string.hpp"
+
+#include "specs/version_spec_impl.hpp"
 
 namespace mamba::specs
 {
@@ -65,6 +69,104 @@ namespace mamba::specs
         return lhs.level == rhs.level;
     }
 
+    namespace
+    {
+        auto version_match_glob(const CommonVersion& candidate, const CommonVersion& pattern) -> bool
+        {
+            auto cand_it = candidate.cbegin();
+            const auto cand_last = candidate.cend();
+            auto pat_it = pattern.cbegin();
+            const auto pat_last = pattern.cend();
+            auto parts_required = std::size_t(0);
+            auto parts_available = std::size_t(0);
+
+            constexpr auto is_failed = [](auto req, auto avail) -> bool
+            { return (req > avail) || (req == 0 && avail > 0); };
+            constexpr auto is_glob_part = [](const auto& p) -> bool
+            { return p == VERSION_GLOB_SEGMENT; };
+            constexpr auto distance = [](auto i1, auto i2)
+            {
+                assert(i1 <= i2);
+                return static_cast<std::size_t>(std::distance(i1, i2));
+            };
+
+            while (pat_it != pat_last)
+            {
+                // We move forward in the pattern counting all the contiguous glob parts.
+                const auto pat_sub_first = std::find_if_not(pat_it, pat_last, is_glob_part);
+                parts_required += distance(pat_it, pat_sub_first);
+                pat_it = pat_sub_first;
+
+                // No more explicit subpatterns (i.e. not globs) to match
+                if (pat_it == pat_last)
+                {
+                    break;
+                }
+
+                // Find the end of the sub pattern, i.e. to the start of the next glob.
+                // This is required to avoid greedily matching on the first similar character.
+                const auto pat_sub_last = std::find_if(pat_sub_first, pat_last, is_glob_part);
+
+                // At this point we have a required pattern.
+                // We search for it in the given version and count the parts that were skipped.
+                const auto cand_sub_first = std::search(cand_it, cand_last, pat_sub_first, pat_sub_last);
+                parts_available += distance(cand_it, cand_sub_first);
+                cand_it = cand_sub_first;
+
+                // If we exhause the candidate without finding a match for the pattern it's a
+                // failure
+                if (cand_it == cand_last)
+                {
+                    return false;
+                }
+
+                // At this point we have a match.
+                // We compare the number of globs found with the number of unmatched candidate parts
+                if (is_failed(parts_required, parts_available))
+                {
+                    return false;
+                }
+
+                // We pass through the match and reset the counts
+                const auto subpat_len = std::distance(pat_sub_first, pat_sub_last);
+                pat_it += subpat_len;
+                cand_it += subpat_len;
+                parts_required = 0;
+                parts_available = 0;
+            }
+
+            parts_available += static_cast<std::size_t>(std::distance(cand_it, cand_last));
+
+            return !is_failed(parts_required, parts_available);
+        }
+
+    }
+
+    auto VersionPredicate::version_glob::operator()(const Version& point, const Version& pattern) const
+        -> bool
+    {
+        return (point.epoch() == pattern.epoch())
+               && version_match_glob(point.version(), pattern.version())
+               && version_match_glob(point.local(), pattern.local());
+    }
+
+    auto operator==(VersionPredicate::version_glob, VersionPredicate::version_glob) -> bool
+    {
+        return true;
+    }
+
+    auto
+    VersionPredicate::not_version_glob::operator()(const Version& point, const Version& pattern) const
+        -> bool
+    {
+        return !VersionPredicate::version_glob{}(point, pattern);
+    }
+
+    auto operator==(VersionPredicate::not_version_glob, VersionPredicate::not_version_glob) -> bool
+    {
+        return true;
+    }
+
     static auto operator==(std::equal_to<Version>, std::equal_to<Version>) -> bool
     {
         return true;
@@ -102,6 +204,12 @@ namespace mamba::specs
     auto VersionPredicate::contains(const Version& point) const -> bool
     {
         return std::visit([&](const auto& op) { return op(point, m_version); }, m_operator);
+    }
+
+    auto VersionPredicate::has_glob() const -> bool
+    {
+        return std::holds_alternative<VersionPredicate::version_glob>(m_operator)
+               || std::holds_alternative<VersionPredicate::not_version_glob>(m_operator);
     }
 
     auto VersionPredicate::make_free() -> VersionPredicate
@@ -154,12 +262,22 @@ namespace mamba::specs
         return VersionPredicate(std::move(ver), compatible_with{ level });
     }
 
-    auto VersionPredicate::str() const -> std::string
+    auto VersionPredicate::make_version_glob(Version pattern) -> VersionPredicate
+    {
+        return VersionPredicate(std::move(pattern), version_glob{});
+    }
+
+    auto VersionPredicate::make_not_version_glob(Version pattern) -> VersionPredicate
+    {
+        return VersionPredicate(std::move(pattern), not_version_glob{});
+    }
+
+    auto VersionPredicate::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
 
-    auto VersionPredicate::str_conda_build() const -> std::string
+    auto VersionPredicate::to_string_conda_build() const -> std::string
     {
         return fmt::format("{:b}", *this);
     }
@@ -172,7 +290,15 @@ namespace mamba::specs
 
     auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool
     {
-        return (lhs.m_operator == rhs.m_operator) && (lhs.m_version == rhs.m_version);
+        return (lhs.m_operator == rhs.m_operator)  //
+               && (lhs.m_version == rhs.m_version)
+               // In version_glob, the version is not understood purely as a version since ``*``
+               // has different meaning, as explicit trailing zeros.
+               // Versions should be made part of this variant internal and handled there.
+               // On the different meanings of ``*``, see this CEP:
+               // https://github.com/conda/ceps/pull/60
+               && (!std::holds_alternative<VersionPredicate::version_glob>(lhs.m_operator)
+                   || lhs.m_version.version().size() == rhs.m_version.version().size());
     }
 
     auto operator!=(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool
@@ -210,12 +336,7 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
             using Op = std::decay_t<decltype(op)>;
             if constexpr (std::is_same_v<Op, VersionPredicate::free_interval>)
             {
-                out = fmt::format_to(
-                    out,
-                    "{}{}",
-                    VersionSpec::starts_with_str,
-                    VersionSpec::glob_suffix_token
-                );
+                out = fmt::format_to(out, "{}", VersionSpec::preferred_free_str);
             }
             if constexpr (std::is_same_v<Op, std::equal_to<Version>>)
             {
@@ -271,8 +392,16 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
                     out,
                     "{}{}",
                     VersionSpec::compatible_str,
-                    pred.m_version.str(format_level)
+                    pred.m_version.to_string(format_level)
                 );
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::version_glob>)
+            {
+                out = fmt::format_to(out, "{:g}", pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::not_version_glob>)
+            {
+                out = fmt::format_to(out, "{}{:g}", VersionSpec::not_equal_str, pred.m_version);
             }
         },
         pred.m_operator
@@ -311,12 +440,34 @@ namespace mamba::specs
         return m_tree.empty() || ((m_tree.size() == 1) && m_tree.evaluate(is_free_pred));
     }
 
-    auto VersionSpec::str() const -> std::string
+    auto VersionSpec::has_glob() const -> bool
+    {
+        if (expression_size() == 0)
+        {
+            return false;
+        }
+
+        auto found = false;
+        m_tree.infix_for_each(
+            [&found](const auto& elem)
+            {
+                using Elem = std::decay_t<decltype(elem)>;
+                if constexpr (std::is_same_v<Elem, VersionPredicate>)
+                {
+                    found |= elem.has_glob();
+                }
+            }
+
+        );
+        return found;
+    }
+
+    auto VersionSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
 
-    auto VersionSpec::str_conda_build() const -> std::string
+    auto VersionSpec::to_string_conda_build() const -> std::string
     {
         return fmt::format("{:b}", *this);
     }
@@ -337,6 +488,8 @@ namespace mamba::specs
         auto parse_op_and_version(std::string_view str) -> expected_parse_t<VersionPredicate>
         {
             str = util::strip(str);
+            // Conda-forge repodata.json bug with trailing `.` in `openblas 0.2.18|0.2.18.*.`
+            str = util::remove_suffix(str, Version::part_delim);
             // WARNING order is important since some operator are prefix of others.
             if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
             {
@@ -379,8 +532,24 @@ namespace mamba::specs
                         }
                     );
             }
+
+            // A simple `.*` check on the end of the version spec string
             const bool has_glob_suffix = util::ends_with(str, VersionSpec::glob_suffix_str);
-            const std::size_t glob_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
+            const std::size_t glob_suffix_active_len = has_glob_suffix
+                                                       * VersionSpec::glob_suffix_str.size();
+            // A more complex glob type of glob used that requires a glob predicate.
+            // Needs to be used after stripping a potential leading operator as it may lead
+            // to positive or negative glob.
+            // The check for whether the "*" is a glob or a valid version character is poorly
+            // defined.
+            constexpr auto has_complex_glob = [](std::string_view expr) -> bool
+            {
+                constexpr auto glob_suffix_len = VersionSpec::glob_suffix_str.size();
+                return util::starts_with(expr, VersionSpec::glob_pattern_str)
+                       || (expr.find(VersionSpec::glob_suffix_str)
+                           < std::max(expr.size(), glob_suffix_len) - glob_suffix_len);
+            };
+
             if (util::starts_with(str, VersionSpec::equal_str))
             {
                 const std::size_t start = VersionSpec::equal_str.size();
@@ -388,7 +557,9 @@ namespace mamba::specs
                 if (has_glob_suffix)
                 {
                     return Version::parse(
-                               util::lstrip(str.substr(start, str.size() - glob_len - start))
+                               util::lstrip(
+                                   str.substr(start, str.size() - glob_suffix_active_len - start)
+                               )
                     )
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });
@@ -402,12 +573,22 @@ namespace mamba::specs
             }
             if (util::starts_with(str, VersionSpec::not_equal_str))
             {
-                const std::size_t start = VersionSpec::not_equal_str.size();
+                constexpr std::size_t start = VersionSpec::not_equal_str.size();
+                const auto str_no_op = util::lstrip(str.substr(start));
+
+                // Glob changes meaning for !=1.*.0
+                if (has_complex_glob(str_no_op))
+                {
+                    return Version::parse(str_no_op).transform(
+                        [](specs::Version&& ver)
+                        { return VersionPredicate::make_not_version_glob(std::move(ver)); }
+                    );
+                }
                 // Glob suffix changes meaning for !=1.3.*
-                if (has_glob_suffix)
+                else if (has_glob_suffix)
                 {
                     return Version::parse(
-                               util::lstrip(str.substr(start, str.size() - glob_len - start))
+                               str_no_op.substr(0, str_no_op.size() - glob_suffix_active_len)
                     )
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_not_starts_with(std::move(ver)); }
@@ -415,18 +596,37 @@ namespace mamba::specs
                 }
                 else
                 {
-                    return Version::parse(util::lstrip(str.substr(start)))
-                        .transform([](specs::Version&& ver)
-                                   { return VersionPredicate::make_not_equal_to(std::move(ver)); });
+                    return Version::parse(str_no_op).transform(
+                        [](specs::Version&& ver)
+                        { return VersionPredicate::make_not_equal_to(std::move(ver)); }
+                    );
                 }
             }
             if (util::starts_with(str, VersionSpec::starts_with_str))
             {
-                const std::size_t start = VersionSpec::starts_with_str.size();
+                constexpr std::size_t start = VersionSpec::starts_with_str.size();
+                const auto str_no_op = util::lstrip(str.substr(start));
+
+                // Glob changes meaning for =1.*.0
+                if (has_complex_glob(str_no_op))
+                {
+                    return Version::parse(str_no_op).transform(
+                        [](specs::Version&& ver)
+                        { return VersionPredicate::make_version_glob(std::move(ver)); }
+                    );
+                }
                 // Glob suffix does not change meaning for =1.3.*
-                return Version::parse(util::lstrip(str.substr(start, str.size() - glob_len - start)))
+                return Version::parse(str_no_op.substr(0, str_no_op.size() - glob_suffix_active_len))
                     .transform([](specs::Version&& ver)
                                { return VersionPredicate::make_starts_with(std::move(ver)); });
+            }
+            // If we find a glob suffix as in `3.*`, we leave it to be processed as a
+            // ``starts_with`` in the next block.
+            if (has_complex_glob(str))
+            {
+                return Version::parse(util::lstrip(str))
+                    .transform([](specs::Version&& ver)
+                               { return VersionPredicate::make_version_glob(std::move(ver)); });
             }
             // All versions must start with either a digit or a lowercase letter
             // The version regex should comply with r"^[\*\.\+!_0-9a-z]+$"
@@ -437,11 +637,11 @@ namespace mamba::specs
             if (util::is_digit(str.front()) || util::is_lower(str.front()))
             {
                 // Glob suffix does  change meaning for 1.3.* and 1.3*
-                if (util::ends_with(str, VersionSpec::glob_suffix_token))
+                if (util::ends_with(str, VersionSpec::glob_suffix_str.back()))
                 {
                     // either ".*" or "*"
                     static constexpr auto one = std::size_t(1);  // MSVC
-                    const std::size_t len = str.size() - std::max(glob_len, one);
+                    const std::size_t len = str.size() - std::max(glob_suffix_active_len, one);
                     return Version::parse(util::lstrip(str.substr(0, len)))
                         .transform([](specs::Version&& ver)
                                    { return VersionPredicate::make_starts_with(std::move(ver)); });

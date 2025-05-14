@@ -1,3 +1,40 @@
+## libmamba 2.1.1 (May 05, 2025)
+
+Enhancements:
+
+- Use Simdjson ondemand parser instead of DOM parser by @Klaim in <https://github.com/mamba-org/mamba/pull/3878>
+
+Bug fixes:
+
+- Fix segfault in error messages by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3912>
+- fix: Requalify warning when parsing the "mod/etag" header by @jjerphan in <https://github.com/mamba-org/mamba/pull/3910>
+- Fix nushell env for Windows by @cvanelteren in <https://github.com/mamba-org/mamba/pull/3880>
+- fix: Give precedence to repodata when constructing `repodata_record` files by @jjerphan in <https://github.com/mamba-org/mamba/pull/3901>
+- feat: add sha256 flag to list command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3885>
+- Fix VersionSpec globs by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3889>
+
+CI fixes and doc:
+
+- Explicit API and ABI stability commitments by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3913>
+- Add minimal citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3914>
+
+Maintenance:
+
+- Internally add flag for switching MatchSpec parser by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3905>
+- Ready Libsolv for C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3899>
+- build(deps): bump codecov/codecov-action from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3896>
+- ci: Adapt code coverage workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/3890>
+
+## libmamba 2.1.0 (April 01, 2025)
+
+Bug fixes:
+
+- fix: Prohibit conda envs path and conda envs dirs by @holzman in <https://github.com/mamba-org/mamba/pull/3854>
+- fix: ProgressBar member initialization order by @jmakovicka in <https://github.com/mamba-org/mamba/pull/3872>
+- Fix authenticated downloading by @Hind-M in <https://github.com/mamba-org/mamba/pull/3868>
+- Windows menuinst by @Hind-M in <https://github.com/mamba-org/mamba/pull/3846>
+- Support SHA256 hashes in @EXPLICIT files by @jaimergp in <https://github.com/mamba-org/mamba/pull/3866>
+
 ## libmamba 2.0.8 (March 19, 2025)
 
 Bug fixes:

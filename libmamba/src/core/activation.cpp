@@ -1248,32 +1248,31 @@ namespace mamba
 
         if (!env_transform.export_path.empty())
         {
-            out << "PATH = " << env_transform.export_path << ";";
+            out << "PATH = " << env_transform.export_path << (util::on_win ? ';' : ':') << "\n";
         }
 
         for (const fs::u8path& ds : env_transform.deactivate_scripts)
         {
-            out << "source " << ds << ";";
+            out << "source " << ds << "\n";
         }
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "hide-env " << uvar << ";";
+            out << "hide-env " << uvar << "\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)
         {
-            out << "let " << skey << " = " << svar << ";";
+            out << "let " << skey << " = " << svar << "\n";
         }
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            out << ekey << " = " << evar << ";";
+            out << ekey << " = " << evar << "\n";
         }
-
         for (const fs::u8path& p : env_transform.activate_scripts)
         {
-            out << "source " << p << ";";
+            out << "source " << p << "\n";
         }
         return out.str();
     }

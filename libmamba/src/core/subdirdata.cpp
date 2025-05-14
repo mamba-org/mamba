@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <memory>
 #include <regex>
 #include <stdexcept>
 
@@ -12,6 +13,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/util/cryptography.hpp"
@@ -114,10 +116,6 @@ namespace mamba
         }
     }
 
-    /*******************
-     * MSubdirMetadata *
-     *******************/
-
     void to_json(nlohmann::json& j, const SubdirMetadata::CheckedAt& ca)
     {
         j["value"] = ca.value;
@@ -167,22 +165,22 @@ namespace mamba
         state_file.replace_extension(".state.json");
         if (fs::is_regular_file(state_file))
         {
-            return from_state_file(state_file, file);
+            return read_state_file(state_file, file);
         }
         else
         {
-            return from_repodata_file(file);
+            return read_from_repodata_json(file);
         }
     }
 
-    void SubdirMetadata::write(const fs::u8path& file)
+    void SubdirMetadata::write_state_file(const fs::u8path& file)
     {
         nlohmann::json j = *this;
         std::ofstream out = open_ofstream(file);
         out << j.dump(4);
     }
 
-    bool SubdirMetadata::check_valid_metadata(const fs::u8path& file)
+    bool SubdirMetadata::is_valid_metadata(const fs::u8path& file) const
     {
         if (const auto new_size = fs::file_size(file); new_size != m_stored_file_size)
         {
@@ -222,12 +220,12 @@ namespace mamba
         return m_http.cache_control;
     }
 
-    bool SubdirMetadata::has_zst() const
+    bool SubdirMetadata::has_up_to_date_zst() const
     {
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
-    void SubdirMetadata::store_http_metadata(HttpMetadata data)
+    void SubdirMetadata::set_http_metadata(HttpMetadata data)
     {
         m_http = std::move(data);
     }
@@ -249,7 +247,7 @@ namespace mamba
     }
 
     auto
-    SubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
+    SubdirMetadata::read_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
         std::ifstream infile = open_ifstream(state_file);
@@ -274,7 +272,7 @@ namespace mamba
             );
         }
 
-        if (!m.check_valid_metadata(repodata_file))
+        if (!m.is_valid_metadata(repodata_file))
         {
             LOG_WARNING << "Cache file " << repodata_file << " was modified by another program";
             return make_unexpected(
@@ -285,7 +283,7 @@ namespace mamba
         return m;
     }
 
-    auto SubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
+    auto SubdirMetadata::read_from_repodata_json(const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
         const std::string json = [](const fs::u8path& file) -> std::string
@@ -307,7 +305,7 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            LOG_WARNING << "Could not parse mod/etag header";
+            LOG_DEBUG << "Could not parse mod/etag header";
             return make_unexpected(
                 fmt::format("File: {}: Could not parse mod/etag header ({})", repodata_file, e.what()),
                 mamba_error_code::cache_not_loaded
@@ -393,20 +391,43 @@ namespace mamba
             fs::copy(new_file, old_file);
             return old_file;
         }
+
+        [[nodiscard]] auto get_name(std::string_view channel_id, std::string_view platform)
+            -> std::string
+        {
+            return util::url_concat(channel_id, "/", platform);
+        }
+
     }
 
     expected_t<SubdirData> SubdirData::create(
-        Context& ctx,
+        const SubdirParams& params,
         ChannelContext& channel_context,
-        const specs::Channel& channel,
-        const std::string& platform,
+        specs::Channel channel,
+        specs::DynamicPlatform platform,
         MultiPackageCache& caches,
-        const std::string& repodata_fn
+        std::string repodata_filename
     )
     {
+        if (channel.is_package())
+        {
+            return make_unexpected(
+                "Channel pointing to a single package artifacts do not have an index.",
+                mamba_error_code::incorrect_usage
+            );
+        }
+
+        auto name = get_name(channel.id(), platform);
         try
         {
-            return SubdirData(ctx, channel_context, channel, platform, caches, repodata_fn);
+            return SubdirData(
+                params,
+                channel_context,
+                std::move(channel),
+                std::move(platform),
+                caches,
+                std::move(repodata_filename)
+            );
         }
         catch (std::exception& e)
         {
@@ -415,8 +436,7 @@ namespace mamba
         catch (...)
         {
             return make_unexpected(
-                "Unknown error when trying to load subdir data "
-                    + SubdirData::get_name(channel.id(), platform),
+                "Unknown error when trying to load subdir data " + name,
                 mamba_error_code::unknown
             );
         }
@@ -424,37 +444,53 @@ namespace mamba
 
     bool SubdirData::is_noarch() const
     {
-        return m_is_noarch;
+        return specs::platform_is_noarch(m_platform);
     }
 
-    bool SubdirData::is_loaded() const
+    auto SubdirData::is_local() const -> bool
     {
-        return m_loaded;
+        return (channel().mirror_urls().size() == 1u) && (channel().url().scheme() == "file");
     }
 
-    void SubdirData::clear_cache()
+    auto SubdirData::channel() const -> const specs::Channel&
     {
-        if (fs::is_regular_file(m_json_fn))
+        return m_channel;
+    }
+
+    auto SubdirData::caching_is_forbidden() const -> bool
+    {
+        // The only condition yet
+        return is_local();
+    }
+
+    bool SubdirData::valid_cache_found() const
+    {
+        return m_valid_cache_found;
+    }
+
+    void SubdirData::clear_cache_files()
+    {
+        if (fs::is_regular_file(m_json_filename))
         {
-            fs::remove(m_json_fn);
+            fs::remove(m_json_filename);
         }
-        if (fs::is_regular_file(m_solv_fn))
+        if (fs::is_regular_file(m_solv_filename))
         {
-            fs::remove(m_solv_fn);
+            fs::remove(m_solv_filename);
         }
     }
 
-    const std::string& SubdirData::name() const
+    std::string SubdirData::name() const
     {
-        return m_name;
+        return get_name(channel_id(), m_platform);
     }
 
     const std::string& SubdirData::channel_id() const
     {
-        return m_channel_id;
+        return m_channel.id();
     }
 
-    const std::string& SubdirData::platform() const
+    const specs::DynamicPlatform& SubdirData::platform() const
     {
         return m_platform;
     }
@@ -464,148 +500,105 @@ namespace mamba
         return m_metadata;
     }
 
-    expected_t<fs::u8path> SubdirData::valid_solv_cache() const
+    expected_t<fs::u8path> SubdirData::valid_libsolv_cache_path() const
     {
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_solv_fn).string();
+            return (get_cache_dir(m_valid_cache_path) / m_solv_filename).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    fs::u8path SubdirData::writable_solv_cache() const
+    fs::u8path SubdirData::writable_libsolv_cache_path() const
     {
-        return m_writable_pkgs_dir / "cache" / m_solv_fn;
+        return m_writable_pkgs_dir / "cache" / m_solv_filename;
     }
 
-    expected_t<fs::u8path> SubdirData::valid_json_cache() const
+    expected_t<fs::u8path> SubdirData::valid_json_cache_path() const
     {
         if (m_json_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_json_fn).string();
+            return (get_cache_dir(m_valid_cache_path) / m_json_filename).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    expected_t<std::string> SubdirData::cache_path() const
+    auto SubdirData::download_requests(
+        download::MultiRequest requests,
+        const specs::AuthenticationDataBase& auth_info,
+        const download::mirror_map& mirrors,
+        const download::Options& download_options,
+        const download::RemoteFetchParams& remote_fetch_params,
+        download::Monitor* monitor
+    ) -> expected_t<void>
     {
-        // TODO invalidate solv cache on version updates!!
-        if (m_json_cache_valid && m_solv_cache_valid)
+        try
         {
-            return (get_cache_dir(m_valid_cache_path) / m_solv_fn).string();
+            download::download(
+                std::move(requests),
+                mirrors,
+                remote_fetch_params,
+                auth_info,
+                download_options,
+                monitor
+            );
         }
-        else if (m_json_cache_valid)
+        catch (const std::runtime_error& e)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_json_fn).string();
+            return make_unexpected(e.what(), mamba_error_code::repodata_not_loaded);
         }
-        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
-    }
-
-    expected_t<void> SubdirData::download_indexes(
-        std::vector<SubdirData>& subdirs,
-        const Context& context,
-        download::Monitor* check_monitor,
-        download::Monitor* download_monitor
-    )
-    {
-        download::MultiRequest check_requests;
-        for (auto& subdir : subdirs)
-        {
-            if (!subdir.is_loaded())
-            {
-                download::MultiRequest check_list = subdir.build_check_requests();
-                std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
-            }
-        }
-        download::download(std::move(check_requests), context.mirrors, context, {}, check_monitor);
-
         if (is_sig_interrupted())
         {
             return make_unexpected("Interrupted by user", mamba_error_code::user_interrupted);
         }
 
-        // TODO load local channels even when offline if (!ctx.offline)
-        if (!context.offline)
-        {
-            download::MultiRequest index_requests;
-            for (auto& subdir : subdirs)
-            {
-                if (!subdir.is_loaded())
-                {
-                    index_requests.push_back(subdir.build_index_request());
-                }
-            }
-
-            try
-            {
-                download::download(
-                    std::move(index_requests),
-                    context.mirrors,
-                    context,
-                    { /*fail_fast=*/true },
-                    download_monitor
-                );
-            }
-            catch (const std::runtime_error& e)
-            {
-                return make_unexpected(e.what(), mamba_error_code::repodata_not_loaded);
-            }
-        }
-
         return expected_t<void>();
     }
 
-    std::string SubdirData::get_name(const std::string& channel_id, const std::string& platform)
-    {
-        return util::url_concat(channel_id, "/", platform);
-    }
-
     SubdirData::SubdirData(
-        Context& ctx,
+        const SubdirParams& params,
         ChannelContext& channel_context,
-        const specs::Channel& channel,
-        const std::string& platform,
+        specs::Channel channel,
+        std::string platform,
         MultiPackageCache& caches,
-        const std::string& repodata_fn
+        std::string repodata_filename
     )
-        : m_valid_cache_path("")
+        : m_channel(std::move(channel))
+        , m_valid_cache_path("")
         , m_expired_cache_path("")
         , m_writable_pkgs_dir(caches.first_writable_path())
-        , m_channel_id(channel.id())
-        , m_platform(platform)
-        , m_name(get_name(m_channel_id, m_platform))
-        , m_repodata_fn(repodata_fn)
-        , m_json_fn(cache_fn_url(name()))
-        , m_solv_fn(m_json_fn.substr(0, m_json_fn.size() - 4) + "solv")
-        , m_is_noarch(platform == "noarch")
-        , p_context(&(ctx))
+        , m_platform(std::move(platform))
+        , m_repodata_filename(std::move(repodata_filename))
+        , m_json_filename(cache_filename_from_url(name()))
+        , m_solv_filename(m_json_filename.substr(0, m_json_filename.size() - 4) + "solv")
     {
-        m_full_url = util::url_concat(channel.url().str(), "/", repodata_url_path());
-        assert(!channel.is_package());
-        m_forbid_cache = (channel.mirror_urls().size() == 1u)
-                         && util::starts_with(channel.url().str(), "file://");
-        load(caches, channel_context, channel);
+        assert(!this->channel().is_package());
+        load(caches, channel_context, params, this->channel());
     }
 
     std::string SubdirData::repodata_url_path() const
     {
-        return util::concat(m_platform, "/", m_repodata_fn);
+        return util::url_concat(m_platform, "/", m_repodata_filename);
     }
 
-    const std::string& SubdirData::repodata_full_url() const
+    specs::CondaURL SubdirData::repodata_url() const
     {
-        return m_full_url;
+        return channel().platform_url(m_platform) / m_repodata_filename;
     }
 
-    void
-    SubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel)
+    void SubdirData::load(
+        const MultiPackageCache& caches,
+        ChannelContext& channel_context,
+        const SubdirParams& params,
+        const specs::Channel& channel
+    )
     {
-        if (!m_forbid_cache)
+        if (!caching_is_forbidden())
         {
-            load_cache(caches);
+            load_cache(caches, params);
         }
 
-        if (m_loaded)
+        if (m_valid_cache_found)
         {
             Console::stream() << fmt::format("{:<50} {:>20}", name(), std::string("Using cache"));
         }
@@ -617,22 +610,21 @@ namespace mamba
                 LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
                          << m_expired_cache_path.string() << "'";
             }
-            update_metadata_zst(channel_context, channel);
+            update_metadata_zst(channel_context, params, channel);
         }
     }
 
-    void SubdirData::load_cache(MultiPackageCache& caches)
+    void SubdirData::load_cache(const MultiPackageCache& caches, const SubdirParams& params)
     {
         LOG_INFO << "Searching index cache file for repo '" << name() << "'";
         file_time_point now = fs::file_time_type::clock::now();
 
-        const Context& context = *p_context;
         const auto cache_paths = without_duplicates(caches.paths());
 
         for (const fs::u8path& cache_path : cache_paths)
         {
             // TODO: rewrite this with pipe chains of ranges
-            fs::u8path json_file = cache_path / "cache" / m_json_fn;
+            fs::u8path json_file = cache_path / "cache" / m_json_filename;
             if (!fs::is_regular_file(json_file))
             {
                 continue;
@@ -655,26 +647,26 @@ namespace mamba
 
             const int max_age = get_max_age(
                 m_metadata.cache_control(),
-                static_cast<int>(context.local_repodata_ttl)
+                static_cast<int>(params.local_repodata_ttl)
             );
             const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
                                                .count();
 
-            if ((max_age > cache_age_seconds || context.offline || context.use_index_cache))
+            if ((max_age > cache_age_seconds || params.offline || params.use_index_cache))
             {
                 // valid json cache found
-                if (!m_loaded)
+                if (!m_valid_cache_found)
                 {
                     LOG_DEBUG << "Using JSON cache";
                     LOG_TRACE << "Cache age: " << cache_age_seconds << "/" << max_age << "s";
 
                     m_valid_cache_path = cache_path;
                     m_json_cache_valid = true;
-                    m_loaded = true;
+                    m_valid_cache_found = true;
                 }
 
                 // check libsolv cache
-                fs::u8path solv_file = cache_path / "cache" / m_solv_fn;
+                fs::u8path solv_file = cache_path / "cache" / m_solv_filename;
                 file_duration solv_age = get_cache_age(solv_file, now);
 
                 if (is_valid(solv_age) && solv_age <= cache_age)
@@ -701,26 +693,28 @@ namespace mamba
         }
     }
 
-    void
-    SubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
+    void SubdirData::update_metadata_zst(
+        ChannelContext& channel_context,
+        const SubdirParams& params,
+        const specs::Channel& channel
+    )
     {
-        const Context& context = *p_context;
-        if (!context.offline || m_forbid_cache)
+        if (!params.offline || caching_is_forbidden())
         {
-            m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));
+            m_metadata.set_zst(m_metadata.has_up_to_date_zst() || channel_context.has_zst(channel));
         }
     }
 
-    download::MultiRequest SubdirData::build_check_requests()
+    download::MultiRequest SubdirData::build_check_requests(const SubdirParams& params)
     {
         download::MultiRequest request;
 
-        if ((!p_context->offline || m_forbid_cache) && p_context->repodata_use_zst
-            && !m_metadata.has_zst())
+        if ((!params.offline || caching_is_forbidden()) && params.repodata_use_zst
+            && !m_metadata.has_up_to_date_zst())
         {
             request.push_back(download::Request(
                 name() + " (check zst)",
-                download::MirrorName(m_channel_id),
+                download::MirrorName(channel_id()),
                 repodata_url_path() + ".zst",
                 "",
                 /* lhead_only = */ true,
@@ -752,26 +746,34 @@ namespace mamba
         return request;
     }
 
-    download::Request SubdirData::build_index_request()
+    auto SubdirData::build_index_request(const SubdirParams& params)
+        -> std::optional<download::Request>
     {
+        if (params.offline && !caching_is_forbidden())
+        {
+            return std::nullopt;
+        }
+
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
-        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
 
-        bool use_zst = m_metadata.has_zst();
+        // TODO(C++23): Use std::make_unique when std::move_only_function is available
+        auto artifact = std::make_shared<TemporaryFile>("mambaf", "", writable_cache_dir);
+
+        bool use_zst = m_metadata.has_up_to_date_zst();
 
         download::Request request(
             name(),
-            download::MirrorName(m_channel_id),
+            download::MirrorName(channel_id()),
             repodata_url_path() + (use_zst ? ".zst" : ""),
-            m_temp_file->path().string(),
+            artifact->path().string(),
             /*head_only*/ false,
-            /*ignore_failure*/ !m_is_noarch
+            /*ignore_failure*/ !is_noarch()
         );
         request.etag = m_metadata.etag();
         request.last_modified = m_metadata.last_modified();
 
-        request.on_success = [this](const download::Success& success)
+        request.on_success = [this, artifact = std::move(artifact)](const download::Success& success)
         {
             if (success.transfer.http_status == 304)
             {
@@ -779,10 +781,15 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(SubdirMetadata::HttpMetadata{ repodata_full_url(),
-                                                                       success.etag,
-                                                                       success.last_modified,
-                                                                       success.cache_control });
+                return finalize_transfer(
+                    SubdirMetadata::HttpMetadata{
+                        repodata_url().str(),
+                        success.etag,
+                        success.last_modified,
+                        success.cache_control,
+                    },
+                    artifact->path()
+                );
             }
         };
 
@@ -804,15 +811,15 @@ namespace mamba
             }
         };
 
-        return request;
+        return { std::move(request) };
     }
 
     expected_t<void> SubdirData::use_existing_cache()
     {
         LOG_INFO << "Cache is still valid";
 
-        fs::u8path json_file = m_expired_cache_path / "cache" / m_json_fn;
-        fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_fn;
+        fs::u8path json_file = m_expired_cache_path / "cache" / m_json_filename;
+        fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_filename;
 
         if (path::is_writable(json_file)
             && (!fs::is_regular_file(solv_file) || path::is_writable(solv_file)))
@@ -836,12 +843,12 @@ namespace mamba
             fs::u8path writable_cache_dir = get_cache_dir(m_writable_pkgs_dir);
             auto lock = LockFile(writable_cache_dir);
 
-            fs::u8path copied_json_file = writable_cache_dir / m_json_fn;
+            fs::u8path copied_json_file = writable_cache_dir / m_json_filename;
             json_file = replace_file(copied_json_file, json_file);
 
             if (fs::is_regular_file(solv_file))
             {
-                auto copied_solv_file = writable_cache_dir / m_solv_fn;
+                auto copied_solv_file = writable_cache_dir / m_solv_filename;
                 solv_file = replace_file(copied_solv_file, solv_file);
             }
 
@@ -850,12 +857,12 @@ namespace mamba
 
         refresh_last_write_time(json_file, solv_file);
 
-        m_temp_file.reset();
-        m_loaded = true;
+        m_valid_cache_found = true;
         return expected_t<void>();
     }
 
-    expected_t<void> SubdirData::finalize_transfer(SubdirMetadata::HttpMetadata http_data)
+    expected_t<void>
+    SubdirData::finalize_transfer(SubdirMetadata::HttpMetadata http_data, const fs::u8path& artifact)
     {
         if (m_writable_pkgs_dir.empty())
         {
@@ -868,21 +875,21 @@ namespace mamba
 
         LOG_DEBUG << "Finalized transfer of '" << http_data.url << "'";
 
-        m_metadata.store_http_metadata(std::move(http_data));
+        m_metadata.set_http_metadata(std::move(http_data));
 
         fs::u8path writable_cache_dir = get_cache_dir(m_writable_pkgs_dir);
-        fs::u8path json_file = writable_cache_dir / m_json_fn;
+        fs::u8path json_file = writable_cache_dir / m_json_filename;
         auto lock = LockFile(writable_cache_dir);
 
         fs::u8path state_file = json_file;
         state_file.replace_extension(".state.json");
         std::error_code ec;
-        mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
+        mamba_fs::rename_or_move(artifact, json_file, ec);
         if (ec)
         {
             std::string error = fmt::format(
                 "Could not move repodata file from {} to {}: {}",
-                m_temp_file->path(),
+                artifact,
                 json_file,
                 strerror(errno)
             );
@@ -891,12 +898,11 @@ namespace mamba
         }
 
         m_metadata.store_file_metadata(json_file);
-        m_metadata.write(state_file);
+        m_metadata.write_state_file(state_file);
 
-        m_temp_file.reset();
         m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
-        m_loaded = true;
+        m_valid_cache_found = true;
 
         return expected_t<void>();
     }
@@ -925,29 +931,28 @@ namespace mamba
         state_file.replace_extension(".state.json");
         auto lock = LockFile(state_file);
         m_metadata.store_file_metadata(json_file);
-        m_metadata.write(state_file);
+        m_metadata.write_state_file(state_file);
     }
 
-    std::string cache_name_from_url(std::string_view url)
+    std::string cache_name_from_url(std::string url)
     {
-        auto u = std::string(url);
-        if (u.empty() || (u.back() != '/' && !util::ends_with(u, ".json")))
+        if (url.empty() || (url.back() != '/' && !util::ends_with(url, ".json")))
         {
-            u += '/';
+            url += '/';
         }
 
         // mimicking conda's behavior by special handling repodata.json
         // todo support .zst
-        if (util::ends_with(u, "/repodata.json"))
+        if (util::ends_with(url, "/repodata.json"))
         {
-            u = u.substr(0, u.size() - 13);
+            url = url.substr(0, url.size() - 13);
         }
-        return util::Md5Hasher().str_hex_str(u).substr(0, 8u);
+        return util::Md5Hasher().str_hex_str(url).substr(0, 8u);
     }
 
-    std::string cache_fn_url(const std::string& url)
+    std::string cache_filename_from_url(std::string url)
     {
-        return cache_name_from_url(url) + ".json";
+        return cache_name_from_url(std::move(url)) + ".json";
     }
 
     std::string create_cache_dir(const fs::u8path& cache_path)
@@ -984,4 +989,4 @@ namespace mamba
 
         return cache_dir.string();
     }
-}  // namespace mamba
+}

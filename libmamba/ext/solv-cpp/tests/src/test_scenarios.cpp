@@ -46,7 +46,7 @@ namespace
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("a"),
+                    pool.add_legacy_conda_dependency("a"),
                 };
                 REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
@@ -58,7 +58,7 @@ namespace
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("b==1.0"),
+                    pool.add_legacy_conda_dependency("b==1.0"),
                 };
                 REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
@@ -70,7 +70,7 @@ namespace
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("b==2.0"),
+                    pool.add_legacy_conda_dependency("b==2.0"),
                 };
                 solver.set_flag(SOLVER_FLAG_ALLOW_UNINSTALL, true);
                 REQUIRE(solver.solve(pool, jobs));
@@ -83,7 +83,7 @@ namespace
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("c==1.0"),
+                    pool.add_legacy_conda_dependency("c==1.0"),
                 };
                 REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
@@ -97,9 +97,9 @@ namespace
             {
                 auto jobs = ObjQueue{
                     SOLVER_LOCK | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("a"),
+                    pool.add_legacy_conda_dependency("a"),
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("c==1.0"),
+                    pool.add_legacy_conda_dependency("c==1.0"),
                 };
                 solver.set_flag(SOLVER_FLAG_ALLOW_UNINSTALL, true);
                 REQUIRE_FALSE(solver.solve(pool, jobs));
@@ -117,7 +117,7 @@ namespace
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("c==2.0"),
+                    pool.add_legacy_conda_dependency("c==2.0"),
                 };
                 REQUIRE_FALSE(solver.solve(pool, jobs));
             }
@@ -129,7 +129,7 @@ namespace
                     solver.set_flag(flag, true);
                     auto jobs = ObjQueue{
                         SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                        pool.add_conda_dependency("c==2.0"),
+                        pool.add_legacy_conda_dependency("c==2.0"),
                     };
                     REQUIRE(solver.solve(pool, jobs));
                     auto trans = ObjTransaction::from_solver(pool, solver);

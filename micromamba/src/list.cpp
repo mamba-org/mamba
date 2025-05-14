@@ -53,6 +53,11 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     );
     subcom->add_flag("--md5", md5.get_cli_config<bool>(), md5.description());
 
+    auto& sha256 = config.insert(
+        Configurable("sha256", false).group("cli").description("Add SHA256 hashsum when using --explicit")
+    );
+    subcom->add_flag("--sha256", sha256.get_cli_config<bool>(), sha256.description());
+
     auto& canonical = config.insert(
         Configurable("canonical", false)
             .group("cli")

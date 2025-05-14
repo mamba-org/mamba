@@ -51,8 +51,10 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
     CLI::App* update_subcom = com->add_subcommand("update", "Update packages in active environment");
     set_update_command(update_subcom, config);
 
+#ifdef BUILDING_MICROMAMBA
     CLI::App* self_update_subcom = com->add_subcommand("self-update", "Update micromamba");
     set_self_update_command(self_update_subcom, config);
+#endif
 
     CLI::App* repoquery_subcom = com->add_subcommand(
         "repoquery",

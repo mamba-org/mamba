@@ -814,7 +814,7 @@ def test_unicode_activation(
             else:
                 include_dir = tmp_root_prefix / f"envs/{u}/include"
 
-            assert (include_dir / "xtensor/xtensor.hpp").exists()
+            assert (include_dir / "xtensor/containers/xtensor.hpp").exists()
 
         # unicode activation on win: todo
         if plat == "win":
@@ -904,6 +904,10 @@ def tmp_umamba():
     os.chmod(mamba_exe, 0o755)
 
 
+@pytest.mark.skipif(
+    "micromamba" not in Path(helpers.get_umamba()).stem,
+    reason="micromamba-only test",
+)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
 def test_self_update(

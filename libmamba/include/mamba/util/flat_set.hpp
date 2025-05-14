@@ -112,7 +112,8 @@ namespace mamba::util
         auto erase(const_iterator first, const_iterator last) -> const_iterator;
         auto erase(const value_type& value) -> size_type;
 
-        auto contains(const value_type&) const -> bool;
+        template <class T>
+        auto contains(const T& value) const -> bool;
 
     private:
 
@@ -411,7 +412,8 @@ namespace mamba::util
     }
 
     template <typename K, typename C, typename A>
-    auto flat_set<K, C, A>::contains(const value_type& value) const -> bool
+    template <class T>
+    auto flat_set<K, C, A>::contains(const T& value) const -> bool
     {
         return std::binary_search(begin(), end(), value);
     }

@@ -200,7 +200,7 @@ namespace
         }
     }
 
-    TEST_CASE("UTL parse")
+    TEST_CASE("URL parse")
     {
         SECTION("Empty")
         {
@@ -311,19 +311,25 @@ namespace
 
         SECTION("file://C:/Users/wolfv/test/document.json")
         {
+            const URL url = URL::parse("file://C:/Users/wolfv/test/document.json").value();
+            REQUIRE(url.scheme() == "file");
+            REQUIRE(url.host() == "");
+            REQUIRE(url.user() == "");
+            REQUIRE(url.password() == "");
+            REQUIRE(url.port() == "");
+            REQUIRE(url.query() == "");
+            REQUIRE(url.fragment() == "");
             if (on_win)
             {
-                const URL url = URL::parse("file://C:/Users/wolfv/test/document.json").value();
-                REQUIRE(url.scheme() == "file");
-                REQUIRE(url.host() == "");
                 REQUIRE(url.path() == "/C:/Users/wolfv/test/document.json");
                 REQUIRE(url.path(URL::Decode::no) == "/C:/Users/wolfv/test/document.json");
                 REQUIRE(url.pretty_path() == "C:/Users/wolfv/test/document.json");
-                REQUIRE(url.user() == "");
-                REQUIRE(url.password() == "");
-                REQUIRE(url.port() == "");
-                REQUIRE(url.query() == "");
-                REQUIRE(url.fragment() == "");
+            }
+            else
+            {
+                REQUIRE(url.path() == "//C:/Users/wolfv/test/document.json");
+                REQUIRE(url.path(URL::Decode::no) == "//C:/Users/wolfv/test/document.json");
+                REQUIRE(url.pretty_path() == "//C:/Users/wolfv/test/document.json");
             }
         }
 
@@ -334,6 +340,42 @@ namespace
             REQUIRE(url.host() == "");
             REQUIRE(url.path() == "/home/wolfv/test/document.json");
             REQUIRE(url.pretty_path() == "/home/wolfv/test/document.json");
+            REQUIRE(url.user() == "");
+            REQUIRE(url.password() == "");
+            REQUIRE(url.port() == "");
+            REQUIRE(url.query() == "");
+            REQUIRE(url.fragment() == "");
+        }
+
+        SECTION("file:///D:/a/_temp/popen-gw0/some_other_parts")
+        {
+            const URL url = URL::parse("file:///D:/a/_temp/popen-gw0/some_other_parts").value();
+            REQUIRE(url.scheme() == "file");
+            REQUIRE(url.host() == "");
+            REQUIRE(url.user() == "");
+            REQUIRE(url.password() == "");
+            REQUIRE(url.port() == "");
+            REQUIRE(url.query() == "");
+            REQUIRE(url.fragment() == "");
+            if (on_win)
+            {
+                REQUIRE(url.path() == "/D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.pretty_path() == "D:/a/_temp/popen-gw0/some_other_parts");
+            }
+            else
+            {
+                REQUIRE(url.path() == "//D:/a/_temp/popen-gw0/some_other_parts");
+                REQUIRE(url.pretty_path() == "//D:/a/_temp/popen-gw0/some_other_parts");
+            }
+        }
+
+        SECTION("file:////D:/a/_temp/popen-gw0/some_other_parts")
+        {
+            const URL url = URL::parse("file:////D:/a/_temp/popen-gw0/some_other_parts").value();
+            REQUIRE(url.scheme() == "file");
+            REQUIRE(url.host() == "");
+            REQUIRE(url.path() == "//D:/a/_temp/popen-gw0/some_other_parts");
+            REQUIRE(url.pretty_path() == "//D:/a/_temp/popen-gw0/some_other_parts");
             REQUIRE(url.user() == "");
             REQUIRE(url.password() == "");
             REQUIRE(url.port() == "");

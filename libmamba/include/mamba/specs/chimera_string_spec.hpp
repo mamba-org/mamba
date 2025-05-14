@@ -50,7 +50,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto is_glob() const -> bool;
 
-        [[nodiscard]] auto str() const -> const std::string&;
+        [[nodiscard]] auto to_string() const -> const std::string&;
 
         // TODO(C++20): replace by the `= default` implementation of `operator==`
         [[nodiscard]] auto operator==(const ChimeraStringSpec& other) const -> bool
@@ -83,7 +83,7 @@ struct std::hash<mamba::specs::ChimeraStringSpec>
 {
     auto operator()(const mamba::specs::ChimeraStringSpec& spec) const -> std::size_t
     {
-        return mamba::util::hash_vals(spec.str());
+        return mamba::util::hash_vals(spec.to_string());
     }
 };
 

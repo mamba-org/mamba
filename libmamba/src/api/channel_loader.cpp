@@ -90,6 +90,11 @@ namespace mamba
                     continue;
                 }
                 auto sdir = std::move(sdires).value();
+                if (sdir.valid_cache_found())
+                {
+                    Console::stream() << fmt::format("{:<50} {:>20}", sdir.name(), "Using cache");
+                }
+
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::Disabled)
                 {

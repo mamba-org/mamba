@@ -608,13 +608,10 @@ namespace mamba
             load_cache(caches, params);
         }
 
-        if (m_valid_cache_found)
+        LOG_INFO << "Valid cache found  for '" << name() << "': " << valid_cache_found();
+
+        if (!valid_cache_found())
         {
-            Console::stream() << fmt::format("{:<50} {:>20}", name(), std::string("Using cache"));
-        }
-        else
-        {
-            LOG_INFO << "No valid cache found";
             if (!m_expired_cache_path.empty())
             {
                 LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"

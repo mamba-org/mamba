@@ -187,7 +187,7 @@ namespace mambapy
                 SubdirIndexMonitor index_monitor;
                 download_res = SubdirIndexLoader::download_required_indexes(
                     m_subdirs,
-                    ctx.subdir_params(),
+                    ctx.subdir_download_params(),
                     ctx.authentication_info(),
                     ctx.mirrors,
                     ctx.download_options(),
@@ -200,7 +200,7 @@ namespace mambapy
             {
                 download_res = SubdirIndexLoader::download_required_indexes(
                     m_subdirs,
-                    ctx.subdir_params(),
+                    ctx.subdir_download_params(),
                     ctx.authentication_info(),
                     ctx.mirrors,
                     ctx.download_options(),
@@ -557,8 +557,11 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirParams>(m, "SubdirParams")
         .def_readwrite("local_repodata_ttl_s", &SubdirParams::local_repodata_ttl_s)
         .def_readwrite("offline", &SubdirParams::offline)
-        .def_readwrite("repodata_check_zst", &SubdirParams::repodata_check_zst)
         .def_readwrite("repodata_force_use_zst", &SubdirParams::repodata_force_use_zst);
+
+    py::class_<SubdirDownloadParams>(m, "SubdirDownloadParams")
+        .def_readwrite("offline", &SubdirDownloadParams::offline)
+        .def_readwrite("repodata_check_zst", &SubdirDownloadParams::repodata_check_zst);
 
     auto subdir_metadata = py::class_<SubdirMetadata>(m, "SubdirMetadata");
 
@@ -595,7 +598,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_static(
             "download_required_indexes",
             [](py::iterable py_subdirs,
-               const SubdirParams& subdir_params,
+               const SubdirDownloadParams& subdir_download_params,
                const specs::AuthenticationDataBase& auth_info,
                const download::mirror_map& mirrors,
                const download::Options& download_options,
@@ -610,7 +613,7 @@ bind_submodule_impl(pybind11::module_ m)
                 }
                 return SubdirIndexLoader::download_required_indexes(
                     subdirs,
-                    subdir_params,
+                    subdir_download_params,
                     auth_info,
                     mirrors,
                     download_options,

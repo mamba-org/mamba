@@ -351,7 +351,7 @@ namespace
 
         const auto result = SubdirIndexLoader::download_required_indexes(
             sub_dirs,
-            mambatests::context().subdir_params(),
+            mambatests::context().subdir_download_params(),
             mambatests::context().authentication_info(),
             mambatests::context().mirrors,
             mambatests::context().download_options(),

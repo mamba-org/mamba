@@ -212,7 +212,7 @@ namespace mamba
                 SubdirIndexMonitor index_monitor;
                 download_res = SubdirIndexLoader::download_required_indexes(
                     subdirs,
-                    ctx.subdir_params(),
+                    ctx.subdir_download_params(),
                     ctx.authentication_info(),
                     ctx.mirrors,
                     ctx.download_options(),
@@ -225,7 +225,7 @@ namespace mamba
             {
                 download_res = SubdirIndexLoader::download_required_indexes(
                     subdirs,
-                    ctx.subdir_params(),
+                    ctx.subdir_download_params(),
                     ctx.authentication_info(),
                     ctx.mirrors,
                     ctx.download_options(),

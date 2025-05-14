@@ -20,10 +20,15 @@ namespace mamba
          */
         std::optional<std::size_t> local_repodata_ttl_s = std::nullopt;
         bool offline = false;
-        /** Make a request to check the use of zst compression format. */
-        bool repodata_check_zst = true;
         /** Force the use of zst for this subdir without checking. */
         bool repodata_force_use_zst = false;
+    };
+
+    struct SubdirDownloadParams
+    {
+        bool offline = false;
+        /** Make a request to check the use of zst compression format. */
+        bool repodata_check_zst = true;
     };
 }
 

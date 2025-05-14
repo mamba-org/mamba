@@ -103,17 +103,12 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         const auto tmp_dir = TemporaryDirectory();
         auto caches = MultiPackageCache({ tmp_dir.path() }, ValidationParams{});
 
-        const auto params = SubdirParams{
-            /* .local_repodata_ttl */ 1000000,
-            /* .offline */ false,
-            /* .repodata_use_zst */ true,
-        };
         auto subdirs = std::array{
-            SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
+            SubdirIndexLoader::create({}, qs_channel, "linux-64", caches).value(),
+            SubdirIndexLoader::create({}, qs_channel, "noarch", caches).value(),
         };
 
-        auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
+        auto result = SubdirIndexLoader::download_required_indexes(subdirs, {}, {}, mirrors, {}, {});
         REQUIRE(result.has_value());
 
         const auto cache_dir = tmp_dir.path() / "cache";
@@ -136,14 +131,23 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         const auto params = SubdirParams{
             /* .local_repodata_ttl */ 1000000,
             /* .offline */ true,
-            /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
             SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
             SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
         };
 
-        auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
+        const auto download_params = SubdirDownloadParams{
+            /* .offline */ true,
+        };
+        auto result = SubdirIndexLoader::download_required_indexes(
+            subdirs,
+            download_params,
+            {},
+            mirrors,
+            {},
+            {}
+        );
         REQUIRE(result.has_value());
 
         const auto cache_dir = tmp_dir.path() / "cache";
@@ -168,7 +172,7 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             SubdirIndexLoader::create(params, local_channel, "noarch", caches).value(),
         };
 
-        auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
+        auto result = SubdirIndexLoader::download_required_indexes(subdirs, {}, {}, mirrors, {}, {});
         REQUIRE(result.has_value());
 
         CHECK_FALSE(subdirs[0].valid_cache_found());
@@ -183,8 +187,6 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
 
         const auto params = SubdirParams{
             /* .local_repodata_ttl */ 0,
-            /* .offline */ false,
-            /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
             SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
@@ -193,7 +195,7 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
 
         CAPTURE(tmp_dir.path());
 
-        auto result = SubdirIndexLoader::download_required_indexes(subdirs, params, {}, mirrors, {}, {});
+        auto result = SubdirIndexLoader::download_required_indexes(subdirs, {}, {}, mirrors, {}, {});
         REQUIRE(result.has_value());
 
         const auto cache_dir = tmp_dir.path() / "cache";

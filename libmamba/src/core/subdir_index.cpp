@@ -705,7 +705,8 @@ namespace mamba
         }
     }
 
-    auto SubdirIndexLoader::build_check_requests(const SubdirParams& params) -> download::MultiRequest
+    auto SubdirIndexLoader::build_check_requests(const SubdirDownloadParams& params)
+        -> download::MultiRequest
     {
         download::MultiRequest request;
 
@@ -746,7 +747,7 @@ namespace mamba
         return request;
     }
 
-    auto SubdirIndexLoader::build_index_request(const SubdirParams& params)
+    auto SubdirIndexLoader::build_index_request(const SubdirDownloadParams& params)
         -> std::optional<download::Request>
     {
         if (params.offline && !caching_is_forbidden())

@@ -226,8 +226,15 @@ namespace mamba
             return {
                 /* .local_repodata_ttl */ get_local_repodata_ttl(),
                 /* .offline */ this->offline,
-                /* .repodata_check_zst */ this->repodata_use_zst,
                 /* .force_use_zst */ false  // Must override based on ChannelContext
+            };
+        }
+
+        SubdirDownloadParams subdir_download_params() const
+        {
+            return {
+                /* .offline */ this->offline,
+                /* .repodata_check_zst */ this->repodata_use_zst,
             };
         }
 

@@ -134,7 +134,7 @@ namespace mamba
         [[nodiscard]] static auto download_required_indexes(
             SubdirIter1 subdirs_first,
             SubdirIter2 subdirs_last,
-            const SubdirParams& subdir_params,
+            const SubdirDownloadParams& subdir_params,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
             const download::Options& download_options,
@@ -145,7 +145,7 @@ namespace mamba
         template <typename Subdirs>
         [[nodiscard]] static auto download_required_indexes(
             Subdirs& subdirs,
-            const SubdirParams& subdir_params,
+            const SubdirDownloadParams& subdir_params,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
             const download::Options& download_options,
@@ -223,15 +223,16 @@ namespace mamba
 
         template <typename First, typename End>
         static auto
-        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
+        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
             -> download::MultiRequest;
-        auto build_check_requests(const SubdirParams& params) -> download::MultiRequest;
+        auto build_check_requests(const SubdirDownloadParams& params) -> download::MultiRequest;
 
         template <typename First, typename End>
         static auto
-        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirParams& params)
+        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
             -> download::MultiRequest;
-        auto build_index_request(const SubdirParams& params) -> std::optional<download::Request>;
+        auto build_index_request(const SubdirDownloadParams& params)
+            -> std::optional<download::Request>;
 
         [[nodiscard]] static auto download_requests(
             download::MultiRequest index_requests,
@@ -277,7 +278,7 @@ namespace mamba
     auto SubdirIndexLoader::download_required_indexes(
         SubdirIter1 subdirs_first,
         SubdirIter2 subdirs_last,
-        const SubdirParams& subdir_params,
+        const SubdirDownloadParams& subdir_params,
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
         const download::Options& download_options,
@@ -317,7 +318,7 @@ namespace mamba
     template <typename Subdirs>
     auto SubdirIndexLoader::download_required_indexes(
         Subdirs& subdirs,
-        const SubdirParams& subdir_params,
+        const SubdirDownloadParams& subdir_params,
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
         const download::Options& download_options,
@@ -343,7 +344,7 @@ namespace mamba
     auto SubdirIndexLoader::build_all_check_requests(
         First subdirs_first,
         End subdirs_last,
-        const SubdirParams& params
+        const SubdirDownloadParams& params
     ) -> download::MultiRequest
     {
         download::MultiRequest requests;
@@ -374,7 +375,7 @@ namespace mamba
     auto SubdirIndexLoader::build_all_index_requests(
         First subdirs_first,
         End subdirs_last,
-        const SubdirParams& params
+        const SubdirDownloadParams& params
     ) -> download::MultiRequest
     {
         download::MultiRequest requests;

@@ -663,9 +663,9 @@ namespace mamba
                 {
                     return params.local_repodata_ttl_s.value();
                 }
-                if (auto max_age = get_cache_control_max_age(m_metadata.cache_control()))
+                if (auto control_max_age = get_cache_control_max_age(m_metadata.cache_control()))
                 {
-                    return max_age.value();
+                    return control_max_age.value();
                 }
                 return max_age_default;
             }();

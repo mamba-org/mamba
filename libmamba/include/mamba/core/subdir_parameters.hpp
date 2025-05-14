@@ -20,7 +20,6 @@ namespace mamba
          */
         std::optional<std::size_t> local_repodata_ttl_s = std::nullopt;
         bool offline = false;
-        bool use_index_cache = true;
         bool repodata_use_zst = true;
     };
 }

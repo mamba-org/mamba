@@ -208,13 +208,24 @@ namespace mamba
 
         SubdirParams subdir_params() const
         {
-            return {
+            const auto get_local_repodata_ttl = [&]() -> std::optional<std::size_t>
+            {
+                // Force the use of index cache by setting TTL to 0
+                if (this->use_index_cache)
+                {
+                    return { 0 };
+                }
                 // This is legacy where from where 1 meant to read from header
-                /* .local_repodata_ttl */ (this->local_repodata_ttl == 1)
-                    ? std::nullopt
-                    : std::optional(this->local_repodata_ttl),
+                if (this->local_repodata_ttl == 1)
+                {
+                    return std::nullopt;
+                }
+                return { this->local_repodata_ttl };
+            };
+
+            return {
+                /* .local_repodata_ttl */ get_local_repodata_ttl(),
                 /* .offline */ this->offline,
-                /* .use_index_cache */ this->use_index_cache,
                 /* .repodata_use_zst */ this->repodata_use_zst,
             };
         }

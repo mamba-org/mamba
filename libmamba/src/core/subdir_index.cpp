@@ -673,8 +673,7 @@ namespace mamba
 
             const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
                                                .count();
-            if (util::cmp_greater(max_age, cache_age_seconds) || params.offline
-                || params.use_index_cache)
+            if (util::cmp_less(cache_age_seconds, max_age) || params.offline)
             {
                 // valid json cache found
                 if (!m_valid_cache_found)

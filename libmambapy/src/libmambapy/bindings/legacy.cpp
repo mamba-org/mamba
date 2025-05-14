@@ -560,7 +560,6 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirParams>(m, "SubdirParams")
         .def_readwrite("local_repodata_ttl_s", &SubdirParams::local_repodata_ttl_s)
         .def_readwrite("offline", &SubdirParams::offline)
-        .def_readwrite("use_index_cache", &SubdirParams::use_index_cache)
         .def_readwrite("repodata_use_zst", &SubdirParams::repodata_use_zst);
 
     auto subdir_metadata = py::class_<SubdirMetadata>(m, "SubdirMetadata");

@@ -103,7 +103,6 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         const auto params = SubdirParams{
             /* .local_repodata_ttl */ 1000000,
             /* .offline */ false,
-            /* .use_index_cache */ true,
             /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
@@ -134,7 +133,6 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         const auto params = SubdirParams{
             /* .local_repodata_ttl */ 1000000,
             /* .offline */ true,
-            /* .use_index_cache */ true,
             /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{
@@ -183,7 +181,6 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
         const auto params = SubdirParams{
             /* .local_repodata_ttl */ 0,
             /* .offline */ false,
-            /* .use_index_cache */ false,
             /* .repodata_use_zst */ true,
         };
         auto subdirs = std::array{

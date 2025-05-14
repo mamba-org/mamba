@@ -535,7 +535,7 @@ namespace mamba
     {
         try
         {
-            download::download(
+            auto results = download::download(
                 std::move(requests),
                 mirrors,
                 remote_fetch_params,
@@ -543,6 +543,15 @@ namespace mamba
                 download_options,
                 monitor
             );
+            // TODO: This is not the best handling, but we also want to be robust in the case of
+            // missing subdirs (e.g. local path as a `noarch` but no `linux-64`).
+            for (auto& result : results)
+            {
+                if (!result.has_value())
+                {
+                    LOG_WARNING << "Failed to load subdir: " << result.error().message;
+                }
+            }
         }
         catch (const std::runtime_error& e)
         {

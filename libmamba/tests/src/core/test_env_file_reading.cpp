@@ -50,7 +50,8 @@ namespace mamba
             auto res = detail::read_yaml_file(
                 context,
                 mambatests::test_data_dir / "env_file/env_1.yaml",
-                context.platform
+                context.platform,
+                false
             );
             REQUIRE(res.name == "env_1");
             REQUIRE(res.channels == V({ "conda-forge", "bioconda" }));
@@ -60,7 +61,8 @@ namespace mamba
             auto res2 = detail::read_yaml_file(
                 context,
                 mambatests::test_data_dir / "env_file/env_2.yaml",
-                context.platform
+                context.platform,
+                false
             );
             REQUIRE(res2.name == "env_2");
             REQUIRE(res2.channels == V({ "conda-forge", "bioconda" }));
@@ -81,7 +83,8 @@ namespace mamba
             auto res = detail::read_yaml_file(
                 context,
                 mambatests::test_data_dir / "env_file/env_3.yaml",
-                context.platform
+                context.platform,
+                false
             );
             REQUIRE(res.name == "env_3");
             REQUIRE(res.channels == V({ "conda-forge", "bioconda" }));
@@ -103,7 +106,8 @@ namespace mamba
                 auto res = detail::read_yaml_file(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/micromamba/tests/env-create-export.yaml",
-                    context.platform
+                    context.platform,
+                    false
                 );
                 REQUIRE(res.name == "");
                 REQUIRE(res.channels == V({ "https://conda.anaconda.org/conda-forge" }));
@@ -117,7 +121,8 @@ namespace mamba
                 auto res = detail::read_yaml_file(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_3.yaml",
-                    context.platform
+                    context.platform,
+                    false
                 );
                 REQUIRE(res.name == "env_3");
                 REQUIRE(res.channels == V({ "conda-forge", "bioconda" }));
@@ -132,6 +137,52 @@ namespace mamba
                 );
             }
 
+            SECTION("env_yaml_file_with_uv_override")
+            {
+                const auto& context = mambatests::context();
+                using V = std::vector<std::string>;
+                auto res = detail::read_yaml_file(
+                    context,
+                    "https://raw.githubusercontent.com/iisakkirotko/mamba/refs/heads/yaml-install-uv/libmamba/tests/data/env_file/env_4.yaml",
+                    context.platform,
+                    false
+                );
+                REQUIRE(res.name == "env_4");
+                REQUIRE(res.channels == V({ "conda-forge", "bioconda" }));
+                REQUIRE(res.dependencies == V({ "test1", "test2", "uv" }));
+
+                REQUIRE(res.others_pkg_mgrs_specs.size() == 1);
+                auto o = res.others_pkg_mgrs_specs[0];
+                REQUIRE(o.pkg_mgr == "uv");
+                REQUIRE(o.deps == V({ "pytest", "numpy" }));
+                REQUIRE(
+                    o.cwd == "https://raw.githubusercontent.com/iisakkirotko/mamba/refs/heads/yaml-install-uv/libmamba/tests/data/env_file/env_4.yaml"
+                );
+            }
+
+            SECTION("env_yaml_file_with_uv")
+            {
+                const auto& context = mambatests::context();
+                using V = std::vector<std::string>;
+                auto res = detail::read_yaml_file(
+                    context,
+                    "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_3.yaml",
+                    context.platform,
+                    true
+                );
+                REQUIRE(res.name == "env_3");
+                REQUIRE(res.channels == V({ "conda-forge", "bioconda" }));
+                REQUIRE(res.dependencies == V({ "test1", "test2", "test3", "uv" }));
+
+                REQUIRE(res.others_pkg_mgrs_specs.size() == 1);
+                auto o = res.others_pkg_mgrs_specs[0];
+                REQUIRE(o.pkg_mgr == "uv");
+                REQUIRE(o.deps == V({ "pytest", "numpy" }));
+                REQUIRE(
+                    o.cwd == "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_3.yaml"
+                );
+            }
+
             SECTION("env_yaml_file_with_specs_selection")
             {
                 const auto& context = mambatests::context();
@@ -139,7 +190,8 @@ namespace mamba
                 auto res = detail::read_yaml_file(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_2.yaml",
-                    context.platform
+                    context.platform,
+                    false
                 );
                 REQUIRE(res.name == "env_2");
                 REQUIRE(res.channels == V({ "conda-forge", "bioconda" }));

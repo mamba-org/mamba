@@ -105,8 +105,12 @@ namespace mamba
 
         bool eval_selector(const std::string& selector, const std::string& platform);
 
-        yaml_file_contents
-        read_yaml_file(const Context& ctx, const std::string& yaml_file, const std::string& platform);
+        yaml_file_contents read_yaml_file(
+            const Context& ctx,
+            const std::string& yaml_file,
+            const std::string& platform,
+            bool use_uv
+        );
 
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {

@@ -17,7 +17,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -52,9 +52,11 @@ namespace mamba
         );
     }
 
-    auto
-    load_subdir_in_database(const Context& ctx, solver::libsolv::Database& database, const SubdirData& subdir)
-        -> expected_t<solver::libsolv::RepoInfo>
+    auto load_subdir_in_database(
+        const Context& ctx,
+        solver::libsolv::Database& database,
+        const SubdirIndexLoader& subdir
+    ) -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),

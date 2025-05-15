@@ -8,7 +8,7 @@
 
 #include <catch2/catch_all.hpp>
 
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"

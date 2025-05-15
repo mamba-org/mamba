@@ -24,6 +24,11 @@ namespace mambatests
 #endif
     inline static const mamba::fs::u8path test_data_dir = MAMBA_TEST_DATA_DIR;
 
+#ifndef MAMBA_REPO_DIR
+#error "MAMBA_REPO_DIR must be defined pointing to test data"
+#endif
+    inline static const mamba::fs::u8path repo_dir = MAMBA_REPO_DIR;
+
 #ifndef MAMBA_TEST_LOCK_EXE
 #error "MAMBA_TEST_LOCK_EXE must be defined pointing to testing_libmamba_lock"
 #endif

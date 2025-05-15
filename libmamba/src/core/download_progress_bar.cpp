@@ -128,21 +128,21 @@ namespace mamba
         }
     }
 
-    /*********************
-     * SubdirDataMonitor *
-     *********************/
+    /**********************
+     * SubdirIndexMonitor *
+     **********************/
 
-    SubdirDataMonitor::SubdirDataMonitor(MonitorOptions options)
+    SubdirIndexMonitor::SubdirIndexMonitor(MonitorOptions options)
         : m_options(std::move(options))
     {
     }
 
-    void SubdirDataMonitor::reset_options(MonitorOptions options)
+    void SubdirIndexMonitor::reset_options(MonitorOptions options)
     {
         m_options = std::move(options);
     }
 
-    bool SubdirDataMonitor::can_monitor(const Context& context)
+    bool SubdirIndexMonitor::can_monitor(const Context& context)
     {
         return !(
             context.graphics_params.no_progress_bars || context.output_params.json
@@ -150,7 +150,8 @@ namespace mamba
         );
     }
 
-    void SubdirDataMonitor::observe_impl(download::MultiRequest& requests, download::Options& options)
+    void
+    SubdirIndexMonitor::observe_impl(download::MultiRequest& requests, download::Options& options)
     {
         m_throttle_time.resize(requests.size(), std::chrono::steady_clock::now());
         m_progress_bar.reserve(requests.size());
@@ -175,7 +176,7 @@ namespace mamba
         options.on_unexpected_termination = [this]() { on_unexpected_termination(); };
     }
 
-    void SubdirDataMonitor::on_done_impl()
+    void SubdirIndexMonitor::on_done_impl()
     {
         auto& pbar_manager = Console::instance().progress_bar_manager();
         if (pbar_manager.started())
@@ -191,22 +192,23 @@ namespace mamba
         m_options = MonitorOptions{};
     }
 
-    void SubdirDataMonitor::on_unexpected_termination_impl()
+    void SubdirIndexMonitor::on_unexpected_termination_impl()
     {
         Console::instance().progress_bar_manager().terminate();
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Event& event)
+    void SubdirIndexMonitor::update_progress_bar(std::size_t index, const download::Event& event)
     {
         std::visit([this, index](auto&& arg) { update_progress_bar(index, arg); }, event);
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Progress& progress)
+    void
+    SubdirIndexMonitor::update_progress_bar(std::size_t index, const download::Progress& progress)
     {
         mamba::update_progress_bar(m_progress_bar[index], m_throttle_time[index], progress);
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Error& error)
+    void SubdirIndexMonitor::update_progress_bar(std::size_t index, const download::Error& error)
     {
         if (m_options.checking_download)
         {
@@ -218,7 +220,7 @@ namespace mamba
         }
     }
 
-    void SubdirDataMonitor::update_progress_bar(std::size_t index, const download::Success& success)
+    void SubdirIndexMonitor::update_progress_bar(std::size_t index, const download::Success& success)
     {
         if (m_options.checking_download)
         {
@@ -230,7 +232,7 @@ namespace mamba
         }
     }
 
-    void SubdirDataMonitor::complete_checking_progress_bar(std::size_t index)
+    void SubdirIndexMonitor::complete_checking_progress_bar(std::size_t index)
     {
         ProgressProxy& progress_bar = m_progress_bar[index];
         progress_bar.repr().postfix.set_value("Checked");
@@ -245,7 +247,7 @@ namespace mamba
 
     bool PackageDownloadMonitor::can_monitor(const Context& context)
     {
-        return SubdirDataMonitor::can_monitor(context);
+        return SubdirIndexMonitor::can_monitor(context);
     }
 
     PackageDownloadMonitor::~PackageDownloadMonitor()

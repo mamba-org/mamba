@@ -9,7 +9,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/repo_checker_store.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 
 namespace mamba
 {

@@ -10,7 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -54,7 +54,7 @@ namespace mamba
             ChannelContext& channel_context,
             const specs::Channel& channel,
             MultiPackageCache& package_caches,
-            std::vector<SubdirData>& subdirs,
+            std::vector<SubdirIndexLoader>& subdirs,
             std::vector<mamba_error>& error_list,
             std::vector<solver::libsolv::Priorities>& priorities,
             int& max_prio,
@@ -76,9 +76,10 @@ namespace mamba
                     LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
                 }
 
-                auto sdires = SubdirData::create(
-                    ctx.subdir_params(),
-                    channel_context,
+                auto subdir_params = ctx.subdir_params();
+                subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
+                auto sdires = SubdirIndexLoader::create(
+                    subdir_params,
                     channel,
                     platform,
                     package_caches,
@@ -90,6 +91,11 @@ namespace mamba
                     continue;
                 }
                 auto sdir = std::move(sdires).value();
+                if (sdir.valid_cache_found())
+                {
+                    Console::stream() << fmt::format("{:<50} {:>20}", sdir.name(), "Using cache");
+                }
+
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::Disabled)
                 {
@@ -130,7 +136,7 @@ namespace mamba
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
         {
-            std::vector<SubdirData> subdirs;
+            std::vector<SubdirIndexLoader> subdirs;
 
             std::vector<solver::libsolv::Priorities> priorities;
             int max_prio = static_cast<int>(ctx.channels.size());
@@ -200,13 +206,13 @@ namespace mamba
             }
 
             expected_t<void> download_res;
-            if (SubdirDataMonitor::can_monitor(ctx))
+            if (SubdirIndexMonitor::can_monitor(ctx))
             {
-                SubdirDataMonitor check_monitor({ true, true });
-                SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_required_indexes(
+                SubdirIndexMonitor check_monitor({ true, true });
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_required_indexes(
                     subdirs,
-                    ctx.subdir_params(),
+                    ctx.subdir_download_params(),
                     ctx.authentication_info(),
                     ctx.mirrors,
                     ctx.download_options(),
@@ -217,9 +223,9 @@ namespace mamba
             }
             else
             {
-                download_res = SubdirData::download_required_indexes(
+                download_res = SubdirIndexLoader::download_required_indexes(
                     subdirs,
-                    ctx.subdir_params(),
+                    ctx.subdir_download_params(),
                     ctx.authentication_info(),
                     ctx.mirrors,
                     ctx.download_options(),
@@ -283,7 +289,7 @@ namespace mamba
                             {
                                 LOG_WARNING << "Could not load repodata.json for " << subdir.name()
                                             << ". Deleting cache, and retrying.";
-                                subdir.clear_cache_files();
+                                subdir.clear_valid_cache_files();
                                 loading_failed = true;
                             }
                         }

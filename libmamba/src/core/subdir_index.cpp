@@ -580,8 +580,6 @@ namespace mamba
         std::string repodata_filename
     )
         : m_channel(std::move(channel))
-        , m_valid_cache_path("")
-        , m_expired_cache_path("")
         , m_writable_pkgs_dir(caches.first_writable_path())
         , m_platform(std::move(platform))
         , m_repodata_filename(std::move(repodata_filename))
@@ -632,10 +630,10 @@ namespace mamba
         }
 
         LOG_INFO << "Valid cache found  for '" << name() << "': " << valid_cache_found();
-        if (!valid_cache_found() && !m_expired_cache_path.empty())
+        if (!valid_cache_found() && m_expired_cache_path.has_value())
         {
             LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
-                     << m_expired_cache_path.string() << "'";
+                     << m_expired_cache_path.value() << "'";
         }
     }
 
@@ -648,14 +646,15 @@ namespace mamba
 
         for (const fs::u8path& cache_path : cache_paths)
         {
+            const auto index_cache_path = get_cache_dir(cache_path);
             // TODO: rewrite this with pipe chains of ranges
-            fs::u8path json_file = cache_path / "cache" / m_json_filename;
+            fs::u8path json_file = index_cache_path / m_json_filename;
             if (!fs::is_regular_file(json_file))
             {
                 continue;
             }
 
-            auto lock = LockFile(cache_path / "cache");
+            auto lock = LockFile(index_cache_path);
             file_duration cache_age = get_cache_age(json_file, now);
             if (!is_valid(cache_age))
             {
@@ -702,7 +701,7 @@ namespace mamba
                 }
 
                 // check libsolv cache
-                fs::u8path solv_file = cache_path / "cache" / m_solv_filename;
+                fs::u8path solv_file = index_cache_path / m_solv_filename;
                 file_duration solv_age = get_cache_age(solv_file, now);
 
                 if (is_valid(solv_age) && solv_age <= cache_age)
@@ -720,7 +719,7 @@ namespace mamba
             }
             else
             {
-                if (m_expired_cache_path.empty())
+                if (!m_expired_cache_path.has_value())
                 {
                     m_expired_cache_path = cache_path;
                 }
@@ -843,14 +842,16 @@ namespace mamba
     {
         LOG_INFO << "Cache is still valid";
 
-        fs::u8path json_file = m_expired_cache_path / "cache" / m_json_filename;
-        fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_filename;
+        assert(m_expired_cache_path.has_value());
+
+        fs::u8path json_file = m_expired_cache_path.value() / "cache" / m_json_filename;
+        fs::u8path solv_file = m_expired_cache_path.value() / "cache" / m_solv_filename;
 
         if (path::is_writable(json_file)
             && (!fs::is_regular_file(solv_file) || path::is_writable(solv_file)))
         {
             LOG_DEBUG << "Refreshing cache files ages";
-            m_valid_cache_path = m_expired_cache_path;
+            m_valid_cache_path = m_expired_cache_path.value();
         }
         else
         {
@@ -863,7 +864,7 @@ namespace mamba
                 );
             }
 
-            LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
+            LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.value()
                       << "' to '" << m_writable_pkgs_dir.string() << "'";
             fs::u8path writable_cache_dir = get_cache_dir(m_writable_pkgs_dir);
             auto lock = LockFile(writable_cache_dir);

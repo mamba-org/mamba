@@ -182,10 +182,17 @@ namespace mamba
 
     private:
 
+        // This paths are pointing to what is found when iterating over the cache directories.
+        // The expired found is the first one, which could be improved by keeping the freshest one.
+        // This could improve caching in some HTTP 304 cases.
+        // A possible improvement would be to keep all path, metadatas, and writable status in a
+        // single vector and sort them by recency.
+        // This would also give a public option for `clear`-ing all writable caches, not just the
+        // valid one.
         SubdirMetadata m_metadata;
         specs::Channel m_channel;
         fs::u8path m_valid_cache_path;
-        fs::u8path m_expired_cache_path;
+        std::optional<fs::u8path> m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
         specs::DynamicPlatform m_platform;
         std::string m_repodata_filename;

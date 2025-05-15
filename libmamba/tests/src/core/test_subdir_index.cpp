@@ -122,7 +122,6 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             CHECK(is_in_directory(cache_dir, subdir.writable_libsolv_cache_path()));
         }
 
-
         SECTION("And clear them")
         {
             for (auto& subdir : subdirs)
@@ -208,8 +207,6 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
         };
 
-        CAPTURE(tmp_dir.path());
-
         auto result = SubdirIndexLoader::download_required_indexes(subdirs, {}, {}, mirrors, {}, {});
         REQUIRE(result.has_value());
 
@@ -220,13 +217,17 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             CHECK(subdir.valid_cache_found());
         }
 
-        subdirs = std::array{
-            SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
-            SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
-        };
-        for (const auto& subdir : subdirs)
+        SECTION("Reloading subdir are expired")
         {
-            CHECK_FALSE(subdir.valid_cache_found());
+            auto expired_subdirs = std::array{
+                SubdirIndexLoader::create(params, qs_channel, "linux-64", caches).value(),
+                SubdirIndexLoader::create(params, qs_channel, "noarch", caches).value(),
+            };
+
+            for (const auto& subdir : expired_subdirs)
+            {
+                CHECK_FALSE(subdir.valid_cache_found());
+            }
         }
     }
 }

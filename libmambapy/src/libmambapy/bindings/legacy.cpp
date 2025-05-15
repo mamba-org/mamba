@@ -640,7 +640,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def("valid_libsolv_cache_path", &SubdirIndexLoader::valid_libsolv_cache_path)
         .def("writable_libsolv_cache_path", &SubdirIndexLoader::writable_libsolv_cache_path)
         .def("valid_json_cache_path", &SubdirIndexLoader::valid_json_cache_path)
-        .def("clear_cache_files", &SubdirIndexLoader::clear_cache_files);
+        .def("clear_valid_cache_files", &SubdirIndexLoader::clear_valid_cache_files);
 
     // Deprecated, replaced by SubdirIndexLoader in 2.3.0
     struct SubdirDataMigrator

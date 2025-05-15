@@ -178,7 +178,7 @@ namespace mamba
         [[nodiscard]] auto writable_libsolv_cache_path() const -> fs::u8path;
         [[nodiscard]] auto valid_json_cache_path() const -> expected_t<fs::u8path>;
 
-        void clear_cache_files();
+        void clear_valid_cache_files();
 
     private:
 
@@ -204,6 +204,9 @@ namespace mamba
         );
 
         [[nodiscard]] auto repodata_url_path() const -> std::string;
+        [[nodiscard]] auto valid_json_cache_path_unchecked() const -> fs::u8path;
+        [[nodiscard]] auto valid_state_file_path_unchecked() const -> fs::u8path;
+        [[nodiscard]] auto valid_libsolv_cache_path_unchecked() const -> fs::u8path;
 
         /*********************************************************
          *  Implementation details of SubdirIndexLoader::create  *

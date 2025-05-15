@@ -469,16 +469,23 @@ namespace mamba
         return m_valid_cache_found;
     }
 
-    void SubdirIndexLoader::clear_cache_files()
+    void SubdirIndexLoader::clear_valid_cache_files()
     {
-        if (fs::is_regular_file(m_json_filename))
+        if (auto json_path = valid_json_cache_path_unchecked(); fs::is_regular_file(json_path))
         {
-            fs::remove(m_json_filename);
+            fs::remove(json_path);
+            m_json_cache_valid = false;
         }
-        if (fs::is_regular_file(m_solv_filename))
+        if (auto state_path = valid_state_file_path_unchecked(); fs::is_regular_file(state_path))
         {
-            fs::remove(m_solv_filename);
+            fs::remove(state_path);
         }
+        if (auto solv_path = valid_libsolv_cache_path_unchecked(); fs::is_regular_file(solv_path))
+        {
+            fs::remove(solv_path);
+            m_solv_cache_valid = false;
+        }
+        m_valid_cache_found = false;
     }
 
     auto SubdirIndexLoader::name() const -> std::string
@@ -505,7 +512,7 @@ namespace mamba
     {
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_solv_filename).string();
+            return { valid_libsolv_cache_path_unchecked() };
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
@@ -519,7 +526,7 @@ namespace mamba
     {
         if (m_json_cache_valid)
         {
-            return (get_cache_dir(m_valid_cache_path) / m_json_filename).string();
+            return { valid_json_cache_path_unchecked() };
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
@@ -588,6 +595,23 @@ namespace mamba
     auto SubdirIndexLoader::repodata_url_path() const -> std::string
     {
         return util::url_concat(m_platform, "/", m_repodata_filename);
+    }
+
+    auto SubdirIndexLoader::valid_json_cache_path_unchecked() const -> fs::u8path
+    {
+        return get_cache_dir(m_valid_cache_path) / m_json_filename;
+    }
+
+    auto SubdirIndexLoader::valid_state_file_path_unchecked() const -> fs::u8path
+    {
+        auto state_file = valid_json_cache_path_unchecked();
+        state_file.replace_extension(".state.json");
+        return state_file;
+    }
+
+    auto SubdirIndexLoader::valid_libsolv_cache_path_unchecked() const -> fs::u8path
+    {
+        return get_cache_dir(m_valid_cache_path) / m_solv_filename;
     }
 
     auto SubdirIndexLoader::repodata_url() const -> specs::CondaURL

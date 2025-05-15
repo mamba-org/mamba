@@ -121,6 +121,21 @@ TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
             CHECK_FALSE(subdir.valid_libsolv_cache_path().has_value());
             CHECK(is_in_directory(cache_dir, subdir.writable_libsolv_cache_path()));
         }
+
+
+        SECTION("And clear them")
+        {
+            for (auto& subdir : subdirs)
+            {
+                subdir.clear_valid_cache_files();
+
+                CHECK_FALSE(subdir.valid_cache_found());
+                CHECK_FALSE(subdir.valid_json_cache_path().has_value());
+                CHECK_FALSE(subdir.valid_libsolv_cache_path().has_value());
+            }
+
+            CHECK(fs::is_empty(cache_dir));
+        }
     }
 
     SECTION("No download offline")

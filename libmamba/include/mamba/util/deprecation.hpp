@@ -10,13 +10,13 @@
 #if __cplusplus >= 202002L
 #define MAMBA_DEPRECATED_CXX20 [[deprecated("Use C++20 functions with the same name")]]
 #else
-#define MAMBA_DEPRECATED_CXX20
+#define MAMBA_DEPRECATED_CXX20 [[]]
 #endif
 
 #if __cplusplus >= 202302L
 #define MAMBA_DEPRECATED_CXX23 [[deprecated("Use C++23 functions with the same name")]]
 #else
-#define MAMBA_DEPRECATED_CXX23
+#define MAMBA_DEPRECATED_CXX23 [[]]
 #endif
 
 #endif

@@ -204,7 +204,7 @@ namespace mamba
     std::vector<History::UserRequest> History::get_user_requests()
     {
         std::vector<UserRequest> res;
-        int revision_num = 0;
+        std::size_t revision_num = 0;
         for (const auto& el : parse())
         {
             UserRequest r;
@@ -330,21 +330,36 @@ namespace mamba
     namespace detail
     {
         // The following function parses the different formats that can be found in the history
-        // file. conda/mamba1 format: installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
-        // removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0 mamba2 broken format: installed:
-        // +conda-forge::xtl-0.8.0-h84d6215_0 removed:
-        // -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0 mamba2 new format:
+        // file.
+        //
+        // conda/mamba1 format:
+        //
+        // installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        //
+        // mamba2 broken format:
+        //
+        // installed: +conda-forge::xtl-0.8.0-h84d6215_0
+        // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        //
+        // mamba2 new format:
         // installed: +https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
         // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
         specs::PackageInfo pkg_info_builder(std::string s)
         {
-            std::string s_pkg;
+            std::string name_version_build_string;
             std::string channel;
             std::size_t pos_0 = s.rfind("/");
             if (pos_0 != std::string::npos)
             {
+                // s is of the form of
+                // `https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0` or
+                // `conda-forge/linux-64::xtl-0.8.0-h84d6215_0`
                 std::string s_begin = s.substr(0, pos_0);
+                // s_begin is of the form of `https://conda.anaconda.org/conda-forge` or
+                // `conda-forge`
                 std::string s_end = s.substr(pos_0 + 1, s.size());
+                // s_end is of the form of `linux-64::xtl-0.8.0-h84d6215_0`
                 std::size_t pos = s_begin.rfind("/");
                 if (pos != std::string::npos)
                 {
@@ -354,39 +369,45 @@ namespace mamba
                 {
                     channel = s_begin;
                 }
-                s_pkg = std::get<1>(util::rsplit_once(s_end, "::"));
+                name_version_build_string = std::get<1>(util::rsplit_once(s_end, "::"));
             }
             else
             {
-                channel = std::get<0>(util::split_once(s, "::"));
-                s_pkg = std::get<1>(util::rsplit_once(s, "::"));
+                // s is of the form of `conda-forge::xtl-0.8.0-h84d6215_0`
+                auto double_colon_split = util::split_once(s, "::");
+                channel = std::get<0>(double_colon_split);
+                name_version_build_string = std::get<1>(double_colon_split).value_or("");
             }
 
-            std::size_t pos_1 = s_pkg.rfind("-");
-            std::string s_pkg_ = s_pkg.substr(0, pos_1);
-            std::string build_string = s_pkg.substr(pos_1 + 1, s_pkg.size());
+            // `name_version_build_string` is of the form `xtl-0.8.0-h84d6215_0`
+            std::size_t pos_1 = name_version_build_string.rfind("-");
+            std::string name_version = name_version_build_string.substr(0, pos_1);
+            // `name_version` is of the form `xtl-0.8.0`
+            std::string build_string = name_version_build_string.substr(
+                pos_1 + 1,
+                name_version_build_string.size()
+            );
 
-            std::size_t pos_2 = s_pkg_.rfind("-");
-            std::string name = s_pkg_.substr(0, pos_2);
-            std::string version = s_pkg_.substr(pos_2 + 1, s_pkg_.size());
+            std::size_t pos_2 = name_version.rfind("-");
+            std::string name = name_version.substr(0, pos_2);
+            std::string version = name_version.substr(pos_2 + 1, name_version.size());
 
             specs::PackageInfo pkg_info{ name, version, build_string, channel };
             return pkg_info;
         }
 
-        PackageDiff PackageDiff::get_revision_pkg_diff(
+        PackageDiff PackageDiff::from_revision(
             std::vector<History::UserRequest> user_requests,
-            int target_revision
+            std::size_t target_revision
         )
         {
-            assert(target_revision >= 0);
             assert(!user_requests.empty());
 
             struct revision
             {
-                int key = -1;
-                std::map<std::string, specs::PackageInfo> removed_pkg = {};
-                std::map<std::string, specs::PackageInfo> installed_pkg = {};
+                std::size_t key = 0;
+                std::unordered_map<std::string, specs::PackageInfo> removed_pkg = {};
+                std::unordered_map<std::string, specs::PackageInfo> installed_pkg = {};
             };
 
             std::list<revision> revisions;

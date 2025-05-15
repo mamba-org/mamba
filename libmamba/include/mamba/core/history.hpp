@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_HISTORY
 #define MAMBA_CORE_HISTORY
 
-#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -39,7 +38,7 @@ namespace mamba
             static UserRequest prefilled(const Context& context);
 
             std::string date;
-            int revision_num = 0;
+            std::size_t revision_num = 0;
             std::string cmd;
             std::string conda_version;
 
@@ -65,15 +64,16 @@ namespace mamba
     namespace detail
     {
         /** PackageDiff contains two maps of packages and their package info, one being for the
-         * installed packagege, the other for the removed ones. This is used while looping on
-         * revisions to get the diff between the target revision and the current one. */
+         * installed packages, the other for the removed ones. This is used while looping on
+         * revisions to get the diff between the target revision and the current one.
+         */
         struct PackageDiff
         {
             std::unordered_map<std::string, specs::PackageInfo> removed_pkg_diff;
             std::unordered_map<std::string, specs::PackageInfo> installed_pkg_diff;
 
-            PackageDiff
-            get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int target_revision);
+            [[nodiscard]] static PackageDiff
+            from_revision(std::vector<History::UserRequest> user_requests, std::size_t target_revision);
         };
 
         specs::PackageInfo pkg_info_builder(std::string s);

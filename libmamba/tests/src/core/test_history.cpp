@@ -19,7 +19,6 @@
 #include <unistd.h>
 #endif
 
-// #include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -131,10 +130,10 @@ namespace mamba
             // Gather history from current history file.
             History history_instance(mambatests::test_data_dir / "history/parse", channel_context);
             std::vector<History::UserRequest> user_requests = history_instance.get_user_requests();
-            int REVISION = 1;
+            std::size_t target_revision = 1;
 
             detail::PackageDiff pkg_diff{};
-            pkg_diff = pkg_diff.get_revision_pkg_diff(user_requests, REVISION);
+            pkg_diff = pkg_diff.from_revision(user_requests, target_revision);
             const auto& removed_pkg_diff = pkg_diff.removed_pkg_diff;
             const auto& installed_pkg_diff = pkg_diff.installed_pkg_diff;
 

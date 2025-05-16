@@ -63,19 +63,24 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<mamba::specs::GlobSpec>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct std::hash<mamba::specs::GlobSpec>
 {
-    auto operator()(const mamba::specs::GlobSpec& spec) const -> std::size_t
-    {
-        return std::hash<std::string>{}(spec.to_string());
-    }
+    auto operator()(const mamba::specs::GlobSpec& spec) const -> std::size_t;
 };
 
 #endif

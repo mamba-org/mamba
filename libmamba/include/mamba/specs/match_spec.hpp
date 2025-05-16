@@ -229,10 +229,30 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<::mamba::specs::MatchSpec>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
+};
+
+template <>
+struct std::hash<mamba::specs::MatchSpec>
+{
+    auto operator()(const mamba::specs::MatchSpec& spec) const -> std::size_t;
+};
+
+template <>
+struct std::hash<mamba::specs::MatchSpec::ExtraMembers>
+{
+    auto operator()(const mamba::specs::MatchSpec::ExtraMembers& extra) const -> std::size_t;
 };
 
 /*********************************
@@ -303,41 +323,5 @@ namespace mamba::specs
         return true;
     }
 }
-
-template <>
-struct std::hash<mamba::specs::MatchSpec>
-{
-    auto operator()(const mamba::specs::MatchSpec& spec) const -> std::size_t
-    {
-        return mamba::util::hash_vals(
-            spec.channel(),
-            spec.version(),
-            spec.name(),
-            spec.build_string(),
-            spec.name_space(),
-            spec.build_number(),
-            spec.extra_members_hash()
-        );
-    }
-};
-
-template <>
-struct std::hash<mamba::specs::MatchSpec::ExtraMembers>
-{
-    auto operator()(const mamba::specs::MatchSpec::ExtraMembers& extra) const -> std::size_t
-    {
-        return mamba::util::hash_vals(
-            extra.filename,
-            extra.subdirs,
-            extra.md5,
-            extra.sha256,
-            extra.license,
-            extra.license_family,
-            extra.features,
-            extra.track_features,
-            extra.optional
-        );
-    }
-};
 
 #endif

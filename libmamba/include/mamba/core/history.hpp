@@ -61,23 +61,37 @@ namespace mamba
         ChannelContext& m_channel_context;
     };
 
-    namespace detail
+    /** PackageDiff contains two maps of packages and their package info, one being for the
+     * installed packages, the other for the removed ones. This is used while looping on
+     * revisions to get the diff between the target revision and the current one.
+     */
+    struct PackageDiff
     {
-        /** PackageDiff contains two maps of packages and their package info, one being for the
-         * installed packages, the other for the removed ones. This is used while looping on
-         * revisions to get the diff between the target revision and the current one.
-         */
-        struct PackageDiff
-        {
-            std::unordered_map<std::string, specs::PackageInfo> removed_pkg_diff;
-            std::unordered_map<std::string, specs::PackageInfo> installed_pkg_diff;
+        std::unordered_map<std::string, specs::PackageInfo> removed_pkg_diff;
+        std::unordered_map<std::string, specs::PackageInfo> installed_pkg_diff;
 
-            [[nodiscard]] static PackageDiff
-            from_revision(std::vector<History::UserRequest> user_requests, std::size_t target_revision);
-        };
+        [[nodiscard]] static PackageDiff
+        from_revision(const std::vector<History::UserRequest>& user_requests, std::size_t target_revision);
+    };
 
-        specs::PackageInfo pkg_info_builder(std::string s);
-    }
+    /** The following function parses the different formats that can be found in the history
+     * file.
+     *
+     * conda/mamba1 format:
+     *
+     * installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+     * removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+     *
+     * mamba2 broken format:
+     *
+     * installed: +conda-forge::xtl-0.8.0-h84d6215_0
+     * removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+     *
+     * mamba2 new format:
+     * installed: +https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+     * removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+     */
+    specs::PackageInfo read_history_url_entry(const std::string& s);
 }  // namespace mamba
 
 #endif

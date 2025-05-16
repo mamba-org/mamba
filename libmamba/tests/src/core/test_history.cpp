@@ -115,7 +115,7 @@ namespace mamba
             };
             for (auto s : test_list)
             {
-                specs::PackageInfo pkg_info = mamba::detail::pkg_info_builder(s);
+                specs::PackageInfo pkg_info = mamba::read_history_url_entry(s);
                 REQUIRE(pkg_info.name == "xtl");
                 REQUIRE(pkg_info.version == "0.8.0");
                 REQUIRE(pkg_info.channel == "conda-forge");
@@ -129,11 +129,11 @@ namespace mamba
 
             // Gather history from current history file.
             History history_instance(mambatests::test_data_dir / "history/parse", channel_context);
-            std::vector<History::UserRequest> user_requests = history_instance.get_user_requests();
+            const std::vector<History::UserRequest> user_requests = history_instance.get_user_requests(
+            );
             std::size_t target_revision = 1;
 
-            detail::PackageDiff pkg_diff{};
-            pkg_diff = pkg_diff.from_revision(user_requests, target_revision);
+            auto pkg_diff = PackageDiff::from_revision(user_requests, target_revision);
             const auto& removed_pkg_diff = pkg_diff.removed_pkg_diff;
             const auto& installed_pkg_diff = pkg_diff.installed_pkg_diff;
 

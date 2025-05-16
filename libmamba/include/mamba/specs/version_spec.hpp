@@ -266,10 +266,14 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
 
     constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
-        if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
+        const auto end = ctx.end();
+        for (auto it = ctx.begin(); it != end; ++it)
         {
-            conda_build_form = true;
-            return ++it;
+            if (*it == 'b')
+            {
+                conda_build_form = true;
+                return ++it;
+            }
         }
         return ctx.begin();
     }
@@ -288,10 +292,14 @@ struct fmt::formatter<mamba::specs::VersionSpec>
 
     constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
-        if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
+        const auto end = ctx.end();
+        for (auto it = ctx.begin(); it != end; ++it)
         {
-            conda_build_form = true;
-            return ++it;
+            if (*it == 'b')
+            {
+                conda_build_form = true;
+                return ++it;
+            }
         }
         return ctx.begin();
     }

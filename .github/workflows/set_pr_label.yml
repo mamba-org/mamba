@@ -1,0 +1,88 @@
+name: Set release label to PR based on title and description
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  set_label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Assign label based on PR title
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr_title = context.payload.pull_request.title;
+
+            // Define regex patterns for labels based on conventional commit keywords
+            const label_patterns_map = {
+              "release::bug_fixes": /^(fix)\b/i,
+              "release::enhancements": /^(feat|refactor|perf)\b/i,
+              "release::ci_docs": /^(ci|docs)\b/i,
+              "release::maintenance": /^(chore|style|test|build|revert)\b/i,
+            };
+
+            let assigned_label = null;
+
+            // Check each pattern
+            for (const [release_label, pattern] of Object.entries(label_patterns_map)) {
+              if (pattern.test(pr_title)) {
+                assigned_label = release_label;
+                break; // Assign first matching label
+              }
+            }
+
+            // If a label was matched, add it to PR
+            if (assigned_label) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: [assigned_label]
+              });
+            }
+
+      - name: Assign label based on PR description
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr_body = context.payload.pull_request.body;
+
+            const label_map = {
+              "Bugfix": "release::bug_fixes",
+              "Feature / enhancement": "release::enhancements",
+              "CI / Documentation": "release::ci_docs",
+              "Maintenance": "release::maintenance"
+            };
+
+            let assigned_label = null;
+
+            for (const [checkbox_label, release_label] of Object.entries(label_map)) {
+              const checkbox_regex = new RegExp(`- \\[x\\] ${checkbox_label}`, 'mi');
+              if (checkbox_regex.test(pr_body)) {
+                assigned_label = release_label;
+                break; // Assign first matching label
+              }
+            }
+
+            // If a label was matched, add it to PR
+            if (assigned_label) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: [assigned_label]
+              });
+            }

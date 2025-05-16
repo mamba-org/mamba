@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "mamba/core/history.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/request.hpp"
 

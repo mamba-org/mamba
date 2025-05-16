@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <list>
 #include <regex>
 
 #include "mamba/core/channel_context.hpp"
@@ -81,12 +82,12 @@ namespace mamba
             {
                 if (res.size() > 0)
                 {
-                    res[res.size() - 1].diff.insert(line);
+                    res[res.size() - 1].diff.push_back(line);
                 }
                 else
                 {
                     res.push_back(ParseResult());
-                    res[0].diff.insert(line);
+                    res[0].diff.push_back(line);
                 }
             }
         }
@@ -203,7 +204,7 @@ namespace mamba
     std::vector<History::UserRequest> History::get_user_requests()
     {
         std::vector<UserRequest> res;
-        int revision_num = 0;
+        std::size_t revision_num = 0;
         for (const auto& el : parse())
         {
             UserRequest r;
@@ -324,5 +325,188 @@ namespace mamba
             out << specs_output("remove", entry.remove);
             out << specs_output("neutered", entry.neutered);
         }
+    }
+
+    specs::PackageInfo read_history_url_entry(const std::string& s)
+    {
+        std::string name_version_build_string;
+        std::string channel;
+        std::size_t pos_0 = s.rfind("/");
+        if (pos_0 != std::string::npos)
+        {
+            // s is of the form of
+            // `https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0` or
+            // `conda-forge/linux-64::xtl-0.8.0-h84d6215_0`
+            std::string s_begin = s.substr(0, pos_0);
+            // s_begin is of the form of `https://conda.anaconda.org/conda-forge` or
+            // `conda-forge`
+            std::string s_end = s.substr(pos_0 + 1, s.size());
+            // s_end is of the form of `linux-64::xtl-0.8.0-h84d6215_0`
+            std::size_t pos = s_begin.rfind("/");
+            if (pos != std::string::npos)
+            {
+                channel = s_begin.substr(pos + 1, s_begin.size());
+            }
+            else
+            {
+                channel = s_begin;
+            }
+            name_version_build_string = std::get<1>(util::rsplit_once(s_end, "::"));
+        }
+        else
+        {
+            // s is of the form of `conda-forge::xtl-0.8.0-h84d6215_0`
+            auto double_colon_split = util::split_once(s, "::");
+            channel = std::get<0>(double_colon_split);
+            name_version_build_string = std::get<1>(double_colon_split).value_or("");
+        }
+
+        // `name_version_build_string` is of the form `xtl-0.8.0-h84d6215_0`
+        std::size_t pos_1 = name_version_build_string.rfind("-");
+        std::string name_version = name_version_build_string.substr(0, pos_1);
+        // `name_version` is of the form `xtl-0.8.0`
+        std::string build_string = name_version_build_string.substr(
+            pos_1 + 1,
+            name_version_build_string.size()
+        );
+
+        std::size_t pos_2 = name_version.rfind("-");
+        std::string name = name_version.substr(0, pos_2);
+        std::string version = name_version.substr(pos_2 + 1, name_version.size());
+
+        specs::PackageInfo pkg_info{ name, version, build_string, channel };
+        return pkg_info;
+    }
+
+    PackageDiff PackageDiff::from_revision(
+        const std::vector<History::UserRequest>& user_requests,
+        std::size_t target_revision
+    )
+    {
+        assert(!user_requests.empty());
+
+        struct revision
+        {
+            std::size_t key = 0;
+            std::unordered_map<std::string, specs::PackageInfo> removed_pkg = {};
+            std::unordered_map<std::string, specs::PackageInfo> installed_pkg = {};
+        };
+
+        std::list<revision> revisions;
+        for (auto r : user_requests)
+        {
+            if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+            {
+                if (r.revision_num > target_revision)
+                {
+                    revision rev{ /*.key = */ r.revision_num };
+                    for (auto ud : r.unlink_dists)
+                    {
+                        auto pkg_info = read_history_url_entry(ud);
+                        const auto name = pkg_info.name;
+                        rev.removed_pkg[name] = std::move(pkg_info);
+                    }
+                    for (auto ld : r.link_dists)
+                    {
+                        auto pkg_info = read_history_url_entry(ld);
+                        const auto name = pkg_info.name;
+                        rev.installed_pkg[name] = std::move(pkg_info);
+                    }
+                    revisions.push_back(rev);
+                }
+            }
+        }
+
+        PackageDiff pkg_diff{};
+
+        const auto handle_install = [&pkg_diff](revision& rev, const std::string& pkg_name)
+        {
+            bool res = false;
+            if (auto rev_iter = rev.installed_pkg.find(pkg_name); rev_iter != rev.installed_pkg.end())
+            {
+                const auto version = rev_iter->second.version;
+                auto iter = pkg_diff.removed_pkg_diff.find(pkg_name);
+                if (iter != pkg_diff.removed_pkg_diff.end() && iter->second.version == version)
+                {
+                    pkg_diff.removed_pkg_diff.erase(iter);
+                }
+                else
+                {
+                    pkg_diff.installed_pkg_diff[pkg_name] = rev_iter->second;
+                }
+                rev.installed_pkg.erase(rev_iter);
+                res = true;
+            }
+            return res;
+        };
+
+        auto handle_remove = [&pkg_diff](revision& rev, const std::string& pkg_name)
+        {
+            bool res = false;
+            if (auto rev_iter = rev.removed_pkg.find(pkg_name); rev_iter != rev.removed_pkg.end())
+            {
+                const auto version = rev_iter->second.version;
+                auto iter = pkg_diff.installed_pkg_diff.find(pkg_name);
+                if (iter != pkg_diff.installed_pkg_diff.end() && iter->second.version == version)
+                {
+                    pkg_diff.installed_pkg_diff.erase(iter);
+                }
+                else
+                {
+                    pkg_diff.removed_pkg_diff[pkg_name] = rev_iter->second;
+                }
+                rev.removed_pkg.erase(rev_iter);
+                res = true;
+            }
+            return res;
+        };
+
+        while (!revisions.empty())
+        {
+            auto& revision = *(revisions.begin());
+            while (!revision.removed_pkg.empty())
+            {
+                auto [pkg_name, pkg_info] = *(revision.removed_pkg.begin());
+                pkg_diff.removed_pkg_diff[pkg_name] = pkg_info;
+                revision.removed_pkg.erase(pkg_name);
+                bool lastly_removed = true;  // whether last operation on package was a removal
+                lastly_removed = !handle_install(revision, pkg_name);
+                for (auto rev = std::next(revisions.begin()); rev != revisions.end(); ++rev)
+                {
+                    if (lastly_removed)
+                    {
+                        lastly_removed = !handle_install(*rev, pkg_name);
+                    }
+                    else
+                    {
+                        lastly_removed = handle_remove(*rev, pkg_name);
+                        if (lastly_removed)
+                        {
+                            lastly_removed = !handle_install(*rev, pkg_name);
+                        }
+                    }
+                }
+            }
+            while (!revision.installed_pkg.empty())
+            {
+                auto [pkg_name, pkg_info] = *(revision.installed_pkg.begin());
+                pkg_diff.installed_pkg_diff[pkg_name] = pkg_info;
+                revision.installed_pkg.erase(pkg_name);
+                bool lastly_removed = false;
+                for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
+                {
+                    if (!lastly_removed)
+                    {
+                        lastly_removed = handle_remove(*rev, pkg_name);
+                        if (lastly_removed)
+                        {
+                            lastly_removed = !handle_install(*rev, pkg_name);
+                        }
+                    }
+                }
+            }
+            revisions.pop_front();
+        }
+        return pkg_diff;
     }
 }  // namespace mamba

@@ -13,7 +13,7 @@
 
 namespace mamba::util
 {
-    MAMBA_DEPRECATED_CXX20 struct identity
+    struct MAMBA_DEPRECATED_CXX20 identity
     {
         template <typename T>
         constexpr auto operator()(T&& t) const noexcept -> T&&;

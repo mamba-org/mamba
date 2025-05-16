@@ -264,22 +264,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::VersionPartAtom>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::VersionPartAtom>::format(
     const ::mamba::specs::VersionPartAtom atom,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.literal());
 }
@@ -361,21 +349,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::VersionPart>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::VersionPart>::format(
     const ::mamba::specs::VersionPart part,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     auto out = ctx.out();
     if (part.atoms.empty())

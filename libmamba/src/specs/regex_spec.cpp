@@ -128,21 +128,17 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::RegexSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::RegexSpec>::format(
     const ::mamba::specs::RegexSpec& spec,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     return fmt::format_to(ctx.out(), "{}", spec.to_string());
+}
+
+auto
+std::hash<mamba::specs::RegexSpec>::operator()(const mamba::specs::RegexSpec& spec) const
+    -> std::size_t
+{
+    return std::hash<std::string>{}(spec.to_string());
 }

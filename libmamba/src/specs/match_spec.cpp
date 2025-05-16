@@ -16,6 +16,7 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -1112,21 +1113,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<::mamba::specs::MatchSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<::mamba::specs::MatchSpec>::format(
     const ::mamba::specs::MatchSpec& spec,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     using MatchSpec = ::mamba::specs::MatchSpec;
 
@@ -1265,4 +1255,37 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
     ensure_bracket_close();
 
     return out;
+}
+
+auto
+std::hash<mamba::specs::MatchSpec>::operator()(const mamba::specs::MatchSpec& spec) const
+    -> std::size_t
+{
+    return mamba::util::hash_vals(
+        spec.channel(),
+        spec.version(),
+        spec.name(),
+        spec.build_string(),
+        spec.name_space(),
+        spec.build_number(),
+        spec.extra_members_hash()
+    );
+}
+
+auto
+std::hash<mamba::specs::MatchSpec::ExtraMembers>::operator()(
+    const mamba::specs::MatchSpec::ExtraMembers& extra
+) const -> std::size_t
+{
+    return mamba::util::hash_vals(
+        extra.filename,
+        extra.subdirs,
+        extra.md5,
+        extra.sha256,
+        extra.license,
+        extra.license_family,
+        extra.features,
+        extra.track_features,
+        extra.optional
+    );
 }

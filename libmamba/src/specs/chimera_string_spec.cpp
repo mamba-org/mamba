@@ -13,6 +13,7 @@
 #include "mamba/specs/chimera_string_spec.hpp"
 #include "mamba/specs/regex_spec.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -126,22 +127,17 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::ChimeraStringSpec>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::ChimeraStringSpec>::format(
     const ::mamba::specs::ChimeraStringSpec& spec,
     format_context& ctx
 ) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.to_string());
+}
+
+auto
+std::hash<mamba::specs::ChimeraStringSpec>::operator()(const mamba::specs::ChimeraStringSpec& spec
+) const -> std::size_t
+{
+    return mamba::util::hash_vals(spec.to_string());
 }

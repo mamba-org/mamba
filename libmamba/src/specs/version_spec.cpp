@@ -14,6 +14,7 @@
 
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 #include "specs/version_spec_impl.hpp"
 
@@ -308,22 +309,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::VersionPredicate>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
-    {
-        conda_build_form = true;
-        return ++it;
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::VersionPredicate>::format(
     const ::mamba::specs::VersionPredicate& pred,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     using VersionPredicate = typename mamba::specs::VersionPredicate;
     using VersionSpec = typename mamba::specs::VersionSpec;
@@ -780,21 +769,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::VersionSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
-    {
-        conda_build_form = true;
-        return ++it;
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::VersionSpec>::format(
     const ::mamba::specs::VersionSpec& spec,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     using VersionSpec = typename mamba::specs::VersionSpec;
 
@@ -834,4 +812,18 @@ fmt::formatter<mamba::specs::VersionSpec>::format(
         }
     );
     return out;
+}
+
+auto
+std::hash<mamba::specs::VersionPredicate>::operator()(const mamba::specs::VersionPredicate& pred) const
+    -> std::size_t
+{
+    return mamba::util::hash_vals(pred.to_string());
+}
+
+auto
+std::hash<mamba::specs::VersionSpec>::operator()(const mamba::specs::VersionSpec& spec) const
+    -> std::size_t
+{
+    return mamba::util::hash_vals(spec.to_string());
 }

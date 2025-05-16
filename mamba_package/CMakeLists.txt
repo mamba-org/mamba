@@ -36,7 +36,14 @@ mamba_target_add_compile_warnings(mamba-package WARNING_AS_ERROR ${MAMBA_WARNING
 
 target_link_libraries(mamba-package PRIVATE mamba::libmamba)
 
-set_target_properties(mamba-package PROPERTIES CXX_STANDARD 17)
+target_compile_features(mamba-package PUBLIC cxx_std_20)
+set_target_properties(
+    mamba-package
+    PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+)
 
 install(
     TARGETS mamba-package

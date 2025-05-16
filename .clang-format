@@ -1,6 +1,6 @@
 BasedOnStyle: Mozilla
 Language: Cpp
-Standard: c++17
+Standard: c++20
 
 AccessModifierOffset: "-4"
 AlignAfterOpenBracket: BlockIndent

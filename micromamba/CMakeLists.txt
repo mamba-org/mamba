@@ -66,7 +66,14 @@ macro(mambaexe_create_target target_name linkage output_name)
     add_executable(${target_name} ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
+    target_compile_features(${target_name} PUBLIC cxx_std_20)
+    set_target_properties(
+        ${target_name}
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
 
     target_link_libraries(${target_name} PRIVATE Threads::Threads reproc reproc++)
 

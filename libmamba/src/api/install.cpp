@@ -607,38 +607,55 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
-            auto outcome = solver::libsolv::Solver().solve(
-                std::get<solver::libsolv::Database>(db_variant),
-                request,
-                ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                   : solver::libsolv::MatchSpecParser::Libsolv
-            );
+            using LibsolvOutcome = std::variant<mamba::solver::Solution, mamba::solver::libsolv::UnSolvable>;
+            auto outcome = ctx.experimental_resolvo_solver
+                               ? solver::resolvo::Solver()
+                                     .solve(std::get<solver::resolvo::Database>(db_variant), request)
+                                     .map(
+                                         [](auto&& result) -> LibsolvOutcome
+                                         {
+                                             // resolvo only returns Solution
+                                             return std::get<mamba::solver::Solution>(result);
+                                         }
+                                     )
+                               : solver::libsolv::Solver().solve(
+                                     std::get<solver::libsolv::Database>(db_variant),
+                                     request,
+                                     ctx.experimental_matchspec_parsing
+                                         ? solver::libsolv::MatchSpecParser::Mamba
+                                         : solver::libsolv::MatchSpecParser::Libsolv
+                                 );
 
             if (!outcome.has_value())
             {
                 throw std::runtime_error(outcome.error().what());
             }
             auto& result = outcome.value();
-            if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&result))
+
+            // If resolvo is used, we don't need to handle UnSolvable
+            if (!ctx.experimental_resolvo_solver)
             {
-                unsolvable->explain_problems_to(
-                    std::get<solver::libsolv::Database>(db_variant),
-                    std::cout,
-                    mamba::solver::ProblemsMessageFormat{}
-                );
-                if (ctx.output_params.json)
+                if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&result))
                 {
-                    nlohmann::json j;
-                    j["success"] = false;
-                    j["solver_problems"] = unsolvable->problems(
-                        std::get<solver::libsolv::Database>(db_variant)
+                    unsolvable->explain_problems_to(
+                        std::get<solver::libsolv::Database>(db_variant),
+                        std::cout,
+                        mamba::solver::ProblemsMessageFormat{}
                     );
-                    Console::instance().json_write(j);
+                    if (ctx.output_params.json)
+                    {
+                        nlohmann::json j;
+                        j["success"] = false;
+                        j["solver_problems"] = unsolvable->problems(
+                            std::get<solver::libsolv::Database>(db_variant)
+                        );
+                        Console::instance().json_write(j);
+                    }
+                    throw mamba_error(
+                        "Could not solve for environment specs",
+                        mamba_error_code::satisfiablitity_error
+                    );
                 }
-                throw mamba_error(
-                    "Could not solve for environment specs",
-                    mamba_error_code::satisfiablitity_error
-                );
             }
             auto& solution = std::get<solver::Solution>(result);
 

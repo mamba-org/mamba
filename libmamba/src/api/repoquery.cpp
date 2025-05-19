@@ -36,7 +36,7 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            static std::variant<solver::libsolv::Database, solver::resolvo::Database> db(
+            solver::DatabaseVariant db(
                 std::in_place_type<solver::libsolv::Database>,
                 channel_context.params(),
                 solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing

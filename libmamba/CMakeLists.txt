@@ -472,8 +472,9 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
+            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp
             PRIVATE
+                spdlog::spdlog_header_only
                 reproc
                 reproc++
                 simdjson::simdjson_static
@@ -605,16 +606,12 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC
-                ${LIBSOLV_LIBRARIES}
-                ${LIBSOLVEXT_LIBRARIES}
-                yaml-cpp::yaml-cpp
-                fmt::fmt
+            PUBLIC ${LIBSOLV_LIBRARIES} ${LIBSOLVEXT_LIBRARIES} yaml-cpp::yaml-cpp fmt::fmt
+            PRIVATE
                 # Since conda-forge spdlog is built with a bundled version of fmt we use the header
                 # only version to avoid chasing after the correct fmt version matching the one used
                 # in the bundle
                 spdlog::spdlog_header_only
-            PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}
                 ${OPENSSL_LIBRARIES}

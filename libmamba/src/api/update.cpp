@@ -238,7 +238,7 @@ namespace mamba
         Console::instance().json_write({ { "success", true } });
         auto transaction = MTransaction(
             ctx,
-            std::get<solver::libsolv::Database>(db),
+            db,
             request,
             std::get<solver::Solution>(outcome),
             package_caches

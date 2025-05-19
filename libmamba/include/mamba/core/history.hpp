@@ -11,8 +11,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "mamba/core/command_params.hpp"
 #include "mamba/core/channel_context.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"

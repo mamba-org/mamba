@@ -173,9 +173,9 @@ namespace mamba
         }();
 
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            command
+            ctx.prefix_params,
+            command,
+            WrappedCallOptions::from_context(ctx)
         );
 
         reproc::options options;

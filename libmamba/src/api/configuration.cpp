@@ -1410,6 +1410,14 @@ namespace mamba
                    )
                    .set_env_var_names());
 
+        insert(Configurable("experimental_resolvo_solver", &m_context.experimental_resolvo_solver)
+                   .group("Basic")
+                   .description(  //
+                       "Enable the experimental resolvo solver instead of libsolv.\n"
+                       "This is not meant for production"
+                   )
+                   .set_env_var_names());
+
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
                    .set_env_var_names()

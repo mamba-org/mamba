@@ -9,6 +9,7 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/resolvo/database.hpp"
+#include "mamba/solver/solver_factory.hpp"
 
 namespace mamba
 {
@@ -36,7 +37,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
+        solver::DatabaseVariant& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>;
 

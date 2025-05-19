@@ -567,7 +567,7 @@ namespace mamba
             };
             add_spdlog_logger_to_database(libsolv_db);
 
-            std::variant<solver::libsolv::Database, solver::resolvo::Database> db_variant(
+            solver::DatabaseVariant db_variant(
                 std::in_place_type<solver::libsolv::Database>,
                 std::move(libsolv_db)
             );
@@ -745,19 +745,17 @@ namespace mamba
                 ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
                                                    : solver::libsolv::MatchSpecParser::Libsolv
             };
-            std::variant<solver::libsolv::Database, solver::resolvo::Database>
-                db = ctx.use_resolvo_solver
-                         ? std::variant<
-                               solver::libsolv::Database,
-                               solver::resolvo::Database>(std::in_place_type<solver::resolvo::Database>)
-                         : std::variant<solver::libsolv::Database, solver::resolvo::Database>(
-                               std::in_place_type<solver::libsolv::Database>,
-                               channel_context.params(),
-                               solver::libsolv::Database::Settings{
-                                   ctx.experimental_matchspec_parsing
-                                       ? solver::libsolv::MatchSpecParser::Mamba
-                                       : solver::libsolv::MatchSpecParser::Libsolv }
-                           );
+            solver::DatabaseVariant db = ctx.use_resolvo_solver
+                                             ? solver::DatabaseVariant(std::in_place_type<
+                                                                       solver::resolvo::Database>)
+                                             : solver::DatabaseVariant(
+                                                   std::in_place_type<solver::libsolv::Database>,
+                                                   channel_context.params(),
+                                                   solver::libsolv::Database::Settings{
+                                                       ctx.experimental_matchspec_parsing
+                                                           ? solver::libsolv::MatchSpecParser::Mamba
+                                                           : solver::libsolv::MatchSpecParser::Libsolv }
+                                               );
             if (!ctx.use_resolvo_solver)
             {
                 add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));

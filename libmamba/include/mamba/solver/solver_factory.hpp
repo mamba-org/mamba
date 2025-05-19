@@ -8,6 +8,7 @@
 #define MAMBA_SOLVER_SOLVER_FACTORY_HPP
 
 #include <memory>
+#include <variant>
 
 #include "mamba/core/context.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -17,6 +18,11 @@
 
 namespace mamba::solver
 {
+    /**
+     * Type alias for the database variant that can hold either libsolv or resolvo database.
+     */
+    using DatabaseVariant = std::variant<libsolv::Database, resolvo::Database>;
+
     /**
      * Create a solver based on the configuration.
      *

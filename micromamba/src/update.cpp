@@ -16,6 +16,7 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/solver/solver_factory.hpp"
 #include "mamba/util/build.hpp"
 
 #ifdef __APPLE__
@@ -56,36 +57,52 @@ set_update_command(CLI::App* subcom, Configuration& config)
 #ifdef BUILDING_MICROMAMBA
 namespace
 {
-    auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
+    auto database_has_package(solver::DatabaseVariant& database, specs::MatchSpec spec) -> bool
     {
         bool found = false;
-        database.for_each_package_matching(
-            spec,
-            [&](const auto&)
-            {
-                found = true;
-                return util::LoopControl::Break;
-            }
-        );
+        if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+        {
+            libsolv_db->for_each_package_matching(
+                spec,
+                [&](const auto&)
+                {
+                    found = true;
+                    return util::LoopControl::Break;
+                }
+            );
+        }
+        else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+        {
+            // TODO: Implement for resolvo database
+            throw std::runtime_error("resolvo database not yet supported for self-update");
+        }
         return found;
     };
 
-    auto database_latest_package(solver::libsolv::Database& database, specs::MatchSpec spec)
+    auto database_latest_package(solver::DatabaseVariant& database, specs::MatchSpec spec)
         -> std::optional<specs::PackageInfo>
     {
         auto out = std::optional<specs::PackageInfo>();
-        database.for_each_package_matching(
-            spec,
-            [&](auto pkg)
-            {
-                if (!out
-                    || (specs::Version::parse(pkg.version).value_or(specs::Version())
-                        > specs::Version::parse(out->version).value_or(specs::Version())))
+        if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+        {
+            libsolv_db->for_each_package_matching(
+                spec,
+                [&](auto pkg)
                 {
-                    out = std::move(pkg);
+                    if (!out
+                        || (specs::Version::parse(pkg.version).value_or(specs::Version())
+                            > specs::Version::parse(out->version).value_or(specs::Version())))
+                    {
+                        out = std::move(pkg);
+                    }
                 }
-            }
-        );
+            );
+        }
+        else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+        {
+            // TODO: Implement for resolvo database
+            throw std::runtime_error("resolvo database not yet supported for self-update");
+        }
         return out;
     };
 }
@@ -102,14 +119,22 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-    solver::libsolv::Database database{ channel_context.params() };
-    add_spdlog_logger_to_database(database);
+    auto db_variant = [&]() -> solver::DatabaseVariant
+    {
+        if (ctx.experimental_resolvo_solver)
+        {
+            return solver::resolvo::Database{};
+        }
+        else
+        {
+            solver::libsolv::Database database{ channel_context.params() };
+            add_spdlog_logger_to_database(database);
+            return std::move(database);
+        }
+    }();
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    // Create a variant containing the database
-    std::variant<solver::libsolv::Database, solver::resolvo::Database> db_variant = std::move(database
-    );
     auto exp_load = load_channels(ctx, channel_context, db_variant, package_caches);
     if (!exp_load)
     {
@@ -123,11 +148,11 @@ update_self(Configuration& config, const std::optional<std::string>& version)
                          .or_else([](specs::ParseError&& err) { throw std::move(err); })
                          .value();
 
-    auto latest_micromamba = database_latest_package(database, matchspec);
+    auto latest_micromamba = database_latest_package(db_variant, matchspec);
 
     if (!latest_micromamba.has_value())
     {
-        if (database_has_package(database, specs::MatchSpec::parse("micromamba").value()))
+        if (database_has_package(db_variant, specs::MatchSpec::parse("micromamba").value()))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
@@ -155,7 +180,19 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    MTransaction t(ctx, database, { latest_micromamba.value() }, package_caches);
+    auto t = [&]() -> MTransaction
+    {
+        if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db_variant))
+        {
+            return MTransaction(ctx, *libsolv_db, { latest_micromamba.value() }, package_caches);
+        }
+        else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db_variant))
+        {
+            // TODO: Implement for resolvo database
+            throw std::runtime_error("resolvo database not yet supported for self-update");
+        }
+        throw std::runtime_error("Invalid database variant type");
+    }();
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {

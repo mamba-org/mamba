@@ -14,6 +14,7 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/solver_factory.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -149,7 +150,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
+            solver::DatabaseVariant& database,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -364,7 +365,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        std::variant<solver::libsolv::Database, solver::resolvo::Database>& database,
+        solver::DatabaseVariant& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>
     {

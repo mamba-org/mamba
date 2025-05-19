@@ -105,6 +105,7 @@ namespace mamba
         bool experimental = false;
         bool experimental_repodata_parsing = true;
         bool experimental_matchspec_parsing = false;
+        bool experimental_resolvo_solver = false;
         bool debug = false;
         bool use_uv = false;
 

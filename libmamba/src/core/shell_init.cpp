@@ -756,7 +756,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(context, context.prefix_params.root_prefix);
+            init_root_prefix_cmdexe(context.prefix_params.root_prefix);
             LOG_WARNING << "Hook installed, now 'manually' execute:";
             LOG_WARNING
                 << "       CALL "
@@ -779,7 +779,7 @@ namespace mamba
         return "";
     }
 
-    void init_root_prefix_cmdexe(const Context&, const fs::u8path& root_prefix)
+    void init_root_prefix_cmdexe(const fs::u8path& root_prefix)
     {
         const ShellInitPathsWindowsCmd paths{ root_prefix };
 
@@ -989,7 +989,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(context, root_prefix);
+            init_root_prefix_cmdexe(root_prefix);
         }
         else if (shell == "powershell")
         {

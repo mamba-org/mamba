@@ -1405,7 +1405,6 @@ namespace mamba
     }
 
     std::unique_ptr<TemporaryFile> wrap_call(
-        const Context& context [[maybe_unused]],
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,
@@ -1436,7 +1435,7 @@ namespace mamba
         if (!fs::exists(conda_bat) && options.is_mamba_exe)
         {
             // this adds in the needed .bat files for activation
-            init_root_prefix_cmdexe(context, root_prefix);
+            init_root_prefix_cmdexe(root_prefix);
         }
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
@@ -1578,7 +1577,6 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                context,
                 context.prefix_params.root_prefix,
                 prefix,
                 cmd,
@@ -1602,7 +1600,6 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                context,
                 context.prefix_params.root_prefix,
                 prefix,
                 cmd,

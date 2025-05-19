@@ -1410,14 +1410,6 @@ namespace mamba
                    )
                    .set_env_var_names());
 
-        insert(Configurable("experimental_resolvo_solver", &m_context.experimental_resolvo_solver)
-                   .group("Basic")
-                   .description(  //
-                       "Enable the experimental resolvo solver instead of libsolv.\n"
-                       "This is not meant for production"
-                   )
-                   .set_env_var_names());
-
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
                    .set_env_var_names()
@@ -1626,7 +1618,7 @@ namespace mamba
                         When enabled, use the experimental resolvo solver instead of libsolv.
                         This is an experimental feature and may not be fully functional.)"))
                    .set_post_merge_hook<bool>([&](bool& value)
-                                              { m_context.use_resolvo_solver = value; }));
+                                              { m_context.experimental_resolvo_solver = value; }));
 
         insert(Configurable("explicit_install", false)
                    .group("Solver")

@@ -32,7 +32,7 @@ namespace mamba::solver
     template <typename Database>
     auto create_solver(const Context& ctx)
     {
-        if (ctx.use_resolvo_solver)
+        if (ctx.experimental_resolvo_solver)
         {
             return std::make_unique<resolvo::Solver>();
         }

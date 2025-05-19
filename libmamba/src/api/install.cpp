@@ -735,7 +735,7 @@ namespace mamba
                 ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
                                                    : solver::libsolv::MatchSpecParser::Libsolv
             };
-            solver::DatabaseVariant db = ctx.use_resolvo_solver
+            solver::DatabaseVariant db = ctx.experimental_resolvo_solver
                                              ? solver::DatabaseVariant(std::in_place_type<
                                                                        solver::resolvo::Database>)
                                              : solver::DatabaseVariant(
@@ -746,7 +746,7 @@ namespace mamba
                                                            ? solver::libsolv::MatchSpecParser::Mamba
                                                            : solver::libsolv::MatchSpecParser::Libsolv }
                                                );
-            if (!ctx.use_resolvo_solver)
+            if (!ctx.experimental_resolvo_solver)
             {
                 add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
             }

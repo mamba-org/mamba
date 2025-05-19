@@ -10,6 +10,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/query.hpp"
+#include "mamba/solver/solver_factory.hpp"
 
 namespace mamba
 {
@@ -23,7 +24,7 @@ namespace mamba
     };
 
     [[nodiscard]] auto make_repoquery(
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,
@@ -31,6 +32,10 @@ namespace mamba
         const Context::GraphicsParams& graphics_params,
         std::ostream& out
     ) -> bool;
+
+    [[nodiscard]] auto
+    repoquery_init(Context& ctx, Configuration& config, QueryResultFormat format, bool use_local)
+        -> solver::DatabaseVariant;
 
     [[nodiscard]] auto repoquery(
         Configuration& config,

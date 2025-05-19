@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mamba/core/command_params.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -18,8 +19,6 @@
 
 namespace mamba
 {
-    class Context;
-
     class History
     {
     public:
@@ -35,7 +34,7 @@ namespace mamba
 
         struct UserRequest
         {
-            static UserRequest prefilled(const Context& context);
+            static UserRequest prefilled(const CommandParams& command_params);
 
             std::string date;
             std::size_t revision_num = 0;

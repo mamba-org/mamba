@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "mamba/core/command_params.hpp"
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
@@ -101,15 +102,6 @@ namespace mamba
         {
             bool no_rc{ false };
             bool no_env{ false };
-        };
-
-        struct CommandParams
-        {
-            std::string caller_version{ "" };
-            std::string conda_version{ "3.8.0" };
-            std::string current_command{ "mamba" };
-            /** Is the Context used in a mamba or mamba executable (instead of a lib). */
-            bool is_mamba_exe{ false };
         };
 
         struct ThreadsParams

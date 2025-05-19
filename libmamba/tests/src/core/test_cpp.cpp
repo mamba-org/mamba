@@ -50,7 +50,7 @@ namespace mamba
     {
         TEST_CASE("user_request")
         {
-            auto u = History::UserRequest::prefilled(mambatests::context());
+            auto u = History::UserRequest::prefilled(mambatests::context().command_params);
             // update in 100 years!
             REQUIRE(u.date[0] == '2');
             REQUIRE(u.date[1] == '0');

@@ -17,6 +17,7 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/solver/solver_factory.hpp"
 
 #include "utils.hpp"
 
@@ -156,7 +157,7 @@ namespace mamba
 
         populate_context_channels_from_specs(raw_update_specs, ctx);
 
-        std::variant<solver::libsolv::Database, solver::resolvo::Database> db(
+        solver::DatabaseVariant db(
             std::in_place_type<solver::libsolv::Database>,
             channel_context.params(),
             solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing

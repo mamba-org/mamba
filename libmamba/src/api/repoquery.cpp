@@ -20,81 +20,69 @@
 
 namespace mamba
 {
-    namespace
+    auto repoquery_init(Context& ctx, Configuration& config, QueryResultFormat format, bool use_local)
+        -> solver::DatabaseVariant
     {
-        auto
-        repoquery_init(Context& ctx, Configuration& config, QueryResultFormat format, bool use_local)
-            -> solver::libsolv::Database&
-        {
-            config.at("use_target_prefix_fallback").set_value(true);
-            config.at("use_default_prefix_fallback").set_value(true);
-            config.at("use_root_prefix_fallback").set_value(true);
-            config.at("target_prefix_checks")
-                .set_value(
-                    MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
-                );
-            config.load();
-
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            solver::DatabaseVariant db(
-                std::in_place_type<solver::libsolv::Database>,
-                channel_context.params(),
-                solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing
-                                                         ? solver::libsolv::MatchSpecParser::Mamba
-                                                         : solver::libsolv::MatchSpecParser::Libsolv }
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
             );
-            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
+        config.load();
 
-            // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
-            MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
-            if (use_local)
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
+        solver::DatabaseVariant db(
+            std::in_place_type<solver::libsolv::Database>,
+            channel_context.params(),
+            solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing
+                                                     ? solver::libsolv::MatchSpecParser::Mamba
+                                                     : solver::libsolv::MatchSpecParser::Libsolv }
+        );
+        add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
+
+        // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
+        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
+        if (use_local)
+        {
+            if (format != QueryResultFormat::Json)
             {
-                if (format != QueryResultFormat::Json)
-                {
-                    Console::stream() << "Using local repodata..." << std::endl;
-                }
-                auto exp_prefix_data = PrefixData::create(
-                    ctx.prefix_params.target_prefix,
-                    channel_context
-                );
-                if (!exp_prefix_data)
-                {
-                    // TODO: propagate tl::expected mechanism
-                    throw std::runtime_error(exp_prefix_data.error().what());
-                }
-                PrefixData& prefix_data = exp_prefix_data.value();
-
-                load_installed_packages_in_database(
-                    ctx,
-                    std::get<solver::libsolv::Database>(db),
-                    prefix_data
-                );
-
-                if (format != QueryResultFormat::Json)
-                {
-                    Console::stream()
-                        << "Loaded current active prefix: " << ctx.prefix_params.target_prefix
-                        << std::endl;
-                }
+                Console::stream() << "Using local repodata..." << std::endl;
             }
-            else
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
+            if (!exp_prefix_data)
             {
-                if (format != QueryResultFormat::Json)
-                {
-                    Console::stream() << "Getting repodata from channels..." << std::endl;
-                }
-                auto exp_load = load_channels(ctx, channel_context, db, package_caches);
-                if (!exp_load)
-                {
-                    throw std::runtime_error(exp_load.error().what());
-                }
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error(exp_prefix_data.error().what());
             }
-            return std::get<solver::libsolv::Database>(db);
+            PrefixData& prefix_data = exp_prefix_data.value();
+
+            load_installed_packages_in_database(ctx, std::get<solver::libsolv::Database>(db), prefix_data);
+
+            if (format != QueryResultFormat::Json)
+            {
+                Console::stream() << "Loaded current active prefix: "
+                                  << ctx.prefix_params.target_prefix << std::endl;
+            }
         }
+        else
+        {
+            if (format != QueryResultFormat::Json)
+            {
+                Console::stream() << "Getting repodata from channels..." << std::endl;
+            }
+            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+            if (!exp_load)
+            {
+                throw std::runtime_error(exp_load.error().what());
+            }
+        }
+        return db;
     }
 
     auto make_repoquery(
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,
@@ -103,9 +91,14 @@ namespace mamba
         std::ostream& out
     ) -> bool
     {
+        if (std::holds_alternative<solver::resolvo::Database>(database))
+        {
+            throw std::runtime_error("repoquery does not support the resolvo solver yet");
+        }
+        auto& libsolv_db = std::get<solver::libsolv::Database>(database);
         if (type == QueryType::Search)
         {
-            auto res = Query::find(database, queries);
+            auto res = Query::find(libsolv_db, queries);
             switch (format)
             {
                 case QueryResultFormat::Json:
@@ -126,7 +119,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'depends'.");
             }
             auto res = Query::depends(
-                database,
+                libsolv_db,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable
@@ -153,7 +146,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'whoneeds'.");
             }
             auto res = Query::whoneeds(
-                database,
+                libsolv_db,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable
@@ -195,7 +188,7 @@ namespace mamba
     )
     {
         auto& ctx = config.context();
-        auto& db = repoquery_init(ctx, config, format, use_local);
+        auto db = repoquery_init(ctx, config, format, use_local);
         return make_repoquery(
             db,
             type,

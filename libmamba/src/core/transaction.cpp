@@ -804,6 +804,8 @@ namespace mamba
 
         Console::instance().print("Transaction\n");
         Console::stream() << "  Prefix: " << ctx.prefix_params.target_prefix.string() << "\n";
+        Console::stream() << "  Solver: "
+                          << (ctx.experimental_resolvo_solver ? "resolvo" : "libsolv") << "\n";
 
         // check size of transaction
         if (empty())

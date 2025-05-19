@@ -323,12 +323,12 @@ struct PackageDatabase : public DependencyProvider
         auto id = version_set_pool.alloc(match_spec);
 
         // Add name to the Name and String pools
-        const std::string name = match_spec.name().str();
+        const std::string name = match_spec.name().to_string();
         name_pool.alloc(String{ name });
         string_pool.alloc(String{ name });
 
         // Add the MatchSpec's string representation to the Name and String pools
-        const std::string match_spec_str = match_spec.str();
+        const std::string match_spec_str = match_spec.to_string();
         name_pool.alloc(String{ match_spec_str });
         string_pool.alloc(String{ match_spec_str });
         return id;
@@ -434,7 +434,7 @@ struct PackageDatabase : public DependencyProvider
     String display_version_set(VersionSetId version_set) override
     {
         const MatchSpec match_spec = version_set_pool[version_set];
-        return String{ match_spec.str() };
+        return String{ match_spec.to_string() };
     }
 
     /**
@@ -452,9 +452,9 @@ struct PackageDatabase : public DependencyProvider
     NameId version_set_name(VersionSetId version_set_id) override
     {
         const MatchSpec match_spec = version_set_pool[version_set_id];
-        // std::cout << "Getting name id for version_set_id " << match_spec.name().str() <<
+        // std::cout << "Getting name id for version_set_id " << match_spec.name().to_string() <<
         // std::endl;
-        return name_pool[String{ match_spec.name().str() }];
+        return name_pool[String{ match_spec.name().to_string() }];
     }
 
     /**
@@ -491,7 +491,7 @@ struct PackageDatabase : public DependencyProvider
 
         const MatchSpec match_spec = version_set_pool[version_set_id];
 
-        const std::string& name = match_spec.name().str();
+        const std::string& name = match_spec.name().to_string();
 
         auto name_id = name_pool.alloc(String{ name });
 
@@ -568,7 +568,7 @@ struct PackageDatabase : public DependencyProvider
                 {
                     // TODO: have a VersionID to NameID mapping instead
                     MatchSpec ms = MatchSpec::parse(dep_a).value();
-                    const std::string& name = ms.name().str();
+                    const std::string& name = ms.name().to_string();
                     auto name_id = name_pool.alloc(String{ name });
 
                     a_deps[name_id] = version_set_pool[ms];
@@ -577,7 +577,7 @@ struct PackageDatabase : public DependencyProvider
                 {
                     // TODO: have a VersionID to NameID mapping instead
                     MatchSpec ms = MatchSpec::parse(dep_b).value();
-                    const std::string& name = ms.name().str();
+                    const std::string& name = ms.name().to_string();
                     auto name_id = name_pool.alloc(String{ name });
 
                     b_deps[name_id] = version_set_pool[ms];
@@ -627,7 +627,7 @@ struct PackageDatabase : public DependencyProvider
         MatchSpec match_spec = version_set_pool[version_set_id];
         Vector<SolvableId> filtered;
 
-        //        std::cout << "Candidates to filter " << match_spec.str() << std::endl;
+        //        std::cout << "Candidates to filter " << match_spec.to_string() << std::endl;
         //
         //        for(auto& solvable_id : candidates) {
         //            const PackageInfo& package_info = solvable_pool[solvable_id];
@@ -660,7 +660,7 @@ struct PackageDatabase : public DependencyProvider
                 }
             }
         }
-        //        std::cout << "Filtered candidates for " << match_spec.str() << std::endl;
+        //        std::cout << "Filtered candidates for " << match_spec.to_string() << std::endl;
         //
         //        for(auto& solvable_id : filtered) {
         //            const PackageInfo& package_info = solvable_pool[solvable_id];
@@ -1150,16 +1150,19 @@ TEST_CASE("solver::resolvo")
         REQUIRE(deps.constrains.size() == 0);
 
         REQUIRE(
-            database.version_set_pool[deps.requirements[0]].str() == "numpy[version=\">=1.20.0,<2.0a0\"]"
+            database.version_set_pool[deps.requirements[0]].to_string()
+            == "numpy[version=\">=1.20.0,<2.0a0\"]"
         );
         REQUIRE(
-            database.version_set_pool[deps.requirements[1]].str() == "scipy[version=\">=1.6.0,<2.0a0\"]"
+            database.version_set_pool[deps.requirements[1]].to_string()
+            == "scipy[version=\">=1.6.0,<2.0a0\"]"
         );
         REQUIRE(
-            database.version_set_pool[deps.requirements[2]].str() == "joblib[version=\">=1.0.1,<2.0a0\"]"
+            database.version_set_pool[deps.requirements[2]].to_string()
+            == "joblib[version=\">=1.0.1,<2.0a0\"]"
         );
         REQUIRE(
-            database.version_set_pool[deps.requirements[3]].str()
+            database.version_set_pool[deps.requirements[3]].to_string()
             == "threadpoolctl[version=\">=2.1.0,<3.0a0\"]"
         );
 
@@ -1678,7 +1681,7 @@ TEST_CASE("Test consistency with libsolv (environment creation)")
         auto vid = resolvo_db.alloc_version_set("hypothesis");
         auto [version, n_track_features] = resolvo_db.find_highest_version(vid);
         REQUIRE(n_track_features == 0);
-        std::cout << "Version: " << version.str() << std::endl;
+        std::cout << "Version: " << version.to_string() << std::endl;
         REQUIRE(version > Version::parse("6.105.1").value());
     }
 

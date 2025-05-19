@@ -67,8 +67,8 @@ namespace mamba
                             // We use `spec_names` here because `specs` contain more info than just
                             // the spec name.
                             // Therefore, the search later and comparison (using `specs`) with
-                            // MatchSpec.name().str() in `hist_map` second elements wouldn't be
-                            // relevant
+                            // MatchSpec.name().to_string() in `hist_map` second elements wouldn't
+                            // be relevant
                             std::vector<std::string> spec_names;
                             spec_names.reserve(specs.size());
                             std::transform(

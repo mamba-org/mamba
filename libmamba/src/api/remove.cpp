@@ -188,7 +188,8 @@ namespace mamba
                         pkgs_to_remove.push_back(iter->second);
                     }
                 }
-                auto transaction = MTransaction(ctx, database, pkgs_to_remove, {}, package_caches);
+                solver::DatabaseVariant db_variant = std::move(database);
+                auto transaction = MTransaction(ctx, db_variant, pkgs_to_remove, {}, package_caches);
                 return execute_transaction(transaction);
             }
             else
@@ -227,15 +228,15 @@ namespace mamba
                 }
 
                 Console::instance().json_write({ { "success", true } });
-                auto transaction = MTransaction(
+                solver::DatabaseVariant db_variant2 = std::move(database);
+                auto transaction2 = MTransaction(
                     ctx,
-                    database,
+                    db_variant2,
                     request,
                     std::get<solver::Solution>(outcome),
                     package_caches
                 );
-
-                return execute_transaction(transaction);
+                return execute_transaction(transaction2);
             }
         }
     }

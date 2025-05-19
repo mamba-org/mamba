@@ -558,19 +558,15 @@ namespace mamba
                 ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
                                                    : solver::libsolv::MatchSpecParser::Libsolv
             };
-            solver::libsolv::Database libsolv_db{
+            solver::libsolv::Database libsolv_db(
                 channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
-            add_spdlog_logger_to_database(libsolv_db);
-
-            solver::DatabaseVariant db_variant(
-                std::in_place_type<solver::libsolv::Database>,
-                std::move(libsolv_db)
+                { ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                     : solver::libsolv::MatchSpecParser::Libsolv }
             );
+            solver::DatabaseVariant db_variant = std::move(libsolv_db);
+
+            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
+
             auto maybe_load = load_channels(ctx, channel_context, db_variant, package_caches);
             if (!maybe_load)
             {
@@ -647,13 +643,7 @@ namespace mamba
             auto& solution = std::get<solver::Solution>(result);
 
             Console::instance().json_write({ { "success", true } });
-            auto transaction = MTransaction(
-                ctx,
-                std::get<solver::libsolv::Database>(db_variant),
-                request,
-                solution,
-                package_caches
-            );
+            auto transaction = MTransaction(ctx, db_variant, request, solution, package_caches);
 
             std::vector<LockFile> locks;
 
@@ -729,8 +719,8 @@ namespace mamba
 
     namespace
     {
-
-        // TransactionFunc: (Database& database, MultiPackageCache& package_caches) -> MTransaction
+        // TransactionFunc: (DatabaseVariant& database, MultiPackageCache& package_caches, ...) ->
+        // MTransaction
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             Context& ctx,
@@ -790,11 +780,7 @@ namespace mamba
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the database's pool before this line
-            auto transaction = create_transaction(
-                std::get<solver::libsolv::Database>(db),
-                pkg_caches,
-                others
-            );
+            auto transaction = create_transaction(db, pkg_caches, others);
 
             std::vector<LockFile> lock_pkgs;
 
@@ -853,7 +839,7 @@ namespace mamba
             ctx,
             channel_context,
             specs,
-            [&](auto& db, auto& pkg_caches, auto& others)
+            [&](solver::DatabaseVariant& db, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(ctx, db, specs, pkg_caches, others); },
             create_env,
             remove_prefix_on_failure
@@ -885,7 +871,7 @@ namespace mamba
             ctx,
             channel_context,
             {},
-            [&](auto& db, auto& pkg_caches, auto& others)
+            [&](solver::DatabaseVariant& db, auto& pkg_caches, auto& others)
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,

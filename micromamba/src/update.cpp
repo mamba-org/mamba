@@ -184,7 +184,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     {
         if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db_variant))
         {
-            return MTransaction(ctx, *libsolv_db, { latest_micromamba.value() }, package_caches);
+            return MTransaction(ctx, db_variant, { latest_micromamba.value() }, package_caches);
         }
         else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db_variant))
         {

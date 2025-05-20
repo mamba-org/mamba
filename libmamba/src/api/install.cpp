@@ -753,8 +753,10 @@ namespace mamba
                                                    : solver::libsolv::MatchSpecParser::Libsolv
             };
             solver::DatabaseVariant db = ctx.experimental_resolvo_solver
-                                             ? solver::DatabaseVariant(std::in_place_type<
-                                                                       solver::resolvo::Database>)
+                                             ? solver::DatabaseVariant(
+                                                   std::in_place_type<solver::resolvo::Database>,
+                                                   channel_context.params()
+                                               )
                                              : solver::DatabaseVariant(
                                                    std::in_place_type<solver::libsolv::Database>,
                                                    channel_context.params(),

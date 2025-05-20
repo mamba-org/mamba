@@ -8,10 +8,12 @@
 #define MAMBA_SOLVER_DATABASE_HPP
 
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba::solver
@@ -40,18 +42,21 @@ namespace mamba::solver
         virtual bool has_package(const specs::MatchSpec& spec) = 0;
     };
 
-    inline auto database_has_package(DatabaseVariant& database, const specs::MatchSpec& spec) -> bool
+    namespace libsolv
     {
-        if (auto* libsolv_db = std::get_if<libsolv::Database>(&database))
-        {
-            return libsolv_db->has_package(spec);
-        }
-        else if (auto* resolvo_db = std::get_if<resolvo::Database>(&database))
-        {
-            return resolvo_db->has_package(spec);
-        }
-        throw std::runtime_error("Invalid database variant");
+        class Database;
     }
+
+    namespace resolvo
+    {
+        class Database;
+    }
+
+    using DatabaseVariant = std::variant<libsolv::Database, resolvo::Database>;
+
+    // Remove or comment out the inline database_has_package function if DatabaseVariant is not
+    // visible or causes errors inline auto database_has_package(DatabaseVariant& database, const
+    // specs::MatchSpec& spec) -> bool;
 }
 
 #endif  // MAMBA_SOLVER_DATABASE_HPP

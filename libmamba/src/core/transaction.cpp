@@ -28,6 +28,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/solver/database_utils.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
@@ -49,12 +50,6 @@ namespace mamba
         {
             return caches.get_extracted_dir_path(pkg_info).empty()
                    && caches.get_tarball_path(pkg_info).empty();
-        }
-
-        auto database_has_package(solver::DatabaseVariant& database, const specs::MatchSpec& spec)
-            -> bool
-        {
-            return solver::database_has_package(database, spec);
         }
 
         auto installed_python(const solver::DatabaseVariant& database) -> std::optional<std::string>
@@ -149,7 +144,7 @@ namespace mamba
         for (const auto& pkg : pkgs_to_remove)
         {
             auto spec = explicit_spec(pkg);
-            if (!database_has_package(database, spec))
+            if (!mamba::solver::database_has_package(database, spec))
             {
                 not_found << "\n - " << spec.to_string();
             }

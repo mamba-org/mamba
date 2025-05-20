@@ -16,6 +16,7 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/solver/database_utils.hpp"
 #include "mamba/solver/solver_factory.hpp"
 #include "mamba/util/build.hpp"
 
@@ -57,11 +58,6 @@ set_update_command(CLI::App* subcom, Configuration& config)
 #ifdef BUILDING_MICROMAMBA
 namespace
 {
-    auto database_has_package(solver::DatabaseVariant& database, specs::MatchSpec spec) -> bool
-    {
-        return solver::database_has_package(database, spec);
-    }
-
     auto database_latest_package(solver::DatabaseVariant& database, specs::MatchSpec spec)
         -> std::optional<specs::PackageInfo>
     {
@@ -149,7 +145,10 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     if (!latest_micromamba.has_value())
     {
-        if (database_has_package(db_variant, specs::MatchSpec::parse("micromamba").value()))
+        if (mamba::solver::database_has_package(
+                db_variant,
+                specs::MatchSpec::parse("micromamba").value()
+            ))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())

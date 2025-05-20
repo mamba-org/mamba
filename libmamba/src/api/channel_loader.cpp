@@ -25,9 +25,9 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& database,
+            solver::DatabaseVariant& database,
             const fs::u8path& pkgs_dir
-        ) -> solver::libsolv::RepoInfo
+        ) -> void
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -51,22 +51,40 @@ namespace mamba
             }
 
             // Create a repo from the packages
-            auto repo = database.add_repo_from_packages(
-                prefix_data.sorted_records(),
-                "pkgs_dir",
-                solver::libsolv::PipAsPythonDependency::No
-            );
+            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+            {
+                libsolv_db->add_repo_from_packages(
+                    prefix_data.sorted_records(),
+                    "pkgs_dir",
+                    solver::libsolv::PipAsPythonDependency::No
+                );
 
-            // Load the packages into the database
-            load_installed_packages_in_database(
-                ctx,
-                std::variant<
-                    std::reference_wrapper<solver::libsolv::Database>,
-                    std::reference_wrapper<solver::resolvo::Database>>(std::ref(database)),
-                prefix_data
-            );
+                // Load the packages into the database
+                load_installed_packages_in_database(
+                    ctx,
+                    std::variant<
+                        std::reference_wrapper<solver::libsolv::Database>,
+                        std::reference_wrapper<solver::resolvo::Database>>(std::ref(*libsolv_db)),
+                    prefix_data
+                );
+            }
+            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+            {
+                resolvo_db->add_repo_from_packages(prefix_data.sorted_records(), "pkgs_dir", false);
 
-            return repo;
+                // Load the packages into the database
+                load_installed_packages_in_database(
+                    ctx,
+                    std::variant<
+                        std::reference_wrapper<solver::libsolv::Database>,
+                        std::reference_wrapper<solver::resolvo::Database>>(std::ref(*resolvo_db)),
+                    prefix_data
+                );
+            }
+            else
+            {
+                throw std::runtime_error("Invalid database variant");
+            }
         }
 
         void create_subdirs(
@@ -276,32 +294,7 @@ namespace mamba
                 LOG_INFO << "Creating repo from pkgs_dir for offline";
                 for (const auto& c : ctx.pkgs_dirs)
                 {
-                    if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
-                    {
-                        create_repo_from_pkgs_dir(ctx, channel_context, *libsolv_db, c);
-                    }
-                    else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
-                    {
-                        // For resolvo, we need to create a vector of PackageInfo objects from the
-                        // pkgs_dir
-                        std::vector<specs::PackageInfo> offline_packages;
-                        for (const auto& entry : fs::directory_iterator(c))
-                        {
-                            if (entry.path().extension() == ".tar.bz2"
-                                || entry.path().extension() == ".conda")
-                            {
-                                auto pkg_info = specs::PackageInfo::from_url(entry.path().string())
-                                                    .or_else([](specs::ParseError&& err)
-                                                             { throw std::move(err); })
-                                                    .value();
-                                offline_packages.push_back(std::move(pkg_info));
-                            }
-                        }
-                        if (!offline_packages.empty())
-                        {
-                            resolvo_db->add_repo_from_packages(offline_packages, "offline_packages");
-                        }
-                    }
+                    create_repo_from_pkgs_dir(ctx, channel_context, database, c);
                 }
             }
             std::string prev_channel;

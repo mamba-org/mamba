@@ -36,7 +36,7 @@ namespace mamba
             std::reference_wrapper<solver::libsolv::Database>,
             std::reference_wrapper<solver::resolvo::Database>> database,
         const SubdirIndexLoader& subdir
-    ) -> expected_t<solver::libsolv::RepoInfo>;
+    ) -> expected_t<void>;
 
     auto load_installed_packages_in_database(
         const Context& ctx,

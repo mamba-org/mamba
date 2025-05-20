@@ -362,7 +362,7 @@ namespace
 
         for (auto& sub_dir : sub_dirs)
         {
-            auto repo = load_subdir_in_database(ctx, database, sub_dir);
+            REQUIRE(load_subdir_in_database(ctx, database, sub_dir).has_value());
         }
     }
 

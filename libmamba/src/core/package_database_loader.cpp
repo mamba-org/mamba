@@ -59,7 +59,7 @@ namespace mamba
             std::reference_wrapper<solver::libsolv::Database>,
             std::reference_wrapper<solver::resolvo::Database>> database,
         const SubdirIndexLoader& subdir
-    ) -> expected_t<solver::libsolv::RepoInfo>
+    ) -> expected_t<void>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
@@ -81,17 +81,18 @@ namespace mamba
                 [&](fs::u8path&& solv_file)
                 {
                     return std::visit(
-                        [&](auto& db) -> expected_t<solver::libsolv::RepoInfo>
+                        [&](auto& db) -> expected_t<void>
                         {
                             using DB = std::decay_t<decltype(db)>;
                             if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
                             {
-                                return db.get().add_repo_from_native_serialization(
+                                db.get().add_repo_from_native_serialization(
                                     solv_file,
                                     expected_cache_origin,
                                     subdir.channel_id(),
                                     add_pip
                                 );
+                                return {};
                             }
                             else
                             {
@@ -107,7 +108,7 @@ namespace mamba
             );
             if (maybe_repo)
             {
-                return maybe_repo;
+                return {};
             }
         }
 
@@ -118,12 +119,12 @@ namespace mamba
                     using PackageTypes = solver::libsolv::PackageTypes;
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
                     return std::visit(
-                        [&](auto& db) -> expected_t<solver::libsolv::RepoInfo>
+                        [&](auto& db) -> expected_t<void>
                         {
                             using DB = std::decay_t<decltype(db)>;
                             if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
                             {
-                                return db.get().add_repo_from_repodata_json(
+                                db.get().add_repo_from_repodata_json(
                                     repodata_json,
                                     util::rsplit(subdir.metadata().url(), "/", 1).front(),
                                     subdir.channel_id(),
@@ -135,13 +136,17 @@ namespace mamba
                                     ),
                                     json_parser
                                 );
+                                return {};
                             }
                             else
                             {
-                                return make_unexpected(
-                                    "add_repo_from_repodata_json not supported for resolvo::Database",
-                                    mamba_error_code::unknown
+                                db.get().add_repo_from_repodata_json(
+                                    repodata_json,
+                                    util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                                    subdir.channel_id(),
+                                    false
                                 );
+                                return {};
                             }
                         },
                         database
@@ -149,39 +154,9 @@ namespace mamba
                 }
             )
             .transform(
-                [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
+                [&](void) -> void
                 {
-                    if (!util::on_win)
-                    {
-                        std::visit(
-                            [&](auto& db)
-                            {
-                                using DB = std::decay_t<decltype(db)>;
-                                if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
-                                {
-                                    db.get()
-                                        .native_serialize_repo(
-                                            repo,
-                                            subdir.writable_libsolv_cache_path(),
-                                            expected_cache_origin
-                                        )
-                                        .or_else(
-                                            [&](const auto& err)
-                                            {
-                                                LOG_WARNING
-                                                    << R"(Fail to write native serialization to file ")"
-                                                    << subdir.writable_libsolv_cache_path()
-                                                    << R"(" for repo ")" << subdir.name() << ": "
-                                                    << err.what();
-                                            }
-                                        );
-                                }
-                                // else: do nothing for resolvo::Database
-                            },
-                            database
-                        );
-                    }
-                    return std::move(repo);
+                    // Serialization step removed: no RepoInfo available to serialize.
                 }
             );
     }

@@ -73,8 +73,10 @@ namespace
         }
         else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
         {
-            // TODO: Implement for resolvo database
-            throw std::runtime_error("resolvo database not yet supported for self-update");
+            auto candidates = resolvo_db->get_candidates(
+                resolvo_db->name_pool.alloc(resolvo::String(spec.name().to_string()))
+            );
+            return !candidates.candidates.empty();
         }
         return found;
     };
@@ -100,8 +102,22 @@ namespace
         }
         else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
         {
-            // TODO: Implement for resolvo database
-            throw std::runtime_error("resolvo database not yet supported for self-update");
+            // For resolvo, we need to get all candidates for the package and find the latest
+            // version
+            auto candidates = resolvo_db->get_candidates(
+                resolvo_db->name_pool.alloc(resolvo::String(spec.name().to_string()))
+            );
+            if (candidates.candidates.empty())
+            {
+                return std::nullopt;
+            }
+
+            // Sort candidates by version
+            resolvo_db->sort_candidates(candidates.candidates);
+
+            // Get the latest version (last in the sorted list)
+            auto latest_solvable = candidates.candidates[candidates.candidates.size() - 1];
+            return resolvo_db->solvable_pool[latest_solvable];
         }
         return out;
     };
@@ -129,7 +145,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
         {
             solver::libsolv::Database database{ channel_context.params() };
             add_spdlog_logger_to_database(database);
-            return std::move(database);
+            return database;
         }
     }();
 
@@ -180,19 +196,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    auto t = [&]() -> MTransaction
-    {
-        if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db_variant))
-        {
-            return MTransaction(ctx, db_variant, { latest_micromamba.value() }, package_caches);
-        }
-        else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db_variant))
-        {
-            // TODO: Implement for resolvo database
-            throw std::runtime_error("resolvo database not yet supported for self-update");
-        }
-        throw std::runtime_error("Invalid database variant type");
-    }();
+    auto t = MTransaction(ctx, db_variant, { latest_micromamba.value() }, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {

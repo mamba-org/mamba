@@ -66,8 +66,9 @@ namespace mamba
      */
     struct PackageDiff
     {
-        std::unordered_map<std::string, specs::PackageInfo> removed_pkg_diff;
-        std::unordered_map<std::string, specs::PackageInfo> installed_pkg_diff;
+        using package_diff_map = std::unordered_map<std::string, specs::PackageInfo>;
+        package_diff_map removed_pkg_diff;
+        package_diff_map installed_pkg_diff;
 
         [[nodiscard]] static PackageDiff
         from_revision(const std::vector<History::UserRequest>& user_requests, std::size_t target_revision);

@@ -1,3 +1,5 @@
+#include <optional>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 
@@ -24,5 +26,16 @@ set_install_command(CLI::App* subcom, Configuration& config)
         force_reinstall.description()
     );
 
-    subcom->callback([&] { return mamba::install(config); });
+    static std::optional<std::size_t> revision = std::nullopt;
+    subcom->callback(
+        [&]
+        {
+            if (revision.has_value())
+            {
+                return mamba::install_revision(config, revision.value());
+            }
+            return mamba::install(config);
+        }
+    );
+    subcom->add_option("--revision", revision, "Revert to the specified REVISION.");
 }

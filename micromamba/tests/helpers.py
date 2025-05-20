@@ -584,7 +584,7 @@ class PackageChecker:
             assert installed_file_path.is_file()
 
     def get_manifest_info(self) -> object:
-        # Look for and read the manifest file for the package and returns a dict with it's content.
+        # Look for and read the manifest file for the package and returns a dict with its content.
         # If the manifest file is not found or if opening it fails, an assertion will fail.
         if not hasattr(self, "_manifest_info") or not self._manifest_info:
             manifest_json_paths = list(self.manifests_dir.glob(f"{self.package_name}-*.*.*-*.json"))

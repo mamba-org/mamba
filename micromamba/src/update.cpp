@@ -139,7 +139,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     {
         if (ctx.experimental_resolvo_solver)
         {
-            return solver::resolvo::Database{};
+            return solver::resolvo::Database{ channel_context.params() };
         }
         else
         {

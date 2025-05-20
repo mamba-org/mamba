@@ -200,8 +200,10 @@ namespace mamba::solver::resolvo
     {
     public:
 
-        Database();
+        explicit Database(specs::ChannelResolveParams channel_params);
         ~Database() override = default;
+
+        [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
         // Implementation of mamba::solver::Database interface
         void add_repo_from_repodata_json(
@@ -256,6 +258,8 @@ namespace mamba::solver::resolvo
         std::unordered_map<::resolvo::NameId, ::resolvo::Vector<::resolvo::SolvableId>> name_to_solvable;
         std::unordered_map<::resolvo::VersionSetId, std::pair<specs::Version, size_t>>
             version_set_to_max_version_and_track_features_numbers;
+
+        specs::ChannelResolveParams m_channel_params;
     };
 }
 

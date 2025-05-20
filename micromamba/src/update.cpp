@@ -59,27 +59,8 @@ namespace
 {
     auto database_has_package(solver::DatabaseVariant& database, specs::MatchSpec spec) -> bool
     {
-        bool found = false;
-        if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
-        {
-            libsolv_db->for_each_package_matching(
-                spec,
-                [&](const auto&)
-                {
-                    found = true;
-                    return util::LoopControl::Break;
-                }
-            );
-        }
-        else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
-        {
-            auto candidates = resolvo_db->get_candidates(
-                resolvo_db->name_pool.alloc(resolvo::String(spec.name().to_string()))
-            );
-            return !candidates.candidates.empty();
-        }
-        return found;
-    };
+        return solver::database_has_package(database, spec);
+    }
 
     auto database_latest_package(solver::DatabaseVariant& database, specs::MatchSpec spec)
         -> std::optional<specs::PackageInfo>

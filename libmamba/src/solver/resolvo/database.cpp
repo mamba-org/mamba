@@ -18,19 +18,9 @@ namespace mamba::solver::resolvo
 {
     namespace
     {
-        // TODO: reuse it from `mamba/solver/libsolv/helpers.cpp`
-        auto lsplit_track_features(std::string_view features)
-        {
-            constexpr auto is_sep = [](char c) -> bool { return (c == ',') || util::is_space(c); };
-            auto [_, tail] = util::lstrip_if_parts(features, is_sep);
-            return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
-        }
-
-        // TODO: factorise with the implementation from `set_solvable` in
-        // `mamba/solver/libsolv/helpers.cpp`
         bool parse_packageinfo_json(
             const std::string_view& filename,
-            const simdjson::dom::element& pkg,
+            simdjson::ondemand::object& pkg,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             Database& database
@@ -44,7 +34,7 @@ namespace mamba::solver::resolvo
 
             if (auto fn = pkg["fn"].get_string(); !fn.error())
             {
-                package_info.name = fn.value_unsafe();
+                package_info.name = fn.value();
             }
             else
             {
@@ -54,7 +44,7 @@ namespace mamba::solver::resolvo
 
             if (auto name = pkg["name"].get_string(); !name.error())
             {
-                package_info.name = name.value_unsafe();
+                package_info.name = name.value();
             }
             else
             {
@@ -64,7 +54,7 @@ namespace mamba::solver::resolvo
 
             if (auto version = pkg["version"].get_string(); !version.error())
             {
-                package_info.version = version.value_unsafe();
+                package_info.version = version.value();
             }
             else
             {
@@ -74,7 +64,7 @@ namespace mamba::solver::resolvo
 
             if (auto build_string = pkg["build"].get_string(); !build_string.error())
             {
-                package_info.build_string = build_string.value_unsafe();
+                package_info.build_string = build_string.value();
             }
             else
             {
@@ -84,7 +74,7 @@ namespace mamba::solver::resolvo
 
             if (auto build_number = pkg["build_number"].get_uint64(); !build_number.error())
             {
-                package_info.build_number = build_number.value_unsafe();
+                package_info.build_number = build_number.value();
             }
             else
             {
@@ -94,7 +84,7 @@ namespace mamba::solver::resolvo
 
             if (auto subdir = pkg["subdir"].get_c_str(); !subdir.error())
             {
-                package_info.platform = subdir.value_unsafe();
+                package_info.platform = subdir.value();
             }
             else
             {
@@ -103,23 +93,23 @@ namespace mamba::solver::resolvo
 
             if (auto size = pkg["size"].get_uint64(); !size.error())
             {
-                package_info.size = size.value_unsafe();
+                package_info.size = size.value();
             }
 
             if (auto md5 = pkg["md5"].get_c_str(); !md5.error())
             {
-                package_info.md5 = md5.value_unsafe();
+                package_info.md5 = md5.value();
             }
 
             if (auto sha256 = pkg["sha256"].get_c_str(); !sha256.error())
             {
-                package_info.sha256 = sha256.value_unsafe();
+                package_info.sha256 = sha256.value();
             }
 
             if (auto elem = pkg["noarch"]; !elem.error())
             {
                 // TODO: is the following right?
-                if (auto val = elem.get_bool(); !val.error() && val.value_unsafe())
+                if (auto val = elem.get_bool(); !val.error() && val.value())
                 {
                     package_info.noarch = specs::NoArchType::No;
                 }
@@ -131,7 +121,7 @@ namespace mamba::solver::resolvo
 
             if (auto license = pkg["license"].get_c_str(); !license.error())
             {
-                package_info.license = license.value_unsafe();
+                package_info.license = license.value();
             }
 
             // TODO conda timestamp are not Unix timestamp.
@@ -139,7 +129,7 @@ namespace mamba::solver::resolvo
             // package may get arbitrary priority.
             if (auto timestamp = pkg["timestamp"].get_uint64(); !timestamp.error())
             {
-                const auto time = timestamp.value_unsafe();
+                const auto time = timestamp.value();
                 // TODO: reuse it from `mamba/solver/libsolv/helpers.cpp`
                 constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
                 package_info.timestamp = (time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time;
@@ -151,7 +141,7 @@ namespace mamba::solver::resolvo
                 {
                     if (auto dep = elem.get_c_str(); !dep.error())
                     {
-                        package_info.dependencies.emplace_back(dep.value_unsafe());
+                        package_info.dependencies.emplace_back(dep.value());
                     }
                 }
             }
@@ -162,7 +152,7 @@ namespace mamba::solver::resolvo
                 {
                     if (auto cons = elem.get_c_str(); !cons.error())
                     {
-                        package_info.constrains.emplace_back(cons.value_unsafe());
+                        package_info.constrains.emplace_back(cons.value());
                     }
                 }
             }
@@ -175,13 +165,21 @@ namespace mamba::solver::resolvo
                     {
                         if (auto feat = elem.get_string(); !feat.error())
                         {
-                            package_info.track_features.emplace_back(feat.value_unsafe());
+                            package_info.track_features.emplace_back(feat.value());
                         }
                     }
                 }
                 else if (auto track_features_str = obj.get_string(); !track_features_str.error())
                 {
-                    auto splits = lsplit_track_features(track_features_str.value_unsafe());
+                    const auto lsplit_track_features = [](std::string_view features)
+                    {
+                        constexpr auto is_sep = [](char c) -> bool
+                        { return (c == ',') || util::is_space(c); };
+                        auto [_, tail] = util::lstrip_if_parts(features, is_sep);
+                        return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
+                    };
+
+                    auto splits = lsplit_track_features(track_features_str.value());
                     while (!splits[0].empty())
                     {
                         package_info.track_features.emplace_back(splits[0]);

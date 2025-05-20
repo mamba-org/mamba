@@ -13,7 +13,7 @@ dependencies:
   - simdjson-static >=3.3.0
   - spdlog
   - fmt >=11.1.0
-  - resolvo-cpp
+  - resolvo-cpp==0.1.0
   - libsolv-static >=0.7.24
   - yaml-cpp-static >=0.8.0
   - reproc-static >=14.2.4.post0

@@ -33,14 +33,25 @@ namespace mamba
         config.load();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
-        solver::DatabaseVariant db(
-            std::in_place_type<solver::libsolv::Database>,
-            channel_context.params(),
-            solver::libsolv::Database::Settings{ ctx.experimental_matchspec_parsing
-                                                     ? solver::libsolv::MatchSpecParser::Mamba
-                                                     : solver::libsolv::MatchSpecParser::Libsolv }
-        );
-        add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
+
+        solver::DatabaseVariant database = ctx.experimental_resolvo_solver
+                                               ? solver::DatabaseVariant(
+                                                     std::in_place_type<solver::resolvo::Database>,
+                                                     channel_context.params()
+                                                 )
+                                               : solver::DatabaseVariant(
+                                                     std::in_place_type<solver::libsolv::Database>,
+                                                     channel_context.params(),
+                                                     solver::libsolv::Database::Settings{
+                                                         ctx.experimental_matchspec_parsing
+                                                             ? solver::libsolv::MatchSpecParser::Mamba
+                                                             : solver::libsolv::MatchSpecParser::Libsolv }
+                                                 );
+
+        if (!ctx.experimental_resolvo_solver)
+        {
+            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(database));
+        }
 
         // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -65,7 +76,7 @@ namespace mamba
                                      std::reference_wrapper<solver::libsolv::Database>,
                                      std::reference_wrapper<solver::resolvo::Database>>
                     { return std::ref(db); },
-                    db
+                    database
                 ),
                 prefix_data
             );
@@ -82,13 +93,13 @@ namespace mamba
             {
                 Console::stream() << "Getting repodata from channels..." << std::endl;
             }
-            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+            auto exp_load = load_channels(ctx, channel_context, database, package_caches);
             if (!exp_load)
             {
                 throw std::runtime_error(exp_load.error().what());
             }
         }
-        return db;
+        return database;
     }
 
     auto make_repoquery(

@@ -54,24 +54,7 @@ namespace mamba
         auto database_has_package(solver::DatabaseVariant& database, const specs::MatchSpec& spec)
             -> bool
         {
-            bool found = false;
-            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
-            {
-                libsolv_db->for_each_package_matching(
-                    spec,
-                    [&](const auto&)
-                    {
-                        found = true;
-                        return util::LoopControl::Break;
-                    }
-                );
-            }
-            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
-            {
-                // TODO: Implement for resolvo database
-                throw std::runtime_error("Package matching not yet implemented for resolvo database");
-            }
-            return found;
+            return solver::database_has_package(database, spec);
         }
 
         auto installed_python(const solver::DatabaseVariant& database) -> std::optional<std::string>

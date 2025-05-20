@@ -708,15 +708,6 @@ struct PackageDatabase : public DependencyProvider
     }
 };
 
-// TODO: reuse it from `mamba/solver/libsolv/helpers.cpp`
-auto
-lsplit_track_features(std::string_view features)
-{
-    constexpr auto is_sep = [](char c) -> bool { return (c == ',') || util::is_space(c); };
-    auto [_, tail] = util::lstrip_if_parts(features, is_sep);
-    return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
-}
-
 // TODO: factorise with the implementation from `set_solvable` in `mamba/solver/libsolv/helpers.cpp`
 bool
 parse_packageinfo_json(
@@ -858,21 +849,29 @@ parse_packageinfo_json(
         }
     }
 
-    if (auto obj = pkg["track_features"]; !obj.error())
+    if (auto track_features = pkg["track_features"]; !track_features.error())
     {
-        if (auto track_features_arr = obj.get_array(); !track_features_arr.error())
+        if (auto track_features_arr = track_features.get_array(); !track_features_arr.error())
         {
             for (auto elem : track_features_arr)
             {
                 if (auto feat = elem.get_string(); !feat.error())
                 {
-                    package_info.track_features.emplace_back(feat.value_unsafe());
+                    package_info.track_features.emplace_back(feat.value());
                 }
             }
         }
-        else if (auto track_features_str = obj.get_string(); !track_features_str.error())
+        else if (auto track_features_str = track_features.get_string(); !track_features_str.error())
         {
-            auto splits = lsplit_track_features(track_features_str.value_unsafe());
+            const auto lsplit_track_features = [](std::string_view features)
+            {
+                constexpr auto is_sep = [](char c) -> bool
+                { return (c == ',') || util::is_space(c); };
+                auto [_, tail] = util::lstrip_if_parts(features, is_sep);
+                return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
+            };
+
+            auto splits = lsplit_track_features(track_features_str.value());
             while (!splits[0].empty())
             {
                 package_info.track_features.emplace_back(splits[0]);

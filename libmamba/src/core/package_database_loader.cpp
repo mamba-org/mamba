@@ -55,7 +55,9 @@ namespace mamba
 
     auto load_subdir_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<
+            std::reference_wrapper<solver::libsolv::Database>,
+            std::reference_wrapper<solver::resolvo::Database>> database,
         const SubdirIndexLoader& subdir
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
@@ -78,11 +80,28 @@ namespace mamba
             auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)
                 {
-                    return database.add_repo_from_native_serialization(
-                        solv_file,
-                        expected_cache_origin,
-                        subdir.channel_id(),
-                        add_pip
+                    return std::visit(
+                        [&](auto& db) -> expected_t<solver::libsolv::RepoInfo>
+                        {
+                            using DB = std::decay_t<decltype(db)>;
+                            if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
+                            {
+                                return db.get().add_repo_from_native_serialization(
+                                    solv_file,
+                                    expected_cache_origin,
+                                    subdir.channel_id(),
+                                    add_pip
+                                );
+                            }
+                            else
+                            {
+                                return make_unexpected(
+                                    "Native serialization not supported for resolvo::Database",
+                                    mamba_error_code::unknown
+                                );
+                            }
+                        },
+                        database
                     );
                 }
             );
@@ -97,18 +116,35 @@ namespace mamba
                 [&](fs::u8path&& repodata_json)
                 {
                     using PackageTypes = solver::libsolv::PackageTypes;
-
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
-                    return database.add_repo_from_repodata_json(
-                        repodata_json,
-                        util::rsplit(subdir.metadata().url(), "/", 1).front(),
-                        subdir.channel_id(),
-                        add_pip,
-                        ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
-                                             : PackageTypes::CondaOrElseTarBz2,
-                        static_cast<solver::libsolv::VerifyPackages>(ctx.validation_params.verify_artifacts
-                        ),
-                        json_parser
+                    return std::visit(
+                        [&](auto& db) -> expected_t<solver::libsolv::RepoInfo>
+                        {
+                            using DB = std::decay_t<decltype(db)>;
+                            if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
+                            {
+                                return db.get().add_repo_from_repodata_json(
+                                    repodata_json,
+                                    util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                                    subdir.channel_id(),
+                                    add_pip,
+                                    ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
+                                                         : PackageTypes::CondaOrElseTarBz2,
+                                    static_cast<solver::libsolv::VerifyPackages>(
+                                        ctx.validation_params.verify_artifacts
+                                    ),
+                                    json_parser
+                                );
+                            }
+                            else
+                            {
+                                return make_unexpected(
+                                    "add_repo_from_repodata_json not supported for resolvo::Database",
+                                    mamba_error_code::unknown
+                                );
+                            }
+                        },
+                        database
                     );
                 }
             )
@@ -117,22 +153,33 @@ namespace mamba
                 {
                     if (!util::on_win)
                     {
-                        database
-                            .native_serialize_repo(
-                                repo,
-                                subdir.writable_libsolv_cache_path(),
-                                expected_cache_origin
-                            )
-                            .or_else(
-                                [&](const auto& err)
+                        std::visit(
+                            [&](auto& db)
+                            {
+                                using DB = std::decay_t<decltype(db)>;
+                                if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
                                 {
-                                    LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                                << subdir.writable_libsolv_cache_path()
-                                                << R"(" for repo ")" << subdir.name() << ": "
-                                                << err.what();
-                                    ;
+                                    db.get()
+                                        .native_serialize_repo(
+                                            repo,
+                                            subdir.writable_libsolv_cache_path(),
+                                            expected_cache_origin
+                                        )
+                                        .or_else(
+                                            [&](const auto& err)
+                                            {
+                                                LOG_WARNING
+                                                    << R"(Fail to write native serialization to file ")"
+                                                    << subdir.writable_libsolv_cache_path()
+                                                    << R"(" for repo ")" << subdir.name() << ": "
+                                                    << err.what();
+                                            }
+                                        );
                                 }
-                            );
+                                // else: do nothing for resolvo::Database
+                            },
+                            database
+                        );
                     }
                     return std::move(repo);
                 }

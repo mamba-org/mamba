@@ -554,18 +554,22 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            const std::vector<solver::libsolv::MatchSpecParser> matchspec_parsers{
-                ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                   : solver::libsolv::MatchSpecParser::Libsolv
-            };
-            solver::libsolv::Database libsolv_db(
+            solver::libsolv::Database initial_db(
                 channel_context.params(),
                 { ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
                                                      : solver::libsolv::MatchSpecParser::Libsolv }
             );
-            solver::DatabaseVariant db_variant = std::move(libsolv_db);
+            solver::DatabaseVariant db_variant = ctx.experimental_resolvo_solver
+                                                     ? solver::DatabaseVariant(
+                                                           std::in_place_type<solver::resolvo::Database>,
+                                                           channel_context.params()
+                                                       )
+                                                     : solver::DatabaseVariant(std::move(initial_db));
 
-            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
+            if (!ctx.experimental_resolvo_solver)
+            {
+                add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
+            }
 
             auto maybe_load = load_channels(ctx, channel_context, db_variant, package_caches);
             if (!maybe_load)
@@ -580,24 +584,17 @@ namespace mamba
             }
             PrefixData& prefix_data = maybe_prefix_data.value();
 
-            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db_variant))
+            if (auto* libsolv_db_ptr = std::get_if<solver::libsolv::Database>(&db_variant))
             {
-                load_installed_packages_in_database(ctx, *libsolv_db, prefix_data);
+                load_installed_packages_in_database(ctx, *libsolv_db_ptr, prefix_data);
             }
-            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db_variant))
+            else if (auto* resolvo_db_ptr = std::get_if<solver::resolvo::Database>(&db_variant))
             {
-                load_installed_packages_in_database(ctx, *resolvo_db, prefix_data);
+                load_installed_packages_in_database(ctx, *resolvo_db_ptr, prefix_data);
             }
 
             auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
-            add_pins_to_request(
-                request,
-                ctx,
-                prefix_data,
-                raw_specs,
-                /* no_pin= */ config.at("no_pin").value<bool>(),
-                /* no_py_pin = */ config.at("no_py_pin").value<bool>()
-            );
+            add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
 
             request.flags = ctx.solver_flags;
 
@@ -748,10 +745,6 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            const std::vector<solver::libsolv::MatchSpecParser> matchspec_parsers2{
-                ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                   : solver::libsolv::MatchSpecParser::Libsolv
-            };
             solver::DatabaseVariant db = ctx.experimental_resolvo_solver
                                              ? solver::DatabaseVariant(
                                                    std::in_place_type<solver::resolvo::Database>,

@@ -32,7 +32,9 @@ namespace mamba
 
     auto load_subdir_in_database(  //
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<
+            std::reference_wrapper<solver::libsolv::Database>,
+            std::reference_wrapper<solver::resolvo::Database>> database,
         const SubdirIndexLoader& subdir
     ) -> expected_t<solver::libsolv::RepoInfo>;
 

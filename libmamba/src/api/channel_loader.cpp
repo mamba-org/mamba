@@ -316,32 +316,27 @@ namespace mamba
 
                 if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
                 {
-                    load_subdir_in_database(ctx, *libsolv_db, subdir)
-                        .transform([&](solver::libsolv::RepoInfo&& repo)
-                                   { libsolv_db->set_repo_priority(repo, priorities[i]); })
-                        .or_else(
-                            [&](const auto&)
-                            {
-                                if (is_retry)
-                                {
-                                    std::stringstream ss;
-                                    ss << "Could not load repodata.json for " << subdir.name()
-                                       << " after retry."
-                                       << "Please check repodata source. Exiting." << std::endl;
-                                    error_list.push_back(
-                                        mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
-                                    );
-                                }
-                                else
-                                {
-                                    LOG_WARNING << "Could not load repodata.json for "
-                                                << subdir.name()
-                                                << ". Deleting cache, and retrying.";
-                                    subdir.clear_valid_cache_files();
-                                    loading_failed = true;
-                                }
-                            }
-                        );
+                    auto res = load_subdir_in_database(ctx, *libsolv_db, subdir);
+                    if (!res)
+                    {
+                        if (is_retry)
+                        {
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry."
+                               << "Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ". Deleting cache, and retrying.";
+                            subdir.clear_valid_cache_files();
+                            loading_failed = true;
+                        }
+                    }
                 }
                 else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
                 {

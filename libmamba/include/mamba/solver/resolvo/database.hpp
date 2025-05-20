@@ -16,6 +16,8 @@
 #include <resolvo/resolvo_pool.h>
 
 #include "mamba/solver/database.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"

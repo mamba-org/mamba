@@ -541,7 +541,7 @@ def create_with_chan_pkg(env_name, channels, package):
 
 
 class PackageChecker:
-    # Provides integrity checking operations for an installed package, based on it's manifest.
+    # Provides integrity checking operations for an installed package, based on its manifest.
 
     package_name: string
     install_prefix_root_dir: Path

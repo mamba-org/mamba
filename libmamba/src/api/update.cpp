@@ -182,7 +182,17 @@ namespace mamba
         }
         PrefixData& prefix_data = exp_prefix_data.value();
 
-        load_installed_packages_in_database(ctx, std::get<solver::libsolv::Database>(db), prefix_data);
+        load_installed_packages_in_database(
+            ctx,
+            std::visit(
+                [](auto& db) -> std::variant<
+                                 std::reference_wrapper<solver::libsolv::Database>,
+                                 std::reference_wrapper<solver::resolvo::Database>>
+                { return std::ref(db); },
+                db
+            ),
+            prefix_data
+        );
 
         auto request = create_update_request(prefix_data, raw_update_specs, update_params);
         add_pins_to_request(

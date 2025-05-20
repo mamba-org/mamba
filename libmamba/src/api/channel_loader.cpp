@@ -16,6 +16,7 @@
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/solver_factory.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -227,9 +228,7 @@ namespace mamba
                 }
                 else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
                 {
-                    (void) resolvo_db;  // Silence unused variable warning
-                    // TODO: Implement this for resolvo
-                    throw std::runtime_error("Offline mode not supported with resolvo solver yet");
+                    resolvo_db->add_repo_from_packages(packages, "packages");
                 }
             }
 
@@ -283,9 +282,25 @@ namespace mamba
                     }
                     else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
                     {
-                        (void) resolvo_db;  // Silence unused variable warning
-                        // TODO: Implement this for resolvo
-                        throw std::runtime_error("Offline mode not supported with resolvo solver yet");
+                        // For resolvo, we need to create a vector of PackageInfo objects from the
+                        // pkgs_dir
+                        std::vector<specs::PackageInfo> offline_packages;
+                        for (const auto& entry : fs::directory_iterator(c))
+                        {
+                            if (entry.path().extension() == ".tar.bz2"
+                                || entry.path().extension() == ".conda")
+                            {
+                                auto pkg_info = specs::PackageInfo::from_url(entry.path().string())
+                                                    .or_else([](specs::ParseError&& err)
+                                                             { throw std::move(err); })
+                                                    .value();
+                                offline_packages.push_back(std::move(pkg_info));
+                            }
+                        }
+                        if (!offline_packages.empty())
+                        {
+                            resolvo_db->add_repo_from_packages(offline_packages, "offline_packages");
+                        }
                     }
                 }
             }
@@ -337,9 +352,59 @@ namespace mamba
                 }
                 else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
                 {
-                    (void) resolvo_db;  // Silence unused variable warning
-                    // TODO: Implement this for resolvo
-                    throw std::runtime_error("Loading subdirs not supported with resolvo solver yet");
+                    // For resolvo, we need to load the repodata.json file and add it to the
+                    // database
+                    auto repodata_json = subdir.valid_json_cache_path();
+                    if (!repodata_json)
+                    {
+                        if (is_retry)
+                        {
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry."
+                               << "Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ". Deleting cache, and retrying.";
+                            subdir.clear_valid_cache_files();
+                            loading_failed = true;
+                        }
+                        continue;
+                    }
+
+                    try
+                    {
+                        resolvo_db->add_repo_from_repodata_json(
+                            repodata_json.value(),
+                            util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                            subdir.channel_id()
+                        );
+                    }
+                    catch (const std::exception& e)
+                    {
+                        if (is_retry)
+                        {
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry: " << e.what()
+                               << ". Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ": " << e.what() << ". Deleting cache, and retrying.";
+                            subdir.clear_valid_cache_files();
+                            loading_failed = true;
+                        }
+                    }
                 }
             }
 

@@ -36,7 +36,22 @@ namespace mamba::solver
         ) = 0;
 
         virtual void set_installed_repo(const std::string& repo_name) = 0;
+
+        virtual bool has_package(const specs::MatchSpec& spec) = 0;
     };
+
+    inline auto database_has_package(DatabaseVariant& database, const specs::MatchSpec& spec) -> bool
+    {
+        if (auto* libsolv_db = std::get_if<libsolv::Database>(&database))
+        {
+            return libsolv_db->has_package(spec);
+        }
+        else if (auto* resolvo_db = std::get_if<resolvo::Database>(&database))
+        {
+            return resolvo_db->has_package(spec);
+        }
+        throw std::runtime_error("Invalid database variant");
+    }
 }
 
 #endif  // MAMBA_SOLVER_DATABASE_HPP

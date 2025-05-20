@@ -16,182 +16,6 @@
 
 namespace mamba::solver::resolvo
 {
-    namespace
-    {
-        bool parse_packageinfo_json(
-            const std::string_view& filename,
-            simdjson::ondemand::object& pkg,
-            const specs::CondaURL& repo_url,
-            const std::string& channel_id,
-            Database& database
-        )
-        {
-            specs::PackageInfo package_info;
-
-            package_info.channel = channel_id;
-            package_info.filename = filename;
-            package_info.package_url = (repo_url / filename).str(specs::CondaURL::Credentials::Show);
-
-            if (auto fn = pkg["fn"].get_string(); !fn.error())
-            {
-                package_info.name = fn.value();
-            }
-            else
-            {
-                // Fallback from key entry
-                package_info.name = filename;
-            }
-
-            if (auto name = pkg["name"].get_string(); !name.error())
-            {
-                package_info.name = name.value();
-            }
-            else
-            {
-                LOG_WARNING << R"(Found invalid name in ")" << filename << R"(")";
-                return false;
-            }
-
-            if (auto version = pkg["version"].get_string(); !version.error())
-            {
-                package_info.version = version.value();
-            }
-            else
-            {
-                LOG_WARNING << R"(Found invalid version in ")" << filename << R"(")";
-                return false;
-            }
-
-            if (auto build_string = pkg["build"].get_string(); !build_string.error())
-            {
-                package_info.build_string = build_string.value();
-            }
-            else
-            {
-                LOG_WARNING << R"(Found invalid build in ")" << filename << R"(")";
-                return false;
-            }
-
-            if (auto build_number = pkg["build_number"].get_uint64(); !build_number.error())
-            {
-                package_info.build_number = build_number.value();
-            }
-            else
-            {
-                LOG_WARNING << R"(Found invalid build_number in ")" << filename << R"(")";
-                return false;
-            }
-
-            if (auto subdir = pkg["subdir"].get_c_str(); !subdir.error())
-            {
-                package_info.platform = subdir.value();
-            }
-            else
-            {
-                LOG_WARNING << R"(Found invalid subdir in ")" << filename << R"(")";
-            }
-
-            if (auto size = pkg["size"].get_uint64(); !size.error())
-            {
-                package_info.size = size.value();
-            }
-
-            if (auto md5 = pkg["md5"].get_c_str(); !md5.error())
-            {
-                package_info.md5 = md5.value();
-            }
-
-            if (auto sha256 = pkg["sha256"].get_c_str(); !sha256.error())
-            {
-                package_info.sha256 = sha256.value();
-            }
-
-            if (auto elem = pkg["noarch"]; !elem.error())
-            {
-                // TODO: is the following right?
-                if (auto val = elem.get_bool(); !val.error() && val.value())
-                {
-                    package_info.noarch = specs::NoArchType::No;
-                }
-                else if (auto noarch = elem.get_c_str(); !noarch.error())
-                {
-                    package_info.noarch = specs::NoArchType::No;
-                }
-            }
-
-            if (auto license = pkg["license"].get_c_str(); !license.error())
-            {
-                package_info.license = license.value();
-            }
-
-            // TODO conda timestamp are not Unix timestamp.
-            // Libsolv normalize them this way, we need to do the same here otherwise the current
-            // package may get arbitrary priority.
-            if (auto timestamp = pkg["timestamp"].get_uint64(); !timestamp.error())
-            {
-                const auto time = timestamp.value();
-                // TODO: reuse it from `mamba/solver/libsolv/helpers.cpp`
-                constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
-                package_info.timestamp = (time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time;
-            }
-
-            if (auto depends = pkg["depends"].get_array(); !depends.error())
-            {
-                for (auto elem : depends)
-                {
-                    if (auto dep = elem.get_c_str(); !dep.error())
-                    {
-                        package_info.dependencies.emplace_back(dep.value());
-                    }
-                }
-            }
-
-            if (auto constrains = pkg["constrains"].get_array(); !constrains.error())
-            {
-                for (auto elem : constrains)
-                {
-                    if (auto cons = elem.get_c_str(); !cons.error())
-                    {
-                        package_info.constrains.emplace_back(cons.value());
-                    }
-                }
-            }
-
-            if (auto obj = pkg["track_features"]; !obj.error())
-            {
-                if (auto track_features_arr = obj.get_array(); !track_features_arr.error())
-                {
-                    for (auto elem : track_features_arr)
-                    {
-                        if (auto feat = elem.get_string(); !feat.error())
-                        {
-                            package_info.track_features.emplace_back(feat.value());
-                        }
-                    }
-                }
-                else if (auto track_features_str = obj.get_string(); !track_features_str.error())
-                {
-                    const auto lsplit_track_features = [](std::string_view features)
-                    {
-                        constexpr auto is_sep = [](char c) -> bool
-                        { return (c == ',') || util::is_space(c); };
-                        auto [_, tail] = util::lstrip_if_parts(features, is_sep);
-                        return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
-                    };
-
-                    auto splits = lsplit_track_features(track_features_str.value());
-                    while (!splits[0].empty())
-                    {
-                        package_info.track_features.emplace_back(splits[0]);
-                        splits = lsplit_track_features(splits[1]);
-                    }
-                }
-            }
-
-            database.alloc_solvable(package_info);
-            return true;
-        }
-    }
 
     Database::Database(specs::ChannelResolveParams channel_params)
         : name_pool(Mapping<::resolvo::NameId, ::resolvo::String>())
@@ -211,56 +35,159 @@ namespace mamba::solver::resolvo
         bool verify_artifacts
     )
     {
-        auto parser = simdjson::dom::parser();
-        const auto lock = LockFile(filename);
-        const auto repodata = parser.load(filename);
+        // BEWARE:
+        // We use below `simdjson`'s "on-demand" parser, which does not tolerate reading the same
+        // value more than once. This means we need to make sure that the objects and their fields
+        // are read and/or concretized only once and if we need to use them more than once we need
+        // to persist them in local memory. This is why the code below tries hard to pre-read the
+        // data needed in several parts of the computing in a way that prevents jumping up and down
+        // the hierarchy of json objects. When this rule is not followed, the parsing might end
+        // earlier than expected or might skip data that are read when they shouldn't be, leading to
+        // *runtime issues* that might not be visible at first. Because of these reasons, be careful
+        // when modifying the following parsing code.
 
-        // An override for missing package subdir is found at the top level
-        auto default_subdir = std::string();
-        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); !subdir.error())
+        auto parser = simdjson::ondemand::parser();
+        const auto lock = LockFile(filename);
+
+        // The json storage must be kept alive as long as we are reading the json data.
+        const auto json_content = simdjson::padded_string::load(filename.string());
+
+        // Note that with the "on-demand" parser, documents/values/objects act as iterators
+        // to go through the document.
+        auto repodata_doc = parser.iterate(json_content);
+
+        const auto repodata_version = [&]
         {
-            default_subdir = std::string(subdir.value_unsafe());
-        }
+            if (auto version = repodata_doc["repodata_version"].get_int64(); !version.error())
+            {
+                return version.value();
+            }
+            else
+            {
+                return std::int64_t{ 1 };
+            }
+        }();
+
+        auto repodata_info = [&]
+        {
+            if (auto value = repodata_doc["info"]; !value.error())
+            {
+                if (auto object = value.get_object(); !object.error())
+                {
+                    return std::make_optional(object);
+                }
+            }
+            return decltype(std::make_optional(repodata_doc["info"].get_object())){};
+        }();
+
+        // An override for missing package subdir could be found at the top level
+        const auto default_subdir = [&]
+        {
+            if (repodata_info)
+            {
+                if (auto subdir = repodata_info.value()["subdir"]; !subdir.error())
+                {
+                    return std::string(subdir.get_string().value_unsafe());
+                }
+            }
+
+            return std::string{};
+        }();
 
         // Get `base_url` in case 'repodata_version': 2
         // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
-        auto base_url = repo_url;
-        if (auto repodata_version = repodata["repodata_version"].get_int64();
-            !repodata_version.error())
+        const auto base_url = [&]
         {
-            if (repodata_version.value_unsafe() == 2)
+            if (repodata_version == 2 && repodata_info)
             {
-                if (auto url = repodata.at_pointer("/info/base_url").get_string(); !url.error())
+                if (auto url = repodata_info.value()["base_url"]; !url.error())
                 {
-                    base_url = std::string(url.value_unsafe());
+                    return std::string(url.get_string().value_unsafe());
                 }
             }
-        }
+
+            return repo_url;
+        }();
 
         const auto parsed_url = specs::CondaURL::parse(base_url)
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 
-        auto signatures = std::optional<simdjson::dom::object>(std::nullopt);
-        if (auto maybe_sigs = repodata["signatures"].get_object();
-            !maybe_sigs.error() && verify_artifacts)
+        auto signatures = [&]
         {
-            signatures = std::move(maybe_sigs).value();
-        }
-
-        auto added = util::flat_set<std::string_view>();
-        if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error())
-        {
-            for (auto [key, value] : pkgs.value())
+            auto maybe_sigs = repodata_doc["signatures"];
+            if (!maybe_sigs.error() && verify_artifacts)
             {
-                parse_packageinfo_json(key, value, parsed_url, channel_id, *this);
+                return std::make_optional(maybe_sigs);
+            }
+            else
+            {
+                LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
+                return decltype(std::make_optional(maybe_sigs)){};
+            }
+        }();
+
+        // Process packages.conda first
+        if (auto pkgs = repodata_doc["packages.conda"]; !pkgs.error())
+        {
+            if (auto packages_as_object = pkgs.get_object(); !packages_as_object.error())
+            {
+                for (auto field : packages_as_object)
+                {
+                    if (!field.error())
+                    {
+                        const std::string key(field.unescaped_key().value());
+                        if (auto value = field.value(); !value.error())
+                        {
+                            if (auto pkg_obj = value.get_object(); !pkg_obj.error())
+                            {
+                                auto package_info = specs::PackageInfo::from_json(
+                                    filename.string(),
+                                    pkg_obj.value(),
+                                    parsed_url,
+                                    channel_id
+                                );
+                                if (!package_info)
+                                {
+                                    LOG_WARNING << package_info.error().what();
+                                }
+                                alloc_solvable(package_info.value());
+                            }
+                        }
+                    }
+                }
             }
         }
-        if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+
+        // Then process packages
+        if (auto pkgs = repodata_doc["packages"]; !pkgs.error())
         {
-            for (auto [key, value] : pkgs.value())
+            if (auto packages_as_object = pkgs.get_object(); !packages_as_object.error())
             {
-                parse_packageinfo_json(key, value, parsed_url, channel_id, *this);
+                for (auto field : packages_as_object)
+                {
+                    if (!field.error())
+                    {
+                        const std::string key(field.unescaped_key().value());
+                        if (auto value = field.value(); !value.error())
+                        {
+                            if (auto pkg_obj = value.get_object(); !pkg_obj.error())
+                            {
+                                auto package_info = specs::PackageInfo::from_json(
+                                    filename.string(),
+                                    pkg_obj.value(),
+                                    parsed_url,
+                                    channel_id
+                                );
+                                if (!package_info)
+                                {
+                                    LOG_WARNING << package_info.error().what();
+                                }
+                                alloc_solvable(package_info.value());
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -532,149 +459,8 @@ namespace mamba::solver::resolvo
             return ::resolvo::VersionSetId{ 0 };
         }
 
-        // NOTE: works around `openblas 0.2.18|0.2.18.*.` from
-        // `dlib==19.0=np110py27_blas_openblas_200` If contains "|", split on it and recurse
-        if (raw_match_spec_str.find("|") != std::string::npos)
-        {
-            std::vector<std::string> match_specs;
-            std::string match_spec;
-            for (char c : raw_match_spec_str)
-            {
-                if (c == '|')
-                {
-                    match_specs.push_back(match_spec);
-                    match_spec.clear();
-                }
-                else
-                {
-                    match_spec += c;
-                }
-            }
-            match_specs.push_back(match_spec);
-            std::vector<::resolvo::VersionSetId> version_sets;
-            for (const std::string& ms : match_specs)
-            {
-                alloc_version_set(ms);
-            }
-            // Placeholder return value
-            return ::resolvo::VersionSetId{ 0 };
-        }
-
-        // NOTE: This works around some improperly encoded `constrains` in the test data, e.g.:
-        //      `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit
-        //      >= 10.2" `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
-        //      `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
-        //      `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or `dep`:
-        //      ">=4.5.2"
-        // Remove any with space after the binary operators
-        for (const std::string& op : { ">=", "<=", "==", ">", "<", "!=", "=", "==" })
-        {
-            const std::string& bad_op = op + " ";
-            while (raw_match_spec_str.find(bad_op) != std::string::npos)
-            {
-                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(bad_op)) + op
-                                     + raw_match_spec_str.substr(
-                                         raw_match_spec_str.find(bad_op) + bad_op.size()
-                                     );
-            }
-            // If start with binary operator, prepend NONE
-            if (raw_match_spec_str.find(op) == 0)
-            {
-                raw_match_spec_str = "NONE " + raw_match_spec_str;
-            }
-        }
-
+        // NOTE: works around `
         const specs::MatchSpec match_spec = specs::MatchSpec::parse(raw_match_spec_str).value();
-        // Add the version set to the version set pool
-        auto id = version_set_pool.alloc(match_spec);
-
-        // Add name to the Name and String pools
-        const std::string name = match_spec.name().to_string();
-        name_pool.alloc(::resolvo::String{ name });
-        string_pool.alloc(::resolvo::String{ name });
-
-        // Add the MatchSpec's string representation to the Name and String pools
-        const std::string match_spec_str = match_spec.to_string();
-        name_pool.alloc(::resolvo::String{ match_spec_str });
-        string_pool.alloc(::resolvo::String{ match_spec_str });
-        return id;
+        return version_set_pool[match_spec];
     }
-
-    ::resolvo::SolvableId Database::alloc_solvable(specs::PackageInfo package_info)
-    {
-        // Add the solvable to the solvable pool
-        auto id = solvable_pool.alloc(package_info);
-
-        // Add name to the Name and String pools
-        const std::string name = package_info.name;
-        name_pool.alloc(::resolvo::String{ name });
-        string_pool.alloc(::resolvo::String{ name });
-
-        // Add the long string representation of the package to the Name and String pools
-        const std::string long_str = package_info.long_str();
-        name_pool.alloc(::resolvo::String{ long_str });
-        string_pool.alloc(::resolvo::String{ long_str });
-
-        for (auto& dep : package_info.dependencies)
-        {
-            alloc_version_set(dep);
-        }
-        for (auto& constr : package_info.constrains)
-        {
-            alloc_version_set(constr);
-        }
-
-        // Add the solvable to the name_to_solvable map
-        const ::resolvo::NameId name_id = name_pool.alloc(::resolvo::String{ package_info.name });
-        name_to_solvable[name_id].push_back(id);
-
-        return id;
-    }
-
-    std::pair<specs::Version, size_t>
-    Database::find_highest_version(::resolvo::VersionSetId version_set_id)
-    {
-        // If the version set has already been computed, return it.
-        if (version_set_to_max_version_and_track_features_numbers.find(version_set_id)
-            != version_set_to_max_version_and_track_features_numbers.end())
-        {
-            return version_set_to_max_version_and_track_features_numbers[version_set_id];
-        }
-
-        const specs::MatchSpec match_spec = version_set_pool[version_set_id];
-
-        const std::string& name = match_spec.name().to_string();
-
-        auto name_id = name_pool.alloc(::resolvo::String{ name });
-
-        auto solvables = name_to_solvable[name_id];
-
-        auto filtered = filter_candidates(solvables, version_set_id, false);
-
-        specs::Version max_version = specs::Version();
-        size_t max_version_n_track_features = 0;
-
-        for (auto& solvable_id : filtered)
-        {
-            const specs::PackageInfo& package_info = solvable_pool[solvable_id];
-            const auto version = specs::Version::parse(package_info.version).value();
-            if (version == max_version)
-            {
-                max_version_n_track_features = std::min(
-                    max_version_n_track_features,
-                    package_info.track_features.size()
-                );
-            }
-            if (version > max_version)
-            {
-                max_version = version;
-                max_version_n_track_features = package_info.track_features.size();
-            }
-        }
-
-        auto val = std::make_pair(max_version, max_version_n_track_features);
-        version_set_to_max_version_and_track_features_numbers[version_set_id] = val;
-        return val;
-    }
-
-}  // namespace mamba::solver::resolvo
+}

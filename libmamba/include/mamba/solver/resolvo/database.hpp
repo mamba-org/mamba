@@ -252,9 +252,10 @@ namespace mamba::solver::resolvo
         Mapping<::resolvo::VersionSetId, specs::MatchSpec> version_set_pool;
         Mapping<::resolvo::SolvableId, specs::PackageInfo> solvable_pool;
 
-        bool has_package(const specs::MatchSpec& spec) override
+        bool has_package(const specs::MatchSpec& spec)
         {
-            auto candidates = get_candidates(name_pool.alloc(resolvo::String(spec.name().to_string()))
+            auto candidates = get_candidates(
+                name_pool.alloc(::resolvo::String(spec.name().to_string()))
             );
             return !candidates.candidates.empty();
         }

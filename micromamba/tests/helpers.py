@@ -599,7 +599,7 @@ class PackageChecker:
         return self._manifest_info
 
     def find_installed(self, name_or_relative_path: string) -> Path:
-        # Search in the manifest of the package a given file name or relative path that must have been installed.
+        # Searches in the manifest of the package a given file name or relative path that must have been installed.
         # Returns the absolute path to that file once found, or None if not found.
         # An assertion will fail if the file is found in the manifst but does not exist in the install directory.
 

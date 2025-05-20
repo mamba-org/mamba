@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
+#include <simdjson.h>
 
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
@@ -19,6 +20,8 @@
 
 namespace mamba::specs
 {
+    class CondaURL;
+
     enum class PackageType
     {
         Unknown,
@@ -65,6 +68,13 @@ namespace mamba::specs
         PackageType package_type = PackageType::Unknown;
 
         [[nodiscard]] static auto from_url(std::string_view url) -> expected_parse_t<PackageInfo>;
+
+        [[nodiscard]] static auto from_json(
+            const std::string_view& filename,
+            simdjson::ondemand::object& pkg,
+            const CondaURL& repo_url,
+            const std::string& channel_id
+        ) -> expected_parse_t<PackageInfo>;
 
         PackageInfo() = default;
         explicit PackageInfo(std::string name);

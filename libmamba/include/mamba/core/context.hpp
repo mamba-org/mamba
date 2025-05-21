@@ -101,12 +101,6 @@ namespace mamba
             bool no_env{ false };
         };
 
-        struct ThreadsParams
-        {
-            std::size_t download_threads{ 5 };
-            int extract_threads{ 0 };
-        };
-
         // Configurable
         bool experimental = false;
         bool experimental_repodata_parsing = true;

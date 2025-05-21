@@ -32,4 +32,10 @@ namespace mamba
         fs::u8path conda_prefix;
         fs::u8path relocate_prefix;
     };
+
+    struct ThreadsParams
+    {
+        std::size_t download_threads{ 5 };
+        int extract_threads{ 0 };
+    };
 }

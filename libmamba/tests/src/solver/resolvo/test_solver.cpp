@@ -711,10 +711,10 @@ struct PackageDatabase : public DependencyProvider
 bool
 parse_packageinfo_json(
     const std::string_view& filename,
-    const simdjson::ondemand::object& pkg,
-    const CondaURL& repo_url,
+    simdjson::ondemand::object& pkg,
+    const specs::CondaURL& repo_url,
     const std::string& channel_id,
-    PackageDatabase& database
+    PackageDatabase& db
 )
 {
     auto maybe_package_info = PackageInfo::from_json(filename, pkg, repo_url, channel_id);
@@ -722,14 +722,13 @@ parse_packageinfo_json(
     {
         return false;
     }
-
-    database.alloc_solvable(std::move(maybe_package_info).value());
+    db.alloc_solvable(maybe_package_info.value());
     return true;
 }
 
 void
 parse_repodata_json(
-    PackageDatabase& database,
+    PackageDatabase& db,
     const fs::u8path& filename,
     const std::string& repo_url,
     const std::string& channel_id,
@@ -738,83 +737,100 @@ parse_repodata_json(
 {
     auto parser = simdjson::ondemand::parser();
     const auto lock = LockFile(filename);
-    const auto json_content = simdjson::padded_string::load(filename.string());
-    const auto repodata = parser.iterate(json_content);
 
-    // An override for missing package subdir is found at the top level
-    auto default_subdir = std::string();
-    if (auto info = repodata["info"]; !info.error())
-    {
-        if (auto subdir = info["subdir"]; !subdir.error())
-        {
-            default_subdir = std::string(subdir.get_string().value());
-        }
-    }
+    // The json storage must be kept alive as long as we are reading the json data.
+    const auto json_content = simdjson::padded_string::load(filename.string());
+
+    // Note that with the "on-demand" parser, documents/values/objects act as iterators
+    // to go through the document.
+    auto repodata = parser.iterate(json_content);
 
     // Get `base_url` in case 'repodata_version': 2
     // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
-    auto base_url = repo_url;
-    if (auto repodata_version = repodata["repodata_version"]; !repodata_version.error())
+    const auto base_url = [&]
     {
-        if (repodata_version.get_int64().value() == 2)
+        if (auto repodata_version = repodata["repodata_version"]; !repodata_version.error())
         {
             if (auto info = repodata["info"]; !info.error())
             {
                 if (auto url = info["base_url"]; !url.error())
                 {
-                    base_url = std::string(url.get_string().value());
+                    return std::string(url.get_string().value_unsafe());
                 }
             }
         }
-    }
+
+        return repo_url;
+    }();
 
     const auto parsed_url = specs::CondaURL::parse(base_url)
                                 .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                 .value();
 
-    auto signatures = std::optional<simdjson::ondemand::object>(std::nullopt);
-    if (auto maybe_sigs = repodata["signatures"]; !maybe_sigs.error() && verify_artifacts)
+    auto signatures = [&]
     {
-        if (auto obj = maybe_sigs.get_object(); !obj.error())
+        auto maybe_sigs = repodata["signatures"];
+        if (!maybe_sigs.error() && verify_artifacts)
         {
-            signatures = std::move(obj).value();
+            return std::make_optional(maybe_sigs);
         }
-    }
+        else
+        {
+            LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
+            return decltype(std::make_optional(maybe_sigs)){};
+        }
+    }();
 
-    auto added = util::flat_set<std::string_view>();
+    // Process packages.conda first
     if (auto pkgs = repodata["packages.conda"]; !pkgs.error())
     {
-        std::cout << "CondaOrElseTarBz2 packages.conda" << std::endl;
-
-        if (auto obj = pkgs.get_object(); !obj.error())
+        if (auto packages_as_object = pkgs.get_object(); !packages_as_object.error())
         {
-            for (auto field : obj)
+            for (auto field : packages_as_object)
             {
                 if (!field.error())
                 {
                     const std::string key(field.unescaped_key().value());
                     if (auto value = field.value(); !value.error())
                     {
-                        parse_packageinfo_json(key, value, parsed_url, channel_id, database);
+                        if (auto pkg_obj = value.get_object(); !pkg_obj.error())
+                        {
+                            parse_packageinfo_json(
+                                filename.string(),
+                                pkg_obj.value(),
+                                parsed_url,
+                                channel_id,
+                                db
+                            );
+                        }
                     }
                 }
             }
         }
     }
+
+    // Then process packages
     if (auto pkgs = repodata["packages"]; !pkgs.error())
     {
-        std::cout << "CondaOrElseTarBz2 packages" << std::endl;
-
-        if (auto obj = pkgs.get_object(); !obj.error())
+        if (auto packages_as_object = pkgs.get_object(); !packages_as_object.error())
         {
-            for (auto field : obj)
+            for (auto field : packages_as_object)
             {
                 if (!field.error())
                 {
                     const std::string key(field.unescaped_key().value());
                     if (auto value = field.value(); !value.error())
                     {
-                        parse_packageinfo_json(key, value, parsed_url, channel_id, database);
+                        if (auto pkg_obj = value.get_object(); !pkg_obj.error())
+                        {
+                            parse_packageinfo_json(
+                                filename.string(),
+                                pkg_obj.value(),
+                                parsed_url,
+                                channel_id,
+                                db
+                            );
+                        }
                     }
                 }
             }

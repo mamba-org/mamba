@@ -209,18 +209,179 @@ namespace mamba::solver::resolvo
         // TODO: Implement this
     }
 
+    /**
+     * Allocates a new requirement and return the id of the requirement.
+     */
+    ::resolvo::VersionSetId Database::alloc_version_set(std::string_view raw_match_spec)
+    {
+        std::string raw_match_spec_str = std::string(raw_match_spec);
+        // Replace all " v" with simply " " to work around the `v` prefix in some version strings
+        // e.g. `mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0` in
+        // `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
+        while (raw_match_spec_str.find(" v") != std::string::npos)
+        {
+            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(" v"), 2, " ");
+        }
+
+        // Remove any presence of selector on python version in the match spec
+        // e.g. `pillow-heif >=0.10.0,<1.0.0<py312` -> `pillow-heif >=0.10.0,<1.0.0` in
+        // `infowillow-1.6.3-pyhd8ed1ab_0.conda`
+        for (const auto specifier : { "=py", "<py", ">py", ">=py", "<=py", "!=py" })
+        {
+            while (raw_match_spec_str.find(specifier) != std::string::npos)
+            {
+                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(specifier));
+            }
+        }
+        // Remove any white space between version
+        // e.g. `kytea >=0.1.4, 0.2.0` -> `kytea >=0.1.4,0.2.0` in
+        // `infokonoha-4.6.3-pyhd8ed1ab_0.tar.bz2`
+        while (raw_match_spec_str.find(", ") != std::string::npos)
+        {
+            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(", "), 2, ",");
+        }
+
+        // TODO: skip allocation for now if "*.*" is in the match spec
+        if (raw_match_spec_str.find("*.*") != std::string::npos)
+        {
+            return ::resolvo::VersionSetId{ 0 };
+        }
+
+        // NOTE: works around `openblas 0.2.18|0.2.18.*.` from
+        // `dlib==19.0=np110py27_blas_openblas_200` If contains "|", split on it and recurse
+        if (raw_match_spec_str.find("|") != std::string::npos)
+        {
+            std::vector<std::string> match_specs;
+            std::string match_spec;
+            for (char c : raw_match_spec_str)
+            {
+                if (c == '|')
+                {
+                    match_specs.push_back(match_spec);
+                    match_spec.clear();
+                }
+                else
+                {
+                    match_spec += c;
+                }
+            }
+            match_specs.push_back(match_spec);
+            for (const std::string& ms : match_specs)
+            {
+                alloc_version_set(ms);
+            }
+            // Placeholder return value
+            return ::resolvo::VersionSetId{ 0 };
+        }
+
+        // NOTE: This works around some improperly encoded `constrains` in the test data, e.g.:
+        //      `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit
+        //      >= 10.2" `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
+        //      `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
+        //      `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or `dep`:
+        //      ">=4.5.2"
+        // Remove any with space after the binary operators
+        for (const char* op : { ">=", "<=", "==", ">", "<", "!=", "=", "==" })
+        {
+            const std::string bad_op = std::string(op) + " ";
+            while (raw_match_spec_str.find(bad_op) != std::string::npos)
+            {
+                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(bad_op)) + op
+                                     + raw_match_spec_str.substr(
+                                         raw_match_spec_str.find(bad_op) + bad_op.size()
+                                     );
+            }
+            // If start with binary operator, prepend NONE
+            if (raw_match_spec_str.find(op) == 0)
+            {
+                raw_match_spec_str = "NONE " + raw_match_spec_str;
+            }
+        }
+
+        const specs::MatchSpec match_spec = specs::MatchSpec::parse(raw_match_spec_str).value();
+        // Add the version set to the version set pool
+        auto id = version_set_pool.alloc(match_spec);
+
+        // Add name to the Name and String pools
+        const std::string name = match_spec.name().to_string();
+        name_pool.alloc(::resolvo::String{ name });
+        string_pool.alloc(::resolvo::String{ name });
+
+        // Add the MatchSpec's string representation to the Name and String pools
+        const std::string match_spec_str = match_spec.to_string();
+        name_pool.alloc(::resolvo::String{ match_spec_str });
+        string_pool.alloc(::resolvo::String{ match_spec_str });
+        return id;
+    }
+
+    /**
+     * Allocates a new solvable and returns its id.
+     *
+     * - Adds the solvable to the solvable pool.
+     * - Adds the name to the Name and String pools.
+     * - Adds the long string representation of the package to the Name and String pools.
+     * - Allocates version sets for dependencies and constrains.
+     * - Adds the solvable to the name_to_solvable map.
+     */
+    ::resolvo::SolvableId Database::alloc_solvable(specs::PackageInfo package_info)
+    {
+        // Add the solvable to the solvable pool
+        auto id = solvable_pool.alloc(package_info);
+
+        // Add name to the Name and String pools
+        const std::string name = package_info.name;
+        name_pool.alloc(::resolvo::String{ name });
+        string_pool.alloc(::resolvo::String{ name });
+
+        // Add the long string representation of the package to the Name and String pools
+        const std::string long_str = package_info.long_str();
+        name_pool.alloc(::resolvo::String{ long_str });
+        string_pool.alloc(::resolvo::String{ long_str });
+
+        for (auto& dep : package_info.dependencies)
+        {
+            alloc_version_set(dep);
+        }
+        for (auto& constr : package_info.constrains)
+        {
+            alloc_version_set(constr);
+        }
+
+        // Add the solvable to the name_to_solvable map
+        const auto name_id = name_pool.alloc(::resolvo::String{ package_info.name });
+        name_to_solvable[name_id].push_back(id);
+
+        return id;
+    }
+
+    /**
+     * Returns a user-friendly string representation of the specified solvable.
+     *
+     * When formatting the solvable, it should it include both the name of
+     * the package and any other identifying properties.
+     */
     ::resolvo::String Database::display_solvable(::resolvo::SolvableId solvable)
     {
         const specs::PackageInfo& package_info = solvable_pool[solvable];
         return ::resolvo::String{ package_info.long_str() };
     }
 
+    /**
+     * Returns a user-friendly string representation of the name of the
+     * specified solvable.
+     */
     ::resolvo::String Database::display_solvable_name(::resolvo::SolvableId solvable)
     {
         const specs::PackageInfo& package_info = solvable_pool[solvable];
         return ::resolvo::String{ package_info.name };
     }
 
+    /**
+     * Returns a string representation of multiple solvables merged together.
+     *
+     * When formatting the solvables, both the name of the packages and any
+     * other identifying properties should be included.
+     */
     ::resolvo::String
     Database::display_merged_solvables(::resolvo::Slice<::resolvo::SolvableId> solvable)
     {
@@ -232,34 +393,59 @@ namespace mamba::solver::resolvo
         return ::resolvo::String{ result };
     }
 
+    /**
+     * Returns an object that can be used to display the given name in a
+     * user-friendly way.
+     */
     ::resolvo::String Database::display_name(::resolvo::NameId name)
     {
         return name_pool[name];
     }
 
+    /**
+     * Returns a user-friendly string representation of the specified version
+     * set.
+     *
+     * The name of the package should *not* be included in the display. Where
+     * appropriate, this information is added.
+     */
     ::resolvo::String Database::display_version_set(::resolvo::VersionSetId version_set)
     {
         const specs::MatchSpec match_spec = version_set_pool[version_set];
         return ::resolvo::String{ match_spec.to_string() };
     }
 
+    /**
+     * Returns the string representation of the specified string.
+     */
     ::resolvo::String Database::display_string(::resolvo::StringId string)
     {
         return string_pool[string];
     }
 
+    /**
+     * Returns the name of the package that the specified version set is
+     * associated with.
+     */
     ::resolvo::NameId Database::version_set_name(::resolvo::VersionSetId version_set_id)
     {
         const specs::MatchSpec match_spec = version_set_pool[version_set_id];
         return name_pool[::resolvo::String{ match_spec.name().to_string() }];
     }
 
+    /**
+     * Returns the name of the package for the given solvable.
+     */
     ::resolvo::NameId Database::solvable_name(::resolvo::SolvableId solvable_id)
     {
         const specs::PackageInfo& package_info = solvable_pool[solvable_id];
         return name_pool[::resolvo::String{ package_info.name }];
     }
 
+    /**
+     * Obtains a list of solvables that should be considered when a package
+     * with the given name is requested.
+     */
     ::resolvo::Candidates Database::get_candidates(::resolvo::NameId package)
     {
         ::resolvo::Candidates candidates{};
@@ -269,6 +455,63 @@ namespace mamba::solver::resolvo
         return candidates;
     }
 
+    /**
+     * Finds the highest version and the minimum number of track features for a given version set.
+     *
+     * - If the version set has already been computed, returns the cached value.
+     * - Filters candidates for the version set.
+     * - Iterates over filtered candidates to find the maximum version and the minimum number of
+     * track features.
+     * - Caches and returns the result.
+     */
+    std::pair<specs::Version, size_t>
+    Database::find_highest_version(::resolvo::VersionSetId version_set_id)
+    {
+        // If the version set has already been computed, return it.
+        if (version_set_to_max_version_and_track_features_numbers.find(version_set_id)
+            != version_set_to_max_version_and_track_features_numbers.end())
+        {
+            return version_set_to_max_version_and_track_features_numbers[version_set_id];
+        }
+
+        const specs::MatchSpec match_spec = version_set_pool[version_set_id];
+        const std::string& name = match_spec.name().to_string();
+        auto name_id = name_pool.alloc(::resolvo::String{ name });
+        auto solvables = name_to_solvable[name_id];
+        auto filtered = filter_candidates(solvables, version_set_id, false);
+
+        specs::Version max_version = specs::Version();
+        size_t max_version_n_track_features = 0;
+
+        for (auto& solvable_id : filtered)
+        {
+            const specs::PackageInfo& package_info = solvable_pool[solvable_id];
+            const auto version = specs::Version::parse(package_info.version).value();
+            if (version == max_version)
+            {
+                max_version_n_track_features = std::min(
+                    max_version_n_track_features,
+                    package_info.track_features.size()
+                );
+            }
+            if (version > max_version)
+            {
+                max_version = version;
+                max_version_n_track_features = package_info.track_features.size();
+            }
+        }
+
+        auto val = std::make_pair(max_version, max_version_n_track_features);
+        version_set_to_max_version_and_track_features_numbers[version_set_id] = val;
+        return val;
+    }
+
+    /**
+     * Sort the specified solvables based on which solvable to try first. The
+     * solver will iteratively try to select the highest version. If a
+     * conflict is found with the highest version the next version is
+     * tried. This continues until a solution is found.
+     */
     void Database::sort_candidates(::resolvo::Slice<::resolvo::SolvableId> solvables)
     {
         std::sort(
@@ -354,6 +597,11 @@ namespace mamba::solver::resolvo
         );
     }
 
+    /**
+     * Given a set of solvables, return the solvables that match the given
+     * version set or if `inverse` is true, the solvables that do *not* match
+     * the version set.
+     */
     ::resolvo::Vector<::resolvo::SolvableId> Database::filter_candidates(
         ::resolvo::Slice<::resolvo::SolvableId> candidates,
         ::resolvo::VersionSetId version_set_id,
@@ -393,6 +641,9 @@ namespace mamba::solver::resolvo
         return filtered;
     }
 
+    /**
+     * Returns the dependencies for the specified solvable.
+     */
     ::resolvo::Dependencies Database::get_dependencies(::resolvo::SolvableId solvable_id)
     {
         const specs::PackageInfo& package_info = solvable_pool[solvable_id];
@@ -422,45 +673,5 @@ namespace mamba::solver::resolvo
         }
 
         return dependencies;
-    }
-
-    ::resolvo::VersionSetId Database::alloc_version_set(std::string_view raw_match_spec)
-    {
-        std::string raw_match_spec_str = std::string(raw_match_spec);
-        // Replace all " v" with simply " " to work around the `v` prefix in some version strings
-        // e.g. `mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0` in
-        // `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`        while
-        // (raw_match_spec_str.find(" v") != std::string::npos)
-        {
-            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(" v"), 2, " ");
-        }
-
-        // Remove any presence of selector on python version in the match spec
-        // e.g. `pillow-heif >=0.10.0,<1.0.0<py312` -> `pillow-heif >=0.10.0,<1.0.0` in
-        // `infowillow-1.6.3-pyhd8ed1ab_0.conda`
-        for (const auto specifier : { "=py", "<py", ">py", ">=py", "<=py", "!=py" })
-        {
-            while (raw_match_spec_str.find(specifier) != std::string::npos)
-            {
-                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(specifier));
-            }
-        }
-        // Remove any white space between version
-        // e.g. `kytea >=0.1.4, 0.2.0` -> `kytea >=0.1.4,0.2.0` in
-        // `infokonoha-4.6.3-pyhd8ed1ab_0.tar.bz2`
-        while (raw_match_spec_str.find(", ") != std::string::npos)
-        {
-            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(", "), 2, ",");
-        }
-
-        // TODO: skip allocation for now if "*.*" is in the match spec
-        if (raw_match_spec_str.find("*.*") != std::string::npos)
-        {
-            return ::resolvo::VersionSetId{ 0 };
-        }
-
-        // NOTE: works around `
-        const specs::MatchSpec match_spec = specs::MatchSpec::parse(raw_match_spec_str).value();
-        return version_set_pool[match_spec];
     }
 }

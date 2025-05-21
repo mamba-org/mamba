@@ -110,7 +110,6 @@ namespace mamba
     TransactionContext::TransactionContext(const Context& context)
         : m_context(&context)
     {
-        compile_pyc = this->context().compile_pyc;
     }
 
     TransactionContext::TransactionContext(
@@ -122,15 +121,10 @@ namespace mamba
         : target_prefix(ltarget_prefix)
         , relocate_prefix(ltarget_prefix)
         , requested_specs(std::move(lrequested_specs))
+        , m_link_params(context.link_params)
         , m_python_params(build_python_params(std::move(py_versions)))
         , m_context(&context)
     {
-        const auto& ctx = this->context();
-        compile_pyc = ctx.compile_pyc;
-        allow_softlinks = ctx.allow_softlinks;
-        always_copy = ctx.always_copy;
-        always_softlink = ctx.always_softlink;
-
         if (m_python_params.python_version.size() == 0)
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
@@ -159,6 +153,11 @@ namespace mamba
     TransactionContext::~TransactionContext()
     {
         wait_for_pyc_compilation();
+    }
+
+    auto TransactionContext::link_params() const -> const LinkParams&
+    {
+        return m_link_params;
     }
 
     auto TransactionContext::python_params() const -> const PythonParams&

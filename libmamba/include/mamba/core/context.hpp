@@ -128,9 +128,6 @@ namespace mamba
         bool download_only = false;
         bool always_yes = false;
 
-        bool allow_softlinks = false;
-        bool always_copy = false;
-        bool always_softlink = false;
         bool register_envs = true;
 
         bool show_anaconda_channel_warnings = true;
@@ -158,6 +155,7 @@ namespace mamba
         ThreadsParams threads_params;
         PrefixParams prefix_params;
         ValidationParams validation_params;
+        LinkParams link_params;
 
         download::RemoteFetchParams remote_fetch_params = {
             /* .ssl_verify */ { "" },
@@ -215,8 +213,6 @@ namespace mamba
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
-
-        bool compile_pyc = true;
 
         // Conda compat
         bool add_pip_as_python_dependency = true;

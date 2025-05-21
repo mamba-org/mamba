@@ -754,8 +754,8 @@ namespace mamba
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
-            bool copy = path_data.no_link || m_context->always_copy;
-            bool softlink = m_context->always_softlink;
+            bool copy = path_data.no_link || m_context->link_params().always_copy;
+            bool softlink = m_context->link_params().always_softlink;
 
             if (!copy && !softlink)
             {
@@ -764,7 +764,7 @@ namespace mamba
 
                 if (lec)
                 {
-                    softlink = m_context->allow_softlinks;
+                    softlink = m_context->link_params().allow_softlinks;
                     copy = !softlink;
                 }
                 else
@@ -828,7 +828,7 @@ namespace mamba
         {
             pyc_files.push_back(pyc_path(f, m_context->python_params().short_python_version));
         }
-        if (m_context->compile_pyc)
+        if (m_context->link_params().compile_pyc)
         {
             m_context->try_pyc_compilation(py_files);
         }

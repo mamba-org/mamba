@@ -69,10 +69,6 @@ namespace mamba
 
         fs::u8path target_prefix;
         fs::u8path relocate_prefix;
-        bool allow_softlinks = false;
-        bool always_copy = false;
-        bool always_softlink = false;
-        bool compile_pyc = true;
         // this needs to be done when python version changes
         std::vector<specs::MatchSpec> requested_specs;
 
@@ -81,12 +77,14 @@ namespace mamba
             return *m_context;
         }
 
+        const LinkParams& link_params() const;
         const PythonParams& python_params() const;
 
     private:
 
         bool start_pyc_compilation_process();
 
+        LinkParams m_link_params;
         PythonParams m_python_params;
 
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;

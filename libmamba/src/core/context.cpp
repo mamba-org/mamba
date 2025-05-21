@@ -391,7 +391,7 @@ namespace mamba
         PRINT_CTX(out, prefix_params.root_prefix);
         PRINT_CTX(out, dry_run);
         PRINT_CTX(out, always_yes);
-        PRINT_CTX(out, allow_softlinks);
+        PRINT_CTX(out, link_params.allow_softlinks);
         PRINT_CTX(out, offline);
         PRINT_CTX(out, output_params.quiet);
         PRINT_CTX(out, src_params.no_rc);

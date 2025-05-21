@@ -364,20 +364,11 @@ namespace mamba
 
     bool ensure_comspec_set();
 
-    struct WrappedCallOptions
-    {
-        bool is_mamba_exe = false;
-        bool dev_mode = false;
-        bool debug_wrapper_scripts = false;
-
-        static WrappedCallOptions from_context(const Context&);
-    };
-
     std::unique_ptr<TemporaryFile> wrap_call(
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,  // TODO: c++20 replace by std::span
-        WrappedCallOptions options = {}
+        bool is_mamba_exe = false
     );
 
     struct PreparedWrappedCall
@@ -389,7 +380,7 @@ namespace mamba
     PreparedWrappedCall prepare_wrapped_call(
         const PrefixParams& prefix_params,
         const std::vector<std::string>& cmd,
-        WrappedCallOptions options
+        bool is_mamba_exe
     );
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.

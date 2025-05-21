@@ -235,7 +235,7 @@ namespace mamba
         auto [wrapped_command, script_file] = prepare_wrapped_call(
             context().prefix_params,
             command,
-            WrappedCallOptions::from_context(ctx)
+            ctx.command_params.is_mamba_exe
         );
         m_pyc_script_file = std::move(script_file);
 

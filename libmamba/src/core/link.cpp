@@ -373,7 +373,7 @@ namespace mamba
                     context.prefix_params.root_prefix,
                     prefix,
                     { "@CALL", path.string() },
-                    WrappedCallOptions::from_context(context)
+                    context.command_params.is_mamba_exe
                 );
 
                 command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
@@ -400,7 +400,7 @@ namespace mamba
                     context.prefix_params.root_prefix.string(),
                     prefix,
                     { ".", path.string() },
-                    WrappedCallOptions::from_context(context)
+                    context.command_params.is_mamba_exe
                 );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());

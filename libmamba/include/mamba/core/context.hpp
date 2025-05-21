@@ -122,8 +122,6 @@ namespace mamba
 
         bool extract_sparse = false;
 
-        bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
-                           // be removed if this is the case...
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;

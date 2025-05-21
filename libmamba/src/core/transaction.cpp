@@ -163,7 +163,7 @@ namespace mamba
 
     MTransaction::MTransaction(const Context& ctx, MultiPackageCache& caches)
         : m_multi_cache(caches)
-        , m_history_entry(History::UserRequest::prefilled(ctx))
+        , m_history_entry(History::UserRequest::prefilled(ctx.command_params))
     {
     }
 

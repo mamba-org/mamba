@@ -369,7 +369,6 @@ namespace mamba
             if (activate)
             {
                 script_file = wrap_call(
-                    context,
                     context.prefix_params.root_prefix,
                     prefix,
                     { "@CALL", path.string() },
@@ -397,7 +396,6 @@ namespace mamba
             {
                 // std::string caller
                 script_file = wrap_call(
-                    context,
                     context.prefix_params.root_prefix.string(),
                     prefix,
                     { ".", path.string() },

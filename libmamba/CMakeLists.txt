@@ -367,6 +367,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/common_types.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context_params.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp

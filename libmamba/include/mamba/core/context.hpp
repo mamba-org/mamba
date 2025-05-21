@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "mamba/core/common_types.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
 #include "mamba/core/tasksync.hpp"
@@ -103,27 +104,10 @@ namespace mamba
             bool no_env{ false };
         };
 
-        struct CommandParams
-        {
-            std::string caller_version{ "" };
-            std::string conda_version{ "3.8.0" };
-            std::string current_command{ "mamba" };
-            /** Is the Context used in a mamba or mamba executable (instead of a lib). */
-            bool is_mamba_exe{ false };
-        };
-
         struct ThreadsParams
         {
             std::size_t download_threads{ 5 };
             int extract_threads{ 0 };
-        };
-
-        struct PrefixParams
-        {
-            fs::u8path target_prefix;
-            fs::u8path root_prefix;
-            fs::u8path conda_prefix;
-            fs::u8path relocate_prefix;
         };
 
         // Configurable

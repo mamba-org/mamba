@@ -1405,7 +1405,6 @@ namespace mamba
     }
 
     std::unique_ptr<TemporaryFile> wrap_call(
-        const Context& context [[maybe_unused]],
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,
@@ -1436,7 +1435,7 @@ namespace mamba
         if (!fs::exists(conda_bat) && options.is_mamba_exe)
         {
             // this adds in the needed .bat files for activation
-            init_root_prefix_cmdexe(context, root_prefix);
+            init_root_prefix_cmdexe(root_prefix);
         }
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
@@ -1558,9 +1557,9 @@ namespace mamba
     }
 
     PreparedWrappedCall prepare_wrapped_call(
-        const Context& context,
-        const fs::u8path& prefix,
-        const std::vector<std::string>& cmd
+        const PrefixParams& prefix_params,
+        const std::vector<std::string>& cmd,
+        WrappedCallOptions options
     )
     {
         std::vector<std::string> command_args;
@@ -1577,13 +1576,7 @@ namespace mamba
                 );
             }
 
-            script_file = wrap_call(
-                context,
-                context.prefix_params.root_prefix,
-                prefix,
-                cmd,
-                WrappedCallOptions::from_context(context)
-            );
+            script_file = wrap_call(prefix_params.root_prefix, prefix_params.target_prefix, cmd, options);
 
             command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
         }
@@ -1601,13 +1594,7 @@ namespace mamba
                 shell_path = "sh";
             }
 
-            script_file = wrap_call(
-                context,
-                context.prefix_params.root_prefix,
-                prefix,
-                cmd,
-                WrappedCallOptions::from_context(context)
-            );
+            script_file = wrap_call(prefix_params.root_prefix, prefix_params.target_prefix, cmd, options);
             command_args.push_back(shell_path.string());
             command_args.push_back(script_file->path().string());
         }

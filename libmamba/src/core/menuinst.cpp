@@ -201,7 +201,7 @@ namespace mamba
     replace_variables(std::string& text, TransactionContext* transaction_context)
     {
         const Context& ctx = transaction_context->context();
-        fs::u8path root_prefix = ctx.prefix_params.root_prefix;
+        fs::u8path root_prefix = transaction_context->prefix_params().root_prefix;
 
         fs::u8path target_prefix;
         std::string py_ver;

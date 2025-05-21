@@ -482,14 +482,14 @@ namespace mamba
 
     bool UnlinkPackage::unlink_path(const nlohmann::json& path_data)
     {
-        const auto& context = m_context->context();
         std::string subtarget = path_data["_path"].get<std::string>();
-        fs::u8path dst = m_context->prefix_params().target_prefix / subtarget;
+        const fs::u8path& target_prefix = m_context->prefix_params().target_prefix;
+        fs::u8path dst = target_prefix / subtarget;
 
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
 
-        if (remove_or_rename(context, dst) == 0)
+        if (remove_or_rename(target_prefix, dst) == 0)
         {
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
         }
@@ -513,7 +513,7 @@ namespace mamba
                 }
                 if (is_empty)
                 {
-                    remove_or_rename(context, parent_path);
+                    remove_or_rename(target_prefix, parent_path);
                 }
                 else
                 {
@@ -521,7 +521,7 @@ namespace mamba
                 }
             }
             parent_path = parent_path.parent_path();
-            if (parent_path == m_context->prefix_params().target_prefix)
+            if (parent_path == target_prefix)
             {
                 break;
             }

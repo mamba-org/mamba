@@ -50,7 +50,6 @@ extern "C"
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
-#include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/invoke.hpp"
@@ -565,7 +564,7 @@ namespace mamba
         return deleted_files;
     }
 
-    std::size_t remove_or_rename(const Context& context, const fs::u8path& path)
+    std::size_t remove_or_rename(const fs::u8path& target_prefix, const fs::u8path& path)
     {
         std::error_code ec;
         std::size_t result = 0;
@@ -620,12 +619,12 @@ namespace mamba
                 {
                     // The conda-meta directory is locked by transaction execute
                     auto trash_index = open_ofstream(
-                        context.prefix_params.target_prefix / "conda-meta" / "mamba_trash.txt",
+                        target_prefix / "conda-meta" / "mamba_trash.txt",
                         std::ios::app | std::ios::binary
                     );
 
                     // TODO add some unicode tests here?
-                    trash_index << fs::relative(trash_file, context.prefix_params.target_prefix).string()
+                    trash_index << fs::relative(trash_file, target_prefix).string()
                                 << "\n";
                     return 1;
                 }

@@ -26,8 +26,6 @@
 
 namespace mamba
 {
-    class Context;
-
     const std::regex& token_regex();
     const std::regex& http_basicauth_regex();
 
@@ -337,7 +335,7 @@ namespace mamba
     quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const Context& context, const fs::u8path& path);
+    std::size_t remove_or_rename(const fs::u8path& target_prefix, const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);

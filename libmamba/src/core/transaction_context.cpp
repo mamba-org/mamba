@@ -90,6 +90,21 @@ namespace mamba
         }
     }
 
+    TransactionContext::PythonParams build_python_params(std::pair<std::string, std::string> py_versions)
+    {
+        TransactionContext::PythonParams res;
+        if (py_versions.first.size() != 0)
+        {
+            res.has_python = true;
+            res.python_version = std::move(py_versions.first);
+            res.old_python_version = std::move(py_versions.second);
+            res.short_python_version = compute_short_python_version(res.python_version);
+            res.python_path = get_python_short_path(res.short_python_version);
+            res.site_packages_path = get_python_site_packages_short_path(res.short_python_version);
+        }
+        return res;
+    }
+
     TransactionContext::TransactionContext() = default;
 
     TransactionContext::TransactionContext(const Context& context)
@@ -101,15 +116,13 @@ namespace mamba
     TransactionContext::TransactionContext(
         const Context& context,
         const fs::u8path& ltarget_prefix,
-        const std::pair<std::string, std::string>& py_versions,
+        std::pair<std::string, std::string> py_versions,
         std::vector<specs::MatchSpec> lrequested_specs
     )
-        : has_python(py_versions.first.size() != 0)
-        , target_prefix(ltarget_prefix)
+        : target_prefix(ltarget_prefix)
         , relocate_prefix(ltarget_prefix)
-        , python_version(py_versions.first)
-        , old_python_version(py_versions.second)
         , requested_specs(std::move(lrequested_specs))
+        , m_python_params(build_python_params(std::move(py_versions)))
         , m_context(&context)
     {
         const auto& ctx = this->context();
@@ -118,20 +131,9 @@ namespace mamba
         always_copy = ctx.always_copy;
         always_softlink = ctx.always_softlink;
 
-        std::string old_short_python_version;
-        if (python_version.size() == 0)
+        if (m_python_params.python_version.size() == 0)
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
-        }
-        else
-        {
-            short_python_version = compute_short_python_version(python_version);
-            python_path = get_python_short_path(short_python_version);
-            site_packages_path = get_python_site_packages_short_path(short_python_version);
-        }
-        if (!old_python_version.empty())
-        {
-            old_short_python_version = compute_short_python_version(old_python_version);
         }
     }
 
@@ -139,10 +141,10 @@ namespace mamba
         const Context& context,
         const fs::u8path& ltarget_prefix,
         const fs::u8path& lrelocate_prefix,
-        const std::pair<std::string, std::string>& py_versions,
+        std::pair<std::string, std::string> py_versions,
         std::vector<specs::MatchSpec> lrequested_specs
     )
-        : TransactionContext(context, ltarget_prefix, py_versions, std::move(lrequested_specs))
+        : TransactionContext(context, ltarget_prefix, std::move(py_versions), std::move(lrequested_specs))
     {
         if (lrelocate_prefix.empty())
         {
@@ -157,6 +159,11 @@ namespace mamba
     TransactionContext::~TransactionContext()
     {
         wait_for_pyc_compilation();
+    }
+
+    auto TransactionContext::python_params() const -> const PythonParams&
+    {
+        return m_python_params;
     }
 
     void TransactionContext::throw_if_not_ready() const
@@ -182,12 +189,12 @@ namespace mamba
 #ifndef _WIN32
         std::signal(SIGPIPE, SIG_IGN);
 #endif
-        const auto complete_python_path = target_prefix / python_path;
+        const auto complete_python_path = target_prefix / python_params().python_path;
         std::vector<std::string> command = {
             complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
         };
 
-        auto py_ver_split = util::split(python_version, ".");
+        auto py_ver_split = util::split(python_params().python_version, ".");
 
         try
         {
@@ -206,7 +213,7 @@ namespace mamba
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR << "Bad conversion of Python version '" << python_version << "': " << e.what();
+            LOG_ERROR << "Bad conversion of Python version '" << python_params().python_version << "': " << e.what();
             return false;
         }
 
@@ -266,7 +273,7 @@ namespace mamba
         static std::mutex pyc_compilation_mutex;
         std::lock_guard<std::mutex> lock(pyc_compilation_mutex);
 
-        if (!has_python)
+        if (!python_params().has_python)
         {
             LOG_WARNING << "Can't compile pyc: Python not found";
             return false;

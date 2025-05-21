@@ -32,6 +32,16 @@ namespace mamba
     {
     public:
 
+        struct PythonParams
+        {
+            bool has_python = false;
+            std::string python_version;
+            std::string old_python_version;
+            std::string short_python_version;
+            fs::u8path python_path;
+            fs::u8path site_packages_path;
+        };
+
         TransactionContext();
         TransactionContext(TransactionContext&&) = default;
 
@@ -42,7 +52,7 @@ namespace mamba
         TransactionContext(
             const Context& context,
             const fs::u8path& target_prefix,
-            const std::pair<std::string, std::string>& py_versions,
+            std::pair<std::string, std::string> py_versions,
             std::vector<specs::MatchSpec> requested_specs
         );
 
@@ -50,21 +60,15 @@ namespace mamba
             const Context& context,
             const fs::u8path& target_prefix,
             const fs::u8path& relocate_prefix,
-            const std::pair<std::string, std::string>& py_versions,
+            std::pair<std::string, std::string> py_versions,
             std::vector<specs::MatchSpec> requested_specs
         );
         ~TransactionContext();
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
 
-        bool has_python = false;
         fs::u8path target_prefix;
         fs::u8path relocate_prefix;
-        fs::u8path site_packages_path;
-        fs::u8path python_path;
-        std::string python_version;
-        std::string old_python_version;
-        std::string short_python_version;
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
@@ -77,9 +81,13 @@ namespace mamba
             return *m_context;
         }
 
+        const PythonParams& python_params() const;
+
     private:
 
         bool start_pyc_compilation_process();
+
+        PythonParams m_python_params;
 
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;
         std::unique_ptr<TemporaryFile> m_pyc_script_file = nullptr;

@@ -164,9 +164,9 @@ namespace mamba
         std::ofstream out_file = open_ofstream(script_path);
 
         fs::u8path python_path;
-        if (m_context->has_python)
+        if (m_context->python_params().has_python)
         {
-            python_path = m_context->relocate_prefix / m_context->python_path;
+            python_path = m_context->relocate_prefix / m_context->python_params().python_path;
         }
         if (!python_path.empty())
         {
@@ -584,7 +584,7 @@ namespace mamba
         fs::u8path dst, rel_dst;
         if (noarch_python)
         {
-            rel_dst = get_python_noarch_target_path(subtarget, m_context->site_packages_path);
+            rel_dst = get_python_noarch_target_path(subtarget, m_context->python_params().site_packages_path);
             dst = m_context->target_prefix / rel_dst;
         }
         else
@@ -826,7 +826,7 @@ namespace mamba
         std::vector<fs::u8path> pyc_files;
         for (auto& f : py_files)
         {
-            pyc_files.push_back(pyc_path(f, m_context->short_python_version));
+            pyc_files.push_back(pyc_path(f, m_context->python_params().short_python_version));
         }
         if (m_context->compile_pyc)
         {
@@ -1025,7 +1025,7 @@ namespace mamba
                 if (std::regex_match(sub_path_json.path, py_file_re))
                 {
                     for_compilation.push_back(
-                        get_python_noarch_target_path(sub_path_json.path, m_context->site_packages_path)
+                        get_python_noarch_target_path(sub_path_json.path, m_context->python_params().site_packages_path)
                     );
                 }
             }

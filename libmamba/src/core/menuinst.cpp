@@ -208,7 +208,7 @@ namespace mamba
         if (transaction_context)
         {
             target_prefix = transaction_context->target_prefix;
-            py_ver = transaction_context->python_version;
+            py_ver = transaction_context->python_params().python_version;
         }
 
         std::string distribution_name = root_prefix.filename().string();

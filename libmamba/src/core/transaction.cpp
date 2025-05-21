@@ -214,8 +214,6 @@ namespace mamba
 
         m_transaction_context = TransactionContext(
             ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
             find_python_version(m_solution, database),
             specs_to_install
         );
@@ -268,8 +266,6 @@ namespace mamba
         );
         m_transaction_context = TransactionContext(
             ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
             find_python_version(m_solution, database),
             std::move(requested_specs)
         );
@@ -320,8 +316,6 @@ namespace mamba
 
         m_transaction_context = TransactionContext(
             ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
             find_python_version(m_solution, database),
             std::move(specs_to_install)
         );

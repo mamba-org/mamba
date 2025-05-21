@@ -207,7 +207,7 @@ namespace mamba
         std::string py_ver;
         if (transaction_context)
         {
-            target_prefix = transaction_context->target_prefix;
+            target_prefix = transaction_context->prefix_params().target_prefix;
             py_ver = transaction_context->python_params().python_version;
         }
 
@@ -278,7 +278,8 @@ namespace mamba
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
             std::string name_suffix;
-            std::string e_name = detail::get_formatted_env_name(ctx.envs_dirs, ctx.prefix_params.root_prefix, transaction_context->target_prefix);
+            const PrefixParams& pp = transaction_context->prefix_params();
+            std::string e_name = detail::get_formatted_env_name(ctx.envs_dirs, pp.root_prefix, pp.target_prefix);
 
             if (e_name.size())
             {
@@ -300,8 +301,8 @@ namespace mamba
             //     ]
             // }
 
-            const fs::u8path root_prefix = ctx.prefix_params.root_prefix;
-            const fs::u8path target_prefix = ctx.prefix_params.target_prefix;
+            const fs::u8path root_prefix = pp.root_prefix;
+            const fs::u8path target_prefix = pp.target_prefix;
 
             // using legacy stuff here
             const fs::u8path root_py = root_prefix / "python.exe";

@@ -143,18 +143,19 @@ namespace mamba
         const python_entry_point_parsed& entry_point
     )
     {
+        const fs::u8path& target_prefix = m_context->prefix_params().target_prefix;
 #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will
         // automatically find the correct script to launch
         std::string win_script = path.string() + "-script.py";
         std::string win_script_gen_str = path.generic_string() + "-script.py";
-        fs::u8path script_path = m_context->target_prefix / win_script;
+        fs::u8path script_path = target_prefix / win_script;
 #else
-        fs::u8path script_path = m_context->target_prefix / path;
+        fs::u8path script_path = target_prefix / path;
 #endif
         if (fs::exists(script_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_path, m_context->target_prefix).string());
+            m_clobber_warnings.push_back(fs::relative(script_path, target_prefix).string());
             fs::remove(script_path);
         }
         if (!fs::is_directory(script_path.parent_path()))
@@ -166,7 +167,7 @@ namespace mamba
         fs::u8path python_path;
         if (m_context->python_params().has_python)
         {
-            python_path = m_context->relocate_prefix / m_context->python_params().python_path;
+            python_path = m_context->prefix_params().relocate_prefix / m_context->python_params().python_path;
         }
         if (!python_path.empty())
         {
@@ -180,19 +181,19 @@ namespace mamba
         fs::u8path script_exe = path;
         script_exe.replace_extension("exe");
 
-        if (fs::exists(m_context->target_prefix / script_exe))
+        if (fs::exists(target_prefix / script_exe))
         {
             m_clobber_warnings.push_back(fs::relative(script_exe.string()).string());
-            fs::remove(m_context->target_prefix / script_exe);
+            fs::remove(target_prefix / script_exe);
         }
 
         std::ofstream conda_exe_f = open_ofstream(
-            m_context->target_prefix / script_exe,
+            target_prefix / script_exe,
             std::ios::binary
         );
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
-        make_executable(m_context->target_prefix / script_exe);
+        make_executable(target_prefix / script_exe);
         return std::array<std::string, 2>{ win_script_gen_str, script_exe.generic_string() };
 #else
         if (!python_path.empty())
@@ -483,7 +484,7 @@ namespace mamba
     {
         const auto& context = m_context->context();
         std::string subtarget = path_data["_path"].get<std::string>();
-        fs::u8path dst = m_context->target_prefix / subtarget;
+        fs::u8path dst = m_context->prefix_params().target_prefix / subtarget;
 
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
@@ -520,7 +521,7 @@ namespace mamba
                 }
             }
             parent_path = parent_path.parent_path();
-            if (parent_path == m_context->target_prefix)
+            if (parent_path == m_context->prefix_params().target_prefix)
             {
                 break;
             }
@@ -531,7 +532,7 @@ namespace mamba
     bool UnlinkPackage::execute()
     {
         // find the recorded JSON file
-        fs::u8path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
+        fs::u8path json = m_context->prefix_params().target_prefix / "conda-meta" / (m_specifier + ".json");
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
         LOG_DEBUG << "Use metadata found at '" << json.string() << "'";
 
@@ -544,7 +545,7 @@ namespace mamba
             std::string fpath = path["_path"];
             if (std::regex_match(fpath, MENU_PATH_REGEX))
             {
-                remove_menu_from_json(m_context->target_prefix / fpath, m_context);
+                remove_menu_from_json(m_context->prefix_params().target_prefix / fpath, m_context);
             }
 
             unlink_path(path);
@@ -585,12 +586,12 @@ namespace mamba
         if (noarch_python)
         {
             rel_dst = get_python_noarch_target_path(subtarget, m_context->python_params().site_packages_path);
-            dst = m_context->target_prefix / rel_dst;
+            dst = m_context->prefix_params().target_prefix / rel_dst;
         }
         else
         {
             rel_dst = subtarget;
-            dst = m_context->target_prefix / rel_dst;
+            dst = m_context->prefix_params().target_prefix / rel_dst;
         }
 
         fs::u8path src = m_source / subtarget;
@@ -622,7 +623,7 @@ namespace mamba
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            std::string new_prefix = m_context->relocate_prefix.string();
+            std::string new_prefix = m_context->prefix_params().relocate_prefix.string();
 #ifdef _WIN32
             util::replace_all(new_prefix, "\\", "/");
 #endif
@@ -940,13 +941,13 @@ namespace mamba
             {
                 // here we try to avoid recomputing the costly sha256 sum
                 std::error_code ec;
-                auto points_to = fs::canonical(m_context->target_prefix / files_record[i], ec);
+                auto points_to = fs::canonical(m_context->prefix_params().target_prefix / files_record[i], ec);
                 bool found = false;
                 if (!ec)
                 {
                     for (std::size_t pix = 0; pix < files_record.size(); ++pix)
                     {
-                        if ((m_context->target_prefix / files_record[pix]) == points_to)
+                        if ((m_context->prefix_params().target_prefix / files_record[pix]) == points_to)
                         {
                             if (paths_json["paths"][pix].contains("sha256_in_prefix"))
                             {
@@ -963,7 +964,7 @@ namespace mamba
                 }
                 if (!found)
                 {
-                    bool exists = fs::exists(m_context->target_prefix / files_record[i], ec);
+                    bool exists = fs::exists(m_context->prefix_params().target_prefix / files_record[i], ec);
                     if (ec)
                     {
                         LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
@@ -974,7 +975,7 @@ namespace mamba
                     if (exists)
                     {
                         paths_json["paths"][i]["sha256_in_prefix"] = validation::sha256sum(
-                            m_context->target_prefix / files_record[i]
+                            m_context->prefix_params().target_prefix / files_record[i]
                         );
                     }
                     else
@@ -1072,20 +1073,20 @@ namespace mamba
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
         if (util::on_win && context.shortcuts
-            && m_context->target_prefix.filename().string()[0] != '_')
+            && m_context->prefix_params().target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)
             {
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    create_menu_from_json(m_context->target_prefix / path.path, m_context);
+                    create_menu_from_json(m_context->prefix_params().target_prefix / path.path, m_context);
                 }
             }
         }
 
-        run_script(context, m_context->target_prefix, m_pkg_info, "post-link", "", true);
+        run_script(context, m_context->prefix_params().target_prefix, m_pkg_info, "post-link", "", true);
 
-        fs::u8path prefix_meta = m_context->target_prefix / "conda-meta";
+        fs::u8path prefix_meta = m_context->prefix_params().target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))
         {
             fs::create_directory(prefix_meta);

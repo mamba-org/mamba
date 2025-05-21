@@ -51,15 +51,6 @@ namespace mamba
 
         TransactionContext(
             const Context& context,
-            const fs::u8path& target_prefix,
-            std::pair<std::string, std::string> py_versions,
-            std::vector<specs::MatchSpec> requested_specs
-        );
-
-        TransactionContext(
-            const Context& context,
-            const fs::u8path& target_prefix,
-            const fs::u8path& relocate_prefix,
             std::pair<std::string, std::string> py_versions,
             std::vector<specs::MatchSpec> requested_specs
         );
@@ -67,8 +58,6 @@ namespace mamba
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
 
-        fs::u8path target_prefix;
-        fs::u8path relocate_prefix;
         // this needs to be done when python version changes
         std::vector<specs::MatchSpec> requested_specs;
 
@@ -77,6 +66,7 @@ namespace mamba
             return *m_context;
         }
 
+        const PrefixParams& prefix_params() const;
         const LinkParams& link_params() const;
         const PythonParams& python_params() const;
 
@@ -84,6 +74,7 @@ namespace mamba
 
         bool start_pyc_compilation_process();
 
+        PrefixParams m_prefix_params;
         LinkParams m_link_params;
         PythonParams m_python_params;
 

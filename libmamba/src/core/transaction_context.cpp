@@ -114,13 +114,11 @@ namespace mamba
 
     TransactionContext::TransactionContext(
         const Context& context,
-        const fs::u8path& ltarget_prefix,
         std::pair<std::string, std::string> py_versions,
         std::vector<specs::MatchSpec> lrequested_specs
     )
-        : target_prefix(ltarget_prefix)
-        , relocate_prefix(ltarget_prefix)
-        , requested_specs(std::move(lrequested_specs))
+        : requested_specs(std::move(lrequested_specs))
+        , m_prefix_params(context.prefix_params)
         , m_link_params(context.link_params)
         , m_python_params(build_python_params(std::move(py_versions)))
         , m_context(&context)
@@ -129,30 +127,20 @@ namespace mamba
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
         }
-    }
-
-    TransactionContext::TransactionContext(
-        const Context& context,
-        const fs::u8path& ltarget_prefix,
-        const fs::u8path& lrelocate_prefix,
-        std::pair<std::string, std::string> py_versions,
-        std::vector<specs::MatchSpec> lrequested_specs
-    )
-        : TransactionContext(context, ltarget_prefix, std::move(py_versions), std::move(lrequested_specs))
-    {
-        if (lrelocate_prefix.empty())
+        if (m_prefix_params.relocate_prefix.empty())
         {
-            relocate_prefix = ltarget_prefix;
-        }
-        else
-        {
-            relocate_prefix = lrelocate_prefix;
+            m_prefix_params.relocate_prefix = m_prefix_params.target_prefix;
         }
     }
 
     TransactionContext::~TransactionContext()
     {
         wait_for_pyc_compilation();
+    }
+
+    auto TransactionContext::prefix_params() const -> const PrefixParams&
+    {
+        return m_prefix_params;
     }
 
     auto TransactionContext::link_params() const -> const LinkParams&
@@ -188,7 +176,7 @@ namespace mamba
 #ifndef _WIN32
         std::signal(SIGPIPE, SIG_IGN);
 #endif
-        const auto complete_python_path = target_prefix / python_params().python_path;
+        const auto complete_python_path = prefix_params().target_prefix / python_params().python_path;
         std::vector<std::string> command = {
             complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
         };
@@ -241,7 +229,7 @@ namespace mamba
         options.redirect.out.type = reproc::redirect::pipe;
         options.redirect.err.type = reproc::redirect::pipe;
 
-        const std::string cwd = target_prefix.string();
+        const std::string cwd = prefix_params().target_prefix.string();
         options.working_directory = cwd.c_str();
 
         auto [wrapped_command, script_file] = prepare_wrapped_call(

@@ -64,9 +64,6 @@ namespace mamba
     class Logger;
     class Context;
 
-    std::string env_name(const Context& context, const fs::u8path& prefix);
-    std::string env_name(const Context& context);
-
     struct ContextOptions
     {
         bool enable_logging = false;

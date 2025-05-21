@@ -9,6 +9,7 @@
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
@@ -164,7 +165,7 @@ namespace mamba
             std::string name, location;
             if (!ctx.prefix_params.target_prefix.empty())
             {
-                name = env_name(ctx);
+                name = env_name(ctx.envs_dirs, ctx.prefix_params.root_prefix, ctx.prefix_params.target_prefix);
                 location = ctx.prefix_params.target_prefix.string();
             }
             else

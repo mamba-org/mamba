@@ -19,6 +19,7 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -451,6 +452,32 @@ namespace mamba
 
     namespace
     {
+        void print_activation_message(const Context& ctx)
+        {
+            // Check that the target prefix is not active before printing the activation message
+            if (util::get_env("CONDA_PREFIX") != ctx.prefix_params.target_prefix)
+            {
+                // Get the name of the executable used directly from the command.
+                const auto executable = get_self_exe_path().stem().string();
+
+                // Get the name of the environment
+                const auto environment = env_name(ctx.envs_dirs, ctx.prefix_params.root_prefix, ctx.prefix_params.target_prefix);
+
+                Console::stream() << "\nTo activate this environment, use:\n\n"
+                                    "    "
+                                << executable << " activate " << environment
+                                << "\n\n"
+                                    "Or to execute a single command in this environment, use:\n\n"
+                                    "    "
+                                << executable
+                                << " run "
+                                // Use -n or -p depending on if the env_name is a full prefix or just
+                                // a name.
+                                << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                                << environment << " mycommand\n";
+            }
+        }
+
         void install_specs_impl(
             Context& ctx,
             ChannelContext& channel_context,

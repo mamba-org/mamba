@@ -530,7 +530,6 @@ namespace mamba
 
     bool UnlinkPackage::execute()
     {
-        const auto& context = m_context->context();
         // find the recorded JSON file
         fs::u8path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
@@ -545,7 +544,7 @@ namespace mamba
             std::string fpath = path["_path"];
             if (std::regex_match(fpath, MENU_PATH_REGEX))
             {
-                remove_menu_from_json(context, m_context->target_prefix / fpath, m_context);
+                remove_menu_from_json(m_context->target_prefix / fpath, m_context);
             }
 
             unlink_path(path);
@@ -1079,7 +1078,7 @@ namespace mamba
             {
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    create_menu_from_json(context, m_context->target_prefix / path.path, m_context);
+                    create_menu_from_json(m_context->target_prefix / path.path, m_context);
                 }
             }
         }

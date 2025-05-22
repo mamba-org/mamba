@@ -154,10 +154,9 @@ namespace mamba
                 [&](std::vector<std::string> categories, size_t num_conda, size_t num_pip)
             {
                 std::vector<detail::other_pkg_mgr_spec> other_specs;
-                solver::DatabaseVariant db_variant = std::move(db);
                 auto transaction = create_explicit_transaction_from_lockfile(
                     ctx,
-                    db_variant,
+                    db,
                     lockfile_path,
                     categories,
                     pkg_cache,

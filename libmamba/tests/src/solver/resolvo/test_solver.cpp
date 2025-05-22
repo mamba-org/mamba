@@ -767,19 +767,20 @@ parse_repodata_json(
                                 .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                 .value();
 
-    auto signatures = [&]
-    {
-        auto maybe_sigs = repodata["signatures"];
-        if (!maybe_sigs.error() && verify_artifacts)
-        {
-            return std::make_optional(maybe_sigs);
-        }
-        else
-        {
-            LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
-            return decltype(std::make_optional(maybe_sigs)){};
-        }
-    }();
+    // TODO: it does not seems resolvo can handle setting signatures on solvables for now
+    // auto signatures = [&]
+    // {
+    //     auto maybe_sigs = repodata["signatures"];
+    //     if (!maybe_sigs.error() && verify_artifacts)
+    //     {
+    //         return std::make_optional(maybe_sigs);
+    //     }
+    //     else
+    //     {
+    //         LOG_DEBUG << "No signatures available or requested. Downloading without verifying
+    //         artifacts."; return decltype(std::make_optional(maybe_sigs)){};
+    //     }
+    // }();
 
     // Process packages.conda first
     if (auto pkgs = repodata["packages.conda"]; !pkgs.error())

@@ -11,7 +11,7 @@
 
 #include <reproc++/reproc.hpp>
 
-#include "mamba/core/context.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -42,34 +42,30 @@ namespace mamba
             fs::u8path site_packages_path;
         };
 
-        TransactionContext();
-        TransactionContext(TransactionContext&&) = default;
-
-        explicit TransactionContext(const Context& context);
-
-        TransactionContext& operator=(TransactionContext&&) = default;
+        // TODO: remove this constructor when refactoring
+        // the MTransaction class.
+        TransactionContext() = default;
 
         TransactionContext(
-            const Context& context,
+            TransactionParams transaction_params,
             std::pair<std::string, std::string> py_versions,
             std::vector<specs::MatchSpec> requested_specs
         );
+
         ~TransactionContext();
+
+        TransactionContext(TransactionContext&&) = default;
+        TransactionContext& operator=(TransactionContext&&) = default;
+
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
-
-        // this needs to be done when python version changes
-        std::vector<specs::MatchSpec> requested_specs;
-
-        const Context& context() const
-        {
-            return *m_context;
-        }
 
         const TransactionParams& transaction_params() const;
         const PrefixParams& prefix_params() const;
         const LinkParams& link_params() const;
         const PythonParams& python_params() const;
+
+        const std::vector<specs::MatchSpec>& requested_specs() const;
 
     private:
 
@@ -77,14 +73,11 @@ namespace mamba
 
         TransactionParams m_transaction_params;
         PythonParams m_python_params;
+        std::vector<specs::MatchSpec> m_requested_specs;
 
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;
         std::unique_ptr<TemporaryFile> m_pyc_script_file = nullptr;
         std::unique_ptr<TemporaryFile> m_pyc_compileall = nullptr;
-
-        const Context* m_context = nullptr;  // TODO: replace by a struct with the necessary params.
-
-        void throw_if_not_ready() const;
     };
 }  // namespace mamba
 

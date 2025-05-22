@@ -992,8 +992,8 @@ namespace mamba
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
 
-        specs::MatchSpec* requested_spec = nullptr;
-        for (auto& ms : m_context->requested_specs)
+        const specs::MatchSpec* requested_spec = nullptr;
+        for (auto& ms : m_context->requested_specs())
         {
             if (ms.name().contains(m_pkg_info.name))
             {

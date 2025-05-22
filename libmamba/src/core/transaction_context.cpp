@@ -118,8 +118,7 @@ namespace mamba
         std::vector<specs::MatchSpec> lrequested_specs
     )
         : requested_specs(std::move(lrequested_specs))
-        , m_prefix_params(context.prefix_params)
-        , m_link_params(context.link_params)
+        , m_transaction_params(context.transaction_params())
         , m_python_params(build_python_params(std::move(py_versions)))
         , m_context(&context)
     {
@@ -127,9 +126,10 @@ namespace mamba
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
         }
-        if (m_prefix_params.relocate_prefix.empty())
+        PrefixParams& pp = m_transaction_params.prefix_params;
+        if (pp.relocate_prefix.empty())
         {
-            m_prefix_params.relocate_prefix = m_prefix_params.target_prefix;
+            pp.relocate_prefix = pp.target_prefix;
         }
     }
 
@@ -138,14 +138,18 @@ namespace mamba
         wait_for_pyc_compilation();
     }
 
+    auto TransactionContext::transaction_params() const -> const TransactionParams&
+    {
+        return m_transaction_params;
+    }
     auto TransactionContext::prefix_params() const -> const PrefixParams&
     {
-        return m_prefix_params;
+        return m_transaction_params.prefix_params;
     }
 
     auto TransactionContext::link_params() const -> const LinkParams&
     {
-        return m_link_params;
+        return m_transaction_params.link_params;
     }
 
     auto TransactionContext::python_params() const -> const PythonParams&

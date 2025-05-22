@@ -44,4 +44,16 @@ namespace mamba
         std::size_t download_threads{ 5 };
         int extract_threads{ 0 };
     };
+
+    struct TransactionParams
+    {
+        bool is_mamba_exe;
+        bool json_output;
+        std::vector<fs::u8path> envs_dirs;
+        std::string platform;
+
+        PrefixParams prefix_params;
+        LinkParams link_params;
+        ThreadsParams threads_params;
+    };
 }

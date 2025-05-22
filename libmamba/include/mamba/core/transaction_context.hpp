@@ -66,6 +66,7 @@ namespace mamba
             return *m_context;
         }
 
+        const TransactionParams& transaction_params() const;
         const PrefixParams& prefix_params() const;
         const LinkParams& link_params() const;
         const PythonParams& python_params() const;
@@ -74,8 +75,7 @@ namespace mamba
 
         bool start_pyc_compilation_process();
 
-        PrefixParams m_prefix_params;
-        LinkParams m_link_params;
+        TransactionParams m_transaction_params;
         PythonParams m_python_params;
 
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;

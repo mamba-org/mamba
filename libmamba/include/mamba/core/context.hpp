@@ -209,6 +209,19 @@ namespace mamba
             };
         }
 
+        TransactionParams transaction_params() const
+        {
+            return {
+                /* .is_mamba_exe */ command_params.is_mamba_exe,
+                /* .json_output */ output_params.json,
+                /* .envs_dirs */ envs_dirs,
+                /* .platform */ platform,
+                /* .prefix_params */ prefix_params,
+                /* .link_params */ link_params,
+                /* .threads_params */ threads_params
+            };
+        }
+
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
 

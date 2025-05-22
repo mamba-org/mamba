@@ -545,7 +545,7 @@ namespace mamba
             std::string fpath = path["_path"];
             if (std::regex_match(fpath, MENU_PATH_REGEX))
             {
-                remove_menu_from_json(m_context->prefix_params().target_prefix / fpath, m_context);
+                remove_menu_from_json(m_context->prefix_params().target_prefix / fpath, *m_context);
             }
 
             unlink_path(path);
@@ -1079,7 +1079,7 @@ namespace mamba
             {
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    create_menu_from_json(m_context->prefix_params().target_prefix / path.path, m_context);
+                    create_menu_from_json(m_context->prefix_params().target_prefix / path.path, *m_context);
                 }
             }
         }

@@ -198,18 +198,13 @@ namespace mamba
 
 
     void
-    replace_variables(std::string& text, TransactionContext* transaction_context)
+    replace_variables(std::string& text, const TransactionContext& transaction_context)
     {
-        const Context& ctx = transaction_context->context();
-        fs::u8path root_prefix = transaction_context->prefix_params().root_prefix;
+        const Context& ctx = transaction_context.context();
+        fs::u8path root_prefix = transaction_context.prefix_params().root_prefix;
 
-        fs::u8path target_prefix;
-        std::string py_ver;
-        if (transaction_context)
-        {
-            target_prefix = transaction_context->prefix_params().target_prefix;
-            py_ver = transaction_context->python_params().python_version;
-        }
+        fs::u8path target_prefix = transaction_context.prefix_params().target_prefix;
+        std::string py_ver = transaction_context.python_params().python_version;
 
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
@@ -266,11 +261,11 @@ namespace mamba
 
         void create_remove_shortcut_impl(
             const fs::u8path& json_file,
-            TransactionContext* transaction_context,
+            const TransactionContext& transaction_context,
             [[maybe_unused]] bool remove
         )
         {
-            const Context& ctx = transaction_context->context();
+            const Context& ctx = transaction_context.context();
             std::string json_content = mamba::read_contents(json_file);
             replace_variables(json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
@@ -278,7 +273,7 @@ namespace mamba
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
             std::string name_suffix;
-            const PrefixParams& pp = transaction_context->prefix_params();
+            const PrefixParams& pp = transaction_context.prefix_params();
             std::string e_name = detail::get_formatted_env_name(ctx.envs_dirs, pp.root_prefix, pp.target_prefix);
 
             if (e_name.size())
@@ -482,7 +477,7 @@ namespace mamba
 
     void remove_menu_from_json(
         const fs::u8path& json_file,
-        TransactionContext* transaction_context
+        const TransactionContext& transaction_context
     )
     {
         try
@@ -497,7 +492,7 @@ namespace mamba
 
     void create_menu_from_json(
         const fs::u8path& json_file,
-        TransactionContext* transaction_context
+        const TransactionContext& transaction_context
     )
     {
         try

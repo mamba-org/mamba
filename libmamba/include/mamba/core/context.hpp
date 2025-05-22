@@ -214,6 +214,7 @@ namespace mamba
             return {
                 /* .is_mamba_exe */ command_params.is_mamba_exe,
                 /* .json_output */ output_params.json,
+                /* .shortcut */ shortcuts,
                 /* .envs_dirs */ envs_dirs,
                 /* .platform */ platform,
                 /* .prefix_params */ prefix_params,

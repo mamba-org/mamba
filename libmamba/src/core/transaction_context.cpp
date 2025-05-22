@@ -215,8 +215,7 @@ namespace mamba
         options.env.behavior = reproc::env::empty;
 #endif
         std::map<std::string, std::string> envmap;
-        auto& ctx = context();
-        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.threads_params.extract_threads);
+        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(m_transaction_params.threads_params.extract_threads);
         auto qemu_ld_prefix = util::get_env("QEMU_LD_PREFIX");
         if (qemu_ld_prefix)
         {
@@ -237,9 +236,9 @@ namespace mamba
         options.working_directory = cwd.c_str();
 
         auto [wrapped_command, script_file] = prepare_wrapped_call(
-            context().prefix_params,
+            prefix_params(),
             command,
-            ctx.command_params.is_mamba_exe
+            transaction_params().is_mamba_exe
         );
         m_pyc_script_file = std::move(script_file);
 

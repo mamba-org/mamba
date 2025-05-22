@@ -198,13 +198,11 @@ namespace mamba
 
 
     void
-    replace_variables(std::string& text, const TransactionContext& transaction_context)
+    replace_variables(std::string& text, const TransactionContext& context)
     {
-        const Context& ctx = transaction_context.context();
-        fs::u8path root_prefix = transaction_context.prefix_params().root_prefix;
-
-        fs::u8path target_prefix = transaction_context.prefix_params().target_prefix;
-        std::string py_ver = transaction_context.python_params().python_version;
+        fs::u8path root_prefix = context.prefix_params().root_prefix;
+        fs::u8path target_prefix = context.prefix_params().target_prefix;
+        std::string py_ver = context.python_params().python_version;
 
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
@@ -214,7 +212,7 @@ namespace mamba
 
         auto to_forward_slash = [](const fs::u8path& p) { return util::path_to_posix(p.string()); };
 
-        auto platform_split = util::split(ctx.platform, "-");
+        auto platform_split = util::split(context.transaction_params().platform, "-");
         std::string platform_bitness;
         if (platform_split.size() >= 2)
         {
@@ -232,7 +230,7 @@ namespace mamba
             { "${PY_VER}", py_ver },
             { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
             { "${DISTRIBUTION_NAME}", distribution_name },
-            { "${ENV_NAME}", detail::get_formatted_env_name(ctx.envs_dirs, root_prefix, target_prefix) },
+            { "${ENV_NAME}", detail::get_formatted_env_name(context.transaction_params().envs_dirs, root_prefix, target_prefix) },
             { "${PLATFORM}", platform_bitness },
         };
 
@@ -261,20 +259,19 @@ namespace mamba
 
         void create_remove_shortcut_impl(
             const fs::u8path& json_file,
-            const TransactionContext& transaction_context,
+            const TransactionContext& context,
             [[maybe_unused]] bool remove
         )
         {
-            const Context& ctx = transaction_context.context();
             std::string json_content = mamba::read_contents(json_file);
-            replace_variables(json_content, transaction_context);
+            replace_variables(json_content, context);
             auto j = nlohmann::json::parse(json_content);
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
             std::string name_suffix;
-            const PrefixParams& pp = transaction_context.prefix_params();
-            std::string e_name = detail::get_formatted_env_name(ctx.envs_dirs, pp.root_prefix, pp.target_prefix);
+            const PrefixParams& pp = context.prefix_params();
+            std::string e_name = detail::get_formatted_env_name(context.transaction_params().envs_dirs, pp.root_prefix, pp.target_prefix);
 
             if (e_name.size())
             {

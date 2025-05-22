@@ -317,8 +317,8 @@ namespace mamba
        failure
     */
     bool run_script(
-        const Context& context,
-        const fs::u8path& prefix,
+        const TransactionParams& transaction_params,
+        const PrefixParams& prefix_params,
         const specs::PackageInfo& pkg_info,
         const std::string& action = "post-link",
         const std::string& env_prefix = "",
@@ -328,12 +328,12 @@ namespace mamba
         fs::u8path path;
         if (util::on_win)
         {
-            path = prefix / get_bin_directory_short_path()
+            path = prefix_params.target_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".bat");
         }
         else
         {
-            path = prefix / get_bin_directory_short_path()
+            path = prefix_params.target_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".sh");
         }
 
@@ -370,10 +370,10 @@ namespace mamba
             if (activate)
             {
                 script_file = wrap_call(
-                    context.prefix_params.root_prefix,
-                    prefix,
+                    prefix_params.root_prefix,
+                    prefix_params.target_prefix,
                     { "@CALL", path.string() },
-                    context.command_params.is_mamba_exe
+                    transaction_params.is_mamba_exe
                 );
 
                 command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
@@ -397,10 +397,10 @@ namespace mamba
             {
                 // std::string caller
                 script_file = wrap_call(
-                    context.prefix_params.root_prefix.string(),
-                    prefix,
+                    prefix_params.root_prefix.string(),
+                    prefix_params.target_prefix,
                     { ".", path.string() },
-                    context.command_params.is_mamba_exe
+                    transaction_params.is_mamba_exe
                 );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());
@@ -413,8 +413,8 @@ namespace mamba
             }
         }
 
-        envmap["ROOT_PREFIX"] = context.prefix_params.root_prefix.string();
-        envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
+        envmap["ROOT_PREFIX"] = prefix_params.root_prefix.string();
+        envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix_params.target_prefix.string();
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
@@ -445,7 +445,7 @@ namespace mamba
         auto [status, ec] = reproc::run(command_args, options);
 
         auto msg = get_prefix_messages(envmap["PREFIX"]);
-        if (context.output_params.json)
+        if (transaction_params.json_output)
         {
             // TODO implement cerr also on Console?
             std::cerr << msg;
@@ -846,8 +846,6 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
-        const auto& context = m_context->context();
-
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
@@ -1072,7 +1070,7 @@ namespace mamba
         }
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
-        if (util::on_win && context.shortcuts
+        if (util::on_win && m_context->transaction_params().shortcuts
             && m_context->prefix_params().target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)
@@ -1084,7 +1082,7 @@ namespace mamba
             }
         }
 
-        run_script(context, m_context->prefix_params().target_prefix, m_pkg_info, "post-link", "", true);
+        run_script(m_context->transaction_params(), m_context->prefix_params(), m_pkg_info, "post-link", "", true);
 
         fs::u8path prefix_meta = m_context->prefix_params().target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))

@@ -157,27 +157,27 @@ namespace mamba
 
         populate_context_channels_from_specs(raw_update_specs, ctx);
 
-        solver::DatabaseVariant db = ctx.experimental_resolvo_solver
-                                         ? solver::DatabaseVariant(
-                                               std::in_place_type<solver::resolvo::Database>,
-                                               channel_context.params()
-                                           )
-                                         : solver::DatabaseVariant(solver::libsolv::Database{
-                                               channel_context.params(),
-                                               {
-                                                   ctx.experimental_matchspec_parsing
-                                                       ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                                               } });
+        solver::DatabaseVariant db_variant = ctx.experimental_resolvo_solver
+                                                 ? solver::DatabaseVariant(
+                                                       std::in_place_type<solver::resolvo::Database>,
+                                                       channel_context.params()
+                                                   )
+                                                 : solver::DatabaseVariant(solver::libsolv::Database{
+                                                       channel_context.params(),
+                                                       {
+                                                           ctx.experimental_matchspec_parsing
+                                                               ? solver::libsolv::MatchSpecParser::Mamba
+                                                               : solver::libsolv::MatchSpecParser::Libsolv,
+                                                       } });
 
         if (!ctx.experimental_resolvo_solver)
         {
-            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
+            add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
         }
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
+        auto exp_loaded = load_channels(ctx, channel_context, db_variant, package_caches);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());
@@ -198,7 +198,7 @@ namespace mamba
                                  std::reference_wrapper<solver::libsolv::Database>,
                                  std::reference_wrapper<solver::resolvo::Database>>
                 { return std::ref(db); },
-                db
+                db_variant
             ),
             prefix_data
         );
@@ -224,7 +224,7 @@ namespace mamba
         using LibsolvOutcome = std::variant<mamba::solver::Solution, mamba::solver::libsolv::UnSolvable>;
         auto outcome = ctx.experimental_resolvo_solver
                            ? solver::resolvo::Solver()
-                                 .solve(std::get<solver::resolvo::Database>(db), request)
+                                 .solve(std::get<solver::resolvo::Database>(db_variant), request)
                                  .map(
                                      [](auto&& result) -> LibsolvOutcome
                                      {
@@ -233,7 +233,7 @@ namespace mamba
                                      }
                                  )
                            : solver::libsolv::Solver().solve(
-                                 std::get<solver::libsolv::Database>(db),
+                                 std::get<solver::libsolv::Database>(db_variant),
                                  request,
                                  ctx.experimental_matchspec_parsing
                                      ? solver::libsolv::MatchSpecParser::Mamba
@@ -248,7 +248,7 @@ namespace mamba
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&result))
         {
             unsolvable->explain_problems_to(
-                std::get<solver::libsolv::Database>(db),
+                std::get<solver::libsolv::Database>(db_variant),
                 LOG_ERROR,
                 {
                     /* .unavailable= */ ctx.graphics_params.palette.failure,
@@ -260,7 +260,7 @@ namespace mamba
                 Console::instance().json_write(nlohmann::json{
                     { "success", false },
                     { "solver_problems",
-                      unsolvable->problems(std::get<solver::libsolv::Database>(db)) } });
+                      unsolvable->problems(std::get<solver::libsolv::Database>(db_variant)) } });
             }
             throw mamba_error(
                 "Could not solve for environment specs",
@@ -269,7 +269,13 @@ namespace mamba
         }
 
         Console::instance().json_write(nlohmann::json{ { "success", true } });
-        auto transaction = MTransaction(ctx, db, request, std::get<solver::Solution>(result), package_caches);
+        auto transaction = MTransaction(
+            ctx,
+            db_variant,
+            request,
+            std::get<solver::Solution>(result),
+            package_caches
+        );
 
 
         auto execute_transaction = [&](MTransaction& trans)

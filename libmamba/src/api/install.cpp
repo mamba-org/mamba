@@ -745,22 +745,22 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            solver::DatabaseVariant db = ctx.experimental_resolvo_solver
-                                             ? solver::DatabaseVariant(
-                                                   std::in_place_type<solver::resolvo::Database>,
-                                                   channel_context.params()
-                                               )
-                                             : solver::DatabaseVariant(
-                                                   std::in_place_type<solver::libsolv::Database>,
-                                                   channel_context.params(),
-                                                   solver::libsolv::Database::Settings{
-                                                       ctx.experimental_matchspec_parsing
-                                                           ? solver::libsolv::MatchSpecParser::Mamba
-                                                           : solver::libsolv::MatchSpecParser::Libsolv }
-                                               );
+            solver::DatabaseVariant db_variant = ctx.experimental_resolvo_solver
+                                                     ? solver::DatabaseVariant(
+                                                           std::in_place_type<solver::resolvo::Database>,
+                                                           channel_context.params()
+                                                       )
+                                                     : solver::DatabaseVariant(
+                                                           std::in_place_type<solver::libsolv::Database>,
+                                                           channel_context.params(),
+                                                           solver::libsolv::Database::Settings{
+                                                               ctx.experimental_matchspec_parsing
+                                                                   ? solver::libsolv::MatchSpecParser::Mamba
+                                                                   : solver::libsolv::MatchSpecParser::Libsolv }
+                                                       );
             if (!ctx.experimental_resolvo_solver)
             {
-                add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db));
+                add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
             }
 
             init_channels(ctx, channel_context);
@@ -780,11 +780,11 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db))
+            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db_variant))
             {
                 load_installed_packages_in_database(ctx, *libsolv_db, prefix_data);
             }
-            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db))
+            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db_variant))
             {
                 load_installed_packages_in_database(ctx, *resolvo_db, prefix_data);
             }
@@ -792,7 +792,7 @@ namespace mamba
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the database's pool before this line
-            auto transaction = create_transaction(db, pkg_caches, others);
+            auto transaction = create_transaction(db_variant, pkg_caches, others);
 
             std::vector<LockFile> lock_pkgs;
 

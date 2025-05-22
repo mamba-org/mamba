@@ -747,7 +747,7 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.platform == "osx-arm64")
             {
-                codesign(dst, m_context->context().output_params.verbosity > 1);
+                codesign(dst, m_context->transaction_params().verbosity > 1);
             }
 #endif
             return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());

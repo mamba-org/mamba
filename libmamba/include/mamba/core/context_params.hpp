@@ -49,6 +49,7 @@ namespace mamba
     {
         bool is_mamba_exe;
         bool json_output;
+        int verbosity;
         bool shortcuts;
         std::vector<fs::u8path> envs_dirs;
         std::string platform;

@@ -13,6 +13,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
+#include <simdjson.h>
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -564,5 +565,175 @@ namespace mamba::specs
 
         pkg.dependencies = j.value("depends", std::vector<std::string>());
         pkg.constrains = j.value("constrains", std::vector<std::string>());
+    }
+
+    auto PackageInfo::from_json(
+        const std::string_view& filename,
+        simdjson::ondemand::object& pkg,
+        const CondaURL& repo_url,
+        const std::string& channel_id
+    ) -> expected_parse_t<PackageInfo>
+    {
+        PackageInfo package_info;
+
+        package_info.channel = channel_id;
+        package_info.filename = filename;
+        package_info.package_url = (repo_url / filename).str(CondaURL::Credentials::Show);
+
+        if (auto fn = pkg["fn"]; !fn.error())
+        {
+            package_info.name = fn.get_string().value_unsafe();
+        }
+        else
+        {
+            // Fallback from key entry
+            package_info.name = filename;
+        }
+
+        if (auto name = pkg["name"]; !name.error())
+        {
+            package_info.name = name.get_string().value_unsafe();
+        }
+        else
+        {
+            return make_unexpected_parse(fmt::format(R"(Found invalid name in "{}")", filename));
+        }
+
+        if (auto version = pkg["version"]; !version.error())
+        {
+            package_info.version = version.get_string().value_unsafe();
+        }
+        else
+        {
+            return make_unexpected_parse(fmt::format(R"(Found invalid version in "{}")", filename));
+        }
+
+        if (auto build_string = pkg["build"]; !build_string.error())
+        {
+            package_info.build_string = build_string.get_string().value_unsafe();
+        }
+        else
+        {
+            return make_unexpected_parse(fmt::format(R"(Found invalid build in "{}")", filename));
+        }
+
+        if (auto build_number = pkg["build_number"]; !build_number.error())
+        {
+            package_info.build_number = build_number.get_uint64().value_unsafe();
+        }
+        else
+        {
+            return make_unexpected_parse(fmt::format(R"(Found invalid build_number in "{}")", filename)
+            );
+        }
+
+        if (auto subdir = pkg["subdir"]; !subdir.error())
+        {
+            package_info.platform = subdir.get_string().value_unsafe();
+        }
+
+        if (auto size = pkg["size"]; !size.error())
+        {
+            package_info.size = size.get_uint64().value_unsafe();
+        }
+
+        if (auto md5 = pkg["md5"]; !md5.error())
+        {
+            package_info.md5 = md5.get_string().value_unsafe();
+        }
+
+        if (auto sha256 = pkg["sha256"]; !sha256.error())
+        {
+            package_info.sha256 = sha256.get_string().value_unsafe();
+        }
+
+        if (auto elem = pkg["noarch"]; !elem.error())
+        {
+            if (auto noarch = elem.get_bool(); !noarch.error() && noarch.value_unsafe())
+            {
+                package_info.noarch = NoArchType::Generic;
+            }
+            else if (elem.is_string())
+            {
+                package_info.noarch = NoArchType::Generic;
+            }
+        }
+
+        if (auto license = pkg["license"]; !license.error())
+        {
+            package_info.license = license.get_string().value_unsafe();
+        }
+
+        // TODO conda timestamp are not Unix timestamp.
+        // Libsolv normalize them this way, we need to do the same here otherwise the current
+        // package may get arbitrary priority.
+        if (auto timestamp = pkg["timestamp"]; !timestamp.error())
+        {
+            const auto time = timestamp.get_uint64().value_unsafe();
+            constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
+            package_info.timestamp = (time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time;
+        }
+
+        if (auto depends = pkg["depends"]; !depends.error())
+        {
+            if (auto arr = depends.get_array(); !arr.error())
+            {
+                for (auto elem : arr)
+                {
+                    if (!elem.error() && elem.is_string())
+                    {
+                        package_info.dependencies.emplace_back(elem.get_string().value_unsafe());
+                    }
+                }
+            }
+        }
+
+        if (auto constrains = pkg["constrains"]; !constrains.error())
+        {
+            if (auto arr = constrains.get_array(); !arr.error())
+            {
+                for (auto elem : arr)
+                {
+                    if (!elem.error() && elem.is_string())
+                    {
+                        package_info.constrains.emplace_back(elem.get_string().value_unsafe());
+                    }
+                }
+            }
+        }
+
+        if (auto track_features = pkg["track_features"]; !track_features.error())
+        {
+            if (auto track_features_arr = track_features.get_array(); !track_features_arr.error())
+            {
+                for (auto elem : track_features_arr)
+                {
+                    if (auto feat = elem.get_string(); !feat.error())
+                    {
+                        package_info.track_features.emplace_back(feat.value());
+                    }
+                }
+            }
+            else if (auto track_features_str = track_features.get_string();
+                     !track_features_str.error())
+            {
+                const auto lsplit_track_features = [](std::string_view features)
+                {
+                    constexpr auto is_sep = [](char c) -> bool
+                    { return (c == ',') || util::is_space(c); };
+                    auto [_, tail] = util::lstrip_if_parts(features, is_sep);
+                    return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
+                };
+
+                auto splits = lsplit_track_features(track_features_str.value());
+                while (!splits[0].empty())
+                {
+                    package_info.track_features.emplace_back(splits[0]);
+                    splits = lsplit_track_features(splits[1]);
+                }
+            }
+        }
+
+        return package_info;
     }
 }

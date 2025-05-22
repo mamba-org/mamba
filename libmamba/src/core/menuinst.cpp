@@ -28,7 +28,8 @@ namespace mamba
         std::string get_formatted_env_name(
             const std::vector<fs::u8path>& envs_dirs,
             const fs::u8path& root_prefix,
-            const fs::u8path& target_prefix)
+            const fs::u8path& target_prefix
+        )
         {
             std::string name = env_name(envs_dirs, root_prefix, target_prefix);
             if (name.find_first_of("\\/") != std::string::npos)
@@ -197,8 +198,7 @@ namespace mamba
 #endif
 
 
-    void
-    replace_variables(std::string& text, const TransactionContext& context)
+    void replace_variables(std::string& text, const TransactionContext& context)
     {
         fs::u8path root_prefix = context.prefix_params().root_prefix;
         fs::u8path target_prefix = context.prefix_params().target_prefix;
@@ -230,7 +230,12 @@ namespace mamba
             { "${PY_VER}", py_ver },
             { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
             { "${DISTRIBUTION_NAME}", distribution_name },
-            { "${ENV_NAME}", detail::get_formatted_env_name(context.transaction_params().envs_dirs, root_prefix, target_prefix) },
+            { "${ENV_NAME}",
+              detail::get_formatted_env_name(
+                  context.transaction_params().envs_dirs,
+                  root_prefix,
+                  target_prefix
+              ) },
             { "${PLATFORM}", platform_bitness },
         };
 
@@ -271,7 +276,11 @@ namespace mamba
 
             std::string name_suffix;
             const PrefixParams& pp = context.prefix_params();
-            std::string e_name = detail::get_formatted_env_name(context.transaction_params().envs_dirs, pp.root_prefix, pp.target_prefix);
+            std::string e_name = detail::get_formatted_env_name(
+                context.transaction_params().envs_dirs,
+                pp.root_prefix,
+                pp.target_prefix
+            );
 
             if (e_name.size())
             {
@@ -472,10 +481,8 @@ namespace mamba
         }
     }
 
-    void remove_menu_from_json(
-        const fs::u8path& json_file,
-        const TransactionContext& transaction_context
-    )
+    void
+    remove_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context)
     {
         try
         {
@@ -487,10 +494,8 @@ namespace mamba
         }
     }
 
-    void create_menu_from_json(
-        const fs::u8path& json_file,
-        const TransactionContext& transaction_context
-    )
+    void
+    create_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context)
     {
         try
         {

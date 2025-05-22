@@ -624,8 +624,7 @@ namespace mamba
                     );
 
                     // TODO add some unicode tests here?
-                    trash_index << fs::relative(trash_file, target_prefix).string()
-                                << "\n";
+                    trash_index << fs::relative(trash_file, target_prefix).string() << "\n";
                     return 1;
                 }
 
@@ -1532,7 +1531,12 @@ namespace mamba
                 );
             }
 
-            script_file = wrap_call(prefix_params.root_prefix, prefix_params.target_prefix, cmd, is_mamba_exe);
+            script_file = wrap_call(
+                prefix_params.root_prefix,
+                prefix_params.target_prefix,
+                cmd,
+                is_mamba_exe
+            );
 
             command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
         }
@@ -1550,7 +1554,12 @@ namespace mamba
                 shell_path = "sh";
             }
 
-            script_file = wrap_call(prefix_params.root_prefix, prefix_params.target_prefix, cmd, is_mamba_exe);
+            script_file = wrap_call(
+                prefix_params.root_prefix,
+                prefix_params.target_prefix,
+                cmd,
+                is_mamba_exe
+            );
             command_args.push_back(shell_path.string());
             command_args.push_back(script_file->path().string());
         }

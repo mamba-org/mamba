@@ -139,7 +139,10 @@ namespace mamba
                 prefix = "/home/user/micromamba/envs/a.txt";
                 REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "a.txt");
                 prefix = "/home/user/micromamba/envs/abc/a.txt";
-                REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "/home/user/micromamba/envs/abc/a.txt");
+                REQUIRE(
+                    env_name(ctx.envs_dirs, pp.root_prefix, prefix)
+                    == "/home/user/micromamba/envs/abc/a.txt"
+                );
                 prefix = "/home/user/env";
                 REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "/home/user/env");
             }

@@ -167,7 +167,8 @@ namespace mamba
         fs::u8path python_path;
         if (m_context->python_params().has_python)
         {
-            python_path = m_context->prefix_params().relocate_prefix / m_context->python_params().python_path;
+            python_path = m_context->prefix_params().relocate_prefix
+                          / m_context->python_params().python_path;
         }
         if (!python_path.empty())
         {
@@ -187,10 +188,7 @@ namespace mamba
             fs::remove(target_prefix / script_exe);
         }
 
-        std::ofstream conda_exe_f = open_ofstream(
-            target_prefix / script_exe,
-            std::ios::binary
-        );
+        std::ofstream conda_exe_f = open_ofstream(target_prefix / script_exe, std::ios::binary);
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
         make_executable(target_prefix / script_exe);
@@ -532,7 +530,8 @@ namespace mamba
     bool UnlinkPackage::execute()
     {
         // find the recorded JSON file
-        fs::u8path json = m_context->prefix_params().target_prefix / "conda-meta" / (m_specifier + ".json");
+        fs::u8path json = m_context->prefix_params().target_prefix / "conda-meta"
+                          / (m_specifier + ".json");
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
         LOG_DEBUG << "Use metadata found at '" << json.string() << "'";
 
@@ -585,7 +584,10 @@ namespace mamba
         fs::u8path dst, rel_dst;
         if (noarch_python)
         {
-            rel_dst = get_python_noarch_target_path(subtarget, m_context->python_params().site_packages_path);
+            rel_dst = get_python_noarch_target_path(
+                subtarget,
+                m_context->python_params().site_packages_path
+            );
             dst = m_context->prefix_params().target_prefix / rel_dst;
         }
         else
@@ -939,13 +941,17 @@ namespace mamba
             {
                 // here we try to avoid recomputing the costly sha256 sum
                 std::error_code ec;
-                auto points_to = fs::canonical(m_context->prefix_params().target_prefix / files_record[i], ec);
+                auto points_to = fs::canonical(
+                    m_context->prefix_params().target_prefix / files_record[i],
+                    ec
+                );
                 bool found = false;
                 if (!ec)
                 {
                     for (std::size_t pix = 0; pix < files_record.size(); ++pix)
                     {
-                        if ((m_context->prefix_params().target_prefix / files_record[pix]) == points_to)
+                        if ((m_context->prefix_params().target_prefix / files_record[pix])
+                            == points_to)
                         {
                             if (paths_json["paths"][pix].contains("sha256_in_prefix"))
                             {
@@ -962,7 +968,10 @@ namespace mamba
                 }
                 if (!found)
                 {
-                    bool exists = fs::exists(m_context->prefix_params().target_prefix / files_record[i], ec);
+                    bool exists = fs::exists(
+                        m_context->prefix_params().target_prefix / files_record[i],
+                        ec
+                    );
                     if (ec)
                     {
                         LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
@@ -1023,9 +1032,10 @@ namespace mamba
             {
                 if (std::regex_match(sub_path_json.path, py_file_re))
                 {
-                    for_compilation.push_back(
-                        get_python_noarch_target_path(sub_path_json.path, m_context->python_params().site_packages_path)
-                    );
+                    for_compilation.push_back(get_python_noarch_target_path(
+                        sub_path_json.path,
+                        m_context->python_params().site_packages_path
+                    ));
                 }
             }
 
@@ -1077,12 +1087,22 @@ namespace mamba
             {
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    create_menu_from_json(m_context->prefix_params().target_prefix / path.path, *m_context);
+                    create_menu_from_json(
+                        m_context->prefix_params().target_prefix / path.path,
+                        *m_context
+                    );
                 }
             }
         }
 
-        run_script(m_context->transaction_params(), m_context->prefix_params(), m_pkg_info, "post-link", "", true);
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_pkg_info,
+            "post-link",
+            "",
+            true
+        );
 
         fs::u8path prefix_meta = m_context->prefix_params().target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))

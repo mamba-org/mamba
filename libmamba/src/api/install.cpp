@@ -461,20 +461,24 @@ namespace mamba
                 const auto executable = get_self_exe_path().stem().string();
 
                 // Get the name of the environment
-                const auto environment = env_name(ctx.envs_dirs, ctx.prefix_params.root_prefix, ctx.prefix_params.target_prefix);
+                const auto environment = env_name(
+                    ctx.envs_dirs,
+                    ctx.prefix_params.root_prefix,
+                    ctx.prefix_params.target_prefix
+                );
 
                 Console::stream() << "\nTo activate this environment, use:\n\n"
-                                    "    "
-                                << executable << " activate " << environment
-                                << "\n\n"
-                                    "Or to execute a single command in this environment, use:\n\n"
-                                    "    "
-                                << executable
-                                << " run "
-                                // Use -n or -p depending on if the env_name is a full prefix or just
-                                // a name.
-                                << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                                << environment << " mycommand\n";
+                                     "    "
+                                  << executable << " activate " << environment
+                                  << "\n\n"
+                                     "Or to execute a single command in this environment, use:\n\n"
+                                     "    "
+                                  << executable
+                                  << " run "
+                                  // Use -n or -p depending on if the env_name is a full prefix or
+                                  // just a name.
+                                  << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                                  << environment << " mycommand\n";
             }
         }
 

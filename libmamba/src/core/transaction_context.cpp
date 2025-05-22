@@ -90,7 +90,8 @@ namespace mamba
         }
     }
 
-    TransactionContext::PythonParams build_python_params(std::pair<std::string, std::string> py_versions)
+    TransactionContext::PythonParams
+    build_python_params(std::pair<std::string, std::string> py_versions)
     {
         TransactionContext::PythonParams res;
         if (py_versions.first.size() != 0)
@@ -132,7 +133,7 @@ namespace mamba
 
     bool TransactionContext::try_pyc_compilation(const std::vector<fs::u8path>& py_files)
     {
-        //throw_if_not_ready();
+        // throw_if_not_ready();
 
         static std::mutex pyc_compilation_mutex;
         std::lock_guard<std::mutex> lock(pyc_compilation_mutex);
@@ -169,7 +170,7 @@ namespace mamba
 
     void TransactionContext::wait_for_pyc_compilation()
     {
-        //throw_if_not_ready();
+        // throw_if_not_ready();
 
         if (m_pyc_process)
         {
@@ -214,6 +215,7 @@ namespace mamba
     {
         return m_transaction_params;
     }
+
     auto TransactionContext::prefix_params() const -> const PrefixParams&
     {
         return m_transaction_params.prefix_params;
@@ -242,7 +244,7 @@ namespace mamba
         // This should be enforced by removing the default constructor of
         // TransactionContext.
 
-        //throw_if_not_ready();
+        // throw_if_not_ready();
 
         if (m_pyc_process)
         {
@@ -276,7 +278,8 @@ namespace mamba
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR << "Bad conversion of Python version '" << python_params().python_version << "': " << e.what();
+            LOG_ERROR << "Bad conversion of Python version '" << python_params().python_version
+                      << "': " << e.what();
             return false;
         }
 
@@ -287,7 +290,9 @@ namespace mamba
         options.env.behavior = reproc::env::empty;
 #endif
         std::map<std::string, std::string> envmap;
-        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(m_transaction_params.threads_params.extract_threads);
+        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(
+            m_transaction_params.threads_params.extract_threads
+        );
         auto qemu_ld_prefix = util::get_env("QEMU_LD_PREFIX");
         if (qemu_ld_prefix)
         {

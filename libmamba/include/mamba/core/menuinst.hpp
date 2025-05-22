@@ -13,12 +13,8 @@ namespace mamba
         class u8path;
     }
 
-    void remove_menu_from_json(
-        const fs::u8path& json_file,
-        const TransactionContext& transaction_context
-    );
-    void create_menu_from_json(
-        const fs::u8path& json_file,
-        const TransactionContext& transaction_context
-    );
+    void
+    remove_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context);
+    void
+    create_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context);
 }

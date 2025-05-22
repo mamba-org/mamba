@@ -554,17 +554,19 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            solver::libsolv::Database initial_db(
-                channel_context.params(),
-                { ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                     : solver::libsolv::MatchSpecParser::Libsolv }
-            );
             solver::DatabaseVariant db_variant = ctx.experimental_resolvo_solver
                                                      ? solver::DatabaseVariant(
                                                            std::in_place_type<solver::resolvo::Database>,
                                                            channel_context.params()
                                                        )
-                                                     : solver::DatabaseVariant(std::move(initial_db));
+                                                     : solver::DatabaseVariant(
+                                                           std::in_place_type<solver::libsolv::Database>,
+                                                           channel_context.params(),
+                                                           solver::libsolv::Database::Settings{
+                                                               ctx.experimental_matchspec_parsing
+                                                                   ? solver::libsolv::MatchSpecParser::Mamba
+                                                                   : solver::libsolv::MatchSpecParser::Libsolv }
+                                                       );
 
             if (!ctx.experimental_resolvo_solver)
             {

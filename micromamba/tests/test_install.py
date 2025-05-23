@@ -858,6 +858,5 @@ def test_history(tmp_home, tmp_root_prefix):
     assert (history_path).exists()
     with open(history_path) as f:
         history = f.read()
-    print(history)
     assert len(re.findall(r"\+https:\/\/conda.anaconda.org\/conda-forge\/.+::xtl", history)) > 0
     assert len(re.findall(r"-https:\/\/conda.anaconda.org\/conda-forge\/.+::xtl", history)) > 0

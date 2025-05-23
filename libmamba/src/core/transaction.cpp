@@ -261,7 +261,7 @@ namespace mamba
         );
 
         m_py_versions = find_python_version(m_solution, database);
-        
+
         // if no action required, don't even start logging them
         if (!empty())
         {
@@ -381,11 +381,7 @@ namespace mamba
 
         TransactionRollback rollback;
 
-        TransactionContext transaction_context(
-            ctx.transaction_params(),
-            m_py_versions,
-            m_requested_specs
-        );
+        TransactionContext transaction_context(ctx.transaction_params(), m_py_versions, m_requested_specs);
 
         const auto link = [&](const specs::PackageInfo& pkg)
         {

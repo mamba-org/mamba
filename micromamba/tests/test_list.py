@@ -134,6 +134,7 @@ def test_list_subcommands(
         for output in outputs_list:
             assert all(i in output for i in items)
             assert " " not in output
+            re.match(output, r"conda-forge\/.+::.+")
     elif export_flag in ["-e", "--export"]:
         items += [" "]
         for output in outputs_list:

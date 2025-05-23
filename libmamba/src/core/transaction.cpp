@@ -444,6 +444,7 @@ namespace mamba
         };
         for_each_to_install(m_solution.actions, fix_channel);
         for_each_to_remove(m_solution.actions, fix_channel);
+        for_each_to_omit(m_solution.actions, fix_channel);
 
         const auto link = [&](const specs::PackageInfo& pkg)
         {

@@ -43,6 +43,7 @@ namespace mamba
             const Context& context,
             const fs::u8path& target_prefix,
             const std::pair<std::string, std::string>& py_versions,
+            const std::string& python_site_packages_path,
             std::vector<specs::MatchSpec> requested_specs
         );
 
@@ -51,6 +52,7 @@ namespace mamba
             const fs::u8path& target_prefix,
             const fs::u8path& relocate_prefix,
             const std::pair<std::string, std::string>& py_versions,
+            const std::string& python_site_packages_path,
             std::vector<specs::MatchSpec> requested_specs
         );
         ~TransactionContext();

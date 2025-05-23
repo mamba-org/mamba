@@ -32,6 +32,8 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
         auto& json_format = config.at("json").get_cli_config<bool>();
+        auto& env_vars = config.at("spec_file_env_vars").value<std::map<std::string, std::string>>();
+        auto& no_env = config.at("no_env").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
@@ -82,7 +84,7 @@ namespace mamba
             }
             if (create_specs.empty())
             {
-                detail::create_empty_target(ctx, ctx.prefix_params.target_prefix);
+                detail::create_empty_target(ctx, ctx.prefix_params.target_prefix, env_vars, no_env);
             }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())

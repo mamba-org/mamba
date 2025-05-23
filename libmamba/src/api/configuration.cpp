@@ -1395,6 +1395,12 @@ namespace mamba
                    .set_post_merge_hook(detail::file_spec_env_name_hook)
                    .description("Name of the target prefix, specified in a YAML spec file"));
 
+        insert(Configurable("spec_file_env_vars", std::map<std::string, std::string>({}))
+                   .group("Basic")
+                   .needs({ "file_specs" })
+                   .set_single_op_lifetime()
+                   .description("Environment variables specified in a YAML spec file"));
+
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")
                    .needs({ "file_specs" })  // explicit file specs overwrite current specs

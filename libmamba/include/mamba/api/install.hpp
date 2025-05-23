@@ -8,6 +8,7 @@
 #define MAMBA_API_INSTALL_HPP
 
 #include <iosfwd>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -80,7 +81,18 @@ namespace mamba
     {
         void create_target_directory(const Context& context, const fs::u8path prefix);
 
-        void create_empty_target(const Context& context, const fs::u8path& prefix);
+        void create_empty_target(
+            const Context& context,
+            const fs::u8path& prefix,
+            const std::map<std::string, std::string>& env_vars,
+            bool no_env
+        );
+
+        void populate_state_file(
+            const fs::u8path& prefix,
+            const std::map<std::string, std::string>& env_vars,
+            bool no_env
+        );
 
         void file_specs_hook(Configuration& config, std::vector<std::string>& file_specs);
 
@@ -102,6 +114,7 @@ namespace mamba
         {
             std::string name;
             std::vector<std::string> dependencies, channels;
+            std::map<std::string, std::string> variables;
             std::vector<other_pkg_mgr_spec> others_pkg_mgrs_specs;
         };
 

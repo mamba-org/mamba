@@ -929,10 +929,10 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("json", &Context::OutputParams::json)
         .def_readwrite("quiet", &Context::OutputParams::quiet);
 
-    py::class_<Context::ThreadsParams>(ctx, "ThreadsParams")
+    py::class_<ThreadsParams>(ctx, "ThreadsParams")
         .def(py::init<>())
-        .def_readwrite("download_threads", &Context::ThreadsParams::download_threads)
-        .def_readwrite("extract_threads", &Context::ThreadsParams::extract_threads);
+        .def_readwrite("download_threads", &ThreadsParams::download_threads)
+        .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
 
     py::class_<PrefixParams>(ctx, "PrefixParams")
         .def(py::init<>())

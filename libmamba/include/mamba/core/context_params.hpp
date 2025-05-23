@@ -10,10 +10,8 @@
 
 #include "mamba/fs/filesystem.hpp"
 
-// TODO: having a file for this single structure is a bit of
-// overkill; this should be refactored when we have more structures
-// like this (i.e. parameters structures with no dependency on other
-// parts of mamba)
+// TODO move these structures back to Context.hpp or rename this file
+// with a better name when the Context is fully refactored.
 namespace mamba
 {
     struct CommandParams
@@ -31,5 +29,33 @@ namespace mamba
         fs::u8path root_prefix;
         fs::u8path conda_prefix;
         fs::u8path relocate_prefix;
+    };
+
+    struct LinkParams
+    {
+        bool allow_softlinks = false;
+        bool always_copy = false;
+        bool always_softlink = false;
+        bool compile_pyc = true;
+    };
+
+    struct ThreadsParams
+    {
+        std::size_t download_threads{ 5 };
+        int extract_threads{ 0 };
+    };
+
+    struct TransactionParams
+    {
+        bool is_mamba_exe;
+        bool json_output;
+        int verbosity;
+        bool shortcuts;
+        std::vector<fs::u8path> envs_dirs;
+        std::string platform;
+
+        PrefixParams prefix_params;
+        LinkParams link_params;
+        ThreadsParams threads_params;
     };
 }

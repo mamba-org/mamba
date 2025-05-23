@@ -1080,11 +1080,11 @@ namespace mamba
 
             TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
 
-            TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.allow_softlinks);
+            TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.link_params.allow_softlinks);
 
-            TEST_BOOL_CONFIGURABLE(always_softlink, ctx.always_softlink);
+            TEST_BOOL_CONFIGURABLE(always_softlink, ctx.link_params.always_softlink);
 
-            TEST_BOOL_CONFIGURABLE(always_copy, ctx.always_copy);
+            TEST_BOOL_CONFIGURABLE(always_copy, ctx.link_params.always_copy);
 
             TEST_CASE_METHOD(Configuration, "always_softlink_and_copy")
             {

@@ -108,9 +108,6 @@ namespace mamba
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     );
 
-    // NOTE: This can be moved to somewhere else if more appropriate
-    // See: https://github.com/mamba-org/mamba/issues/2288
-    void print_activation_message(const Context& ctx);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

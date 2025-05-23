@@ -12,6 +12,7 @@
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/link.hpp"
@@ -131,15 +132,19 @@ namespace mamba
                 ctx.envs_dirs = { ctx.prefix_params.root_prefix / "envs" };
                 fs::u8path prefix = "/home/user/micromamba/envs/testprefix";
 
-                REQUIRE(env_name(ctx, prefix) == "testprefix");
+                auto& pp = ctx.prefix_params;
+                REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "testprefix");
                 prefix = "/home/user/micromamba/envs/a.txt";
-                REQUIRE(env_name(ctx, prefix) == "a.txt");
+                REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "a.txt");
                 prefix = "/home/user/micromamba/envs/a.txt";
-                REQUIRE(env_name(ctx, prefix) == "a.txt");
+                REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "a.txt");
                 prefix = "/home/user/micromamba/envs/abc/a.txt";
-                REQUIRE(env_name(ctx, prefix) == "/home/user/micromamba/envs/abc/a.txt");
+                REQUIRE(
+                    env_name(ctx.envs_dirs, pp.root_prefix, prefix)
+                    == "/home/user/micromamba/envs/abc/a.txt"
+                );
                 prefix = "/home/user/env";
-                REQUIRE(env_name(ctx, prefix) == "/home/user/env");
+                REQUIRE(env_name(ctx.envs_dirs, pp.root_prefix, prefix) == "/home/user/env");
             }
         }
     }

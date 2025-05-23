@@ -41,32 +41,6 @@ namespace mamba
 {
     namespace nl = nlohmann;
 
-    void print_activation_message(const Context& ctx)
-    {
-        // Check that the target prefix is not active before printing the activation message
-        if (util::get_env("CONDA_PREFIX") != ctx.prefix_params.target_prefix)
-        {
-            // Get the name of the executable used directly from the command.
-            const auto executable = get_self_exe_path().stem().string();
-
-            // Get the name of the environment
-            const auto environment = env_name(ctx);
-
-            Console::stream() << "\nTo activate this environment, use:\n\n"
-                                 "    "
-                              << executable << " activate " << environment
-                              << "\n\n"
-                                 "Or to execute a single command in this environment, use:\n\n"
-                                 "    "
-                              << executable
-                              << " run "
-                              // Use -n or -p depending on if the env_name is a full prefix or just
-                              // a name.
-                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                              << environment << " mycommand\n";
-        }
-    }
-
     namespace
     {
         bool need_pkg_download(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
@@ -239,9 +213,7 @@ namespace mamba
         }
 
         m_transaction_context = TransactionContext(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
+            ctx.transaction_params(),
             find_python_version(m_solution, database),
             specs_to_install
         );
@@ -293,9 +265,7 @@ namespace mamba
             [&](const auto& item) { requested_specs.push_back(item.spec); }
         );
         m_transaction_context = TransactionContext(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
+            ctx.transaction_params(),
             find_python_version(m_solution, database),
             std::move(requested_specs)
         );
@@ -345,9 +315,7 @@ namespace mamba
         );
 
         m_transaction_context = TransactionContext(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
+            ctx.transaction_params(),
             find_python_version(m_solution, database),
             std::move(specs_to_install)
         );

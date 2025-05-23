@@ -175,7 +175,7 @@ namespace mamba
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(
             ctx.prefix_params,
             command,
-            WrappedCallOptions::from_context(ctx)
+            ctx.command_params.is_mamba_exe
         );
 
         reproc::options options;

@@ -11,7 +11,7 @@
 
 #include <reproc++/reproc.hpp>
 
-#include "mamba/core/context.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -32,62 +32,52 @@ namespace mamba
     {
     public:
 
-        TransactionContext();
+        struct PythonParams
+        {
+            bool has_python = false;
+            std::string python_version;
+            std::string old_python_version;
+            std::string short_python_version;
+            fs::u8path python_path;
+            fs::u8path site_packages_path;
+        };
+
+        // TODO: remove this constructor when refactoring
+        // the MTransaction class.
+        TransactionContext() = default;
+
+        TransactionContext(
+            TransactionParams transaction_params,
+            std::pair<std::string, std::string> py_versions,
+            std::vector<specs::MatchSpec> requested_specs
+        );
+
+        ~TransactionContext();
+
         TransactionContext(TransactionContext&&) = default;
-
-        explicit TransactionContext(const Context& context);
-
         TransactionContext& operator=(TransactionContext&&) = default;
 
-        TransactionContext(
-            const Context& context,
-            const fs::u8path& target_prefix,
-            const std::pair<std::string, std::string>& py_versions,
-            std::vector<specs::MatchSpec> requested_specs
-        );
-
-        TransactionContext(
-            const Context& context,
-            const fs::u8path& target_prefix,
-            const fs::u8path& relocate_prefix,
-            const std::pair<std::string, std::string>& py_versions,
-            std::vector<specs::MatchSpec> requested_specs
-        );
-        ~TransactionContext();
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
 
-        bool has_python = false;
-        fs::u8path target_prefix;
-        fs::u8path relocate_prefix;
-        fs::u8path site_packages_path;
-        fs::u8path python_path;
-        std::string python_version;
-        std::string old_python_version;
-        std::string short_python_version;
-        bool allow_softlinks = false;
-        bool always_copy = false;
-        bool always_softlink = false;
-        bool compile_pyc = true;
-        // this needs to be done when python version changes
-        std::vector<specs::MatchSpec> requested_specs;
+        const TransactionParams& transaction_params() const;
+        const PrefixParams& prefix_params() const;
+        const LinkParams& link_params() const;
+        const PythonParams& python_params() const;
 
-        const Context& context() const
-        {
-            return *m_context;
-        }
+        const std::vector<specs::MatchSpec>& requested_specs() const;
 
     private:
 
         bool start_pyc_compilation_process();
 
+        TransactionParams m_transaction_params;
+        PythonParams m_python_params;
+        std::vector<specs::MatchSpec> m_requested_specs;
+
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;
         std::unique_ptr<TemporaryFile> m_pyc_script_file = nullptr;
         std::unique_ptr<TemporaryFile> m_pyc_compileall = nullptr;
-
-        const Context* m_context = nullptr;  // TODO: replace by a struct with the necessary params.
-
-        void throw_if_not_ready() const;
     };
 }  // namespace mamba
 

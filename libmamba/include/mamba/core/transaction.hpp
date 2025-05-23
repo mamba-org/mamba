@@ -79,16 +79,14 @@ namespace mamba
 
     private:
 
-        TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
-        const fs::u8path m_cache_path;
-        solver::Solution m_solution;
-
         History::UserRequest m_history_entry;
 
-        std::vector<specs::MatchSpec> m_requested_specs;
+        TransactionContext m_transaction_context;
+        solver::Solution m_solution;
 
-        MTransaction(const Context& ctx, MultiPackageCache&);
+
+        MTransaction(const CommandParams& command_params, MultiPackageCache&);
     };
 
     MTransaction create_explicit_transaction_from_urls(

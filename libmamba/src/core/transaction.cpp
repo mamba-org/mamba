@@ -135,9 +135,9 @@ namespace mamba
         }
     }
 
-    MTransaction::MTransaction(const Context& ctx, MultiPackageCache& caches)
+    MTransaction::MTransaction(const CommandParams& command_params, MultiPackageCache& caches)
         : m_multi_cache(caches)
-        , m_history_entry(History::UserRequest::prefilled(ctx.command_params))
+        , m_history_entry(History::UserRequest::prefilled(command_params))
     {
     }
 
@@ -148,7 +148,7 @@ namespace mamba
         std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
     )
-        : MTransaction(ctx, caches)
+        : MTransaction(ctx.command_params, caches)
     {
         auto not_found = std::stringstream();
         for (const auto& pkg : pkgs_to_remove)
@@ -226,7 +226,7 @@ namespace mamba
         solver::Solution solution,
         MultiPackageCache& caches
     )
-        : MTransaction(ctx, caches)
+        : MTransaction(ctx.command_params, caches)
     {
         const auto& flags = request.flags;
         m_solution = std::move(solution);
@@ -286,7 +286,7 @@ namespace mamba
         std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
-        : MTransaction(ctx, caches)
+        : MTransaction(ctx.command_params, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
 

@@ -14,7 +14,6 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/solution.hpp"
@@ -81,10 +80,10 @@ namespace mamba
 
         MultiPackageCache m_multi_cache;
         History::UserRequest m_history_entry;
-
-        TransactionContext m_transaction_context;
         solver::Solution m_solution;
 
+        std::pair<std::string, std::string> m_py_versions;
+        std::vector<specs::MatchSpec> m_requested_specs;
 
         MTransaction(const CommandParams& command_params, MultiPackageCache&);
     };

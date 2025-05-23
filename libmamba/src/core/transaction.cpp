@@ -27,6 +27,7 @@
 #include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -169,12 +170,11 @@ namespace mamba
 
         Console::instance().json_write({ { "success", true } });
 
-        auto specs_to_install = std::vector<specs::MatchSpec>();
-        specs_to_install.reserve(pkgs_to_install.size());
+        m_requested_specs.reserve(pkgs_to_install.size());
         std::transform(
             pkgs_to_install.begin(),
             pkgs_to_install.end(),
-            std::back_insert_iterator(specs_to_install),
+            std::back_insert_iterator(m_requested_specs),
             [](const auto& pkg) { return explicit_spec(pkg); }
         );
 
@@ -212,11 +212,7 @@ namespace mamba
             Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
         }
 
-        m_transaction_context = TransactionContext(
-            ctx.transaction_params(),
-            find_python_version(m_solution, database),
-            specs_to_install
-        );
+        m_py_versions = find_python_version(m_solution, database);
     }
 
     MTransaction::MTransaction(
@@ -258,18 +254,14 @@ namespace mamba
             );
         }
 
-        auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
             request,
-            [&](const auto& item) { requested_specs.push_back(item.spec); }
-        );
-        m_transaction_context = TransactionContext(
-            ctx.transaction_params(),
-            find_python_version(m_solution, database),
-            std::move(requested_specs)
+            [&](const auto& item) { m_requested_specs.push_back(item.spec); }
         );
 
+        m_py_versions = find_python_version(m_solution, database);
+        
         // if no action required, don't even start logging them
         if (!empty())
         {
@@ -290,12 +282,11 @@ namespace mamba
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
 
-        auto specs_to_install = std::vector<specs::MatchSpec>();
-        specs_to_install.reserve(packages.size());
+        m_requested_specs.reserve(packages.size());
         std::transform(
             packages.cbegin(),
             packages.cend(),
-            std::back_insert_iterator(specs_to_install),
+            std::back_insert_iterator(m_requested_specs),
             [](const auto& pkg)
             {
                 return specs::MatchSpec::parse(
@@ -314,11 +305,7 @@ namespace mamba
             [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
         );
 
-        m_transaction_context = TransactionContext(
-            ctx.transaction_params(),
-            find_python_version(m_solution, database),
-            std::move(specs_to_install)
-        );
+        m_py_versions = find_python_version(m_solution, database);
     }
 
     class TransactionRollback
@@ -394,6 +381,12 @@ namespace mamba
 
         TransactionRollback rollback;
 
+        TransactionContext transaction_context(
+            ctx.transaction_params(),
+            m_py_versions,
+            m_requested_specs
+        );
+
         const auto link = [&](const specs::PackageInfo& pkg)
         {
             if (is_sig_interrupted())
@@ -402,7 +395,7 @@ namespace mamba
             }
             Console::stream() << "Linking " << pkg.str();
             const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
-            LinkPackage lp(pkg, cache_path, &m_transaction_context);
+            LinkPackage lp(pkg, cache_path, &transaction_context);
             lp.execute();
             rollback.record(lp);
             m_history_entry.link_dists.push_back(pkg.long_str());
@@ -416,7 +409,7 @@ namespace mamba
             }
             Console::stream() << "Unlinking " << pkg.str();
             const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
-            UnlinkPackage up(pkg, cache_path, &m_transaction_context);
+            UnlinkPackage up(pkg, cache_path, &transaction_context);
             up.execute();
             rollback.record(up);
             m_history_entry.unlink_dists.push_back(pkg.long_str());
@@ -433,7 +426,7 @@ namespace mamba
             return false;
         }
         LOG_INFO << "Waiting for pyc compilation to finish";
-        m_transaction_context.wait_for_pyc_compilation();
+        transaction_context.wait_for_pyc_compilation();
 
         Console::stream() << "\nTransaction finished\n";
 

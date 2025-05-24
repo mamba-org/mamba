@@ -15,11 +15,13 @@
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
-#include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
+
+// Private mamba header
+#include "core/link.hpp"
 
 #include "mambatests.hpp"
 
@@ -32,20 +34,6 @@ namespace mamba
         REQUIRE(cache_name_from_url("http://test.com/1234/repodata.json") == "302f0a61");
         REQUIRE(cache_name_from_url("http://test.com/1234/current_repodata.json") == "78a8cce9");
     }
-
-    // TEST(cpp_install, install)
-    // {
-    //     mambatests::context().output_params.verbosity = 3;
-    //     PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
-    //     fs::u8path prefix = "C:\\Users\\wolfv\\miniconda3\\";
-    //     TransactionContext tc(prefix, "3.8.x");
-    //     // try {
-    //         UnlinkPackage up(pkg, &tc);
-    //         up.execute();
-    //     // } catch (...) { std::cout << "Nothing to delete ... \n"; }
-    //     LinkPackage lp(pkg, prefix / "pkgs" , &tc);
-    //     lp.execute();
-    // }
 
     namespace
     {

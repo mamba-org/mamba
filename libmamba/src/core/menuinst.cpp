@@ -8,6 +8,8 @@
 
 #include "mamba/util/path_manip.hpp"
 
+#include "./transaction_context.hpp"
+
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
@@ -18,7 +20,6 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

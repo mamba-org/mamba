@@ -13,15 +13,16 @@
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/link.hpp"
+#include "./link.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
+
+#include "./transaction_context.hpp"
 
 #ifdef __APPLE__
 #include "mamba/core/util_os.hpp"

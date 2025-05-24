@@ -228,6 +228,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/link.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -248,6 +249,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/timeref.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
@@ -376,7 +378,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
@@ -396,7 +397,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/timeref.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp

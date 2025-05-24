@@ -13,10 +13,11 @@
 #include <vector>
 
 #include "mamba/core/package_paths.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
+
+#include "./transaction_context.hpp"
 
 namespace mamba
 {

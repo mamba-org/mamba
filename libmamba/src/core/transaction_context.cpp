@@ -11,9 +11,10 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
+
+#include "./transaction_context.hpp"
 
 extern const char data_compile_pyc_py[];
 

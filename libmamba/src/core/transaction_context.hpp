@@ -42,10 +42,6 @@ namespace mamba
             fs::u8path site_packages_path;
         };
 
-        // TODO: remove this constructor when refactoring
-        // the MTransaction class.
-        TransactionContext() = default;
-
         TransactionContext(
             TransactionParams transaction_params,
             std::pair<std::string, std::string> py_versions,

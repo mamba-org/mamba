@@ -15,6 +15,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/history.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/request.hpp"
 

@@ -11,9 +11,9 @@ def test_history(tmp_home, tmp_root_prefix):
     helpers.install("-n", env_name, "xtl")
     helpers.uninstall("-n", env_name, "xtl")
 
-    effective_prefix = tmp_root_prefix / "envs" / "myenv"
+    effective_prefix = tmp_root_prefix / "envs" / env_name
     history_path = effective_prefix / "conda-meta" / "history"
-    assert (history_path).exists()
+    assert history_path.exists()
     with open(history_path) as f:
         history = f.read()
     assert len(re.findall(r"\+https:\/\/conda.anaconda.org\/conda-forge\/.+::xtl", history)) > 0

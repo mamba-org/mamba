@@ -11,6 +11,7 @@
 #include <variant>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"

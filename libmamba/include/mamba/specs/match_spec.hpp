@@ -13,6 +13,7 @@
 #include <string_view>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/chimera_string_spec.hpp"

@@ -8,7 +8,6 @@
 #include <string_view>
 #include <tuple>
 
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include "mamba/specs/archive.hpp"

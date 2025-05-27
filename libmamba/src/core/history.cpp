@@ -8,7 +8,6 @@
 #include <regex>
 
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
@@ -24,7 +23,7 @@ namespace mamba
     {
     }
 
-    History::UserRequest History::UserRequest::prefilled(const Context& context)
+    History::UserRequest History::UserRequest::prefilled(const CommandParams& command_params)
     {
         UserRequest ur;
         std::time_t t = std::time(nullptr);
@@ -33,8 +32,8 @@ namespace mamba
         {
             ur.date = mbstr;
         }
-        ur.cmd = context.command_params.current_command;
-        ur.conda_version = context.command_params.conda_version;
+        ur.cmd = command_params.current_command;
+        ur.conda_version = command_params.conda_version;
         return ur;
     }
 

@@ -20,6 +20,7 @@
 #include "mamba/api/repoquery.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
@@ -928,16 +929,16 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("json", &Context::OutputParams::json)
         .def_readwrite("quiet", &Context::OutputParams::quiet);
 
-    py::class_<Context::ThreadsParams>(ctx, "ThreadsParams")
+    py::class_<ThreadsParams>(ctx, "ThreadsParams")
         .def(py::init<>())
-        .def_readwrite("download_threads", &Context::ThreadsParams::download_threads)
-        .def_readwrite("extract_threads", &Context::ThreadsParams::extract_threads);
+        .def_readwrite("download_threads", &ThreadsParams::download_threads)
+        .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
 
-    py::class_<Context::PrefixParams>(ctx, "PrefixParams")
+    py::class_<PrefixParams>(ctx, "PrefixParams")
         .def(py::init<>())
-        .def_readwrite("target_prefix", &Context::PrefixParams::target_prefix)
-        .def_readwrite("conda_prefix", &Context::PrefixParams::conda_prefix)
-        .def_readwrite("root_prefix", &Context::PrefixParams::root_prefix);
+        .def_readwrite("target_prefix", &PrefixParams::target_prefix)
+        .def_readwrite("conda_prefix", &PrefixParams::conda_prefix)
+        .def_readwrite("root_prefix", &PrefixParams::root_prefix);
 
     py::class_<ValidationParams>(ctx, "ValidationParams")
         .def(py::init<>())

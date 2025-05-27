@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "mamba/core/common_types.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
 #include "mamba/core/tasksync.hpp"
@@ -63,9 +64,6 @@ namespace mamba
     class Logger;
     class Context;
 
-    std::string env_name(const Context& context, const fs::u8path& prefix);
-    std::string env_name(const Context& context);
-
     struct ContextOptions
     {
         bool enable_logging = false;
@@ -103,29 +101,6 @@ namespace mamba
             bool no_env{ false };
         };
 
-        struct CommandParams
-        {
-            std::string caller_version{ "" };
-            std::string conda_version{ "3.8.0" };
-            std::string current_command{ "mamba" };
-            /** Is the Context used in a mamba or mamba executable (instead of a lib). */
-            bool is_mamba_exe{ false };
-        };
-
-        struct ThreadsParams
-        {
-            std::size_t download_threads{ 5 };
-            int extract_threads{ 0 };
-        };
-
-        struct PrefixParams
-        {
-            fs::u8path target_prefix;
-            fs::u8path root_prefix;
-            fs::u8path conda_prefix;
-            fs::u8path relocate_prefix;
-        };
-
         // Configurable
         bool experimental = false;
         bool experimental_repodata_parsing = true;
@@ -147,15 +122,10 @@ namespace mamba
 
         bool extract_sparse = false;
 
-        bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
-                           // be removed if this is the case...
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
 
-        bool allow_softlinks = false;
-        bool always_copy = false;
-        bool always_softlink = false;
         bool register_envs = true;
 
         bool show_anaconda_channel_warnings = true;
@@ -183,6 +153,7 @@ namespace mamba
         ThreadsParams threads_params;
         PrefixParams prefix_params;
         ValidationParams validation_params;
+        LinkParams link_params;
 
         download::RemoteFetchParams remote_fetch_params = {
             /* .ssl_verify */ { "" },
@@ -238,10 +209,21 @@ namespace mamba
             };
         }
 
+        TransactionParams transaction_params() const
+        {
+            return { /* .is_mamba_exe */ command_params.is_mamba_exe,
+                     /* .json_output */ output_params.json,
+                     /* .verbosity */ output_params.verbosity,
+                     /* .shortcut */ shortcuts,
+                     /* .envs_dirs */ envs_dirs,
+                     /* .platform */ platform,
+                     /* .prefix_params */ prefix_params,
+                     /* .link_params */ link_params,
+                     /* .threads_params */ threads_params };
+        }
+
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
-
-        bool compile_pyc = true;
 
         // Conda compat
         bool add_pip_as_python_dependency = true;

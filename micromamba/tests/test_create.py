@@ -604,8 +604,8 @@ def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix)
 
     if helpers.dry_run_tests == helpers.DryRun.OFF:
         pkg_name = helpers.get_concrete_pkg(res, "xtensor")
-        cached_file = tmp_pkgs_dirs / pkg_name / helpers.xtensor_hpp
-        assert cached_file.exists()
+        pkg_checker = helpers.PackageChecker("xtensor", p)
+        assert pkg_name == pkg_checker.get_name_version_build()
 
 
 @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])

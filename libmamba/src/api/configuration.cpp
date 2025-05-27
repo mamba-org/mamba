@@ -1745,7 +1745,7 @@ namespace mamba
                         host max concurrency minus the value, zero (default) is the host max
                         concurrency value.)")));
 
-        insert(Configurable("allow_softlinks", &m_context.allow_softlinks)
+        insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1755,7 +1755,7 @@ namespace mamba
                         such as when installing on a different filesystem than the one that
                         the package cache is on.)")));
 
-        insert(Configurable("always_copy", &m_context.always_copy)
+        insert(Configurable("always_copy", &m_context.link_params.always_copy)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1764,13 +1764,13 @@ namespace mamba
                         Register a preference that files be copied into a prefix during
                         install rather than hard-linked.)")));
 
-        insert(Configurable("always_softlink", &m_context.always_softlink)
+        insert(Configurable("always_softlink", &m_context.link_params.always_softlink)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
-                   .set_post_merge_hook<decltype(m_context.always_softlink)>(
-                       [&](decltype(m_context.always_softlink)& value)
+                   .set_post_merge_hook<decltype(m_context.link_params.always_softlink)>(
+                       [&](decltype(m_context.link_params.always_softlink)& value)
                        { return detail::always_softlink_hook(*this, value); }
                    )
                    .description("Use soft-link instead of hard-link")
@@ -1854,7 +1854,7 @@ namespace mamba
                         However, some filesystems do not support file locking and locks do not always
                         make sense - like when on an HPC.  Default is true (use a lockfile)")));
 
-        insert(Configurable("compile_pyc", &m_context.compile_pyc)
+        insert(Configurable("compile_pyc", &m_context.link_params.compile_pyc)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()

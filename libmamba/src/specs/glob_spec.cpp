@@ -45,19 +45,14 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::GlobSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
+fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const
+    -> format_context::iterator
 {
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
+    return fmt::format_to(ctx.out(), "{}", spec.to_string());
 }
 
 auto
-fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx) const
-    -> decltype(ctx.out())
+std::hash<mamba::specs::GlobSpec>::operator()(const mamba::specs::GlobSpec& spec) const -> std::size_t
 {
-    return fmt::format_to(ctx.out(), "{}", spec.to_string());
+    return std::hash<std::string>{}(spec.to_string());
 }

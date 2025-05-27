@@ -328,7 +328,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
-                remove_or_rename(ctx, mamba::util::expand_home(prefix.string()));
+                mamba::remove_or_rename(prefix, mamba::util::expand_home(prefix.string()));
 
                 mamba::EnvironmentsManager env_manager{ ctx };
                 // Unregister environment

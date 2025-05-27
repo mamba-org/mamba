@@ -14,7 +14,6 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/solution.hpp"
@@ -79,16 +78,14 @@ namespace mamba
 
     private:
 
-        TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
-        const fs::u8path m_cache_path;
+        History::UserRequest m_history_entry;
         solver::Solution m_solution;
 
-        History::UserRequest m_history_entry;
-
+        std::pair<std::string, std::string> m_py_versions;
         std::vector<specs::MatchSpec> m_requested_specs;
 
-        MTransaction(const Context& ctx, MultiPackageCache&);
+        MTransaction(const CommandParams& command_params, MultiPackageCache&);
     };
 
     MTransaction create_explicit_transaction_from_urls(
@@ -108,9 +105,6 @@ namespace mamba
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     );
 
-    // NOTE: This can be moved to somewhere else if more appropriate
-    // See: https://github.com/mamba-org/mamba/issues/2288
-    void print_activation_message(const Context& ctx);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

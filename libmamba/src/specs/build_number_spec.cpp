@@ -6,12 +6,12 @@
 
 #include <algorithm>
 #include <charconv>
-#include <stdexcept>
 
 #include <fmt/format.h>
 
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -98,22 +98,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::BuildNumberPredicate>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw format_error("invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::BuildNumberPredicate>::format(
     const ::mamba::specs::BuildNumberPredicate& pred,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     using BuildNumberPredicate = typename mamba::specs::BuildNumberPredicate;
     using BuildNumber = typename BuildNumberPredicate::BuildNumber;
@@ -253,22 +241,17 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::BuildNumberSpec>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw format_error("invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::BuildNumberSpec>::format(
     const ::mamba::specs::BuildNumberSpec& spec,
     format_context& ctx
 ) const -> decltype(ctx.out())
 {
     return fmt::format_to(ctx.out(), "{}", spec.m_predicate);
+}
+
+auto
+std::hash<mamba::specs::BuildNumberSpec>::operator()(const mamba::specs::BuildNumberSpec& spec) const
+    -> std::size_t
+{
+    return mamba::util::hash_vals(spec.to_string());
 }

@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
+#include "mamba/util/charconv.hpp"
 
 namespace mamba::specs
 {
@@ -214,19 +215,35 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<mamba::specs::VersionPartAtom>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::VersionPartAtom atom, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct fmt::formatter<mamba::specs::VersionPart>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::VersionPart atom, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
@@ -246,9 +263,43 @@ struct fmt::formatter<mamba::specs::Version>
     std::optional<std::size_t> m_level;
     FormatType m_type = FormatType::Normal;
 
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        const auto end = ctx.end();
+        const auto start = ctx.begin();
 
-    auto format(const ::mamba::specs::Version v, format_context& ctx) const -> decltype(ctx.out());
+        // Make sure that range is not empty
+        if (start == end || *start == '}')
+        {
+            return start;
+        }
+
+        // Check for restricted number of segments at beginning
+        std::size_t val = 0;
+        auto [ptr, ec] = mamba::util::constexpr_from_chars(start, end, val);
+        if (ec == std::errc())
+        {
+            m_level = val;
+        }
+
+        // Check for end of format spec
+        if (ptr == end || *ptr == '}')
+        {
+            return ptr;
+        }
+
+        // Check the custom format type
+        if (*ptr == 'g')
+        {
+            m_type = FormatType::Glob;
+            ++ptr;
+        }
+
+        return ptr;
+    }
+
+    auto format(const ::mamba::specs::Version v, format_context& ctx) const
+        -> format_context::iterator;
 };
 
 #endif

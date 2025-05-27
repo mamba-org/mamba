@@ -9,6 +9,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include "fsutil.hpp"
 
@@ -19,6 +20,12 @@ namespace mamba
     const char PREFIX_MAGIC_FILE[] = "conda-meta/history";
 
     bool is_conda_environment(const fs::u8path& prefix);
+
+    std::string env_name(
+        const std::vector<fs::u8path>& envs_dirs,
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix
+    );
 
     class EnvironmentsManager
     {

@@ -93,6 +93,7 @@ set(
     src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
+    src/core/test_transaction.cpp
     src/core/test_transaction_context.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp

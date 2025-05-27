@@ -398,7 +398,7 @@ namespace mamba
         for_each_to_install(m_solution.actions, fix_channel);
         for_each_to_remove(m_solution.actions, fix_channel);
         for_each_to_omit(m_solution.actions, fix_channel);
-      
+
         TransactionRollback rollback;
         TransactionContext transaction_context(ctx.transaction_params(), m_py_versions, m_requested_specs);
 

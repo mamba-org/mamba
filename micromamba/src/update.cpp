@@ -128,10 +128,10 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_load = load_channels(ctx, channel_context, db_variant, package_caches);
-    if (!exp_load)
+    auto exp_loaded = load_channels(ctx, channel_context, db_variant, package_caches);
+    if (!exp_loaded)
     {
-        throw exp_load.error();
+        throw exp_loaded.error();
     }
 
     auto matchspec = specs::MatchSpec::parse(
@@ -176,7 +176,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    auto t = MTransaction(ctx, db_variant, { latest_micromamba.value() }, package_caches);
+    MTransaction t(ctx, db_variant, { latest_micromamba.value() }, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {

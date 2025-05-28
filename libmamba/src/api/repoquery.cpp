@@ -93,10 +93,10 @@ namespace mamba
             {
                 Console::stream() << "Getting repodata from channels..." << std::endl;
             }
-            auto exp_load = load_channels(ctx, channel_context, database, package_caches);
-            if (!exp_load)
+            auto exp_loaded = load_channels(ctx, channel_context, database, package_caches);
+            if (!exp_loaded)
             {
-                throw std::runtime_error(exp_load.error().what());
+                throw std::runtime_error(exp_loaded.error().what());
             }
         }
         return database;

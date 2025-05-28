@@ -656,10 +656,6 @@ namespace mamba
                     );
                 }
             }
-            auto& solution = std::get<solver::Solution>(result);
-
-            Console::instance().json_write({ { "success", true } });
-            auto transaction = MTransaction(ctx, db_variant, request, solution, package_caches);
 
             std::vector<LockFile> locks;
 
@@ -668,21 +664,28 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
+            auto& solution = std::get<solver::Solution>(result);
+
+            Console::instance().json_write({ { "success", true } });
+            auto trans = MTransaction(ctx, db_variant, request, solution, package_caches);
+
             if (ctx.output_params.json)
             {
-                transaction.log_json();
+                trans.log_json();
             }
 
             Console::stream();
 
-            if (transaction.prompt(ctx, channel_context))
+            if (trans.prompt(ctx, channel_context))
             {
                 if (create_env && !ctx.dry_run)
                 {
                     detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
                 }
 
-                transaction.execute(ctx, channel_context, prefix_data);
+                detail::populate_state_file(ctx.prefix_params.target_prefix, env_vars, no_env);
+
+                trans.execute(ctx, channel_context, prefix_data);
 
                 // Print activation message only if the environment is freshly created
                 if (create_env)

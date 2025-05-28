@@ -71,14 +71,14 @@ struct std::hash<StringId>
 
 // Create a template Pool class that maps a key to a set of values
 template <typename ID, typename T>
-struct Mapping
+struct bijective_map
 {
-    Mapping() = default;
-    ~Mapping() = default;
+    bijective_map() = default;
+    ~bijective_map() = default;
 
     /**
-     * Adds the value to the Mapping and returns its associated id. If the
-     * value is already in the Mapping, returns the id associated with it.
+     * Adds the value to the bijective_map and returns its associated id. If the
+     * value is already in the bijective_map, returns the id associated with it.
      */
     ID alloc(T value)
     {
@@ -108,7 +108,7 @@ struct Mapping
         return value_to_id[value];
     }
 
-    // Iterator for the Mapping
+    // Iterator for the bijective_map
     auto begin()
     {
         return id_to_value.begin();
@@ -210,14 +210,14 @@ struct PackageDatabase : public DependencyProvider
 {
     virtual ~PackageDatabase() = default;
 
-    ::Mapping<NameId, String> name_pool;
-    ::Mapping<StringId, String> string_pool;
+    ::bijective_map<NameId, String> name_pool;
+    ::bijective_map<StringId, String> string_pool;
 
     // MatchSpec are VersionSet in resolvo's semantics
-    ::Mapping<VersionSetId, MatchSpec> version_set_pool;
+    ::bijective_map<VersionSetId, MatchSpec> version_set_pool;
 
     // PackageInfo are Solvable in resolvo's semantics
-    ::Mapping<SolvableId, PackageInfo> solvable_pool;
+    ::bijective_map<SolvableId, PackageInfo> solvable_pool;
 
     // PackageName to Vector<SolvableId>
     std::unordered_map<NameId, Vector<SolvableId>> name_to_solvable;

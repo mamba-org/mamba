@@ -65,11 +65,11 @@ namespace mamba::solver::resolvo
 {
     // Create a template Pool class that maps a key to a set of values
     template <typename ID, typename T>
-    struct Mapping
+    struct bijective_map
     {
         /**
-         * Adds the value to the Mapping and returns its associated id. If the
-         * value is already in the Mapping, returns the id associated with it.
+         * Adds the value to the bijective_map and returns its associated id. If the
+         * value is already in the bijective_map, returns the id associated with it.
          */
         ID alloc(T value)
         {
@@ -99,7 +99,7 @@ namespace mamba::solver::resolvo
             return value_to_id[value];
         }
 
-        // Iterator for the Mapping
+        // Iterator for the bijective_map
         auto begin()
         {
             return id_to_value.begin();
@@ -249,10 +249,10 @@ namespace mamba::solver::resolvo
         find_highest_version(::resolvo::VersionSetId version_set_id);
 
         // Pools for mapping between resolvo IDs and mamba types
-        Mapping<::resolvo::NameId, ::resolvo::String> name_pool;
-        Mapping<::resolvo::StringId, ::resolvo::String> string_pool;
-        Mapping<::resolvo::VersionSetId, specs::MatchSpec> version_set_pool;
-        Mapping<::resolvo::SolvableId, specs::PackageInfo> solvable_pool;
+        bijective_map<::resolvo::NameId, ::resolvo::String> name_pool;
+        bijective_map<::resolvo::StringId, ::resolvo::String> string_pool;
+        bijective_map<::resolvo::VersionSetId, specs::MatchSpec> version_set_pool;
+        bijective_map<::resolvo::SolvableId, specs::PackageInfo> solvable_pool;
 
         bool has_package(const specs::MatchSpec& spec)
         {

@@ -100,87 +100,47 @@ namespace mamba::solver::resolvo
         }
 
         // Iterator for the bijective_map
-        auto begin()
+        auto begin_values() const
         {
             return id_to_value.begin();
         }
 
-        auto end()
+        auto end_values() const
         {
             return id_to_value.end();
         }
 
-        auto begin() const
-        {
-            return id_to_value.begin();
-        }
-
-        auto end() const
-        {
-            return id_to_value.end();
-        }
-
-        auto cbegin()
+        auto cbegin_values() const
         {
             return id_to_value.cbegin();
         }
 
-        auto cend()
+        auto cend_values() const
         {
             return id_to_value.cend();
         }
 
-        auto cbegin() const
-        {
-            return id_to_value.cbegin();
-        }
-
-        auto cend() const
-        {
-            return id_to_value.cend();
-        }
-
-        auto find(T value)
+        auto find(T value) const
         {
             return value_to_id.find(value);
         }
 
-        auto begin_ids()
+        auto begin_keys() const
         {
             return value_to_id.begin();
         }
 
-        auto end_ids()
+        auto end_keys() const
         {
             return value_to_id.end();
         }
 
-        auto begin_ids() const
-        {
-            return value_to_id.begin();
-        }
-
-        auto end_ids() const
-        {
-            return value_to_id.end();
-        }
-
-        auto cbegin_ids()
+        auto cbegin_keys() const
         {
             return value_to_id.cbegin();
         }
 
-        auto cend_ids()
-        {
-            return value_to_id.cend();
-        }
-
-        auto cbegin_ids() const
-        {
-            return value_to_id.cbegin();
-        }
-
-        auto cend_ids() const
+        auto cend_keys() const
         {
             return value_to_id.cend();
         }

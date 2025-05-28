@@ -430,9 +430,9 @@ def test_spec_file_env_vars(tmp_home, tmp_root_prefix, tmp_path, env_vars, no_en
         "dependencies: [numpy]",
     ]
     if env_vars:
-        file_content.append(
-            "variables: {'MY_ENV_VAR': 'My Value', 'MY_OTHER_ENV_VAR': 'Another Value'}",
-        )
+        variables_dict = {"MY_ENV_VAR": "My Value", "MY_OTHER_ENV_VAR": "Another Value"}
+        yaml_str = yaml.dump({"variables": variables_dict}, default_flow_style=False)
+        file_content.append(yaml_str)
 
     with open(spec_file, "w") as f:
         f.write("\n".join(file_content))

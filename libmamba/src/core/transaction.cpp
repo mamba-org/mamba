@@ -379,8 +379,27 @@ namespace mamba
             return true;
         }
 
-        TransactionRollback rollback;
+        // Channels coming from the repodata (packages to install) don't have the same channel
+        // format than packages coming from the prefix (packages to remove). We set all the channels
+        // to be URL like (i.e. explicit). Below is a loop to fix the channel of the linked
+        // packages (fix applied to the unlinked packages to avoid potential bugs). Ideally, this
+        // should be normalised when reading the data.
+        const auto fix_channel = [&](specs::PackageInfo& pkg)
+        {
+            auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
+            auto pkg_channel = mamba::specs::Channel::resolve(
+                                   unresolved_pkg_channel,
+                                   channel_context.params()
+            )
+                                   .value();
+            auto channel_url = pkg_channel[0].platform_url(pkg.platform).str();
+            pkg.channel = channel_url;
+        };
+        for_each_to_install(m_solution.actions, fix_channel);
+        for_each_to_remove(m_solution.actions, fix_channel);
+        for_each_to_omit(m_solution.actions, fix_channel);
 
+        TransactionRollback rollback;
         TransactionContext transaction_context(ctx.transaction_params(), m_py_versions, m_requested_specs);
 
         const auto link = [&](const specs::PackageInfo& pkg)

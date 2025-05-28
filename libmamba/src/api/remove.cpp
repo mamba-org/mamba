@@ -244,15 +244,14 @@ namespace mamba
                 }
 
                 Console::instance().json_write({ { "success", true } });
-                solver::DatabaseVariant db_variant2 = std::move(db_variant);
-                auto transaction2 = MTransaction(
+                auto transaction = MTransaction(
                     ctx,
-                    db_variant2,
+                    db_variant,
                     request,
                     std::get<solver::Solution>(outcome),
                     package_caches
                 );
-                return execute_transaction(transaction2);
+                return execute_transaction(transaction);
             }
         }
     }

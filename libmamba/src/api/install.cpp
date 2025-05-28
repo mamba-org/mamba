@@ -281,9 +281,20 @@ namespace mamba
             {
                 result.name = f["name"].as<std::string>();
             }
+            else
             {
                 LOG_DEBUG << "No env 'name' specified in YAML spec file '" << file.string() << "'";
             }
+
+            if (f["variables"])
+            {
+                result.variables = f["variables"].as<std::map<std::string, std::string>>();
+            }
+            else
+            {
+                LOG_DEBUG << "No 'variables' specified in YAML spec file '" << file.string() << "'";
+            }
+
             return result;
         }
 
@@ -498,6 +509,8 @@ namespace mamba
             auto& no_py_pin = config.at("no_py_pin").value<bool>();
             auto& freeze_installed = config.at("freeze_installed").value<bool>();
             auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
+            auto& env_vars = config.at("spec_file_env_vars").value<std::map<std::string, std::string>>();
+            auto& no_env = config.at("no_env").value<bool>();
 
             if (ctx.prefix_params.target_prefix.empty())
             {
@@ -646,6 +659,8 @@ namespace mamba
                 {
                     detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
                 }
+
+                detail::populate_state_file(ctx.prefix_params.target_prefix, env_vars, no_env);
 
                 trans.execute(ctx, channel_context, prefix_data);
 
@@ -860,15 +875,57 @@ namespace mamba
             other
         };
 
-        void create_empty_target(const Context& context, const fs::u8path& prefix)
+        void create_empty_target(
+            const Context& context,
+            const fs::u8path& prefix,
+            const std::map<std::string, std::string>& env_vars,
+            bool no_env
+        )
         {
             detail::create_target_directory(context, prefix);
+
+            populate_state_file(prefix, env_vars, no_env);
 
             Console::instance().print(util::join(
                 "",
                 std::vector<std::string>({ "Empty environment created at prefix: ", prefix.string() })
             ));
             Console::instance().json_write({ { "success", true } });
+        }
+
+        void populate_state_file(
+            const fs::u8path& prefix,
+            const std::map<std::string, std::string>& env_vars,
+            bool no_env
+        )
+        {
+            if (!env_vars.empty())
+            {
+                if (!no_env)
+                {
+                    fs::u8path env_vars_file_path = prefix / "conda-meta" / "state";
+
+                    if (!fs::exists(env_vars_file_path))
+                    {
+                        path::touch(env_vars_file_path, true);
+                    }
+                    std::ofstream out = open_ofstream(env_vars_file_path, std::ios::app);
+                    if (out.fail())
+                    {
+                        throw std::runtime_error("Couldn't open file: " + env_vars_file_path.string());
+                    }
+                    else
+                    {
+                        nlohmann::json j;
+                        j["env_vars"] = env_vars;
+                        out << j.dump();
+                    }
+                }
+                else
+                {
+                    LOG_WARNING << "Using `no-env`. Variables from yaml file are not considered.";
+                }
+            }
         }
 
         void create_target_directory(const Context& context, const fs::u8path prefix)
@@ -886,6 +943,7 @@ namespace mamba
             auto& specs = config.at("specs");
             auto& others_pkg_mgrs_specs = config.at("others_pkg_mgrs_specs");
             auto& channels = config.at("channels");
+            auto& env_vars = config.at("spec_file_env_vars");
 
             auto& context = config.context();
 
@@ -998,6 +1056,20 @@ namespace mamba
                             updated_specs.push_back(s);
                         }
                         others_pkg_mgrs_specs.set_cli_value(updated_specs);
+                    }
+
+                    if (parse_result.variables.size() != 0)
+                    {
+                        std::map<std::string, std::string> updated_env_vars;
+                        if (env_vars.cli_configured())
+                        {
+                            updated_env_vars = env_vars.cli_value<std::map<std::string, std::string>>();
+                        }
+                        updated_env_vars.insert(
+                            parse_result.variables.cbegin(),
+                            parse_result.variables.cend()
+                        );
+                        env_vars.set_cli_value(updated_env_vars);
                     }
                 }
                 else

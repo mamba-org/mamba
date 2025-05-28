@@ -420,6 +420,49 @@ def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_fi
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("env_vars", (False, True))
+@pytest.mark.parametrize("no_env", (False, True))
+def test_spec_file_env_vars(tmp_home, tmp_root_prefix, tmp_path, env_vars, no_env):
+    env_name = "env-check-env-vars"
+
+    spec_file = tmp_path / "env-check-env-vars.yaml"
+    file_content = [
+        "dependencies: [numpy]",
+    ]
+    if env_vars:
+        variables_dict = {"MY_ENV_VAR": "My Value", "MY_OTHER_ENV_VAR": "Another Value"}
+        yaml_str = yaml.dump({"variables": variables_dict}, default_flow_style=False)
+        file_content.append(yaml_str)
+
+    with open(spec_file, "w") as f:
+        f.write("\n".join(file_content))
+
+    cmd = ["-n", env_name, "-f", spec_file, "--json"]
+    if no_env:
+        cmd += ["--no-env"]
+
+    res = helpers.create(*cmd)
+    assert res["success"]
+
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    assert any(package["name"] == "numpy" for package in packages)
+
+    state_file_path = tmp_root_prefix / "envs" / env_name / "conda-meta" / "state"
+
+    if env_vars and not no_env:
+        assert state_file_path.exists()
+
+        with open(state_file_path) as f:
+            state_content = f.read()
+        assert (
+            '"env_vars":{"MY_ENV_VAR":"My Value","MY_OTHER_ENV_VAR":"Another Value"}'
+            in state_content
+        )
+    else:
+        assert not state_file_path.exists()
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("type", ("yaml", "classic", "explicit"))
 def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
     env_prefix = tmp_path / "myenv"

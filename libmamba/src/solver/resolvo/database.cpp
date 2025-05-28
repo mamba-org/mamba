@@ -18,7 +18,7 @@ namespace mamba::solver::resolvo
 {
 
     Database::Database(specs::ChannelResolveParams channel_params)
-        : name_pool(Mapping<::resolvo::NameId, ::resolvo::String>())
+        : name_pool(bijective_map<::resolvo::NameId, ::resolvo::String>())
         , m_channel_params(std::move(channel_params))
     {
     }

@@ -8,8 +8,6 @@
 #include <cassert>
 #include <type_traits>
 
-#include <fmt/format.h>
-
 #include "mamba/specs/chimera_string_spec.hpp"
 #include "mamba/specs/regex_spec.hpp"
 #include "mamba/util/string.hpp"

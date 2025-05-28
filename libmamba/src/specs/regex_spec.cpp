@@ -8,8 +8,6 @@
 #include <cassert>
 #include <sstream>
 
-#include <fmt/format.h>
-
 #include "mamba/specs/regex_spec.hpp"
 #include "mamba/util/string.hpp"
 

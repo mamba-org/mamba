@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <fmt/format.h>
-
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"

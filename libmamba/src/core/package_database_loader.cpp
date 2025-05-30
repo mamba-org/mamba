@@ -114,7 +114,7 @@ namespace mamba
             .transform(
                 [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
                 {
-                    if (!util::on_win)
+                    //if (!util::on_win)
                     {
                         database
                             .native_serialize_repo(

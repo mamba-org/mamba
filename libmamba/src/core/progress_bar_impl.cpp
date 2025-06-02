@@ -432,7 +432,7 @@ namespace mamba
             }
             else
             {
-                return fmt::format(m_format, val, w);
+                return fmt::format(fmt::runtime(m_format), val, w);
             }
         }
         else

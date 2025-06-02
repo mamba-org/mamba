@@ -1314,8 +1314,12 @@ namespace mamba::solver
                 {
                     const auto style = tn.status ? m_format.available : m_format.unavailable;
                     auto [versions_trunc, size] = node.versions_trunc();
-                    write(fmt::format(style, (size == 1 ? "{} {}" : "{} [{}]"), node.name(), versions_trunc)
-                    );
+                    write(fmt::format(
+                        style,
+                        fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
+                        node.name(),
+                        versions_trunc
+                    ));
                 }
             };
             std::visit(do_write, concat_nodes(tn.ids));
@@ -1381,7 +1385,7 @@ namespace mamba::solver
                 {
                     write(fmt::format(
                         style,
-                        (size == 1 ? "{} {}" : "{} [{}]"),
+                        fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
                         edges.name(),
                         relevant_vers_builds_trunc
                     ));

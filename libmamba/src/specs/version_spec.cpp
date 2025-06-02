@@ -807,7 +807,7 @@ fmt::formatter<mamba::specs::VersionSpec>::format(
             }
             if constexpr (std::is_same_v<Token, tree_type::variable_type>)
             {
-                out = fmt::format_to(out, conda_build_form ? "{:b}" : "{}", token);
+                out = fmt::format_to(out, fmt::runtime(conda_build_form ? "{:b}" : "{}"), token);
             }
         }
     );

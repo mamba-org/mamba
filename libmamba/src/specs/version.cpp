@@ -419,7 +419,7 @@ namespace mamba::specs
         // with the custom parser
         // return fmt::format("{:{}}", *this, level);
         auto fmt = fmt::format("{{:{}}}", level);
-        return fmt::format(fmt, *this);
+        return fmt::format(fmt::runtime(fmt), *this);
     }
 
     auto Version::to_string_glob() const -> std::string

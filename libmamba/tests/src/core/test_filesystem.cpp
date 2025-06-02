@@ -43,7 +43,7 @@ namespace mamba
         TEST_CASE("to_utf8_check_separators")
         {
             static constexpr auto some_path_str = u8"a/b/c";
-            std::filesystem::path some_path = std::filesystem::u8path(some_path_str);
+            std::filesystem::path some_path = some_path_str;
 
             REQUIRE(
                 fs::to_utf8(some_path, { /*normalize_sep=*/false })
@@ -62,7 +62,7 @@ namespace mamba
         TEST_CASE("to_utf8_check_separators_unicode")
         {
             static constexpr auto some_path_str = u8"日/本/語";
-            std::filesystem::path some_path = std::filesystem::u8path(some_path_str);
+            std::filesystem::path some_path = some_path_str;
 
             REQUIRE(
                 fs::to_utf8(some_path, { /*normalize_sep=*/false })
@@ -87,7 +87,7 @@ namespace mamba
 #else
             REQUIRE(
                 fs::from_utf8(util::to_utf8_std_string(some_path_str))
-                == std::filesystem::u8path(u8"a/b/c")
+                == std::filesystem::path(u8"a/b/c")
             );
 #endif
         }
@@ -101,7 +101,7 @@ namespace mamba
 #else
             REQUIRE(
                 fs::from_utf8(util::to_utf8_std_string(some_path_str))
-                == std::filesystem::u8path(u8"日/本/語")
+                == std::filesystem::path(u8"日/本/語")
             );
 #endif
         }
@@ -109,7 +109,7 @@ namespace mamba
         TEST_CASE("u8path_separators_formatting")
         {
             static constexpr auto some_path_str = u8"a/b/c";
-            std::filesystem::path some_path = std::filesystem::u8path(some_path_str);
+            std::filesystem::path some_path = std::filesystem::path(some_path_str);
             const fs::u8path u8_path(some_path);
 
 #if defined(_WIN32)

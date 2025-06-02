@@ -9,6 +9,7 @@
 #define MAMBA_UTILFLAT_SET_HPP
 
 #include <algorithm>
+#include <iterator>
 #include <utility>
 #include <vector>
 

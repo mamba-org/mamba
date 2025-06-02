@@ -160,7 +160,7 @@ channels:
 dependencies:
 - pip
 - pip:
-  - numpy==1.26.4
+  - pandas==2.2.3
 """
 
 
@@ -179,8 +179,17 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path, no_pip_flag):
     res = helpers.umamba_list("-n", env_name, "--json", no_pip_flag)
     if no_pip_flag == "":
         assert any(
+            package["name"] == "pandas"
+            and package["version"] == "2.2.3"
+            and package["base_url"] == "https://pypi.org/"
+            and package["build_string"] == "pypi_0"
+            and package["channel"] == "pypi"
+            and package["platform"] == sys.platform + "-" + platform.machine()
+            for package in res
+        )
+        # Check that dependencies are listed
+        assert any(
             package["name"] == "numpy"
-            and package["version"] == "1.26.4"
             and package["base_url"] == "https://pypi.org/"
             and package["build_string"] == "pypi_0"
             and package["channel"] == "pypi"
@@ -188,7 +197,9 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path, no_pip_flag):
             for package in res
         )
     else:  # --no-pip
-        # Check that numpy installed with pip is not listed
+        # Check that pandas installed with pip is not listed
+        assert all(package["name"] != "pandas" for package in res)
+        # Check that dependencies are not there either
         assert all(package["name"] != "numpy" for package in res)
 
 

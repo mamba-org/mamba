@@ -62,7 +62,52 @@ namespace mamba::fs
         return normalized_separators(std::filesystem::u8path(u8string));
     }
 #else
-#error UTF8 functions implementation is specific to C++17, using another version requires a different implementation.
+
+    // TODO: doc: we assume here that `char` and `char8_t` are containing the same Unicode data.
+    // TODO: version that returns a view, implemented using casts, no memory allocation
+    auto to_utf8_std_string(std::u8string_view text)
+    {
+        std::string result;
+        result.reserve(text.size());
+        for (char8_t c : text)
+        {
+            result.push_back(static_cast<char>(c));
+        }
+        return result;
+    }
+
+    auto to_u8string(std::string_view text)
+    {
+        std::u8string result;
+        result.reserve(text.size());
+        for (char c : text)
+        {
+            result.push_back(static_cast<char8_t>(c));
+        }
+        return result;
+    }
+
+    std::string to_utf8(const std::filesystem::path& path, Utf8Options utf8_options)
+    {
+        const auto u8str = [&]
+        {
+            if (utf8_options.normalize_sep)
+            {
+                return normalized_separators(path).u8string();
+            }
+            else
+            {
+                return path.u8string();
+            }
+        }();
+
+        return to_utf8_std_string(u8str);
+    }
+
+    std::filesystem::path from_utf8(std::string_view u8string)
+    {
+        return normalized_separators(to_u8string(u8string));
+    }
 #endif
 
     void last_write_time(const u8path& path, now, std::error_code& ec) noexcept

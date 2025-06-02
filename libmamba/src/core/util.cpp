@@ -43,6 +43,8 @@ extern "C"
 #include <process.h>
 #include <sys/locking.h>
 }
+
+#include "mamba/core/shell_init.hpp"
 #endif
 
 #include <nlohmann/json.hpp>

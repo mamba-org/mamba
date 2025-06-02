@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <catch2/catch_all.hpp>

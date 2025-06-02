@@ -17,8 +17,6 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <vector>
 
 #include <time.h>
 
@@ -54,13 +52,11 @@ extern "C"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/shell_init.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
-#include "mamba/util/compare.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"

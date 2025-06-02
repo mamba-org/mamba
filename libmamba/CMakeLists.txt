@@ -294,7 +294,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/conditional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp

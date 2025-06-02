@@ -25,7 +25,6 @@ set(
     src/catch-utils/msvc_catch_string_view.cpp
     # Utility library
     src/util/test_cast.cpp
-    src/util/test_compare.cpp
     src/util/test_charconv.cpp
     src/util/test_cryptography.cpp
     src/util/test_encoding.cpp

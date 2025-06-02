@@ -7,10 +7,10 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 #include <openssl/evp.h>
 
-#include "mamba/util/compare.hpp"
 #include "mamba/util/conditional.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
@@ -268,7 +268,7 @@ namespace mamba::util
             static_cast<int>(input.size())
         );
 
-        if (util::cmp_not_equal(expected_size, written_size))
+        if (std::cmp_not_equal(expected_size, written_size))
         {
             return tl::make_unexpected(EncodingError());
         }
@@ -285,7 +285,7 @@ namespace mamba::util
             reinterpret_cast<const unsigned char*>(input.data()),
             static_cast<int>(input.size())
         );
-        if (util::cmp_not_equal(max_expected_size, max_possible_written_size))
+        if (std::cmp_not_equal(max_expected_size, max_possible_written_size))
         {
             return tl::make_unexpected(EncodingError());
         }

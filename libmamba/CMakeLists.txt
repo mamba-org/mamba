@@ -302,7 +302,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_binary_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_bool_expr_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp

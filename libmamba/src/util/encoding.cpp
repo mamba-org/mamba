@@ -296,4 +296,26 @@ namespace mamba::util
         out.resize(min_expected_size + extra);
         return { std::move(out) };
     }
+
+    auto to_utf8_std_string(std::u8string_view text) -> std::string
+    {
+        std::string result;
+        result.reserve(text.size());
+        for (char8_t c : text)
+        {
+            result.push_back(static_cast<char>(c));
+        }
+        return result;
+    }
+
+    auto to_u8string(std::string_view text) -> std::u8string
+    {
+        std::u8string result;
+        result.reserve(text.size());
+        for (char c : text)
+        {
+            result.push_back(static_cast<char8_t>(c));
+        }
+        return result;
+    }
 }

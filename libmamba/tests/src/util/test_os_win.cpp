@@ -11,6 +11,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/util/build.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/os_win.hpp"
 
 using namespace mamba;
@@ -25,7 +26,7 @@ namespace
             SKIP();
         }
         const std::wstring text_utf16 = L"Hello, I am Joël. 私のにほんごわへたです";
-        const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";
+        const std::string text_utf8 = to_utf8_std_string(u8"Hello, I am Joël. 私のにほんごわへたです");
 
         SECTION("utf8_to_windows_encoding")
         {

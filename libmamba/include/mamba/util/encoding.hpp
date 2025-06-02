@@ -108,5 +108,20 @@ namespace mamba::util
      */
     [[nodiscard]] auto decode_base64(std::string_view input)
         -> tl::expected<std::string, EncodingError>;
+
+    /**
+     * Convert a ``std::u8string`` to a UTF-8 encoded ``std::string``.
+     *
+     * We assume here that ``char`` and ``char8_t`` are containing the same Unicode data.
+     */
+    [[nodiscard]] auto to_utf8_std_string(std::u8string_view text) -> std::string;
+
+    /**
+     * Convert a UTF-8 encoded ``std::string`` to a ``std::u8string` .
+     *
+     * We assume here that ``char`` and ``char8_t`` are containing the same Unicode data.
+     * No checks are made.
+     */
+    [[nodiscard]] auto to_u8string(std::string_view text) -> std::u8string;
 }
 #endif

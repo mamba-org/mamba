@@ -12,6 +12,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
 
 #include "spdlog/spdlog.h"

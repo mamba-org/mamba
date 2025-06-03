@@ -12,6 +12,7 @@
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/shell_init.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/path_manip.hpp"
 

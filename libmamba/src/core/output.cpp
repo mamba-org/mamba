@@ -1,4 +1,4 @@
-// Copyright (c) 2019, QuantStack and Mamba Contributors
+// Copyright (c) 2019-2025, QuantStack and Mamba Contributors
 //
 // Distributed under the terms of the BSD 3-Clause License.
 //
@@ -466,9 +466,9 @@ namespace mamba
     {
         auto new_progress_bar_manager = make_progress_bar_manager(mode);
         new_progress_bar_manager->register_print_hook(Console::print_buffer);
-        new_progress_bar_manager->register_print_hook(MessageLogger::print_buffer);
-        new_progress_bar_manager->register_pre_start_hook(MessageLogger::activate_buffer);
-        new_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
+        new_progress_bar_manager->register_print_hook(logging::MessageLogger::print_buffer);
+        new_progress_bar_manager->register_pre_start_hook(logging::MessageLogger::activate_buffer);
+        new_progress_bar_manager->register_post_stop_hook(logging::MessageLogger::deactivate_buffer);
 
         auto synched_data = p_data->m_synched_data.synchronize();
         synched_data->progress_bar_manager = std::move(new_progress_bar_manager);
@@ -551,93 +551,5 @@ namespace mamba
             p_data->json_hier.erase(p_data->json_hier.rfind('/'));
         }
     }
-
-    /*****************
-     * MessageLogger *
-     *****************/
-
-    static std::atomic<bool> message_logger_use_buffer;
-
-    using MessageLoggerBuffer = std::vector<std::pair<std::string, log_level>>;
-    static util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
-
-    MessageLogger::MessageLogger(log_level level)
-        : m_level(level)
-        , m_stream()
-    {
-    }
-
-    MessageLogger::~MessageLogger()
-    {
-        if (!message_logger_use_buffer && Console::is_available())
-        {
-            emit(m_stream.str(), m_level);
-        }
-        else
-        {
-            message_logger_buffer->push_back({ m_stream.str(), m_level });
-        }
-    }
-
-    void MessageLogger::emit(const std::string& msg, const log_level& level)
-    {
-        auto str = Console::hide_secrets(msg);
-        switch (level)
-        {
-            case log_level::critical:
-                SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
-                if (Console::instance().context().output_params.logging_level != log_level::off)
-                {
-                    spdlog::dump_backtrace();
-                }
-                break;
-            case log_level::err:
-                SPDLOG_ERROR(prepend(str, "", std::string(4, ' ').c_str()));
-                break;
-            case log_level::warn:
-                SPDLOG_WARN(prepend(str, "", std::string(4, ' ').c_str()));
-                break;
-            case log_level::info:
-                SPDLOG_INFO(prepend(str, "", std::string(4, ' ').c_str()));
-                break;
-            case log_level::debug:
-                SPDLOG_DEBUG(prepend(str, "", std::string(4, ' ').c_str()));
-                break;
-            case log_level::trace:
-                SPDLOG_TRACE(prepend(str, "", std::string(4, ' ').c_str()));
-                break;
-            default:
-                break;
-        }
-    }
-
-    std::stringstream& MessageLogger::stream()
-    {
-        return m_stream;
-    }
-
-    void MessageLogger::activate_buffer()
-    {
-        message_logger_use_buffer = true;
-    }
-
-    void MessageLogger::deactivate_buffer()
-    {
-        message_logger_use_buffer = false;
-    }
-
-    void MessageLogger::print_buffer(std::ostream& /*ostream*/)
-    {
-        MessageLoggerBuffer tmp;
-        message_logger_buffer->swap(tmp);
-
-        for (const auto& [msg, level] : tmp)
-        {
-            emit(msg, level);
-        }
-
-        spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
-    }
-
 
 }  // namespace mamba

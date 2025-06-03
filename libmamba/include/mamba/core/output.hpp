@@ -16,7 +16,7 @@
 #include <fmt/color.h>
 #include <nlohmann/json.hpp>
 
-#include "mamba/core/common_types.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/progress_bar.hpp"
 
 namespace mamba
@@ -166,43 +166,6 @@ namespace mamba
         static void clear_singleton();
     };
 
-    class MessageLogger
-    {
-    public:
-
-        MessageLogger(log_level level);
-        ~MessageLogger();
-
-        std::stringstream& stream();
-
-        static void activate_buffer();
-        static void deactivate_buffer();
-        static void print_buffer(std::ostream& ostream);
-
-    private:
-
-        log_level m_level;
-        std::stringstream m_stream;
-
-        static void emit(const std::string& msg, const log_level& level);
-    };
-
 }  // namespace mamba
-
-#undef LOG
-#undef LOG_TRACE
-#undef LOG_DEBUG
-#undef LOG_INFO
-#undef LOG_WARNING
-#undef LOG_ERROR
-#undef LOG_CRITICAL
-
-#define LOG(severity) mamba::MessageLogger(severity).stream()
-#define LOG_TRACE LOG(mamba::log_level::trace)
-#define LOG_DEBUG LOG(mamba::log_level::debug)
-#define LOG_INFO LOG(mamba::log_level::info)
-#define LOG_WARNING LOG(mamba::log_level::warn)
-#define LOG_ERROR LOG(mamba::log_level::err)
-#define LOG_CRITICAL LOG(mamba::log_level::critical)
 
 #endif  // MAMBA_CORE_OUTPUT_HPP

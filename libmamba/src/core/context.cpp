@@ -8,13 +8,11 @@
 
 #include <fmt/ostream.h>
 #include <fmt/ranges.h>
-#include <spdlog/pattern_formatter.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/logging_spdlog.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -27,99 +25,6 @@
 
 namespace mamba
 {
-
-    class Logger : public spdlog::logger
-    {
-    public:
-
-        Logger(const std::string& name, const std::string& pattern, const std::string& eol);
-
-        void dump_backtrace_no_guards();
-    };
-
-    Logger::Logger(const std::string& name, const std::string& pattern, const std::string& eol)
-        : spdlog::logger(name, std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
-    {
-        auto f = std::make_unique<spdlog::pattern_formatter>(
-            pattern,
-            spdlog::pattern_time_type::local,
-            eol
-        );
-        set_formatter(std::move(f));
-    }
-
-    void Logger::dump_backtrace_no_guards()
-    {
-        using spdlog::details::log_msg;
-        if (tracer_.enabled())
-        {
-            tracer_.foreach_pop(
-                [this](const log_msg& msg)
-                {
-                    if (this->should_log(msg.level))
-                    {
-                        this->sink_it_(msg);
-                    }
-                }
-            );
-        }
-    }
-
-
-    enum class logger_kind
-    {
-        normal_logger,
-        default_logger,
-    };
-
-    // Associate the registration of a logger to the lifetime of this object.
-    // This is used to help with making sure loggers are unregistered once
-    // their logical owner is destroyed.
-    class Context::ScopedLogger
-    {
-        std::shared_ptr<Logger> m_logger;
-
-    public:
-
-        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal_logger)
-            : m_logger(std::move(new_logger))
-        {
-            assert(m_logger);
-            if (kind == logger_kind::default_logger)
-            {
-                spdlog::set_default_logger(m_logger);
-            }
-            else
-            {
-                spdlog::register_logger(m_logger);
-            }
-        }
-
-        ~ScopedLogger()
-        {
-            if (m_logger)
-            {
-                spdlog::drop(m_logger->name());
-            }
-        }
-
-        std::shared_ptr<Logger> logger() const
-        {
-            assert(m_logger);
-            return m_logger;
-        }
-
-        ScopedLogger(ScopedLogger&&) = default;
-        ScopedLogger& operator=(ScopedLogger&&) = default;
-
-        ScopedLogger(const ScopedLogger&) = delete;
-        ScopedLogger& operator=(const ScopedLogger&) = delete;
-    };
-
-    spdlog::level::level_enum convert_log_level(log_level l)
-    {
-        return static_cast<spdlog::level::level_enum>(l);
-    }
 
     namespace
     {
@@ -139,16 +44,6 @@ namespace mamba
         }
     }
 
-    std::shared_ptr<Logger> Context::main_logger()
-    {
-        if (loggers.empty())
-        {
-            return {};
-        }
-
-        return loggers.front().logger();
-    }
-
     void Context::enable_signal_handling()
     {
         if (use_default_signal_handler_val)
@@ -157,22 +52,19 @@ namespace mamba
         }
     }
 
-    void Context::enable_logging()
+    void Context::enable_logging(logging::AnyLogHandler log_handler)  // THINK: change name? start_logging?
     {
-        loggers.clear();  // Make sure we work with a known set of loggers, first one is
-                          // always the default one.
-
-        loggers.emplace_back(
-            std::make_shared<Logger>("libmamba", output_params.log_pattern, "\n"),
-            logger_kind::default_logger
-        );
-        MainExecutor::instance().on_close(tasksync.synchronized([&] { main_logger()->flush(); }));
-
-        loggers.emplace_back(std::make_shared<Logger>("libcurl", output_params.log_pattern, ""));
-
-        loggers.emplace_back(std::make_shared<Logger>("libsolv", output_params.log_pattern, ""));
-
-        spdlog::set_level(convert_log_level(output_params.logging_level));
+        if (not logging::get_log_handler())
+        {
+            if (log_handler)
+            {
+                logging::set_log_handler(std::move(log_handler), output_params);
+            }
+            else
+            {
+                logging::set_log_handler(LogHandler_spdlog(), output_params);
+            }
+        }
     }
 
     Context::Context(const ContextOptions& options)
@@ -215,7 +107,7 @@ namespace mamba
 
         if (options.enable_logging)
         {
-            enable_logging();
+            enable_logging(options.log_handler);
         }
     }
 
@@ -252,13 +144,13 @@ namespace mamba
                 this->output_params.logging_level = log_level::info;
                 break;
         }
-        spdlog::set_level(convert_log_level(output_params.logging_level));
+        logging::set_log_level(output_params.logging_level);
     }
 
     void Context::set_log_level(log_level level)
     {
         output_params.logging_level = level;
-        spdlog::set_level(convert_log_level(level));
+        logging::set_log_level(level);
     }
 
     std::vector<std::string> Context::platforms() const
@@ -422,10 +314,7 @@ namespace mamba
 
     void Context::dump_backtrace_no_guards()
     {
-        if (main_logger())  // REVIEW: is this correct?
-        {
-            main_logger()->dump_backtrace_no_guards();
-        }
+        logging::log_stacktrace_no_guards(log_source::libmamba);
     }
 
 }  // namespace mamba

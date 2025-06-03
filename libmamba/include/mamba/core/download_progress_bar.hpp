@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/progress_bar.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/download/downloader.hpp"
 

@@ -14,9 +14,9 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
-#include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -68,6 +68,7 @@ namespace mamba
     {
         bool enable_logging = false;
         bool enable_signal_handling = false;
+        logging::AnyLogHandler log_handler;
     };
 
     // Context singleton class
@@ -77,16 +78,12 @@ namespace mamba
 
         static void use_default_signal_handler(bool val);
 
-        struct OutputParams
-        {
-            int verbosity{ 0 };
-            log_level logging_level{ log_level::warn };
 
+
+        struct OutputParams : LoggingParams
+        {
             bool json{ false };
             bool quiet{ false };
-
-            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
-            std::size_t log_backtrace{ 0 };
         };
 
         struct GraphicsParams
@@ -293,14 +290,6 @@ namespace mamba
         specs::AuthenticationDataBase m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
-        class ScopedLogger;
-        std::vector<ScopedLogger> loggers;
-
-        std::shared_ptr<Logger> main_logger();
-        void add_logger(std::shared_ptr<Logger>);
-
-        TaskSynchronizer tasksync;
-
 
         // Enables the provided context setup signal handling.
         // This function must be called only for one Context in the lifetime of the program.
@@ -308,7 +297,7 @@ namespace mamba
 
         // Enables the provided context to drive the logging system.
         // This function must be called only for one Context in the lifetime of the program.
-        void enable_logging();
+        void enable_logging(logging::AnyLogHandler log_handler);
     };
 
 

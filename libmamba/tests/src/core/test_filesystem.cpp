@@ -24,11 +24,14 @@ namespace mamba
             static constexpr auto value = u8"a/b/c";
             std::filesystem::path x{ value };
             const auto y = fs::normalized_separators(x);
-#if defined(_WIN32)
-            REQUIRE(y.u8string() == u8R"(a\b\c)");
-#else
-            REQUIRE(y.u8string() == value);
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(y.u8string() == u8R"(a\b\c)");
+            }
+            else
+            {
+                REQUIRE(y.u8string() == value);
+            }
         }
 
         TEST_CASE("normalized_separators_unicode")
@@ -46,17 +49,23 @@ namespace mamba
             std::filesystem::path some_path = some_path_str;
 
             REQUIRE(
-                fs::to_utf8(some_path, { /*normalize_sep=*/false })
+                fs::to_utf8(some_path, { .normalize_sep = false })
                 == util::to_utf8_std_string(some_path_str)
             );
-#if defined(_WIN32)
-            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/true }) == u8"a\\b\\c");
-#else
-            REQUIRE(
-                fs::to_utf8(some_path, { /*normalize_sep=*/true })
-                == util::to_utf8_std_string(some_path_str)
-            );
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(u8"a\\b\\c")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(some_path_str)
+                );
+            }
         }
 
         TEST_CASE("to_utf8_check_separators_unicode")
@@ -65,45 +74,63 @@ namespace mamba
             std::filesystem::path some_path = some_path_str;
 
             REQUIRE(
-                fs::to_utf8(some_path, { /*normalize_sep=*/false })
+                fs::to_utf8(some_path, { .normalize_sep = false })
                 == util::to_utf8_std_string(some_path_str)
             );
-#if defined(_WIN32)
-            REQUIRE(fs::to_utf8(some_path, { /*normalize_sep=*/true }) == u8"日\\本\\語");
-#else
-            REQUIRE(
-                fs::to_utf8(some_path, { /*normalize_sep=*/true })
-                == util::to_utf8_std_string(some_path_str)
-            );
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(u8"日\\本\\語")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(some_path_str)
+                );
+            }
         }
 
         TEST_CASE("from_utf8_check_separators")
         {
             static constexpr auto some_path_str = u8"a/b/c";
 
-#if defined(_WIN32)
-            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::u8path(u8"a\\b\\c"));
-#else
-            REQUIRE(
-                fs::from_utf8(util::to_utf8_std_string(some_path_str))
-                == std::filesystem::path(u8"a/b/c")
-            );
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"a\\b\\c")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"a/b/c")
+                );
+            }
         }
 
         TEST_CASE("from_utf8_check_separators_unicode")
         {
             static constexpr auto some_path_str = u8"日/本/語";
 
-#if defined(_WIN32)
-            REQUIRE(fs::from_utf8(some_path_str) == std::filesystem::u8path(u8"日\\本\\語"));
-#else
-            REQUIRE(
-                fs::from_utf8(util::to_utf8_std_string(some_path_str))
-                == std::filesystem::path(u8"日/本/語")
-            );
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"日\\本\\語")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"日/本/語")
+                );
+            }
         }
 
         TEST_CASE("u8path_separators_formatting")
@@ -112,11 +139,14 @@ namespace mamba
             std::filesystem::path some_path = std::filesystem::path(some_path_str);
             const fs::u8path u8_path(some_path);
 
-#if defined(_WIN32)
-            REQUIRE(u8_path.string() == u8"a\\b\\c");
-#else
-            REQUIRE(u8_path.string() == util::to_utf8_std_string(some_path_str));
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(u8_path.string() == util::to_utf8_std_string(u8"a\\b\\c"));
+            }
+            else
+            {
+                REQUIRE(u8_path.string() == util::to_utf8_std_string(some_path_str));
+            }
             REQUIRE(u8_path.generic_string() == util::to_utf8_std_string(some_path_str));
         }
 
@@ -252,14 +282,15 @@ namespace mamba
             fs::create_directories(long_path);
         }
 
-#if defined(_WIN32)
         TEST_CASE("append_maintains_slash_type")
         {
-            const fs::u8path path = u8R"(a/b/c/d)";
-            const auto path_1 = path / u8R"(e\f\g)";
-            REQUIRE(path_1.string() == u8R"(a\b\c\d\e\f\g)");
+            if (util::on_win)
+            {
+                const fs::u8path path = util::to_utf8_std_string(u8R"(a/b/c/d)");
+                const auto path_1 = path / u8R"(e\f\g)";
+                REQUIRE(path_1.string() == util::to_utf8_std_string(u8R"(a\b\c\d\e\f\g)"));
+            }
         }
-#endif
     }
 
     namespace
@@ -314,7 +345,7 @@ namespace mamba
 
             const auto create_readonly_files = [](const fs::u8path& dir_path)
             {
-                assert(fs::is_directory(dir_path));
+                REQUIRE(fs::is_directory(dir_path));
                 for (int file_idx = 0; file_idx < file_count_per_directory; ++file_idx)
                 {
                     const auto readonly_file_path = dir_path

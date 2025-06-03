@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <ranges>
 #include <utility>
 
 #include <openssl/evp.h>
@@ -299,23 +300,17 @@ namespace mamba::util
 
     auto to_utf8_std_string(std::u8string_view text) -> std::string
     {
-        std::string result;
-        result.reserve(text.size());
-        for (char8_t c : text)
-        {
-            result.push_back(static_cast<char>(c));
-        }
-        return result;
+        static constexpr auto to_char = [](char8_t c) { return static_cast<char>(c); };
+        auto bytes = text | std::ranges::views::transform(to_char);
+        // TODO(C++23): Use std::ranges::to<std::string>
+        return { bytes.begin(), bytes.end() };
     }
 
     auto to_u8string(std::string_view text) -> std::u8string
     {
-        std::u8string result;
-        result.reserve(text.size());
-        for (char c : text)
-        {
-            result.push_back(static_cast<char8_t>(c));
-        }
-        return result;
+        static constexpr auto to_char8_t = [](char c) { return static_cast<char8_t>(c); };
+        auto bytes = text | std::ranges::views::transform(to_char8_t);
+        // TODO(C++23): Use std::ranges::to<std::string>
+        return { bytes.begin(), bytes.end() };
     }
 }

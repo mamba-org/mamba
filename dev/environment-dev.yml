@@ -9,7 +9,7 @@ dependencies:
   - make # not always present
   # libmamba dependencies
   - cpp-expected
-  - fmt
+  - fmt >=11.1.0
   - libarchive
   - libcurl >=7.86
   - libsodium

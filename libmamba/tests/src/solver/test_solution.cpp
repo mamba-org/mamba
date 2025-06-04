@@ -29,80 +29,83 @@ namespace
             Solution::Install{ PackageInfo("install") },
         } };
 
-        SECTION("Iterate over packages")
+        SECTION("Const iterate over packages")
         {
-            auto remove_count = std::size_t(0);
-            for_each_to_remove(
-                solution.actions,
-                [&](const PackageInfo& pkg)
+            SECTION("Packages to remove")
+            {
+                auto remove_count = std::size_t(0);
+                for (const PackageInfo& pkg : solution.packages_to_remove())
                 {
                     remove_count++;
                     const auto has_remove = util::ends_with(pkg.name, "remove")
                                             || (pkg.name == "reinstall");
                     REQUIRE(has_remove);
                 }
-            );
-            REQUIRE(remove_count == 5);
+                REQUIRE(remove_count == 5);
+            }
 
-            auto install_count = std::size_t(0);
-            for_each_to_install(
-                solution.actions,
-                [&](const PackageInfo& pkg)
+            SECTION("Packages to install")
+            {
+                auto install_count = std::size_t(0);
+                for (const PackageInfo& pkg : solution.packages_to_install())
                 {
                     install_count++;
                     const auto has_install = util::ends_with(pkg.name, "install")
                                              || (pkg.name == "reinstall");
                     REQUIRE(has_install);
                 }
-            );
-            REQUIRE(install_count == 5);
+                REQUIRE(install_count == 5);
+            }
 
-            auto omit_count = std::size_t(0);
-            for_each_to_omit(
-                solution.actions,
-                [&](const PackageInfo& pkg)
+            SECTION("Packages to omit")
+            {
+                auto omit_count = std::size_t(0);
+                for (const PackageInfo& pkg : solution.packages_to_omit())
                 {
                     omit_count++;
                     REQUIRE(util::ends_with(pkg.name, "omit"));
                 }
-            );
-            REQUIRE(omit_count == 1);
+                REQUIRE(omit_count == 1);
+            }
         }
 
-        SECTION("Iterate over packages and break")
+        SECTION("Ref iterate over packages")
         {
-            auto remove_count = std::size_t(0);
-            for_each_to_remove(
-                solution.actions,
-                [&](const PackageInfo&)
+            SECTION("Packages to remove")
+            {
+                for (PackageInfo& pkg : solution.packages_to_remove())
                 {
-                    remove_count++;
-                    return util::LoopControl::Break;
+                    pkg.name = "";
                 }
-            );
-            REQUIRE(remove_count == 1);
+                for (const PackageInfo& pkg : solution.packages_to_remove())
+                {
+                    CHECK(pkg.name == "");
+                }
+            }
 
-            auto install_count = std::size_t(0);
-            for_each_to_install(
-                solution.actions,
-                [&](const PackageInfo&)
+            SECTION("Packages to install")
+            {
+                for (PackageInfo& pkg : solution.packages_to_install())
                 {
-                    install_count++;
-                    return util::LoopControl::Break;
+                    pkg.name = "";
                 }
-            );
-            REQUIRE(install_count == 1);
+                for (const PackageInfo& pkg : solution.packages_to_install())
+                {
+                    CHECK(pkg.name == "");
+                }
+            }
 
-            auto omit_count = std::size_t(0);
-            for_each_to_omit(
-                solution.actions,
-                [&](const PackageInfo&)
+            SECTION("Packages to omit")
+            {
+                for (PackageInfo& pkg : solution.packages_to_omit())
                 {
-                    omit_count++;
-                    return util::LoopControl::Break;
+                    pkg.name = "";
                 }
-            );
-            REQUIRE(omit_count == 1);
+                for (const PackageInfo& pkg : solution.packages_to_omit())
+                {
+                    CHECK(pkg.name == "");
+                }
+            }
         }
     }
 }

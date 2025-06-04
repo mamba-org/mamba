@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_SOLUTION_HPP
 #define MAMBA_CORE_SOLUTION_HPP
 
+#include <ranges>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -67,6 +68,15 @@ namespace mamba::solver
         using action_list = std::vector<Action>;
 
         action_list actions = {};
+
+        [[nodiscard]] auto packages_to_remove() const;
+        [[nodiscard]] auto packages_to_remove();
+
+        [[nodiscard]] auto packages_to_install() const;
+        [[nodiscard]] auto packages_to_install();
+
+        [[nodiscard]] auto packages_to_omit() const;
+        [[nodiscard]] auto packages_to_omit();
     };
 
     template <typename Iter, typename UnaryFunc>
@@ -112,6 +122,27 @@ namespace mamba::solver
                 action
             );
         }
+
+        template <typename Range>
+        auto packages_to_remove_impl(Range& actions)
+        {
+            namespace views = std::ranges::views;
+            return actions  //
+                   | views::transform([](auto& a) { return detail::to_remove_ptr(a); })
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
+        }
+
+    }
+
+    inline auto Solution::packages_to_remove() const
+    {
+        return detail::packages_to_remove_impl(actions);
+    }
+
+    inline auto Solution::packages_to_remove()
+    {
+        return detail::packages_to_remove_impl(actions);
     }
 
     // TODO(C++20): Poor man's replacement to range filter transform
@@ -167,6 +198,27 @@ namespace mamba::solver
                 action
             );
         }
+
+        template <typename Range>
+        auto packages_to_install_impl(Range& actions)
+        {
+            namespace views = std::ranges::views;
+            return actions  //
+                   | views::transform([](auto& a) { return detail::to_install_ptr(a); })
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
+        }
+
+    }
+
+    inline auto Solution::packages_to_install() const
+    {
+        return detail::packages_to_install_impl(actions);
+    }
+
+    inline auto Solution::packages_to_install()
+    {
+        return detail::packages_to_install_impl(actions);
     }
 
     template <typename Iter, typename UnaryFunc>
@@ -218,6 +270,27 @@ namespace mamba::solver
                 action
             );
         }
+
+        template <typename Range>
+        auto packages_to_omit_impl(Range& actions)
+        {
+            namespace views = std::ranges::views;
+            return actions  //
+                   | views::transform([](auto& a) { return detail::to_omit_ptr(a); })
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
+        }
+
+    }
+
+    inline auto Solution::packages_to_omit() const
+    {
+        return detail::packages_to_omit_impl(actions);
+    }
+
+    inline auto Solution::packages_to_omit()
+    {
+        return detail::packages_to_omit_impl(actions);
     }
 
     // TODO(C++20): Poor man's replacement to range filter transform

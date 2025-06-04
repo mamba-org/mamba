@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <ranges>
 #include <stack>
 #include <string>
 #include <utility>
@@ -242,16 +243,13 @@ namespace mamba
         else
         {
             // The specs to install become all the dependencies of the non intstalled specs
-            for_each_to_omit(
-                m_solution.actions,
-                [&](const specs::PackageInfo& pkg)
+            for (const specs::PackageInfo& pkg : m_solution.packages_to_omit())
+            {
+                for (const auto& dep : pkg.dependencies)
                 {
-                    for (const auto& dep : pkg.dependencies)
-                    {
-                        m_history_entry.update.push_back(dep);
-                    }
+                    m_history_entry.update.push_back(dep);
                 }
-            );
+            }
         }
 
         using Request = solver::Request;
@@ -384,7 +382,7 @@ namespace mamba
         // to be URL like (i.e. explicit). Below is a loop to fix the channel of the linked
         // packages (fix applied to the unlinked packages to avoid potential bugs). Ideally, this
         // should be normalised when reading the data.
-        const auto fix_channel = [&](specs::PackageInfo& pkg)
+        for (specs::PackageInfo& pkg : m_solution.packages())
         {
             auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
             auto pkg_channel = mamba::specs::Channel::resolve(
@@ -395,32 +393,15 @@ namespace mamba
             auto channel_url = pkg_channel[0].platform_url(pkg.platform).str();
             pkg.channel = channel_url;
         };
-        for_each_to_install(m_solution.actions, fix_channel);
-        for_each_to_remove(m_solution.actions, fix_channel);
-        for_each_to_omit(m_solution.actions, fix_channel);
 
         TransactionRollback rollback;
         TransactionContext transaction_context(ctx.transaction_params(), m_py_versions, m_requested_specs);
 
-        const auto link = [&](const specs::PackageInfo& pkg)
+        for (const specs::PackageInfo& pkg : m_solution.packages_to_remove())
         {
             if (is_sig_interrupted())
             {
-                return util::LoopControl::Break;
-            }
-            Console::stream() << "Linking " << pkg.str();
-            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
-            LinkPackage lp(pkg, cache_path, &transaction_context);
-            lp.execute();
-            rollback.record(lp);
-            m_history_entry.link_dists.push_back(pkg.long_str());
-            return util::LoopControl::Continue;
-        };
-        const auto unlink = [&](const specs::PackageInfo& pkg)
-        {
-            if (is_sig_interrupted())
-            {
-                return util::LoopControl::Break;
+                break;
             }
             Console::stream() << "Unlinking " << pkg.str();
             const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
@@ -428,11 +409,21 @@ namespace mamba
             up.execute();
             rollback.record(up);
             m_history_entry.unlink_dists.push_back(pkg.long_str());
-            return util::LoopControl::Continue;
-        };
+        }
 
-        for_each_to_remove(m_solution.actions, unlink);
-        for_each_to_install(m_solution.actions, link);
+        for (const specs::PackageInfo& pkg : m_solution.packages_to_install())
+        {
+            if (is_sig_interrupted())
+            {
+                break;
+            }
+            Console::stream() << "Linking " << pkg.str();
+            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+            LinkPackage lp(pkg, cache_path, &transaction_context);
+            lp.execute();
+            rollback.record(lp);
+            m_history_entry.link_dists.push_back(pkg.long_str());
+        }
 
         if (is_sig_interrupted())
         {
@@ -451,25 +442,29 @@ namespace mamba
 
     auto MTransaction::to_conda() -> to_conda_type
     {
-        to_remove_type to_remove_structured = {};
-        to_remove_structured.reserve(m_solution.actions.size());  // Upper bound
-        for_each_to_remove(
-            m_solution.actions,
-            [&](const auto& pkg)
-            {
-                to_remove_structured.emplace_back(pkg.channel, pkg.filename);  //
-            }
-        );
+        namespace views = std::ranges::views;
 
-        to_install_type to_install_structured = {};
-        to_install_structured.reserve(m_solution.actions.size());  // Upper bound
-        for_each_to_install(
-            m_solution.actions,
-            [&](const auto& pkg)
-            {
-                to_install_structured.emplace_back(pkg.channel, pkg.filename, nl::json(pkg).dump(4));  //
-            }
-        );
+        auto to_remove_range = m_solution.packages_to_remove()  //
+                               | views::transform(
+                                   [](const auto& pkg)
+                                   { return to_remove_type::value_type(pkg.channel, pkg.filename); }
+                               );
+        // TODO(C++23): std::ranges::to
+        auto to_remove_structured = to_remove_type(to_remove_range.begin(), to_remove_range.end());
+
+        auto to_install_range = m_solution.packages_to_install()  //
+                                | views::transform(
+                                    [](const auto& pkg)
+                                    {
+                                        return to_install_type::value_type(
+                                            pkg.channel,
+                                            pkg.filename,
+                                            nl::json(pkg).dump(4)
+                                        );
+                                    }
+                                );
+        // TODO(C++23): std::ranges::to
+        auto to_install_structured = to_install_type(to_install_range.begin(), to_install_range.end());
 
         to_specs_type specs;
         std::get<0>(specs) = m_history_entry.update;
@@ -480,27 +475,22 @@ namespace mamba
 
     void MTransaction::log_json()
     {
-        std::vector<nl::json> to_fetch, to_link, to_unlink;
+        namespace views = std::ranges::views;
 
-        for_each_to_install(
-            m_solution.actions,
-            [&](const auto& pkg)
-            {
-                if (need_pkg_download(pkg, m_multi_cache))
-                {
-                    to_fetch.push_back(nl::json(pkg));
-                }
-                to_link.push_back(nl::json(pkg));
-            }
-        );
+        // TODO(C++23): std::ranges::to
+        auto to_fetch_range = m_solution.packages_to_install()
+                              | views::filter([this](const auto& pkg)
+                                              { return need_pkg_download(pkg, m_multi_cache); });
+        auto to_fetch = std::vector<nl::json>(to_fetch_range.begin(), to_fetch_range.end());
 
-        for_each_to_remove(
-            m_solution.actions,
-            [&](const auto& pkg)
-            {
-                to_unlink.push_back(nl::json(pkg));  //
-            }
-        );
+
+        // TODO(C++23): std::ranges::to
+        auto to_link_range = m_solution.packages_to_install();
+        auto to_link = std::vector<nl::json>(to_link_range.begin(), to_link_range.end());
+
+        // TODO(C++23): std::ranges::to
+        auto to_unlink_range = m_solution.packages_to_remove();
+        auto to_unlink = std::vector<nl::json>(to_unlink_range.begin(), to_unlink_range.end());
 
         auto add_json = [](const auto& jlist, const char* s)
         {
@@ -540,67 +530,59 @@ namespace mamba
             {
                 LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
             }
-            for_each_to_install(
-                solution.actions,
-                [&](const auto& pkg)
+            for (const auto& pkg : solution.packages_to_install())
+            {
+                if (ctx.validation_params.verify_artifacts)
                 {
-                    if (ctx.validation_params.verify_artifacts)
+                    LOG_INFO << "Creating RepoChecker...";
+                    auto repo_checker_store = RepoCheckerStore::make(ctx, channel_context, multi_cache);
+                    for (auto& chan : channel_context.make_channel(pkg.channel))
                     {
-                        LOG_INFO << "Creating RepoChecker...";
-                        auto repo_checker_store = RepoCheckerStore::make(
-                            ctx,
-                            channel_context,
-                            multi_cache
-                        );
-                        for (auto& chan : channel_context.make_channel(pkg.channel))
+                        auto repo_checker = repo_checker_store.find_checker(chan);
+                        if (repo_checker)
                         {
-                            auto repo_checker = repo_checker_store.find_checker(chan);
-                            if (repo_checker)
-                            {
-                                LOG_INFO << "RepoChecker successfully created.";
-                                repo_checker->generate_index_checker();
-                                repo_checker->verify_package(
-                                    pkg.json_signable(),
-                                    std::string_view(pkg.signatures)
-                                );
-                            }
-                            else
-                            {
-                                LOG_ERROR << "Could not create a valid RepoChecker.";
-                                throw std::runtime_error(fmt::format(
-                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
-                                    pkg.name
-                                ));
-                            }
-                        }
-                        LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
-                    }
-
-                    // FIXME: only do this for micromamba for now
-                    if (ctx.command_params.is_mamba_exe)
-                    {
-                        using Credentials = typename specs::CondaURL::Credentials;
-                        auto l_pkg = pkg;
-                        {
-                            auto channels = channel_context.make_channel(pkg.package_url);
-                            assert(channels.size() == 1);  // A URL can only resolve to one channel
-                            l_pkg.package_url = channels.front().platform_urls().at(0).str(
-                                Credentials::Show
+                            LOG_INFO << "RepoChecker successfully created.";
+                            repo_checker->generate_index_checker();
+                            repo_checker->verify_package(
+                                pkg.json_signable(),
+                                std::string_view(pkg.signatures)
                             );
                         }
+                        else
                         {
-                            auto channels = channel_context.make_channel(pkg.channel);
-                            assert(channels.size() == 1);  // A URL can only resolve to one channel
-                            l_pkg.channel = channels.front().id();
+                            LOG_ERROR << "Could not create a valid RepoChecker.";
+                            throw std::runtime_error(fmt::format(
+                                R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
+                                pkg.name
+                            ));
                         }
-                        fetchers.emplace_back(l_pkg, multi_cache);
                     }
-                    else
-                    {
-                        fetchers.emplace_back(pkg, multi_cache);
-                    }
+                    LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
                 }
-            );
+
+                // FIXME: only do this for micromamba for now
+                if (ctx.command_params.is_mamba_exe)
+                {
+                    using Credentials = typename specs::CondaURL::Credentials;
+                    auto l_pkg = pkg;
+                    {
+                        auto channels = channel_context.make_channel(pkg.package_url);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
+                        );
+                    }
+                    {
+                        auto channels = channel_context.make_channel(pkg.channel);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        l_pkg.channel = channels.front().id();
+                    }
+                    fetchers.emplace_back(l_pkg, multi_cache);
+                }
+                else
+                {
+                    fetchers.emplace_back(pkg, multi_cache);
+                }
+            }
 
             if (ctx.validation_params.verify_artifacts)
             {

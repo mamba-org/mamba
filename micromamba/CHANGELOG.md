@@ -1,3 +1,33 @@
+## micromamba 2.2.0 (June 04, 2025)
+
+Enhancements:
+
+- Allow users to set labels on PRs by @Hind-M in <https://github.com/mamba-org/mamba/pull/3936>
+- support installing pip dependencies with uv by @iisakkirotko in <https://github.com/mamba-org/mamba/pull/3918>
+
+Bug fixes:
+
+- Fix listing dependencies pulled with `pip` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3963>
+- Handle environment variables from `yaml` file by @Hind-M in <https://github.com/mamba-org/mamba/pull/3955>
+- unify channels of installed and removed packages written in history by @SandrineP in <https://github.com/mamba-org/mamba/pull/3892>
+- Fix typo in help menu for the `reactivate` command by @ickc in <https://github.com/mamba-org/mamba/pull/3932>
+- Unify CONDA_ENVS_PATH, CONDA_ENVS_DIRS by @holzman in <https://github.com/mamba-org/mamba/pull/3855>
+- Allow creating environment with empty folder as target prefix by @nsoranzo in <https://github.com/mamba-org/mamba/pull/3919>
+
+CI fixes and doc:
+
+- ci: Disable GitHub annotations for Codecov in PRs by @jjerphan in <https://github.com/mamba-org/mamba/pull/3930>
+- Remove obsolete mamba/micromamba differences by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3924>
+
+Maintenance:
+
+- Compile with C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3965>
+- Transaction context by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3950>
+- Make integration tests not rely on specific organisation of packages by @Klaim in <https://github.com/mamba-org/mamba/pull/3897>
+- Refactor `SubdirData` > `SubdirIndexLoader` by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3940>
+- Adapt citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3931>
+- Rename str > to_string by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3917>
+
 ## micromamba 2.1.1 (May 05, 2025)
 
 Bug fixes:

@@ -1,3 +1,31 @@
+## libmambapy 2.2.0 (June 04, 2025)
+
+Enhancements:
+
+- Allow users to set labels on PRs by @Hind-M in <https://github.com/mamba-org/mamba/pull/3936>
+
+Bug fixes:
+
+- Remove implicit zero in Version formatting by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3915>
+
+CI fixes and doc:
+
+- ci: Disable GitHub annotations for Codecov in PRs by @jjerphan in <https://github.com/mamba-org/mamba/pull/3930>
+- Remove obsolete mamba/micromamba differences by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3924>
+
+Maintenance:
+
+- Compile with C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3965>
+- Transaction context by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3950>
+- Context dependency reduction by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3949>
+- Refactor `SubdirData` > `SubdirIndexLoader` by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3940>
+- Avoid ODR violation for `type_caster<mamba::fs::u8path>` by @jjerphan in <https://github.com/mamba-org/mamba/pull/3903>
+- Adapt citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3931>
+- Simplify SubdirData by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3926>
+- Remove Context from downloaders by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3928>
+- Rename str > to_string by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3917>
+- Matchspec hardening by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3907>
+
 ## libmambapy 2.1.1 (May 05, 2025)
 
 Bug fixes:

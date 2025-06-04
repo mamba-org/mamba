@@ -1,3 +1,50 @@
+## libmamba 2.2.0 (June 04, 2025)
+
+Enhancements:
+
+- Allow users to set labels on PRs by @Hind-M in <https://github.com/mamba-org/mamba/pull/3936>
+- support installing pip dependencies with uv by @iisakkirotko in <https://github.com/mamba-org/mamba/pull/3918>
+- Load local path when offline by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3937>
+
+Bug fixes:
+
+- Fix listing dependencies pulled with `pip` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3963>
+- Handle environment variables from `yaml` file by @Hind-M in <https://github.com/mamba-org/mamba/pull/3955>
+- Fix fmt headers includes by @Hind-M in <https://github.com/mamba-org/mamba/pull/3956>
+- unify channels of installed and removed packages written in history by @SandrineP in <https://github.com/mamba-org/mamba/pull/3892>
+- Create packages diff between the current state and a revision by @SandrineP in <https://github.com/mamba-org/mamba/pull/3911>
+- Fix deactivate nushell by @cvanelteren in <https://github.com/mamba-org/mamba/pull/3929>
+- Fix wrong use of deprecation macro by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3941>
+- Fix typo in help menu for the `reactivate` command by @ickc in <https://github.com/mamba-org/mamba/pull/3932>
+- Unify CONDA_ENVS_PATH, CONDA_ENVS_DIRS by @holzman in <https://github.com/mamba-org/mamba/pull/3855>
+- Allow creating environment with empty folder as target prefix by @nsoranzo in <https://github.com/mamba-org/mamba/pull/3919>
+- [Unix] Fix slashes usage in file urls by @Hind-M in <https://github.com/mamba-org/mamba/pull/3871>
+- fix: Avoid use-after-free in MessageLogger by @jmakovicka in <https://github.com/mamba-org/mamba/pull/3873>
+- Remove implicit zero in Version formatting by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3915>
+
+CI fixes and doc:
+
+- ci: Disable GitHub annotations for Codecov in PRs by @jjerphan in <https://github.com/mamba-org/mamba/pull/3930>
+- Remove obsolete mamba/micromamba differences by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3924>
+
+Maintenance:
+
+- Compile with C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3965>
+- Use fmt::runtime where needed in C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3962>
+- Out of context by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3952>
+- Transaction context by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3950>
+- Context dependency reduction by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3949>
+- Constexpr `fmt::formatter::parse` for C++20 with `from_chars` by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3944>
+- Constexpr `fmt::formatter::parse` for C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3942>
+- Refactor `SubdirData` > `SubdirIndexLoader` by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3940>
+- Remove temp_file from public API by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3935>
+- Adapt citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3931>
+- Use range in subdir iteration by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3934>
+- Simplify SubdirData by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3926>
+- Remove Context from downloaders by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3928>
+- Rename str > to_string by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3917>
+- Matchspec hardening by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3907>
+
 ## libmamba 2.1.1 (May 05, 2025)
 
 Enhancements:

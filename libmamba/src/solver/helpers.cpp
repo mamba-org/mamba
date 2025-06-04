@@ -13,6 +13,12 @@ namespace mamba::solver
     auto find_new_python_in_solution(const Solution& solution)
         -> std::optional<std::reference_wrapper<const specs::PackageInfo>>
     {
+        // Obscure warning of a null dereference happening inside std::string
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnull-dereference"
+#endif
+
         auto packages = solution.packages_to_install();
         auto it = std::ranges::find_if(packages, [](const auto& pkg) { return pkg.name == "python"; });
         if (it != packages.end())
@@ -20,6 +26,10 @@ namespace mamba::solver
             return std::cref(*it);
         }
         return std::nullopt;
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     }
 
     auto python_binary_compatible(const specs::Version& older, const specs::Version& newer) -> bool

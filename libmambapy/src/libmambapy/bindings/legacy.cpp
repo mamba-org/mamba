@@ -412,15 +412,29 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ));
 
-    /**************
-     *  Bindings  *
-     **************/
+    /******************************************************
+     *  Forward bindings to avoid C++ name in Python doc  *
+     ******************************************************/
 
-    // declare earlier to avoid C++ types in docstrings
+    // The lifetime of the unique Context instance will determine the lifetime of the other
+    // singletons.
+    using context_ptr = std::unique_ptr<Context, mambapy::destroy_singleton>;
+    auto pyContext = py::class_<Context, context_ptr>(m, "Context");
+
+    auto pyChannelContext = py::class_<ChannelContext>(m, "ChannelContext");
+
+    py::register_exception<mamba_error>(m, "MambaNativeException");
+
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
+
+    auto pySubdirIndexLoader = py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader");
 
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
+
+    /**************
+     *  Bindings  *
+     **************/
 
     py::class_<fs::u8path>(m, "Path")
         .def(py::init<std::string>())
@@ -433,8 +447,6 @@ bind_submodule_impl(pybind11::module_ m)
     py::implicitly_convertible<std::string, fs::u8path>();
 
     py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::u8path>());
-
-    py::register_exception<mamba_error>(m, "MambaNativeException");
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
@@ -514,47 +526,6 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
-    py::enum_<QueryType>(m, "QueryType")
-        .value("Search", QueryType::Search)
-        .value("Depends", QueryType::Depends)
-        .value("WhoNeeds", QueryType::WhoNeeds)
-        .def(py::init(&mambapy::enum_from_str<QueryType>))
-        .def_static("parse", &query_type_parse);
-    py::implicitly_convertible<py::str, QueryType>();
-
-    py::enum_<QueryResultFormat>(m, "QueryResultFormat")
-        .value("Json", QueryResultFormat::Json)
-        .value("Tree", QueryResultFormat::Tree)
-        .value("Table", QueryResultFormat::Table)
-        .value("Pretty", QueryResultFormat::Pretty)
-        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
-        .def(py::init(&mambapy::enum_from_str<QueryResultFormat>));
-    py::implicitly_convertible<py::str, QueryType>();
-
-    py::class_<QueryResult>(m, "QueryResult")
-        .def_property_readonly("type", &QueryResult::type)
-        .def_property_readonly("query", &QueryResult::query)
-        .def("sort", &QueryResult::sort, py::return_value_policy::reference)
-        .def("groupby", &QueryResult::groupby, py::return_value_policy::reference)
-        .def("reset", &QueryResult::reset, py::return_value_policy::reference)
-        .def("table", &QueryResult::table_to_str)
-        .def("tree", &QueryResult::tree_to_str)
-        .def("pretty", &QueryResult::pretty_to_str, py::arg("show_all_builds") = true)
-        .def("json", [](const QueryResult& query) { return query.json().dump(); })
-        .def(
-            "to_dict",
-            [](const QueryResult& query)
-            {
-                auto json_module = pybind11::module_::import("json");
-                return json_module.attr("loads")(query.json().dump());
-            }
-        );
-
-    py::class_<Query>(m, "Query")
-        .def_static("find", &Query::find)
-        .def_static("whoneeds", &Query::whoneeds)
-        .def_static("depends", &Query::depends);
-
     py::class_<SubdirParams>(m, "SubdirParams")
         .def_readwrite("local_repodata_ttl_s", &SubdirParams::local_repodata_ttl_s)
         .def_readwrite("offline", &SubdirParams::offline)
@@ -586,7 +557,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def("store_file_metadata", &SubdirMetadata::store_file_metadata)
         .def("write_state_file", &SubdirMetadata::write_state_file);
 
-    py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader")
+    pySubdirIndexLoader
         .def_static(
             "create",
             SubdirIndexLoader::create,
@@ -801,8 +772,7 @@ bind_submodule_impl(pybind11::module_ m)
         .value("CRITICAL", mamba::log_level::critical)
         .value("OFF", mamba::log_level::off);
 
-    py::class_<ChannelContext>(m, "ChannelContext")
-        .def_static("make_simple", &ChannelContext::make_simple)
+    pyChannelContext.def_static("make_simple", &ChannelContext::make_simple)
         .def_static("make_conda_compatible", &ChannelContext::make_conda_compatible)
         .def(
             py::init<specs::ChannelResolveParams, std::vector<specs::Channel>>(),
@@ -846,11 +816,21 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("enable_signal_handling") = true
         )
         .def_readwrite("enable_logging", &ContextOptions::enable_logging)
-        .def_readwrite("enable_signal_handling", &ContextOptions::enable_signal_handling);
+        .def_readwrite("enable_signal_handling", &ContextOptions::enable_signal_handling)
+        .def(
+            "__repr__",
+            [](const ContextOptions& self)
+            {
+                return fmt::format(
+                    "ContextOptions(enable_logging={}, enable_signal_handling={})",
+                    self.enable_logging,
+                    self.enable_signal_handling
+                );
+            }
+        );
 
     // The lifetime of the unique Context instance will determine the lifetime of the other
     // singletons.
-    using context_ptr = std::unique_ptr<Context, mambapy::destroy_singleton>;
     auto context_constructor = [](ContextOptions options = mambapy::default_context_options
                                ) -> context_ptr
     {
@@ -864,9 +844,8 @@ bind_submodule_impl(pybind11::module_ m)
         return context_ptr(&mambapy::singletons().context());
     };
 
-    py::class_<Context, context_ptr> ctx(m, "Context");
-
-    ctx.def(py::init(context_constructor), py::arg("options") = mambapy::default_context_options)
+    pyContext
+        .def(py::init(context_constructor), py::arg("options") = mambapy::default_context_options)
         .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("graphics_params", &Context::graphics_params)
         .def_readwrite("offline", &Context::offline)
@@ -918,36 +897,36 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
-    ctx.def_property_readonly_static(
+    pyContext.def_property_readonly_static(
         "RemoteFetchParams",
         [](py::handle) { return py::type::of<download::RemoteFetchParams>(); }
     );
 
-    py::class_<Context::OutputParams>(ctx, "OutputParams")
+    py::class_<Context::OutputParams>(pyContext, "OutputParams")
         .def(py::init<>())
         .def_readwrite("verbosity", &Context::OutputParams::verbosity)
         .def_readwrite("json", &Context::OutputParams::json)
         .def_readwrite("quiet", &Context::OutputParams::quiet);
 
-    py::class_<ThreadsParams>(ctx, "ThreadsParams")
+    py::class_<ThreadsParams>(pyContext, "ThreadsParams")
         .def(py::init<>())
         .def_readwrite("download_threads", &ThreadsParams::download_threads)
         .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
 
-    py::class_<PrefixParams>(ctx, "PrefixParams")
+    py::class_<PrefixParams>(pyContext, "PrefixParams")
         .def(py::init<>())
         .def_readwrite("target_prefix", &PrefixParams::target_prefix)
         .def_readwrite("conda_prefix", &PrefixParams::conda_prefix)
         .def_readwrite("root_prefix", &PrefixParams::root_prefix);
 
-    py::class_<ValidationParams>(ctx, "ValidationParams")
+    py::class_<ValidationParams>(pyContext, "ValidationParams")
         .def(py::init<>())
         .def_readwrite("safety_checks", &ValidationParams::safety_checks)
         .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks)
         .def_readwrite("verify_artifacts", &ValidationParams::verify_artifacts)
         .def_readwrite("trusted_channels", &ValidationParams::trusted_channels);
 
-    ctx.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
+    pyContext.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
         .def_readwrite("output_params", &Context::output_params)
         .def_readwrite("threads_params", &Context::threads_params)
         .def_readwrite("prefix_params", &Context::prefix_params)
@@ -957,19 +936,20 @@ bind_submodule_impl(pybind11::module_ m)
     //    Support the old deprecated API     ///
     ////////////////////////////////////////////
     // RemoteFetchParams
-    ctx.def_property(
-           "ssl_verify",
-           [](const Context& self)
-           {
-               deprecated("Use `remote_fetch_params.ssl_verify` instead.");
-               return self.remote_fetch_params.ssl_verify;
-           },
-           [](Context& self, std::string sv)
-           {
-               deprecated("Use `remote_fetch_params.ssl_verify` instead.");
-               self.remote_fetch_params.ssl_verify = sv;
-           }
-    )
+    pyContext
+        .def_property(
+            "ssl_verify",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.ssl_verify` instead.");
+                return self.remote_fetch_params.ssl_verify;
+            },
+            [](Context& self, std::string sv)
+            {
+                deprecated("Use `remote_fetch_params.ssl_verify` instead.");
+                self.remote_fetch_params.ssl_verify = sv;
+            }
+        )
         .def_property(
             "max_retries",
             [](const Context& self)
@@ -1050,19 +1030,20 @@ bind_submodule_impl(pybind11::module_ m)
         );
 
     // OutputParams
-    ctx.def_property(
-           "verbosity",
-           [](const Context& self)
-           {
-               deprecated("Use `output_params.verbosity` instead.");
-               return self.output_params.verbosity;
-           },
-           [](Context& self, int v)
-           {
-               deprecated("Use `output_params.verbosity` instead.");
-               self.output_params.verbosity = v;
-           }
-    )
+    pyContext
+        .def_property(
+            "verbosity",
+            [](const Context& self)
+            {
+                deprecated("Use `output_params.verbosity` instead.");
+                return self.output_params.verbosity;
+            },
+            [](Context& self, int v)
+            {
+                deprecated("Use `output_params.verbosity` instead.");
+                self.output_params.verbosity = v;
+            }
+        )
         .def_property(
             "json",
             [](const Context& self)
@@ -1091,19 +1072,20 @@ bind_submodule_impl(pybind11::module_ m)
         );
 
     // ThreadsParams
-    ctx.def_property(
-           "download_threads",
-           [](const Context& self)
-           {
-               deprecated("Use `threads_params.download_threads` instead.");
-               return self.threads_params.download_threads;
-           },
-           [](Context& self, std::size_t dt)
-           {
-               deprecated("Use `threads_params.download_threads` instead.");
-               self.threads_params.download_threads = dt;
-           }
-    )
+    pyContext
+        .def_property(
+            "download_threads",
+            [](const Context& self)
+            {
+                deprecated("Use `threads_params.download_threads` instead.");
+                return self.threads_params.download_threads;
+            },
+            [](Context& self, std::size_t dt)
+            {
+                deprecated("Use `threads_params.download_threads` instead.");
+                self.threads_params.download_threads = dt;
+            }
+        )
         .def_property(
             "extract_threads",
             [](const Context& self)
@@ -1119,19 +1101,20 @@ bind_submodule_impl(pybind11::module_ m)
         );
 
     // PrefixParams
-    ctx.def_property(
-           "target_prefix",
-           [](const Context& self)
-           {
-               deprecated("Use `prefix_params.target_prefix` instead.");
-               return self.prefix_params.target_prefix;
-           },
-           [](Context& self, fs::u8path tp)
-           {
-               deprecated("Use `prefix_params.target_prefix` instead.");
-               self.prefix_params.target_prefix = tp;
-           }
-    )
+    pyContext
+        .def_property(
+            "target_prefix",
+            [](const Context& self)
+            {
+                deprecated("Use `prefix_params.target_prefix` instead.");
+                return self.prefix_params.target_prefix;
+            },
+            [](Context& self, fs::u8path tp)
+            {
+                deprecated("Use `prefix_params.target_prefix` instead.");
+                self.prefix_params.target_prefix = tp;
+            }
+        )
         .def_property(
             "conda_prefix",
             [](const Context& self)
@@ -1160,19 +1143,20 @@ bind_submodule_impl(pybind11::module_ m)
         );
 
     // ValidationParams
-    ctx.def_property(
-           "safety_checks",
-           [](const Context& self)
-           {
-               deprecated("Use `validation_params.safety_checks` instead.");
-               return self.validation_params.safety_checks;
-           },
-           [](Context& self, VerificationLevel sc)
-           {
-               deprecated("Use `validation_params.safety_checks` instead.");
-               self.validation_params.safety_checks = sc;
-           }
-    )
+    pyContext
+        .def_property(
+            "safety_checks",
+            [](const Context& self)
+            {
+                deprecated("Use `validation_params.safety_checks` instead.");
+                return self.validation_params.safety_checks;
+            },
+            [](Context& self, VerificationLevel sc)
+            {
+                deprecated("Use `validation_params.safety_checks` instead.");
+                self.validation_params.safety_checks = sc;
+            }
+        )
         .def_property(
             "extra_safety_checks",
             [](const Context& self)
@@ -1214,6 +1198,47 @@ bind_submodule_impl(pybind11::module_ m)
         );
 
     ////////////////////////////////////////////
+
+    py::enum_<QueryType>(m, "QueryType")
+        .value("Search", QueryType::Search)
+        .value("Depends", QueryType::Depends)
+        .value("WhoNeeds", QueryType::WhoNeeds)
+        .def(py::init(&mambapy::enum_from_str<QueryType>))
+        .def_static("parse", &query_type_parse);
+    py::implicitly_convertible<py::str, QueryType>();
+
+    py::enum_<QueryResultFormat>(m, "QueryResultFormat")
+        .value("Json", QueryResultFormat::Json)
+        .value("Tree", QueryResultFormat::Tree)
+        .value("Table", QueryResultFormat::Table)
+        .value("Pretty", QueryResultFormat::Pretty)
+        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
+        .def(py::init(&mambapy::enum_from_str<QueryResultFormat>));
+    py::implicitly_convertible<py::str, QueryType>();
+
+    py::class_<QueryResult>(m, "QueryResult")
+        .def_property_readonly("type", &QueryResult::type)
+        .def_property_readonly("query", &QueryResult::query)
+        .def("sort", &QueryResult::sort, py::return_value_policy::reference)
+        .def("groupby", &QueryResult::groupby, py::return_value_policy::reference)
+        .def("reset", &QueryResult::reset, py::return_value_policy::reference)
+        .def("table", &QueryResult::table_to_str)
+        .def("tree", &QueryResult::tree_to_str)
+        .def("pretty", &QueryResult::pretty_to_str, py::arg("show_all_builds") = true)
+        .def("json", [](const QueryResult& query) { return query.json().dump(); })
+        .def(
+            "to_dict",
+            [](const QueryResult& query)
+            {
+                auto json_module = pybind11::module_::import("json");
+                return json_module.attr("loads")(query.json().dump());
+            }
+        );
+
+    py::class_<Query>(m, "Query")
+        .def_static("find", &Query::find)
+        .def_static("whoneeds", &Query::whoneeds)
+        .def_static("depends", &Query::depends);
 
     pyPrefixData
         .def(

@@ -57,7 +57,7 @@ namespace PYBIND11_NAMESPACE
                 }
             }
 
-            PYBIND11_TYPE_CASTER(value_type, detail::concat(make_caster<T>::name, make_caster<E>::name));
+            PYBIND11_TYPE_CASTER(value_type, make_caster<T>::name);
         };
 
         template <typename E>

@@ -102,6 +102,7 @@ set(
     src/core/test_transaction_context.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp
+    src/solver/resolvo/test_solver.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")
@@ -123,7 +124,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE Catch2::Catch2WithMain Threads::Threads
+    PRIVATE Catch2::Catch2WithMain Threads::Threads Resolvo::Resolvo simdjson::simdjson
 )
 set_target_properties(
     test_libmamba PROPERTIES COMPILE_DEFINITIONS CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS

@@ -114,7 +114,7 @@ namespace mamba::solver
             );
         }
 
-        template <typename Range>
+        template <std::ranges::range Range>
         auto packages_to_remove_impl(Range& actions)
         {
             namespace views = std::ranges::views;
@@ -161,7 +161,7 @@ namespace mamba::solver
             );
         }
 
-        template <typename Range>
+        template <std::ranges::range Range>
         auto packages_to_install_impl(Range& actions)
         {
             namespace views = std::ranges::views;
@@ -204,7 +204,7 @@ namespace mamba::solver
             );
         }
 
-        template <typename Range>
+        template <std::ranges::range Range>
         auto packages_to_omit_impl(Range& actions)
         {
             namespace views = std::ranges::views;
@@ -249,7 +249,7 @@ namespace mamba::solver
             return out;
         }
 
-        template <typename Range>
+        template <std::ranges::range Range>
         auto packages_impl(Range& actions)
         {
             namespace views = std::ranges::views;

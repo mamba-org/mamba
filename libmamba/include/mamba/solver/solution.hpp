@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "mamba/specs/package_info.hpp"
-#include "mamba/util/loop_control.hpp"
 #include "mamba/util/type_traits.hpp"
 
 namespace mamba::solver
@@ -86,21 +85,6 @@ namespace mamba::solver
         [[nodiscard]] auto packages_to_omit();
     };
 
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func);
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_remove(Range&& actions, UnaryFunc&& func);
-
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_install(Iter first, Iter last, UnaryFunc&& func);
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_install(Range&& actions, UnaryFunc&& func);
-
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func);
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_omit(Range&& actions, UnaryFunc&& func);
-
     /********************************
      *  Implementation of Solution  *
      ********************************/
@@ -152,35 +136,6 @@ namespace mamba::solver
         return detail::packages_to_remove_impl(actions);
     }
 
-    // TODO(C++20): Poor man's replacement to range filter transform
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func)
-    {
-        for (; first != last; ++first)
-        {
-            if (auto* const ptr = detail::to_remove_ptr(*first))
-            {
-                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
-                {
-                    if (func(*ptr) == util::LoopControl::Break)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    func(*ptr);
-                }
-            }
-        }
-    }
-
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_remove(Range&& actions, UnaryFunc&& func)
-    {
-        return for_each_to_remove(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
-    }
-
     namespace detail
     {
         template <typename Action>
@@ -228,35 +183,6 @@ namespace mamba::solver
         return detail::packages_to_install_impl(actions);
     }
 
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_install(Iter first, Iter last, UnaryFunc&& func)
-    {
-        for (; first != last; ++first)
-        {
-            if (auto* const ptr = detail::to_install_ptr(*first))
-            {
-                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
-                {
-                    if (func(*ptr) == util::LoopControl::Break)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    func(*ptr);
-                }
-            }
-        }
-    }
-
-    // TODO(C++20): Poor man's replacement to range filter transform
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_install(Range&& actions, UnaryFunc&& func)
-    {
-        return for_each_to_install(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
-    }
-
     namespace detail
     {
         template <typename Action>
@@ -298,35 +224,6 @@ namespace mamba::solver
     inline auto Solution::packages_to_omit()
     {
         return detail::packages_to_omit_impl(actions);
-    }
-
-    // TODO(C++20): Poor man's replacement to range filter transform
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func)
-    {
-        for (; first != last; ++first)
-        {
-            if (auto* const ptr = detail::to_omit_ptr(*first))
-            {
-                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
-                {
-                    if (func(*ptr) == util::LoopControl::Break)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    func(*ptr);
-                }
-            }
-        }
-    }
-
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_omit(Range&& actions, UnaryFunc&& func)
-    {
-        return for_each_to_omit(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
     }
 
     namespace detail

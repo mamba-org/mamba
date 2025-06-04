@@ -71,9 +71,10 @@ namespace
             SECTION("All packages")
             {
                 auto count = std::size_t(0);
-                for (const PackageInfo& _ : solution.packages())
+                for (const PackageInfo& pkg : solution.packages())
                 {
                     count++;
+                    REQUIRE(!pkg.name.empty());
                 }
                 REQUIRE(count == 10);
             }

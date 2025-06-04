@@ -68,19 +68,35 @@ namespace mamba::solver
 
         action_list actions = {};
 
-        /** Return a view of all unique packages involved in the solution. */
+        /**
+         * Return a view of all unique packages involved in the solution.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
         [[nodiscard]] auto packages() const;
         [[nodiscard]] auto packages();
 
-        /** Return a view of all packages that need to be removed. */
+        /**
+         * Return a view of all packages that need to be removed.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
         [[nodiscard]] auto packages_to_remove() const;
         [[nodiscard]] auto packages_to_remove();
 
-        /** Return a view of all packages that need to be installed. */
+        /**
+         * Return a view of all packages that need to be installed.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
         [[nodiscard]] auto packages_to_install() const;
         [[nodiscard]] auto packages_to_install();
 
-        /** Return a view of all packages that are omitted. */
+        /**
+         * Return a view of all packages that are omitted.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
         [[nodiscard]] auto packages_to_omit() const;
         [[nodiscard]] auto packages_to_omit();
     };

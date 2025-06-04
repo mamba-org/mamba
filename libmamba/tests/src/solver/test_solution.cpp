@@ -67,6 +67,16 @@ namespace
                 }
                 REQUIRE(omit_count == 1);
             }
+
+            SECTION("All packages")
+            {
+                auto count = std::size_t(0);
+                for (const PackageInfo& _ : solution.packages())
+                {
+                    count++;
+                }
+                REQUIRE(count == 10);
+            }
         }
 
         SECTION("Ref iterate over packages")
@@ -102,6 +112,18 @@ namespace
                     pkg.name = "";
                 }
                 for (const PackageInfo& pkg : solution.packages_to_omit())
+                {
+                    CHECK(pkg.name == "");
+                }
+            }
+
+            SECTION("All packages")
+            {
+                for (PackageInfo& pkg : solution.packages())
+                {
+                    pkg.name = "";
+                }
+                for (const PackageInfo& pkg : solution.packages())
                 {
                     CHECK(pkg.name == "");
                 }

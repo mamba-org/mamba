@@ -69,12 +69,19 @@ namespace mamba::solver
 
         action_list actions = {};
 
+        /** Return a view of all unique packages involved in the solution. */
+        [[nodiscard]] auto packages() const;
+        [[nodiscard]] auto packages();
+
+        /** Return a view of all packages that need to be removed. */
         [[nodiscard]] auto packages_to_remove() const;
         [[nodiscard]] auto packages_to_remove();
 
+        /** Return a view of all packages that need to be installed. */
         [[nodiscard]] auto packages_to_install() const;
         [[nodiscard]] auto packages_to_install();
 
+        /** Return a view of all packages that are omitted. */
         [[nodiscard]] auto packages_to_omit() const;
         [[nodiscard]] auto packages_to_omit();
     };
@@ -320,6 +327,51 @@ namespace mamba::solver
     void for_each_to_omit(Range&& actions, UnaryFunc&& func)
     {
         return for_each_to_omit(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
+    }
+
+    namespace detail
+    {
+        template <typename Action>
+        constexpr auto package_unique_ptrs(Action& action)
+        {
+            auto out = std::array{
+                to_omit_ptr(action),
+                to_install_ptr(action),
+                to_remove_ptr(action),
+            };
+            for (std::size_t i = 1; i < out.size(); ++i)
+            {
+                for (std::size_t j = i + 1; j < out.size(); ++j)
+                {
+                    if (out[j] == out[i])
+                    {
+                        out[j] = nullptr;
+                    }
+                }
+            }
+            return out;
+        }
+
+        template <typename Range>
+        auto packages_impl(Range& actions)
+        {
+            namespace views = std::ranges::views;
+            return actions                                                             //
+                   | views::transform([](auto& a) { return package_unique_ptrs(a); })  //
+                   | views::join                                                       //
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })     //
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
+        }
+    }
+
+    inline auto Solution::packages() const
+    {
+        return detail::packages_impl(actions);
+    }
+
+    inline auto Solution::packages()
+    {
+        return detail::packages_impl(actions);
     }
 }
 #endif

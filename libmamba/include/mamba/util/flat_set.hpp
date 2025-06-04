@@ -9,14 +9,15 @@
 #define MAMBA_UTILFLAT_SET_HPP
 
 #include <algorithm>
+#include <iterator>
 #include <utility>
 #include <vector>
 
+#include "mamba/util/deprecation.hpp"
 #include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::util
 {
-
 
     struct sorted_unique_t
     {
@@ -31,11 +32,9 @@ namespace mamba::util
      * Like, ``std::set``, uniqueness is determined by using the equivalence relation.
      * In imprecise terms, two objects ``a`` and ``b`` are considered equivalent if neither
      * compares less than the other: ``!comp(a, b) && !comp(b, a)``
-     *
-     * @todo C++23 This is implemented in <flat_set>
      */
     template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>>
-    class flat_set : private std::vector<Key, Allocator>
+    class MAMBA_DEPRECATED_CXX23 flat_set : private std::vector<Key, Allocator>
     {
     public:
 

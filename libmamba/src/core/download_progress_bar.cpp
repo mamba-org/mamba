@@ -272,7 +272,7 @@ namespace mamba
         {
             m_extract_bar.push_back(Console::instance().add_progress_bar(extract_tasks[i].name(), 1));
             init_extract_bar(m_extract_bar.back());
-            extract_tasks[i].set_progress_callback([=](PackageExtractEvent e)
+            extract_tasks[i].set_progress_callback([=, this](PackageExtractEvent e)
                                                    { update_extract_bar(i, e); });
 
             if (i < dl_requests.size())

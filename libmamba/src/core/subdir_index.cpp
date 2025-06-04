@@ -8,6 +8,7 @@
 #include <memory>
 #include <regex>
 #include <stdexcept>
+#include <utility>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
@@ -687,7 +688,7 @@ namespace mamba
 
             const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
                                                .count();
-            if (util::cmp_less(cache_age_seconds, max_age) || params.offline)
+            if (std::cmp_less(cache_age_seconds, max_age) || params.offline)
             {
                 // valid json cache found
                 if (!m_valid_cache_found)

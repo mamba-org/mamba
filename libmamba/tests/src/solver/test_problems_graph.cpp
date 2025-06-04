@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <catch2/catch_all.hpp>
@@ -635,9 +636,6 @@ TEST_CASE("NamedList", "[mamba::solver]")
 
 TEST_CASE("Create problem graph", "[mamba::solver]")
 {
-    using PbGr = ProblemsGraph;
-    using CpPbGr = CompressedProblemsGraph;
-
     const auto [name, factory] = GENERATE(
         std::pair{ "Basic conflict", &create_basic_conflict },
         std::pair{ "PubGrub example", &create_pubgrub },
@@ -672,7 +670,7 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
     graph_init.for_each_node_id(
         [&](auto id)
         {
-            const auto& node = graph_init.node(id);
+            const ProblemsGraph::node_t& node = graph_init.node(id);
             // Currently we do not make assumption about virtual package since
             // we are not sure we are including them the same way than they would be in
             // practice
@@ -682,15 +680,15 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
                 {
                     // Only one root node
                     REQUIRE(id == pbs_init.root_node());
-                    REQUIRE(std::holds_alternative<PbGr::RootNode>(node));
+                    REQUIRE(std::holds_alternative<ProblemsGraph::RootNode>(node));
                 }
                 else if (graph_init.out_degree(id) == 0)
                 {
-                    REQUIRE_FALSE(std::holds_alternative<PbGr::RootNode>(node));
+                    REQUIRE_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
                 }
                 else
                 {
-                    REQUIRE(std::holds_alternative<PbGr::PackageNode>(node));
+                    REQUIRE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
                 }
                 // All nodes reachable from the root
                 REQUIRE(is_reachable(pbs_init.graph(), pbs_init.root_node(), id));
@@ -701,8 +699,8 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
     const auto& conflicts_init = pbs_init.conflicts();
     for (const auto& [n, _] : conflicts_init)
     {
-        bool tmp = std::holds_alternative<PbGr::PackageNode>(graph_init.node(n))
-                   || std::holds_alternative<PbGr::ConstraintNode>(graph_init.node(n));
+        bool tmp = std::holds_alternative<ProblemsGraph::PackageNode>(graph_init.node(n))
+                   || std::holds_alternative<ProblemsGraph::ConstraintNode>(graph_init.node(n));
         REQUIRE(tmp);
     }
 
@@ -731,7 +729,7 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
 
         SECTION("Compress graph")
         {
-            const auto pbs_comp = CpPbGr::from_problems_graph(pbs_simplified);
+            const auto pbs_comp = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
             const auto& graph_comp = pbs_comp.graph();
 
             REQUIRE(pbs_init.graph().number_of_nodes() >= graph_comp.number_of_nodes());
@@ -739,7 +737,7 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
             graph_comp.for_each_node_id(
                 [&](auto id)
                 {
-                    const auto& node = graph_comp.node(id);
+                    const CompressedProblemsGraph::node_t& node = graph_comp.node(id);
                     // Currently we do not make assumption about virtual package since
                     // we are not sure we are including them the same way than they
                     // would be in
@@ -749,15 +747,18 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
                         {
                             // Only one root node
                             REQUIRE(id == pbs_init.root_node());
-                            REQUIRE(std::holds_alternative<CpPbGr::RootNode>(node));
+                            REQUIRE(std::holds_alternative<CompressedProblemsGraph::RootNode>(node));
                         }
                         else if (graph_comp.out_degree(id) == 0)
                         {
-                            REQUIRE_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
+                            REQUIRE_FALSE(
+                                std::holds_alternative<CompressedProblemsGraph::RootNode>(node)
+                            );
                         }
                         else
                         {
-                            REQUIRE(std::holds_alternative<CpPbGr::PackageListNode>(node));
+                            REQUIRE(std::holds_alternative<CompressedProblemsGraph::PackageListNode>(node
+                            ));
                         }
                         // All nodes reachable from the root
                         REQUIRE(is_reachable(graph_comp, pbs_comp.root_node(), id));
@@ -768,8 +769,12 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
             const auto& conflicts_comp = pbs_comp.conflicts();
             for (const auto& [n, _] : conflicts_comp)
             {
-                bool tmp = std::holds_alternative<CpPbGr::PackageListNode>(graph_comp.node(n))
-                           || std::holds_alternative<CpPbGr::ConstraintListNode>(graph_comp.node(n));
+                bool tmp = std::holds_alternative<CompressedProblemsGraph::PackageListNode>(
+                               graph_comp.node(n)
+                           )
+                           || std::holds_alternative<CompressedProblemsGraph::ConstraintListNode>(
+                               graph_comp.node(n)
+                           );
                 REQUIRE(tmp);
             }
 
@@ -780,7 +785,7 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
                 auto message_contains = [&message, &name_copy](const auto& node)
                 {
                     using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
-                    if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
+                    if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                     {
                         if ((name_copy == "Pin conflict") && util::contains(node.name(), "pin on"))
                         {

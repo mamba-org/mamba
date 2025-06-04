@@ -10,10 +10,9 @@
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 
 #include <fmt/format.h>
-
-#include "mamba/util/compare.hpp"
 
 namespace mamba::util
 {
@@ -56,23 +55,37 @@ namespace mamba::util
         constexpr auto from_lowest = std::numeric_limits<From>::lowest();
         constexpr auto from_max = std::numeric_limits<From>::max();
 
+        // Handle cases of char which std::cmp_xxx does not accept.
+        // WARNING: Only use during comparison
+        constexpr auto with_char_as_int = [](auto x)
+        {
+            if constexpr (std::is_same_v<decltype(x), char>)
+            {
+                return static_cast<int>(x);
+            }
+            else
+            {
+                return x;
+            }
+        };
+
         if constexpr (std::is_same_v<From, To>)
         {
             return val;
         }
         else if constexpr (std::is_integral_v<From> && std::is_integral_v<To>)
         {
-            if constexpr (cmp_less(from_lowest, to_lowest))
+            if constexpr (std::cmp_less(with_char_as_int(from_lowest), with_char_as_int(to_lowest)))
             {
-                if (cmp_less(val, to_lowest))
+                if (std::cmp_less(with_char_as_int(val), with_char_as_int(to_lowest)))
                 {
                     throw detail::make_overflow_error<To>(val);
                 }
             }
 
-            if constexpr (cmp_greater(from_max, to_max))
+            if constexpr (std::cmp_greater(with_char_as_int(from_max), with_char_as_int(to_max)))
             {
-                if (cmp_greater(val, to_max))
+                if (std::cmp_greater(with_char_as_int(val), with_char_as_int(to_max)))
                 {
                     throw detail::make_overflow_error<To>(val);
                 }

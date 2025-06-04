@@ -294,7 +294,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/conditional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
@@ -303,7 +302,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_binary_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_bool_expr_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
@@ -454,7 +452,14 @@ macro(libmamba_create_target target_name linkage output_name)
     # Header only libraries are always linked the same way
     target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
 
-    target_compile_features(${target_name} PUBLIC cxx_std_17)
+    target_compile_features(${target_name} PUBLIC cxx_std_20)
+    set_target_properties(
+        ${target_name}
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
 
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})

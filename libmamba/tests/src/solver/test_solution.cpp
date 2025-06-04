@@ -29,12 +29,14 @@ namespace
             Solution::Install{ PackageInfo("install") },
         } };
 
+        constexpr auto as_const = [](const auto& x) -> decltype(auto) { return x; };
+
         SECTION("Const iterate over packages")
         {
             SECTION("Packages to remove")
             {
                 auto remove_count = std::size_t(0);
-                for (const PackageInfo& pkg : solution.packages_to_remove())
+                for (const PackageInfo& pkg : as_const(solution).packages_to_remove())
                 {
                     remove_count++;
                     const auto has_remove = util::ends_with(pkg.name, "remove")
@@ -47,7 +49,7 @@ namespace
             SECTION("Packages to install")
             {
                 auto install_count = std::size_t(0);
-                for (const PackageInfo& pkg : solution.packages_to_install())
+                for (const PackageInfo& pkg : as_const(solution).packages_to_install())
                 {
                     install_count++;
                     const auto has_install = util::ends_with(pkg.name, "install")
@@ -60,7 +62,7 @@ namespace
             SECTION("Packages to omit")
             {
                 auto omit_count = std::size_t(0);
-                for (const PackageInfo& pkg : solution.packages_to_omit())
+                for (const PackageInfo& pkg : as_const(solution).packages_to_omit())
                 {
                     omit_count++;
                     REQUIRE(util::ends_with(pkg.name, "omit"));
@@ -71,7 +73,7 @@ namespace
             SECTION("All packages")
             {
                 auto count = std::size_t(0);
-                for (const PackageInfo& pkg : solution.packages())
+                for (const PackageInfo& pkg : as_const(solution).packages())
                 {
                     count++;
                     REQUIRE(!pkg.name.empty());

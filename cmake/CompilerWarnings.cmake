@@ -97,8 +97,8 @@ function(mamba_target_add_compile_warnings target)
         -Wconversion
         # Warn on sign conversions
         -Wsign-conversion
-        # Warn if a null dereference is detected
-        -Wnull-dereference
+        # Warn if a null dereference is detected Deactivated because it produced too many false
+        # positive with ranges while we are not doing many pointer operations. -Wnull-dereference
         # Warn if float is implicit promoted to double
         -Wdouble-promotion
         # Warn on security issues around functions that format output (ie printf)

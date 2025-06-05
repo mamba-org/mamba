@@ -6,6 +6,7 @@ on:
       - synchronize
       - opened
       - reopened
+      - edited
       - labeled
       - unlabeled
 
@@ -15,6 +16,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Wait for labeling bot to apply label
+        run: sleep 10
 
       - name: Check labels
         run: |

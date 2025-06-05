@@ -105,8 +105,8 @@ if __name__ == "__main__":
 
     if not ok:
         print(
-            "\nStubs are out of date! Compile libmambapy, then run:"
-            "\n stubgen -o libmambapy/src/ build/libmambapy/"
+            "\nStubs are out of date! Compile and install libmambapy, then run:"
+            "\n stubgen -o libmambapy/src/ -p libmambapy -p libmambapy.bindings"
         )
 
     sys.exit(0 if ok else 1)

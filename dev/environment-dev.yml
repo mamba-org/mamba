@@ -43,7 +43,7 @@ dependencies:
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build
-  - pybind11-stubgen <1.0
+  - mypy # For stubgen
   # libmambapy dependencies
   - python
   - pybind11

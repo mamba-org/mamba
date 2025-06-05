@@ -112,6 +112,10 @@ jobs:
           python -m pytest libmambapy/tests/ \
               ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
+      - name: Generate libmambapy stubs
+        run: stubgen -o generated/ -p libmambapy -p libmambapy.bindings
+      - name: Check committed libmambapy stubs against generated ones
+        run: python dev/compare_stubs.py generated/ libmambapy/src
 
   mamba_integration_tests_unix:
     name: mamba integration tests

@@ -32,7 +32,7 @@ jobs:
           PR_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/$REPO_FULL_NAME/issues/$PR_NUMBER")
 
-          NUMBER_OF_LABELS=$(echo "$PR_DATA" | jq -r '.labels')
+          NUMBER_OF_LABELS=$(echo "$PR_DATA" | jq '.labels | length')
           if [ $NUMBER_OF_LABELS -eq 0 ]; then
             echo "PR has no labels. Please add at least one label of release type."
             exit 1

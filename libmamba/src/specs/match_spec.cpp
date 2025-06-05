@@ -8,7 +8,6 @@
 #include <string_view>
 #include <tuple>
 
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include "mamba/specs/archive.hpp"
@@ -16,6 +15,7 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -505,7 +505,7 @@ namespace mamba::specs
     auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
         // Remove comments, i.e. everything after ` #` (space included)
-        if (const auto idx = str.find('#'); idx != std::string::npos && str[idx - 1] == ' ')
+        if (const auto idx = str.find(" #"); idx != std::string::npos)
         {
             str = str.substr(0, idx);
         }
@@ -543,45 +543,6 @@ namespace mamba::specs
                                          raw_match_spec_str.find(bad_op) + bad_op.size()
                                      );
             }
-        }
-
-        // Handle PEP 440 "Compatible release" specification
-        // See: https://peps.python.org/pep-0440/#compatible-release
-        //
-        // Find a general replacement of the encoding of `~=` with `>=,.*` to be able to parse it
-        // properly.
-        //
-        // For instance:
-        //
-        //     "~=x.y" must be replaced to ">=x.y,x.*" where `x` and `y` are positive integers.
-        //
-        // This solution must handle the case where the version is encoded with `~=` within the
-        // specification for instance:
-        //
-        //                     ">1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0"
-        //
-        // must be replaced with:
-        //
-        //                     ">1.8,<2|==1.7,!=1.9,>=1.7.1,1.7.* py34_0"
-        //
-        while (raw_match_spec_str.find("~=") != std::string::npos)
-        {
-            // Extract the string before the `~=` operator (">1.8,<2|==1.7,!=1.9," for the above
-            // example)
-            const auto before = raw_match_spec_str.substr(0, str.find("~="));
-            // Extract the string after the `~=` operator (include `~=` in it) and the next operator
-            // space or end of the string ("~=1.7.1 py34_0" for the above example)
-            const auto after = raw_match_spec_str.substr(str.find("~="));
-            // Extract the version part after the `~=` operator ("1.7.1" for the above example)
-            const auto version = after.substr(2, after.find_first_of(" ,") - 2);
-            // Extract the version part without the last segment ("1.7" for the above example)
-            const auto version_without_last_segment = version.substr(0, version.find_last_of('.'));
-            // Extract the build part after the version part (" py34_0" for the above example) if
-            // present
-            const auto build = after.find(" ") != std::string::npos ? after.substr(after.find(" "))
-                                                                    : "";
-            raw_match_spec_str = before + ">=" + version + "," + version_without_last_segment + ".*"
-                                 + build;
         }
 
         auto parse_error = [&raw_match_spec_str](std::string_view err) -> tl::unexpected<ParseError>
@@ -1052,7 +1013,7 @@ namespace mamba::specs
         };
     }
 
-    auto MatchSpec::str() const -> std::string
+    auto MatchSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
@@ -1062,6 +1023,7 @@ namespace mamba::specs
         // Based on what libsolv and conda_build_form can handle.
         // Glob in names and build_string are fine
         return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
+               && !version().has_glob()                //
                && build_number().is_explicitly_free()  //
                && build_string().is_glob()             //
                && !channel().has_value()               //
@@ -1076,12 +1038,19 @@ namespace mamba::specs
                && !track_features().has_value();
     }
 
-    [[nodiscard]] auto MatchSpec::is_only_package_name() const -> bool
+    auto MatchSpec::is_only_package_name() const -> bool
     {
         return name().is_exact()                       //
                && version().is_explicitly_free()       //
                && build_string().is_explicitly_free()  //
                && is_simple();
+    }
+
+    auto MatchSpec::to_named_spec() const -> MatchSpec
+    {
+        auto out = MatchSpec();
+        out.m_name = this->m_name;
+        return out;
     }
 
     auto MatchSpec::contains_except_channel(const PackageInfo& pkg) const -> bool
@@ -1143,21 +1112,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<::mamba::specs::MatchSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<::mamba::specs::MatchSpec>::format(
     const ::mamba::specs::MatchSpec& spec,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     using MatchSpec = ::mamba::specs::MatchSpec;
 
@@ -1296,4 +1254,37 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
     ensure_bracket_close();
 
     return out;
+}
+
+auto
+std::hash<mamba::specs::MatchSpec>::operator()(const mamba::specs::MatchSpec& spec) const
+    -> std::size_t
+{
+    return mamba::util::hash_vals(
+        spec.channel(),
+        spec.version(),
+        spec.name(),
+        spec.build_string(),
+        spec.name_space(),
+        spec.build_number(),
+        spec.extra_members_hash()
+    );
+}
+
+auto
+std::hash<mamba::specs::MatchSpec::ExtraMembers>::operator()(
+    const mamba::specs::MatchSpec::ExtraMembers& extra
+) const -> std::size_t
+{
+    return mamba::util::hash_vals(
+        extra.filename,
+        extra.subdirs,
+        extra.md5,
+        extra.sha256,
+        extra.license,
+        extra.license_family,
+        extra.features,
+        extra.track_features,
+        extra.optional
+    );
 }

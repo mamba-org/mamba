@@ -1,3 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#define CATCH_CONFIG_MAIN
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>

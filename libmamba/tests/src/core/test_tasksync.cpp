@@ -9,7 +9,7 @@
 #include <thread>
 #include <type_traits>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/tasksync.hpp"
 
@@ -38,7 +38,7 @@ namespace mamba
         }
     }
 
-    TEST_SUITE("task_synchronizer")
+    namespace
     {
         TEST_CASE("sync_types_never_move")
         {
@@ -57,26 +57,26 @@ namespace mamba
         TEST_CASE("tasks_are_joined_after_join_not_after_reset")
         {
             TaskSynchronizer task_sync;
-            CHECK_FALSE(task_sync.is_joined());
+            REQUIRE_FALSE(task_sync.is_joined());
 
             task_sync.join_tasks();
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
 
             task_sync.reset();
-            CHECK_FALSE(task_sync.is_joined());
+            REQUIRE_FALSE(task_sync.is_joined());
 
             task_sync.join_tasks();
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
         }
 
         TEST_CASE("once_joined_tasks_are_noop")
         {
             TaskSynchronizer task_sync;
             task_sync.join_tasks();
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
 
             task_sync.join_tasks();  // nothing happen if we call it twice
-            CHECK(task_sync.is_joined());
+            REQUIRE(task_sync.is_joined());
 
             auto no_op = task_sync.synchronized([] { fail_now(); });
             no_op();
@@ -95,16 +95,16 @@ namespace mamba
             int execution_count = 0;
             TaskSynchronizer task_sync;
             auto synched_task = task_sync.synchronized([&] { ++execution_count; });
-            CHECK_EQ(execution_count, 0);
+            REQUIRE(execution_count == 0);
 
             synched_task();
-            CHECK_EQ(execution_count, 1);
+            REQUIRE(execution_count == 1);
 
             task_sync.join_tasks();
-            CHECK_EQ(execution_count, 1);
+            REQUIRE(execution_count == 1);
 
             synched_task();
-            CHECK_EQ(execution_count, 1);
+            REQUIRE(execution_count == 1);
         }
 
         TEST_CASE("executed_synched_task_never_blocks_join")
@@ -120,7 +120,7 @@ namespace mamba
 
             synched_task();
 
-            CHECK_EQ(execution_count, 1);
+            REQUIRE(execution_count == 1);
         }
 
         TEST_CASE("executing_synched_task_always_block_join")
@@ -148,7 +148,7 @@ namespace mamba
             );
 
             wait_condition([&] { return task_started.load(); });
-            CHECK_EQ(sequence, "A");
+            REQUIRE(sequence == "A");
 
             auto ft_unlocker = std::async(
                 std::launch::async,
@@ -169,7 +169,7 @@ namespace mamba
             );
 
             wait_condition([&] { return unlocker_ready.load(); });
-            CHECK_EQ(sequence, "AB");
+            REQUIRE(sequence == "AB");
 
             sequence.push_back('C');
 
@@ -184,8 +184,8 @@ namespace mamba
                                                                   // reordering
             const auto end_time = std::chrono::high_resolution_clock::now();
 
-            CHECK_EQ(sequence, "ABCDEF");
-            REQUIRE_GE(end_time - begin_time, unlock_duration);
+            REQUIRE(sequence == "ABCDEF");
+            REQUIRE(end_time - begin_time >= unlock_duration);
         }
 
         TEST_CASE("throwing_task_never_block_join")
@@ -200,7 +200,7 @@ namespace mamba
 
             synched_task();
 
-            CHECK_THROWS_AS(task_future.get(), int);
+            REQUIRE_THROWS_AS(task_future.get(), int);
         }
     }
 

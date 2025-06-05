@@ -332,7 +332,11 @@ namespace mamba
         }
 #endif
 
-        auto [wrapped_command, script_file] = prepare_wrapped_call(context, prefix, command);
+        auto [wrapped_command, script_file] = prepare_wrapped_call(
+            context.prefix_params,
+            command,
+            context.command_params.is_mamba_exe
+        );
 
         fmt::print(LOG_DEBUG, "Running wrapped script: {}", fmt::join(command, " "));
 

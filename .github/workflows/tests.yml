@@ -4,15 +4,16 @@ on:
   push:
     branches:
       - main
+      - feat/*
   pull_request:
     branches:
       - main
+      - feat/*
     paths-ignore:
-      - 'docs/**'
-      - '**.md'
+      - "docs/**"
+      - "**.md"
   merge_group:
     types: [checks_requested]
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -42,3 +43,7 @@ jobs:
     with:
       os: ${{ matrix.os }}
       build_type: ${{ matrix.build_type }}
+
+  brew_tests:
+    name: Homebrew and Linuxbrew toolchains
+    uses: ./.github/workflows/brew.yml

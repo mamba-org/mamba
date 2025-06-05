@@ -101,6 +101,8 @@ namespace mamba
 
         struct CheckSumParams;
 
+        bool use_oci() const;
+        bool use_auth() const;
         const std::string& filename() const;
         std::string channel() const;
         std::string url_path() const;

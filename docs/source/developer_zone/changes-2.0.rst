@@ -19,7 +19,7 @@ Mamba (executable)
 has been entirely replaced by the dynamically linked version of ``micromamba``,
 a statically-linked ELF based on ``libmamba``.
 
-Hence ``mamba``` now has the exact same user interface and experience as ``micromamba``.
+Hence ``mamba`` now has the exact same user interface and experience as ``micromamba``.
 
 .. warning::
 
@@ -40,6 +40,10 @@ Breaking changes include:
 - A new config ``order_solver_request`` (default true) can be used to order the dependencies passed
   to the solver, getting order independent solutions.
 - Support for complex match specs such as ``pkg[md5=0000000000000]`` and ``pkg[build='^\d*$']``.
+- **For ``micromamba<=2.1.0``:** Lost support for leading and internal globs in
+  version strings (via redesigned ``VersionSpec``, which no longer handles
+  version strings as a regex). Only trailing globs were supported.
+- Full version regexes, such as ``^3.3+$``, are not implemented.
 
 .. TODO OCI and mirrors
 
@@ -86,6 +90,11 @@ Changes include:
   - The redesign of ``MatchSpec``.
     The module also includes a platform enumeration, an implementation of ordered ``Version``,
     and a ``VersionSpec`` to match versions.
+    **Breaking change (for ``libmambapy<=2.1.0``):** ``VersionSpec`` lost support for
+    leading and internal globs in version strings because they are no longer
+    handled as a regex. Only trailing globs were supported.
+  - Full version regexes, such as ``^3.3+$``, are not implemented in ``VersionSpec`` and
+    ``MatchSpec``.
   - ``PackageInfo`` has been moved to this submodule.
     Some attributes have been given a more explicit name ``fn`` > ``filename``,
     ``url`` > ``package_url``.
@@ -127,6 +136,13 @@ The main changes are:
   - A refactoring of a purely functional ``Channel`` class,
   - Implementation of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
   - A refactored and complete implementation of ``MatchSpec`` using the components above.
+  - **Breaking change (for ``libmamba<=2.1.0``):** ``VersionSpec`` lost support for
+    leading and internal globs in version strings because they are no longer
+    handled as a regex. Only trailing globs were supported. This
+    affects version strings in both the command-line interface and recipe
+    requirements.
+  - Full version regexes, such as ``^3.3+$``, are not implemented in ``VersionSpec`` and
+    ``MatchSpec``.
 
 - A cleanup of ``ChannelContext`` to be a light proxy and parameter holder wrapping the
   ``specs::Channel``.
@@ -187,5 +203,5 @@ Listing packages in the created ``pandoc_from_oci`` environment:
   $ micromamba list -n pandoc_from_oci
 
   Name    Version  Build       Channel
-  ─────────────────────────────────────────────────────────────────────────────────────
-  pandoc  3.2      ha770c72_0  https://pkg-containers.githubusercontent.com/ghcr1/blobs
+  ──────────────────────────────────────────
+  pandoc  3.2      ha770c72_0  conda-forge

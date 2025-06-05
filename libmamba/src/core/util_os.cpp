@@ -3,7 +3,8 @@
 
 #ifndef _WIN32
 #include <clocale>
-
+// To find the path of `libmamba`'s library.
+#include <dlfcn.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
 #include <unistd.h>
@@ -32,6 +33,7 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
@@ -45,29 +47,45 @@ static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
 
 namespace mamba
 {
+
+#ifdef _WIN32
+    fs::u8path get_hmodule_path(HMODULE hModule)
+    {
+        std::wstring buffer(MAX_PATH, '\0');
+        DWORD new_size = MAX_PATH;
+        DWORD size = 0;
+        // There's unfortunately no way to know how much space is needed,
+        // so we just keep doubling the size of the buffer until the path fits.
+        while (true)
+        {
+            size = GetModuleFileNameW(hModule, buffer.data(), static_cast<DWORD>(buffer.size()));
+            if (size == 0)
+            {
+                throw mamba::mamba_error(
+                    "Could find the filename of the module handle. (GetModuleFileNameW failed)",
+                    mamba_error_code::internal_failure
+                );
+            }
+            if (size < new_size)
+            {
+                break;
+            }
+
+            new_size *= 2;
+            buffer.resize(new_size);
+        }
+        buffer.resize(size);
+        return fs::absolute(buffer);
+    }
+#endif
+
     // Heavily inspired by https://github.com/gpakosz/whereami/
     // check their source to add support for other OS
     fs::u8path get_self_exe_path()
     {
 #ifdef _WIN32
-        std::wstring buffer(MAX_PATH, '\0');
-        DWORD size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
-        if (size == 0)
-        {
-            throw std::runtime_error("Could find location of the micromamba executable!");
-        }
-        else if (size == buffer.size())
-        {
-            DWORD new_size = size;
-            do
-            {
-                new_size *= 2;
-                buffer.reserve(new_size);
-                size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
-            } while (new_size == size);
-        }
-        buffer.resize(buffer.find(L'\0'));
-        return fs::absolute(buffer);
+        HMODULE hModule = NULL;  // references file used to create the calling process
+        return get_hmodule_path(hModule);
 #elif defined(__APPLE__)
         uint32_t size = PATH_MAX;
         std::vector<char> buffer(size);
@@ -86,6 +104,38 @@ namespace mamba
 #else
         return fs::read_symlink("/proc/self/exe");
 #endif
+#endif
+    }
+
+    fs::u8path get_libmamba_path()
+    {
+#ifdef _WIN32
+        HMODULE hModule = NULL;
+        BOOL ret_code = GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            (LPCWSTR) get_libmamba_path,
+            &hModule
+        );
+        if (!ret_code)
+        {
+            throw mamba::mamba_error(
+                "Could find libmamba's module handle. (GetModuleHandleExW failed)",
+                mamba_error_code::internal_failure
+            );
+        }
+        return get_hmodule_path(hModule);
+#else
+        fs::u8path libmamba_path;
+        Dl_info dl_info;
+        if (!dladdr(reinterpret_cast<void*>(get_libmamba_path), &dl_info))
+        {
+            throw mamba_error(
+                "Could not find libmamba's path. (dladdr failed)",
+                mamba_error_code::internal_failure
+            );
+        }
+        libmamba_path = dl_info.dli_fname;
+        return libmamba_path;
 #endif
     }
 

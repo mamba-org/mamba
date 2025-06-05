@@ -4,12 +4,12 @@ dependencies:
   # libmamba build dependencies
   - cxx-compiler
   - cmake >=3.16
-  - pkg-config  # Used by some CMake dependencies
+  - pkg-config # Used by some CMake dependencies
   - ninja
-  - make  # not always present
+  - make # not always present
   # libmamba dependencies
   - cpp-expected
-  - fmt
+  - fmt >=11.1.0
   - libarchive
   - libcurl >=7.86
   - libsodium
@@ -21,7 +21,7 @@ dependencies:
   - yaml-cpp >=0.8.0
   - sel(win): winreg
   # libmamba test dependencies
-  - doctest
+  - catch2
   # micromamba dependencies
   - cli11 >=2.2
   # micromamba test dependencies
@@ -31,6 +31,9 @@ dependencies:
   - pytest-asyncio
   - pytest-timeout
   - pytest-xprocess
+  - pytest-rerunfailures
+  - pytest-cov
+  - memory_profiler
   - requests
   - sel(win): pywin32
   - sel(win): menuinst

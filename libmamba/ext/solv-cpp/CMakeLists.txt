@@ -8,12 +8,21 @@ cmake_minimum_required(VERSION 3.16)
 
 add_library(
     solv-cpp OBJECT
-    src/pool.cpp src/queue.cpp src/repo.cpp src/solvable.cpp src/solver.cpp src/transaction.cpp
+    src/pool.cpp
+    src/queue.cpp
+    src/repo.cpp
+    src/solvable.cpp
+    src/solver.cpp
+    src/transaction.cpp
+    src/dependency.cpp
 )
 target_include_directories(
     solv-cpp
     PUBLIC $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
+# Avoids `libsolv`'s usage of `requires` which became a keyword in C++20. See:
+# https://github.com/openSUSE/libsolv/blob/master/src/solvable.h#L38
+target_compile_definitions(solv-cpp PUBLIC LIBSOLV_SOLVABLE_PREPEND_DEP)
 
 find_package(tl-expected REQUIRED)
 find_package(Libsolv REQUIRED)
@@ -26,7 +35,14 @@ else()
 endif()
 
 target_link_libraries(solv-cpp PUBLIC tl::expected ${LIBSOLV_DEPS})
-target_compile_features(solv-cpp PUBLIC cxx_std_17)
+target_compile_features(solv-cpp PUBLIC cxx_std_20)
+set_target_properties(
+    solv-cpp
+    PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+)
 
 mamba_target_add_compile_warnings(solv-cpp WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 mamba_target_set_lto(solv-cpp MODE ${MAMBA_LTO})

@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "mamba/util/flat_binary_tree.hpp"
-#include "mamba/util/functional.hpp"
 
 namespace mamba::util
 {
@@ -166,7 +165,7 @@ namespace mamba::util
         void clear();
         void reserve(size_type size);
 
-        template <typename UnaryFunc = identity>
+        template <typename UnaryFunc = std::identity>
         [[nodiscard]] auto evaluate(UnaryFunc&& var_evaluator = {}, bool empty_val = true) const
             -> bool;
 

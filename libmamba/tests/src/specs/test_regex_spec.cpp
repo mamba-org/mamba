@@ -4,80 +4,96 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/regex_spec.hpp"
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::regex_spec")
+namespace
 {
-    TEST_CASE("Free")
+    TEST_CASE("RegexSpec Free")
     {
         auto spec = RegexSpec();
 
-        CHECK(spec.contains(""));
-        CHECK(spec.contains("hello"));
+        REQUIRE(spec.contains(""));
+        REQUIRE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "^.*$");
-        CHECK(spec.is_explicitly_free());
-        CHECK_FALSE(spec.is_exact());
+        REQUIRE(spec.to_string() == "^.*$");
+        REQUIRE(spec.is_explicitly_free());
+        REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("mkl")
+    TEST_CASE("RegexSpec mkl")
     {
         auto spec = RegexSpec::parse("mkl").value();
 
-        CHECK(spec.contains("mkl"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("nomkl"));
-        CHECK_FALSE(spec.contains("hello"));
+        REQUIRE(spec.contains("mkl"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("nomkl"));
+        REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "^mkl$");
-        CHECK_FALSE(spec.is_explicitly_free());
-        CHECK(spec.is_exact());
+        REQUIRE(spec.to_string() == "^mkl$");
+        REQUIRE_FALSE(spec.is_explicitly_free());
+        REQUIRE(spec.is_exact());
     }
 
-    TEST_CASE("py.*")
+    TEST_CASE("RegexSpec py.*")
     {
         auto spec = RegexSpec::parse("py.*").value();
 
-        CHECK(spec.contains("python"));
-        CHECK(spec.contains("py"));
-        CHECK(spec.contains("pypy"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("cpython"));
+        REQUIRE(spec.contains("python"));
+        REQUIRE(spec.contains("py"));
+        REQUIRE(spec.contains("pypy"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("cpython"));
 
-        CHECK_EQ(spec.str(), "^py.*$");
-        CHECK_FALSE(spec.is_explicitly_free());
-        CHECK_FALSE(spec.is_exact());
+        REQUIRE(spec.to_string() == "^py.*$");
+        REQUIRE_FALSE(spec.is_explicitly_free());
+        REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("^.*(accelerate|mkl)$")
+    TEST_CASE("RegexSpec ^.*(accelerate|mkl)$")
     {
         auto spec = RegexSpec::parse("^.*(accelerate|mkl)$").value();
 
-        CHECK(spec.contains("accelerate"));
-        CHECK(spec.contains("mkl"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("openblas"));
+        REQUIRE(spec.contains("accelerate"));
+        REQUIRE(spec.contains("mkl"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("openblas"));
 
-        CHECK_EQ(spec.str(), "^.*(accelerate|mkl)$");
-        CHECK_FALSE(spec.is_explicitly_free());
-        CHECK_FALSE(spec.is_exact());
+        REQUIRE(spec.to_string() == "^.*(accelerate|mkl)$");
+        REQUIRE_FALSE(spec.is_explicitly_free());
+        REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("RegexSpec Comparability and hashability")
     {
         auto spec1 = RegexSpec::parse("pyth*").value();
         auto spec2 = RegexSpec::parse("pyth*").value();
         auto spec3 = RegexSpec::parse("python").value();
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         auto hash_fn = std::hash<RegexSpec>();
-        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
-        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+        REQUIRE(hash_fn(spec1) == hash_fn(spec2));
+        REQUIRE(hash_fn(spec1) != hash_fn(spec3));
     }
+
+    TEST_CASE("RegexSpec py3.10_cuda11.8*")
+    {
+        auto spec = RegexSpec::parse("py3.10_cuda11.8*").value();
+        REQUIRE(spec.contains("py3.10_cuda11.8_cudnn8.7.0_0"));
+    }
+
+    TEST_CASE("RegexSpec * semantic")
+    {
+        auto spec = RegexSpec::parse("py3.*").value();
+
+        REQUIRE(spec.contains("py3."));
+        REQUIRE(spec.contains("py3.10"));
+        REQUIRE(spec.contains("py3.10_cuda11.8_cudnn8.7.0_0"));
+    }
+
 }

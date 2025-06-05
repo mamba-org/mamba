@@ -9,7 +9,6 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
-#include "mamba/util/compare.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -432,7 +431,7 @@ namespace mamba
             }
             else
             {
-                return fmt::format(m_format, val, w);
+                return fmt::format(fmt::runtime(m_format), val, w);
             }
         }
         else
@@ -974,10 +973,10 @@ namespace mamba
                     std::size_t spinner_width = 8;
 
 
-                    std::size_t spinner_start = util::cmp_greater(pos, spinner_width)
+                    std::size_t spinner_start = std::cmp_greater(pos, spinner_width)
                                                     ? pos - spinner_width
                                                     : 0;
-                    std::size_t spinner_length = (util::cmp_less(pos + spinner_width, width)
+                    std::size_t spinner_length = (std::cmp_less(pos + spinner_width, width)
                                                       ? pos + spinner_width
                                                       : width)
                                                  - spinner_start;
@@ -1286,9 +1285,9 @@ namespace mamba
         : m_progress(0)
         , m_total(total)
         , m_width(width)
-        , m_repr(this)
         , m_options(options)
         , m_is_spinner(false)
+        , m_repr(this)
     {
         m_repr.prefix.set_value(prefix);
     }

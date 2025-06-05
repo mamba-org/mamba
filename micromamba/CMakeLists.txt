@@ -9,6 +9,8 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(micromamba)
 
+include(GNUInstallDirs)
+
 # Source files
 # ============
 
@@ -17,8 +19,9 @@ set(
     longpath.manifest
     ${CMAKE_CURRENT_SOURCE_DIR}/src/activate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/clean.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/completer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/constructor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/env.cpp
@@ -26,7 +29,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/install.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/list.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/login.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/package.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/remove.cpp
@@ -41,14 +43,10 @@ set(
 set(
     MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/constructor.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
-
-if(UNIX AND BUILD_MICROMAMBA_SERVER)
-    list(APPEND MICROMAMBA_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp)
-    add_definitions(-DMICROMAMBA_SERVER)
-endif()
 
 # Targets and link
 # ================
@@ -68,7 +66,14 @@ macro(mambaexe_create_target target_name linkage output_name)
     add_executable(${target_name} ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
+    target_compile_features(${target_name} PUBLIC cxx_std_20)
+    set_target_properties(
+        ${target_name}
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
 
     target_link_libraries(${target_name} PRIVATE Threads::Threads reproc reproc++)
 
@@ -104,9 +109,29 @@ endif()
 if(BUILD_STATIC)
     message(STATUS "Adding executable micromamba")
     mambaexe_create_target(micromamba STATIC micromamba)
+    target_compile_definitions(micromamba PRIVATE BUILDING_MICROMAMBA)
 endif()
 
 # Installation
 # ============
 
-install(TARGETS ${mambaexe_targets})
+# This profile script is only needed for mamba on Unix systems.
+if(BUILD_SHARED AND UNIX)
+    message(STATUS "Generating profile script for mamba (i.e. `etc/profile.d/mamba.sh`)")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/etc/profile.d/mamba.sh.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/mamba.sh"
+    )
+
+    install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/mamba.sh
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/
+    )
+endif()
+
+install(
+    TARGETS ${mambaexe_targets}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

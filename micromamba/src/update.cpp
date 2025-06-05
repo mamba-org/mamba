@@ -27,6 +27,33 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+void
+set_update_command(CLI::App* subcom, Configuration& config)
+{
+    init_install_options(subcom, config);
+
+    static bool prune_deps = true;
+    static bool update_all = false;
+    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
+
+    subcom->get_option("specs")->description("Specs to update in the environment");
+    subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
+
+    subcom->callback(
+        [&]
+        {
+            auto update_params = UpdateParams{
+                update_all ? UpdateAll::Yes : UpdateAll::No,
+                prune_deps ? PruneDeps::Yes : PruneDeps::No,
+                EnvUpdate::No,
+                RemoveNotSpecified::No,
+            };
+            return update(config, update_params);
+        }
+    );
+}
+
+#ifdef BUILDING_MICROMAMBA
 namespace
 {
     auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
@@ -43,11 +70,11 @@ namespace
         return found;
     };
 
-    auto database_latest_package(solver::libsolv::Database& db, specs::MatchSpec spec)
+    auto database_latest_package(solver::libsolv::Database& database, specs::MatchSpec spec)
         -> std::optional<specs::PackageInfo>
     {
         auto out = std::optional<specs::PackageInfo>();
-        db.for_each_package_matching(
+        database.for_each_package_matching(
             spec,
             [&](auto pkg)
             {
@@ -75,12 +102,12 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-    solver::libsolv::Database db{ channel_context.params() };
-    add_spdlog_logger_to_database(db);
+    solver::libsolv::Database database{ channel_context.params() };
+    add_spdlog_logger_to_database(database);
 
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
+    auto exp_loaded = load_channels(ctx, channel_context, database, package_caches);
     if (!exp_loaded)
     {
         throw exp_loaded.error();
@@ -93,11 +120,11 @@ update_self(Configuration& config, const std::optional<std::string>& version)
                          .or_else([](specs::ParseError&& err) { throw std::move(err); })
                          .value();
 
-    auto latest_micromamba = database_latest_package(db, matchspec);
+    auto latest_micromamba = database_latest_package(database, matchspec);
 
     if (!latest_micromamba.has_value())
     {
-        if (database_has_package(db, specs::MatchSpec::parse("micromamba").value()))
+        if (database_has_package(database, specs::MatchSpec::parse("micromamba").value()))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
@@ -125,7 +152,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    MTransaction t(ctx, db, { latest_micromamba.value() }, package_caches);
+    MTransaction t(ctx, database, { latest_micromamba.value() }, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {
@@ -198,38 +225,14 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 }
 
 void
-set_update_command(CLI::App* subcom, Configuration& config)
-{
-    init_install_options(subcom, config);
-
-    static bool prune_deps = true;
-    static bool update_all = false;
-    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
-
-    subcom->get_option("specs")->description("Specs to update in the environment");
-    subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
-
-    subcom->callback(
-        [&]
-        {
-            auto update_params = UpdateParams{
-                update_all ? UpdateAll::Yes : UpdateAll::No,
-                prune_deps ? PruneDeps::Yes : PruneDeps::No,
-                EnvUpdate::No,
-                RemoveNotSpecified::No,
-            };
-            return update(config, update_params);
-        }
-    );
-}
-
-void
 set_self_update_command(CLI::App* subcom, Configuration& config)
 {
     init_install_options(subcom, config);
 
     static std::optional<std::string> version;
-    subcom->add_option("--version", version, "Install specific micromamba version");
+    subcom->add_option("--version", version, "Install specific micromamba version")
+        ->option_text("VERSION");
 
     subcom->callback([&] { return update_self(config, version); });
 }
+#endif

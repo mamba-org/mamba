@@ -6,7 +6,6 @@
 
 #include <exception>
 #include <iostream>
-#include <limits>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -30,17 +29,24 @@ namespace mamba::solver::libsolv
 {
     struct Database::DatabaseImpl
     {
-        explicit DatabaseImpl(specs::ChannelResolveParams p_channel_params)
-            : matcher(std::move(p_channel_params))
+        explicit DatabaseImpl(specs::ChannelResolveParams p_channel_params, Settings settings_)
+            : settings(std::move(settings_))
+            , matcher(std::move(p_channel_params))
         {
         }
 
+        Settings settings;
         solv::ObjPool pool = {};
         Matcher matcher;
     };
 
     Database::Database(specs::ChannelResolveParams channel_params)
-        : m_data(std::make_unique<DatabaseImpl>(std::move(channel_params)))
+        : Database(channel_params, Settings{})
+    {
+    }
+
+    Database::Database(specs::ChannelResolveParams channel_params, Settings settings)
+        : m_data(std::make_unique<DatabaseImpl>(std::move(channel_params), std::move(settings)))
     {
         pool().set_disttype(DISTTYPE_CONDA);
         // Ensure that debug logging never goes to stdout as to not interfere json output
@@ -72,19 +78,24 @@ namespace mamba::solver::libsolv
         return m_data->pool;
     }
 
-    auto Database::Impl::get(Database& pool) -> solv::ObjPool&
+    auto Database::Impl::get(Database& database) -> solv::ObjPool&
     {
-        return pool.pool();
+        return database.pool();
     }
 
-    auto Database::Impl::get(const Database& pool) -> const solv::ObjPool&
+    auto Database::Impl::get(const Database& database) -> const solv::ObjPool&
     {
-        return pool.pool();
+        return database.pool();
     }
 
     auto Database::channel_params() const -> const specs::ChannelResolveParams&
     {
         return m_data->matcher.channel_params();
+    }
+
+    auto Database::settings() const -> const Settings&
+    {
+        return m_data->settings;
     }
 
     namespace
@@ -144,7 +155,7 @@ namespace mamba::solver::libsolv
         PipAsPythonDependency add,
         PackageTypes package_types,
         VerifyPackages verify_packages,
-        RepodataParser parser
+        RepodataParser repo_parser
     ) -> expected_t<RepoInfo>
     {
         const auto verify_artifacts = static_cast<bool>(verify_packages);
@@ -161,7 +172,7 @@ namespace mamba::solver::libsolv
 
         auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
         {
-            if (parser == RepodataParser::Mamba)
+            if (repo_parser == RepodataParser::Mamba)
             {
                 return mamba_read_json(
                     pool(),
@@ -170,7 +181,18 @@ namespace mamba::solver::libsolv
                     std::string(url),
                     channel_id,
                     package_types,
+                    settings().matchspec_parser,
                     verify_artifacts
+                );
+            }
+
+            if (settings().matchspec_parser != MatchSpecParser::Libsolv)
+            {
+                return make_unexpected(
+                    " Libsolv repodata parser can only be used with Libsolv MatchSpec parser."
+                    "A Libsolv Repodata parser option been passed to this function while a"
+                    " non-Libsolv MatchSpec parser option has been give to the Database constructor.",
+                    mamba_error_code::incorrect_usage
                 );
             }
             return libsolv_read_json(repo, path, package_types, verify_artifacts)
@@ -240,7 +262,7 @@ namespace mamba::solver::libsolv
     {
         auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         auto [id, solv] = s_repo.add_solvable();
-        set_solvable(pool(), solv, pkg);
+        set_solvable(pool(), solv, pkg, settings().matchspec_parser);
     }
 
     void Database::add_repo_from_packages_impl_post(const RepoInfo& repo, PipAsPythonDependency add)
@@ -324,9 +346,11 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        auto matchspec2id(solv::ObjPool& pool, const specs::MatchSpec& ms) -> solv::DependencyId
+        auto
+        pool_add_matchspec_throwing(solv::ObjPool& pool, const specs::MatchSpec& ms, MatchSpecParser parser)
+            -> solv::DependencyId
         {
-            return pool_add_matchspec(pool, ms)
+            return pool_add_matchspec(pool, ms, parser)
                 .or_else([](mamba_error&& error) { throw std::move(error); })
                 .value_or(0);
         }
@@ -337,7 +361,7 @@ namespace mamba::solver::libsolv
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), ms);
+        const auto ms_id = pool_add_matchspec_throwing(pool(), ms, settings().matchspec_parser);
         auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, ms_id });
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(
@@ -354,7 +378,7 @@ namespace mamba::solver::libsolv
         static_assert(std::is_same_v<std::underlying_type_t<PackageId>, solv::SolvableId>);
 
         pool().ensure_whatprovides();
-        const auto ms_id = matchspec2id(pool(), ms);
+        const auto ms_id = pool_add_matchspec_throwing(pool(), ms, settings().matchspec_parser);
         auto solvables = pool().what_matches_dep(SOLVABLE_REQUIRES, ms_id);
         auto out = std::vector<PackageId>(solvables.size());
         std::transform(

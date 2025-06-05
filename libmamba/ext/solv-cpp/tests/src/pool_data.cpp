@@ -56,7 +56,7 @@ namespace solv::test
         solv.set_version(pkg.version);
         for (const auto& dep : pkg.dependencies)
         {
-            solv.add_dependency(pool.add_conda_dependency(dep));
+            solv.add_dependency(pool.add_legacy_conda_dependency(dep));
         }
         solv.add_self_provide();
         return solv_id;

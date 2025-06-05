@@ -1,13 +1,17 @@
+import json
 import os
 import platform
 import shutil
 import subprocess
 from pathlib import Path
+from packaging.version import Version
 
 import pytest
 import yaml
 
 from . import helpers
+
+from memory_profiler import memory_usage
 
 __this_dir__ = Path(__file__).parent.resolve()
 
@@ -23,7 +27,9 @@ env_files = [
     env_file_requires_pip_install_path_with_whitespaces,
 ]
 
-lockfile_path: Path = __this_dir__ / "test_env-lock.yaml"
+lockfile_path: Path = __this_dir__ / "test-env-lock.yaml"
+pip_lockfile_path: Path = __this_dir__ / "test-env-pip-lock.yaml"
+pip_git_https_lockfile_path: Path = __this_dir__ / "test-env-lock-pip-git-https.yaml"
 
 
 def check_create_result(res, root_prefix, target_prefix):
@@ -114,19 +120,96 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
-# TODO: uncomment when https://github.com/mamba-org/mamba/pull/3286 is merged
-# @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-# def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
-#    env_prefix = tmp_path / "myenv"
-#    spec_file = (
-#        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
-#    )
-#
-#    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-#    assert res["success"]
-#
-#    packages = helpers.umamba_list("-p", env_prefix, "--json")
-#    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+@pytest.mark.skipif(
+    platform.system() != "Linux",
+    reason="Test only available on Linux (cf. `test-env-pip-lock.yaml`)",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = tmp_path / "pip-env-lock.yaml"
+
+    shutil.copyfile(pip_lockfile_path, spec_file)
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+
+    # Test pkg url ending with `.tar.gz`
+    assert any(
+        package["name"] == "Checkm" and package["version"] == "0.4" and package["channel"] == "pypi"
+        for package in packages
+    )
+    # Test pkg url ending with `.whl`
+    assert any(
+        package["name"] == "starlette"
+        and package["version"] == "0.17.1"
+        and package["channel"] == "pypi"
+        for package in packages
+    )
+    # Test pkg url ending with `.conda`
+    assert any(
+        package["name"] == "bzip2"
+        and package["version"] == "1.0.8"
+        and package["channel"] == "conda-forge"
+        for package in packages
+    )
+    # Test pkg url ending with `.tar.bz2`
+    assert any(
+        package["name"] == "xz"
+        and package["version"] == "5.2.6"
+        and package["channel"] == "conda-forge"
+        for package in packages
+    )
+
+
+# TODO: Remove this test once this is fixed:
+# https://github.com/dateutil/dateutil/issues/1419
+@pytest.mark.skip(reason="See https://github.com/mamba-org/mamba/pull/3796#issuecomment-2683061013")
+@pytest.mark.skipif(
+    platform.system() not in ["Darwin", "Linux"],
+    reason="Used lockfile only handles macOS and Linux.",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = tmp_path / "env-lock.yaml"
+
+    shutil.copyfile(pip_git_https_lockfile_path, spec_file)
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        package["name"] == "python-dateutil"
+        and package["version"] == "2.9.0.post1.dev3+g9eaa5de"
+        and package["channel"] == "pypi"
+        and package["base_url"] == "https://pypi.org/"
+        for package in packages
+    )
+    assert any(
+        package["name"] == "six"
+        and package["version"] == "1.17.0"
+        and package["channel"] == "pypi"
+        and package["base_url"] == "https://pypi.org/"
+        for package in packages
+    )
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = (
+        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
+    )
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -163,6 +246,27 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
 
+@pytest.mark.parametrize("target_prefix", ("file", "empty_dir", "non_empty_dir"))
+def test_existing_target_prefix(tmp_root_prefix, tmp_path, target_prefix):
+    p = tmp_path / "myenv"
+    expected_p = p.resolve()
+    cmd = ["-p", p]
+
+    if target_prefix == "file":
+        expected_p.touch()
+    else:
+        expected_p.mkdir()
+        if target_prefix == "non_empty_dir":
+            (expected_p / "foo").touch()
+
+    if target_prefix in ("file", "non_empty_dir"):
+        with pytest.raises(subprocess.CalledProcessError):
+            helpers.create(*cmd)
+    else:
+        helpers.create(*cmd)
+        assert (expected_p / "conda-meta").exists()
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("root_prefix_type", (None, "env_var", "cli"))
 @pytest.mark.parametrize("target_is_root", (False, True))
@@ -175,6 +279,7 @@ def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
     "similar_non_canonical,non_canonical_position",
     ((False, None), (True, "append"), (True, "prepend")),
 )
+@pytest.mark.parametrize("root_prefix_env_exists", (False, True))
 def test_target_prefix(
     tmp_home,
     tmp_root_prefix,
@@ -188,6 +293,7 @@ def test_target_prefix(
     current_target_prefix_fallback,
     similar_non_canonical,
     non_canonical_position,
+    root_prefix_env_exists,
 ):
     cmd = []
 
@@ -198,6 +304,9 @@ def test_target_prefix(
         cmd += ["-r", root_prefix]
     else:
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
+
+    if root_prefix_env_exists:
+        os.makedirs(Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs", exist_ok=True)
 
     env_prefix = tmp_path / "myenv"
 
@@ -308,6 +417,49 @@ def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_fi
         assert res["channels"] == expected_channels
     else:
         assert res["channels"] == ["conda-forge"]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("env_vars", (False, True))
+@pytest.mark.parametrize("no_env", (False, True))
+def test_spec_file_env_vars(tmp_home, tmp_root_prefix, tmp_path, env_vars, no_env):
+    env_name = "env-check-env-vars"
+
+    spec_file = tmp_path / "env-check-env-vars.yaml"
+    file_content = [
+        "dependencies: [numpy]",
+    ]
+    if env_vars:
+        variables_dict = {"MY_ENV_VAR": "My Value", "MY_OTHER_ENV_VAR": "Another Value"}
+        yaml_str = yaml.dump({"variables": variables_dict}, default_flow_style=False)
+        file_content.append(yaml_str)
+
+    with open(spec_file, "w") as f:
+        f.write("\n".join(file_content))
+
+    cmd = ["-n", env_name, "-f", spec_file, "--json"]
+    if no_env:
+        cmd += ["--no-env"]
+
+    res = helpers.create(*cmd)
+    assert res["success"]
+
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    assert any(package["name"] == "numpy" for package in packages)
+
+    state_file_path = tmp_root_prefix / "envs" / env_name / "conda-meta" / "state"
+
+    if env_vars and not no_env:
+        assert state_file_path.exists()
+
+        with open(state_file_path) as f:
+            state_content = f.read()
+        assert (
+            '"env_vars":{"MY_ENV_VAR":"My Value","MY_OTHER_ENV_VAR":"Another Value"}'
+            in state_content
+        )
+    else:
+        assert not state_file_path.exists()
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -495,8 +647,21 @@ def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix)
 
     if helpers.dry_run_tests == helpers.DryRun.OFF:
         pkg_name = helpers.get_concrete_pkg(res, "xtensor")
-        cached_file = tmp_pkgs_dirs / pkg_name / helpers.xtensor_hpp
-        assert cached_file.exists()
+        pkg_checker = helpers.PackageChecker("xtensor", p)
+        assert pkg_name == pkg_checker.get_name_version_build()
+
+
+@pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+def test_create_check_logs(tmp_home, tmp_root_prefix, output_flag):
+    env_name = "env-create-check-logs"
+    res = helpers.create("-n", env_name, "xtensor", output_flag)
+
+    if output_flag == "--json":
+        assert res["success"]
+    elif output_flag == "--quiet":
+        assert res == ""
+    else:
+        assert "To activate this environment, use:" in res
 
 
 @pytest.mark.skipif(
@@ -562,12 +727,199 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
     assert (effective_prefix / "conda-meta" / "history").exists()
 
 
-def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
+def test_create_conda_envs_dirs_and_path(tmp_root_prefix, monkeypatch):
+    """Abort when CONDA_ENVS_PATH and CONDA_ENVS_DIRS are both set"""
+    monkeypatch.setenv("CONDA_ENVS_DIRS", f"{tmp_root_prefix / 'env1'}")
+    monkeypatch.setenv("CONDA_ENVS_PATH", f"{tmp_root_prefix / 'env2'}")
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create("-n", "test", "--offline", "--no-rc", no_dry_run=True)
+
+    msg = info.value.stderr.decode()
+    assert (
+        "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared."
+        in msg
+    )
+
+
+@pytest.mark.parametrize("conda_envs_x", ("CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"))
+def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, conda_envs_x, monkeypatch):
     """Create an environment when the first env dir is not writable."""
-    os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+
+    noperm_root_dir = Path(tmp_path / "noperm")
+    noperm_envs_dir = noperm_root_dir / "envs"
+
+    monkeypatch.setenv(conda_envs_x, f"{noperm_envs_dir}{os.pathsep}{tmp_path}")
     env_name = "myenv"
-    helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    os.makedirs(noperm_root_dir, exist_ok=True)
+
+    if platform.system() == "Windows":
+        # Make first env_dir read-only on Windows - this requires:
+        #   Removing inherited and granted permissions, removing ownership,
+        #   and granting group Everyone RX access.
+
+        subprocess.run(
+            [
+                "icacls",
+                noperm_root_dir,
+                "/inheritance:r",  # remove inherited permissions
+                "/grant:r",  # remove explicitly granted permissions
+                "Everyone:(RX)",  # grant Read-Execute to everyone
+                "/remove",  # remove ownership from all groups
+                r"BUILTIN\Administrators",
+                "/remove",
+                r"NT AUTHORITY\SYSTEM",
+                "/remove",
+                "OWNER RIGHTS",
+            ],
+            check=True,
+        )
+
+    else:
+        # Make first env_dir read-only on Linux
+        os.chmod(noperm_root_dir, 0o555)
+
+    try:
+        helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    finally:
+        if platform.system() == "Windows":
+            # Revert ownership change on Windows so that we can clean up
+            subprocess.run(
+                ["icacls", noperm_root_dir, "/grant", r"BUILTIN\Administrators:F"], check=True
+            )
+            subprocess.run(["icacls", noperm_root_dir, "/reset"], check=True)
+        else:
+            # Revert permission change on Linux so that we can clean up
+            os.chmod(noperm_root_dir, 0o755)
+
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
+
+
+@pytest.mark.parametrize("conda_envs_x", ["CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"])
+@pytest.mark.parametrize("envs_dirs_source", ("condarc", "env_var"))
+def test_mkdir_envs_dirs(tmp_path, tmp_home, monkeypatch, conda_envs_x, envs_dirs_source):
+    """Test that an env dir is created if it does not exist already"""
+
+    envs_dir = tmp_path / "user_provided_envdir" / "envs"
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        if envs_dirs_source == "env_var":
+            monkeypatch.setenv(conda_envs_x, str(envs_dir))
+        else:
+            f.write(f"envs_dirs: [{str(envs_dir)}]")
+
+    assert not envs_dir.exists()  # directory doesn't exist yet
+
+    helpers.create("-n", "bar", "--rc-file", tmp_home / ".condarc", no_rc=False)
+
+    assert envs_dir.exists()
+
+
+def test_env_dir_idempotence(tmp_home, tmp_root_prefix, tmp_path):
+    """
+    Test that setting envs_dirs to ~/.conda and running twice in a row
+    gives the same results
+    https://github.com/mamba-org/mamba/issues/3836
+    """
+
+    mamba_root_prefix_envs = tmp_root_prefix / "envs"
+    condarc_envs_dirs = tmp_home / ".conda"
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
+
+    env_name = "foo"
+
+    for _ in range(2):
+        cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
+        helpers.create(*cmd, no_rc=False)
+
+        assert not Path(mamba_root_prefix_envs / env_name).exists()
+        assert Path(condarc_envs_dirs / env_name).exists()
+
+
+@pytest.mark.parametrize("conda_envs_x", ("CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"))
+@pytest.mark.parametrize("set_in_conda_envs_dirs", (False, True))
+@pytest.mark.parametrize("set_in_condarc", (False, True))
+@pytest.mark.parametrize("cli_root_prefix", (False, True))
+@pytest.mark.parametrize("check_config_only", (False, True))
+def test_root_prefix_precedence(
+    tmp_home,
+    tmp_clean_env,
+    tmp_path,
+    monkeypatch,
+    conda_envs_x,
+    set_in_condarc,
+    set_in_conda_envs_dirs,
+    cli_root_prefix,
+    check_config_only,
+):
+    """
+    Test for root prefix precedence
+
+    Environments can be created in several places depending, in this order:
+      - 1. in the folder of `CONDA_ENVS_DIRS` if it is set
+      - 2. in the folder of `envs_dirs` if set in the rc file
+      - 3. the root prefix given by the user's command (e.g. specified via the `-r` option)
+      - 4. the usual root prefix (set generally by `MAMBA_ROOT_PREFIX`)
+    """
+
+    # Given by `CONDA_ENVS_DIRS`
+    conda_envs_dirs = tmp_path / "conda_envs_dirs" / "envs"
+    # Given by `envs_dirs` in the rc file
+    condarc_envs_dirs = tmp_path / "condarc_envs_dirs" / "envs"
+    # Given via the CLI
+    cli_provided_root = tmp_path / "cliroot"
+    cli_provided_root_envs = cli_provided_root / "envs"
+    # Given by `MAMBA_ROOT_PREFIX`
+    mamba_root_prefix = tmp_path / "envroot"
+    mamba_root_prefix_envs = mamba_root_prefix / "envs"
+
+    env_name = "foo"
+    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(mamba_root_prefix))
+    if set_in_conda_envs_dirs:
+        monkeypatch.setenv(conda_envs_x, str(conda_envs_dirs))
+
+    with open(tmp_home / ".condarc", "w+") as f:
+        if set_in_condarc:
+            f.write(f"envs_dirs: [{str(condarc_envs_dirs)}]")
+
+    cmd = ["-n", env_name, "--rc-file", tmp_home / ".condarc"]
+
+    if check_config_only:
+        cmd += ["--print-config-only", "--debug"]
+
+    if cli_root_prefix:
+        cmd += ["-r", cli_provided_root]
+
+    res = helpers.create(*cmd, no_rc=False)
+
+    def assert_env_exists(prefix_path):
+        assert Path(prefix_path / env_name).exists()
+
+    if check_config_only:
+        expected_envs_dirs = []
+        if set_in_conda_envs_dirs:
+            expected_envs_dirs.append(str(conda_envs_dirs))
+        if set_in_condarc:
+            expected_envs_dirs.append(str(condarc_envs_dirs))
+        if cli_root_prefix:
+            expected_envs_dirs.append(str(cli_provided_root_envs))
+        else:
+            expected_envs_dirs.append(str(mamba_root_prefix_envs))
+
+        effective_envs_dirs = res["envs_dirs"]
+        assert effective_envs_dirs == expected_envs_dirs
+
+    # Otherwise, we check that `foo` has been created in the directory
+    # based on precedence given above.
+    elif set_in_conda_envs_dirs:
+        assert_env_exists(conda_envs_dirs)
+    elif set_in_condarc:
+        assert_env_exists(condarc_envs_dirs)
+    elif cli_root_prefix:
+        assert_env_exists(cli_provided_root_envs)
+    else:
+        assert_env_exists(mamba_root_prefix_envs)
 
 
 @pytest.mark.skipif(
@@ -938,6 +1290,24 @@ def test_requires_pip_install_no_parent_dir_specified(
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_from_remote_yaml_file(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+    spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/micromamba/tests/env-create-export.yaml"
+
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    assert res["success"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert any(
+        package["name"] == "micromamba"
+        and package["version"] == "0.24.0"
+        and package["channel"] == "conda-forge"
+        and package["base_url"] == "https://conda.anaconda.org/conda-forge"
+        for package in packages
+    )
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
     # We test compatibility with the downstream pre-commit package here because the pre-commit project does not currently accept any code changes related to Conda, see https://github.com/pre-commit/pre-commit/pull/2446#issuecomment-1353394177.
     def create_repo(path: Path) -> str:
@@ -1110,6 +1480,70 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create("-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor")
 
 
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2",
+        "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda",
+    ],
+)
+def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
+    """Attempts to install a package using an explicit url."""
+    env_name = "env-create-from-explicit-url"
+
+    res = helpers.create(
+        spec, "--no-env", "-n", env_name, "--override-channels", "--json", default_channel=False
+    )
+    assert res["success"]
+
+    pkgs = res["actions"]["LINK"]
+    if spec.endswith(".tar.bz2"):
+        assert len(pkgs) == 1
+        assert pkgs[0]["name"] == "_libgcc_mutex"
+        assert pkgs[0]["version"] == "0.1"
+        assert (
+            pkgs[0]["url"]
+            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
+        )
+        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+    else:
+        assert len(pkgs) == 1
+        assert pkgs[0]["name"] == "abacus"
+        assert pkgs[0]["version"] == "3.2.4"
+        assert (
+            pkgs[0]["url"]
+            == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
+        )
+        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+
+
+def test_create_from_mirror(tmp_home, tmp_root_prefix):
+    """
+    Attempts to install a package using an explicit channel/mirror.
+    Non-regression test for https://github.com/mamba-org/mamba/issues/3804
+    """
+    env_name = "env-create-from-mirror"
+
+    res = helpers.create(
+        "cpp-tabulate",
+        "-n",
+        env_name,
+        "-c",
+        "https://repo.prefix.dev/emscripten-forge-dev",
+        "--platform=emscripten-wasm32",
+        "--json",
+        default_channel=False,
+    )
+    assert res["success"]
+
+    assert any(
+        package["name"] == "cpp-tabulate"
+        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["subdir"] == "emscripten-wasm32"
+        for package in res["actions"]["LINK"]
+    )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"
@@ -1231,8 +1665,8 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
     assert pkg["name"] == "pandoc"
     if spec == "pandoc=3.1.13":
         assert pkg["version"] == "3.1.13"
-    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1260,14 +1694,14 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
     assert len(packages) > 2
     assert any(
         package["name"] == "xtensor"
-        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         for package in packages
     )
     assert any(
         package["name"] == "xtl"
-        and package["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-        and package["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         for package in packages
     )
 
@@ -1301,8 +1735,37 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
     assert len(packages) == 1
     pkg = packages[0]
     assert pkg["name"] == "_go_select"
-    assert pkg["base_url"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
-    assert pkg["channel"] == "https://pkg-containers.githubusercontent.com/ghcr1/blobs"
+    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_with_norm_path(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    res = helpers.create("-n", env_name, "conda-smithy", "--json")
+    assert res["success"]
+
+    conda_smithy = next((env_prefix / "conda-meta").glob("conda-smithy*.json")).read_text()
+    conda_smithy_data = json.loads(conda_smithy)
+    if platform.system() == "Windows":
+        assert all(
+            file_path.startswith(("Lib/site-packages", "Scripts"))
+            for file_path in conda_smithy_data["files"]
+        )
+        assert all(
+            py_path["_path"].startswith(("Lib/site-packages", "Scripts"))
+            for py_path in conda_smithy_data["paths_data"]["paths"]
+        )
+    else:
+        assert all(
+            file_path.startswith(("lib/python", "bin")) for file_path in conda_smithy_data["files"]
+        )
+        assert all(
+            py_path["_path"].startswith(("lib/python", "bin"))
+            for py_path in conda_smithy_data["paths_data"]["paths"]
+        )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1343,3 +1806,274 @@ def test_parsable_env_history_with_metadata(tmp_home, tmp_root_prefix, tmp_path)
 
     # Must not hang
     helpers.umamba_list("-p", env_prefix, "--json")
+
+
+def test_create_dry_run_json(tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3583
+    env_prefix = tmp_path / "env-create_dry_run_json"
+    res = helpers.create("-p", env_prefix, "--dry-run", "--json")
+
+    expected_output = {
+        "actions": {"FETCH": [], "PREFIX": str(env_prefix)},
+        "dry_run": True,
+        "prefix": str(env_prefix),
+        "success": True,
+    }
+
+    assert res == expected_output
+
+
+env_spec_empty_dependencies = """
+name: empty_dependencies
+channels:
+  - conda-forge
+dependencies: []
+"""
+
+env_spec_absent_dependencies = """
+name: absent_dependencies
+channels:
+  - conda-forge
+"""
+
+
+def test_create_empty_or_absent_dependencies(tmp_home, tmp_clean_env, tmp_path):
+    env_prefix = tmp_path / "env-empty_dependencies"
+    # Write the env specification to a file and pass it to the create command
+
+    with open(tmp_path / "env_spec_empty_dependencies.yaml", "w") as f:
+        f.write(env_spec_empty_dependencies)
+
+    with open(tmp_path / "env_spec_absent_dependencies.yaml", "w") as f:
+        f.write(env_spec_absent_dependencies)
+
+    # Create the environment with empty dependencies, check that it is created successfully
+    # and that no packages are installed in the environment
+    res = helpers.create(
+        "-p", env_prefix, "-f", tmp_path / "env_spec_empty_dependencies.yaml", "--json"
+    )
+    assert res["success"]
+
+    # Create the environment with absent dependencies, check that it is created successfully
+    # and that no packages are installed in the environment
+    res = helpers.create(
+        "-p", env_prefix, "-f", tmp_path / "env_spec_absent_dependencies.yaml", "--json"
+    )
+    assert res["success"]
+
+
+env_spec_empty_lines_and_comments = """
+# The line below are empty (various number of spaces)
+"""
+
+env_spec_empty_lines_and_comments += "\n"
+env_spec_empty_lines_and_comments += "  \n"
+env_spec_empty_lines_and_comments += "    \n"
+env_spec_empty_lines_and_comments += "	\n"
+env_spec_empty_lines_and_comments += "# One comment \n"
+env_spec_empty_lines_and_comments += "	@ yet another one with a prefixed by a tab\n"
+env_spec_empty_lines_and_comments += "wheel\n"
+
+env_repro_1 = """
+wheel
+
+setuptools
+"""
+
+env_repro_2 = """
+wheel
+setuptools
+
+# comment
+"""
+
+
+@pytest.mark.parametrize("env_spec", [env_spec_empty_lines_and_comments, env_repro_1, env_repro_2])
+def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_path, env_spec):
+    # Non-regression test for:
+    #  - https://github.com/mamba-org/mamba/issues/3289
+    #  - https://github.com/mamba-org/mamba/issues/3659
+    memory_limit = 150  # in MB
+
+    def memory_intensive_operation():
+        env_prefix = tmp_path / "env-one_empty_line"
+
+        env_spec_file = tmp_path / "env_spec.txt"
+
+        with open(env_spec_file, "w") as f:
+            f.write(env_spec)
+
+        res = helpers.create("-p", env_prefix, "-f", env_spec_file, "--json")
+        assert res["success"]
+
+    max_memory = max(memory_usage(proc=memory_intensive_operation))
+
+    if max_memory > memory_limit:
+        pytest.fail(
+            f"test_create_with_empty_lines_and_comments exceeded memory limit of {memory_limit} MB (used {max_memory:.2f} MB)"
+        )
+
+
+def test_update_spec_list(tmp_home, tmp_clean_env, tmp_path):
+    env_prefix = tmp_path / "env-invalid_spec"
+
+    env_spec = """
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+@EXPLICIT
+https://conda.anaconda.org/conda-forge/noarch/pip-24.3.1-pyh145f28c_2.conda#76601b0ccfe1fe13a21a5f8813cb38de
+"""
+
+    env_spec_file = tmp_path / "env_spec.txt"
+
+    update_specs_list = """
+  Updating specs:
+
+   - pip==24.3.1=pyh145f28c_2
+"""
+
+    with open(env_spec_file, "w") as f:
+        f.write(env_spec)
+
+    out = helpers.create("-p", env_prefix, "-f", env_spec_file, "--dry-run")
+
+    assert update_specs_list in out.replace("\r", "")
+
+
+def test_ca_certificates(tmp_home, tmp_clean_env, tmp_path):
+    # Check that CA certificates from conda-forge or that the fall back is used by micromamba.
+    env_prefix = tmp_path / "env-ca-certificates"
+
+    umamba = helpers.get_umamba()
+    args = [umamba, "create", "-p", env_prefix, "numpy", "--dry-run", "-vvv"]
+    p = subprocess.run(args, capture_output=True, check=True)
+    verbose_logs = p.stderr.decode()
+
+    root_prefix_ca_certificates_used = (
+        "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix"
+        in verbose_logs
+    )
+
+    system_ca_certificates_used = "Using system CA certificates at" in verbose_logs
+
+    default_libcurl_certificates_used = (
+        "Using libcurl/the SSL library's default CA certification" in verbose_logs
+    )
+
+    # On Windows default
+    fall_back_certificates_used = (
+        default_libcurl_certificates_used
+        if platform.system() == "Windows"
+        else system_ca_certificates_used
+    )
+
+    assert root_prefix_ca_certificates_used or fall_back_certificates_used
+
+
+def test_glob_in_build_string(tmp_home, tmp_clean_env, monkeypatch, tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3699
+    env_prefix = tmp_path / "test_glob_in_build_string"
+
+    pytorch_match_spec = "pytorch=2.3.1=py3.10_cuda11.8*"
+
+    # Export CONDA_OVERRIDE_GLIBC=2.17 to force the solver to use the glibc 2.17 package
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.17")
+
+    # Should run without error
+    out = helpers.create(
+        "-p",
+        env_prefix,
+        pytorch_match_spec,
+        "-c",
+        "pytorch",
+        "-c",
+        "nvidia/label/cuda-11.8.0",
+        "-c",
+        "nvidia",
+        "-c",
+        "conda-forge",
+        "--platform",
+        "linux-64",
+        "--dry-run",
+        "--json",
+    )
+
+    # Check that a build of pytorch 2.3.1 with `py3.10_cuda11.8_cudnn8.7.0_0` as a build string is found
+    assert any(
+        package["name"] == "pytorch"
+        and package["version"] == "2.3.1"
+        and package["build_string"] == "py3.10_cuda11.8_cudnn8.7.0_0"
+        for package in out["actions"]["FETCH"]
+    )
+
+
+def test_non_url_encoding(tmp_home, tmp_clean_env, tmp_path):
+    # Non-regression test for https://github.com/mamba-org/mamba/issues/3737
+    env_prefix = tmp_path / "env-non_url_encoding"
+
+    # Use linux-64 without loss of generality
+    out = helpers.create("--json", "x264>=1!0", "-p", env_prefix, "--platform", "linux-64")
+
+    # Check that the URL of the build of x264 is encoded.
+    encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1%21"
+
+    x264_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "x264")
+    assert x264_package["url"].startswith(encoded_url_start)
+
+    # Export an explicit specification of the environment and check that the URL is not encoded
+    non_encoded_url_start = "https://conda.anaconda.org/conda-forge/linux-64/x264-1!"
+    out = helpers.run_env("export", "-p", env_prefix, "--explicit")
+    assert non_encoded_url_start in out
+
+
+def test_compatible_release(tmp_home, tmp_clean_env, tmp_path):
+    # Non-regression test for: https://github.com/mamba-org/mamba/issues/3472
+    env_prefix = tmp_path / "env-compatible-release"
+
+    out = helpers.create("--json", "jupyterlab~=4.3", "-p", env_prefix, "--dry-run")
+
+    jupyterlab_package = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "jupyterlab")
+    assert Version(jupyterlab_package["version"]) >= Version("4.3.0")
+
+
+def test_repodata_record_patch(tmp_home, tmp_clean_env, tmp_path):
+    # Non-regression test for: https://github.com/mamba-org/mamba/issues/3883
+
+    # Create an environment with `libarchive==3.7.7=h*_3` which has an out-of-date
+    # repodata record for its dependency on `libxml2`.
+    env_prefix = tmp_path / "env-repodata-record-patch"
+    out = helpers.create("--json", "libarchive==3.7.7=h*_3", "-p", env_prefix)
+    assert out["success"]
+
+    version_3_7_7 = Version("3.7.7")
+
+    originally_linked_libarchive = next(
+        pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive"
+    )
+    assert Version(originally_linked_libarchive["version"]) == version_3_7_7
+    assert originally_linked_libarchive["build_number"] == 3
+
+    # Test that updating all the environment respect the repodata record patch introduced
+    # for libarchive==3.7.7=h_*_4 and that no other package than libarchive is updated.
+    out = helpers.update("--json", "-p", env_prefix, "--all")
+    assert out["success"]
+
+    assert len(out["actions"]["UNLINK"]) == 1
+    unlink_libarchive = next(pkg for pkg in out["actions"]["UNLINK"] if pkg["name"] == "libarchive")
+
+    # TODO: understand why the original linked libarchive has a full URL for the channel
+    # while the unlink libarchive has a short channel name (`conda-forge`) and removed the
+    # the line below.
+    unlink_libarchive["channel"] = originally_linked_libarchive["channel"]
+    assert unlink_libarchive == originally_linked_libarchive
+
+    assert len(out["actions"]["LINK"]) == 1
+    linked_libarchive = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive")
+
+    linked_libarchive_version = Version(linked_libarchive["version"])
+
+    assert linked_libarchive_version >= version_3_7_7
+
+    if linked_libarchive_version == version_3_7_7:
+        assert linked_libarchive["build_number"] > 3

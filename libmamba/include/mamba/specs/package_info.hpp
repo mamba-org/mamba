@@ -24,6 +24,7 @@ namespace mamba::specs
         Unknown,
         Conda,
         Wheel,
+        TarGz,
     };
 
     class PackageInfo
@@ -71,6 +72,7 @@ namespace mamba::specs
         PackageInfo(std::string name, std::string version, std::string build_string, std::string channel);
 
         [[nodiscard]] auto json_signable() const -> nlohmann::json;
+        // TODO: rename to_string, following C++ conventions
         [[nodiscard]] auto str() const -> std::string;
         [[nodiscard]] auto long_str() const -> std::string;
 

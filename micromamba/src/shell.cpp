@@ -33,27 +33,32 @@ namespace
             ->add_option("-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
             ->check(CLI::IsMember(std::set<std::string>(
                 { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash", "nu" }
-            )));
+            )))
+            ->option_text("SHELL");
     }
 
     void init_root_prefix_option(CLI::App* subcmd, Configuration& config)
     {
         auto& root = config.at("root_prefix");
-        subcmd->add_option(
-            "root_prefix,-r,--root-prefix",
-            root.get_cli_config<fs::u8path>(),
-            root.description()
-        );
+        subcmd
+            ->add_option(
+                "root_prefix,-r,--root-prefix",
+                root.get_cli_config<fs::u8path>(),
+                root.description()
+            )
+            ->option_text("PATH");
     }
 
     void init_prefix_options(CLI::App* subcmd, Configuration& config)
     {
         auto& prefix = config.at("target_prefix");
-        auto* prefix_cli = subcmd->add_option(
-            "-p,--prefix",
-            prefix.get_cli_config<fs::u8path>(),
-            prefix.description()
-        );
+        auto* prefix_cli = subcmd
+                               ->add_option(
+                                   "-p,--prefix",
+                                   prefix.get_cli_config<fs::u8path>(),
+                                   prefix.description()
+                               )
+                               ->option_text("PATH");
 
         auto& name = config.at("env_name");
         auto* name_cli = subcmd
@@ -402,7 +407,7 @@ set_shell_command(CLI::App* shell_subcmd, Configuration& config)
 
     auto* reacti_subsubcmd = shell_subcmd->add_subcommand(
         "reactivate",
-        "Output reactivateion code for the given shell"
+        "Output reactivation code for the given shell"
     );
     set_shell_reactivate_command(reacti_subsubcmd, config);
 

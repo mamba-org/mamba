@@ -5,14 +5,14 @@ dependencies:
   # libmamba build dependencies
   - cxx-compiler
   - cmake >=3.16
-  - pkg-config  # Used by some CMake dependencies
+  - pkg-config # Used by some CMake dependencies
   - ninja
   # libmamba dependencies
   - cpp-expected
   - nlohmann_json
   - simdjson-static >=3.3.0
   - spdlog
-  - fmt
+  - fmt >=11.1.0
   - libsolv-static >=0.7.24
   - yaml-cpp-static >=0.8.0
   - reproc-static >=14.2.4.post0
@@ -30,6 +30,6 @@ dependencies:
   - libnghttp2-static
   - lz4-c-static
   # libmamba test dependencies
-  - doctest
+  - catch2
   # micromamba dependencies
   - cli11 >=2.2,<3

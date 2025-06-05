@@ -10,7 +10,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
 
@@ -24,7 +24,8 @@ init_constructor_parser(CLI::App* subcom, Configuration& config)
                                      .group("cli")
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
 
-    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description());
+    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description())
+        ->option_text("PATH");
 
     auto& extract_conda_pkgs = config.insert(Configurable("constructor_extract_conda_pkgs", false)
                                                  .group("cli")
@@ -196,18 +197,19 @@ void
 read_binary_from_stdin_and_write_to_file(fs::u8path& filename)
 {
     std::ofstream out_stream = open_ofstream(filename, std::ofstream::binary);
+    FILE* stdin_bin;
     // Need to reopen stdin as binary
-    std::freopen(nullptr, "rb", stdin);
-    if (std::ferror(stdin))
+    stdin_bin = std::freopen(nullptr, "rb", stdin);
+    if (std::ferror(stdin_bin))
     {
         throw std::runtime_error("Re-opening stdin as binary failed.");
     }
     std::size_t len;
     std::array<char, 1024> buffer;
 
-    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin)) > 0)
+    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin_bin)) > 0)
     {
-        if (std::ferror(stdin) && !std::feof(stdin))
+        if (std::ferror(stdin_bin) && !std::feof(stdin_bin))
         {
             throw std::runtime_error("Reading from stdin failed.");
         }

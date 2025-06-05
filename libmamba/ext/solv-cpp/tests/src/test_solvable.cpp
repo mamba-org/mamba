@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
@@ -12,32 +12,32 @@
 
 using namespace solv;
 
-TEST_SUITE("solv::ObjSolvable")
+namespace
 {
     TEST_CASE("Create a solvable")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("test-forge");
         const auto [solv_id, solv] = repo.add_solvable();
-        CHECK_EQ(solv_id, solv.id());
+        REQUIRE(solv_id == solv.id());
 
-        SUBCASE("Set name and version")
+        SECTION("Set name and version")
         {
             solv.set_name("my-package");
             solv.set_version("0.1.1");
-            CHECK_EQ(solv.name(), "my-package");
-            CHECK_EQ(solv.version(), "0.1.1");
+            REQUIRE(solv.name() == "my-package");
+            REQUIRE(solv.version() == "0.1.1");
 
-            SUBCASE("Change name version")
+            SECTION("Change name version")
             {
                 solv.set_name("other-package");
                 solv.set_version("0.2.2");
-                CHECK_EQ(solv.name(), "other-package");
-                CHECK_EQ(solv.version(), "0.2.2");
+                REQUIRE(solv.name() == "other-package");
+                REQUIRE(solv.version() == "0.2.2");
             }
         }
 
-        SUBCASE("Set attributes")
+        SECTION("Set attributes")
         {
             solv.set_build_number(33);
             solv.set_build_string("build");
@@ -56,229 +56,228 @@ TEST_SUITE("solv::ObjSolvable")
             solv.set_platform("linux-64");
             solv.set_type(SolvableType::Virtualpackage);
 
-            SUBCASE("Empty without internalize")
+            SECTION("Empty without internalize")
             {
-                CHECK_EQ(solv.build_number(), 0);
-                CHECK_EQ(solv.build_string(), "");
-                CHECK_EQ(solv.file_name(), "");
-                CHECK_EQ(solv.license(), "");
-                CHECK_EQ(solv.md5(), "");
-                CHECK_EQ(solv.sha256(), "");
-                CHECK_EQ(solv.signatures(), "");
-                CHECK_EQ(solv.noarch(), "");
-                CHECK_EQ(solv.size(), 0);
-                CHECK_EQ(solv.timestamp(), 0);
-                CHECK_EQ(solv.url(), "");
-                CHECK_EQ(solv.channel(), "");
-                CHECK_EQ(solv.platform(), "");
-                CHECK_EQ(solv.type(), SolvableType::Package);
+                REQUIRE(solv.build_number() == 0);
+                REQUIRE(solv.build_string() == "");
+                REQUIRE(solv.file_name() == "");
+                REQUIRE(solv.license() == "");
+                REQUIRE(solv.md5() == "");
+                REQUIRE(solv.sha256() == "");
+                REQUIRE(solv.signatures() == "");
+                REQUIRE(solv.noarch() == "");
+                REQUIRE(solv.size() == 0);
+                REQUIRE(solv.timestamp() == 0);
+                REQUIRE(solv.url() == "");
+                REQUIRE(solv.channel() == "");
+                REQUIRE(solv.platform() == "");
+                REQUIRE(solv.type() == SolvableType::Package);
             }
 
-            SUBCASE("Internalize and get attributes")
+            SECTION("Internalize and get attributes")
             {
                 repo.internalize();
 
-                CHECK_EQ(solv.build_string(), "build");
-                CHECK_EQ(solv.build_number(), 33);
-                CHECK_EQ(solv.build_string(), "build");
-                CHECK_EQ(solv.file_name(), "file.tar.gz");
-                CHECK_EQ(solv.license(), "MIT");
-                CHECK_EQ(solv.md5(), "6f29ba77e8b03b191c9d667f331bf2a0");
-                CHECK_EQ(
-                    solv.sha256(),
-                    "ecde63af23e0d49c0ece19ec539d873ea408a6f966d3126994c6d33ae1b9d3f7"
+                REQUIRE(solv.build_string() == "build");
+                REQUIRE(solv.build_number() == 33);
+                REQUIRE(solv.build_string() == "build");
+                REQUIRE(solv.file_name() == "file.tar.gz");
+                REQUIRE(solv.license() == "MIT");
+                REQUIRE(solv.md5() == "6f29ba77e8b03b191c9d667f331bf2a0");
+                REQUIRE(
+                    solv.sha256() == "ecde63af23e0d49c0ece19ec539d873ea408a6f966d3126994c6d33ae1b9d3f7"
                 );
-                CHECK_EQ(
-                    solv.signatures(),
-                    R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
+                REQUIRE(
+                    solv.signatures()
+                    == R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
                 );
-                CHECK_EQ(solv.noarch(), "python");
-                CHECK_EQ(solv.size(), 2345);
-                CHECK_EQ(solv.timestamp(), 4110596167);
-                CHECK_EQ(solv.url(), "https://conda.anaconda.org/conda-forge/linux-64");
-                CHECK_EQ(solv.channel(), "conda-forge");
-                CHECK_EQ(solv.platform(), "linux-64");
-                CHECK_EQ(solv.type(), SolvableType::Virtualpackage);
+                REQUIRE(solv.noarch() == "python");
+                REQUIRE(solv.size() == 2345);
+                REQUIRE(solv.timestamp() == 4110596167);
+                REQUIRE(solv.url() == "https://conda.anaconda.org/conda-forge/linux-64");
+                REQUIRE(solv.channel() == "conda-forge");
+                REQUIRE(solv.platform() == "linux-64");
+                REQUIRE(solv.type() == SolvableType::Virtualpackage);
 
-                SUBCASE("Override attribute")
+                SECTION("Override attribute")
                 {
                     solv.set_license("GPL");
-                    CHECK_EQ(solv.license(), "MIT");
+                    REQUIRE(solv.license() == "MIT");
                     repo.internalize();
-                    CHECK_EQ(solv.license(), "GPL");
+                    REQUIRE(solv.license() == "GPL");
                 }
             }
         }
 
-        SUBCASE("Get unset attributes")
+        SECTION("Get unset attributes")
         {
-            CHECK_EQ(solv.name(), "");
-            CHECK_EQ(solv.version(), "");
-            CHECK_EQ(solv.build_number(), 0);
-            CHECK_EQ(solv.build_string(), "");
-            CHECK_EQ(solv.file_name(), "");
-            CHECK_EQ(solv.license(), "");
-            CHECK_EQ(solv.md5(), "");
-            CHECK_EQ(solv.sha256(), "");
-            CHECK_EQ(solv.signatures(), "");
-            CHECK_EQ(solv.noarch(), "");
-            CHECK_EQ(solv.size(), 0);
-            CHECK_EQ(solv.timestamp(), 0);
-            CHECK_EQ(solv.url(), "");
-            CHECK_EQ(solv.channel(), "");
-            CHECK_EQ(solv.platform(), "");
-            CHECK_EQ(solv.type(), SolvableType::Package);
+            REQUIRE(solv.name() == "");
+            REQUIRE(solv.version() == "");
+            REQUIRE(solv.build_number() == 0);
+            REQUIRE(solv.build_string() == "");
+            REQUIRE(solv.file_name() == "");
+            REQUIRE(solv.license() == "");
+            REQUIRE(solv.md5() == "");
+            REQUIRE(solv.sha256() == "");
+            REQUIRE(solv.signatures() == "");
+            REQUIRE(solv.noarch() == "");
+            REQUIRE(solv.size() == 0);
+            REQUIRE(solv.timestamp() == 0);
+            REQUIRE(solv.url() == "");
+            REQUIRE(solv.channel() == "");
+            REQUIRE(solv.platform() == "");
+            REQUIRE(solv.type() == SolvableType::Package);
         }
 
-        SUBCASE("Add dependency")
+        SECTION("Add dependency")
         {
             solv.add_dependency(33);
-            CHECK_EQ(solv.dependencies(), ObjQueue{ 33 });
+            REQUIRE(solv.dependencies() == ObjQueue{ 33 });
 
-            SUBCASE("Add more dependencies")
+            SECTION("Add more dependencies")
             {
                 solv.add_dependencies(ObjQueue{ 44, 22 });
-                CHECK_EQ(solv.dependencies(), ObjQueue{ 33, 44, 22 });
+                REQUIRE(solv.dependencies() == ObjQueue{ 33, 44, 22 });
             }
 
-            SUBCASE("Reset dependencies")
+            SECTION("Reset dependencies")
             {
                 solv.set_dependencies({});
-                CHECK(solv.dependencies().empty());
+                REQUIRE(solv.dependencies().empty());
             }
 
-            SUBCASE("Dependencies with markers")
+            SECTION("Dependencies with markers")
             {
                 solv.add_dependency(34);
                 solv.add_dependency(11, SOLVABLE_PREREQMARKER);
                 solv.add_dependency(35);
 
-                CHECK_EQ(solv.dependencies(-1), ObjQueue{ 33, 34 });
-                CHECK_EQ(solv.dependencies(0), ObjQueue{ 33, 34, SOLVABLE_PREREQMARKER, 11, 35 });
-                CHECK_EQ(solv.dependencies(1), ObjQueue{ 11, 35 });
-                CHECK_EQ(solv.dependencies(SOLVABLE_PREREQMARKER), ObjQueue{ 11, 35 });
+                REQUIRE(solv.dependencies(-1) == ObjQueue{ 33, 34 });
+                REQUIRE(solv.dependencies(0) == ObjQueue{ 33, 34, SOLVABLE_PREREQMARKER, 11, 35 });
+                REQUIRE(solv.dependencies(1) == ObjQueue{ 11, 35 });
+                REQUIRE(solv.dependencies(SOLVABLE_PREREQMARKER) == ObjQueue{ 11, 35 });
             }
         }
 
-        SUBCASE("Add provide")
+        SECTION("Add provide")
         {
             solv.add_provide(33);
-            CHECK_EQ(solv.provides(), ObjQueue{ 33 });
+            REQUIRE(solv.provides() == ObjQueue{ 33 });
 
-            SUBCASE("Add self provide")
+            SECTION("Add self provide")
             {
                 solv.add_self_provide();
-                CHECK_EQ(solv.provides().size(), 2);
+                REQUIRE(solv.provides().size() == 2);
             }
 
-            SUBCASE("Add more provides")
+            SECTION("Add more provides")
             {
                 solv.add_provides(ObjQueue{ 44, 22 });
-                CHECK_EQ(solv.provides(), ObjQueue{ 33, 44, 22 });
+                REQUIRE(solv.provides() == ObjQueue{ 33, 44, 22 });
             }
 
-            SUBCASE("Reset provides")
+            SECTION("Reset provides")
             {
                 solv.set_provides({});
-                CHECK(solv.provides().empty());
+                REQUIRE(solv.provides().empty());
             }
         }
 
-        SUBCASE("Add constraint")
+        SECTION("Add constraint")
         {
             solv.add_constraint(33);
 
-            SUBCASE("Internalize and get constraint")
+            SECTION("Internalize and get constraint")
             {
                 repo.internalize();
-                CHECK_EQ(solv.constraints(), ObjQueue{ 33 });
+                REQUIRE(solv.constraints() == ObjQueue{ 33 });
 
-                SUBCASE("Fail to add more constraint")
+                SECTION("Fail to add more constraint")
                 {
                     solv.add_constraint(44);
-                    CHECK_EQ(solv.constraints(), ObjQueue{ 33 });
+                    REQUIRE(solv.constraints() == ObjQueue{ 33 });
 
-                    SUBCASE("Override when internalizing again")
+                    SECTION("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.constraints(), ObjQueue{ 44 });
+                        REQUIRE(solv.constraints() == ObjQueue{ 44 });
                     }
                 }
 
-                SUBCASE("Fail to set constraints")
+                SECTION("Fail to set constraints")
                 {
                     solv.set_constraints({ 22 });
-                    CHECK_EQ(solv.constraints(), ObjQueue{ 33 });
+                    REQUIRE(solv.constraints() == ObjQueue{ 33 });
 
-                    SUBCASE("Override when internalizing again")
+                    SECTION("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.constraints(), ObjQueue{ 22 });
+                        REQUIRE(solv.constraints() == ObjQueue{ 22 });
                     }
                 }
             }
 
-            SUBCASE("Add more constraints")
+            SECTION("Add more constraints")
             {
                 solv.add_constraints(ObjQueue{ 44, 22 });
                 repo.internalize();
-                CHECK_EQ(solv.constraints(), ObjQueue{ 33, 44, 22 });
+                REQUIRE(solv.constraints() == ObjQueue{ 33, 44, 22 });
             }
 
-            SUBCASE("Reset constraints")
+            SECTION("Reset constraints")
             {
                 solv.set_constraints({});
                 repo.internalize();
-                CHECK(solv.constraints().empty());
+                REQUIRE(solv.constraints().empty());
             }
         }
 
-        SUBCASE("Track feature")
+        SECTION("Track feature")
         {
             const StringId feat1_id = solv.add_track_feature("feature1");
 
-            SUBCASE("Internalize and get tracked features")
+            SECTION("Internalize and get tracked features")
             {
                 repo.internalize();
-                CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id });
+                REQUIRE(solv.track_features() == ObjQueue{ feat1_id });
 
-                SUBCASE("Fail to track more features")
+                SECTION("Fail to track more features")
                 {
                     const StringId feat2_id = solv.add_track_feature("feature2");
-                    CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id });
+                    REQUIRE(solv.track_features() == ObjQueue{ feat1_id });
 
-                    SUBCASE("Override when internalizing again")
+                    SECTION("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.track_features(), ObjQueue{ feat2_id });
+                        REQUIRE(solv.track_features() == ObjQueue{ feat2_id });
                     }
                 }
 
-                SUBCASE("Fail to set tracked features")
+                SECTION("Fail to set tracked features")
                 {
                     solv.set_track_features({ 22 });
-                    CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id });
+                    REQUIRE(solv.track_features() == ObjQueue{ feat1_id });
 
-                    SUBCASE("Override when internalizing again")
+                    SECTION("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.track_features(), ObjQueue{ 22 });
+                        REQUIRE(solv.track_features() == ObjQueue{ 22 });
                     }
                 }
             }
 
-            SUBCASE("Track more features")
+            SECTION("Track more features")
             {
                 solv.add_track_features(ObjQueue{ 44, 11 });
                 repo.internalize();
-                CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id, 44, 11 });
+                REQUIRE(solv.track_features() == ObjQueue{ feat1_id, 44, 11 });
             }
 
-            SUBCASE("Reset tracked features")
+            SECTION("Reset tracked features")
             {
                 solv.set_track_features({});
                 repo.internalize();
-                CHECK(solv.track_features().empty());
+                REQUIRE(solv.track_features().empty());
             }
         }
     }

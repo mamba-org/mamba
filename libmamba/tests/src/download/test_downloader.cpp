@@ -4,52 +4,86 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
+#include "mamba/api/configuration.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
-
-#include "mambatests.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
-    TEST_SUITE("downloader")
+    namespace
     {
-        TEST_CASE("file_does_not_exist")
+        TEST_CASE("file_does_not_exist", "[mamba::download]")
         {
             download::Request request(
                 "test",
                 download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
-                "test_download_repodata.json",
+                "test_download_repodata_1.json",
                 false,
                 true
             );
-            auto& context = mambatests::singletons().context;
-            const auto previous_quiet = context.output_params.quiet;
-            auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
 
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
-            context.output_params.quiet = true;
-            download::MultiResult res = download::download(dl_request, context.mirrors, context);
-            CHECK_EQ(res.size(), std::size_t(1));
-            CHECK(!res[0]);
-            CHECK_EQ(res[0].error().attempt_number, std::size_t(1));
+            download::MultiResult res = download::download(dl_request, {}, {}, {});
+            REQUIRE(res.size() == std::size_t(1));
+            REQUIRE(!res[0]);
+            REQUIRE(res[0].error().attempt_number == std::size_t(1));
         }
 
-        TEST_CASE("file_does_not_exist_throw")
+        TEST_CASE("file_does_not_exist_throw", "[mamba::download]")
         {
             download::Request request(
                 "test",
                 download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
-                "test_download_repodata.json"
+                "test_download_repodata_2.json"
             );
             download::MultiRequest dl_request{ std::vector{ std::move(request) } };
-            auto& context = mambatests::singletons().context;
-            const auto previous_quiet = context.output_params.quiet;
-            auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
-            context.output_params.quiet = true;
-            CHECK_THROWS_AS(download::download(dl_request, context.mirrors, context), std::runtime_error);
+            REQUIRE_THROWS_AS(download::download(dl_request, {}, {}, {}), std::runtime_error);
+        }
+
+        TEST_CASE("Use CA certificate from the root prefix", "[mamba::download]")
+        {
+            const auto tmp_dir = TemporaryDirectory();
+
+            // Set the context values to the default ones
+            auto params = download::RemoteFetchParams{};
+            params.curl_initialized = false;
+            params.ssl_verify = "<system>";
+
+            download::Request request(
+                "test",
+                download::MirrorName(""),
+                "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+                tmp_dir.path() / "test_download_repodata_3.json"
+            );
+            download::MultiRequest dl_request{ std::vector{ std::move(request) } };
+
+            // Downloading must initialize curl and set `ssl_verify` to the path of the CA
+            // certificate
+            REQUIRE(!params.curl_initialized);
+            download::MultiResult res = download::download(dl_request, {}, params, {});
+            REQUIRE(params.curl_initialized);
+
+            auto certificates = params.ssl_verify;
+            const fs::u8path root_prefix = detail::get_root_prefix();
+            const fs::u8path expected_certificates = root_prefix / "ssl" / "cert.pem";
+
+            // TODO: is libmamba tested without a root prefix or a base installation?
+            bool reach_fallback_certificates;
+            if (util::on_win)
+            {
+                // Default certificates from libcurl/libssl are used on Windows
+                reach_fallback_certificates = certificates == "";
+            }
+            else
+            {
+                reach_fallback_certificates = (mamba::util::ends_with(certificates, "cert.pem") || mamba::util::ends_with(certificates, "ca-certificates.crt"));
+            }
+            REQUIRE((certificates == expected_certificates || reach_fallback_certificates));
         }
     }
 }

@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
@@ -29,10 +31,14 @@ namespace mamba
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
+        auto& json_format = config.at("json").get_cli_config<bool>();
+        auto& env_vars = config.at("spec_file_env_vars").value<std::map<std::string, std::string>>();
+        auto& no_env = config.at("no_env").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         bool remove_prefix_on_failure = false;
+        bool create_env = true;
 
         if (!ctx.dry_run)
         {
@@ -40,8 +46,19 @@ namespace mamba
             {
                 if (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)
                 {
-                    LOG_ERROR << "Overwriting root prefix is not permitted";
-                    throw std::runtime_error("Aborting.");
+                    const auto message = "Overwriting root prefix is not permitted - aborting.";
+                    LOG_ERROR << message;
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
+                }
+                else if (!fs::is_directory(ctx.prefix_params.target_prefix))
+                {
+                    const auto message = "Target prefix already exists and is not a folder - aborting.";
+                    LOG_ERROR << message;
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
+                }
+                else if (fs::is_empty(ctx.prefix_params.target_prefix))
+                {
+                    LOG_WARNING << "Using existing empty folder as target prefix";
                 }
                 else if (fs::exists(ctx.prefix_params.target_prefix / "conda-meta"))
                 {
@@ -60,13 +77,14 @@ namespace mamba
                 }
                 else
                 {
-                    LOG_ERROR << "Non-conda folder exists at prefix";
-                    throw std::runtime_error("Aborting.");
+                    const auto message = "Non-conda folder exists at prefix - aborting.";
+                    LOG_ERROR << message;
+                    throw mamba_error(message, mamba_error_code::incorrect_usage);
                 }
             }
             if (create_specs.empty())
             {
-                detail::create_empty_target(ctx, ctx.prefix_params.target_prefix);
+                detail::create_empty_target(ctx, ctx.prefix_params.target_prefix, env_vars, no_env);
             }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
@@ -78,6 +96,21 @@ namespace mamba
                 );
             }
         }
+        else
+        {
+            if (create_specs.empty() && json_format)
+            {
+                // Just print the JSON
+                nlohmann::json output;
+                output["actions"]["FETCH"] = nlohmann::json::array();
+                output["actions"]["PREFIX"] = ctx.prefix_params.target_prefix;
+                output["dry_run"] = true;
+                output["prefix"] = ctx.prefix_params.target_prefix;
+                output["success"] = true;
+                std::cout << output.dump(2) << std::endl;
+                return;
+            }
+        }
 
         if (ctx.env_lockfile)
         {
@@ -87,7 +120,7 @@ namespace mamba
                 channel_context,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
-                true,
+                create_env,
                 remove_prefix_on_failure
             );
         }
@@ -95,11 +128,24 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(ctx, channel_context, create_specs, true, remove_prefix_on_failure);
+                install_explicit_specs(
+                    ctx,
+                    channel_context,
+                    create_specs,
+                    create_env,
+                    remove_prefix_on_failure
+                );
             }
             else
             {
-                install_specs(ctx, channel_context, config, create_specs, true, remove_prefix_on_failure);
+                install_specs(
+                    ctx,
+                    channel_context,
+                    config,
+                    create_specs,
+                    create_env,
+                    remove_prefix_on_failure
+                );
             }
         }
     }

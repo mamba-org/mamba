@@ -288,7 +288,7 @@ namespace mamba::specs
             );
         }
 
-        void set_fallback_credential_from_db(CondaURL& url, const AuthenticationDataBase& db)
+        void set_fallback_credential_from_db(CondaURL& url, const AuthenticationDataBase& database)
         {
             if (!url.has_token() || !url.has_user() || !url.has_password())
             {
@@ -297,7 +297,7 @@ namespace mamba::specs
                     '/',
                     CondaURL::Credentials::Remove
                 );
-                if (auto it = db.find_weaken(key); it != db.end())
+                if (auto it = database.find_weaken(key); it != database.end())
                 {
                     set_fallback_credential_from_auth(url, it->second);
                 }

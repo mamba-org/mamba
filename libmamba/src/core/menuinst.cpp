@@ -8,6 +8,8 @@
 
 #include "mamba/util/path_manip.hpp"
 
+#include "./transaction_context.hpp"
+
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
@@ -16,17 +18,21 @@
 #endif
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
 {
     namespace detail
     {
-        std::string get_formatted_env_name(const Context& context, const fs::u8path& target_prefix)
+        std::string get_formatted_env_name(
+            const std::vector<fs::u8path>& envs_dirs,
+            const fs::u8path& root_prefix,
+            const fs::u8path& target_prefix
+        )
         {
-            std::string name = env_name(context, target_prefix);
+            std::string name = env_name(envs_dirs, root_prefix, target_prefix);
             if (name.find_first_of("\\/") != std::string::npos)
             {
                 return "";
@@ -193,18 +199,11 @@ namespace mamba
 #endif
 
 
-    void
-    replace_variables(const Context& ctx, std::string& text, TransactionContext* transaction_context)
+    void replace_variables(std::string& text, const TransactionContext& context)
     {
-        fs::u8path root_prefix = ctx.prefix_params.root_prefix;
-
-        fs::u8path target_prefix;
-        std::string py_ver;
-        if (transaction_context)
-        {
-            target_prefix = transaction_context->target_prefix;
-            py_ver = transaction_context->python_version;
-        }
+        fs::u8path root_prefix = context.prefix_params().root_prefix;
+        fs::u8path target_prefix = context.prefix_params().target_prefix;
+        std::string py_ver = context.python_params().python_version;
 
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
@@ -214,7 +213,7 @@ namespace mamba
 
         auto to_forward_slash = [](const fs::u8path& p) { return util::path_to_posix(p.string()); };
 
-        auto platform_split = util::split(ctx.platform, "-");
+        auto platform_split = util::split(context.transaction_params().platform, "-");
         std::string platform_bitness;
         if (platform_split.size() >= 2)
         {
@@ -232,7 +231,12 @@ namespace mamba
             { "${PY_VER}", py_ver },
             { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
             { "${DISTRIBUTION_NAME}", distribution_name },
-            { "${ENV_NAME}", detail::get_formatted_env_name(ctx, target_prefix) },
+            { "${ENV_NAME}",
+              detail::get_formatted_env_name(
+                  context.transaction_params().envs_dirs,
+                  root_prefix,
+                  target_prefix
+              ) },
             { "${PLATFORM}", platform_bitness },
         };
 
@@ -253,21 +257,31 @@ namespace mamba
 
     namespace
     {
+        enum class MenuInstVersion : std::uint8_t
+        {
+            Version1 = 1,
+            Version2 = 2,
+        };
+
         void create_remove_shortcut_impl(
-            const Context& ctx,
             const fs::u8path& json_file,
-            TransactionContext* transaction_context,
+            const TransactionContext& context,
             [[maybe_unused]] bool remove
         )
         {
             std::string json_content = mamba::read_contents(json_file);
-            replace_variables(ctx, json_content, transaction_context);
+            replace_variables(json_content, context);
             auto j = nlohmann::json::parse(json_content);
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
             std::string name_suffix;
-            std::string e_name = detail::get_formatted_env_name(ctx, transaction_context->target_prefix);
+            const PrefixParams& pp = context.prefix_params();
+            std::string e_name = detail::get_formatted_env_name(
+                context.transaction_params().envs_dirs,
+                pp.root_prefix,
+                pp.target_prefix
+            );
 
             if (e_name.size())
             {
@@ -289,8 +303,8 @@ namespace mamba
             //     ]
             // }
 
-            const fs::u8path root_prefix = ctx.prefix_params.root_prefix;
-            const fs::u8path target_prefix = ctx.prefix_params.target_prefix;
+            const fs::u8path root_prefix = pp.root_prefix;
+            const fs::u8path target_prefix = pp.target_prefix;
 
             // using legacy stuff here
             const fs::u8path root_py = root_prefix / "python.exe";
@@ -333,56 +347,85 @@ namespace mamba
                 }
             };
 
+            // Check menuinst schema version (through the presence of "$id" and "$schema" keys)
+            // cf. https://github.com/conda/ceps/blob/3da0fb0ece/cep-11.md#backwards-compatibility
+            auto menuinst_version = MenuInstVersion::Version1;  // v1-legacy
+            if (j.contains("$id") && j.contains("$schema"))
+            {
+                menuinst_version = MenuInstVersion::Version2;  // v2
+            }
+
             for (auto& item : j["menu_items"])
             {
-                std::string name = item["name"];
-                std::string full_name = util::concat(name, name_suffix);
-
+                std::string name;
                 std::vector<std::string> arguments;
                 fs::u8path script;
-                if (item.contains("pywscript"))
+
+                // cf. https://github.com/conda/menuinst/pull/180
+                if (menuinst_version == MenuInstVersion::Version1)
                 {
-                    script = root_pyw;
-                    arguments = cwp_pyw_args;
-                    auto tmp = util::split(item["pywscript"], " ");
-                    std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
-                }
-                else if (item.contains("pyscript"))
-                {
-                    script = root_py;
-                    arguments = cwp_py_args;
-                    auto tmp = util::split(item["pyscript"], " ");
-                    std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
-                }
-                else if (item.contains("webbrowser"))
-                {
-                    script = root_pyw;
-                    arguments = { "-m", "webbrowser", "-t", item["webbrowser"] };
-                }
-                else if (item.contains("script"))
-                {
-                    script = root_py;
-                    arguments = { cwp_path.string(), target_prefix.string() };
-                    auto tmp = util::split(item["script"], " ");
-                    std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
-                    extend_script_args(item, arguments);
-                }
-                else if (item.contains("system"))
-                {
-                    auto tmp = util::split(item["system"], " ");
-                    script = tmp[0];
-                    if (tmp.size() > 1)
+                    name = item["name"];  // Should be a string
+
+                    if (item.contains("pywscript"))
                     {
-                        std::copy(tmp.begin() + 1, tmp.end(), back_inserter(arguments));
+                        script = root_pyw;
+                        arguments = cwp_pyw_args;
+                        auto tmp = util::split(item["pywscript"], " ");
+                        std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     }
-                    extend_script_args(item, arguments);
+                    else if (item.contains("pyscript"))
+                    {
+                        script = root_py;
+                        arguments = cwp_py_args;
+                        auto tmp = util::split(item["pyscript"], " ");
+                        std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
+                    }
+                    else if (item.contains("webbrowser"))
+                    {
+                        script = root_pyw;
+                        arguments = { "-m", "webbrowser", "-t", item["webbrowser"] };
+                    }
+                    else if (item.contains("script"))
+                    {
+                        script = root_py;
+                        arguments = { cwp_path.string(), target_prefix.string() };
+                        auto tmp = util::split(item["script"], " ");
+                        std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
+                        extend_script_args(item, arguments);
+                    }
+                    else if (item.contains("system"))
+                    {
+                        auto tmp = util::split(item["system"], " ");
+                        script = tmp[0];
+                        if (tmp.size() > 1)
+                        {
+                            std::copy(tmp.begin() + 1, tmp.end(), back_inserter(arguments));
+                        }
+                        extend_script_args(item, arguments);
+                    }
+                    else
+                    {
+                        LOG_ERROR << "Unknown shortcut type found in " << json_file;
+                        throw std::runtime_error("Unknown shortcut type.");
+                    }
                 }
-                else
+                else  // MenuInstVersion::Version2
                 {
-                    LOG_ERROR << "Unknown shortcut type found in " << json_file;
-                    throw std::runtime_error("Unknown shortcut type.");
+                    // `item["name"]` should be an object containing items with
+                    // "target_environment_is_base" and "target_environment_is_not_base"(default)
+                    // as keys
+                    name = item["name"]["target_environment_is_not_base"];
+
+                    // cf.
+                    // https://conda.github.io/menuinst/defining-shortcuts/#migrating-pywscript-and-pyscript-to-menuinst-v2
+                    for (const auto& el : item["command"])
+                    {
+                        arguments.push_back(el.get<std::string>());
+                    }
+                    script = arguments[0];
                 }
 
+                std::string full_name = util::concat(name, name_suffix);
                 fs::u8path dst = target_dir / (full_name + ".lnk");
                 fs::u8path workdir = item.value("workdir", "");
                 fs::u8path iconpath = item.value("icon", "");
@@ -439,15 +482,12 @@ namespace mamba
         }
     }
 
-    void remove_menu_from_json(
-        const Context& context,
-        const fs::u8path& json_file,
-        TransactionContext* transaction_context
-    )
+    void
+    remove_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context)
     {
         try
         {
-            create_remove_shortcut_impl(context, json_file, transaction_context, true);
+            create_remove_shortcut_impl(json_file, transaction_context, true);
         }
         catch (const std::exception& e)
         {
@@ -455,15 +495,12 @@ namespace mamba
         }
     }
 
-    void create_menu_from_json(
-        const Context& context,
-        const fs::u8path& json_file,
-        TransactionContext* transaction_context
-    )
+    void
+    create_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context)
     {
         try
         {
-            create_remove_shortcut_impl(context, json_file, transaction_context, false);
+            create_remove_shortcut_impl(json_file, transaction_context, false);
         }
         catch (const std::exception& e)
         {

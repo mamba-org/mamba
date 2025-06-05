@@ -12,6 +12,7 @@
 #include <string_view>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
 
@@ -31,7 +32,7 @@ namespace mamba::specs
         [[nodiscard]] static auto parse(std::string pattern) -> expected_parse_t<RegexSpec>;
 
         RegexSpec();
-        RegexSpec(std::regex pattern, std::string raw_pattern);
+        explicit RegexSpec(std::string raw_pattern);
 
         [[nodiscard]] auto contains(std::string_view str) const -> bool;
 
@@ -45,7 +46,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto is_exact() const -> bool;
 
-        [[nodiscard]] auto str() const -> const std::string&;
+        [[nodiscard]] auto to_string() const -> const std::string&;
 
         // TODO(C++20): replace by the `= default` implementation of `operator==`
         [[nodiscard]] auto operator==(const RegexSpec& other) const -> bool
@@ -61,27 +62,32 @@ namespace mamba::specs
 
     private:
 
-        std::regex m_pattern;
         std::string m_raw_pattern;
+        std::regex m_pattern;
     };
 }
 
 template <>
 struct fmt::formatter<mamba::specs::RegexSpec>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::RegexSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct std::hash<mamba::specs::RegexSpec>
 {
-    auto operator()(const mamba::specs::RegexSpec& spec) const -> std::size_t
-    {
-        return std::hash<std::string>{}(spec.str());
-    }
+    auto operator()(const mamba::specs::RegexSpec& spec) const -> std::size_t;
 };
 
 #endif

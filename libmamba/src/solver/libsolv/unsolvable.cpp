@@ -42,9 +42,9 @@ namespace mamba::solver::libsolv
         return *m_solver;
     }
 
-    auto UnSolvable::problems(Database& db) const -> std::vector<std::string>
+    auto UnSolvable::problems(Database& database) const -> std::vector<std::string>
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = Database::Impl::get(database);
         std::vector<std::string> problems;
         solver().for_each_problem_id([&](solv::ProblemId pb)
                                      { problems.emplace_back(solver().problem_to_string(pool, pb)); }
@@ -52,9 +52,9 @@ namespace mamba::solver::libsolv
         return problems;
     }
 
-    auto UnSolvable::problems_to_str(Database& db) const -> std::string
+    auto UnSolvable::problems_to_str(Database& database) const -> std::string
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = Database::Impl::get(database);
         std::stringstream problems;
         problems << "Encountered problems while solving:\n";
         solver().for_each_problem_id(
@@ -64,9 +64,9 @@ namespace mamba::solver::libsolv
         return problems.str();
     }
 
-    auto UnSolvable::all_problems_to_str(Database& db) const -> std::string
+    auto UnSolvable::all_problems_to_str(Database& database) const -> std::string
     {
-        auto& pool = Database::Impl::get(db);
+        auto& pool = Database::Impl::get(database);
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
@@ -315,7 +315,7 @@ namespace mamba::solver::libsolv
             // They are added with a install top-level dependency
             // ``Install{ "pin-fsej43208fsd"_ms }``.
             // We need to change their name to make them look more readable.
-            if (auto id = pool.find_string(ms.name().str()))
+            if (auto id = pool.find_string(ms.name().to_string()))
             {
                 pool.for_each_whatprovides(
                     *id,
@@ -325,8 +325,9 @@ namespace mamba::solver::libsolv
                         {
                             auto pin = make_package_info(pool, solv_pin);
                             // There should really just be one constraint
-                            ms.set_name(specs::MatchSpec::NameSpec(
-                                fmt::format("pin on {}", fmt::join(pin.constrains, " and "))
+                            assert(pin.constrains.size() == 1);
+                            ms = specs::MatchSpec::parse(pin.constrains.front()).value();
+                            ms.set_name(specs::MatchSpec::NameSpec(fmt::format("pin on {}", ms.name())
                             ));
                         }
                         return solv::LoopControl::Break;
@@ -338,7 +339,22 @@ namespace mamba::solver::libsolv
         void ProblemsGraphCreator::parse_problems()
         {
             // TODO Throwing error for now but we should use expected in UnSolvable API
-            auto make_match_spec = [&](std::string_view str) -> specs::MatchSpec
+            auto make_match_spec = [&](solv::DependencyId dep) -> specs::MatchSpec
+            {
+                return pool_get_matchspec(m_pool.view(), dep)
+                    .or_else([](auto&& err) { throw std::move(err); })
+                    .transform(
+                        [&](specs::MatchSpec&& ms) -> specs::MatchSpec
+                        {
+                            fixup_dep_on_pin_solvable(m_pool, ms);
+                            return std::move(ms);
+                        }
+                    )
+                    .value();
+            };
+            // Re-create a MatchSpec from string. This is not the prefer way, as libsolv
+            // representation may not be the same as ours.
+            auto make_match_spec_str = [&](std::string_view str) -> specs::MatchSpec
             {
                 return specs::MatchSpec::parse(str)
                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
@@ -367,6 +383,8 @@ namespace mamba::solver::libsolv
                 std::optional<std::string>& dep = problem.dep;
                 SolverRuleinfo type = problem.type;
 
+                static bool hint_for_flexible_channel_priority = false;
+
                 switch (type)
                 {
                     case SOLVER_RULE_PKG_CONSTRAINS:
@@ -390,9 +408,9 @@ namespace mamba::solver::libsolv
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{ make_match_spec(dep.value()) }
+                            ConstraintNode{ make_match_spec(problem.dep_id) }
                         );
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -412,7 +430,7 @@ namespace mamba::solver::libsolv
                             problem.source_id,
                             PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -431,7 +449,7 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -451,10 +469,10 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ make_match_spec(dep.value()) }
+                            UnresolvedDependencyNode{ make_match_spec(problem.dep_id) }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -470,14 +488,14 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(dep.value());
+                        auto edge = make_match_spec(problem.dep_id);
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ make_match_spec(dep.value()) }
+                            UnresolvedDependencyNode{ make_match_spec(problem.dep_id) }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -520,10 +538,10 @@ namespace mamba::solver::libsolv
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.
-                        auto edge = make_match_spec(source.value().name);
+                        auto edge = make_match_spec_str(source.value().name);
                         // The package cannot exist without its name in the pool
-                        assert(m_pool.find_string(edge.name().str()).has_value());
-                        const auto dep_id = m_pool.find_string(edge.name().str()).value();
+                        assert(m_pool.find_string(edge.name().to_string()).has_value());
+                        const auto dep_id = m_pool.find_string(edge.name().to_string()).value();
                         const bool added = add_expanded_deps_edges(m_root_node, dep_id, edge);
                         if (!added)
                         {
@@ -535,7 +553,27 @@ namespace mamba::solver::libsolv
                     default:
                     {
                         // Many more SolverRuleinfo that have not been encountered.
-                        LOG_WARNING << "Problem type not implemented " << solv::enum_name(type);
+                        if (!hint_for_flexible_channel_priority)
+                        {
+                            hint_for_flexible_channel_priority = true;
+                            LOG_WARNING
+                                << "The specification of the environment does not seem solvable in your current setup.";
+                            LOG_WARNING
+                                << "For instance, packages from different channels might be specified,";
+                            LOG_WARNING
+                                << "whilst your current configuration might not allow their resolution.";
+                            LOG_WARNING << "";
+                            LOG_WARNING << "If it is the case, you need to either:";
+                            LOG_WARNING
+                                << " - adapt the channel ordering (e.g. by reordering the `-c` flags in your command line)";
+                            LOG_WARNING
+                                << " - use the flexible channel priority (e.g. using `--channel-priority flexible` in your command line)";
+                            LOG_WARNING << "";
+                            LOG_WARNING
+                                << "For reference, see this piece of documentation on channel priority:";
+                            LOG_WARNING
+                                << "https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-channels.html#strict-channel-priority";
+                        }
                         break;
                     }
                 }
@@ -543,32 +581,32 @@ namespace mamba::solver::libsolv
         }
     }
 
-    auto UnSolvable::problems_graph(const Database& pool) const -> ProblemsGraph
+    auto UnSolvable::problems_graph(const Database& database) const -> ProblemsGraph
     {
         assert(m_solver != nullptr);
-        return ProblemsGraphCreator(Database::Impl::get(pool), *m_solver).problem_graph();
+        return ProblemsGraphCreator(Database::Impl::get(database), *m_solver).problem_graph();
     }
 
     auto UnSolvable::explain_problems_to(
-        Database& pool,
+        Database& database,
         std::ostream& out,
         const ProblemsMessageFormat& format
     ) const -> std::ostream&
     {
         out << "Could not solve for environment specs\n";
-        const auto pbs = problems_graph(pool);
+        const auto pbs = problems_graph(database);
         const auto pbs_simplified = simplify_conflicts(pbs);
         const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
         print_problem_tree_msg(out, cp_pbs, format);
         return out;
     }
 
-    auto UnSolvable::explain_problems(Database& pool, const ProblemsMessageFormat& format) const
+    auto UnSolvable::explain_problems(Database& database, const ProblemsMessageFormat& format) const
         -> std::string
 
     {
         std::stringstream ss;
-        explain_problems_to(pool, ss, format);
+        explain_problems_to(database, ss, format);
         return ss.str();
     }
 }

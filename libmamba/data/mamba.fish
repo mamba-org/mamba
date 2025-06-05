@@ -191,7 +191,7 @@ __fish_mamba_complete_subcmds '__fish_mamba_has_command shell' '
   reinit                      Restore activation script from rc files
   hook                        Micromamba hook scripts
   activate                    Output activation code for the given shell
-  reactivate                  Output reactivateion code for the given shell
+  reactivate                  Output reactivation code for the given shell
   deactivate                  Output deactivation code for the given shell
   enable_long_path_support    Output deactivation code for the given shell
 '

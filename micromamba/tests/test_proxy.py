@@ -75,10 +75,10 @@ def test_proxy_install(
 
     if auth is not None:
         proxy_options = ["--proxyauth", urllib.parse.unquote(auth)]
-        proxy_url = "http://{}@localhost:{}".format(auth, unused_tcp_port)
+        proxy_url = f"http://{auth}@localhost:{unused_tcp_port}"
     else:
         proxy_options = []
-        proxy_url = "http://localhost:{}".format(unused_tcp_port)
+        proxy_url = f"http://localhost:{unused_tcp_port}"
 
     proxy = MitmProxy(
         exe=mitmdump_exe,
@@ -92,9 +92,9 @@ def test_proxy_install(
 
     file_content = [
         "proxy_servers:",
-        "    http: {}".format(proxy_url),
-        "    https: {}".format(proxy_url),
-        "ssl_verify: {}".format(verify_string),
+        f"    http: {proxy_url}",
+        f"    https: {proxy_url}",
+        f"ssl_verify: {verify_string}",
     ]
     with open(rc_file, "w") as f:
         f.write("\n".join(file_content))
@@ -110,7 +110,7 @@ def test_proxy_install(
 
     proxy.stop_proxy()
 
-    with open(proxy.dump, "r") as f:
+    with open(proxy.dump) as f:
         proxied_requests = f.read().splitlines()
 
     for fetch in res["actions"]["FETCH"]:

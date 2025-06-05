@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -14,7 +14,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("env_manager")
+    namespace
     {
         TEST_CASE("all_envs")
         {
@@ -25,7 +25,7 @@ namespace mamba
             auto new_prefixes = e.list_all_known_prefixes();
             // the prefix should be cleaned out, because it doesn't have the
             // `conda-meta/history` file
-            CHECK_EQ(new_prefixes.size(), prefixes.size());
+            REQUIRE(new_prefixes.size() == prefixes.size());
 
             // Create an env containing `conda-meta/history` file
             // and test register/unregister
@@ -34,11 +34,11 @@ namespace mamba
 
             e.register_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
-            CHECK_EQ(new_prefixes.size(), prefixes.size() + 1);
+            REQUIRE(new_prefixes.size() == prefixes.size() + 1);
 
             e.unregister_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
-            CHECK_EQ(new_prefixes.size(), prefixes.size());
+            REQUIRE(new_prefixes.size() == prefixes.size());
 
             // Add another file in addition to `conda-meta/history`
             // and test register/unregister
@@ -46,13 +46,13 @@ namespace mamba
 
             e.register_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
-            CHECK_EQ(new_prefixes.size(), prefixes.size() + 1);
+            REQUIRE(new_prefixes.size() == prefixes.size() + 1);
 
             e.unregister_env(prefix);
             new_prefixes = e.list_all_known_prefixes();
             // Shouldn't unregister because `conda-meta/other_file`
             // is there
-            CHECK_EQ(new_prefixes.size(), prefixes.size() + 1);
+            REQUIRE(new_prefixes.size() == prefixes.size() + 1);
 
             // Remove test directory
             fs::remove_all(util::expand_home("~/some_test_folder"));

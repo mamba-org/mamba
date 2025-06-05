@@ -13,6 +13,7 @@
 #include <string_view>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/chimera_string_spec.hpp"
@@ -105,7 +106,7 @@ namespace mamba::specs
         void set_optional(bool opt);
 
         [[nodiscard]] auto conda_build_form() const -> std::string;
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * Return true if the MatchSpec can be written as ``<name> <version> <build_string>``.
@@ -116,6 +117,11 @@ namespace mamba::specs
          * Return true if the MatchSpec contains an exact package name and nothing else.
          */
         [[nodiscard]] auto is_only_package_name() const -> bool;
+
+        /**
+         * Make a new MatchSpec that matches only on the name part.
+         */
+        [[nodiscard]] auto to_named_spec() const -> MatchSpec;
 
         /**
          * Check if the MatchSpec matches the given package.
@@ -224,10 +230,30 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<::mamba::specs::MatchSpec>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::MatchSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
+};
+
+template <>
+struct std::hash<mamba::specs::MatchSpec>
+{
+    auto operator()(const mamba::specs::MatchSpec& spec) const -> std::size_t;
+};
+
+template <>
+struct std::hash<mamba::specs::MatchSpec::ExtraMembers>
+{
+    auto operator()(const mamba::specs::MatchSpec::ExtraMembers& extra) const -> std::size_t;
 };
 
 /*********************************
@@ -298,41 +324,5 @@ namespace mamba::specs
         return true;
     }
 }
-
-template <>
-struct std::hash<mamba::specs::MatchSpec>
-{
-    auto operator()(const mamba::specs::MatchSpec& spec) const -> std::size_t
-    {
-        return mamba::util::hash_vals(
-            spec.channel(),
-            spec.version(),
-            spec.name(),
-            spec.build_string(),
-            spec.name_space(),
-            spec.build_number(),
-            spec.extra_members_hash()
-        );
-    }
-};
-
-template <>
-struct std::hash<mamba::specs::MatchSpec::ExtraMembers>
-{
-    auto operator()(const mamba::specs::MatchSpec::ExtraMembers& extra) const -> std::size_t
-    {
-        return mamba::util::hash_vals(
-            extra.filename,
-            extra.subdirs,
-            extra.md5,
-            extra.sha256,
-            extra.license,
-            extra.license_family,
-            extra.features,
-            extra.track_features,
-            extra.optional
-        );
-    }
-};
 
 #endif

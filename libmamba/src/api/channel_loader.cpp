@@ -10,7 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -22,7 +22,7 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& pool,
+            solver::libsolv::Database& database,
             const fs::u8path& pkgs_dir
         ) -> solver::libsolv::RepoInfo
         {
@@ -46,7 +46,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return load_installed_packages_in_database(ctx, pool, prefix_data);
+            return load_installed_packages_in_database(ctx, database, prefix_data);
         }
 
         void create_subdirs(
@@ -54,28 +54,32 @@ namespace mamba
             ChannelContext& channel_context,
             const specs::Channel& channel,
             MultiPackageCache& package_caches,
-            std::vector<SubdirData>& subdirs,
+            std::vector<SubdirIndexLoader>& subdirs,
             std::vector<mamba_error>& error_list,
             std::vector<solver::libsolv::Priorities>& priorities,
             int& max_prio,
             specs::CondaURL& prev_channel_url
         )
         {
+            static bool has_shown_anaconda_channel_warning = false;
             for (const auto& platform : channel.platforms())
             {
                 auto show_warning = ctx.show_anaconda_channel_warnings;
                 auto channel_name = channel.platform_url(platform).host();
-                if (channel_name == "repo.anaconda.com" && show_warning)
+                if (channel_name == "repo.anaconda.com" && show_warning
+                    && !has_shown_anaconda_channel_warning)
                 {
+                    has_shown_anaconda_channel_warning = true;
                     LOG_WARNING << "'" << channel_name
                                 << "', a commercial channel hosted by Anaconda.com, is used.\n";
                     LOG_WARNING << "Please make sure you understand Anaconda Terms of Services.\n";
                     LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
                 }
 
-                auto sdires = SubdirData::create(
-                    ctx,
-                    channel_context,
+                auto subdir_params = ctx.subdir_params();
+                subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
+                auto sdires = SubdirIndexLoader::create(
+                    subdir_params,
                     channel,
                     platform,
                     package_caches,
@@ -87,6 +91,11 @@ namespace mamba
                     continue;
                 }
                 auto sdir = std::move(sdires).value();
+                if (sdir.valid_cache_found())
+                {
+                    Console::stream() << fmt::format("{:<50} {:>20}", sdir.name(), "Using cache");
+                }
+
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::Disabled)
                 {
@@ -122,12 +131,12 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& pool,
+            solver::libsolv::Database& database,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
         {
-            std::vector<SubdirData> subdirs;
+            std::vector<SubdirIndexLoader> subdirs;
 
             std::vector<solver::libsolv::Priorities> priorities;
             int max_prio = static_cast<int>(ctx.channels.size());
@@ -193,19 +202,35 @@ namespace mamba
 
             if (!packages.empty())
             {
-                pool.add_repo_from_packages(packages, "packages");
+                database.add_repo_from_packages(packages, "packages");
             }
 
             expected_t<void> download_res;
-            if (SubdirDataMonitor::can_monitor(ctx))
+            if (SubdirIndexMonitor::can_monitor(ctx))
             {
-                SubdirDataMonitor check_monitor({ true, true });
-                SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
+                SubdirIndexMonitor check_monitor({ true, true });
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_required_indexes(
+                    subdirs,
+                    ctx.subdir_download_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    &check_monitor,
+                    &index_monitor
+                );
             }
             else
             {
-                download_res = SubdirData::download_indexes(subdirs, ctx);
+                download_res = SubdirIndexLoader::download_required_indexes(
+                    subdirs,
+                    ctx.subdir_download_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params
+                );
             }
 
             if (!download_res)
@@ -224,7 +249,7 @@ namespace mamba
                 LOG_INFO << "Creating repo from pkgs_dir for offline";
                 for (const auto& c : ctx.pkgs_dirs)
                 {
-                    create_repo_from_pkgs_dir(ctx, channel_context, pool, c);
+                    create_repo_from_pkgs_dir(ctx, channel_context, database, c);
                 }
             }
             std::string prev_channel;
@@ -232,7 +257,7 @@ namespace mamba
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 auto& subdir = subdirs[i];
-                if (!subdir.is_loaded())
+                if (!subdir.valid_cache_found())
                 {
                     if (!ctx.offline && subdir.is_noarch())
                     {
@@ -244,9 +269,9 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_database(ctx, pool, subdir)
+                load_subdir_in_database(ctx, database, subdir)
                     .transform([&](solver::libsolv::RepoInfo&& repo)
-                               { pool.set_repo_priority(repo, priorities[i]); })
+                               { database.set_repo_priority(repo, priorities[i]); })
                     .or_else(
                         [&](const auto&)
                         {
@@ -264,7 +289,7 @@ namespace mamba
                             {
                                 LOG_WARNING << "Could not load repodata.json for " << subdir.name()
                                             << ". Deleting cache, and retrying.";
-                                subdir.clear_cache();
+                                subdir.clear_valid_cache_files();
                                 loading_failed = true;
                             }
                         }
@@ -276,7 +301,8 @@ namespace mamba
                 if (!ctx.offline && !is_retry)
                 {
                     LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    return load_channels_impl(ctx, channel_context, pool, package_caches, true);
+                    bool retry = true;
+                    return load_channels_impl(ctx, channel_context, database, package_caches, retry);
                 }
                 error_list.emplace_back(
                     "Could not load repodata. Cache corrupted?",
@@ -292,11 +318,12 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& pool,
+        solver::libsolv::Database& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>
     {
-        return load_channels_impl(ctx, channel_context, pool, package_caches, false);
+        bool retry = false;
+        return load_channels_impl(ctx, channel_context, database, package_caches, retry);
     }
 
     void init_channels(Context& context, ChannelContext& channel_context)

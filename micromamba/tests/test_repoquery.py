@@ -146,15 +146,9 @@ def test_whoneeds_remote(yaml_env: Path):
 def test_whoneeds_not_installed_with_channel(yaml_env: Path, with_platform):
     if with_platform:
         res = helpers.umamba_repoquery(
-            "whoneeds",
-            "-c",
-            "conda-forge",
-            "xtensor=0.24.5",
-            "--platform",
-            "osx-64",
-            "--json",
+            "whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--platform", "osx-64", "--json"
         )
-        assert res["result"]["pkgs"][0]["subdir"] == "osx-64"
+        assert all("osx-64" in pkg["subdir"] for pkg in res["result"]["pkgs"])
     else:
         res = helpers.umamba_repoquery("whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--json")
 
@@ -166,6 +160,16 @@ def test_whoneeds_not_installed_with_channel(yaml_env: Path, with_platform):
     assert any(x["name"] == "cppcolormap" for x in pkgs)
     assert any(x["name"] == "pyxtensor" for x in pkgs)
     assert any(x["name"] == "qpot" for x in pkgs)
+
+
+# Non-regression test for: https://github.com/mamba-org/mamba/issues/3717
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("spec", ("xtensor", "xtensor=0.24.5"))
+def test_whoneeds_not_installed_with_channel_no_json(yaml_env: Path, spec):
+    res = helpers.umamba_repoquery("whoneeds", "-c", "conda-forge", spec, "--platform", "osx-64")
+    res = helpers.remove_whitespaces(res)
+    assert "Name Version Build Depends Channel Subdir" in res
+    assert "cascade 0.1.1 py38h5ce3968_0 xtensor conda-forge osx-64" in res
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

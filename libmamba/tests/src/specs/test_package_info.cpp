@@ -7,57 +7,124 @@
 #include <string>
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/package_info.hpp"
 
-#include "doctest-printer/vector.hpp"
-
 namespace nl = nlohmann;
 using namespace mamba::specs;
 
-TEST_SUITE("specs::package_info")
+namespace
 {
     TEST_CASE("PackageInfo::from_url")
     {
-        SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda")
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda";
 
             auto pkg = PackageInfo::from_url(url).value();
 
-            CHECK_EQ(pkg.name, "pkg");
-            CHECK_EQ(pkg.version, "6.4");
-            CHECK_EQ(pkg.build_string, "bld");
-            CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
-            CHECK_EQ(pkg.package_url, url);
-            CHECK_EQ(pkg.md5, "");
-            CHECK_EQ(pkg.platform, "linux-64");
-            CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
+            REQUIRE(pkg.name == "pkg");
+            REQUIRE(pkg.version == "6.4");
+            REQUIRE(pkg.build_string == "bld");
+            REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
+            REQUIRE(pkg.package_url == url);
+            REQUIRE(pkg.md5 == "");
+            REQUIRE(pkg.sha256 == "");
+            REQUIRE(pkg.platform == "linux-64");
+            REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
-        SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
         )
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0";
 
             auto pkg = PackageInfo::from_url(url).value();
 
-            CHECK_EQ(pkg.name, "pkg");
-            CHECK_EQ(pkg.version, "6.4");
-            CHECK_EQ(pkg.build_string, "bld");
-            CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
-            CHECK_EQ(pkg.package_url, url.substr(0, url.rfind('#')));
-            CHECK_EQ(pkg.md5, url.substr(url.rfind('#') + 1));
-            CHECK_EQ(pkg.platform, "linux-64");
-            CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
+            REQUIRE(pkg.name == "pkg");
+            REQUIRE(pkg.version == "6.4");
+            REQUIRE(pkg.build_string == "bld");
+            REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.sha256 == "");
+            REQUIRE(pkg.platform == "linux-64");
+            REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
-        SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/pkg.conda")
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
+        )
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0";
+
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "pkg");
+            REQUIRE(pkg.version == "6.4");
+            REQUIRE(pkg.build_string == "bld");
+            REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == "");
+            REQUIRE(pkg.sha256 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.platform == "linux-64");
+            REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
+        }
+
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
+        )
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0";
+
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "pkg");
+            REQUIRE(pkg.version == "6.4");
+            REQUIRE(pkg.build_string == "bld");
+            REQUIRE(pkg.filename == "pkg-6.4-bld.conda");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == "");
+            REQUIRE(pkg.sha256 == url.substr(url.rfind("#sha256:") + 8));
+            REQUIRE(pkg.platform == "linux-64");
+            REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
+        }
+
+        SECTION("http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81"
+        )
+        {
+            static constexpr std::string_view url = "http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81";
+
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "_libgcc_mutex");
+            REQUIRE(pkg.version == "0.1");
+            REQUIRE(pkg.build_string == "conda_forge");
+            REQUIRE(pkg.filename == "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            REQUIRE(pkg.package_url == url.substr(0, url.rfind('#')));
+            REQUIRE(pkg.md5 == url.substr(url.rfind('#') + 1));
+            REQUIRE(pkg.sha256 == "");
+            REQUIRE(pkg.platform == "linux-64");
+            // Make sure the token is not censored when setting the channel
+            REQUIRE(
+                pkg.channel
+                == "http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel"
+            );
+        }
+
+        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg.conda")
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg.conda";
-            CHECK_FALSE(PackageInfo::from_url(url).has_value());
+            REQUIRE_FALSE(PackageInfo::from_url(url).has_value());
+        }
+
+        SECTION("git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+        {
+            static constexpr std::string_view url = "git+https://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3";
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(pkg.name == "urllib3");
+            REQUIRE(pkg.package_url == url);
         }
     }
 
@@ -85,52 +152,54 @@ TEST_SUITE("specs::package_info")
         pkg.dependencies = { "python>=3.7", "requests" };
         pkg.constrains = { "pip>=2.1" };
 
-        SUBCASE("field")
+        SECTION("field")
         {
-            CHECK_EQ(pkg.field("name"), "foo");
-            CHECK_EQ(pkg.field("version"), "4.0");
-            CHECK_EQ(pkg.field("build_string"), "mybld");
-            CHECK_EQ(pkg.field("build_number"), "5");
-            CHECK_EQ(pkg.field("noarch"), "generic");
-            CHECK_EQ(pkg.field("channel"), "conda-forge");
-            CHECK_EQ(
-                pkg.field("package_url"),
-                "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+            REQUIRE(pkg.field("name") == "foo");
+            REQUIRE(pkg.field("version") == "4.0");
+            REQUIRE(pkg.field("build_string") == "mybld");
+            REQUIRE(pkg.field("build_number") == "5");
+            REQUIRE(pkg.field("noarch") == "generic");
+            REQUIRE(pkg.field("channel") == "conda-forge");
+            REQUIRE(
+                pkg.field("package_url")
+                == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
             );
-            CHECK_EQ(pkg.field("subdir"), "linux-64");
-            CHECK_EQ(pkg.field("filename"), "foo-4.0-mybld.conda");
-            CHECK_EQ(pkg.field("license"), "MIT");
-            CHECK_EQ(pkg.field("size"), "3200");
-            CHECK_EQ(pkg.field("timestamp"), "4532");
+            REQUIRE(pkg.field("subdir") == "linux-64");
+            REQUIRE(pkg.field("filename") == "foo-4.0-mybld.conda");
+            REQUIRE(pkg.field("license") == "MIT");
+            REQUIRE(pkg.field("size") == "3200");
+            REQUIRE(pkg.field("timestamp") == "4532");
         }
 
-        SUBCASE("to_json")
+        SECTION("to_json")
         {
             const auto j = nl::json(pkg);
-            CHECK_EQ(j.at("name"), "foo");
-            CHECK_EQ(j.at("version"), "4.0");
-            CHECK_EQ(j.at("build_string"), "mybld");
-            CHECK_EQ(j.at("build_number"), 5);
-            CHECK_EQ(j.at("noarch"), "generic");
-            CHECK_EQ(j.at("channel"), "conda-forge");
-            CHECK_EQ(j.at("url"), "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda");
-            CHECK_EQ(j.at("subdir"), "linux-64");
-            CHECK_EQ(j.at("fn"), "foo-4.0-mybld.conda");
-            CHECK_EQ(j.at("license"), "MIT");
-            CHECK_EQ(j.at("size"), 3200);
-            CHECK_EQ(j.at("timestamp"), 4532);
-            CHECK_EQ(j.at("sha256"), "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b");
-            CHECK_EQ(
-                j.at("signatures"),
-                R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
+            REQUIRE(j.at("name") == "foo");
+            REQUIRE(j.at("version") == "4.0");
+            REQUIRE(j.at("build_string") == "mybld");
+            REQUIRE(j.at("build_number") == 5);
+            REQUIRE(j.at("noarch") == "generic");
+            REQUIRE(j.at("channel") == "conda-forge");
+            REQUIRE(j.at("url") == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda");
+            REQUIRE(j.at("subdir") == "linux-64");
+            REQUIRE(j.at("fn") == "foo-4.0-mybld.conda");
+            REQUIRE(j.at("license") == "MIT");
+            REQUIRE(j.at("size") == 3200);
+            REQUIRE(j.at("timestamp") == 4532);
+            REQUIRE(
+                j.at("sha256") == "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
             );
-            CHECK_EQ(j.at("md5"), "68b329da9893e34099c7d8ad5cb9c940");
-            CHECK_EQ(j.at("track_features"), "mkl,blas");
-            CHECK_EQ(j.at("depends"), StrVec{ "python>=3.7", "requests" });
-            CHECK_EQ(j.at("constrains"), StrVec{ "pip>=2.1" });
+            REQUIRE(
+                j.at("signatures")
+                == R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
+            );
+            REQUIRE(j.at("md5") == "68b329da9893e34099c7d8ad5cb9c940");
+            REQUIRE(j.at("track_features") == "mkl,blas");
+            REQUIRE(j.at("depends") == StrVec{ "python>=3.7", "requests" });
+            REQUIRE(j.at("constrains") == StrVec{ "pip>=2.1" });
         }
 
-        SUBCASE("from_json")
+        SECTION("from_json")
         {
             auto j = nl::json::object();
             j["name"] = "foo";
@@ -152,46 +221,46 @@ TEST_SUITE("specs::package_info")
             j["depends"] = StrVec{ "python>=3.7", "requests" };
             j["constrains"] = StrVec{ "pip>=2.1" };
 
-            CHECK_EQ(j.get<PackageInfo>(), pkg);
+            REQUIRE(j.get<PackageInfo>() == pkg);
 
-            SUBCASE("noarch")
+            SECTION("noarch")
             {
                 j["noarch"] = "Python";
-                CHECK_EQ(j.get<PackageInfo>().noarch, NoArchType::Python);
+                REQUIRE(j.get<PackageInfo>().noarch == NoArchType::Python);
                 j["noarch"] = true;
-                CHECK_EQ(j.get<PackageInfo>().noarch, NoArchType::Generic);
+                REQUIRE(j.get<PackageInfo>().noarch == NoArchType::Generic);
                 j["noarch"] = false;
-                CHECK_EQ(j.get<PackageInfo>().noarch, NoArchType::No);
+                REQUIRE(j.get<PackageInfo>().noarch == NoArchType::No);
                 j["noarch"] = nullptr;
-                CHECK_EQ(j.get<PackageInfo>().noarch, NoArchType::No);
+                REQUIRE(j.get<PackageInfo>().noarch == NoArchType::No);
                 j.erase("noarch");
-                CHECK_EQ(j.get<PackageInfo>().noarch, NoArchType::No);
+                REQUIRE(j.get<PackageInfo>().noarch == NoArchType::No);
             }
 
-            SUBCASE("track_features")
+            SECTION("track_features")
             {
                 j["track_features"] = "python";
-                CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{ "python" });
+                REQUIRE(j.get<PackageInfo>().track_features == StrVec{ "python" });
                 j["track_features"] = "python,mkl";
-                CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{ "python", "mkl" });
+                REQUIRE(j.get<PackageInfo>().track_features == StrVec{ "python", "mkl" });
                 j.erase("track_features");
-                CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{});
+                REQUIRE(j.get<PackageInfo>().track_features == StrVec{});
                 j["track_features"] = nl::json::array({ "py", "malloc" });
-                CHECK_EQ(j.get<PackageInfo>().track_features, StrVec{ "py", "malloc" });
+                REQUIRE(j.get<PackageInfo>().track_features == StrVec{ "py", "malloc" });
             }
 
-            SUBCASE("equality_operator")
+            SECTION("equality_operator")
             {
-                CHECK(j.get<PackageInfo>() == pkg);
+                REQUIRE(j.get<PackageInfo>() == pkg);
             }
 
-            SUBCASE("inequality_operator")
+            SECTION("inequality_operator")
             {
-                CHECK_FALSE(j.get<PackageInfo>() != pkg);
+                REQUIRE_FALSE(j.get<PackageInfo>() != pkg);
             }
         }
 
-        SUBCASE("PackageInfo comparability and hashability")
+        SECTION("PackageInfo comparability and hashability")
         {
             auto pkg2 = PackageInfo();
             pkg2.name = "foo";
@@ -215,14 +284,14 @@ TEST_SUITE("specs::package_info")
 
             auto hash_fn = std::hash<PackageInfo>{};
 
-            CHECK_EQ(pkg, pkg2);
-            CHECK_EQ(hash_fn(pkg), hash_fn(pkg2));
+            REQUIRE(pkg == pkg2);
+            REQUIRE(hash_fn(pkg) == hash_fn(pkg2));
 
 
             pkg2.md5[0] = '0';
 
-            CHECK_NE(pkg, pkg2);
-            CHECK_NE(hash_fn(pkg), hash_fn(pkg2));
+            REQUIRE(pkg != pkg2);
+            REQUIRE(hash_fn(pkg) != hash_fn(pkg2));
         }
     }
 }

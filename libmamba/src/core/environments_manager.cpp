@@ -21,6 +21,31 @@ namespace mamba
         return fs::exists(prefix / PREFIX_MAGIC_FILE);
     }
 
+    std::string env_name(
+        const std::vector<fs::u8path>& envs_dirs,
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix
+    )
+    {
+        if (prefix.empty())
+        {
+            throw std::runtime_error("Empty path");
+        }
+        if (paths_equal(prefix, root_prefix))
+        {
+            return ROOT_ENV_NAME;
+        }
+        fs::u8path maybe_env_dir = prefix.parent_path();
+        for (const auto& d : envs_dirs)
+        {
+            if (paths_equal(d, maybe_env_dir))
+            {
+                return prefix.filename().string();
+            }
+        }
+        return prefix.string();
+    }
+
     EnvironmentsManager::EnvironmentsManager(const Context& context)
         : m_context(context)
     {

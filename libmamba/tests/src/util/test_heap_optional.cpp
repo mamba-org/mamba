@@ -4,144 +4,144 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/heap_optional.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::heap_optional")
+namespace
 {
     TEST_CASE("heap_optional")
     {
-        SUBCASE("Without value")
+        SECTION("Without value")
         {
             auto opt = heap_optional<int>();
-            CHECK_FALSE(opt.has_value());
-            CHECK_FALSE(opt);
-            CHECK_EQ(opt.get(), nullptr);
+            REQUIRE_FALSE(opt.has_value());
+            REQUIRE_FALSE(opt);
+            REQUIRE(opt.get() == nullptr);
 
-            SUBCASE("Emplace data")
+            SECTION("Emplace data")
             {
                 opt.emplace(3);
-                CHECK(opt.has_value());
-                CHECK(opt);
-                REQUIRE_NE(opt.get(), nullptr);
-                CHECK_EQ(*opt, 3);
+                REQUIRE(opt.has_value());
+                REQUIRE(opt);
+                REQUIRE(opt.get() != nullptr);
+                REQUIRE(*opt == 3);
             }
 
-            SUBCASE("Reset")
+            SECTION("Reset")
             {
                 opt.reset();
-                CHECK_FALSE(opt.has_value());
-                CHECK_FALSE(opt);
-                CHECK_EQ(opt.get(), nullptr);
+                REQUIRE_FALSE(opt.has_value());
+                REQUIRE_FALSE(opt);
+                REQUIRE(opt.get() == nullptr);
             }
 
-            SUBCASE("Value")
+            SECTION("Value")
             {
                 // Silence [[nodiscard]] warnings
                 auto lref = [](heap_optional<int>& o) { return o.value(); };
-                CHECK_THROWS_AS(lref(opt), std::bad_optional_access);
+                REQUIRE_THROWS_AS(lref(opt), std::bad_optional_access);
                 auto clref = [](const heap_optional<int>& o) { return o.value(); };
-                CHECK_THROWS_AS(clref(opt), std::bad_optional_access);
+                REQUIRE_THROWS_AS(clref(opt), std::bad_optional_access);
                 auto rref = [](heap_optional<int>& o) { return std::move(o).value(); };
-                CHECK_THROWS_AS(rref(opt), std::bad_optional_access);
+                REQUIRE_THROWS_AS(rref(opt), std::bad_optional_access);
             }
 
-            SUBCASE("Value Or")
+            SECTION("Value Or")
             {
-                CHECK_EQ(opt.value_or(42), 42);
-                CHECK_EQ(const_cast<const heap_optional<int>&>(opt).value_or(42), 42);
-                CHECK_EQ(std::move(opt).value_or(42), 42);
+                REQUIRE(opt.value_or(42) == 42);
+                REQUIRE(const_cast<const heap_optional<int>&>(opt).value_or(42) == 42);
+                REQUIRE(std::move(opt).value_or(42) == 42);
             }
         }
 
-        SUBCASE("With copy and move value")
+        SECTION("With copy and move value")
         {
             auto opt = heap_optional(std::string("hello"));
             using Opt = heap_optional<std::string>;
             static_assert(std::is_same_v<decltype(opt), Opt>);
 
-            CHECK(opt.has_value());
-            CHECK(opt);
-            REQUIRE_NE(opt.get(), nullptr);
-            CHECK_EQ(*opt, "hello");
-            CHECK_EQ(opt->size(), 5);
+            REQUIRE(opt.has_value());
+            REQUIRE(opt);
+            REQUIRE(opt.get() != nullptr);
+            REQUIRE(*opt == "hello");
+            REQUIRE(opt->size() == 5);
 
-            SUBCASE("Emplace data")
+            SECTION("Emplace data")
             {
                 opt.emplace("bonjour");
-                CHECK(opt.has_value());
-                CHECK(opt);
-                REQUIRE_NE(opt.get(), nullptr);
-                CHECK_EQ(*opt, "bonjour");
-                CHECK_EQ(opt->size(), 7);
+                REQUIRE(opt.has_value());
+                REQUIRE(opt);
+                REQUIRE(opt.get() != nullptr);
+                REQUIRE(*opt == "bonjour");
+                REQUIRE(opt->size() == 7);
             }
 
-            SUBCASE("Reset")
+            SECTION("Reset")
             {
                 opt.reset();
-                CHECK_FALSE(opt.has_value());
-                CHECK_FALSE(opt);
-                CHECK_EQ(opt.get(), nullptr);
+                REQUIRE_FALSE(opt.has_value());
+                REQUIRE_FALSE(opt);
+                REQUIRE(opt.get() == nullptr);
             }
 
-            SUBCASE("Value")
+            SECTION("Value")
             {
-                CHECK_EQ(opt.value(), "hello");
-                CHECK_EQ(const_cast<const Opt&>(opt).value(), "hello");
-                CHECK_EQ(std::move(opt).value(), "hello");
+                REQUIRE(opt.value() == "hello");
+                REQUIRE(const_cast<const Opt&>(opt).value() == "hello");
+                REQUIRE(std::move(opt).value() == "hello");
             }
 
-            SUBCASE("Value Or")
+            SECTION("Value Or")
             {
-                CHECK_EQ(opt.value_or("world"), "hello");
-                CHECK_EQ(const_cast<const Opt&>(opt).value_or("world"), "hello");
-                CHECK_EQ(std::move(opt).value_or("world"), "hello");
+                REQUIRE(opt.value_or("world") == "hello");
+                REQUIRE(const_cast<const Opt&>(opt).value_or("world") == "hello");
+                REQUIRE(std::move(opt).value_or("world") == "hello");
             }
         }
 
-        SUBCASE("With move only value")
+        SECTION("With move only value")
         {
             auto opt = heap_optional(std::make_unique<int>(3));
             using Opt = heap_optional<std::unique_ptr<int>>;
             static_assert(std::is_same_v<decltype(opt), Opt>);
 
-            CHECK(opt.has_value());
-            CHECK(opt);
-            REQUIRE_NE(opt.get(), nullptr);
-            CHECK_EQ(**opt, 3);
-            CHECK_EQ(*(opt->get()), 3);
+            REQUIRE(opt.has_value());
+            REQUIRE(opt);
+            REQUIRE(opt.get() != nullptr);
+            REQUIRE(**opt == 3);
+            REQUIRE(*(opt->get()) == 3);
 
-            SUBCASE("Emplace data")
+            SECTION("Emplace data")
             {
                 opt.emplace(std::make_unique<int>(5));
-                CHECK(opt.has_value());
-                CHECK(opt);
-                REQUIRE_NE(opt.get(), nullptr);
-                CHECK_EQ(**opt, 5);
-                CHECK_EQ(*(opt->get()), 5);
+                REQUIRE(opt.has_value());
+                REQUIRE(opt);
+                REQUIRE(opt.get() != nullptr);
+                REQUIRE(**opt == 5);
+                REQUIRE(*(opt->get()) == 5);
             }
 
-            SUBCASE("Reset")
+            SECTION("Reset")
             {
                 opt.reset();
-                CHECK_FALSE(opt.has_value());
-                CHECK_FALSE(opt);
-                CHECK_EQ(opt.get(), nullptr);
+                REQUIRE_FALSE(opt.has_value());
+                REQUIRE_FALSE(opt);
+                REQUIRE(opt.get() == nullptr);
             }
 
-            SUBCASE("Value")
+            SECTION("Value")
             {
-                CHECK_EQ(*(opt.value()), 3);
-                CHECK_EQ(*(const_cast<const Opt&>(opt).value()), 3);
-                CHECK_EQ(*(std::move(opt).value()), 3);
+                REQUIRE(*(opt.value()) == 3);
+                REQUIRE(*(const_cast<const Opt&>(opt).value()) == 3);
+                REQUIRE(*(std::move(opt).value()) == 3);
             }
 
-            SUBCASE("Value Or")
+            SECTION("Value Or")
             {
-                CHECK_EQ(*(std::move(opt).value_or(std::make_unique<int>(5))), 3);
+                REQUIRE(*(std::move(opt).value_or(std::make_unique<int>(5))) == 3);
             }
         }
     }

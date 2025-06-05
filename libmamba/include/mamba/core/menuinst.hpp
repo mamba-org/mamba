@@ -6,7 +6,6 @@
 
 namespace mamba
 {
-    class Context;
     class TransactionContext;
 
     namespace fs
@@ -14,14 +13,8 @@ namespace mamba
         class u8path;
     }
 
-    void remove_menu_from_json(
-        const Context& context,
-        const fs::u8path& json_file,
-        TransactionContext* transaction_context
-    );
-    void create_menu_from_json(
-        const Context& context,
-        const fs::u8path& json_file,
-        TransactionContext* transaction_context
-    );
+    void
+    remove_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context);
+    void
+    create_menu_from_json(const fs::u8path& json_file, const TransactionContext& transaction_context);
 }

@@ -22,9 +22,7 @@
       "run_exports": {},
       "source_git_url": null,
       "source_url": null,
-      "subdirs": [
-        "noarch"
-      ],
+      "subdirs": ["noarch"],
       "summary": "I am just a test package!",
       "tags": null,
       "text_prefix": false,
@@ -32,7 +30,5 @@
       "version": "0.1"
     }
   },
-  "subdirs": [
-    "noarch"
-  ]
+  "subdirs": ["noarch"]
 }

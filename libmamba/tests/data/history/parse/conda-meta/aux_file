@@ -1,24 +1,74 @@
-==> 2020-05-03 11:18:43 <==
-# cmd: /usr/bin/conda create -n mamba
-# conda version: 4.8.3
-==> 2020-05-03 11:19:42 <==
-# cmd: /usr/bin/conda install pybind11 libsolv libarchive libcurl nlohmann_json pip cpp-tabulate -c conda-forge
-# conda version: 4.8.3
-+conda-forge/linux-64::_libgcc_mutex-0.1-conda_forge
-# update specs: ["cpp-tabulate", "libsolv", "nlohmann_json", "pybind11", "pip", "libarchive", "libcurl"]
-==> 2020-05-04 08:58:01 <==
-# cmd: /home/mariana/.local/bin/mamba remove cpp-tabulate pybind11 pip
-# conda version: 4.8.3
--conda-forge/noarch::wheel-0.34.2-py_1
-# remove specs: ["cpp-tabulate", "pybind11", "pip"]
-==> 2020-05-04 08:59:15 <==
-# cmd: /home/mariana/.local/bin/mamba install -c conda-forge cpp-tabulate==1.0.0
-# conda version: 4.8.3
-+conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
-# update specs: ["cpp-tabulate==1.0.0"]
-==> 2020-05-04 09:00:02 <==
-# cmd: /home/mariana/.local/bin/mamba upgrade -c conda-forge cpp-tabulate
-# conda version: 4.8.3
--conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
-+conda-forge/linux-64::cpp-tabulate-1.2-hc9558a2_0
+==> 2025-04-14 09:23:10 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba install nlohmann_json
+# conda version: 3.8.0
++conda-forge::nlohmann_json-3.12.0-h3f2d84a_0
+# update specs: ["nlohmann_json"]
+==> 2025-04-14 09:23:50 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba install xtl=0.7.2
+# conda version: 3.8.0
++conda-forge::libgomp-14.2.0-h767d61c_2
++conda-forge::_libgcc_mutex-0.1-conda_forge
++conda-forge::_openmp_mutex-4.5-2_gnu
++conda-forge::libgcc-14.2.0-h767d61c_2
++conda-forge::libstdcxx-14.2.0-h8f9b012_2
++conda-forge::libgcc-ng-14.2.0-h69a702a_2
++conda-forge::libstdcxx-ng-14.2.0-h4852527_2
++conda-forge::xtl-0.7.2-h4bd325d_1
+# update specs: ["xtl=0.7.2"]
+==> 2025-04-14 09:24:22 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba install cpp-tabulate=1.0
+# conda version: 3.8.0
++conda-forge::cpp-tabulate-1.0-hc9558a2_0
+# update specs: ["cpp-tabulate=1.0"]
+==> 2025-04-14 09:24:49 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba update cpp-tabulate
+# conda version: 3.8.0
+-https://conda.anaconda.org/conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
++conda-forge::cpp-tabulate-1.5-hf52228f_1
 # update specs: ["cpp-tabulate"]
+# remove specs: ["cpp-tabulate"]
+==> 2025-04-14 09:25:49 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba install wheel=0.34.2 openssl=3.5.0
+# conda version: 3.8.0
++conda-forge::libexpat-2.7.0-h5888daf_0
++conda-forge::liblzma-5.8.1-hb9d3cd8_0
++conda-forge::libmpdec-4.0.0-h4bc722e_0
++conda-forge::libuuid-2.38.1-h0b41bf4_0
++conda-forge::bzip2-1.0.8-h4bc722e_7
++conda-forge::ld_impl_linux-64-2.43-h712a8e2_4
++conda-forge::libffi-3.4.6-h2dba641_1
++conda-forge::libzlib-1.3.1-hb9d3cd8_2
++conda-forge::ncurses-6.5-h2d0b736_3
++conda-forge::python_abi-3.13-6_cp313
++conda-forge::ca-certificates-2025.1.31-hbcca054_0
++conda-forge::tk-8.6.13-noxft_h4845f30_101
++conda-forge::libsqlite-3.49.1-hee588c1_2
++conda-forge::readline-8.2-h8c095d6_2
++conda-forge::openssl-3.5.0-h7b32b05_0
++conda-forge::tzdata-2025b-h78e105d_0
++conda-forge::python-3.13.3-hf636f53_100_cp313
++conda-forge::pip-25.0.1-pyh145f28c_0
++conda-forge::setuptools-78.1.0-pyhff2d567_0
++conda-forge::wheel-0.34.2-py_1
+# update specs: ["wheel=0.34.2", "openssl=3.5.0"]
+==> 2025-04-14 09:26:26 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba update wheel
+# conda version: 3.8.0
+-https://conda.anaconda.org/conda-forge/noarch::setuptools-78.1.0-pyhff2d567_0
+-https://conda.anaconda.org/conda-forge/noarch::wheel-0.34.2-py_1
++conda-forge::wheel-0.45.1-pyhd8ed1ab_1
+# update specs: ["wheel"]
+# remove specs: ["wheel"]
+==> 2025-04-14 09:27:06 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba remove wheel xtl nlohmann_json
+# conda version: 3.8.0
+-https://conda.anaconda.org/conda-forge/linux-64::nlohmann_json-3.12.0-h3f2d84a_0
+-https://conda.anaconda.org/conda-forge/noarch::wheel-0.45.1-pyhd8ed1ab_1
+-https://conda.anaconda.org/conda-forge/linux-64::xtl-0.7.2-h4bd325d_1
+# remove specs: ["wheel", "xtl", "nlohmann_json"]
+==> 2025-04-14 09:27:41 <==
+# cmd: /home/sandrinepataut/.local/bin/micromamba install wheel=0.40.0 xtl=0.8.0
+# conda version: 3.8.0
++conda-forge::xtl-0.8.0-h84d6215_0
++conda-forge::wheel-0.40.0-pyhd8ed1ab_1
+# update specs: ["wheel=0.40.0", "xtl=0.8.0"]

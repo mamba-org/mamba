@@ -17,6 +17,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
@@ -66,7 +67,7 @@ set_ps_command(CLI::App* subcom, Context& context)
             auto prefix = el["prefix"].get<std::string>();
             if (!prefix.empty())
             {
-                prefix = env_name(context, prefix);
+                prefix = env_name(context.envs_dirs, context.prefix_params.root_prefix, prefix);
             }
 
             table.add_row({
@@ -95,7 +96,8 @@ set_ps_command(CLI::App* subcom, Context& context)
 
     auto stop_subcom = subcom->add_subcommand("stop");
     static std::string pid_or_name;
-    stop_subcom->add_option("pid_or_name", pid_or_name, "Process ID or process name (label)");
+    stop_subcom->add_option("pid_or_name", pid_or_name, "Process ID or process name (label)")
+        ->option_text("PID or NAME");
     stop_subcom->callback(
         []()
         {
@@ -145,10 +147,13 @@ set_run_command(CLI::App* subcom, Configuration& config)
                                          streams,
                                          "Attach to stdin, stdout and/or stderr. -a \"\" for disabling stream redirection"
                                      )
+                                     ->option_text("STREAM")
                                      ->join(',');
 
     static std::string cwd;
-    subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
+    subcom
+        ->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd")
+        ->option_text("DIR");
 
     static bool detach = false;
 #ifndef _WIN32
@@ -160,15 +165,18 @@ set_run_command(CLI::App* subcom, Configuration& config)
 
     static std::vector<std::string> env_vars;
     subcom->add_option("-e,--env", env_vars, "Add env vars with -e ENVVAR or -e ENVVAR=VALUE")
+        ->option_text("ENVVAR")
         ->allow_extra_args(false);
 
     static std::string specific_process_name;
 #ifndef _WIN32
-    subcom->add_option(
-        "--label",
-        specific_process_name,
-        "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible."
-    );
+    subcom
+        ->add_option(
+            "--label",
+            specific_process_name,
+            "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible."
+        )
+        ->option_text("NAME");
 #endif
 
     subcom->prefix_command();

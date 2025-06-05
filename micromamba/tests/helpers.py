@@ -3,6 +3,7 @@ import json
 import os
 import platform
 import random
+import re
 import shutil
 import string
 import subprocess
@@ -16,9 +17,7 @@ import yaml
 def subprocess_run(*args: str, **kwargs) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
     try:
-        p = subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
-        )
+        p = subprocess.run(args, capture_output=True, check=True, **kwargs)
     except subprocess.CalledProcessError as e:
         print(f"Command {args} failed with stderr: {e.stderr.decode()}")
         print(f"Command {args} failed with stdout: {e.stdout.decode()}")
@@ -57,10 +56,6 @@ def lib_prefix() -> Path:
     return Path("")
 
 
-xtensor_hpp = lib_prefix() / "include/xtensor/xtensor.hpp"
-xsimd_hpp = lib_prefix() / "include/xsimd/xsimd.hpp"
-
-
 def get_umamba(cwd=os.getcwd()):
     if os.getenv("TEST_MAMBA_EXE"):
         umamba = os.getenv("TEST_MAMBA_EXE")
@@ -72,6 +67,11 @@ def get_umamba(cwd=os.getcwd()):
 def random_string(n: int = 10) -> str:
     """Return random characters and digits."""
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
+
+
+def remove_whitespaces(s: str) -> str:
+    """Return the input string with extra whitespaces removed."""
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def shell(*args, cwd=os.getcwd(), **kwargs):
@@ -193,6 +193,28 @@ def create(
 def remove(*args, no_dry_run=False, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
+
+    if "--print-config-only" in args:
+        cmd += ["--debug"]
+    if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
+        cmd += ["--dry-run"]
+
+    try:
+        res = subprocess_run(*cmd, **kwargs)
+        if "--json" in args:
+            j = json.loads(res)
+            return j
+        if "--print-config-only" in args:
+            return yaml.load(res, Loader=yaml.FullLoader)
+        return res.decode()
+    except subprocess.CalledProcessError as e:
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise (e)
+
+
+def uninstall(*args, no_dry_run=False, **kwargs):
+    umamba = get_umamba()
+    cmd = [umamba, "uninstall", "-y"] + [arg for arg in args if arg]
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
@@ -360,7 +382,7 @@ def read_windows_registry(target_path):  # pragma: no cover
 
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != errno.ENOENT:
             raise
         return None, None
@@ -388,7 +410,7 @@ def write_windows_registry(target_path, value_value, value_type):  # pragma: no 
     main_key = getattr(winreg, main_key)
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_WRITE)
-    except EnvironmentError as e:
+    except OSError as e:
         if e.errno != errno.ENOENT:
             raise
         key = winreg.CreateKey(main_key, subkey_str)
@@ -516,3 +538,87 @@ def create_with_chan_pkg(env_name, channels, package):
     cmd.append(package)
 
     return create(*cmd, default_channel=False, no_rc=False)
+
+
+class PackageChecker:
+    # Provides integrity checking operations for an installed package, based on its manifest.
+
+    package_name: string
+    install_prefix_root_dir: Path
+    manifests_dir: Path
+
+    _manifest_info: object
+    _manifest_json_path: Path
+
+    def __init__(
+        self, package_name: string, install_prefix_root_dir: Path, require_manifest: bool = True
+    ):
+        # package_name : the name of the package to work with, without version or build name, for example 'xtensor'
+        # install_prefix_root_dir : the absolute path to the directory in which the package should be installed and found
+
+        self._require_manifest = require_manifest
+
+        assert install_prefix_root_dir.is_absolute()
+        assert package_name
+        self.package_name = package_name
+
+        assert install_prefix_root_dir
+        assert os.path.isdir(install_prefix_root_dir), (
+            f"not a directory or doesnt exist: {install_prefix_root_dir}"
+        )
+        self.install_prefix_root_dir = install_prefix_root_dir
+
+        if require_manifest:
+            self.manifests_dir = self.install_prefix_root_dir / "conda-meta"
+            assert os.path.isdir(self.manifests_dir), (
+                f"not a directory or doesnt exist: {self.manifests_dir}"
+            )
+
+    def check_install_integrity(self):
+        # Checks that the manifest of the package is installed and checks that every file listed in it
+        # exists. An assertion will fail otherwise.
+        manifest_info = self.get_manifest_info()
+
+        for file in manifest_info["files"]:
+            installed_file_path = self.install_prefix_root_dir.joinpath(file)
+            assert installed_file_path.is_file()
+
+    def get_manifest_info(self) -> object:
+        # Look for and read the manifest file for the package and returns a dict with its content.
+        # If the manifest file is not found or if opening it fails, an assertion will fail.
+        if not hasattr(self, "_manifest_info") or not self._manifest_info:
+            manifest_json_paths = list(self.manifests_dir.glob(f"{self.package_name}-*.*.*-*.json"))
+            assert manifest_json_paths
+            assert len(manifest_json_paths) == 1
+
+            manifest_json_path = manifest_json_paths[0]
+            with open(manifest_json_path) as json_file:
+                self._manifest_info = json.load(json_file)
+
+        assert self._manifest_info
+        return self._manifest_info
+
+    def find_installed(self, name_or_relative_path: string) -> Path:
+        # Searches in the manifest of the package a given file name or relative path that must have been installed.
+        # Returns the absolute path to that file once found, or None if not found.
+        # An assertion will fail if the file is found in the manifst but does not exist in the install directory.
+
+        if self._require_manifest:
+            manifest_info = self.get_manifest_info()
+
+            for file in manifest_info["files"]:
+                if file.endswith(name_or_relative_path):
+                    absolute_path = self.install_prefix_root_dir.joinpath(file).absolute()
+                    assert absolute_path.exists()
+                    return absolute_path
+        else:
+            # We search for the file in the directory, without assuming it must exist in the manifest
+            for file in self.install_prefix_root_dir.glob(f"**/{name_or_relative_path}"):
+                return file.absolute()
+
+        return None
+
+    def get_name_version_build(self) -> string:
+        # A name that matches what `get_concrete_pkg` would return: `package_name-X.Y.Z-build_number``
+        manifest_info = self.get_manifest_info()
+        return f"{manifest_info['name']}-{manifest_info['version']}-{manifest_info['build_string']}"

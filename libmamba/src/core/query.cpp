@@ -75,11 +75,11 @@ namespace mamba
             }
         };
 
-        auto database_latest_package(solver::libsolv::Database& db, specs::MatchSpec spec)
+        auto database_latest_package(solver::libsolv::Database& database, specs::MatchSpec spec)
             -> std::optional<specs::PackageInfo>
         {
             auto out = std::optional<specs::PackageInfo>();
-            db.for_each_package_matching(
+            database.for_each_package_matching(
                 spec,
                 [&](auto pkg)
                 {
@@ -99,7 +99,7 @@ namespace mamba
             using DepGraph = typename QueryResult::dependency_graph;
             using node_id = typename QueryResult::dependency_graph::node_id;
 
-            PoolWalker(solver::libsolv::Database& db);
+            PoolWalker(solver::libsolv::Database& database);
 
             void walk(specs::PackageInfo pkg, std::size_t max_depth);
             void walk(specs::PackageInfo pkg);
@@ -122,8 +122,8 @@ namespace mamba
             void reverse_walk_impl(node_id id);
         };
 
-        PoolWalker::PoolWalker(solver::libsolv::Database& db)
-            : m_database(db)
+        PoolWalker::PoolWalker(solver::libsolv::Database& database)
+            : m_database(database)
         {
         }
 
@@ -219,7 +219,7 @@ namespace mamba
         }
     }
 
-    auto Query::find(Database& db, const std::vector<std::string>& queries) -> QueryResult
+    auto Query::find(Database& database, const std::vector<std::string>& queries) -> QueryResult
     {
         QueryResult::dependency_graph g;
         for (const auto& query : queries)
@@ -227,7 +227,7 @@ namespace mamba
             const auto ms = specs::MatchSpec::parse(query)
                                 .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                 .value();
-            db.for_each_package_matching(
+            database.for_each_package_matching(
                 ms,
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
@@ -240,16 +240,16 @@ namespace mamba
         };
     }
 
-    auto Query::whoneeds(Database& db, std::string query, bool tree) -> QueryResult
+    auto Query::whoneeds(Database& database, std::string query, bool tree) -> QueryResult
     {
         const auto ms = specs::MatchSpec::parse(query)
                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
                             .value();
         if (tree)
         {
-            if (auto pkg = database_latest_package(db, ms))
+            if (auto pkg = database_latest_package(database, ms))
             {
-                auto walker = PoolWalker(db);
+                auto walker = PoolWalker(database);
                 walker.reverse_walk(std::move(pkg).value());
                 return { QueryType::WhoNeeds, std::move(query), std::move(walker).graph() };
             }
@@ -257,7 +257,7 @@ namespace mamba
         else
         {
             QueryResult::dependency_graph g;
-            db.for_each_package_depending_on(
+            database.for_each_package_depending_on(
                 ms,
                 [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
             );
@@ -266,14 +266,14 @@ namespace mamba
         return { QueryType::WhoNeeds, std::move(query), QueryResult::dependency_graph() };
     }
 
-    auto Query::depends(Database& db, std::string query, bool tree) -> QueryResult
+    auto Query::depends(Database& database, std::string query, bool tree) -> QueryResult
     {
         const auto ms = specs::MatchSpec::parse(query)
                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
                             .value();
-        if (auto pkg = database_latest_package(db, ms))
+        if (auto pkg = database_latest_package(database, ms))
         {
-            auto walker = PoolWalker(db);
+            auto walker = PoolWalker(database);
             if (tree)
             {
                 walker.walk(std::move(pkg).value());
@@ -581,13 +581,6 @@ namespace mamba
         {
             return util::split(str, "/", 1).front();  // Has at least one element
         }
-
-        /** Get subdir from channel name. */
-        auto get_subdir(std::string_view str) -> std::string
-        {
-            return util::split(str, "/").back();
-        }
-
     }
 
     auto QueryResult::table(std::ostream& out, const std::vector<std::string_view>& columns) const
@@ -599,7 +592,7 @@ namespace mamba
         }
 
         std::vector<mamba::printers::FormattedString> headers;
-        std::vector<std::string_view> cmds, args;
+        std::vector<std::string> cmds, args;
         std::vector<mamba::printers::alignment> alignments;
         for (auto& col : columns)
         {
@@ -621,7 +614,7 @@ namespace mamba
             else if (col.find_first_of(":") == col.npos)
             {
                 headers.emplace_back(col);
-                cmds.push_back(col);
+                cmds.push_back(std::string(col));
                 args.emplace_back("");
             }
             else
@@ -670,14 +663,18 @@ namespace mamba
                 }
                 else if (cmd == "Subdir")
                 {
-                    row.emplace_back(get_subdir(pkg.channel));
+                    row.emplace_back(pkg.platform);
                 }
                 else if (cmd == "Depends")
                 {
                     std::string depends_qualifier;
                     for (const auto& dep : pkg.dependencies)
                     {
-                        if (util::starts_with(dep, args[i]))
+                        // `args[i]` can be just `spec`, `spec=version`,
+                        // or `spec` with some other constraints.
+                        // Note: The condition below may be subject to modification if
+                        // other use cases come up in the future
+                        if (util::starts_with(dep, args[i]) || util::starts_with(args[i], dep))
                         {
                             depends_qualifier = dep;
                             break;

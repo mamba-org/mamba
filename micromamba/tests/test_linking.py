@@ -9,10 +9,8 @@ import pytest
 from .helpers import *  # noqa: F403
 from . import helpers
 
-if platform.system() == "Windows":
-    xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
-else:
-    xtensor_hpp = "include/xtensor/xtensor.hpp"
+package_to_test = "xtensor"
+file_in_package_to_test = "xtensor.hpp"
 
 
 class TestLinking:
@@ -41,32 +39,40 @@ class TestLinking:
             helpers.rmtree(TestLinking.prefix)
 
     def test_link(self, existing_cache, test_pkg):
-        helpers.create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+        helpers.create(package_to_test, "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
-        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
-        assert linked_file.exists()
-        assert not linked_file.is_symlink()
+        install_env_dir = helpers.get_env(TestLinking.env_name)
+        pkg_checker = helpers.PackageChecker(package_to_test, install_env_dir)
+        linked_file_path = pkg_checker.find_installed(file_in_package_to_test)
+        assert linked_file_path
+        assert linked_file_path.exists()
+        assert not linked_file_path.is_symlink()
 
-        cache_file = existing_cache / test_pkg / xtensor_hpp
-        assert cache_file.stat().st_dev == linked_file.stat().st_dev
-        assert cache_file.stat().st_ino == linked_file.stat().st_ino
+        linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
+        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
+        assert cache_file.stat().st_ino == linked_file_path.stat().st_ino
 
     def test_copy(self, existing_cache, test_pkg):
         helpers.create(
-            "xtensor",
+            package_to_test,
             "-n",
             TestLinking.env_name,
             "--json",
             "--always-copy",
             no_dry_run=True,
         )
-        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
-        assert linked_file.exists()
-        assert not linked_file.is_symlink()
+        install_env_dir = helpers.get_env(TestLinking.env_name)
+        pkg_checker = helpers.PackageChecker(package_to_test, install_env_dir)
+        linked_file_path = pkg_checker.find_installed(file_in_package_to_test)
+        assert linked_file_path
+        assert linked_file_path.exists()
+        assert not linked_file_path.is_symlink()
 
-        cache_file = existing_cache / test_pkg / xtensor_hpp
-        assert cache_file.stat().st_dev == linked_file.stat().st_dev
-        assert cache_file.stat().st_ino != linked_file.stat().st_ino
+        linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
+        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
+        assert cache_file.stat().st_ino != linked_file_path.stat().st_ino
 
     @pytest.mark.skipif(
         platform.system() == "Windows",
@@ -74,23 +80,26 @@ class TestLinking:
     )
     def test_always_softlink(self, existing_cache, test_pkg):
         helpers.create(
-            "xtensor",
+            package_to_test,
             "-n",
             TestLinking.env_name,
             "--json",
             "--always-softlink",
             no_dry_run=True,
         )
-        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
+        install_env_dir = helpers.get_env(TestLinking.env_name)
+        pkg_checker = helpers.PackageChecker(package_to_test, install_env_dir)
+        linked_file_path = pkg_checker.find_installed(file_in_package_to_test)
+        assert linked_file_path
+        assert linked_file_path.exists()
+        assert linked_file_path.is_symlink()
 
-        assert linked_file.exists()
-        assert linked_file.is_symlink()
+        linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
+        cache_file = existing_cache / test_pkg / linked_file_rel_path
 
-        cache_file = existing_cache / test_pkg / xtensor_hpp
-
-        assert cache_file.stat().st_dev == linked_file.stat().st_dev
-        assert cache_file.stat().st_ino == linked_file.stat().st_ino
-        assert os.readlink(linked_file) == str(cache_file)
+        assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
+        assert cache_file.stat().st_ino == linked_file_path.stat().st_ino
+        assert os.readlink(linked_file_path) == str(cache_file)
 
     @pytest.mark.parametrize("allow_softlinks", [True, False])
     @pytest.mark.parametrize("always_copy", [True, False])
@@ -98,7 +107,7 @@ class TestLinking:
         if platform.system() != "Linux":
             pytest.skip("o/s is not linux")
 
-        create_args = ["xtensor", "-n", TestLinking.env_name, "--json"]
+        create_args = [package_to_test, "-n", TestLinking.env_name, "--json"]
         if allow_softlinks:
             create_args.append("--allow-softlinks")
         if always_copy:
@@ -109,23 +118,29 @@ class TestLinking:
         is_softlink = not same_device and allow_softlinks and not always_copy
         is_hardlink = same_device and not always_copy
 
-        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
-        assert linked_file.exists()
+        install_env_dir = helpers.get_env(TestLinking.env_name)
+        pkg_checker = helpers.PackageChecker(package_to_test, install_env_dir)
+        linked_file_path = pkg_checker.find_installed(file_in_package_to_test)
+        assert linked_file_path
+        assert linked_file_path.exists()
 
-        cache_file = existing_cache / test_pkg / xtensor_hpp
-        assert cache_file.stat().st_dev == linked_file.stat().st_dev
-        assert (cache_file.stat().st_ino == linked_file.stat().st_ino) == is_hardlink
-        assert linked_file.is_symlink() == is_softlink
+        linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
+        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
+        assert (cache_file.stat().st_ino == linked_file_path.stat().st_ino) == is_hardlink
+        assert linked_file_path.is_symlink() == is_softlink
 
     def test_unlink_missing_file(self):
-        helpers.create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+        helpers.create(package_to_test, "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
-        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
-        assert linked_file.exists()
-        assert not linked_file.is_symlink()
+        pkg_checker = helpers.PackageChecker(package_to_test, helpers.get_env(TestLinking.env_name))
+        linked_file_path = pkg_checker.find_installed(file_in_package_to_test)
+        assert linked_file_path
+        assert linked_file_path.exists()
+        assert not linked_file_path.is_symlink()
 
-        os.remove(linked_file)
-        helpers.remove("xtensor", "-n", TestLinking.env_name)
+        os.remove(linked_file_path)
+        helpers.remove(package_to_test, "-n", TestLinking.env_name)
 
     @pytest.mark.skipif(
         sys.platform == "darwin" and platform.machine() == "arm64",

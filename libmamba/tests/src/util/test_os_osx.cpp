@@ -6,7 +6,7 @@
 
 #include <regex>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/os_osx.hpp"
@@ -14,14 +14,14 @@
 using namespace mamba;
 using namespace mamba::util;
 
-TEST_SUITE("util::os_osx")
+namespace
 {
     TEST_CASE("osx_version")
     {
         const auto maybe_version = osx_version();
         if (util::on_mac)
         {
-            REQUIRE(maybe_version.has_value());
+            CHECK(maybe_version.has_value());
             // The version would be a sequence:
             // 'x.x' or 'x.x.x'
             // with 'x' matching one or more digits
@@ -30,7 +30,7 @@ TEST_SUITE("util::os_osx")
         }
         else
         {
-            CHECK_FALSE(maybe_version.has_value());
+            REQUIRE_FALSE(maybe_version.has_value());
         }
     }
 }

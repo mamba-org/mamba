@@ -15,24 +15,24 @@ namespace mamba
 {
     class Context;
     class PrefixData;
-    class SubdirData;
+    class SubdirIndexLoader;
 
     namespace solver::libsolv
     {
         class Database;
     }
 
-    void add_spdlog_logger_to_database(solver::libsolv::Database& db);
+    void add_spdlog_logger_to_database(solver::libsolv::Database& database);
 
     auto load_subdir_in_database(  //
         const Context& ctx,
-        solver::libsolv::Database& db,
-        const SubdirData& subdir
+        solver::libsolv::Database& database,
+        const SubdirIndexLoader& subdir
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         const PrefixData& prefix
     ) -> solver::libsolv::RepoInfo;
 }

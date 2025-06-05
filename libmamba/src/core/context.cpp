@@ -12,6 +12,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
@@ -177,10 +178,10 @@ namespace mamba
     Context::Context(const ContextOptions& options)
     {
         on_ci = static_cast<bool>(util::get_env("CI"));
-        prefix_params.root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
+        prefix_params.root_prefix = detail::get_root_prefix();
         prefix_params.conda_prefix = prefix_params.root_prefix;
 
-        envs_dirs = { prefix_params.root_prefix / "envs" };
+        envs_dirs = {};
         pkgs_dirs = { prefix_params.root_prefix / "pkgs",
                       fs::u8path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
@@ -378,32 +379,6 @@ namespace mamba
         m_authentication_infos_loaded = true;
     }
 
-    std::string env_name(const Context& context, const fs::u8path& prefix)
-    {
-        if (prefix.empty())
-        {
-            throw std::runtime_error("Empty path");
-        }
-        if (paths_equal(prefix, context.prefix_params.root_prefix))
-        {
-            return ROOT_ENV_NAME;
-        }
-        fs::u8path maybe_env_dir = prefix.parent_path();
-        for (const auto& d : context.envs_dirs)
-        {
-            if (paths_equal(d, maybe_env_dir))
-            {
-                return prefix.filename().string();
-            }
-        }
-        return prefix.string();
-    }
-
-    std::string env_name(const Context& context)
-    {
-        return env_name(context, context.prefix_params.target_prefix);
-    }
-
     void Context::debug_print() const
     {
 #define PRINT_CTX(xout, xname) fmt::print(xout, "{}: {}\n", #xname, xname)
@@ -416,7 +391,7 @@ namespace mamba
         PRINT_CTX(out, prefix_params.root_prefix);
         PRINT_CTX(out, dry_run);
         PRINT_CTX(out, always_yes);
-        PRINT_CTX(out, allow_softlinks);
+        PRINT_CTX(out, link_params.allow_softlinks);
         PRINT_CTX(out, offline);
         PRINT_CTX(out, output_params.quiet);
         PRINT_CTX(out, src_params.no_rc);

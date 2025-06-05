@@ -11,9 +11,10 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
+
+#include "./transaction_context.hpp"
 
 extern const char data_compile_pyc_py[];
 
@@ -90,67 +91,39 @@ namespace mamba
         }
     }
 
-    TransactionContext::TransactionContext() = default;
-
-    TransactionContext::TransactionContext(const Context& context)
-        : m_context(&context)
+    TransactionContext::PythonParams
+    build_python_params(std::pair<std::string, std::string> py_versions)
     {
-        compile_pyc = this->context().compile_pyc;
+        TransactionContext::PythonParams res;
+        if (py_versions.first.size() != 0)
+        {
+            res.has_python = true;
+            res.python_version = std::move(py_versions.first);
+            res.old_python_version = std::move(py_versions.second);
+            res.short_python_version = compute_short_python_version(res.python_version);
+            res.python_path = get_python_short_path(res.short_python_version);
+            res.site_packages_path = get_python_site_packages_short_path(res.short_python_version);
+        }
+        return res;
     }
 
     TransactionContext::TransactionContext(
-        const Context& context,
-        const fs::u8path& ltarget_prefix,
-        const std::pair<std::string, std::string>& py_versions,
+        TransactionParams transaction_params,
+        std::pair<std::string, std::string> py_versions,
         std::vector<specs::MatchSpec> lrequested_specs
     )
-        : has_python(py_versions.first.size() != 0)
-        , target_prefix(ltarget_prefix)
-        , relocate_prefix(ltarget_prefix)
-        , python_version(py_versions.first)
-        , old_python_version(py_versions.second)
-        , requested_specs(std::move(lrequested_specs))
-        , m_context(&context)
+        : m_transaction_params(std::move(transaction_params))
+        , m_python_params(build_python_params(std::move(py_versions)))
+        , m_requested_specs(std::move(lrequested_specs))
     {
-        const auto& ctx = this->context();
-        compile_pyc = ctx.compile_pyc;
-        allow_softlinks = ctx.allow_softlinks;
-        always_copy = ctx.always_copy;
-        always_softlink = ctx.always_softlink;
-
-        std::string old_short_python_version;
-        if (python_version.size() == 0)
+        if (m_python_params.python_version.size() == 0)
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
         }
-        else
+        PrefixParams& pp = m_transaction_params.prefix_params;
+        if (pp.relocate_prefix.empty())
         {
-            short_python_version = compute_short_python_version(python_version);
-            python_path = get_python_short_path(short_python_version);
-            site_packages_path = get_python_site_packages_short_path(short_python_version);
-        }
-        if (!old_python_version.empty())
-        {
-            old_short_python_version = compute_short_python_version(old_python_version);
-        }
-    }
-
-    TransactionContext::TransactionContext(
-        const Context& context,
-        const fs::u8path& ltarget_prefix,
-        const fs::u8path& lrelocate_prefix,
-        const std::pair<std::string, std::string>& py_versions,
-        std::vector<specs::MatchSpec> lrequested_specs
-    )
-        : TransactionContext(context, ltarget_prefix, py_versions, std::move(lrequested_specs))
-    {
-        if (lrelocate_prefix.empty())
-        {
-            relocate_prefix = ltarget_prefix;
-        }
-        else
-        {
-            relocate_prefix = lrelocate_prefix;
+            pp.relocate_prefix = pp.target_prefix;
         }
     }
 
@@ -159,110 +132,14 @@ namespace mamba
         wait_for_pyc_compilation();
     }
 
-    void TransactionContext::throw_if_not_ready() const
-    {
-        if (m_context == nullptr)
-        {
-            throw mamba_error(
-                "attempted to use TransactionContext while no Context was specified",
-                mamba_error_code::internal_failure
-            );
-        }
-    }
-
-    bool TransactionContext::start_pyc_compilation_process()
-    {
-        throw_if_not_ready();
-
-        if (m_pyc_process)
-        {
-            return true;
-        }
-
-#ifndef _WIN32
-        std::signal(SIGPIPE, SIG_IGN);
-#endif
-        const auto complete_python_path = target_prefix / python_path;
-        std::vector<std::string> command = {
-            complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
-        };
-
-        auto py_ver_split = util::split(python_version, ".");
-
-        try
-        {
-            if (std::stoull(py_ver_split[0]) >= 3 && std::stoull(py_ver_split[1]) > 5)
-            {
-                m_pyc_compileall = std::make_unique<TemporaryFile>();
-                std::ofstream compileall_f = open_ofstream(m_pyc_compileall->path());
-                compile_python_sources(compileall_f);
-                compileall_f.close();
-
-                command = { complete_python_path.string(),
-                            "-Wi",
-                            "-u",
-                            m_pyc_compileall->path().string() };
-            }
-        }
-        catch (const std::exception& e)
-        {
-            LOG_ERROR << "Bad conversion of Python version '" << python_version << "': " << e.what();
-            return false;
-        }
-
-        m_pyc_process = std::make_unique<reproc::process>();
-
-        reproc::options options;
-#ifndef _WIN32
-        options.env.behavior = reproc::env::empty;
-#endif
-        std::map<std::string, std::string> envmap;
-        auto& ctx = context();
-        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.threads_params.extract_threads);
-        auto qemu_ld_prefix = util::get_env("QEMU_LD_PREFIX");
-        if (qemu_ld_prefix)
-        {
-            envmap["QEMU_LD_PREFIX"] = qemu_ld_prefix.value();
-        }
-        options.env.extra = envmap;
-
-        options.stop = {
-            { reproc::stop::wait, reproc::milliseconds(10000) },
-            { reproc::stop::terminate, reproc::milliseconds(5000) },
-            { reproc::stop::kill, reproc::milliseconds(2000) },
-        };
-
-        options.redirect.out.type = reproc::redirect::pipe;
-        options.redirect.err.type = reproc::redirect::pipe;
-
-        const std::string cwd = target_prefix.string();
-        options.working_directory = cwd.c_str();
-
-        auto [wrapped_command, script_file] = prepare_wrapped_call(ctx, target_prefix, command);
-        m_pyc_script_file = std::move(script_file);
-
-        LOG_INFO << "Running wrapped python compilation command " << util::join(" ", command);
-        std::error_code ec = m_pyc_process->start(wrapped_command, options);
-
-        if (ec == std::errc::no_such_file_or_directory)
-        {
-            LOG_ERROR << "Program not found. Make sure it's available from the PATH. "
-                      << ec.message();
-            m_pyc_process = nullptr;
-            return false;
-        }
-
-        return true;
-    }
-
     bool TransactionContext::try_pyc_compilation(const std::vector<fs::u8path>& py_files)
     {
-        throw_if_not_ready();
+        // throw_if_not_ready();
 
         static std::mutex pyc_compilation_mutex;
         std::lock_guard<std::mutex> lock(pyc_compilation_mutex);
 
-        if (!has_python)
+        if (!python_params().has_python)
         {
             LOG_WARNING << "Can't compile pyc: Python not found";
             return false;
@@ -294,7 +171,7 @@ namespace mamba
 
     void TransactionContext::wait_for_pyc_compilation()
     {
-        throw_if_not_ready();
+        // throw_if_not_ready();
 
         if (m_pyc_process)
         {
@@ -333,5 +210,127 @@ namespace mamba
             }
             m_pyc_process = nullptr;
         }
+    }
+
+    auto TransactionContext::transaction_params() const -> const TransactionParams&
+    {
+        return m_transaction_params;
+    }
+
+    auto TransactionContext::prefix_params() const -> const PrefixParams&
+    {
+        return m_transaction_params.prefix_params;
+    }
+
+    auto TransactionContext::link_params() const -> const LinkParams&
+    {
+        return m_transaction_params.link_params;
+    }
+
+    auto TransactionContext::python_params() const -> const PythonParams&
+    {
+        return m_python_params;
+    }
+
+    const std::vector<specs::MatchSpec>& TransactionContext::requested_specs() const
+    {
+        return m_requested_specs;
+    }
+
+    bool TransactionContext::start_pyc_compilation_process()
+    {
+        // TODO for now, we are sure that the TransactionContext is ready
+        // here since this method is called by the Link class, which requires
+        // an initialized TransactionContext in its constructor.
+        // This should be enforced by removing the default constructor of
+        // TransactionContext.
+
+        // throw_if_not_ready();
+
+        if (m_pyc_process)
+        {
+            return true;
+        }
+
+#ifndef _WIN32
+        std::signal(SIGPIPE, SIG_IGN);
+#endif
+        const auto complete_python_path = prefix_params().target_prefix / python_params().python_path;
+        std::vector<std::string> command = {
+            complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
+        };
+
+        auto py_ver_split = util::split(python_params().python_version, ".");
+
+        try
+        {
+            if (std::stoull(py_ver_split[0]) >= 3 && std::stoull(py_ver_split[1]) > 5)
+            {
+                m_pyc_compileall = std::make_unique<TemporaryFile>();
+                std::ofstream compileall_f = open_ofstream(m_pyc_compileall->path());
+                compile_python_sources(compileall_f);
+                compileall_f.close();
+
+                command = { complete_python_path.string(),
+                            "-Wi",
+                            "-u",
+                            m_pyc_compileall->path().string() };
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR << "Bad conversion of Python version '" << python_params().python_version
+                      << "': " << e.what();
+            return false;
+        }
+
+        m_pyc_process = std::make_unique<reproc::process>();
+
+        reproc::options options;
+#ifndef _WIN32
+        options.env.behavior = reproc::env::empty;
+#endif
+        std::map<std::string, std::string> envmap;
+        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(
+            m_transaction_params.threads_params.extract_threads
+        );
+        auto qemu_ld_prefix = util::get_env("QEMU_LD_PREFIX");
+        if (qemu_ld_prefix)
+        {
+            envmap["QEMU_LD_PREFIX"] = qemu_ld_prefix.value();
+        }
+        options.env.extra = envmap;
+
+        options.stop = {
+            { reproc::stop::wait, reproc::milliseconds(10000) },
+            { reproc::stop::terminate, reproc::milliseconds(5000) },
+            { reproc::stop::kill, reproc::milliseconds(2000) },
+        };
+
+        options.redirect.out.type = reproc::redirect::pipe;
+        options.redirect.err.type = reproc::redirect::pipe;
+
+        const std::string cwd = prefix_params().target_prefix.string();
+        options.working_directory = cwd.c_str();
+
+        auto [wrapped_command, script_file] = prepare_wrapped_call(
+            prefix_params(),
+            command,
+            transaction_params().is_mamba_exe
+        );
+        m_pyc_script_file = std::move(script_file);
+
+        LOG_INFO << "Running wrapped python compilation command " << util::join(" ", command);
+        std::error_code ec = m_pyc_process->start(wrapped_command, options);
+
+        if (ec == std::errc::no_such_file_or_directory)
+        {
+            LOG_ERROR << "Program not found. Make sure it's available from the PATH. "
+                      << ec.message();
+            m_pyc_process = nullptr;
+            return false;
+        }
+
+        return true;
     }
 }

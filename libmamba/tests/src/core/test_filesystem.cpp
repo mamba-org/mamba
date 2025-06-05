@@ -6,35 +6,148 @@
 
 #include <vector>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/encoding.hpp"
 
 namespace mamba
 {
-    TEST_SUITE("u8path")
+    namespace
     {
         TEST_CASE("normalized_separators")
         {
             static constexpr auto value = u8"a/b/c";
             std::filesystem::path x{ value };
             const auto y = fs::normalized_separators(x);
-#if defined(_WIN32)
-            REQUIRE_EQ(y.u8string(), u8R"(a\b\c)");
-#else
-            REQUIRE_EQ(y.u8string(), value);
-#endif
+            if (util::on_win)
+            {
+                REQUIRE(y.u8string() == u8R"(a\b\c)");
+            }
+            else
+            {
+                REQUIRE(y.u8string() == value);
+            }
         }
 
         TEST_CASE("normalized_separators_unicode")
         {
             static constexpr auto value = u8"日本語";
-            const std::filesystem::path x = fs::from_utf8(value);
-            REQUIRE_EQ(x.u8string(), u8"日本語");  // check assumption
+            const std::filesystem::path x = fs::from_utf8(util::to_utf8_std_string(value));
+            REQUIRE(x.u8string() == u8"日本語");  // check assumption
             const auto y = fs::normalized_separators(x);
-            REQUIRE_EQ(y.u8string(), u8"日本語");
+            REQUIRE(y.u8string() == u8"日本語");
+        }
+
+        TEST_CASE("to_utf8_check_separators")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path = some_path_str;
+
+            REQUIRE(
+                fs::to_utf8(some_path, { .normalize_sep = false })
+                == util::to_utf8_std_string(some_path_str)
+            );
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(u8"a\\b\\c")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(some_path_str)
+                );
+            }
+        }
+
+        TEST_CASE("to_utf8_check_separators_unicode")
+        {
+            static constexpr auto some_path_str = u8"日/本/語";
+            std::filesystem::path some_path = some_path_str;
+
+            REQUIRE(
+                fs::to_utf8(some_path, { .normalize_sep = false })
+                == util::to_utf8_std_string(some_path_str)
+            );
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(u8"日\\本\\語")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::to_utf8(some_path, { .normalize_sep = true })
+                    == util::to_utf8_std_string(some_path_str)
+                );
+            }
+        }
+
+        TEST_CASE("from_utf8_check_separators")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"a\\b\\c")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"a/b/c")
+                );
+            }
+        }
+
+        TEST_CASE("from_utf8_check_separators_unicode")
+        {
+            static constexpr auto some_path_str = u8"日/本/語";
+
+            if (util::on_win)
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"日\\本\\語")
+                );
+            }
+            else
+            {
+                REQUIRE(
+                    fs::from_utf8(util::to_utf8_std_string(some_path_str))
+                    == std::filesystem::path(u8"日/本/語")
+                );
+            }
+        }
+
+        TEST_CASE("u8path_separators_formatting")
+        {
+            static constexpr auto some_path_str = u8"a/b/c";
+            std::filesystem::path some_path = std::filesystem::path(some_path_str);
+            const fs::u8path u8_path(some_path);
+
+            if (util::on_win)
+            {
+                REQUIRE(u8_path.string() == util::to_utf8_std_string(u8"a\\b\\c"));
+            }
+            else
+            {
+                REQUIRE(u8_path.string() == util::to_utf8_std_string(some_path_str));
+            }
+            REQUIRE(u8_path.generic_string() == util::to_utf8_std_string(some_path_str));
         }
 
         TEST_CASE("consistent_encoding")
@@ -42,29 +155,30 @@ namespace mamba
             const auto utf8_string = u8"日本語";
             const fs::u8path filename(utf8_string);
             const auto str = filename.string();
-            CHECK_EQ(str, utf8_string);
+            REQUIRE(str == util::to_utf8_std_string(utf8_string));
 
             const fs::u8path file_path = fs::temp_directory_path() / filename;
-            CHECK_EQ(file_path.filename().string(), utf8_string);
+            REQUIRE(file_path.filename().string() == util::to_utf8_std_string(utf8_string));
 
             const auto std_path = file_path.std_path();
-            CHECK_EQ(std_path.filename().u8string(), utf8_string);
+            REQUIRE(std_path.filename().u8string() == utf8_string);
         }
 
         TEST_CASE("string_stream_encoding")
         {
             const auto utf8_string = u8"日本語";
-            const std::string quoted_utf8_string = std::string("\"") + utf8_string
+            const std::string quoted_utf8_string = std::string("\"")
+                                                   + util::to_utf8_std_string(utf8_string)
                                                    + std::string("\"");
             const fs::u8path filename(utf8_string);
             std::stringstream stream;
             stream << filename;
-            CHECK_EQ(stream.str(), quoted_utf8_string);
+            REQUIRE(stream.str() == quoted_utf8_string);
 
             fs::u8path path_read;
             stream.seekg(0);
             stream >> path_read;
-            CHECK_EQ(path_read.string(), utf8_string);
+            REQUIRE(path_read.string() == util::to_utf8_std_string(utf8_string));
         }
 
         TEST_CASE("directory_iteration")
@@ -79,16 +193,16 @@ namespace mamba
 
             {
                 std::ofstream file(file_path.std_path(), std::ios::binary | std::ios::trunc);
-                file << u8"日本語";
+                file << util::to_utf8_std_string(u8"日本語");
             }
 
             {
                 const auto path_to_search_from = file_dir.parent_path();
                 fs::recursive_directory_iterator it{ path_to_search_from };
                 auto first_entry = *it;
-                CHECK_EQ(first_entry.path(), file_path.parent_path());
+                REQUIRE(first_entry.path() == file_path.parent_path());
                 auto secibd_entry = *(++it);
-                CHECK_EQ(secibd_entry.path(), file_path);
+                REQUIRE(secibd_entry.path() == file_path);
             }
 
             {
@@ -105,7 +219,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -122,7 +236,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path().string());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -136,7 +250,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
 
             {
@@ -150,7 +264,7 @@ namespace mamba
                     static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                     entries_found.push_back(entry.path().string());
                 }
-                CHECK_EQ(entries_found, expected_entries);
+                REQUIRE(entries_found == expected_entries);
             }
         }
 
@@ -168,17 +282,18 @@ namespace mamba
             fs::create_directories(long_path);
         }
 
-#if defined(_WIN32)
         TEST_CASE("append_maintains_slash_type")
         {
-            const fs::u8path path = u8R"(a/b/c/d)";
-            const auto path_1 = path / u8R"(e\f\g)";
-            CHECK_EQ(path_1.string(), u8R"(a\b\c\d\e\f\g)");
+            if (util::on_win)
+            {
+                const fs::u8path path = util::to_utf8_std_string(u8R"(a/b/c/d)");
+                const auto path_1 = path / u8R"(e\f\g)";
+                REQUIRE(path_1.string() == util::to_utf8_std_string(u8R"(a\b\c\d\e\f\g)"));
+            }
         }
-#endif
     }
 
-    TEST_SUITE("filesystem")
+    namespace
     {
         TEST_CASE("remove_readonly_file")
         {
@@ -201,19 +316,19 @@ namespace mamba
                 fs::perms::owner_read | fs::perms::group_read,
                 fs::perm_options::replace
             );
-            CHECK_EQ(
-                (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                fs::perms::none
+            REQUIRE(
+                (fs::status(readonly_file_path).permissions() & fs::perms::owner_write)
+                == fs::perms::none
             );
-            CHECK_EQ(
-                (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                fs::perms::none
+            REQUIRE(
+                (fs::status(readonly_file_path).permissions() & fs::perms::group_write)
+                == fs::perms::none
             );
 
             // removing should still work.
-            CHECK(fs::exists(readonly_file_path));
+            REQUIRE(fs::exists(readonly_file_path));
             fs::remove(readonly_file_path);
-            CHECK_FALSE(fs::exists(readonly_file_path));
+            REQUIRE_FALSE(fs::exists(readonly_file_path));
         }
 
         TEST_CASE("remove_all_readonly_files")
@@ -230,7 +345,7 @@ namespace mamba
 
             const auto create_readonly_files = [](const fs::u8path& dir_path)
             {
-                assert(fs::is_directory(dir_path));
+                REQUIRE(fs::is_directory(dir_path));
                 for (int file_idx = 0; file_idx < file_count_per_directory; ++file_idx)
                 {
                     const auto readonly_file_path = dir_path
@@ -247,13 +362,13 @@ namespace mamba
                         fs::perms::owner_read | fs::perms::group_read,
                         fs::perm_options::replace
                     );
-                    CHECK_EQ(
-                        (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                        fs::perms::none
+                    REQUIRE(
+                        (fs::status(readonly_file_path).permissions() & fs::perms::owner_write)
+                        == fs::perms::none
                     );
-                    CHECK_EQ(
-                        (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                        fs::perms::none
+                    REQUIRE(
+                        (fs::status(readonly_file_path).permissions() & fs::perms::group_write)
+                        == fs::perms::none
                     );
                 }
             };
@@ -283,10 +398,58 @@ namespace mamba
                 create_readonly_files(dir_path);
             }
 
-            CHECK(fs::exists(tmp_dir));
+            REQUIRE(fs::exists(tmp_dir));
             fs::remove_all(tmp_dir);
-            CHECK_FALSE(fs::exists(tmp_dir));
+            REQUIRE_FALSE(fs::exists(tmp_dir));
         }
+
+        TEST_CASE("create_cache_dir")
+        {
+            // `create_cache_dir` create a `cache` subdirectory at a given path given as an
+            // argument.
+            const auto cache_path = fs::temp_directory_path() / "mamba-fs-cache-path";
+            const auto cache_dir = cache_path / "cache";
+
+            mamba::on_scope_exit _([&] { fs::remove_all(cache_path); });
+
+            // Get the information about whether the filesystem supports the `set_gid` bit.
+            bool supports_setgid_bit = false;
+            fs::create_directories(cache_path);
+
+            std::error_code ec;
+            fs::permissions(cache_path, fs::perms::set_gid, fs::perm_options::add, ec);
+
+            if (!ec)
+            {
+                supports_setgid_bit = (fs::status(cache_path).permissions() & fs::perms::set_gid)
+                                      == fs::perms::set_gid;
+            }
+
+            // Check that `cache_dir` does not exist before calling `create_cache_dir`
+            REQUIRE_FALSE(fs::exists(cache_dir));
+
+            create_cache_dir(cache_path);
+
+            REQUIRE(fs::exists(cache_dir));
+            REQUIRE(fs::is_directory(cache_dir));
+
+            // Check that the permissions of `cache_dir` are _at least_ `rwxr-xr-x` because
+            // `std::fs::temp_directory_path` might not have `rwxrwxr-x` permissions.
+            auto cache_dir_permissions = fs::status(cache_dir).permissions();
+            auto expected_min_owner_perm = fs::perms::owner_all;
+            auto expected_min_group_perm = fs::perms::group_read | fs::perms::group_exec;
+            auto expected_min_others_perm = fs::perms::others_read | fs::perms::others_exec;
+
+            REQUIRE((cache_dir_permissions & expected_min_owner_perm) == expected_min_owner_perm);
+            REQUIRE((cache_dir_permissions & expected_min_group_perm) == expected_min_group_perm);
+            REQUIRE((cache_dir_permissions & expected_min_others_perm) == expected_min_others_perm);
+
+            if (supports_setgid_bit)
+            {
+                REQUIRE((cache_dir_permissions & fs::perms::set_gid) == fs::perms::set_gid);
+            }
+        }
+
     }
 
 }

@@ -33,6 +33,13 @@ namespace mambapy
             .def(py::init(&enum_from_str<RepodataParser>));
         py::implicitly_convertible<py::str, RepodataParser>();
 
+        py::enum_<MatchSpecParser>(m, "MatchSpecParser")
+            .value("Mixed", MatchSpecParser::Mixed)
+            .value("Mamba", MatchSpecParser::Mamba)
+            .value("Libsolv", MatchSpecParser::Libsolv)
+            .def(py::init(&enum_from_str<MatchSpecParser>));
+        py::implicitly_convertible<py::str, MatchSpecParser>();
+
         py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
             .value("No", PipAsPythonDependency::No)
             .value("Yes", PipAsPythonDependency::Yes)
@@ -117,7 +124,21 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
 
         py::class_<Database>(m, "Database")
-            .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
+            .def(
+                py::init(
+                    [](specs::ChannelResolveParams channel_params, MatchSpecParser matchspec_parser)
+                    {
+                        return Database(
+                            channel_params,
+                            Database::Settings{
+                                matchspec_parser,
+                            }
+                        );
+                    }
+                ),
+                py::arg("channel_params"),
+                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
+            )
             .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
             .def(
                 "add_repo_from_repodata_json",
@@ -140,7 +161,10 @@ namespace mambapy
             )
             .def(
                 "add_repo_from_packages",
-                [](Database& db, py::iterable packages, std::string_view name, PipAsPythonDependency add)
+                [](Database& database,
+                   py::iterable packages,
+                   std::string_view name,
+                   PipAsPythonDependency add)
                 {
                     // TODO(C++20): No need to copy in a vector, simply transform the input range.
                     auto pkg_infos = std::vector<specs::PackageInfo>();
@@ -148,7 +172,7 @@ namespace mambapy
                     {
                         pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
                     }
-                    return db.add_repo_from_packages(pkg_infos, name, add);
+                    return database.add_repo_from_packages(pkg_infos, name, add);
                 },
                 py::arg("packages"),
                 py::arg("name") = "",
@@ -169,12 +193,12 @@ namespace mambapy
             .def("package_count", &Database::package_count)
             .def(
                 "packages_in_repo",
-                [](const Database& db, RepoInfo repo)
+                [](const Database& database, RepoInfo repo)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.
                     auto out = py::list();
-                    db.for_each_package_in_repo(
+                    database.for_each_package_in_repo(
                         repo,
                         [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
                     );
@@ -184,12 +208,12 @@ namespace mambapy
             )
             .def(
                 "packages_matching",
-                [](Database& db, const specs::MatchSpec& ms)
+                [](Database& database, const specs::MatchSpec& ms)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.
                     auto out = py::list();
-                    db.for_each_package_matching(
+                    database.for_each_package_matching(
                         ms,
                         [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
                     );
@@ -199,12 +223,12 @@ namespace mambapy
             )
             .def(
                 "packages_depending_on",
-                [](Database& db, const specs::MatchSpec& ms)
+                [](Database& database, const specs::MatchSpec& ms)
                 {
                     // TODO(C++20): When Database function are refactored to use range, take the
                     // opportunity here to make a Python iterator to avoid large alloc.
                     auto out = py::list();
-                    db.for_each_package_depending_on(
+                    database.for_each_package_depending_on(
                         ms,
                         [&](specs::PackageInfo&& pkg) { out.append(std::move(pkg)); }
                     );
@@ -232,12 +256,15 @@ namespace mambapy
         constexpr auto solver_job_v2_migrator = [](Solver&, py::args, py::kwargs)
         { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
 
-        py::class_<Solver>(m, "Solver")  //
+        py::class_<Solver>(m, "Solver")
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& db, const solver::Request& request)
-                { return self.solve(db, request); }
+                [](Solver& self, Database& database, const solver::Request& request, MatchSpecParser ms_parser
+                ) { return self.solve(database, request, ms_parser); },
+                py::arg("database"),
+                py::arg("request"),
+                py::arg("matchspec_parser") = MatchSpecParser::Mixed
             )
             .def("add_jobs", solver_job_v2_migrator)
             .def("add_global_job", solver_job_v2_migrator)

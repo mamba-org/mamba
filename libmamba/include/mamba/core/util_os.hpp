@@ -22,6 +22,7 @@ namespace mamba
 
     bool is_admin();
     fs::u8path get_self_exe_path();
+    fs::u8path get_libmamba_path();
 
     using PID =
 #ifdef _WIN32

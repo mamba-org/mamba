@@ -40,6 +40,7 @@ jobs:
             --preset mamba-unix-shared-${{ inputs.build_type }}  \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -D MAMBA_WARNING_AS_ERROR=ON \
             -D BUILD_LIBMAMBAPY=OFF \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           cmake --build build/ --parallel
@@ -107,7 +108,10 @@ jobs:
           python -m pip install --no-deps --no-build-isolation ./libmambapy
       - name: Run libmamba Python bindings tests
         run: |
-          python -m pytest libmambapy/tests/ ${{ runner.debug == 'true' && '-v' || '--exitfirst' }}
+          # Only rerun flaky tests on the `main` branch
+          python -m pytest libmambapy/tests/ \
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
+              ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   mamba_integration_tests_unix:
     name: mamba integration tests
@@ -162,10 +166,13 @@ jobs:
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           unset CONDARC  # Interferes with tests
-          python -m pytest micromamba/tests/ -vvv --capture=tee-sys
+          # Only rerun flaky tests on the `main` branch
+          python -m pytest micromamba/tests/ \
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
+              ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
-  verify_pkg_tests:
-    name: mamba-content-trust tests
+  verify_pkg_and_auth_tests:
+    name: mamba-content-trust and auth tests
     needs: ["build_shared_unix"]
     runs-on: ${{ inputs.os }}
     if: startsWith(inputs.os, 'ubuntu')
@@ -191,4 +198,4 @@ jobs:
           unset CONDARC  # Interferes with tests
           cd micromamba/test-server
           ./generate_gpg_keys.sh
-          ./testserver_pkg_signing.sh
+          ./testserver_auth_pkg_signing.sh

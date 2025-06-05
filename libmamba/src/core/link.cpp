@@ -13,15 +13,16 @@
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/link.hpp"
+#include "./link.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
+
+#include "./transaction_context.hpp"
 
 #ifdef __APPLE__
 #include "mamba/core/util_os.hpp"
@@ -143,17 +144,19 @@ namespace mamba
         const python_entry_point_parsed& entry_point
     )
     {
+        const fs::u8path& target_prefix = m_context->prefix_params().target_prefix;
 #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will
         // automatically find the correct script to launch
         std::string win_script = path.string() + "-script.py";
-        fs::u8path script_path = m_context->target_prefix / win_script;
+        std::string win_script_gen_str = path.generic_string() + "-script.py";
+        fs::u8path script_path = target_prefix / win_script;
 #else
-        fs::u8path script_path = m_context->target_prefix / path;
+        fs::u8path script_path = target_prefix / path;
 #endif
         if (fs::exists(script_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_path, m_context->target_prefix).string());
+            m_clobber_warnings.push_back(fs::relative(script_path, target_prefix).string());
             fs::remove(script_path);
         }
         if (!fs::is_directory(script_path.parent_path()))
@@ -163,9 +166,10 @@ namespace mamba
         std::ofstream out_file = open_ofstream(script_path);
 
         fs::u8path python_path;
-        if (m_context->has_python)
+        if (m_context->python_params().has_python)
         {
-            python_path = m_context->relocate_prefix / m_context->python_path;
+            python_path = m_context->prefix_params().relocate_prefix
+                          / m_context->python_params().python_path;
         }
         if (!python_path.empty())
         {
@@ -179,20 +183,17 @@ namespace mamba
         fs::u8path script_exe = path;
         script_exe.replace_extension("exe");
 
-        if (fs::exists(m_context->target_prefix / script_exe))
+        if (fs::exists(target_prefix / script_exe))
         {
             m_clobber_warnings.push_back(fs::relative(script_exe.string()).string());
-            fs::remove(m_context->target_prefix / script_exe);
+            fs::remove(target_prefix / script_exe);
         }
 
-        std::ofstream conda_exe_f = open_ofstream(
-            m_context->target_prefix / script_exe,
-            std::ios::binary
-        );
+        std::ofstream conda_exe_f = open_ofstream(target_prefix / script_exe, std::ios::binary);
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
-        make_executable(m_context->target_prefix / script_exe);
-        return std::array<std::string, 2>{ win_script, script_exe.string() };
+        make_executable(target_prefix / script_exe);
+        return std::array<std::string, 2>{ win_script_gen_str, script_exe.generic_string() };
 #else
         if (!python_path.empty())
         {
@@ -315,8 +316,8 @@ namespace mamba
        failure
     */
     bool run_script(
-        const Context& context,
-        const fs::u8path& prefix,
+        const TransactionParams& transaction_params,
+        const PrefixParams& prefix_params,
         const specs::PackageInfo& pkg_info,
         const std::string& action = "post-link",
         const std::string& env_prefix = "",
@@ -326,12 +327,12 @@ namespace mamba
         fs::u8path path;
         if (util::on_win)
         {
-            path = prefix / get_bin_directory_short_path()
+            path = prefix_params.target_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".bat");
         }
         else
         {
-            path = prefix / get_bin_directory_short_path()
+            path = prefix_params.target_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".sh");
         }
 
@@ -368,11 +369,10 @@ namespace mamba
             if (activate)
             {
                 script_file = wrap_call(
-                    context,
-                    context.prefix_params.root_prefix,
-                    prefix,
+                    prefix_params.root_prefix,
+                    prefix_params.target_prefix,
                     { "@CALL", path.string() },
-                    WrappedCallOptions::from_context(context)
+                    transaction_params.is_mamba_exe
                 );
 
                 command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
@@ -396,11 +396,10 @@ namespace mamba
             {
                 // std::string caller
                 script_file = wrap_call(
-                    context,
-                    context.prefix_params.root_prefix.string(),
-                    prefix,
+                    prefix_params.root_prefix.string(),
+                    prefix_params.target_prefix,
                     { ".", path.string() },
-                    WrappedCallOptions::from_context(context)
+                    transaction_params.is_mamba_exe
                 );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());
@@ -413,8 +412,8 @@ namespace mamba
             }
         }
 
-        envmap["ROOT_PREFIX"] = context.prefix_params.root_prefix.string();
-        envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
+        envmap["ROOT_PREFIX"] = prefix_params.root_prefix.string();
+        envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix_params.target_prefix.string();
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
@@ -445,7 +444,7 @@ namespace mamba
         auto [status, ec] = reproc::run(command_args, options);
 
         auto msg = get_prefix_messages(envmap["PREFIX"]);
-        if (context.output_params.json)
+        if (transaction_params.json_output)
         {
             // TODO implement cerr also on Console?
             std::cerr << msg;
@@ -482,14 +481,14 @@ namespace mamba
 
     bool UnlinkPackage::unlink_path(const nlohmann::json& path_data)
     {
-        const auto& context = m_context->context();
         std::string subtarget = path_data["_path"].get<std::string>();
-        fs::u8path dst = m_context->target_prefix / subtarget;
+        const fs::u8path& target_prefix = m_context->prefix_params().target_prefix;
+        fs::u8path dst = target_prefix / subtarget;
 
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
 
-        if (remove_or_rename(context, dst) == 0)
+        if (remove_or_rename(target_prefix, dst) == 0)
         {
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
         }
@@ -513,7 +512,7 @@ namespace mamba
                 }
                 if (is_empty)
                 {
-                    remove_or_rename(context, parent_path);
+                    remove_or_rename(target_prefix, parent_path);
                 }
                 else
                 {
@@ -521,7 +520,7 @@ namespace mamba
                 }
             }
             parent_path = parent_path.parent_path();
-            if (parent_path == m_context->target_prefix)
+            if (parent_path == target_prefix)
             {
                 break;
             }
@@ -531,9 +530,9 @@ namespace mamba
 
     bool UnlinkPackage::execute()
     {
-        const auto& context = m_context->context();
         // find the recorded JSON file
-        fs::u8path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
+        fs::u8path json = m_context->prefix_params().target_prefix / "conda-meta"
+                          / (m_specifier + ".json");
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
         LOG_DEBUG << "Use metadata found at '" << json.string() << "'";
 
@@ -546,7 +545,7 @@ namespace mamba
             std::string fpath = path["_path"];
             if (std::regex_match(fpath, MENU_PATH_REGEX))
             {
-                remove_menu_from_json(context, m_context->target_prefix / fpath, m_context);
+                remove_menu_from_json(m_context->prefix_params().target_prefix / fpath, *m_context);
             }
 
             unlink_path(path);
@@ -586,13 +585,16 @@ namespace mamba
         fs::u8path dst, rel_dst;
         if (noarch_python)
         {
-            rel_dst = get_python_noarch_target_path(subtarget, m_context->site_packages_path);
-            dst = m_context->target_prefix / rel_dst;
+            rel_dst = get_python_noarch_target_path(
+                subtarget,
+                m_context->python_params().site_packages_path
+            );
+            dst = m_context->prefix_params().target_prefix / rel_dst;
         }
         else
         {
             rel_dst = subtarget;
-            dst = m_context->target_prefix / rel_dst;
+            dst = m_context->prefix_params().target_prefix / rel_dst;
         }
 
         fs::u8path src = m_source / subtarget;
@@ -607,7 +609,7 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
+            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
 #endif
             fs::remove(dst);
         }
@@ -624,7 +626,7 @@ namespace mamba
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            std::string new_prefix = m_context->relocate_prefix.string();
+            std::string new_prefix = m_context->prefix_params().relocate_prefix.string();
 #ifdef _WIN32
             util::replace_all(new_prefix, "\\", "/");
 #endif
@@ -699,7 +701,10 @@ namespace mamba
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
-                    return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
+                    return std::make_tuple(
+                        std::string(validation::sha256sum(dst)),
+                        rel_dst.generic_string()
+                    );
                 }
 #else
                 std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())
@@ -745,16 +750,16 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.platform == "osx-arm64")
             {
-                codesign(dst, m_context->context().output_params.verbosity > 1);
+                codesign(dst, m_context->transaction_params().verbosity > 1);
             }
 #endif
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
+            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
         }
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
-            bool copy = path_data.no_link || m_context->always_copy;
-            bool softlink = m_context->always_softlink;
+            bool copy = path_data.no_link || m_context->link_params().always_copy;
+            bool softlink = m_context->link_params().always_softlink;
 
             if (!copy && !softlink)
             {
@@ -763,7 +768,7 @@ namespace mamba
 
                 if (lec)
                 {
-                    softlink = m_context->allow_softlinks;
+                    softlink = m_context->link_params().allow_softlinks;
                     copy = !softlink;
                 }
                 else
@@ -800,7 +805,7 @@ namespace mamba
             fs::copy_symlink(src, dst);
             // we need to wait until all files are linked to compute the SHA256 sum!
             // otherwise the file that's pointed to might not be linked yet.
-            return std::make_tuple("", rel_dst.string());
+            return std::make_tuple("", rel_dst.generic_string());
         }
         else
         {
@@ -811,7 +816,7 @@ namespace mamba
         }
         return std::make_tuple(
             path_data.sha256.empty() ? std::string(validation::sha256sum(dst)) : path_data.sha256,
-            rel_dst.string()
+            rel_dst.generic_string()
         );
     }
 
@@ -825,9 +830,9 @@ namespace mamba
         std::vector<fs::u8path> pyc_files;
         for (auto& f : py_files)
         {
-            pyc_files.push_back(pyc_path(f, m_context->short_python_version));
+            pyc_files.push_back(pyc_path(f, m_context->python_params().short_python_version));
         }
-        if (m_context->compile_pyc)
+        if (m_context->link_params().compile_pyc)
         {
             m_context->try_pyc_compilation(py_files);
         }
@@ -844,8 +849,6 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
-        const auto& context = m_context->context();
-
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
@@ -939,13 +942,17 @@ namespace mamba
             {
                 // here we try to avoid recomputing the costly sha256 sum
                 std::error_code ec;
-                auto points_to = fs::canonical(m_context->target_prefix / files_record[i], ec);
+                auto points_to = fs::canonical(
+                    m_context->prefix_params().target_prefix / files_record[i],
+                    ec
+                );
                 bool found = false;
                 if (!ec)
                 {
                     for (std::size_t pix = 0; pix < files_record.size(); ++pix)
                     {
-                        if ((m_context->target_prefix / files_record[pix]) == points_to)
+                        if ((m_context->prefix_params().target_prefix / files_record[pix])
+                            == points_to)
                         {
                             if (paths_json["paths"][pix].contains("sha256_in_prefix"))
                             {
@@ -962,7 +969,10 @@ namespace mamba
                 }
                 if (!found)
                 {
-                    bool exists = fs::exists(m_context->target_prefix / files_record[i], ec);
+                    bool exists = fs::exists(
+                        m_context->prefix_params().target_prefix / files_record[i],
+                        ec
+                    );
                     if (ec)
                     {
                         LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
@@ -973,7 +983,7 @@ namespace mamba
                     if (exists)
                     {
                         paths_json["paths"][i]["sha256_in_prefix"] = validation::sha256sum(
-                            m_context->target_prefix / files_record[i]
+                            m_context->prefix_params().target_prefix / files_record[i]
                         );
                     }
                     else
@@ -992,15 +1002,15 @@ namespace mamba
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
 
-        specs::MatchSpec* requested_spec = nullptr;
-        for (auto& ms : m_context->requested_specs)
+        const specs::MatchSpec* requested_spec = nullptr;
+        for (auto& ms : m_context->requested_specs())
         {
             if (ms.name().contains(m_pkg_info.name))
             {
                 requested_spec = &ms;
             }
         }
-        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
+        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->to_string() : "";
         out_json["package_tarball_full_path"] = m_source.string() + ".tar.bz2";
         out_json["extracted_package_dir"] = m_source.string();
 
@@ -1023,19 +1033,20 @@ namespace mamba
             {
                 if (std::regex_match(sub_path_json.path, py_file_re))
                 {
-                    for_compilation.push_back(
-                        get_python_noarch_target_path(sub_path_json.path, m_context->site_packages_path)
-                    );
+                    for_compilation.push_back(get_python_noarch_target_path(
+                        sub_path_json.path,
+                        m_context->python_params().site_packages_path
+                    ));
                 }
             }
 
             std::vector<fs::u8path> pyc_files = compile_pyc_files(for_compilation);
             for (const fs::u8path& pyc_path : pyc_files)
             {
-                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.string() },
+                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.generic_string() },
                                                             { "path_type", "pyc_file" } });
 
-                out_json["files"].push_back(pyc_path.string());
+                out_json["files"].push_back(pyc_path.generic_string());
             }
 
             if (link_json.find("noarch") != link_json.end()
@@ -1070,21 +1081,31 @@ namespace mamba
         }
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
-        if (util::on_win && context.shortcuts
-            && m_context->target_prefix.filename().string()[0] != '_')
+        if (util::on_win && m_context->transaction_params().shortcuts
+            && m_context->prefix_params().target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)
             {
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    create_menu_from_json(context, m_context->target_prefix / path.path, m_context);
+                    create_menu_from_json(
+                        m_context->prefix_params().target_prefix / path.path,
+                        *m_context
+                    );
                 }
             }
         }
 
-        run_script(context, m_context->target_prefix, m_pkg_info, "post-link", "", true);
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_pkg_info,
+            "post-link",
+            "",
+            true
+        );
 
-        fs::u8path prefix_meta = m_context->target_prefix / "conda-meta";
+        fs::u8path prefix_meta = m_context->prefix_params().target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))
         {
             fs::create_directory(prefix_meta);

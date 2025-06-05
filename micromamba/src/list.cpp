@@ -21,18 +21,65 @@ init_list_parser(CLI::App* subcom, Configuration& config)
     auto& regex = config.insert(Configurable("list_regex", std::string(""))
                                     .group("cli")
                                     .description("List only packages matching a regular expression"));
-    subcom->add_option("regex", regex.get_cli_config<std::string>(), regex.description());
+    subcom->add_option("regex", regex.get_cli_config<std::string>(), regex.description())
+        ->option_text("REGEX");
 
     auto& full_name = config.insert(Configurable("full_name", false)
                                         .group("cli")
                                         .description("Only search for full names, i.e., ^<regex>$."));
     subcom->add_flag("-f,--full-name", full_name.get_cli_config<bool>(), full_name.description());
 
-    // TODO: implement this in libmamba/list.cpp
-    /*auto& canonical = config.insert(Configurable("canonical", false)
-                                        .group("cli")
-                                        .description("Output canonical names of packages only."));
-    subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());*/
+    auto& no_pip = config.insert(Configurable("no_pip", false)
+                                     .group("cli")
+                                     .description("Do not include pip-only installed packages."));
+    subcom->add_flag("--no-pip", no_pip.get_cli_config<bool>(), no_pip.description());
+
+    auto& reverse = config.insert(
+        Configurable("reverse", false).group("cli").description("List installed packages in reverse order.")
+    );
+    subcom->add_flag("--reverse", reverse.get_cli_config<bool>(), reverse.description());
+
+    auto& explicit_ = config.insert(
+        Configurable("explicit", false)
+            .group("cli")
+            .description(
+                "List explicitly all installed packages with URL. Ignored if --revisions is also provided."
+            )
+    );
+    subcom->add_flag("--explicit", explicit_.get_cli_config<bool>(), explicit_.description());
+
+    auto& md5 = config.insert(
+        Configurable("md5", false).group("cli").description("Add MD5 hashsum when using --explicit")
+    );
+    subcom->add_flag("--md5", md5.get_cli_config<bool>(), md5.description());
+
+    auto& sha256 = config.insert(
+        Configurable("sha256", false).group("cli").description("Add SHA256 hashsum when using --explicit")
+    );
+    subcom->add_flag("--sha256", sha256.get_cli_config<bool>(), sha256.description());
+
+    auto& canonical = config.insert(
+        Configurable("canonical", false)
+            .group("cli")
+            .description(
+                "Output canonical names of packages only. Ignored if --revisions or --explicit is also provided."
+            )
+    );
+    subcom->add_flag("-c,--canonical", canonical.get_cli_config<bool>(), canonical.description());
+
+    auto& export_ = config.insert(
+        Configurable("export", false)
+            .group("cli")
+            .description(
+                "Output explicit, machine-readable requirement strings instead of human-readable lists of packages. Ignored if --revisions, --explicit or --canonical is also provided."
+            )
+    );
+    subcom->add_flag("-e,--export", export_.get_cli_config<bool>(), export_.description());
+
+    auto& revisions = config.insert(
+        Configurable("revisions", false).group("cli").description("List the revision history.")
+    );
+    subcom->add_flag("--revisions", revisions.get_cli_config<bool>(), revisions.description());
 }
 
 void

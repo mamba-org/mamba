@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
@@ -17,42 +17,43 @@
 using namespace mamba;
 using namespace mamba::util;
 
-TEST_SUITE("util::url_manip")
+namespace
 {
     TEST_CASE("abs_path_to_url")
     {
-        SUBCASE("/users/test/miniconda3")
+        SECTION("/users/test/miniconda3")
         {
-            CHECK_EQ(abs_path_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
+            REQUIRE(abs_path_to_url("/users/test/miniconda3") == "file:///users/test/miniconda3");
         }
 
-        SUBCASE(R"(D:\users\test\miniconda3)")
+        SECTION(R"(D:\users\test\miniconda3)")
         {
             if (on_win)
             {
-                CHECK_EQ(
-                    abs_path_to_url(R"(D:\users\test\miniconda3)"),
-                    "file://D:/users/test/miniconda3"
+                REQUIRE(
+                    abs_path_to_url(R"(D:\users\test\miniconda3)") == "file://D:/users/test/miniconda3"
                 );
             }
         }
 
-        SUBCASE("/tmp/foo bar")
+        SECTION("/tmp/foo bar")
         {
-            CHECK_EQ(abs_path_to_url("/tmp/foo bar"), "file:///tmp/foo%20bar");
+            REQUIRE(abs_path_to_url("/tmp/foo bar") == "file:///tmp/foo%20bar");
         }
     }
 
     TEST_CASE("abs_path_or_url_to_url")
     {
-        SUBCASE("/users/test/miniconda3")
+        SECTION("/users/test/miniconda3")
         {
-            CHECK_EQ(abs_path_or_url_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
+            REQUIRE(
+                abs_path_or_url_to_url("/users/test/miniconda3") == "file:///users/test/miniconda3"
+            );
         }
 
-        SUBCASE("file:///tmp/bar")
+        SECTION("file:///tmp/bar")
         {
-            CHECK_EQ(abs_path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
+            REQUIRE(abs_path_or_url_to_url("file:///tmp/bar") == "file:///tmp/bar");
         }
     }
 
@@ -60,52 +61,54 @@ TEST_SUITE("util::url_manip")
     {
         const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
 
-        SUBCASE("/users/test/miniconda3")
+        SECTION("/users/test/miniconda3")
         {
             auto url = path_to_url("/users/test/miniconda3");
             if (on_win)
             {
-                CHECK_EQ(url, concat("file://", win_drive, ":/users/test/miniconda3"));
+                REQUIRE(url == concat("file://", win_drive, ":/users/test/miniconda3"));
             }
             else
             {
-                CHECK_EQ(url, "file:///users/test/miniconda3");
+                REQUIRE(url == "file:///users/test/miniconda3");
             }
         }
 
-        SUBCASE(R"(D:\users\test\miniconda3)")
+        SECTION(R"(D:\users\test\miniconda3)")
         {
             if (on_win)
             {
-                CHECK_EQ(path_to_url(R"(D:\users\test\miniconda3)"), "file://D:/users/test/miniconda3");
+                REQUIRE(
+                    path_to_url(R"(D:\users\test\miniconda3)") == "file://D:/users/test/miniconda3"
+                );
             }
         }
 
-        SUBCASE("/tmp/foo bar")
+        SECTION("/tmp/foo bar")
         {
             auto url = path_to_url("/tmp/foo bar");
             if (on_win)
             {
-                CHECK_EQ(url, concat("file://", win_drive, ":/tmp/foo%20bar"));
+                REQUIRE(url == concat("file://", win_drive, ":/tmp/foo%20bar"));
             }
             else
             {
-                CHECK_EQ(url, "file:///tmp/foo%20bar");
+                REQUIRE(url == "file:///tmp/foo%20bar");
             }
         }
 
-        SUBCASE("./folder/./../folder")
+        SECTION("./folder/./../folder")
         {
             auto url = path_to_url("./folder/./../folder");
             if (on_win)
             {
-                CHECK(starts_with(url, concat("file://", win_drive, ":/")));
-                CHECK(ends_with(url, "/folder"));
+                REQUIRE(starts_with(url, concat("file://", win_drive, ":/")));
+                REQUIRE(ends_with(url, "/folder"));
             }
             else
             {
                 const auto expected_folder = fs::absolute("folder").lexically_normal();
-                CHECK_EQ(url, concat("file://", expected_folder.string()));
+                REQUIRE(url == concat("file://", expected_folder.string()));
             }
         }
     }
@@ -114,41 +117,81 @@ TEST_SUITE("util::url_manip")
     {
         const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
 
-        SUBCASE("/tmp/foo bar")
+        SECTION("/tmp/foo bar")
         {
             auto url = path_or_url_to_url("/tmp/foo bar");
             if (on_win)
             {
-                CHECK_EQ(url, concat("file://", win_drive, ":/tmp/foo%20bar"));
+                REQUIRE(url == concat("file://", win_drive, ":/tmp/foo%20bar"));
             }
             else
             {
-                CHECK_EQ(url, "file:///tmp/foo%20bar");
+                REQUIRE(url == "file:///tmp/foo%20bar");
             }
         }
 
-        SUBCASE("file:///tmp/bar")
+        SECTION("file:///tmp/bar")
         {
-            CHECK_EQ(path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
+            REQUIRE(path_or_url_to_url("file:///tmp/bar") == "file:///tmp/bar");
         }
     }
 
     TEST_CASE("url_concat")
     {
-        CHECK_EQ(url_concat("", ""), "");
-        CHECK_EQ(url_concat("", "/"), "/");
-        CHECK_EQ(url_concat("/", ""), "/");
-        CHECK_EQ(url_concat("/", "/"), "/");
+        REQUIRE(url_concat("", "") == "");
+        REQUIRE(url_concat("", "/") == "/");
+        REQUIRE(url_concat("/", "") == "/");
+        REQUIRE(url_concat("/", "/") == "/");
 
-        CHECK_EQ(url_concat("mamba.org", "folder"), "mamba.org/folder");
-        CHECK_EQ(url_concat("mamba.org", "/folder"), "mamba.org/folder");
-        CHECK_EQ(url_concat("mamba.org/", "folder"), "mamba.org/folder");
-        CHECK_EQ(url_concat("mamba.org/", "/folder"), "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org", "folder") == "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org", "/folder") == "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org/", "folder") == "mamba.org/folder");
+        REQUIRE(url_concat("mamba.org/", "/folder") == "mamba.org/folder");
 
-        CHECK_EQ(
-            url_concat("mamba.org", 't', std::string("/sometoken/"), std::string_view("conda-forge")),
-            "mamba.org/t/sometoken/conda-forge"
+        REQUIRE(
+            url_concat("mamba.org", 't', std::string("/sometoken/"), std::string_view("conda-forge"))
+            == "mamba.org/t/sometoken/conda-forge"
         );
+    }
+
+    TEST_CASE("make_curl_compatible")
+    {
+        for (const std::string uri : {
+                 "http://example.com/test",
+                 R"(file:////C:/Program\ (x74)/Users/hello\ world)",
+                 "file:////server/share",
+                 "file:///server/share",
+                 "file://absolute/path",
+                 R"(file://\\D:/server/share)",
+                 R"(file://\\server\path)",
+             })
+        {
+            CAPTURE(uri);
+            REQUIRE(make_curl_compatible(uri) == uri);
+        }
+
+        if (on_win)
+        {
+            REQUIRE(
+                make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file://C:/Program\ (x74)/Users/hello\ world)"
+            );
+            REQUIRE(
+                make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:///C:/Program\ (x74)/Users/hello\ world)"
+            );
+        }
+        else
+        {
+            REQUIRE(
+                make_curl_compatible(R"(file://C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
+            );
+            REQUIRE(
+                make_curl_compatible(R"(file:///C:/Program\ (x74)/Users/hello\ world)")
+                == R"(file:////C:/Program\ (x74)/Users/hello\ world)"
+            );
+        }
     }
 
     TEST_CASE("file_uri_unc2_to_unc4")
@@ -164,31 +207,31 @@ TEST_SUITE("util::url_manip")
              })
         {
             CAPTURE(uri);
-            CHECK_EQ(file_uri_unc2_to_unc4(uri), uri);
+            REQUIRE(file_uri_unc2_to_unc4(uri) == uri);
         }
-        CHECK_EQ(file_uri_unc2_to_unc4("file://server/share"), "file:////server/share");
-        CHECK_EQ(file_uri_unc2_to_unc4("file://server"), "file:////server");
+        REQUIRE(file_uri_unc2_to_unc4("file://server/share") == "file:////server/share");
+        REQUIRE(file_uri_unc2_to_unc4("file://server") == "file:////server");
     }
 
     TEST_CASE("url_get_scheme")
     {
-        CHECK_EQ(url_get_scheme("http://mamba.org"), "http");
-        CHECK_EQ(url_get_scheme("file:///folder/file.txt"), "file");
-        CHECK_EQ(url_get_scheme("s3://bucket/file.txt"), "s3");
-        CHECK_EQ(url_get_scheme("mamba.org"), "");
-        CHECK_EQ(url_get_scheme("://"), "");
-        CHECK_EQ(url_get_scheme("f#gre://"), "");
-        CHECK_EQ(url_get_scheme(""), "");
+        REQUIRE(url_get_scheme("http://mamba.org") == "http");
+        REQUIRE(url_get_scheme("file:///folder/file.txt") == "file");
+        REQUIRE(url_get_scheme("s3://bucket/file.txt") == "s3");
+        REQUIRE(url_get_scheme("mamba.org") == "");
+        REQUIRE(url_get_scheme("://") == "");
+        REQUIRE(url_get_scheme("f#gre://") == "");
+        REQUIRE(url_get_scheme("") == "");
     }
 
     TEST_CASE("url_has_scheme")
     {
-        CHECK(url_has_scheme("http://mamba.org"));
-        CHECK(url_has_scheme("file:///folder/file.txt"));
-        CHECK(url_has_scheme("s3://bucket/file.txt"));
-        CHECK_FALSE(url_has_scheme("mamba.org"));
-        CHECK_FALSE(url_has_scheme("://"));
-        CHECK_FALSE(url_has_scheme("f#gre://"));
-        CHECK_FALSE(url_has_scheme(""));
+        REQUIRE(url_has_scheme("http://mamba.org"));
+        REQUIRE(url_has_scheme("file:///folder/file.txt"));
+        REQUIRE(url_has_scheme("s3://bucket/file.txt"));
+        REQUIRE_FALSE(url_has_scheme("mamba.org"));
+        REQUIRE_FALSE(url_has_scheme("://"));
+        REQUIRE_FALSE(url_has_scheme("f#gre://"));
+        REQUIRE_FALSE(url_has_scheme(""));
     }
 }

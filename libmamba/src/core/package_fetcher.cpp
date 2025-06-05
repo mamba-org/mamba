@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/invoke.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
@@ -106,8 +107,8 @@ namespace mamba
             {
                 caches.clear_query_cache(m_package_info);
                 // need to download this file
-                LOG_DEBUG << "Adding '" << name() << "' to download targets from '" << channel()
-                          << "/" << url_path() << "'";
+                LOG_DEBUG << "Adding '" << name() << "' to download targets from '"
+                          << hide_secrets(channel()) << "/" << url_path() << "'";
                 m_tarball_path = m_cache_path / filename();
                 m_needs_extract = true;
                 m_needs_download = true;
@@ -152,7 +153,7 @@ namespace mamba
                 cb.value()(success.transfer.downloaded_size);
             }
             m_needs_download = false;
-            m_downloaded_url = success.transfer.effective_url;
+            m_downloaded_url = m_package_info.package_url;
             return expected_t<void>();
         };
 
@@ -162,7 +163,11 @@ namespace mamba
             {
                 LOG_ERROR << "Failed to download package from "
                           << error.transfer.value().effective_url << " (status "
-                          << error.transfer.value().http_status << ")";
+                          << error.transfer.value().http_status << ")\n"
+                          << "If you see this message repeatedly, the state of your installation might be corrupted,\n"
+                          << "in which case running `mamba clean --all` might fix it.\n\n"
+                          << "If you continue to meet this problem, please search or report an issue\n"
+                          << "on  mamba's issue tracker: https://github.com/mamba-org/mamba/issues/";
             }
             else
             {
@@ -323,28 +328,51 @@ namespace mamba
         return m_package_info.filename;
     }
 
+    bool PackageFetcher::use_oci() const
+    {
+        constexpr std::string_view oci_scheme = "oci://";
+        return util::starts_with(m_package_info.package_url, oci_scheme);
+    }
+
+    bool PackageFetcher::use_auth() const
+    {
+        return std::regex_search(m_package_info.package_url, http_basicauth_regex())
+               || std::regex_search(m_package_info.package_url, token_regex());
+    }
+
+    // NOTE
+    // - In the general case (not fetching from an oci registry),
+    // `channel()` and `url_path()` are concatenated when passed to `HTTPMirror`
+    // and the channel is resolved if needed (using the channel alias).
+    // Therefore, `util::url_concat("", m_package_info.package_url)`
+    // and `util::url_concat(m_package_info.channel, m_package_info.platform,
+    // m_package_info.filename)` should be equivalent, except when an explicit url is used as a spec
+    // with `--override-channels` option.
+    // Hence, we are favoring the first option (returning "" and `m_package_info.package_url`
+    // to be concatenated), valid for all the mentioned cases used with `HTTPMirror`.
+    // - In the case of fetching from oci registries (using `OCIMirror`),the actual url
+    // used is built differently, and returning `m_package_info.package_url` is not relevant
+    // (i.e oci://ghcr.io/<mirror>/<channel>/<platform>/<filename>).
+    // - With authenticated downloading (private packages for e.g), we should use
+    // `util::url_concat(m_package_info.channel, m_package_info.platform,
+    // m_package_info.filename)` as `m_package_info.package_url` would contain the
+    // authentication info which shouldn't be passed in the url but set using libcurl's CURLUPart.
     std::string PackageFetcher::channel() const
     {
-        if (!util::starts_with(m_package_info.package_url, "file://"))
+        if (use_oci() || use_auth())
         {
             return m_package_info.channel;
         }
-        else  // local package case
-        {
-            return "";
-        }
+        return "";
     }
 
     std::string PackageFetcher::url_path() const
     {
-        if (!util::starts_with(m_package_info.package_url, "file://"))
+        if (use_oci() || use_auth())
         {
             return util::concat(m_package_info.platform, '/', m_package_info.filename);
         }
-        else  // local package case
-        {
-            return m_package_info.package_url;
-        }
+        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::url() const
@@ -406,16 +434,20 @@ namespace mamba
         std::ifstream index_file = open_ifstream(index_path);
         index_file >> index;
 
-        const nlohmann::json solvable_json = m_package_info;
-        index.insert(solvable_json.cbegin(), solvable_json.cend());
+        nlohmann::json repodata_record = m_package_info;
 
-        if (index.find("size") == index.end() || index["size"] == 0)
+        // To take correction of packages metadata (e.g. made using repodata patches) into account,
+        // we insert the index into the repodata record to only add new fields from the index
+        // while keeping the existing fields from the repodata record.
+        repodata_record.insert(index.cbegin(), index.cend());
+
+        if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
         {
-            index["size"] = fs::file_size(m_tarball_path);
+            repodata_record["size"] = fs::file_size(m_tarball_path);
         }
 
-        std::ofstream repodata_record(repodata_record_path.std_path());
-        repodata_record << index.dump(4);
+        std::ofstream repodata_record_file(repodata_record_path.std_path());
+        repodata_record_file << repodata_record.dump(4);
     }
 
     namespace

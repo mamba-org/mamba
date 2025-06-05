@@ -4,40 +4,40 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/specs/glob_spec.hpp"
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::glob_spec")
+namespace
 {
     // See also test_parser for Glob matcher tests
 
-    TEST_CASE("Free")
+    TEST_CASE("GlobSpec Free")
     {
         auto spec = GlobSpec();
 
-        CHECK(spec.contains(""));
-        CHECK(spec.contains("hello"));
+        REQUIRE(spec.contains(""));
+        REQUIRE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "*");
-        CHECK(spec.is_free());
-        CHECK_FALSE(spec.is_exact());
+        REQUIRE(spec.to_string() == "*");
+        REQUIRE(spec.is_free());
+        REQUIRE_FALSE(spec.is_exact());
     }
 
     TEST_CASE("*mkl*")
     {
         auto spec = GlobSpec("mkl");
 
-        CHECK(spec.contains("mkl"));
-        CHECK_FALSE(spec.contains(""));
-        CHECK_FALSE(spec.contains("nomkl"));
-        CHECK_FALSE(spec.contains("hello"));
+        REQUIRE(spec.contains("mkl"));
+        REQUIRE_FALSE(spec.contains(""));
+        REQUIRE_FALSE(spec.contains("nomkl"));
+        REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "mkl");
-        CHECK_FALSE(spec.is_free());
-        CHECK(spec.is_exact());
+        REQUIRE(spec.to_string() == "mkl");
+        REQUIRE_FALSE(spec.is_free());
+        REQUIRE(spec.is_exact());
     }
 
     TEST_CASE("*py*")
@@ -45,28 +45,28 @@ TEST_SUITE("specs::glob_spec")
         // See also test_parser for Glob matcher tests
         auto spec = GlobSpec("*py*");
 
-        CHECK(spec.contains("py"));
-        CHECK(spec.contains("pypy"));
-        CHECK(spec.contains("cpython-linux-64"));
-        CHECK_FALSE(spec.contains("rust"));
-        CHECK_FALSE(spec.contains("hello"));
+        REQUIRE(spec.contains("py"));
+        REQUIRE(spec.contains("pypy"));
+        REQUIRE(spec.contains("cpython-linux-64"));
+        REQUIRE_FALSE(spec.contains("rust"));
+        REQUIRE_FALSE(spec.contains("hello"));
 
-        CHECK_EQ(spec.str(), "*py*");
-        CHECK_FALSE(spec.is_free());
-        CHECK_FALSE(spec.is_exact());
+        REQUIRE(spec.to_string() == "*py*");
+        REQUIRE_FALSE(spec.is_free());
+        REQUIRE_FALSE(spec.is_exact());
     }
 
-    TEST_CASE("Comparability and hashability")
+    TEST_CASE("GlobSpec Comparability and hashability")
     {
         auto spec1 = GlobSpec("py*");
         auto spec2 = GlobSpec("py*");
         auto spec3 = GlobSpec("pyth*");
 
-        CHECK_EQ(spec1, spec2);
-        CHECK_NE(spec1, spec3);
+        REQUIRE(spec1 == spec2);
+        REQUIRE(spec1 != spec3);
 
         auto hash_fn = std::hash<GlobSpec>();
-        CHECK_EQ(hash_fn(spec1), hash_fn(spec2));
-        CHECK_NE(hash_fn(spec1), hash_fn(spec3));
+        REQUIRE(hash_fn(spec1) == hash_fn(spec2));
+        REQUIRE(hash_fn(spec1) != hash_fn(spec3));
     }
 }

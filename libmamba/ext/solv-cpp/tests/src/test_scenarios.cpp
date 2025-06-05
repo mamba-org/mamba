@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <solv/solver.h>
 
 #include "solv-cpp/pool.hpp"
@@ -17,7 +17,7 @@
 using namespace solv;
 using namespace solv::test;
 
-TEST_SUITE("solv::scenariso")
+namespace
 {
     TEST_CASE("Solving")
     {
@@ -35,108 +35,108 @@ TEST_SUITE("solv::scenariso")
         auto [installed_id, repo_installed] = pool.add_repo("installed");
         pool.set_installed_repo(installed_id);
 
-        SUBCASE(R"(Installed package "a")")
+        SECTION(R"(Installed package "a")")
         {
             const auto ia1 = add_simple_package(pool, repo_installed, SimplePkg{ "a", "1.0" });
             repo_installed.internalize();
 
             auto solver = ObjSolver(pool);
 
-            SUBCASE("Already statifies iteslf")
+            SECTION("Already statifies iteslf")
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("a"),
+                    pool.add_legacy_conda_dependency("a"),
                 };
-                CHECK(solver.solve(pool, jobs));
+                REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
                 // Outcome: nothing
-                CHECK(trans.steps().empty());
+                REQUIRE(trans.steps().empty());
             }
 
-            SUBCASE("Already satisfies dependency")
+            SECTION("Already satisfies dependency")
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("b==1.0"),
+                    pool.add_legacy_conda_dependency("b==1.0"),
                 };
-                CHECK(solver.solve(pool, jobs));
+                REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
                 // Outcome: install only b 1.0
-                CHECK_EQ(trans.steps(), ObjQueue{ fb1 });
+                REQUIRE(trans.steps() == ObjQueue{ fb1 });
             }
 
-            SUBCASE("Is not removed when not needed even with ALLOW_UNINSTALL")
+            SECTION("Is not removed when not needed even with ALLOW_UNINSTALL")
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("b==2.0"),
+                    pool.add_legacy_conda_dependency("b==2.0"),
                 };
                 solver.set_flag(SOLVER_FLAG_ALLOW_UNINSTALL, true);
-                CHECK(solver.solve(pool, jobs));
+                REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
                 // Outcome: install b 2.0, leave a
-                CHECK_EQ(trans.steps(), ObjQueue{ fb2 });
+                REQUIRE(trans.steps() == ObjQueue{ fb2 });
             }
 
-            SUBCASE("Gets upgraded as a dependency")
+            SECTION("Gets upgraded as a dependency")
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("c==1.0"),
+                    pool.add_legacy_conda_dependency("c==1.0"),
                 };
-                CHECK(solver.solve(pool, jobs));
+                REQUIRE(solver.solve(pool, jobs));
                 auto trans = ObjTransaction::from_solver(pool, solver);
-                CHECK_EQ(trans.steps().size(), 3);
-                CHECK(trans.steps().contains(ia1));  // Remove a 1.0
-                CHECK(trans.steps().contains(fa2));  // Install a 2.0
-                CHECK(trans.steps().contains(fc1));  // Install c 1.0
+                REQUIRE(trans.steps().size() == 3);
+                REQUIRE(trans.steps().contains(ia1));  // Remove a 1.0
+                REQUIRE(trans.steps().contains(fa2));  // Install a 2.0
+                REQUIRE(trans.steps().contains(fc1));  // Install c 1.0
             }
 
-            SUBCASE("Fails to upgrade when lock even with ALLOW_UNINSTALL")
+            SECTION("Fails to upgrade when lock even with ALLOW_UNINSTALL")
             {
                 auto jobs = ObjQueue{
                     SOLVER_LOCK | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("a"),
+                    pool.add_legacy_conda_dependency("a"),
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("c==1.0"),
+                    pool.add_legacy_conda_dependency("c==1.0"),
                 };
                 solver.set_flag(SOLVER_FLAG_ALLOW_UNINSTALL, true);
-                CHECK_FALSE(solver.solve(pool, jobs));
+                REQUIRE_FALSE(solver.solve(pool, jobs));
             }
         }
 
-        SUBCASE(R"(Installed package "a" get downgraded by dependency)")
+        SECTION(R"(Installed package "a" get downgraded by dependency)")
         {
             const auto ia2 = add_simple_package(pool, repo_installed, SimplePkg{ "a", "2.0" });
             repo_installed.internalize();
 
             auto solver = ObjSolver(pool);
 
-            SUBCASE("Fails by default")
+            SECTION("Fails by default")
             {
                 auto jobs = ObjQueue{
                     SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("c==2.0"),
+                    pool.add_legacy_conda_dependency("c==2.0"),
                 };
-                CHECK_FALSE(solver.solve(pool, jobs));
+                REQUIRE_FALSE(solver.solve(pool, jobs));
             }
 
-            SUBCASE("Succeeds with ALLOW_DOWNGRADE or ALLOW_UNINSTALL")
+            SECTION("Succeeds with ALLOW_DOWNGRADE or ALLOW_UNINSTALL")
             {
                 for (const auto flag : { SOLVER_FLAG_ALLOW_DOWNGRADE, SOLVER_FLAG_ALLOW_UNINSTALL })
                 {
                     solver.set_flag(flag, true);
                     auto jobs = ObjQueue{
                         SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                        pool.add_conda_dependency("c==2.0"),
+                        pool.add_legacy_conda_dependency("c==2.0"),
                     };
-                    CHECK(solver.solve(pool, jobs));
+                    REQUIRE(solver.solve(pool, jobs));
                     auto trans = ObjTransaction::from_solver(pool, solver);
-                    CHECK_EQ(trans.steps().size(), 3);
-                    CHECK(trans.steps().contains(ia2));  // Remove a 2.0
-                    CHECK(trans.steps().contains(fa1));  // Install a 1.0
-                    CHECK(trans.steps().contains(fc2));  // Install c 2.0
+                    REQUIRE(trans.steps().size() == 3);
+                    REQUIRE(trans.steps().contains(ia2));  // Remove a 2.0
+                    REQUIRE(trans.steps().contains(fa1));  // Install a 1.0
+                    REQUIRE(trans.steps().contains(fc2));  // Install c 2.0
                 }
             }
         }
@@ -154,28 +154,28 @@ TEST_SUITE("solv::scenariso")
         const auto a_solv_id = add_simple_package(pool, repo, SimplePkg{ "a", "1.0" });
         repo.internalize();
 
-        SUBCASE("Direct job namespace dependency")
+        SECTION("Direct job namespace dependency")
         {
-            SUBCASE("Which resolves to some packages")
+            SECTION("Which resolves to some packages")
             {
                 bool called = false;
                 pool.set_namespace_callback(
                     [&, a_solv_id = a_solv_id](ObjPoolView, StringId name, StringId ver) noexcept -> OffsetId
                     {
                         called = true;
-                        CHECK_EQ(name, dep_name_id);
-                        CHECK_EQ(ver, dep_ver_id);
+                        REQUIRE(name == dep_name_id);
+                        REQUIRE(ver == dep_ver_id);
                         return pool.add_to_whatprovides_data({ a_solv_id });
                     }
                 );
 
                 auto solver = ObjSolver(pool);
                 auto solved = solver.solve(pool, { SOLVER_INSTALL, dep_id });
-                CHECK(solved);
-                CHECK(called);
+                REQUIRE(solved);
+                REQUIRE(called);
             }
 
-            SUBCASE("Which is unsatisfyable")
+            SECTION("Which is unsatisfyable")
             {
                 bool called = false;
                 pool.set_namespace_callback(
@@ -188,11 +188,11 @@ TEST_SUITE("solv::scenariso")
 
                 auto solver = ObjSolver(pool);
                 auto solved = solver.solve(pool, { SOLVER_INSTALL, dep_id });
-                CHECK(called);
-                CHECK_FALSE(solved);
+                REQUIRE(called);
+                REQUIRE_FALSE(solved);
             }
 
-            SUBCASE("Callback throws")
+            SECTION("Callback throws")
             {
                 pool.set_namespace_callback(
                     [](ObjPoolView, StringId, StringId) -> OffsetId
@@ -200,14 +200,14 @@ TEST_SUITE("solv::scenariso")
                 );
 
                 auto solver = ObjSolver(pool);
-                CHECK_THROWS_AS(
+                REQUIRE_THROWS_AS(
                     [&] { return solver.solve(pool, { SOLVER_INSTALL, dep_id }); }(),
                     std::runtime_error
                 );
             }
         }
 
-        SUBCASE("transitive job dependency")
+        SECTION("transitive job dependency")
         {
             // Add a dependency ``job==3.0``
             const auto job_name_id = pool.add_string("job");
@@ -222,26 +222,26 @@ TEST_SUITE("solv::scenariso")
             job_solv.add_self_provide();
             repo.internalize();
 
-            SUBCASE("Which resolves to some packages")
+            SECTION("Which resolves to some packages")
             {
                 bool called = false;
                 pool.set_namespace_callback(
                     [&, a_solv_id = a_solv_id](ObjPoolView, StringId name, StringId ver) noexcept -> OffsetId
                     {
                         called = true;
-                        CHECK_EQ(name, dep_name_id);
-                        CHECK_EQ(ver, dep_ver_id);
+                        REQUIRE(name == dep_name_id);
+                        REQUIRE(ver == dep_ver_id);
                         return pool.add_to_whatprovides_data({ a_solv_id });
                     }
                 );
 
                 auto solver = ObjSolver(pool);
                 auto solved = solver.solve(pool, { SOLVER_INSTALL, job_id });
-                CHECK(called);
-                CHECK(solved);
+                REQUIRE(called);
+                REQUIRE(solved);
             }
 
-            SUBCASE("Which is unsatisfyable")
+            SECTION("Which is unsatisfyable")
             {
                 bool called = false;
                 pool.set_namespace_callback(
@@ -254,11 +254,11 @@ TEST_SUITE("solv::scenariso")
 
                 auto solver = ObjSolver(pool);
                 auto solved = solver.solve(pool, { SOLVER_INSTALL, job_id });
-                CHECK(called);
-                CHECK_FALSE(solved);
+                REQUIRE(called);
+                REQUIRE_FALSE(solved);
             }
 
-            SUBCASE("Callback throws")
+            SECTION("Callback throws")
             {
                 pool.set_namespace_callback(
                     [](ObjPoolView, StringId, StringId) -> OffsetId
@@ -266,7 +266,7 @@ TEST_SUITE("solv::scenariso")
                 );
 
                 auto solver = ObjSolver(pool);
-                CHECK_THROWS_AS(
+                REQUIRE_THROWS_AS(
                     [&] { return solver.solve(pool, { SOLVER_INSTALL, job_id }); }(),
                     std::runtime_error
                 );

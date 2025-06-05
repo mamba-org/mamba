@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/pinning.hpp"
@@ -17,7 +17,7 @@ namespace mamba
 {
     namespace testing
     {
-        TEST_SUITE("pinning")
+        namespace
         {
             TEST_CASE("python_pin")
             {
@@ -32,67 +32,67 @@ namespace mamba
                     throw std::runtime_error("could not load prefix data");
                 }
                 PrefixData& prefix_data = sprefix_data.value();
-                REQUIRE_EQ(prefix_data.records().size(), 0);
+                REQUIRE(prefix_data.records().size() == 0);
 
                 specs = { "python" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python-test" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python=3" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python==3.8" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python==3.8.3" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "numpy" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs::PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
                 prefix_data.add_packages({ pkg_info });
-                REQUIRE_EQ(prefix_data.records().size(), 1);
+                REQUIRE(prefix_data.records().size() == 1);
 
                 specs = { "python" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "numpy" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "python 3.7.*");
+                REQUIRE(pin == "python 3.7.*");
 
                 specs = { "python-test" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "python 3.7.*");
+                REQUIRE(pin == "python 3.7.*");
 
                 specs = { "python==3" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python=3.*" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python=3.8" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "python=3.8.3" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
 
                 specs = { "numpy", "python" };
                 pin = python_pin(prefix_data, specs);
-                CHECK_EQ(pin, "");
+                REQUIRE(pin == "");
             }
 
             TEST_CASE("file_pins")
@@ -106,18 +106,18 @@ namespace mamba
                 out_file.close();
 
                 pins = file_pins(path);
-                REQUIRE_EQ(pins.size(), 2);
-                CHECK_EQ(pins[0], "numpy=1.13");
-                CHECK_EQ(pins[1], "jupyterlab=3");
+                REQUIRE(pins.size() == 2);
+                REQUIRE(pins[0] == "numpy=1.13");
+                REQUIRE(pins[1] == "jupyterlab=3");
 
                 out_file.open(path.std_path(), std::ofstream::out | std::ofstream::trunc);
                 out_file << "numpy=1.13\npython=3.7.5";
                 out_file.close();
 
                 pins = file_pins(path);
-                REQUIRE_EQ(pins.size(), 2);
-                CHECK_EQ(pins[0], "numpy=1.13");
-                CHECK_EQ(pins[1], "python=3.7.5");
+                REQUIRE(pins.size() == 2);
+                REQUIRE(pins[0] == "numpy=1.13");
+                REQUIRE(pins[1] == "python=3.7.5");
             }
         }
     }  // namespace testing

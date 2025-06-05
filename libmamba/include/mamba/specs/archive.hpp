@@ -17,7 +17,8 @@ namespace mamba::specs
 {
     inline static constexpr auto ARCHIVE_EXTENSIONS = std::array{ std::string_view(".tar.bz2"),
                                                                   std::string_view(".conda"),
-                                                                  std::string_view(".whl") };
+                                                                  std::string_view(".whl"),
+                                                                  std::string_view(".tar.gz") };
 
     /** Detect if the package path has one of the known archive extension. */
     template <typename Str, std::enable_if_t<std::is_convertible_v<Str, std::string_view>, bool> = true>

@@ -20,6 +20,7 @@
 #include "mamba/api/repoquery.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
@@ -27,7 +28,7 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -133,13 +134,15 @@ namespace mambapy
     // replicate the move semantics in Python, we encapsulate the creation
     // and the storage of MSubdirData objects in this class, to avoid
     // potential dangling references in Python.
+    //
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
     class SubdirIndex
     {
     public:
 
         struct Entry
         {
-            mamba::SubdirData* p_subdirdata = nullptr;
+            mamba::SubdirIndexLoader* p_subdirdata = nullptr;
             std::string m_platform = "";
             const mamba::specs::Channel* p_channel = nullptr;
             std::string m_url = "";
@@ -161,8 +164,10 @@ namespace mambapy
         )
         {
             using namespace mamba;
+            auto subdir_params = ctx.subdir_params();
+            subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
             m_subdirs.push_back(extract(
-                SubdirData::create(ctx, channel_context, channel, platform, caches, repodata_fn)
+                SubdirIndexLoader::create(subdir_params, channel, platform, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -177,15 +182,31 @@ namespace mambapy
             // TODO: expose SubdirDataMonitor to libmambapy and remove this
             //  logic
             expected_t<void> download_res;
-            if (SubdirDataMonitor::can_monitor(ctx))
+            if (SubdirIndexMonitor::can_monitor(ctx))
             {
-                SubdirDataMonitor check_monitor({ true, true });
-                SubdirDataMonitor index_monitor;
-                download_res = SubdirData::download_indexes(m_subdirs, ctx, &check_monitor, &index_monitor);
+                SubdirIndexMonitor check_monitor({ true, true });
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_required_indexes(
+                    m_subdirs,
+                    ctx.subdir_download_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    &check_monitor,
+                    &index_monitor
+                );
             }
             else
             {
-                download_res = SubdirData::download_indexes(m_subdirs, ctx);
+                download_res = SubdirIndexLoader::download_required_indexes(
+                    m_subdirs,
+                    ctx.subdir_download_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params
+                );
             }
             return download_res.has_value();
         }
@@ -212,7 +233,7 @@ namespace mambapy
 
     private:
 
-        std::vector<mamba::SubdirData> m_subdirs;
+        std::vector<mamba::SubdirIndexLoader> m_subdirs;
         entry_list m_entries;
     };
 }
@@ -417,6 +438,30 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
+    py::class_<download::RemoteFetchParams>(m, "RemoteFetchParams")
+        .def(py::init<>())
+        .def_readwrite("ssl_verify", &download::RemoteFetchParams::ssl_verify)
+        .def_readwrite("max_retries", &download::RemoteFetchParams::max_retries)
+        .def_readwrite("retry_timeout", &download::RemoteFetchParams::retry_timeout)
+        .def_readwrite("retry_backoff", &download::RemoteFetchParams::retry_backoff)
+        .def_readwrite("user_agent", &download::RemoteFetchParams::user_agent)
+        // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
+        .def_readwrite("proxy_servers", &download::RemoteFetchParams::proxy_servers)
+        .def_readwrite("connect_timeout_secs", &download::RemoteFetchParams::connect_timeout_secs);
+
+    py::class_<download::Options>(m, "DownloadOptions")
+        .def(py::init<>())
+        .def_readwrite("download_threads", &download::Options::download_threads)
+        .def_readwrite("fail_fast", &download::Options::fail_fast)
+        .def_readwrite("sort", &download::Options::sort)
+        .def_readwrite("verbose", &download::Options::verbose);
+
+    py::class_<download::mirror_map>(m, "MirrorMap")
+        .def(py::init<>())
+        .def("has_mirrors", &download::mirror_map::has_mirrors, py::arg("mirror_name"))
+        .def("__contains__", &download::mirror_map::has_mirrors)
+        .def("__len__", &download::mirror_map::size);
+
     m.def(
         "load_subdir_in_database",
         &load_subdir_in_database,
@@ -510,25 +555,123 @@ bind_submodule_impl(pybind11::module_ m)
         .def_static("whoneeds", &Query::whoneeds)
         .def_static("depends", &Query::depends);
 
-    py::class_<SubdirData>(m, "SubdirData")
+    py::class_<SubdirParams>(m, "SubdirParams")
+        .def_readwrite("local_repodata_ttl_s", &SubdirParams::local_repodata_ttl_s)
+        .def_readwrite("offline", &SubdirParams::offline)
+        .def_readwrite("repodata_force_use_zst", &SubdirParams::repodata_force_use_zst);
+
+    py::class_<SubdirDownloadParams>(m, "SubdirDownloadParams")
+        .def_readwrite("offline", &SubdirDownloadParams::offline)
+        .def_readwrite("repodata_check_zst", &SubdirDownloadParams::repodata_check_zst);
+
+    auto subdir_metadata = py::class_<SubdirMetadata>(m, "SubdirMetadata");
+
+    py::class_<SubdirMetadata::HttpMetadata>(subdir_metadata, "HttpMetadata")
+        .def_readwrite("url", &SubdirMetadata::HttpMetadata::url)
+        .def_readwrite("etag", &SubdirMetadata::HttpMetadata::etag)
+        .def_readwrite("last_modified", &SubdirMetadata::HttpMetadata::last_modified)
+        .def_readwrite("cache_control", &SubdirMetadata::HttpMetadata::cache_control);
+
+    subdir_metadata.def_static("read_state_file", &SubdirMetadata::read_state_file)
+        .def_static("read_from_repodata_json", &SubdirMetadata::read_from_repodata_json)
+        .def_static("read", &SubdirMetadata::read)
+        .def("is_valid_metadata", &SubdirMetadata::is_valid_metadata)
+        .def("url", &SubdirMetadata::url)
+        .def("etag", &SubdirMetadata::etag)
+        .def("last_modified", &SubdirMetadata::last_modified)
+        .def("cache_control", &SubdirMetadata::cache_control)
+        .def("has_up_to_date_zst", &SubdirMetadata::has_up_to_date_zst)
+        .def("set_http_metadata", &SubdirMetadata::set_http_metadata)
+        .def("set_zst", &SubdirMetadata::set_zst)
+        .def("store_file_metadata", &SubdirMetadata::store_file_metadata)
+        .def("write_state_file", &SubdirMetadata::write_state_file);
+
+    py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader")
+        .def_static(
+            "create",
+            SubdirIndexLoader::create,
+            py::arg("params"),
+            py::arg("channel"),
+            py::arg("platform"),
+            py::arg("caches"),
+            py::arg("repodata_filename") = "repodata.json"
+        )
+        .def_static(
+            "download_required_indexes",
+            [](py::iterable py_subdirs,
+               const SubdirDownloadParams& subdir_download_params,
+               const specs::AuthenticationDataBase& auth_info,
+               const download::mirror_map& mirrors,
+               const download::Options& download_options,
+               const download::RemoteFetchParams& remote_fetch_params)
+            {
+                // TODO(C++23): Pass range to SubdirIndexLoader::create
+                auto subdirs = std::vector<SubdirIndexLoader*>();
+                subdirs.reserve(py::len_hint(py_subdirs));
+                for (py::handle item : py_subdirs)
+                {
+                    subdirs.push_back(py::cast<SubdirIndexLoader*>(item));
+                }
+                return SubdirIndexLoader::download_required_indexes(
+                    subdirs,
+                    subdir_download_params,
+                    auth_info,
+                    mirrors,
+                    download_options,
+                    remote_fetch_params
+                );
+            },
+            py::arg("subdir_indices"),
+            py::arg("subdir_params"),
+            py::arg("auth_info"),
+            py::arg("mirrors"),
+            py::arg("download_options"),
+            py::arg("remote_fetch_params")
+        )
+        .def("is_noarch", &SubdirIndexLoader::is_noarch)
+        .def("is_local", &SubdirIndexLoader::is_local)
+        .def("channel", &SubdirIndexLoader::channel)
+        .def("name", &SubdirIndexLoader::name)
+        .def("channel_id", &SubdirIndexLoader::channel_id)
+        .def("platform", &SubdirIndexLoader::platform)
+        .def("metadata", &SubdirIndexLoader::metadata)
+        .def("repodata_url", &SubdirIndexLoader::repodata_url)
+        .def("caching_is_forbidden", &SubdirIndexLoader::caching_is_forbidden)
+        .def("valid_cache_found", &SubdirIndexLoader::valid_cache_found)
+        .def("valid_libsolv_cache_path", &SubdirIndexLoader::valid_libsolv_cache_path)
+        .def("writable_libsolv_cache_path", &SubdirIndexLoader::writable_libsolv_cache_path)
+        .def("valid_json_cache_path", &SubdirIndexLoader::valid_json_cache_path)
+        .def("clear_valid_cache_files", &SubdirIndexLoader::clear_valid_cache_files);
+
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
+    struct SubdirDataMigrator
+    {
+        mamba::SubdirIndexLoader* p_subdir_index;
+    };
+
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
+    py::class_<SubdirDataMigrator>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirData& self, Context& context, solver::libsolv::Database& db
+            [](SubdirDataMigrator& self, Context& context, solver::libsolv::Database& database
             ) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
-                return extract(load_subdir_in_database(context, db, self));
+                return extract(load_subdir_in_database(context, database, *self.p_subdir_index));
             },
             py::arg("context"),
             py::arg("db")
         )
-        .def("loaded", &SubdirData::is_loaded)
+        .def(
+            "loaded",
+            [](const SubdirDataMigrator& self) { return self.p_subdir_index->valid_cache_found(); }
+        )
         .def(
             "valid_solv_cache",
             // TODO make a proper well tested type caster for expected types.
-            [](const SubdirData& self) -> std::optional<fs::u8path>
+            [](const SubdirDataMigrator& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_solv_cache())
+                if (auto f = self.p_subdir_index->valid_libsolv_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -537,9 +680,9 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "valid_json_cache",
-            [](const SubdirData& self) -> std::optional<fs::u8path>
+            [](const SubdirDataMigrator& self) -> std::optional<fs::u8path>
             {
-                if (auto f = self.valid_json_cache())
+                if (auto f = self.p_subdir_index->valid_json_cache_path())
                 {
                     return { *std::move(f) };
                 }
@@ -548,28 +691,53 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "cache_path",
-            [](const SubdirData& self) -> std::string
+            [](const SubdirDataMigrator& self) -> std::string
             {
                 deprecated(
                     "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",
                     "2.0"
                 );
-                return extract(self.cache_path());
+                if (auto solv_path = self.p_subdir_index->valid_libsolv_cache_path())
+                {
+                    return solv_path->string();
+                }
+                else if (auto json_path = self.p_subdir_index->valid_json_cache_path())
+                {
+                    return json_path->string();
+                }
+                throw mamba_error("Cache not loaded", mamba_error_code::cache_not_loaded);
             }
         );
 
     using mambapy::SubdirIndex;
     using SubdirIndexEntry = SubdirIndex::Entry;
 
+    // Deprecated, replaced by SubdirIndexLoader in 2.3.0
     py::class_<SubdirIndexEntry>(m, "SubdirIndexEntry")
-        .def(py::init<>())
-        .def_readonly("subdir", &SubdirIndexEntry::p_subdirdata, py::return_value_policy::reference)
+        .def(py::init(
+            []()
+            {
+                deprecated("Use SubdirIndexLoader", "2.3.0");
+                return SubdirIndexEntry();
+            }
+        ))
+        .def_property_readonly(
+            "subdir",
+            [](const SubdirIndexEntry& self) { return SubdirDataMigrator{ self.p_subdirdata }; },
+            py::return_value_policy::reference
+        )
         .def_readonly("platform", &SubdirIndexEntry::m_platform)
         .def_readonly("channel", &SubdirIndexEntry::p_channel, py::return_value_policy::reference)
         .def_readonly("url", &SubdirIndexEntry::m_url);
 
     py::class_<SubdirIndex>(m, "SubdirIndex")
-        .def(py::init<>())
+        .def(py::init(
+            []()
+            {
+                deprecated("Use SubdirIndexLoader", "2.3.0");
+                return SubdirIndex();
+            }
+        ))
         .def(
             "create",
             [](SubdirIndex& self,
@@ -602,7 +770,16 @@ bind_submodule_impl(pybind11::module_ m)
             py::keep_alive<0, 1>()
         );
 
-    m.def("cache_fn_url", &cache_fn_url);
+    m.def("cache_name_from_url", &cache_name_from_url);
+    m.def(
+        "cache_fn_url",
+        [](std::string url)
+        {
+            deprecated("This function was renamed `cache_filename_from_url`.", "2.3.0");
+            return cache_filename_from_url(std::move(url));
+        }
+    );
+    m.def("cache_filename_from_url", &cache_filename_from_url);
     m.def("create_cache_dir", &create_cache_dir);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
@@ -741,16 +918,10 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
-    py::class_<Context::RemoteFetchParams>(ctx, "RemoteFetchParams")
-        .def(py::init<>())
-        .def_readwrite("ssl_verify", &Context::RemoteFetchParams::ssl_verify)
-        .def_readwrite("max_retries", &Context::RemoteFetchParams::max_retries)
-        .def_readwrite("retry_timeout", &Context::RemoteFetchParams::retry_timeout)
-        .def_readwrite("retry_backoff", &Context::RemoteFetchParams::retry_backoff)
-        .def_readwrite("user_agent", &Context::RemoteFetchParams::user_agent)
-        // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
-        .def_readwrite("proxy_servers", &Context::RemoteFetchParams::proxy_servers)
-        .def_readwrite("connect_timeout_secs", &Context::RemoteFetchParams::connect_timeout_secs);
+    ctx.def_property_readonly_static(
+        "RemoteFetchParams",
+        [](py::handle) { return py::type::of<download::RemoteFetchParams>(); }
+    );
 
     py::class_<Context::OutputParams>(ctx, "OutputParams")
         .def(py::init<>())
@@ -758,16 +929,16 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("json", &Context::OutputParams::json)
         .def_readwrite("quiet", &Context::OutputParams::quiet);
 
-    py::class_<Context::ThreadsParams>(ctx, "ThreadsParams")
+    py::class_<ThreadsParams>(ctx, "ThreadsParams")
         .def(py::init<>())
-        .def_readwrite("download_threads", &Context::ThreadsParams::download_threads)
-        .def_readwrite("extract_threads", &Context::ThreadsParams::extract_threads);
+        .def_readwrite("download_threads", &ThreadsParams::download_threads)
+        .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
 
-    py::class_<Context::PrefixParams>(ctx, "PrefixParams")
+    py::class_<PrefixParams>(ctx, "PrefixParams")
         .def(py::init<>())
-        .def_readwrite("target_prefix", &Context::PrefixParams::target_prefix)
-        .def_readwrite("conda_prefix", &Context::PrefixParams::conda_prefix)
-        .def_readwrite("root_prefix", &Context::PrefixParams::root_prefix);
+        .def_readwrite("target_prefix", &PrefixParams::target_prefix)
+        .def_readwrite("conda_prefix", &PrefixParams::conda_prefix)
+        .def_readwrite("root_prefix", &PrefixParams::root_prefix);
 
     py::class_<ValidationParams>(ctx, "ValidationParams")
         .def(py::init<>())
@@ -1201,6 +1372,23 @@ bind_submodule_impl(pybind11::module_ m)
         py::arg("compression_level"),
         py::arg("compression_threads") = 1
     );
+
+    m.def(
+        "extract_package",
+        [](const fs::u8path& file, const fs::u8path& destination, bool sparse)
+        {
+            return extract(
+                file,
+                destination,
+                ExtractOptions{
+                    /* .sparse= */ sparse,
+                    // Unused by this function so we're not making it part of the API
+                    /* .subproc_mode= */ extract_subproc_mode::mamba_package,
+                }
+            );
+        }
+    );
+
 
     m.def("init_console", &init_console);
 

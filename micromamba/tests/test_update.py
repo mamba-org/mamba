@@ -205,6 +205,30 @@ class TestUpdate:
         for to_link in res["actions"]["LINK"]:
             assert to_link["channel"] == "conda-forge"
 
+    @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+    def test_update_check_logs(self, env_created, output_flag):
+        res = helpers.update("-n", TestUpdate.env_name, "xtensor=0.24.5", output_flag)
+
+        if output_flag == "--json":
+            assert res["success"]
+        elif output_flag == "--quiet":
+            assert res == ""
+        else:
+            assert "To activate this environment, use:" not in res
+
+    def test_update_explains_problems(self, env_created):
+        # Non-regression test for: https://github.com/mamba-org/mamba/issues/3828
+        with pytest.raises(helpers.subprocess.CalledProcessError) as e:
+            helpers.update("-n", TestUpdate.env_name, "xtensor=0.24.5", "xtensor=0.25.0")
+        err_string = str(e.value.stderr.decode("utf-8"))
+        assert "The following packages are incompatible" in err_string
+
+    def test_update_explains_problems_json(self, env_created):
+        with pytest.raises(helpers.subprocess.CalledProcessError) as e:
+            helpers.update("-n", TestUpdate.env_name, "xtensor=0.24.5", "xtensor=0.25.0", "--json")
+        out_string = str(e.value.stdout.decode("utf-8"))
+        assert "cannot install both" in out_string
+
 
 class TestUpdateConfig:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]

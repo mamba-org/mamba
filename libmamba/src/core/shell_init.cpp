@@ -503,6 +503,7 @@ namespace mamba
       | into record
       | load-env
     )
+    $env.PATH = $env.PATH | split row (char esep)
     # update prompt
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
@@ -512,24 +513,32 @@ namespace mamba
         content << R"nu(def --env ")nu" << exe_name << R"nu( deactivate"  [] {)nu";
         content << R"###(
     #remove active environment except base env
-    if $env.CONDA_PROMPT_MODIFIER? != null {
-      # unset set variables
-      for x in (^$env.MAMBA_EXE shell deactivate --shell nu
-              | split row ";") {
-          if ("hide-env" in $x) {
-            hide-env ($x | parse "hide-env {var}").var.0
-          } else if $x != "" {
-            let keyValue = ($x
-            | str replace --regex '\s+' "" --all
-            | parse '{key}={value}'
-            )
-            load-env {$keyValue.0.key: $keyValue.0.value}
-          }
-    }
+    def --env "micromamba deactivate"  [] {
+        for x in (^$env.MAMBA_EXE shell deactivate --shell nu | lines) {
+            if ("hide-env" in $x) {
+                hide-env (($x | parse "hide-env {var}").0.var)
+            } else if ($x =~ "=") {
+                let keyValue = ($x
+                    | str replace --regex '\s+' "" --all
+                    | parse '{key}={value}'
+                )
+            if ($keyValue | is-empty) == false {
+                let k = $keyValue.0.key
+                let v = $keyValue.0.value
+                # special-case PATH: convert to list
+                if $k == "PATH" {
+                    let path_list = ($v | split row ":")
+                    load-env { PATH: $path_list }
+                } else {
+                    load-env { $k: $v }
+                    }
+                }
+            }
+        }
     # reset prompt
     $env.PROMPT_COMMAND = $env.PROMPT_COMMAND_BK
-  }
-})###" << "\n";
+    }
+)###" << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }
@@ -569,15 +578,34 @@ namespace mamba
     )
     {
         auto out = Console::stream();
-        fmt::print(
-            out,
-            "Modifying RC file {}\n"
-            "Generating config for root prefix {}\n"
-            "Setting mamba executable to: {}\n",
-            fmt::streamed(file_path),
-            fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
-            fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)
-        );
+
+        if (context.dry_run)
+        {
+            fmt::print("Running `shell init` in dry-run mode\n");
+            fmt::print("Running `shell init` would:\n");
+            fmt::print(
+                out,
+                " - would modify RC file: {}\n"
+                " - would generate config for root prefix: {}\n"
+                " - would set mamba executable to: {}\n",
+                fmt::streamed(file_path),
+                fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
+                fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)
+            );
+        }
+        else
+        {
+            fmt::print("Running `shell init`, which:\n");
+            fmt::print(
+                out,
+                " - modifies RC file: {}\n"
+                " - generates config for root prefix: {}\n"
+                " - sets mamba executable to: {}\n",
+                fmt::streamed(file_path),
+                fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
+                fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)
+            );
+        }
 
         // TODO do we need binary or not?
         std::string conda_init_content, rc_content;
@@ -612,15 +640,14 @@ namespace mamba
             conda_init_content = rcfile_content(conda_prefix, shell, mamba_exe);
         }
 
-        fmt::print(
-            out,
-            "Adding (or replacing) the following in your {} file\n{}",
-            fmt::streamed(file_path),
-            fmt::styled(conda_init_content, context.graphics_params.palette.success)
-        );
-
         if (context.dry_run)
         {
+            fmt::print(
+                out,
+                "The following would have been added in your {} file\n{}",
+                fmt::streamed(file_path),
+                fmt::styled(conda_init_content, context.graphics_params.palette.success)
+            );
             return;
         }
 
@@ -636,6 +663,13 @@ namespace mamba
             std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
             rc_file << result;
         }
+
+        fmt::print(
+            out,
+            "The following has been added in your {} file\n{}",
+            fmt::streamed(file_path),
+            fmt::styled(conda_init_content, context.graphics_params.palette.success)
+        );
     }
 
     void
@@ -722,7 +756,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(context, context.prefix_params.root_prefix);
+            init_root_prefix_cmdexe(context.prefix_params.root_prefix);
             LOG_WARNING << "Hook installed, now 'manually' execute:";
             LOG_WARNING
                 << "       CALL "
@@ -745,7 +779,7 @@ namespace mamba
         return "";
     }
 
-    void init_root_prefix_cmdexe(const Context&, const fs::u8path& root_prefix)
+    void init_root_prefix_cmdexe(const fs::u8path& root_prefix)
     {
         const ShellInitPathsWindowsCmd paths{ root_prefix };
 
@@ -955,7 +989,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(context, root_prefix);
+            init_root_prefix_cmdexe(root_prefix);
         }
         else if (shell == "powershell")
         {
@@ -1071,12 +1105,6 @@ namespace mamba
 
         // Find what content we need to add.
         auto out = Console::stream();
-        fmt::print(
-            out,
-            "Adding (or replacing) the following in your {} file\n{}",
-            fmt::streamed(profile_path),
-            fmt::styled(conda_init_content, context.graphics_params.palette.success)
-        );
 
         if (found_mamba_initialize)
         {
@@ -1093,6 +1121,13 @@ namespace mamba
 
         if (context.dry_run)
         {
+            fmt::print("Running `shell init` in dry-run mode\n");
+            fmt::print(
+                out,
+                "The following would have been added in your {} file\n{}",
+                fmt::streamed(profile_path),
+                fmt::styled(conda_init_content, context.graphics_params.palette.success)
+            );
             return;
         }
 
@@ -1117,7 +1152,13 @@ namespace mamba
 
             return;
         }
-        return;
+
+        fmt::print(
+            out,
+            "The following has been added in your {} file\n{}",
+            fmt::streamed(profile_path),
+            fmt::styled(conda_init_content, context.graphics_params.palette.success)
+        );
     }
 
     void deinit_powershell(const Context& context, const fs::u8path& profile_path, const fs::u8path&)

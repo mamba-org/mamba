@@ -25,12 +25,13 @@
 
 namespace mamba
 {
-    auto PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context)
+    auto
+    PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip)
         -> expected_t<PrefixData>
     {
         try
         {
-            return PrefixData(prefix_path, channel_context);
+            return PrefixData(prefix_path, channel_context, no_pip);
         }
         catch (std::exception& e)
         {
@@ -46,7 +47,7 @@ namespace mamba
         }
     }
 
-    PrefixData::PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context)
+    PrefixData::PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip)
         : m_history(prefix_path, channel_context)
         , m_prefix_path(prefix_path)
         , m_channel_context(channel_context)
@@ -62,8 +63,11 @@ namespace mamba
                 }
             }
         }
-        // Load packages installed with pip
-        load_site_packages();
+        // Load packages installed with pip if `no_pip` is not set to `true`
+        if (!no_pip)
+        {
+            load_site_packages();
+        }
     }
 
     void PrefixData::add_packages(const std::vector<specs::PackageInfo>& packages)
@@ -125,7 +129,7 @@ namespace mamba
                                   .value();
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
-                    const auto from_iter = name_to_node_id.find(ms.name().str());
+                    const auto from_iter = name_to_node_id.find(ms.name().to_string());
                     if (from_iter != name_to_node_id.cend())
                     {
                         dep_graph.add_edge(from_iter->second, to_id);
@@ -223,7 +227,6 @@ namespace mamba
             { "PYTHONIOENCODING", "utf-8" },
             { "NO_COLOR", "1" },
             { "PIP_NO_COLOR", "1" },
-            { "PIP_NO_PYTHON_VERSION_WARNING", "1" },
         };
         reproc::options run_options;
         run_options.env.extra = reproc::env{ env };
@@ -300,9 +303,8 @@ namespace mamba
         {
             for (const auto& package : j["installed"])
             {
-                // Get the package metadata, if requested and installed with `pip`
-                if (package.contains("requested") && package.contains("installer")
-                    && package["requested"] == true && package["installer"] == "pip")
+                // Get the package metadata, if installed with `pip`
+                if (package.contains("installer") && package["installer"] == "pip")
                 {
                     if (package.contains("metadata"))
                     {

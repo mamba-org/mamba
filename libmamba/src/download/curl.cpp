@@ -240,7 +240,7 @@ namespace mamba::download
         }
 
         // Set error buffer
-        m_errorbuffer[0] = '\0';
+        std::fill(m_errorbuffer.begin(), m_errorbuffer.end(), '\0');
         set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
     }
 
@@ -250,6 +250,7 @@ namespace mamba::download
     {
         rhs.m_handle = nullptr;
         rhs.p_headers = nullptr;
+        std::fill(m_errorbuffer.begin(), m_errorbuffer.end(), '\0');
         std::swap(m_errorbuffer, rhs.m_errorbuffer);
         set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
     }

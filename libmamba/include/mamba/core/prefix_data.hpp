@@ -25,7 +25,7 @@ namespace mamba
         using package_map = std::map<std::string, specs::PackageInfo>;
 
         static expected_t<PrefixData>
-        create(const fs::u8path& prefix_path, ChannelContext& channel_context);
+        create(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip = false);
 
         void add_packages(const std::vector<specs::PackageInfo>& packages);
         void load_single_record(const fs::u8path& path);
@@ -45,7 +45,7 @@ namespace mamba
 
     private:
 
-        PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context);
+        PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip);
 
         void load_site_packages();
 

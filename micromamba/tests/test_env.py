@@ -159,16 +159,18 @@ def test_env_remove(tmp_home, tmp_root_prefix):
     env_json = helpers.run_env("list", "--json")
     assert str(env_fp) in env_json["envs"]
     assert env_fp.exists()
-    with open(conda_env_file, "r", encoding="utf-8") as f:
+    with open(conda_env_file, encoding="utf-8") as f:
         lines = [line.strip() for line in f]
         assert str(env_fp) in lines
 
     # Unregister / remove env_name
-    helpers.run_env("remove", "-n", env_name, "-y")
+    res = helpers.run_env("remove", "-n", env_name, "-y")
+    assert "To activate this environment, use:" not in res
+
     env_json = helpers.run_env("list", "--json")
     assert str(env_fp) not in env_json["envs"]
     assert not env_fp.exists()
-    with open(conda_env_file, "r", encoding="utf-8") as f:
+    with open(conda_env_file, encoding="utf-8") as f:
         lines = [line.strip() for line in f]
         assert str(env_fp) not in lines
 
@@ -518,4 +520,8 @@ def test_env_export_with_pip(tmp_path, json_flag):
     pip_section = next(
         dep for dep in ret["dependencies"] if isinstance(dep, dict) and ["pip"] == [*dep]
     )
-    assert pip_section["pip"] == ["requests==2.32.3"]
+    pip_section_vals = pip_section["pip"]
+
+    # Check that `requests` and `urllib3` (pulled dependency) are exported
+    assert "requests==2.32.3" in pip_section_vals
+    assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)

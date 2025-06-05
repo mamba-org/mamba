@@ -2,10 +2,11 @@
 
 # Steps:
 
-# 1. Run this script to update the root `CHANGELOG.md` file by giving the date of
+# 1. Run this script to update the root `CHANGELOG.md` file by providing the date of
 # the last release as input (cf. last date shown at the top of the file for reference)
 # or any other starting date that may be relevant for the release,
-# and the release version to be made.
+# and the release version name to be made.
+# You can provide these input interactively or through the cli (use `--help`).
 
 # 2. If you are happy with the changes, run `releaser.py` to update the versions and
 # corresponding nested `CHANGELOG.md` files.
@@ -21,6 +22,8 @@ from datetime import date
 import json
 import re
 import subprocess
+import argparse
+from version_scheme import version_info
 
 
 def validate_date(date_str):
@@ -33,9 +36,7 @@ def validate_date(date_str):
 def subprocess_run(*args: str, **kwargs) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
     try:
-        p = subprocess.run(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
-        )
+        p = subprocess.run(args, capture_output=True, check=True, **kwargs)
     except subprocess.CalledProcessError as e:
         print(f"Command {args} failed with stderr: {e.stderr.decode()}")
         print(f"Command {args} failed with stdout: {e.stdout.decode()}")
@@ -44,18 +45,18 @@ def subprocess_run(*args: str, **kwargs) -> str:
 
 
 def append_to_file(ctgr_name, prs, out_file):
-    out_file.write("\n{}:\n\n".format(ctgr_name))
+    out_file.write(f"\n{ctgr_name}:\n\n")
     for pr in prs:
         # Author
-        pr_author_cmd = "gh pr view {} --json author".format(pr)
+        pr_author_cmd = f"gh pr view {pr} --json author"
         author_login = dict(json.loads(subprocess_run(*pr_author_cmd.split()).decode("utf-8")))[
             "author"
         ]["login"]
         # Title
-        pr_title_cmd = "gh pr view {} --json title".format(pr)
+        pr_title_cmd = f"gh pr view {pr} --json title"
         title = dict(json.loads(subprocess_run(*pr_title_cmd.split()).decode("utf-8")))["title"]
         # URL
-        pr_url_cmd = "gh pr view {} --json url".format(pr)
+        pr_url_cmd = f"gh pr view {pr} --json url"
         url = dict(json.loads(subprocess_run(*pr_url_cmd.split()).decode("utf-8")))["url"]
         # Files
         # Use a different command with graphql allowing pagination
@@ -77,18 +78,38 @@ def append_to_file(ctgr_name, prs, out_file):
             concerned_pkgs = ["all/"]
         # Write in file
         out_file.write(
-            "- [{}] {} by @{} in {}\n".format(
+            "- [{}] {} by @{} in <{}>\n".format(
                 (", ".join([pkg[:-1] for pkg in concerned_pkgs])), title, author_login, url
             )
         )
 
 
 def main():
-    commits_starting_date = input(
-        "Enter the starting date of commits to be included in the release in the format YYYY-MM-DD: "
+    cli_parser = argparse.ArgumentParser("changelog updater")
+    cli_parser.add_argument(
+        "--from_date",
+        "-d",
+        help="Starting date of commits to be included in the release in the format YYYY-MM-DD.",
     )
+    cli_parser.add_argument("--version", "-v", help="Name of the version to be released.")
+    args = cli_parser.parse_args()
+
+    commits_starting_date = None
+    if args.from_date is not None:
+        commits_starting_date = args.from_date
+    else:
+        commits_starting_date = input(
+            "Enter the starting date of commits to be included in the release in the format YYYY-MM-DD: "
+        )
+
     validate_date(commits_starting_date)
-    release_version = input("Enter the version to be released: ")
+    release_version = None
+    if args.version is not None:
+        release_version = args.version
+    else:
+        release_version = input("Enter the version to be released: ")
+
+    release_version = version_info(release_version)
 
     # Get commits to include in the release
     log_cmd = "git log --since=" + commits_starting_date
@@ -106,10 +127,11 @@ def main():
     enhancements_prs = []  # release::enhancements
     bug_fixes_prs = []  # release::bug_fixes
     ci_docs_prs = []  # release::ci_docs
+    maintenance_prs = []  # release::maintenance
 
     for pr in prs_nbrs:
         # Get labels
-        pr_labels_cmd = "gh pr view {} --json labels".format(pr)
+        pr_labels_cmd = f"gh pr view {pr} --json labels"
         labels = dict(json.loads(subprocess_run(*pr_labels_cmd.split()).decode("utf-8")))["labels"]
         nb_rls_lbls_types = 0
         label = ""
@@ -120,7 +142,7 @@ def main():
 
         # Only one release label should be set
         if nb_rls_lbls_types == 0:
-            raise ValueError("No release label is set for PR #{}".format(pr))
+            raise ValueError(f"No release label is set for PR #{pr}")
         elif nb_rls_lbls_types > 1:
             raise ValueError(
                 "Only one release label should be set. PR #{} has {} labels.".format(
@@ -135,8 +157,10 @@ def main():
             bug_fixes_prs.append(pr)
         elif label == "release::ci_docs":
             ci_docs_prs.append(pr)
+        elif label == "release::maintenance":
+            maintenance_prs.append(pr)
         else:
-            raise ValueError("Unknown release label {} for PR #{}".format(label, pr))
+            raise ValueError(f"Unknown release label {label} for PR #{pr}")
 
     with open("CHANGELOG.md", "r+") as changelog_file:
         # Make sure we're appending at the beginning of the file
@@ -145,10 +169,9 @@ def main():
 
         # Append new info
         # Release date and version
-        changelog_file.write("{}\n".format(date.today().strftime("%Y.%m.%d")))
-        changelog_file.write("==========\n")
+        changelog_file.write("## {}\n".format(date.today().strftime("%Y.%m.%d")))
         changelog_file.write(
-            "\nReleases: libmamba {0}, libmambapy {0}, micromamba {0}\n".format(release_version)
+            f"\nRelease: {release_version} (libmamba, mamba, micromamba, libmambapy)\n"
         )
         # PRs info
         if enhancements_prs:
@@ -157,6 +180,8 @@ def main():
             append_to_file("Bug fixes", bug_fixes_prs, changelog_file)
         if ci_docs_prs:
             append_to_file("CI fixes and doc", ci_docs_prs, changelog_file)
+        if maintenance_prs:
+            append_to_file("Maintenance", maintenance_prs, changelog_file)
 
         # Write back old content of CHANGELOG file
         changelog_file.write("\n" + content_to_restore)

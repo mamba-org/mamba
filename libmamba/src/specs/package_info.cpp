@@ -30,6 +30,10 @@ namespace mamba::specs
             {
                 return PackageType::Wheel;
             }
+            else if (util::ends_with(spec, ".tar.gz"))
+            {
+                return PackageType::TarGz;
+            }
             return PackageType::Conda;
         }
 
@@ -39,7 +43,6 @@ namespace mamba::specs
             {
                 return make_unexpected_parse("Missing filename extension.");
             }
-
 
             auto out = PackageInfo();
             // TODO decide on the best way to group filename/channel/subdir/package_url all at once
@@ -58,37 +61,119 @@ namespace mamba::specs
             out.filename = url.package();
             url.clear_package();
 
+            // The filename format depends on the package_type:
             out.package_type = parse_extension(spec);
+            // PackageType::Conda (.tar.bz2 or .conda):
+            // {pkg name}-{version}-{build string}.{tar.bz2, conda}
             if (out.package_type == PackageType::Conda)
             {
                 out.platform = url.platform_name();
                 url.clear_platform();
-                out.channel = util::rstrip(url.str(), '/');
+                out.channel = util::rstrip(url.str(specs::CondaURL::Credentials::Show), '/');
+
+                // Note that we use `rsplit...` instead of `split...`
+                // because the package name may contain '-'.
+                // Build string
+                auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
+                out.build_string = tail;
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing name and version in filename "{}".)", out.filename)
+                    );
+                }
+
+                // Version
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                out.version = tail;
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                    );
+                }
+
+                // Name
+                out.name = head.value();  // There may be '-' in the name
             }
-
-            // Build string
-            auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
-            out.build_string = tail;
-
-            if (!head.has_value())
+            // PackageType::Wheel (.whl):
+            // {pkg name}-{version}-{build tag (optional)}-{python tag}-{abi tag}-{platform tag}.whl
+            // cf.
+            // https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
+            else if (out.package_type == PackageType::Wheel)
             {
-                return make_unexpected_parse(
-                    fmt::format(R"(Missing name and version in filename "{}".)", out.filename)
-                );
-            }
+                // Platform tag
+                auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                // Abi tag
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                // Python tag
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                // Build tag or version
+                std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing tags in filename "{}".)", out.filename)
+                    );
+                }
+                if (util::contains(tail, '.'))
+                {
+                    // The tail is the version
+                    out.version = tail;
+                    // The head is the name
+                    out.name = head.value();  // There may be '-' in the name
+                }
+                else
+                {
+                    // The previous tail is the optional build tag
+                    std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+                    // The tail is the version
+                    out.version = tail;
+                    if (!head.has_value())
+                    {
+                        return make_unexpected_parse(
+                            fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                        );
+                    }
 
-            // Version
-            std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-            out.version = tail;
-            if (!head.has_value())
+                    // Name
+                    out.name = head.value();  // There may be '-' in the name
+                }
+            }
+            // PackageType::TarGz (.tar.gz): {pkg name}-{version}.tar.gz
+            else if (out.package_type == PackageType::TarGz)
             {
-                return make_unexpected_parse(
-                    fmt::format(R"(Missing name in filename "{}".)", out.filename)
-                );
-            }
+                // Version
+                auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
+                out.version = tail;
+                if (!head.has_value())
+                {
+                    return make_unexpected_parse(
+                        fmt::format(R"(Missing name in filename "{}".)", out.filename)
+                    );
+                }
 
-            // Name
-            out.name = head.value();  // There may be '-' in the name
+                // Name
+                out.name = head.value();  // There may be '-' in the name
+            }
 
             return out;
         }
@@ -130,14 +215,43 @@ namespace mamba::specs
                 return parse_url(url).transform(
                     [&](PackageInfo&& pkg) -> PackageInfo
                     {
-                        if (is_hash(hash))
+                        if (util::starts_with(hash, "sha256:"))
                         {
-                            pkg.md5 = hash;
+                            hash = hash.substr(7);
+                            if (hash.size() == 64 && is_hash(hash))
+                            {
+                                pkg.sha256 = hash;
+                            }
+                        }
+                        else if (is_hash(hash))
+                        {
+                            if (hash.size() == 32)
+                            {
+                                pkg.md5 = hash;
+                            }
+                            else if (hash.size() == 64)
+                            {
+                                pkg.sha256 = hash;
+                            }
                         }
                         return pkg;
                     }
                 );
             }
+        }
+
+        // A git repository URL over https and used by `pip`
+        // git+https://<repository-url>@<commit|branch|tag>#egg=<package-name>
+        if (util::starts_with(str, "git+https"))
+        {
+            auto pkg = PackageInfo();
+            pkg.package_url = str;
+            const std::string pkg_name_marker = "#egg=";
+            if (const auto idx = str.rfind(pkg_name_marker); idx != std::string_view::npos)
+            {
+                pkg.name = str.substr(idx + pkg_name_marker.length());
+            }
+            return pkg;
         }
 
         return make_unexpected_parse(fmt::format(R"(Fail to parse PackageInfo URL "{}")", str));

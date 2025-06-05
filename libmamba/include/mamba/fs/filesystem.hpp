@@ -73,11 +73,16 @@ namespace mamba::fs
     {
     };
 
+    struct Utf8Options
+    {
+        bool normalize_sep = true;
+    };
+
     // Maintain `\` on Windows, `/` on other platforms
     std::filesystem::path normalized_separators(std::filesystem::path path);
 
     // Returns a UTF-8 string given a standard path.
-    std::string to_utf8(const std::filesystem::path& path);
+    std::string to_utf8(const std::filesystem::path& path, Utf8Options utf8_options = {});
 
     // Returns standard path given a UTF-8 string.
     std::filesystem::path from_utf8(std::string_view u8string);
@@ -300,10 +305,10 @@ namespace mamba::fs
 
         //---- Conversions ----
 
-        // Returns a UTF-8 string.
+        // Returns a UTF-8 string with normalized separators.
         std::string string() const
         {
-            return to_utf8(m_path);
+            return to_utf8(m_path, { /*normalize_sep=*/true });
         }
 
         // Returns a default encoded string.
@@ -333,7 +338,7 @@ namespace mamba::fs
         // Returns a UTF-8 string using the ``/`` on all systems.
         std::string generic_string() const
         {
-            return to_utf8(m_path.generic_string());
+            return to_utf8(m_path.generic_string(), { /*normalize_sep=*/false });
         }
 
         // Implicit conversion to standard path.
@@ -426,35 +431,14 @@ namespace mamba::fs
         }
 
         //---- Operators ----
-
         friend bool operator==(const u8path& left, const u8path& right) noexcept
         {
             return left.m_path == right.m_path;
         }
 
-        friend bool operator!=(const u8path& left, const u8path& right) noexcept
+        friend std::strong_ordering operator<=>(const u8path& left, const u8path& right) noexcept
         {
-            return left.m_path != right.m_path;
-        }
-
-        friend bool operator<(const u8path& left, const u8path& right) noexcept
-        {
-            return left.m_path < right.m_path;
-        }
-
-        friend bool operator<=(const u8path& left, const u8path& right) noexcept
-        {
-            return left.m_path <= right.m_path;
-        }
-
-        friend bool operator>(const u8path& left, const u8path& right) noexcept
-        {
-            return left.m_path > right.m_path;
-        }
-
-        friend bool operator>=(const u8path& left, const u8path& right) noexcept
-        {
-            return left.m_path >= right.m_path;
+            return left.m_path <=> right.m_path;
         }
 
         friend bool operator==(const u8path& left, const std::filesystem::path& right) noexcept
@@ -462,29 +446,10 @@ namespace mamba::fs
             return left.m_path == right;
         }
 
-        friend bool operator!=(const u8path& left, const std::filesystem::path& right) noexcept
+        friend std::strong_ordering
+        operator<=>(const u8path& left, const std::filesystem::path& right) noexcept
         {
-            return left.m_path != right;
-        }
-
-        friend bool operator<(const u8path& left, const std::filesystem::path& right) noexcept
-        {
-            return left.m_path < right;
-        }
-
-        friend bool operator<=(const u8path& left, const std::filesystem::path& right) noexcept
-        {
-            return left.m_path <= right;
-        }
-
-        friend bool operator>(const u8path& left, const std::filesystem::path& right) noexcept
-        {
-            return left.m_path > right;
-        }
-
-        friend bool operator>=(const u8path& left, const std::filesystem::path& right) noexcept
-        {
-            return left.m_path >= right;
+            return left.m_path <=> right;
         }
 
         friend bool operator==(const u8path& left, const std::string& right) noexcept
@@ -492,9 +457,9 @@ namespace mamba::fs
             return left.m_path == from_utf8(right);
         }
 
-        friend bool operator!=(const u8path& left, const std::string& right) noexcept
+        friend std::strong_ordering operator<=>(const u8path& left, const std::string& right) noexcept
         {
-            return left.m_path != from_utf8(right);
+            return left.m_path <=> from_utf8(right);
         }
 
         friend bool operator==(const u8path& left, const char* right) noexcept
@@ -502,29 +467,29 @@ namespace mamba::fs
             return left.m_path == from_utf8(right);
         }
 
-        friend bool operator!=(const u8path& left, const char* right) noexcept
+        friend std::strong_ordering operator<=>(const u8path& left, const char* right) noexcept
         {
-            return left.m_path != from_utf8(right);
+            return left.m_path <=> from_utf8(right);
         }
 
         friend bool operator==(const u8path& left, const std::wstring& right) noexcept
         {
-            return left.m_path == right;
+            return left.m_path == std::filesystem::path(right);
         }
 
-        friend bool operator!=(const u8path& left, const std::wstring& right) noexcept
+        friend std::strong_ordering operator<=>(const u8path& left, const std::wstring& right) noexcept
         {
-            return left.m_path != right;
+            return left.m_path <=> std::filesystem::path(right);
         }
 
         friend bool operator==(const u8path& left, const wchar_t* right) noexcept
         {
-            return left.m_path == right;
+            return left.m_path == std::filesystem::path(right);
         }
 
-        friend bool operator!=(const u8path& left, const wchar_t* right) noexcept
+        friend std::strong_ordering operator<=>(const u8path& left, const wchar_t* right) noexcept
         {
-            return left.m_path != right;
+            return left.m_path <=> std::filesystem::path(right);
         }
 
         //---- State ----
@@ -675,14 +640,9 @@ namespace mamba::fs
             return *this;
         }
 
-        bool operator==(const directory_entry& other) const noexcept
+        std::strong_ordering operator<=>(const directory_entry& other) const noexcept
         {
-            return std::filesystem::directory_entry::operator==(other);
-        }
-
-        bool operator!=(const directory_entry& other) const noexcept
-        {
-            return std::filesystem::directory_entry::operator!=(other);
+            return std::filesystem::directory_entry::operator<=>(other);
         }
 
         u8path path() const

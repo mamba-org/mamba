@@ -24,7 +24,7 @@ def test_ParseError():
 
 
 def test_archive_extension():
-    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda", ".whl"]
+    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda", ".whl", ".tar.gz"]
 
     assert libmambapy.specs.has_archive_extension("pkg.conda")
     assert not libmambapy.specs.has_archive_extension("conda.pkg")
@@ -598,8 +598,10 @@ def test_VersionPart():
     VersionPartAtom = libmambapy.specs.VersionPartAtom
     VersionPart = libmambapy.specs.VersionPart
 
-    p = VersionPart([VersionPartAtom(1, "a"), VersionPartAtom(3)])
-    assert len(p) == 2
+    atoms = [VersionPartAtom(1, "a"), VersionPartAtom(3)]
+    p = VersionPart(atoms)
+    assert len(p) == len(atoms)
+    assert p == p
 
 
 def test_CommonVersion():
@@ -767,12 +769,27 @@ def test_PackageInfo():
     # str
     assert str(pkg) == "pkg-1.0-bld"
 
-    # from_url
-    pkg = PackageInfo.from_url("https://repo.mamba.pm/conda-forge/linux-64/bar-5.1-xld.conda#01234")
+    # from_url with md5
+    pkg = PackageInfo.from_url(
+        "https://repo.mamba.pm/conda-forge/linux-64/bar-5.1-xld.conda"
+        "#01234012340123401234012340123401"
+    )
     assert pkg.name == "bar"
     assert pkg.version == "5.1"
     assert pkg.build_string == "xld"
-    assert pkg.md5 == "01234"
+    assert pkg.md5 == "01234012340123401234012340123401"
+    assert pkg.sha256 == ""
+
+    # from_url with sha256
+    pkg = PackageInfo.from_url(
+        "https://repo.mamba.pm/conda-forge/linux-64/bar-5.1-xld.conda"
+        "#0123401234012340123401234012340101234012340123401234012340123401"
+    )
+    assert pkg.name == "bar"
+    assert pkg.version == "5.1"
+    assert pkg.build_string == "xld"
+    assert pkg.md5 == ""
+    assert pkg.sha256 == "0123401234012340123401234012340101234012340123401234012340123401"
 
     # getters and setters
     pkg.name = "foo"

@@ -19,8 +19,6 @@
 #include <utility>
 #include <vector>
 
-#include "mamba/util/compare.hpp"
-
 namespace mamba::util
 {
     /**
@@ -196,6 +194,11 @@ namespace mamba::util
     [[nodiscard]] auto strip(std::wstring_view input, std::wstring_view chars) -> std::wstring_view;
     [[nodiscard]] auto strip(std::string_view input) -> std::string_view;
     [[nodiscard]] auto strip(std::wstring_view input) -> std::wstring_view;
+
+    /**
+     * Dedicated implementation for inplace stripping of `std::string` to avoid copies
+     */
+    void inplace_strip(std::string& input);
 
     [[nodiscard]] auto strip_parts(std::string_view input, char c) -> std::array<std::string_view, 3>;
     [[nodiscard]] auto strip_parts(std::wstring_view input, wchar_t c)
@@ -657,7 +660,7 @@ namespace mamba::util
         std::pair<std::size_t, std::size_t> show
     ) -> UnaryFunction
     {
-        if (util::cmp_less_equal(last - first, threshold))
+        if (std::cmp_less_equal(last - first, threshold))
         {
             return join_for_each(first, last, std::move(func), sep);
         }

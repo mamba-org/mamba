@@ -5,9 +5,11 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/env.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
@@ -23,29 +25,21 @@ extern "C"
 
 namespace mamba
 {
-    void info(Configuration& config)
-    {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("use_default_prefix_fallback").set_value(true);
-        config.at("use_root_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
-            );
-        config.load();
-
-        auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::print_info(config.context(), channel_context, config);
-
-        config.operation_teardown();
-    }
-
     namespace detail
     {
-        void info_pretty_print(
-            std::vector<std::tuple<std::string, nlohmann::json>> items,
-            const Context::OutputParams& params
-        )
+        struct InfoOptions
+        {
+            bool print_licenses = false;
+            bool base = false;
+            bool environments = false;
+        };
+
+        // Prints a sequence of string/json-value pairs in a pretty table.
+        // requirements:
+        // - T must be a sequence of pair-like elements;
+        // - the elements of T must be composed of a `std::string` and a `nlhomann::json` objects
+        template <typename T>
+        void info_pretty_print(const T& items, const Context::OutputParams& params)
         {
             if (params.json)
             {
@@ -53,26 +47,24 @@ namespace mamba
             }
 
             std::size_t key_max_length = 0;
-            for (auto& item : items)
+            for (const auto& [key, value] : items)
             {
-                std::size_t key_length = std::get<0>(item).size();
+                std::size_t key_length = key.size();
                 key_max_length = std::max(key_length, key_max_length);
             }
             ++key_max_length;
 
             auto stream = Console::stream();
 
-            for (auto& item : items)
+            for (const auto& [key, value] : items)
             {
-                auto key = std::get<0>(item);
-                auto val = std::get<1>(item);
-                auto blk_size = key_max_length - std::get<0>(item).size();
+                auto blk_size = key_max_length - key.size();
 
                 stream << "\n" << std::string(blk_size, ' ') << key << " : ";
-                for (auto v = val.begin(); v != val.end(); ++v)
+                for (auto v = value.begin(); v != value.end(); ++v)
                 {
-                    stream << (*v).get<std::string>();
-                    if (v != (val.end() - 1))
+                    stream << (*v).template get<std::string>();
+                    if (v != (value.end() - 1))
                     {
                         stream << "\n" << std::string(key_max_length + 3, ' ');
                     }
@@ -80,10 +72,15 @@ namespace mamba
             }
         }
 
-        void info_json_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
+        // Prints a sequence of string/json-value pairs in a json format.
+        // requirements:
+        // - T must be a sequence of pair-like elements;
+        // - the elements of T must be composed of a `std::string` and a `nlhomann::json` objects
+        template <typename T>
+        void info_json_print(const T& items)
         {
             std::map<std::string, nlohmann::json> items_map;
-            for (auto& [key, val] : items)
+            for (const auto& [key, val] : items)
             {
                 items_map.insert({ key, val });
             }
@@ -91,12 +88,65 @@ namespace mamba
             Console::instance().json_write(items_map);
         }
 
-        void print_info(Context& ctx, ChannelContext& channel_context, const Configuration& config)
+        void
+        print_info(Context& ctx, ChannelContext& channel_context, Configuration& config, InfoOptions options)
         {
             assert(&ctx == &config.context());
-            std::vector<std::tuple<std::string, nlohmann::json>> items;
 
-            items.push_back({ "libmamba version", version() });
+            using info_sequence = std::vector<std::tuple<std::string, nlohmann::json>>;
+
+            if (options.print_licenses)
+            {
+                static const std::vector<std::pair<std::string, nlohmann::json>> licenses = {
+                    { "micromamba",
+                      "BSD license, Copyright 2019 QuantStack and the Mamba contributors." },
+                    { "c_ares",
+                      "MIT license, Copyright (c) 2007 - 2018, Daniel Stenberg with many contributors, see AUTHORS file." },
+                    { "cli11",
+                      "BSD license, CLI11 1.8 Copyright (c) 2017-2019 University of Cincinnati, developed by Henry Schreiner under NSF AWARD 1414736. All rights reserved." },
+                    { "cpp_filesystem",
+                      "MIT license, Copyright (c) 2018, Steffen Schümann <s.schuemann@pobox.com>" },
+                    { "curl",
+                      "MIT license, Copyright (c) 1996 - 2020, Daniel Stenberg, daniel@haxx.se, and many contributors, see the THANKS file." },
+                    { "krb5",
+                      "MIT license, Copyright 1985-2020 by the Massachusetts Institute of Technology." },
+                    { "libarchive",
+                      "New BSD license, The libarchive distribution as a whole is Copyright by Tim Kientzle and is subject to the copyright notice reproduced at the bottom of this file." },
+                    { "libev",
+                      "BSD license, All files in libev are Copyright (c)2007,2008,2009,2010,2011,2012,2013 Marc Alexander Lehmann." },
+                    { "liblz4", "LZ4 Library, Copyright (c) 2011-2016, Yann Collet" },
+                    { "libnghttp2",
+                      "MIT license, Copyright (c) 2012, 2014, 2015, 2016 Tatsuhiro Tsujikawa; 2012, 2014, 2015, 2016 nghttp2 contributors" },
+                    { "libopenssl_3", "Apache license, Version 2.0, January 2004" },
+                    { "libopenssl",
+                      "Apache license, Copyright (c) 1998-2019 The OpenSSL Project, All rights reserved; 1995-1998 Eric Young (eay@cryptsoft.com)" },
+                    { "libsolv", "BSD license, Copyright (c) 2019, SUSE LLC" },
+                    { "nlohmann_json", "MIT license, Copyright (c) 2013-2020 Niels Lohmann" },
+                    { "reproc", "MIT license, Copyright (c) Daan De Meyer" },
+                    { "fmt", "MIT license, Copyright (c) 2012-present, Victor Zverovich." },
+                    { "spdlog", "MIT license, Copyright (c) 2016 Gabi Melman." },
+                    { "zstd",
+                      "BSD license, Copyright (c) 2016-present, Facebook, Inc. All rights reserved." },
+                };
+                info_json_print(licenses);
+                info_pretty_print(licenses, ctx.output_params);
+                return;
+            }
+            if (options.base)
+            {
+                info_sequence items{ { "base environment", ctx.prefix_params.root_prefix.string() } };
+
+                info_json_print(items);
+                info_pretty_print(items, ctx.output_params);
+                return;
+            }
+            if (options.environments)
+            {
+                mamba::detail::print_envs_impl(config);
+                return;
+            }
+
+            info_sequence items{ { "libmamba version", version() } };
 
             if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
             {
@@ -115,7 +165,11 @@ namespace mamba
             std::string name, location;
             if (!ctx.prefix_params.target_prefix.empty())
             {
-                name = env_name(ctx);
+                name = env_name(
+                    ctx.envs_dirs,
+                    ctx.prefix_params.root_prefix,
+                    ctx.prefix_params.target_prefix
+                );
                 location = ctx.prefix_params.target_prefix.string();
             }
             else
@@ -189,4 +243,26 @@ namespace mamba
             info_pretty_print(items, ctx.output_params);
         }
     }  // detail
+
+    void info(Configuration& config)
+    {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+            );
+        config.load();
+
+        detail::InfoOptions options;
+        options.print_licenses = config.at("print_licenses").value<bool>();
+        options.base = config.at("base").value<bool>();
+        options.environments = config.at("environments").value<bool>();
+
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
+        detail::print_info(config.context(), channel_context, config, std::move(options));
+
+        config.operation_teardown();
+    }
 }  // mamba

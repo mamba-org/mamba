@@ -6,14 +6,14 @@
 
 #include <thread>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba::util;
 
-TEST_SUITE("util::random")
+namespace
 {
     TEST_CASE("local_random_generator")
     {
@@ -21,13 +21,13 @@ TEST_SUITE("util::random")
         {
             auto& a = local_random_generator();
             auto& b = local_random_generator();
-            CHECK_EQ(&a, &b);
+            REQUIRE(&a == &b);
 
             auto& c = local_random_generator<std::mt19937>();
-            CHECK_EQ(&a, &c);
+            REQUIRE(&a == &c);
 
             auto& d = local_random_generator<std::mt19937_64>();
-            CHECK_NE(static_cast<void*>(&a), static_cast<void*>(&d));
+            REQUIRE(static_cast<void*>(&a) != static_cast<void*>(&d));
 
             return &a;
         };
@@ -37,7 +37,7 @@ TEST_SUITE("util::random")
         std::thread another_thread{ [&] { pointer_to_another_thread_rng = same_thread_checks(); } };
         another_thread.join();
 
-        CHECK_NE(pointer_to_this_thread_rng, pointer_to_another_thread_rng);
+        REQUIRE(pointer_to_this_thread_rng != pointer_to_another_thread_rng);
     }
 
     TEST_CASE("value_in_range")
@@ -48,8 +48,8 @@ TEST_SUITE("util::random")
         for (std::size_t i = 0; i < attempts; ++i)
         {
             const int value = random_int(arbitrary_min, arbitrary_max);
-            CHECK_GE(value, arbitrary_min);
-            CHECK_LE(value, arbitrary_max);
+            REQUIRE(value >= arbitrary_min);
+            REQUIRE(value <= arbitrary_max);
         }
     }
 
@@ -59,8 +59,8 @@ TEST_SUITE("util::random")
         for (std::size_t i = 0; i < attempts; ++i)
         {
             const auto value = generate_random_alphanumeric_string(i);
-            CHECK_EQ(value.size(), i);
-            CHECK(std::all_of(
+            REQUIRE(value.size() == i);
+            REQUIRE(std::all_of(
                 value.cbegin(),
                 value.cend(),
                 [](char c) { return is_digit(c) || is_alpha(c); }

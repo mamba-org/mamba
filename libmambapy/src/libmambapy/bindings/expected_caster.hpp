@@ -59,6 +59,36 @@ namespace PYBIND11_NAMESPACE
 
             PYBIND11_TYPE_CASTER(value_type, detail::concat(make_caster<T>::name, make_caster<E>::name));
         };
+
+        template <typename E>
+        struct type_caster<tl::expected<void, E>>
+        {
+            using value_type = std::nullptr_t;
+
+            auto load(handle, bool) -> bool
+            {
+                return true;
+            }
+
+            template <typename Expected>
+            static auto cast(Expected&& src, return_value_policy, handle) -> handle
+            {
+                if (src)
+                {
+                    return none();
+                }
+                else
+                {
+                    // If we use ``expected`` without exception in our API, we need to convert them
+                    // to an exception before throwing it in PyBind11 code.
+                    // This could be done with partial specialization of this ``type_caster``.
+                    static_assert(std::is_base_of_v<std::exception, E>);
+                    throw std::forward<Expected>(src).error();
+                }
+            }
+
+            PYBIND11_TYPE_CASTER(value_type, const_name("None"));
+        };
     }
 }
 #endif

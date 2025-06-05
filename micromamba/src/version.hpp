@@ -11,28 +11,29 @@
 #include <string>
 
 #define UMAMBA_VERSION_MAJOR 2
-#define UMAMBA_VERSION_MINOR 0
-#define UMAMBA_VERSION_PATCH 4
+#define UMAMBA_VERSION_MINOR 2
+#define UMAMBA_VERSION_PATCH 0
+#define UMAMBA_VERSION_IS_PRERELEASE 0
+#if UMAMBA_VERSION_IS_PRERELEASE == 1
+#define UMAMBA_VERSION_PRERELEASE_NAME ""
+#endif
+
+#define UMAMBA_VERSION_STRING "2.2.0"
+#define UMAMBA_VERSION                                                                             \
+    (UMAMBA_VERSION_MAJOR * 10000 + UMAMBA_VERSION_MINOR * 100 + UMAMBA_VERSION_PATCH)
 
 // Binary version
 #define UMAMBA_BINARY_CURRENT 1
 #define UMAMBA_BINARY_REVISION 0
 #define UMAMBA_BINARY_AGE 0
 
-#define __UMAMBA_STRINGIZE_IMPL(s) #s
-#define __UMAMBA_STRINGIZE(s) __UMAMBA_STRINGIZE_IMPL(s)
-
-#define UMAMBA_VERSION                                                                             \
-    (UMAMBA_VERSION_MAJOR * 10000 + UMAMBA_VERSION_MINOR * 100 + UMAMBA_VERSION_PATCH)
-#define UMAMBA_VERSION_STRING                                                                      \
-    __UMAMBA_STRINGIZE(UMAMBA_VERSION_MAJOR)                                                       \
-    "." __UMAMBA_STRINGIZE(UMAMBA_VERSION_MINOR) "." __UMAMBA_STRINGIZE(UMAMBA_VERSION_PATCH)
-
 namespace umamba
 {
     std::string version();
 
+    [[deprecated("will be replaced in a future minor version")]]
     std::array<int, 3> version_arr();
+
 }
 
 #endif

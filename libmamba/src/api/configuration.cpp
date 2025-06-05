@@ -490,6 +490,16 @@ namespace mamba
             {
                 for (const auto& dir : dirs)
                 {
+                    try
+                    {
+                        fs::create_directories(dir);
+                    }
+                    catch (const fs::filesystem_error& e)
+                    {
+                        LOG_WARNING << "Error creating directory " << dir << ": " << e.what()
+                                    << std::endl;
+                    }
+
                     const auto candidate = dir / name;
                     if (mamba::path::is_writable(candidate))
                     {
@@ -629,21 +639,6 @@ namespace mamba
             }
         }
 
-        auto get_root_prefix_from_mamba_bin(const fs::u8path& mamba_bin_path)
-            -> expected_t<fs::u8path>
-        {
-            if (mamba_bin_path.empty())
-            {
-                return make_unexpected(
-                    "`mamba` binary not found.\nPlease set `MAMBA_ROOT_PREFIX`.",
-                    mamba_error_code::incorrect_usage
-                );
-            }
-            // In linux and osx, the install path would be install_prefix/bin/mamba
-            // In windows, install_prefix/Scripts/mamba.exe
-            return { fs::weakly_canonical(mamba_bin_path.parent_path().parent_path()) };
-        }
-
         auto validate_existing_root_prefix(const fs::u8path& candidate) -> expected_t<fs::u8path>
         {
             auto prefix = fs::u8path(util::expand_home(candidate.string()));
@@ -653,9 +648,9 @@ namespace mamba
                 return make_unexpected("Empty root prefix.", mamba_error_code::incorrect_usage);
             }
 
-            if (!fs::exists(prefix / "pkgs")           //
-                && !fs::exists(prefix / "conda-meta")  //
-                && !fs::exists(prefix / "envs"))
+            // TODO: consider the conjunction (i.e. &&-chaining) of the following conditions.
+            auto qualifies_as_root_prefix = (fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta") || fs::exists(prefix / "envs"));
+            if (!qualifies_as_root_prefix)
             {
                 return make_unexpected(
                     fmt::format(
@@ -713,22 +708,88 @@ namespace mamba
             return { fs::weakly_canonical(std::move(prefix)) };
         }
 
-        /**
-         * In mamba 1.0, only micromamba was using this location.
-         */
-        auto default_root_prefix_v1() -> fs::u8path
+        auto get_root_prefix() -> fs::u8path
         {
-            return fs::u8path(util::user_home_dir()) / "micromamba";
-        }
+            fs::u8path root_prefix = util::get_env("MAMBA_ROOT_PREFIX").value_or("");
 
-        /**
-         * In mamba 2.0, we change the default location.
-         * We unconditionally name the subfolder "mamba" for compatibility between ``mamba``
-         * and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
-         */
-        auto default_root_prefix_v2() -> fs::u8path
-        {
-            return fs::u8path(util::user_data_dir()) / "mamba";
+            if (!root_prefix.empty())
+            {
+                LOG_TRACE << "Using root prefix set in `MAMBA_ROOT_PREFIX`: " << root_prefix;
+                return root_prefix;
+            }
+
+            root_prefix = util::get_env("MAMBA_DEFAULT_ROOT_PREFIX").value_or("");
+
+            if (!root_prefix.empty())
+            {
+                LOG_WARNING << unindent(R"(
+                                'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
+                                Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                LOG_TRACE << "Using root prefix set in `MAMBA_DEFAULT_ROOT_PREFIX`: " << root_prefix;
+                return root_prefix;
+            }
+
+            // Find the location of libmamba
+            const fs::u8path libmamba_path = get_libmamba_path();
+
+            // Find the supposed environment prefix of libmamba.
+            // `libmamba` is installed at:
+            //    - `${PREFIX}/lib/libmamba${SHLIB_EXT}`  on Unix
+            //    - `${PREFIX}/Library/bin/libmamba$.dll` on Windows
+            const fs::u8path libmamba_env_prefix = fs::weakly_canonical(
+                util::on_win ? libmamba_path.parent_path().parent_path().parent_path()
+                             : libmamba_path.parent_path().parent_path()
+            );
+
+            // If `libmamba` is installed in another environment than `base`, then the
+            // root prefix is likely the grand-parent directory (i.e.
+            // `$ROOT_PREFIX/envs/libmamba_env_prefix`).
+            const fs::u8path inferred_root_prefix = fs::weakly_canonical(
+                libmamba_env_prefix.parent_path().parent_path()
+            );
+
+            if (auto maybe_prefix = validate_existing_root_prefix(inferred_root_prefix);
+                maybe_prefix.has_value())
+            {
+                LOG_TRACE << "Inferring and using the root prefix from `libmamba`'s current environment' as: "
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
+            }
+
+            // Otherwise `libmamba` might be directly installed in the root prefix.
+            if (auto maybe_prefix = validate_existing_root_prefix(libmamba_env_prefix);
+                maybe_prefix.has_value())
+            {
+                LOG_TRACE << "Using `libmamba`'s current environment as the root prefix: "
+                          << maybe_prefix.value();
+                return maybe_prefix.value();
+            }
+
+#ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
+            // libmamba case: set the root prefix as libmamba's installation path as a last resort.
+            LOG_TRACE << "Using libmamba's installation path as the root prefix: "
+                      << libmamba_env_prefix;
+            return libmamba_env_prefix;
+#else
+            // micromamba case
+            // In 1.0, only micromamba was using this location.
+            const fs::u8path default_root_prefix_v1 = fs::u8path(util::user_home_dir())
+                                                      / "micromamba";
+
+            // In 2.0, we change the default location.
+            // We unconditionally name the subfolder "mamba" for compatibility between ``mamba``
+            // and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
+            const fs::u8path default_root_prefix_v2 = fs::u8path(util::user_data_dir()) / "mamba";
+
+            validate_existing_root_prefix(default_root_prefix_v1)
+                .or_else([&default_root_prefix_v2](const auto& /* error */)
+                         { return validate_root_prefix(default_root_prefix_v2); })
+                .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
+                .or_else([](mamba_error&& error) { throw std::move(error); });
+
+            LOG_TRACE << "Using default root prefix for micromamba: " << root_prefix;
+#endif
+            return root_prefix;
         }
 
         void root_prefix_hook(Configuration& config, fs::u8path& prefix)
@@ -737,30 +798,7 @@ namespace mamba
 
             if (prefix.empty())
             {
-                if (util::get_env("MAMBA_DEFAULT_ROOT_PREFIX"))
-                {
-                    prefix = util::get_env("MAMBA_DEFAULT_ROOT_PREFIX").value();
-                    LOG_WARNING << unindent(R"(
-                                    'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
-                                    Consider using 'MAMBA_ROOT_PREFIX' instead)");
-                }
-                else
-                {
-#ifdef MAMBA_USE_INSTALL_PREFIX_AS_BASE
-                    // mamba case
-                    // set the root prefix as the mamba installation path
-                    get_root_prefix_from_mamba_bin(util::which("mamba"))
-                        .transform([&](fs::u8path&& p) { prefix = std::move(p); })
-                        .or_else([](mamba_error&& error) { throw std::move(error); });
-#else
-                    // micromamba case
-                    validate_existing_root_prefix(default_root_prefix_v1())
-                        .or_else([](const auto& /* error */)
-                                 { return validate_root_prefix(default_root_prefix_v2()); })
-                        .transform([&](fs::u8path&& p) { prefix = std::move(p); })
-                        .or_else([](mamba_error&& error) { throw std::move(error); });
-#endif
-                }
+                prefix = get_root_prefix();
 
                 if (env_name.configured())
                 {
@@ -965,13 +1003,30 @@ namespace mamba
             }
         }
 
-        std::vector<fs::u8path> fallback_envs_dirs_hook(const Context& context)
+        void envs_dirs_hook(const Context& context, std::vector<fs::u8path>& dirs)
         {
-            return { context.prefix_params.root_prefix / "envs" };
-        }
+            // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
+            auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+            auto conda_envs_dirs = util::get_env("CONDA_ENVS_DIRS");
 
-        void envs_dirs_hook(std::vector<fs::u8path>& dirs)
-        {
+            if (conda_envs_path && conda_envs_dirs)
+            {
+                const auto message = "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared. We recommend setting `CONDA_ENVS_DIRS` only. Aborting.";
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
+
+            auto envs_path = conda_envs_dirs.value_or(conda_envs_path.value_or(""));
+
+            if (!envs_path.empty())
+            {
+                auto paths_separator = util::pathsep();
+                auto paths = util::split(envs_path, paths_separator);
+
+                dirs.reserve(dirs.size() + paths.size());
+                dirs.insert(dirs.begin(), paths.rbegin(), paths.rend());
+            }
+
+            // Check that the values exist as directories
             for (auto& d : dirs)
             {
                 d = fs::weakly_canonical(util::expand_home(d.string())).string();
@@ -980,6 +1035,14 @@ namespace mamba
                     LOG_ERROR << "Env dir specified is not a directory: " << d.string();
                     throw std::runtime_error("Aborting.");
                 }
+            }
+
+            // Check that "root_prefix/envs" is already in the dirs,
+            // and append if not - to match `conda`
+            const fs::u8path default_env_dir = context.prefix_params.root_prefix / "envs";
+            if (std::find(dirs.begin(), dirs.end(), default_env_dir) == dirs.end())
+            {
+                dirs.push_back(default_env_dir);
             }
         }
 
@@ -1292,15 +1355,16 @@ namespace mamba
                                                      { return detail::env_name_hook(*this, value); })
                    .description("Name of the target prefix"));
 
+        // don't use set_env_var_names for CONDA_ENVS_DIRS, since it is a path-sep delimited
+        // list rather than a YAML list
         insert(Configurable("envs_dirs", &m_context.envs_dirs)
                    .group("Basic")
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
-                   .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook<decltype(m_context.envs_dirs)>(
-                       [this] { return detail::fallback_envs_dirs_hook(m_context); }
+                   .set_post_merge_hook<decltype(m_context.envs_dirs)>(
+                       [this](decltype(m_context.envs_dirs)& value)
+                       { return detail::envs_dirs_hook(m_context, value); }
                    )
-                   .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
         insert(Configurable("pkgs_dirs", &m_context.pkgs_dirs)
@@ -1330,6 +1394,12 @@ namespace mamba
                    .set_single_op_lifetime()
                    .set_post_merge_hook(detail::file_spec_env_name_hook)
                    .description("Name of the target prefix, specified in a YAML spec file"));
+
+        insert(Configurable("spec_file_env_vars", std::map<std::string, std::string>({}))
+                   .group("Basic")
+                   .needs({ "file_specs" })
+                   .set_single_op_lifetime()
+                   .description("Environment variables specified in a YAML spec file"));
 
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")
@@ -1361,6 +1431,14 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .set_post_merge_hook(detail::not_supported_option_hook));
+
+        insert(Configurable("experimental_matchspec_parsing", &m_context.experimental_matchspec_parsing)
+                   .group("Basic")
+                   .description(  //
+                       "Enable internal parsing and matching of MatchSpecs using Mamba's experimental implementation rather than Libsolv's.\n"
+                       "This is not mean for production"
+                   )
+                   .set_env_var_names());
 
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
@@ -1673,7 +1751,7 @@ namespace mamba
                         host max concurrency minus the value, zero (default) is the host max
                         concurrency value.)")));
 
-        insert(Configurable("allow_softlinks", &m_context.allow_softlinks)
+        insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1683,7 +1761,7 @@ namespace mamba
                         such as when installing on a different filesystem than the one that
                         the package cache is on.)")));
 
-        insert(Configurable("always_copy", &m_context.always_copy)
+        insert(Configurable("always_copy", &m_context.link_params.always_copy)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1692,13 +1770,13 @@ namespace mamba
                         Register a preference that files be copied into a prefix during
                         install rather than hard-linked.)")));
 
-        insert(Configurable("always_softlink", &m_context.always_softlink)
+        insert(Configurable("always_softlink", &m_context.link_params.always_softlink)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
-                   .set_post_merge_hook<decltype(m_context.always_softlink)>(
-                       [&](decltype(m_context.always_softlink)& value)
+                   .set_post_merge_hook<decltype(m_context.link_params.always_softlink)>(
+                       [&](decltype(m_context.link_params.always_softlink)& value)
                        { return detail::always_softlink_hook(*this, value); }
                    )
                    .description("Use soft-link instead of hard-link")
@@ -1782,11 +1860,18 @@ namespace mamba
                         However, some filesystems do not support file locking and locks do not always
                         make sense - like when on an HPC.  Default is true (use a lockfile)")));
 
-        insert(Configurable("compile_pyc", &m_context.compile_pyc)
+        insert(Configurable("compile_pyc", &m_context.link_params.compile_pyc)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
+
+        insert(Configurable("use_uv", &m_context.use_uv)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Whether to use uv for installing pip dependencies. Defaults to false."
+                   ));
 
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &m_context.always_yes)
@@ -2048,6 +2133,25 @@ namespace mamba
             fs::u8path(util::user_home_dir()) / ".conda/condarc.d",
             fs::u8path(util::user_home_dir()) / ".condarc",
         };
+
+        std::array<std::string, 3> condarc_list = { ".condarc", "condarc", "condarc.d" };
+        if (util::get_env("XDG_CONFIG_HOME"))
+        {
+            const std::string xgd_config_home = util::get_env("XDG_CONFIG_HOME").value();
+            for (const auto& path : condarc_list)
+            {
+                conda_user.push_back(fs::u8path(xgd_config_home) / "conda" / path);
+            }
+        }
+        if (util::get_env("CONDA_PREFIX"))
+        {
+            const std::string conda_prefix = util::get_env("CONDA_PREFIX").value();
+            for (const auto& path : condarc_list)
+            {
+                conda_user.push_back(fs::u8path(conda_prefix) / path);
+            }
+        }
+
         if (util::get_env("CONDARC"))
         {
             conda_user.push_back(fs::u8path(util::get_env("CONDARC").value()));

@@ -51,8 +51,10 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
     CLI::App* update_subcom = com->add_subcommand("update", "Update packages in active environment");
     set_update_command(update_subcom, config);
 
+#ifdef BUILDING_MICROMAMBA
     CLI::App* self_update_subcom = com->add_subcommand("self-update", "Update micromamba");
     set_self_update_command(self_update_subcom, config);
+#endif
 
     CLI::App* repoquery_subcom = com->add_subcommand(
         "repoquery",
@@ -62,6 +64,7 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     CLI::App* remove_subcom = com->add_subcommand("remove", "Remove packages from active environment");
     set_remove_command(remove_subcom, config);
+    remove_subcom->alias("uninstall");
 
     CLI::App* list_subcom = com->add_subcommand("list", "List packages in active environment");
     set_list_command(list_subcom, config);
@@ -108,11 +111,6 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
         "This is equivalent to `repoquery search` command"
     );
     set_repoquery_search_command(search_subcom, config);
-
-#if !defined(_WIN32) && defined(MICROMAMBA_SERVER)
-    CLI::App* server_subcom = com->add_subcommand("server", "Run micromamba server");
-    set_server_command(server_subcom, config);
-#endif
 
     com->require_subcommand(/* min */ 0, /* max */ 1);
 }

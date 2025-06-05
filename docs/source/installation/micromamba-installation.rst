@@ -25,9 +25,6 @@ On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
    brew install micromamba
 
-.. hint::
-
-   (2024-10-03) Homebrew currently only has version 1 of micromamba, not version 2. See https://github.com/mamba-org/mamba/issues/3495 for updates.
 
 Mamba-org releases
 ******************
@@ -49,11 +46,13 @@ For Linux, macOS, or Git Bash on Windows install with:
 
    "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
 
+For NuShell users, run ``sh -c (curl -L micro.mamba.pm/install.sh)``.
+
 On Windows Powershell, use
 
 .. code :: powershell
 
-   Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
+   Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1 -UseBasicParsing).Content)
 
 A specific micromamba release can be installed by setting the ``VERSION`` environment variable.
 The release versions contain a build number in addition to the micromamba version.
@@ -233,30 +232,3 @@ The executable can be striped to remove its size:
 .. code:: bash
 
    strip "build/micromamba/micromamba"
-
-
-.. _shell_completion:
-
-Shell completion
-****************
-
-For now, only ``micromamba`` provides shell completion on ``bash`` and ``zsh``.
-
-To activate it, it's as simple as running:
-
-.. code:: bash
-
-  micromamba shell completion
-
-The completion is now available in any new shell opened or in the current shell after sourcing the configuration file to take modifications into account.
-
-.. code-block:: sh
-
-  source ~/.<shell>rc
-
-| Just hit ``<TAB><TAB>`` to get completion when typing your command.
-| For example the following command will help you to pick a named environment to activate:
-
-.. code-block:: bash
-
-  micromamba activate <TAB><TAB>

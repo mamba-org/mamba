@@ -85,18 +85,44 @@ namespace mamba::util
         return path_to_url(path);
     }
 
-    auto file_uri_unc2_to_unc4(std::string_view uri) -> std::string
+    auto check_file_scheme_and_slashes(std::string_view uri)
+        -> std::tuple<bool, std::string_view, std::string_view>
     {
         static constexpr std::string_view file_scheme = "file:";
 
         // Not "file:" scheme
         if (!util::starts_with(uri, file_scheme))
         {
+            return { false, {}, {} };
+        }
+
+        auto [slashes, rest] = util::lstrip_parts(util::remove_prefix(uri, file_scheme), '/');
+        return { true, slashes, rest };
+    }
+
+    auto make_curl_compatible(std::string uri) -> std::string
+    {
+        // Convert `file://` and `file:///` to `file:////`
+        // when followed with a drive letter
+        // to make it compatible with libcurl on unix
+        auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
+        if (!on_win && is_file_scheme && path_has_drive_letter(rest)
+            && ((slashes.size() == 2) || (slashes.size() == 3)))
+        {
+            return util::concat("file:////", rest);
+        }
+        return uri;
+    }
+
+    auto file_uri_unc2_to_unc4(std::string_view uri) -> std::string
+    {
+        auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
+        if (!is_file_scheme)
+        {
             return std::string(uri);
         }
 
         // No hostname set in "file://hostname/path/to/data.xml"
-        auto [slashes, rest] = util::lstrip_parts(util::remove_prefix(uri, file_scheme), '/');
         if (slashes.size() != 2)
         {
             return std::string(uri);

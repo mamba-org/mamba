@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-#include <doctest/doctest.h>
+#include <catch2/catch_all.hpp>
 #include <solv/solver.h>
 #include <solv/transaction.h>
 
@@ -20,7 +20,7 @@
 using namespace solv;
 using namespace solv::test;
 
-TEST_SUITE("solv::ObjTransaction")
+namespace
 {
     TEST_CASE("Create a transaction")
     {
@@ -29,50 +29,50 @@ TEST_SUITE("solv::ObjTransaction")
         const auto pkg_to_id = add_simple_packages(pool, repo, make_packages());
         repo.internalize();
 
-        SUBCASE("From single packages")
+        SECTION("From single packages")
         {
-            SUBCASE("Add not installed package")
+            SECTION("Add not installed package")
             {
                 pool.create_whatprovides();
                 const auto id = pkg_to_id.at({ "menu", "1.5.0", { "dropdown=2.*" } });
                 auto trans = ObjTransaction::from_solvables(pool, { id });
-                CHECK_EQ(trans.steps(), ObjQueue{ id });
-                CHECK_EQ(trans.step_type(pool, id), SOLVER_TRANSACTION_INSTALL);
+                REQUIRE(trans.steps() == ObjQueue{ id });
+                REQUIRE(trans.step_type(pool, id) == SOLVER_TRANSACTION_INSTALL);
             }
 
-            SUBCASE("Ignore removing not installed package")
+            SECTION("Ignore removing not installed package")
             {
                 pool.create_whatprovides();
                 const auto id = pkg_to_id.at({ "menu", "1.5.0", { "dropdown=2.*" } });
                 // Negative id means remove
                 auto trans = ObjTransaction::from_solvables(pool, { -id });
-                CHECK(trans.empty());
-                CHECK_EQ(trans.step_type(pool, id), SOLVER_TRANSACTION_IGNORE);
+                REQUIRE(trans.empty());
+                REQUIRE(trans.step_type(pool, id) == SOLVER_TRANSACTION_IGNORE);
             }
 
-            SUBCASE("Ignore adding installed package")
+            SECTION("Ignore adding installed package")
             {
                 const auto id = pkg_to_id.at({ "menu", "1.5.0", { "dropdown=2.*" } });
                 pool.set_installed_repo(repo_id);
                 pool.create_whatprovides();
                 auto trans = ObjTransaction::from_solvables(pool, { id });
-                CHECK(trans.empty());
-                CHECK_EQ(trans.step_type(pool, id), SOLVER_TRANSACTION_IGNORE);
+                REQUIRE(trans.empty());
+                REQUIRE(trans.step_type(pool, id) == SOLVER_TRANSACTION_IGNORE);
             }
 
-            SUBCASE("Remove installed package")
+            SECTION("Remove installed package")
             {
                 const auto id = pkg_to_id.at({ "menu", "1.5.0", { "dropdown=2.*" } });
                 pool.set_installed_repo(repo_id);
                 pool.create_whatprovides();
                 // Negative id means remove
                 auto trans = ObjTransaction::from_solvables(pool, { -id });
-                CHECK_EQ(trans.steps(), ObjQueue{ id });
-                CHECK_EQ(trans.step_type(pool, id), SOLVER_TRANSACTION_ERASE);
+                REQUIRE(trans.steps() == ObjQueue{ id });
+                REQUIRE(trans.step_type(pool, id) == SOLVER_TRANSACTION_ERASE);
             }
         }
 
-        SUBCASE("From a list of package to install")
+        SECTION("From a list of package to install")
         {
             pool.create_whatprovides();
             const auto solvables = ObjQueue{
@@ -82,24 +82,24 @@ TEST_SUITE("solv::ObjTransaction")
             };
             auto trans = ObjTransaction::from_solvables(pool, solvables);
 
-            CHECK_FALSE(trans.empty());
-            CHECK_EQ(trans.size(), solvables.size());
-            CHECK_EQ(trans.steps(), solvables);
+            REQUIRE_FALSE(trans.empty());
+            REQUIRE(trans.size() == solvables.size());
+            REQUIRE(trans.steps() == solvables);
 
-            SUBCASE("Copy transaction")
+            SECTION("Copy transaction")
             {
                 const auto copy = trans;
-                CHECK_EQ(copy.steps(), solvables);
+                REQUIRE(copy.steps() == solvables);
             }
 
-            SUBCASE("Order the solvables")
+            SECTION("Order the solvables")
             {
                 trans.order(pool);
-                CHECK_EQ(trans.steps(), ObjQueue{ solvables.crbegin(), solvables.crend() });
+                REQUIRE(trans.steps() == ObjQueue{ solvables.crbegin(), solvables.crend() });
             }
         }
 
-        SUBCASE("From a solver run")
+        SECTION("From a solver run")
         {
             auto [installed_id, installed] = pool.add_repo("installed");
             const auto icons_id = add_simple_package(pool, installed, { "icons", "1.0.0" });
@@ -108,24 +108,26 @@ TEST_SUITE("solv::ObjTransaction")
             pool.create_whatprovides();
 
             auto solver = ObjSolver(pool);
-            REQUIRE(solver.solve(pool, { SOLVER_INSTALL, pool.add_conda_dependency("menu>=1.4") }));
+            REQUIRE(
+                solver.solve(pool, { SOLVER_INSTALL, pool.add_legacy_conda_dependency("menu>=1.4") })
+            );
             auto trans = ObjTransaction::from_solver(pool, solver);
-            CHECK_FALSE(trans.empty());
-            CHECK_EQ(trans.size(), 4);
+            REQUIRE_FALSE(trans.empty());
+            REQUIRE(trans.size() == 4);
 
-            SUBCASE("Outdated installed package is updated")
+            SECTION("Outdated installed package is updated")
             {
-                CHECK(trans.steps().contains(icons_id));
-                CHECK_EQ(trans.step_type(pool, icons_id), SOLVER_TRANSACTION_UPGRADED);
+                REQUIRE(trans.steps().contains(icons_id));
+                REQUIRE(trans.step_type(pool, icons_id) == SOLVER_TRANSACTION_UPGRADED);
                 // The solvable id that upgrades ``icons_id``
                 const auto maybe_icons_update_id = trans.step_newer(pool, icons_id);
                 REQUIRE(maybe_icons_update_id.has_value());
-                CHECK(trans.steps().contains(maybe_icons_update_id.value()));
+                REQUIRE(trans.steps().contains(maybe_icons_update_id.value()));
                 // The solvable id that isupgraded by ``icons_id``
-                CHECK_EQ(trans.step_olders(pool, maybe_icons_update_id.value()), ObjQueue{ icons_id });
+                REQUIRE(trans.step_olders(pool, maybe_icons_update_id.value()) == ObjQueue{ icons_id });
             }
 
-            SUBCASE("Classify the transaction elements")
+            SECTION("Classify the transaction elements")
             {
                 auto solvables = ObjQueue();
 
@@ -150,7 +152,7 @@ TEST_SUITE("solv::ObjTransaction")
                 std::sort(solvables.begin(), solvables.end());
                 auto steps = trans.steps();
                 std::sort(steps.begin(), steps.end());
-                CHECK_EQ(solvables, steps);
+                REQUIRE(solvables == steps);
             }
         }
     }

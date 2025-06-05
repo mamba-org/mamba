@@ -80,30 +80,35 @@ if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-option(ENABLE_ASAN "Enable Address-Sanitizer (currently only supported on GCC and Clang)" OFF)
-
+option(ENABLE_ASAN "Enable AddressSanitizer (currently only supported on GCC and Clang)" OFF)
 if(ENABLE_ASAN)
     message(
         WARNING
-            "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+            "AddressSanitizer instrumentation will be injected into binaries - do not release these binaries"
     )
     add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
     add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 endif()
 
+option(ENABLE_TSAN "Enable ThreadSanitizer (currently only supported on GCC and Clang)" OFF)
 if(ENABLE_TSAN)
     message(
         WARNING
-            "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+            "ThreadSanitizer instrumentation will be injected into binaries - do not release these binaries"
     )
     add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
     add_link_options(-fno-omit-frame-pointer -fsanitize=thread)
 endif()
 
-if(ENABLE_USAN)
+option(
+    ENABLE_UBSAN
+    "Enable UndefinedBehaviorSanitizer (currently only supported on GCC and Clang)"
+    OFF
+)
+if(ENABLE_UBSAN)
     message(
         WARNING
-            "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+            "UndefinedBehaviorSanitizer instrumentation will be injected into binaries - do not release these binaries"
     )
     add_compile_options(-fno-omit-frame-pointer -fsanitize=undefined)
     add_link_options(-fno-omit-frame-pointer -fsanitize=undefined)
@@ -162,8 +167,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/random.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
-    ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
@@ -178,8 +183,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/regex_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     # Solver generic interface
     ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/problems_graph.cpp
@@ -192,61 +197,63 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
-    ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework.cpp
+    ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
+    ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
+    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework.cpp
     # Downloaders and mirrors
-    ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
-    ${LIBMAMBA_SOURCE_DIR}/download/curl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/curl.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/curl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/downloader_impl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/downloader.cpp
-    ${LIBMAMBA_SOURCE_DIR}/download/mirror.cpp
-    ${LIBMAMBA_SOURCE_DIR}/download/mirror_map.cpp
-    ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_map.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/request.cpp
     # Core API (low-level)
-    ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/package_database_loader.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/link.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_database_loader.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/subdir_index.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/timeref.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -254,6 +261,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/config.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/configuration.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/create.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/env.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/info.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
@@ -286,7 +294,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/conditional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
@@ -295,25 +302,24 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_binary_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_bool_expr_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/loop_control.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_linux.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_osx.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_unix.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/variant_cmp.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/weakening_map.hpp
     # Implementation of version and matching specs
@@ -321,16 +327,18 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentication_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/build_number_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/chimera_string_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/regex_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/unresolved_channel.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     # Solver generic interface
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/problems_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
@@ -342,65 +350,66 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/repo_checker.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v0_6.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v1.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/repo_checker.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework.hpp
     # Downloaders and mirrors
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/downloader.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror_map.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/request.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/common_types.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context_params.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_database_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/execution.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/mirror.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_database_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_fetcher.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdir_index.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/timeref.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/timeref.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/config.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration_impl.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/constants.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/create.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/env.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/install.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/list.hpp
@@ -443,7 +452,14 @@ macro(libmamba_create_target target_name linkage output_name)
     # Header only libraries are always linked the same way
     target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
 
-    target_compile_features(${target_name} PUBLIC cxx_std_17)
+    target_compile_features(${target_name} PUBLIC cxx_std_20)
+    set_target_properties(
+        ${target_name}
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
 
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})

@@ -21,7 +21,6 @@
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/execution.hpp"
-#include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/repo_checker_store.hpp"
@@ -33,6 +32,8 @@
 #include "mamba/util/environment.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
+#include "./link.hpp"
+#include "./transaction_context.hpp"
 #include "solver/helpers.hpp"
 
 #include "progress_bar_impl.hpp"
@@ -50,10 +51,11 @@ namespace mamba
         }
 
         // TODO duplicated function, consider moving it to Pool
-        auto database_has_package(solver::libsolv::Database& db, const specs::MatchSpec& spec) -> bool
+        auto database_has_package(solver::libsolv::Database& database, const specs::MatchSpec& spec)
+            -> bool
         {
             bool found = false;
-            db.for_each_package_matching(
+            database.for_each_package_matching(
                 spec,
                 [&](const auto&)
                 {
@@ -84,14 +86,14 @@ namespace mamba
             return out;
         }
 
-        auto installed_python(const solver::libsolv::Database& db)
+        auto installed_python(const solver::libsolv::Database& database)
             -> std::optional<specs::PackageInfo>
         {
             // TODO combine Repo and MatchSpec search API in Pool
             auto out = std::optional<specs::PackageInfo>();
-            if (auto repo = db.installed_repo())
+            if (auto repo = database.installed_repo())
             {
-                db.for_each_package_in_repo(
+                database.for_each_package_in_repo(
                     *repo,
                     [&](specs::PackageInfo&& pkg)
                     {
@@ -108,7 +110,7 @@ namespace mamba
         }
 
         auto
-        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& db)
+        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& database)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -118,7 +120,7 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string installed_py_ver = {};
-            if (auto pkg = installed_python(db))
+            if (auto pkg = installed_python(database))
             {
                 installed_py_ver = pkg->version;
                 LOG_INFO << "Found python in installed packages " << installed_py_ver;
@@ -134,28 +136,28 @@ namespace mamba
         }
     }
 
-    MTransaction::MTransaction(const Context& ctx, MultiPackageCache& caches)
+    MTransaction::MTransaction(const CommandParams& command_params, MultiPackageCache& caches)
         : m_multi_cache(caches)
-        , m_history_entry(History::UserRequest::prefilled(ctx))
+        , m_history_entry(History::UserRequest::prefilled(command_params))
     {
     }
 
     MTransaction::MTransaction(
         const Context& ctx,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         std::vector<specs::PackageInfo> pkgs_to_remove,
         std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
     )
-        : MTransaction(ctx, caches)
+        : MTransaction(ctx.command_params, caches)
     {
         auto not_found = std::stringstream();
         for (const auto& pkg : pkgs_to_remove)
         {
             auto spec = explicit_spec(pkg);
-            if (!database_has_package(db, spec))
+            if (!database_has_package(database, spec))
             {
-                not_found << "\n - " << spec.str();
+                not_found << "\n - " << spec.to_string();
             }
         }
 
@@ -168,39 +170,40 @@ namespace mamba
 
         Console::instance().json_write({ { "success", true } });
 
-        auto specs_to_install = std::vector<specs::MatchSpec>();
-        specs_to_install.reserve(pkgs_to_install.size());
+        m_requested_specs.reserve(pkgs_to_install.size());
         std::transform(
             pkgs_to_install.begin(),
             pkgs_to_install.end(),
-            std::back_insert_iterator(specs_to_install),
+            std::back_insert_iterator(m_requested_specs),
             [](const auto& pkg) { return explicit_spec(pkg); }
         );
 
+        m_history_entry.update.reserve(pkgs_to_install.size());
+        for (auto& pkg : pkgs_to_install)
+        {
+            m_history_entry.update.push_back(explicit_spec(pkg).to_string());
+        }
+        m_history_entry.remove.reserve(pkgs_to_remove.size());
+        for (auto& pkg : pkgs_to_remove)
+        {
+            m_history_entry.remove.push_back(explicit_spec(pkg).to_string());
+        }
+
         m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
+
         std::transform(
             std::move_iterator(pkgs_to_install.begin()),
             std::move_iterator(pkgs_to_install.end()),
             std::back_insert_iterator(m_solution.actions),
             [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
         );
+
         std::transform(
             std::move_iterator(pkgs_to_remove.begin()),
             std::move_iterator(pkgs_to_remove.end()),
             std::back_insert_iterator(m_solution.actions),
             [](specs::PackageInfo&& pkg) { return solver::Solution::Remove{ std::move(pkg) }; }
         );
-
-        m_history_entry.remove.reserve(pkgs_to_remove.size());
-        for (auto& pkg : pkgs_to_remove)
-        {
-            m_history_entry.remove.push_back(explicit_spec(pkg).str());
-        }
-        m_history_entry.update.reserve(pkgs_to_install.size());
-        for (auto& pkg : pkgs_to_install)
-        {
-            m_history_entry.update.push_back(explicit_spec(pkg).str());
-        }
 
         // if no action required, don't even start logging them
         if (!empty())
@@ -209,23 +212,17 @@ namespace mamba
             Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
         }
 
-        m_transaction_context = TransactionContext(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
-            find_python_version(m_solution, db),
-            specs_to_install
-        );
+        m_py_versions = find_python_version(m_solution, database);
     }
 
     MTransaction::MTransaction(
         const Context& ctx,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         const solver::Request& request,
         solver::Solution solution,
         MultiPackageCache& caches
     )
-        : MTransaction(ctx, caches)
+        : MTransaction(ctx.command_params, caches)
     {
         const auto& flags = request.flags;
         m_solution = std::move(solution);
@@ -235,11 +232,11 @@ namespace mamba
             using Request = solver::Request;
             solver::for_each_of<Request::Install, Request::Update>(
                 request,
-                [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
+                [&](const auto& item) { m_history_entry.update.push_back(item.spec.to_string()); }
             );
             solver::for_each_of<Request::Remove, Request::Update>(
                 request,
-                [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
+                [&](const auto& item) { m_history_entry.remove.push_back(item.spec.to_string()); }
             );
         }
         else
@@ -257,19 +254,13 @@ namespace mamba
             );
         }
 
-        auto requested_specs = std::vector<specs::MatchSpec>();
         using Request = solver::Request;
         solver::for_each_of<Request::Install, Request::Update>(
             request,
-            [&](const auto& item) { requested_specs.push_back(item.spec); }
+            [&](const auto& item) { m_requested_specs.push_back(item.spec); }
         );
-        m_transaction_context = TransactionContext(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
-            find_python_version(m_solution, db),
-            std::move(requested_specs)
-        );
+
+        m_py_versions = find_python_version(m_solution, database);
 
         // if no action required, don't even start logging them
         if (!empty())
@@ -283,20 +274,19 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
-        : MTransaction(ctx, caches)
+        : MTransaction(ctx.command_params, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
 
-        auto specs_to_install = std::vector<specs::MatchSpec>();
-        specs_to_install.reserve(packages.size());
+        m_requested_specs.reserve(packages.size());
         std::transform(
             packages.cbegin(),
             packages.cend(),
-            std::back_insert_iterator(specs_to_install),
+            std::back_insert_iterator(m_requested_specs),
             [](const auto& pkg)
             {
                 return specs::MatchSpec::parse(
@@ -315,13 +305,7 @@ namespace mamba
             [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
         );
 
-        m_transaction_context = TransactionContext(
-            ctx,
-            ctx.prefix_params.target_prefix,
-            ctx.prefix_params.relocate_prefix,
-            find_python_version(m_solution, db),
-            std::move(specs_to_install)
-        );
+        m_py_versions = find_python_version(m_solution, database);
     }
 
     class TransactionRollback
@@ -395,7 +379,28 @@ namespace mamba
             return true;
         }
 
+        // Channels coming from the repodata (packages to install) don't have the same channel
+        // format than packages coming from the prefix (packages to remove). We set all the channels
+        // to be URL like (i.e. explicit). Below is a loop to fix the channel of the linked
+        // packages (fix applied to the unlinked packages to avoid potential bugs). Ideally, this
+        // should be normalised when reading the data.
+        const auto fix_channel = [&](specs::PackageInfo& pkg)
+        {
+            auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
+            auto pkg_channel = mamba::specs::Channel::resolve(
+                                   unresolved_pkg_channel,
+                                   channel_context.params()
+            )
+                                   .value();
+            auto channel_url = pkg_channel[0].platform_url(pkg.platform).str();
+            pkg.channel = channel_url;
+        };
+        for_each_to_install(m_solution.actions, fix_channel);
+        for_each_to_remove(m_solution.actions, fix_channel);
+        for_each_to_omit(m_solution.actions, fix_channel);
+
         TransactionRollback rollback;
+        TransactionContext transaction_context(ctx.transaction_params(), m_py_versions, m_requested_specs);
 
         const auto link = [&](const specs::PackageInfo& pkg)
         {
@@ -405,7 +410,7 @@ namespace mamba
             }
             Console::stream() << "Linking " << pkg.str();
             const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
-            LinkPackage lp(pkg, cache_path, &m_transaction_context);
+            LinkPackage lp(pkg, cache_path, &transaction_context);
             lp.execute();
             rollback.record(lp);
             m_history_entry.link_dists.push_back(pkg.long_str());
@@ -419,7 +424,7 @@ namespace mamba
             }
             Console::stream() << "Unlinking " << pkg.str();
             const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
-            UnlinkPackage up(pkg, cache_path, &m_transaction_context);
+            UnlinkPackage up(pkg, cache_path, &transaction_context);
             up.execute();
             rollback.record(up);
             m_history_entry.unlink_dists.push_back(pkg.long_str());
@@ -436,35 +441,9 @@ namespace mamba
             return false;
         }
         LOG_INFO << "Waiting for pyc compilation to finish";
-        m_transaction_context.wait_for_pyc_compilation();
+        transaction_context.wait_for_pyc_compilation();
 
-        // Get the name of the executable used directly from the command.
-        const auto executable = get_self_exe_path().stem().string();
-
-        // Get the name of the environment
-        const auto environment = env_name(ctx);
-
-        // Check if the target prefix is active
-        if (util::get_env("CONDA_PREFIX") == ctx.prefix_params.target_prefix)
-        {
-            Console::stream() << "\nTransaction finished\n";
-        }
-        else
-        {
-            Console::stream() << "\nTransaction finished\n\n"
-                                 "To activate this environment, use:\n\n"
-                                 "    "
-                              << executable << " activate " << environment
-                              << "\n\n"
-                                 "Or to execute a single command in this environment, use:\n\n"
-                                 "    "
-                              << executable
-                              << " run "
-                              // Use -n or -p depending on if the env_name is a full prefix or just
-                              // a name.
-                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                              << environment << " mycommand\n";
-        }
+        Console::stream() << "\nTransaction finished\n";
 
         prefix.history().add_entry(m_history_entry);
         return true;
@@ -712,7 +691,14 @@ namespace mamba
             PackageDownloadMonitor* monitor
         )
         {
-            auto result = download::download(std::move(requests), context.mirrors, context, options, monitor);
+            auto result = download::download(
+                std::move(requests),
+                context.mirrors,
+                context.remote_fetch_params,
+                context.authentication_info(),
+                options,
+                monitor
+            );
             bool all_downloaded = std::all_of(
                 result.begin(),
                 result.end(),
@@ -776,7 +762,8 @@ namespace mamba
         );
 
         std::unique_ptr<PackageDownloadMonitor> monitor = nullptr;
-        download::Options download_options{ true, true };
+        auto download_options = ctx.download_options();
+        download_options.fail_fast = true;
         if (PackageDownloadMonitor::can_monitor(ctx))
         {
             monitor = std::make_unique<PackageDownloadMonitor>();
@@ -1108,7 +1095,7 @@ namespace mamba
     }
 
     MTransaction
-    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& db, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
+    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& database, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
         std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
@@ -1123,12 +1110,12 @@ namespace mamba
                     .value();
             }
         );
-        return MTransaction(ctx, db, {}, specs_to_install, package_caches);
+        return MTransaction(ctx, database, {}, specs_to_install, package_caches);
     }
 
     MTransaction create_explicit_transaction_from_lockfile(
         const Context& ctx,
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
@@ -1192,7 +1179,7 @@ namespace mamba
             );
         }
 
-        return MTransaction{ ctx, db, std::move(conda_packages), package_caches };
+        return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
     }
 
 }  // namespace mamba

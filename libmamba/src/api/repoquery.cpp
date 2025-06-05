@@ -28,11 +28,19 @@ namespace mamba
             config.at("use_default_prefix_fallback").set_value(true);
             config.at("use_root_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
-                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+                .set_value(
+                    MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+                );
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            solver::libsolv::Database db{ channel_context.params() };
+            solver::libsolv::Database db{
+                channel_context.params(),
+                {
+                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                       : solver::libsolv::MatchSpecParser::Libsolv,
+                },
+            };
             add_spdlog_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
@@ -80,7 +88,7 @@ namespace mamba
     }
 
     auto make_repoquery(
-        solver::libsolv::Database& db,
+        solver::libsolv::Database& database,
         QueryType type,
         QueryResultFormat format,
         const std::vector<std::string>& queries,
@@ -91,7 +99,7 @@ namespace mamba
     {
         if (type == QueryType::Search)
         {
-            auto res = Query::find(db, queries);
+            auto res = Query::find(database, queries);
             switch (format)
             {
                 case QueryResultFormat::Json:
@@ -112,7 +120,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'depends'.");
             }
             auto res = Query::depends(
-                db,
+                database,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable
@@ -139,7 +147,7 @@ namespace mamba
                 throw std::invalid_argument("Only one query supported for 'whoneeds'.");
             }
             auto res = Query::whoneeds(
-                db,
+                database,
                 queries.front(),
                 /* tree= */ format == QueryResultFormat::Tree
                     || format == QueryResultFormat::RecursiveTable

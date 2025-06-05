@@ -15,7 +15,6 @@
 #include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
-#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -44,7 +43,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(const BuildNumber& point) const -> bool;
 
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
     private:
 
@@ -118,7 +117,7 @@ namespace mamba::specs
          * May not always be the same as the parsed string (due to reconstruction) but reparsing
          * this string will give the same build number spec.
          */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * True if the set described by the BuildNumberSpec contains the given version.
@@ -152,28 +151,41 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<mamba::specs::BuildNumberPredicate>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw format_error("invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::BuildNumberPredicate& pred, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct fmt::formatter<mamba::specs::BuildNumberSpec>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw format_error("invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::BuildNumberSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct std::hash<mamba::specs::BuildNumberSpec>
 {
-    auto operator()(const mamba::specs::BuildNumberSpec& spec) const -> std::size_t
-    {
-        return mamba::util::hash_vals(spec.str());
-    }
+    auto operator()(const mamba::specs::BuildNumberSpec& spec) const -> std::size_t;
 };
 
 #endif

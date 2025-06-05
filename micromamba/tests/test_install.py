@@ -415,10 +415,9 @@ class TestInstall:
 
             if not helpers.dry_run_tests:
                 pkg_name = helpers.get_concrete_pkg(res, "xtensor")
-                orig_file_path = helpers.get_pkg(
-                    pkg_name, helpers.xtensor_hpp, TestInstall.current_root_prefix
-                )
-                assert orig_file_path.exists()
+                checker = helpers.PackageChecker("xtensor", TestInstall.current_root_prefix)
+                checker.check_install_integrity()
+                assert checker.get_name_version_build() == pkg_name
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
@@ -665,6 +664,20 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
+@pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
+def test_install_check_logs(tmp_home, tmp_root_prefix, output_flag):
+    env_name = "env-install-check-logs"
+    helpers.create("-n", env_name)
+    res = helpers.install("-n", env_name, "xtensor", output_flag)
+
+    if output_flag == "--json":
+        assert res["success"]
+    elif output_flag == "--quiet":
+        assert res == ""
+    else:
+        assert "To activate this environment, use:" not in res
+
+
 def test_install_local_package(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -796,3 +809,37 @@ def test_install_empty_base(tmp_home, tmp_root_prefix, tmp_path):
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     assert any(package["name"] == "xtensor" for package in packages)
     assert any(package["name"] == "python" for package in packages)
+
+
+env_specific_pip = """
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - pip:
+    - numpy
+"""
+
+
+# Test that dry runs works if package are specified for the `pip:` section
+def test_dry_run_pip_section(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-specific-pip"
+
+    env_file_yml = tmp_path / "test_install_env_specific_pip.yaml"
+    env_file_yml.write_text(env_specific_pip)
+
+    res = helpers.create("-p", env_prefix, "--json", "pip")
+    assert res["success"]
+    packages_at_creation = helpers.umamba_list("-p", env_prefix, "--json")
+
+    # Install from the environment file
+    res = helpers.install("-p", env_prefix, "-f", env_file_yml, "--json", "--dry-run")
+    assert res["success"]
+    assert res["dry_run"]
+
+    packages = helpers.umamba_list("-p", env_prefix, "--json")
+    assert packages == packages_at_creation
+
+    # Check that the packages are not installed using `pip`
+    res = helpers.umamba_run("-p", env_prefix, "pip", "list")
+    assert "numpy" not in res

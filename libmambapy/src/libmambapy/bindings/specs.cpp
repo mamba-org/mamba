@@ -790,8 +790,14 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<ChimeraStringSpec>, py::arg("memo"));
 
         py::class_<MatchSpec>(m, "MatchSpec")
-            .def_property_readonly_static("NameSpec", &py::type::of<MatchSpec::NameSpec>)
-            .def_property_readonly_static("BuildStringSpec", &py::type::of<MatchSpec::BuildStringSpec>)
+            .def_property_readonly_static(
+                "NameSpec",
+                [](py::handle) { return py::type::of<MatchSpec::NameSpec>(); }
+            )
+            .def_property_readonly_static(
+                "BuildStringSpec",
+                [](py::handle) { return py::type::of<MatchSpec::BuildStringSpec>(); }
+            )
             .def_readonly_static("url_md5_sep", &MatchSpec::url_md5_sep)
             .def_readonly_static("preferred_list_open", &MatchSpec::preferred_list_open)
             .def_readonly_static("preferred_list_close", &MatchSpec::preferred_list_close)

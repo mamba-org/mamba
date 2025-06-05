@@ -24,7 +24,7 @@ jobs:
     name: Unix
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, macos-13]
+        os: [ubuntu-latest, macos-latest, macos-15]
         build_type: [release, debug]
       fail-fast: false
     uses: ./.github/workflows/unix_impl.yml

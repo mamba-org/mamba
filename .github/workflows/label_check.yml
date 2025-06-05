@@ -6,6 +6,7 @@ on:
       - synchronize
       - opened
       - reopened
+      - edited
       - labeled
       - unlabeled
 
@@ -16,16 +17,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Wait for bot to set label
+        run: sleep 10
+
       - name: Check labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NUMBER_OF_LABELS=$(jq '.pull_request.labels | length' "$GITHUB_EVENT_PATH")
+          # Get PR number and repo name from event payload
+          PR_NUMBER=$(jq -r .pull_request.number "$GITHUB_EVENT_PATH")
+          REPO_FULL_NAME=$(jq -r .repository.full_name "$GITHUB_EVENT_PATH")
+
+          # Fetch fresh PR data from GitHub API
+          PR_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO_FULL_NAME/issues/$PR_NUMBER")
+
+          NUMBER_OF_LABELS=$(echo "$PR_DATA" | jq -r '.labels')
           if [ $NUMBER_OF_LABELS -eq 0 ]; then
             echo "PR has no labels. Please add at least one label of release type."
             exit 1
           fi
 
           RELEASE_LABELS=("release::enhancements" "release::bug_fixes" "release::ci_docs" "release::maintenance")
-          PR_LABELS=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+          PR_LABELS=$(echo "$PR_DATA" | jq -r '.labels[].name')
           NB_RELEASE_LABELS=0
 
           for LABEL in $PR_LABELS; do

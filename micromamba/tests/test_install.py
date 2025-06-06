@@ -846,12 +846,33 @@ def test_dry_run_pip_section(tmp_home, tmp_root_prefix, tmp_path):
     assert "numpy" not in res
 
 
-def test_install_revision(tmp_home, tmp_root_prefix):
+def test_install_revision_v1(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     helpers.create("-n", env_name, "python=3.8")
     helpers.install("-n", env_name, "xtl=0.7.2", "nlohmann_json=3.12.0")
     helpers.update("-n", env_name, "xtl")
     helpers.uninstall("-n", env_name, "nlohmann_json")
+    helpers.install("-n", env_name, "--revision", "1")
+    res = helpers.umamba_list(
+        "-n",
+        env_name,
+    )
+
+    xtl_regex = re.compile(r"xtl\s+0.7.2")
+    assert xtl_regex.search(res)
+    assert "nlohmann_json" in res
+
+
+def test_install_revision_v2(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    helpers.create("-n", env_name, "python=3.8", "xtl=0.8.0")
+
+    path_test_file = Path(__file__).resolve()
+    history_test_path = path_test_file.parent / "data" / "history"
+    effective_prefix = tmp_root_prefix / "envs" / env_name
+    history_path = effective_prefix / "conda-meta" / "history"
+    shutil.copyfile(history_test_path, history_path)
+
     helpers.install("-n", env_name, "--revision", "1")
     res = helpers.umamba_list(
         "-n",

@@ -571,7 +571,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     auto subdir_metadata = py::class_<SubdirMetadata>(m, "SubdirMetadata");
 
-    static constexpr auto default_http_metadata = SubdirMetadata::HttpMetadata{};
+    static const auto default_http_metadata = SubdirMetadata::HttpMetadata{};
     py::class_<SubdirMetadata::HttpMetadata>(subdir_metadata, "HttpMetadata")
         .def(
             py::init(

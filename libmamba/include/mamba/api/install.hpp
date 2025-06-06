@@ -35,6 +35,8 @@ namespace mamba
 
     void install(Configuration& config);
 
+    void install_revision(Configuration& config, std::size_t revision);
+
     void install_specs(
         Context& ctx,
         ChannelContext& channel_context,
@@ -130,6 +132,8 @@ namespace mamba
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {
         }
+
+        void install_revision(Context& ctx, ChannelContext& channel_context, std::size_t revision);
     }
 
 }

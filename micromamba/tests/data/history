@@ -1,0 +1,56 @@
+==> 2025-06-03 15:09:39 <==
+# cmd: /home/sandrinepataut/dev/SandrineP/mamba/build/micromamba/mamba create -n myenv python=3.8 -y -c conda-forge --no-rc
+# conda version: 3.8.0
++https://conda.anaconda.org/conda-forge/linux-64::ld_impl_linux-64-2.43-h712a8e2_4
++https://conda.anaconda.org/conda-forge/linux-64::libgomp-15.1.0-h767d61c_2
++https://conda.anaconda.org/conda-forge/linux-64::_libgcc_mutex-0.1-conda_forge
++https://conda.anaconda.org/conda-forge/linux-64::_openmp_mutex-4.5-2_gnu
++https://conda.anaconda.org/conda-forge/linux-64::libgcc-15.1.0-h767d61c_2
++https://conda.anaconda.org/conda-forge/linux-64::liblzma-5.8.1-hb9d3cd8_1
++https://conda.anaconda.org/conda-forge/linux-64::ncurses-6.5-h2d0b736_3
++https://conda.anaconda.org/conda-forge/linux-64::libzlib-1.3.1-hb9d3cd8_2
++https://conda.anaconda.org/conda-forge/linux-64::libgcc-ng-15.1.0-h69a702a_2
++https://conda.anaconda.org/conda-forge/linux-64::libffi-3.4.6-h2dba641_1
++https://conda.anaconda.org/conda-forge/linux-64::xz-tools-5.8.1-hb9d3cd8_1
++https://conda.anaconda.org/conda-forge/linux-64::xz-gpl-tools-5.8.1-hbcc6ac9_1
++https://conda.anaconda.org/conda-forge/linux-64::liblzma-devel-5.8.1-hb9d3cd8_1
++https://conda.anaconda.org/conda-forge/linux-64::readline-8.2-h8c095d6_2
++https://conda.anaconda.org/conda-forge/linux-64::tk-8.6.13-noxft_hd72426e_102
++https://conda.anaconda.org/conda-forge/linux-64::libsqlite-3.50.0-hee588c1_0
++https://conda.anaconda.org/conda-forge/linux-64::libxcrypt-4.4.36-hd590300_1
++https://conda.anaconda.org/conda-forge/linux-64::bzip2-1.0.8-h4bc722e_7
++https://conda.anaconda.org/conda-forge/linux-64::libuuid-2.38.1-h0b41bf4_0
++https://conda.anaconda.org/conda-forge/linux-64::libnsl-2.0.1-hd590300_0
++https://conda.anaconda.org/conda-forge/linux-64::xz-5.8.1-hbcc6ac9_1
++https://conda.anaconda.org/conda-forge/noarch::ca-certificates-2025.4.26-hbd8a1cb_0
++https://conda.anaconda.org/conda-forge/linux-64::openssl-3.5.0-h7b32b05_1
++https://conda.anaconda.org/conda-forge/linux-64::python-3.8.20-h4a871b0_2_cpython
++https://conda.anaconda.org/conda-forge/noarch::wheel-0.45.1-pyhd8ed1ab_0
++https://conda.anaconda.org/conda-forge/noarch::setuptools-75.3.0-pyhd8ed1ab_0
++https://conda.anaconda.org/conda-forge/noarch::pip-24.3.1-pyh8b19718_0
+# update specs: ["python=3.8"]
+==> 2025-06-03 15:09:45 <==
+# cmd: /home/sandrinepataut/dev/SandrineP/mamba/build/micromamba/mamba install -y -n myenv xtl=0.7.2 nlohmann_json=3.12.0 rattler-build=0.42.0 -c conda-forge --no-rc --log-level=info
+# conda version: 3.8.0
++https://conda.anaconda.org/conda-forge/linux-64::nlohmann_json-3.12.0-h3f2d84a_0
++https://conda.anaconda.org/conda-forge/linux-64::libstdcxx-15.1.0-h8f9b012_2
++https://conda.anaconda.org/conda-forge/linux-64::patchelf-0.18.0-h3f2d84a_2
++https://conda.anaconda.org/conda-forge/linux-64::libstdcxx-ng-15.1.0-h4852527_2
++https://conda.anaconda.org/conda-forge/linux-64::rattler-build-0.42.0-h2d22210_0
++https://conda.anaconda.org/conda-forge/linux-64::xtl-0.7.2-h4bd325d_1
+# update specs: ["xtl=0.7.2", "nlohmann_json=3.12.0", "rattler-build"]
+==> 2025-06-03 15:09:49 <==
+# cmd: /home/sandrinepataut/dev/SandrineP/mamba/build/micromamba/mamba update -y -n myenv xtl --no-rc -c conda-forge
+# conda version: 3.8.0
+-https://conda.anaconda.org/conda-forge/linux-64::libstdcxx-ng-15.1.0-h4852527_2
+-https://conda.anaconda.org/conda-forge/linux-64::xtl-0.7.2-h4bd325d_1
++https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+# update specs: ["xtl"]
+# remove specs: ["xtl"]
+==> 2025-06-03 15:09:49 <==
+# cmd: /home/sandrinepataut/dev/SandrineP/mamba/build/micromamba/mamba uninstall -y -n myenv nlohmann_json rattler-build
+# conda version: 3.8.0
+-https://conda.anaconda.org/conda-forge/linux-64::nlohmann_json-3.12.0-h3f2d84a_0
+-https://conda.anaconda.org/conda-forge/linux-64::rattler-build-0.42.1-h2d22210_0
+-https://conda.anaconda.org/conda-forge/linux-64::patchelf-0.18.0-h3f2d84a_2
+# remove specs: ["nlohmann_json", "rattler-build"]

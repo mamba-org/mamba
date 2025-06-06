@@ -14,6 +14,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
@@ -302,6 +303,24 @@ namespace mamba
         {
             return (s1.pkg_mgr == s2.pkg_mgr) && (s1.deps == s2.deps) && (s1.cwd == s2.cwd);
         }
+    }
+
+    void install_revision(Configuration& config, std::size_t revision)
+    {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
+        config.load();
+
+        auto& context = config.context();
+        auto channel_context = ChannelContext::make_conda_compatible(context);
+
+        detail::install_revision(context, channel_context, revision);
     }
 
     void install(Configuration& config)
@@ -1161,6 +1180,83 @@ namespace mamba
                     channels = cli_channels;
                 }
             }
+        }
+
+        void
+        get_all_pkg_info(PackageDiff::package_diff_map::value_type& pkg, solver::libsolv::Database& db)
+        {
+            auto ms = pkg.second.name + "==" + pkg.second.version + " =" + pkg.second.build_string;
+            db.for_each_package_matching(
+                specs::MatchSpec::parse(ms).value(),
+                [&](specs::PackageInfo&& pkg_info) { pkg.second = pkg_info; }
+            );
+        }
+
+        void
+        install_revision(Context& ctx, ChannelContext& channel_context, std::size_t target_revision)
+        {
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
+            if (!exp_prefix_data)
+            {
+                throw std::runtime_error(exp_prefix_data.error().what());
+            }
+            PrefixData& prefix_data = exp_prefix_data.value();
+            auto user_requests = prefix_data.history().get_user_requests();
+
+            PackageDiff pkg_diff{};
+            pkg_diff = pkg_diff.from_revision(user_requests, target_revision);
+            auto& removed_pkg_diff = pkg_diff.removed_pkg_diff;
+            auto& installed_pkg_diff = pkg_diff.installed_pkg_diff;
+
+            MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
+
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
+
+            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+            if (!exp_load)
+            {
+                throw std::runtime_error(exp_load.error().what());
+            }
+
+            load_installed_packages_in_database(ctx, db, prefix_data);
+
+            for (auto& pkg : removed_pkg_diff)
+            {
+                get_all_pkg_info(pkg, db);
+            }
+            for (auto& pkg : installed_pkg_diff)
+            {
+                get_all_pkg_info(pkg, db);
+            }
+
+            auto execute_transaction = [&](MTransaction& transaction)
+            {
+                if (ctx.output_params.json)
+                {
+                    transaction.log_json();
+                }
+
+                auto prompt_entry = transaction.prompt(ctx, channel_context);
+                if (prompt_entry)
+                {
+                    transaction.execute(ctx, channel_context, prefix_data);
+                }
+                return prompt_entry;
+            };
+
+            std::vector<specs::PackageInfo> pkgs_to_remove;
+            std::vector<specs::PackageInfo> pkgs_to_install;
+            for (const auto& pkg : installed_pkg_diff)
+            {
+                pkgs_to_remove.push_back(pkg.second);
+            }
+            for (const auto& pkg : removed_pkg_diff)
+            {
+                pkgs_to_install.push_back(pkg.second);
+            }
+            auto transaction = MTransaction(ctx, db, pkgs_to_remove, pkgs_to_install, package_caches);
+            execute_transaction(transaction);
         }
     }  // detail
 }  // mamba

@@ -1,0 +1,21 @@
+[project]
+name = "libmambapy-stubs"
+authors = [
+    {name = "QuantStack", email = "info@quantstack.net"},
+    {name = "Other contributors"},
+]
+maintainers = [
+    {name = "QuantStack", email = "info@quantstack.net"},
+]
+description = "Stub files for libmambapy"
+requires-python = ">=3.12"
+keywords = ["mamba", "stubs"]
+license = {text = "BSD-3-Clause"}
+dynamic = ["version", "dependencies"]
+[projet.url]
+Documentation = "https://mamba.readthedocs.io"
+Repository = "https://github.com/mamba-org/mamba/"
+
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"

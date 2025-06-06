@@ -43,10 +43,13 @@ dependencies:
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build
-  - mypy # For stubgen
   # libmambapy dependencies
   - python
   - pybind11
+  # libmambapy-stubs build dependencies
+  - mypy # For stubgen
+  - setuptools
+  - python-build
   # dev dependencies
   - pre-commit
   # Documentation dependencies

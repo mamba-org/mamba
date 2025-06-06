@@ -302,36 +302,44 @@ namespace mambapy
             ))
             .def_readwrite("actions", &Solution::actions)
             .def(
+                "packages",
+                [](const Solution& solution) -> std::vector<specs::PackageInfo>
+                {
+                    // TODO(C++23): std::ranges::to
+                    auto out = std::vector<specs::PackageInfo>{};
+                    out.reserve(solution.actions.size());  // Lower bound
+                    for (const auto& pkg : solution.packages())
+                    {
+                        out.push_back(pkg);
+                    }
+                    return out;
+                }
+            )
+            .def(
                 "to_install",
                 [](const Solution& solution) -> std::vector<specs::PackageInfo>
                 {
-                    auto out = std::vector<specs::PackageInfo>{};
-                    out.reserve(solution.actions.size());  // Upper bound
-                    for_each_to_install(
-                        solution.actions,
-                        [&](const auto& pkg) { out.push_back(pkg); }
-                    );
-                    return out;
+                    // TODO(C++23): std::ranges::to
+                    auto range = solution.packages_to_install();
+                    return { range.begin(), range.end() };
                 }
             )
             .def(
                 "to_remove",
                 [](const Solution& solution) -> std::vector<specs::PackageInfo>
                 {
-                    auto out = std::vector<specs::PackageInfo>{};
-                    out.reserve(solution.actions.size());  // Upper bound
-                    for_each_to_remove(solution.actions, [&](const auto& pkg) { out.push_back(pkg); });
-                    return out;
+                    // TODO(C++23): std::ranges::to
+                    auto range = solution.packages_to_remove();
+                    return { range.begin(), range.end() };
                 }
             )
             .def(
                 "to_omit",
                 [](const Solution& solution) -> std::vector<specs::PackageInfo>
                 {
-                    auto out = std::vector<specs::PackageInfo>{};
-                    out.reserve(solution.actions.size());  // Upper bound
-                    for_each_to_omit(solution.actions, [&](const auto& pkg) { out.push_back(pkg); });
-                    return out;
+                    // TODO(C++23): std::ranges::to
+                    auto range = solution.packages_to_omit();
+                    return { range.begin(), range.end() };
                 }
             )
             .def("__copy__", &copy<Solution>)

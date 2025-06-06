@@ -526,18 +526,74 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
+    static constexpr auto default_subdir_params = SubdirParams{};
     py::class_<SubdirParams>(m, "SubdirParams")
+        .def(
+            py::init(
+                [](decltype(SubdirParams::local_repodata_ttl_s) local_repodata_ttl_s,
+                   decltype(SubdirParams::offline) offline,
+                   decltype(SubdirParams::repodata_force_use_zst) repodata_force_use_zst) -> SubdirParams
+                {
+                    return {
+                        .local_repodata_ttl_s = std::move(local_repodata_ttl_s),
+                        .offline = std::move(offline),
+                        .repodata_force_use_zst = std::move(repodata_force_use_zst),
+                    };
+                }
+            ),
+            py::arg("local_repodata_ttl_s") = default_subdir_params.local_repodata_ttl_s,
+            py::arg("offline") = default_subdir_params.offline,
+            py::arg("repodata_force_use_zst") = default_subdir_params.repodata_force_use_zst
+        )
         .def_readwrite("local_repodata_ttl_s", &SubdirParams::local_repodata_ttl_s)
         .def_readwrite("offline", &SubdirParams::offline)
         .def_readwrite("repodata_force_use_zst", &SubdirParams::repodata_force_use_zst);
 
+    static constexpr auto default_subdir_download_params = SubdirDownloadParams{};
     py::class_<SubdirDownloadParams>(m, "SubdirDownloadParams")
+        .def(
+            py::init(
+                [](decltype(SubdirDownloadParams::offline) offline,
+                   decltype(SubdirDownloadParams::repodata_check_zst) repodata_check_zst
+                ) -> SubdirDownloadParams
+                {
+                    return {
+                        .offline = std::move(offline),
+                        .repodata_check_zst = std::move(repodata_check_zst),
+                    };
+                }
+            ),
+            py::arg("offline") = default_subdir_download_params.offline,
+            py::arg("repodata_check_zst") = default_subdir_download_params.repodata_check_zst
+        )
         .def_readwrite("offline", &SubdirDownloadParams::offline)
         .def_readwrite("repodata_check_zst", &SubdirDownloadParams::repodata_check_zst);
 
     auto subdir_metadata = py::class_<SubdirMetadata>(m, "SubdirMetadata");
 
+    static const auto default_http_metadata = SubdirMetadata::HttpMetadata{};
     py::class_<SubdirMetadata::HttpMetadata>(subdir_metadata, "HttpMetadata")
+        .def(
+            py::init(
+                [](decltype(SubdirMetadata::HttpMetadata::url) url,
+                   decltype(SubdirMetadata::HttpMetadata::etag) etag,
+                   decltype(SubdirMetadata::HttpMetadata::last_modified) last_modified,
+                   decltype(SubdirMetadata::HttpMetadata::cache_control) cache_control
+                ) -> SubdirMetadata::HttpMetadata
+                {
+                    return {
+                        .url = std::move(url),
+                        .etag = std::move(etag),
+                        .last_modified = std::move(last_modified),
+                        .cache_control = std::move(cache_control),
+                    };
+                }
+            ),
+            py::arg("url") = default_http_metadata.url,
+            py::arg("etag") = default_http_metadata.etag,
+            py::arg("last_modified") = default_http_metadata.last_modified,
+            py::arg("cache_control") = default_http_metadata.cache_control
+        )
         .def_readwrite("url", &SubdirMetadata::HttpMetadata::url)
         .def_readwrite("etag", &SubdirMetadata::HttpMetadata::etag)
         .def_readwrite("last_modified", &SubdirMetadata::HttpMetadata::last_modified)

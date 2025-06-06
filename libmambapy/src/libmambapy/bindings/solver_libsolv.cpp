@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <ranges>
+
 #include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -166,13 +168,14 @@ namespace mambapy
                    std::string_view name,
                    PipAsPythonDependency add)
                 {
-                    // TODO(C++20): No need to copy in a vector, simply transform the input range.
-                    auto pkg_infos = std::vector<specs::PackageInfo>();
-                    for (py::handle pkg : packages)
-                    {
-                        pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
-                    }
-                    return database.add_repo_from_packages(pkg_infos, name, add);
+                    static constexpr auto cast = [](py::handle pkg)
+                    { return pkg.cast<specs::PackageInfo>(); };
+
+                    return database.add_repo_from_packages(
+                        packages | std::ranges::views::transform(cast),
+                        name,
+                        add
+                    );
                 },
                 py::arg("packages"),
                 py::arg("name") = "",

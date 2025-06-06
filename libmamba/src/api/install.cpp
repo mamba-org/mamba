@@ -1013,7 +1013,9 @@ namespace mamba
                         }
                         for (auto& c : parse_result.channels)
                         {
-                            updated_channels.push_back(c);
+                            // Substitute env vars in channels from env yaml file,
+                            // before pushing them to the global list of channels
+                            updated_channels.push_back(expandvars(c));
                         }
                         channels.set_cli_value(updated_channels);
                     }

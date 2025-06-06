@@ -378,7 +378,7 @@ namespace mamba
      * hooks *
      *********/
 
-    static std::string expandvars(std::string s)
+    std::string expandvars(std::string s)
     {
         if (s.find("$") == std::string::npos)
         {

@@ -35,9 +35,6 @@ class build_py(setuptools.command.build_py.build_py):
             dst=os.path.join(self.build_lib, "libmambapy-stubs"),
         )
 
-        #  os.makedirs(target_dir, exist_ok=True)
-        #  with open(os.path.join(target_dir, "__init__.pyi"), "w") as f:
-        #      f.write("__version__: str\n")
         super().run()
 
 

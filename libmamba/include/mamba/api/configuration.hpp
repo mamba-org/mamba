@@ -101,8 +101,6 @@ namespace YAML
 
 namespace mamba
 {
-    std::string expandvars(std::string s);
-
     namespace detail
     {
         struct ConfigurableImplBase

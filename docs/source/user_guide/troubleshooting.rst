@@ -168,3 +168,9 @@ A solution is to update the Mamba/Micromamba configuration to not use lockfile b
   micromamba config set use_lockfiles False
 
 See `#2592 <https://github.com/mamba-org/mamba/issues/2592>`_, `#1446 <https://github.com/mamba-org/mamba/issues/1446>`_, `#1448 <https://github.com/mamba-org/mamba/pull/1448>`_, `#1515 <https://github.com/mamba-org/mamba/issues/1515>`_ for more details.
+
+
+"libmamba Download error (7) Could not connect to server"
+---------------------------------------------------------
+``mamba install`` and other ``mamba`` commands yield said errors. This might be due to being flagged by an antivirus.
+A solution is to whitelist the appropriate folders and files; see `#3979 <https://github.com/mamba-org/mamba/issues/3979>`_ for more details.

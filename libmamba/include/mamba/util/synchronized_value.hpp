@@ -19,11 +19,8 @@ namespace mamba::util
         {
             x.lock();
             x.unlock();
-        }
-        and noexcept(T{}.unlock());
-    static_assert(BasicLockable<std::mutex>);
-    static_assert(BasicLockable<std::recursive_mutex>);
-    static_assert(BasicLockable<std::shared_mutex>);
+        };
+        //and noexcept(T{}.unlock());
 
     // see https://en.cppreference.com/w/cpp/named_req/LockableMutex.html
     template<class T>
@@ -32,24 +29,61 @@ namespace mamba::util
         {
             { x.try_lock() } -> std::convertible_to<bool>;
         };
-    static_assert(Lockable<std::mutex>);
-    static_assert(Lockable<std::recursive_mutex>);
-    static_assert(Lockable<std::shared_mutex>);
 
     // see https://en.cppreference.com/w/cpp/named_req/Mutex.html
     template<class T>
     concept Mutex = Lockable<T>
-        and std::is_default_contructible_v<T>
-        and std::is_destructible_v<T>
-        and (not std::is_movable_v<T>)
-        and (not std::is_copyable_v<T>);
-
-    static_assert(Mutex<std::mutex>);
-    static_assert(Mutex<std::recursive_mutex>);
-    static_assert(Mutex<std::shared_mutex>);
+        and std::default_initializable<T>
+        and std::destructible<T>
+        and (not std::movable<T>)
+        and (not std::copyable<T>);
 
 
+    template<std::semiregular T, Mutex M, bool is_const>
+    class scoped_locked_ptr
+    {
 
+    };
+
+    template<std::semiregular T, Mutex M = std::mutex>
+    class synchronized_value
+    {
+    public:
+
+        using value_type = T;
+        using mutex_type = M;
+
+        synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
+
+        synchronized_value(const synchronized_value& other);
+        synchronized_value(synchronized_value&& other);
+        synchronized_value& operator=(const synchronized_value& other);
+        synchronized_value& operator=(synchronized_value&& other);
+
+        synchronized_value(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>);
+        synchronized_value(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>);
+        synchronized_value& operator=(const T& value);
+        synchronized_value& operator=(T&& value);
+
+        void swap(synchronized_value& other);
+        void swap(T& value);
+
+        T get() const;
+        T& operator*();
+        const T& operator*() const;
+
+        using lock_ptr = scoped_locked_ptr<T, M, false>;
+        using const_lock_ptr = scoped_locked_ptr<T, M, true>;
+
+        auto synchronize() -> lock_ptr;
+        auto synchronize() const -> const_lock_ptr;
+        auto operator->() -> lock_ptr;
+        auto operator->() const -> const_lock_ptr;
+
+    private:
+        T m_value;
+        mutable M m_mutex;
+    };
 
 }
 

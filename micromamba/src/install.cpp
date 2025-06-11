@@ -37,5 +37,5 @@ set_install_command(CLI::App* subcom, Configuration& config)
             return mamba::install(config);
         }
     );
-    subcom->add_option("--revision", revision, "Revert to the specified REVISION.");
+    subcom->add_option("--revision", revision, "Revert to the specified revision.");
 }

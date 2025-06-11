@@ -21,7 +21,9 @@ dependencies:
   - libcurl-static >=8.4.0
   - xz-static
   - libssh2-static
-  - libarchive-minimal-static
+  # As of libarchive 3.8, builds of libarchive for different licenses
+  # are available. We use the LGPL version here.
+  - libarchive-minimal-static>=3.8 lgpl_*
   - krb5-static
   - openssl
   - libopenssl-static

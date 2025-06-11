@@ -86,6 +86,42 @@ namespace mamba
         return http_basicauth_regex;
     }
 
+    std::string expandvars(std::string s)
+    {
+        if (s.find("$") == std::string::npos)
+        {
+            // Bail out early
+            return s;
+        }
+        std::regex env_var_re(R"(\$(\{\w+\}|\w+))");
+        for (auto matches = std::sregex_iterator(s.begin(), s.end(), env_var_re);
+             matches != std::sregex_iterator();
+             ++matches)
+        {
+            std::smatch match = *matches;
+            auto var = match[0].str();
+            if (util::starts_with(var, "${"))
+            {
+                // strip ${ and }
+                var = var.substr(2, var.size() - 3);
+            }
+            else
+            {
+                // strip $
+                var = var.substr(1);
+            }
+            auto val = util::get_env(var);
+            if (val)
+            {
+                s.replace(match[0].first, match[0].second, val.value());
+                // It turns out to be unsafe to modify the string during
+                // sregex_iterator iteration. Start a new search by recursing.
+                return expandvars(s);
+            }
+        }
+        return s;
+    }
+
     bool must_persist_temporary_files()
     {
         return persist_temporary_files;

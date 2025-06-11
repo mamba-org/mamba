@@ -29,6 +29,12 @@ namespace mamba
     const std::regex& token_regex();
     const std::regex& http_basicauth_regex();
 
+    /**
+     * Expand environment variables present in `s`
+     * if matching R"(\$(\{\w+\}|\w+))" regex.
+     */
+    std::string expandvars(std::string s);
+
     // Used when we want a callback which does nothing.
     struct no_op
     {

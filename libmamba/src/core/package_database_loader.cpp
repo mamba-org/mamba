@@ -72,7 +72,7 @@ namespace mamba
                                      : solver::libsolv::RepodataParser::Libsolv;
 
         // Solv files are too slow on Windows.
-        if (!util::on_win)
+        //if (!util::on_win)
         {
             auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)
@@ -114,7 +114,7 @@ namespace mamba
             .transform(
                 [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
                 {
-                    if (!util::on_win)
+                    //if (!util::on_win)
                     {
                         database
                             .native_serialize_repo(

@@ -10,7 +10,9 @@ dependencies:
   # libmamba dependencies
   - cpp-expected
   - fmt >=11.1.0
-  - libarchive
+  # As of libarchive 3.8, builds of libarchive for different licenses
+  # are available. We use the LGPL version here.
+  - libarchive>=3.8 lgpl_*
   - libcurl >=7.86
   - libsodium
   - libsolv >=0.7.18

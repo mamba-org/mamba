@@ -18,35 +18,35 @@ namespace mamba::download
 
         namespace
         {
-            TEST_CASE("tar_bz2_extension")
+            TEST_CASE("tar_bz2_extension", "[mamba::download]")
             {
                 auto [split_path, split_tag] = split_path_tag("xtensor-0.23.10-h2acdbc0_0.tar.bz2");
                 REQUIRE(split_path == "xtensor");
                 REQUIRE(split_tag == "0.23.10-h2acdbc0-0");
             }
 
-            TEST_CASE("multiple_parts")
+            TEST_CASE("multiple_parts", "[mamba::download]")
             {
                 auto [split_path, split_tag] = split_path_tag("x-tensor-10.23.10-h2acdbc0_0.tar.bz2");
                 REQUIRE(split_path == "x-tensor");
                 REQUIRE(split_tag == "10.23.10-h2acdbc0-0");
             }
 
-            TEST_CASE("more_multiple_parts")
+            TEST_CASE("more_multiple_parts", "[mamba::download]")
             {
                 auto [split_path, split_tag] = split_path_tag("x-tens-or-10.23.10-h2acdbc0_0.tar.bz2");
                 REQUIRE(split_path == "x-tens-or");
                 REQUIRE(split_tag == "10.23.10-h2acdbc0-0");
             }
 
-            TEST_CASE("json_extension")
+            TEST_CASE("json_extension", "[mamba::download]")
             {
                 auto [split_path, split_tag] = split_path_tag("xtensor-0.23.10-h2acdbc0_0.json");
                 REQUIRE(split_path == "xtensor-0.23.10-h2acdbc0_0.json");
                 REQUIRE(split_tag == "latest");
             }
 
-            TEST_CASE("not_enough_parts")
+            TEST_CASE("not_enough_parts", "[mamba::download]")
             {
                 REQUIRE_THROWS_AS(split_path_tag("xtensor.tar.bz2"), std::runtime_error);
             }
@@ -55,7 +55,7 @@ namespace mamba::download
 
     namespace
     {
-        TEST_CASE("PassThroughMirror")
+        TEST_CASE("PassThroughMirror", "[mamba::download]")
         {
             std::unique_ptr<Mirror> mir = make_mirror("");
             // `mir_ref` is used here to provide an explicit expression to `typeid`
@@ -73,7 +73,7 @@ namespace mamba::download
             REQUIRE(mir_req.url == "linux-64/repodata.json");
         }
 
-        TEST_CASE("HTTPMirror")
+        TEST_CASE("HTTPMirror", "[mamba::download]")
         {
             SECTION("https")
             {
@@ -142,7 +142,7 @@ namespace mamba::download
             }
         }
 
-        TEST_CASE("OCIMirror")
+        TEST_CASE("OCIMirror", "[mamba::download]")
         {
             SECTION("Request repodata.json")
             {
@@ -208,7 +208,7 @@ namespace mamba::download
             }
         }
 
-        TEST_CASE("nullptr")
+        TEST_CASE("nullptr", "[mamba::download]")
         {
             std::unique_ptr<Mirror> mir = make_mirror("ghcr.io/channel-mirrors/conda-forge");
             REQUIRE(mir == nullptr);

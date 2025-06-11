@@ -8,11 +8,10 @@
 #include <cassert>
 #include <type_traits>
 
-#include <fmt/format.h>
-
 #include "mamba/specs/chimera_string_spec.hpp"
 #include "mamba/specs/regex_spec.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -37,7 +36,7 @@ namespace mamba::specs
                         }
                         if (spec.is_exact())
                         {
-                            return ChimeraStringSpec{ GlobSpec(std::move(spec).str()) };
+                            return ChimeraStringSpec{ GlobSpec(std::move(spec).to_string()) };
                         }
                         return ChimeraStringSpec{ std::move(spec) };
                     }
@@ -119,22 +118,10 @@ namespace mamba::specs
         return std::holds_alternative<GlobSpec>(m_spec);
     }
 
-    auto ChimeraStringSpec::str() const -> const std::string&
+    auto ChimeraStringSpec::to_string() const -> const std::string&
     {
-        return std::visit([](const auto& s) -> decltype(auto) { return s.str(); }, m_spec);
+        return std::visit([](const auto& s) -> decltype(auto) { return s.to_string(); }, m_spec);
     }
-}
-
-auto
-fmt::formatter<mamba::specs::ChimeraStringSpec>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
 }
 
 auto
@@ -143,5 +130,12 @@ fmt::formatter<mamba::specs::ChimeraStringSpec>::format(
     format_context& ctx
 ) const -> decltype(ctx.out())
 {
-    return fmt::format_to(ctx.out(), "{}", spec.str());
+    return fmt::format_to(ctx.out(), "{}", spec.to_string());
+}
+
+auto
+std::hash<mamba::specs::ChimeraStringSpec>::operator()(const mamba::specs::ChimeraStringSpec& spec
+) const -> std::size_t
+{
+    return mamba::util::hash_vals(spec.to_string());
 }

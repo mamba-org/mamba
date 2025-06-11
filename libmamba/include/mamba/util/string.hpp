@@ -19,8 +19,6 @@
 #include <utility>
 #include <vector>
 
-#include "mamba/util/compare.hpp"
-
 namespace mamba::util
 {
     /**
@@ -662,7 +660,7 @@ namespace mamba::util
         std::pair<std::size_t, std::size_t> show
     ) -> UnaryFunction
     {
-        if (util::cmp_less_equal(last - first, threshold))
+        if (std::cmp_less_equal(last - first, threshold))
         {
             return join_for_each(first, last, std::move(func), sep);
         }

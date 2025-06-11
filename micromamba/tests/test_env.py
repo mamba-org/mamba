@@ -520,4 +520,8 @@ def test_env_export_with_pip(tmp_path, json_flag):
     pip_section = next(
         dep for dep in ret["dependencies"] if isinstance(dep, dict) and ["pip"] == [*dep]
     )
-    assert pip_section["pip"] == ["requests==2.32.3"]
+    pip_section_vals = pip_section["pip"]
+
+    # Check that `requests` and `urllib3` (pulled dependency) are exported
+    assert "requests==2.32.3" in pip_section_vals
+    assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)

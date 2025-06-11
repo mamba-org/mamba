@@ -16,7 +16,7 @@ using namespace mamba::util;
 
 namespace
 {
-    TEST_CASE("Hexadecimal")
+    TEST_CASE("Hexadecimal", "[mamba::util]")
     {
         SECTION("nibble_to_hex")
         {
@@ -107,7 +107,7 @@ namespace
         }
     }
 
-    TEST_CASE("percent")
+    TEST_CASE("percent", "[mamba::util]")
     {
         SECTION("encode")
         {
@@ -141,7 +141,7 @@ namespace
         }
     }
 
-    TEST_CASE("base64")
+    TEST_CASE("base64", "[mamba::util]")
     {
         SECTION("encode")
         {
@@ -149,7 +149,7 @@ namespace
             REQUIRE(encode_base64("Hello World!").value() == "SGVsbG8gV29ybGQh");
             REQUIRE(encode_base64("!@#$%^U&I*O").value() == "IUAjJCVeVSZJKk8=");
             REQUIRE(
-                encode_base64(u8"_私のにほHelloわへたです").value()
+                encode_base64(to_utf8_std_string(u8"_私のにほHelloわへたです")).value()
                 == "X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ"
             );
             REQUIRE(encode_base64("xyzpass").value() == "eHl6cGFzcw==");
@@ -161,7 +161,7 @@ namespace
             REQUIRE(decode_base64("SGVsbG8gV29ybGQh").value() == "Hello World!");
             REQUIRE(decode_base64("IUAjJCVeVSZJKk8=").value() == "!@#$%^U&I*O");
             REQUIRE(
-                decode_base64(u8"X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ").value()
+                decode_base64(to_utf8_std_string(u8"X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ")).value()
                 == "_私のにほHelloわへたです"
             );
             REQUIRE(decode_base64("eHl6cGFzcw==").value() == "xyzpass");

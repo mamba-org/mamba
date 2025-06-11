@@ -15,6 +15,8 @@
 #include "mamba/util/cast.hpp"
 #include "mamba/util/string.hpp"
 
+#include "specs/version_spec_impl.hpp"
+
 namespace mamba::specs
 {
     namespace
@@ -46,201 +48,7 @@ namespace mamba::specs
         {
             return compare_three_way(std::strcmp(a.c_str(), b.c_str()), 0);
         }
-    }
 
-    /***************************************
-     *  Implementation of VersionPartAtom  *
-     ***************************************/
-
-    VersionPartAtom::VersionPartAtom(std::size_t numeral) noexcept
-        : m_numeral{ numeral }
-    {
-    }
-
-    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::string_view literal)
-        : m_literal{ util::to_lower(literal) }
-        , m_numeral{ numeral }
-    {
-    }
-
-    template <typename Char>
-    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char> literal)
-        : m_literal{ util::to_lower(std::move(literal)) }
-        , m_numeral{ numeral }
-    {
-    }
-
-    template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
-
-    auto VersionPartAtom::numeral() const noexcept -> std::size_t
-    {
-        return m_numeral;
-    }
-
-    auto VersionPartAtom::literal() const& noexcept -> const std::string&
-    {
-        return m_literal;
-    }
-
-    auto VersionPartAtom::literal() && noexcept -> std::string
-    {
-        return std::move(m_literal);
-    }
-
-    auto VersionPartAtom::str() const -> std::string
-    {
-        return fmt::format("{}", *this);
-    }
-
-    namespace
-    {
-        template <>
-        auto compare_three_way(const VersionPartAtom& a, const VersionPartAtom& b) -> strong_ordering
-        {
-            const auto num_ord = compare_three_way(a.numeral(), b.numeral());
-            if (num_ord != strong_ordering::equal)
-            {
-                return num_ord;
-            }
-
-            // Certain literals have special meaning we map then to a priority
-            // 0 meaning regular string
-            auto lit_priority = [](const auto& l) -> int
-            {
-                if (l == "*")
-                {
-                    return -3;
-                }
-                if (l == "dev")
-                {
-                    return -2;
-                }
-                if (l == "_")
-                {
-                    return -1;
-                }
-                if (l == "")
-                {
-                    return 1;
-                }
-                if (l == "post")
-                {
-                    return 2;
-                }
-                return 0;
-            };
-            const auto a_lit_val = lit_priority(a.literal());
-            const auto b_lit_val = lit_priority(b.literal());
-            // If two regular string, we need to use string comparison
-            if ((a_lit_val == 0) && (b_lit_val == 0))
-            {
-                return compare_three_way<std::string>(a.literal(), b.literal());
-            }
-            return compare_three_way(a_lit_val, b_lit_val);
-        }
-    }
-
-    auto VersionPartAtom::operator==(const VersionPartAtom& other) const -> bool
-    {
-        // More efficient than three way comparison because of edge cases
-        auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&>
-        { return { a.numeral(), a.literal() }; };
-        return attrs(*this) == attrs(other);
-    }
-
-    auto VersionPartAtom::operator!=(const VersionPartAtom& other) const -> bool
-    {
-        // More efficient than three way comparison
-        return !(*this == other);
-    }
-
-    auto VersionPartAtom::operator<(const VersionPartAtom& other) const -> bool
-    {
-        return compare_three_way(*this, other) == strong_ordering::less;
-    }
-
-    auto VersionPartAtom::operator<=(const VersionPartAtom& other) const -> bool
-    {
-        return compare_three_way(*this, other) != strong_ordering::greater;
-    }
-
-    auto VersionPartAtom::operator>(const VersionPartAtom& other) const -> bool
-    {
-        return compare_three_way(*this, other) == strong_ordering::greater;
-    }
-
-    auto VersionPartAtom::operator>=(const VersionPartAtom& other) const -> bool
-    {
-        return compare_three_way(*this, other) != strong_ordering::less;
-    }
-}
-
-auto
-fmt::formatter<mamba::specs::VersionPartAtom>::parse(format_parse_context& ctx)
-    -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
-fmt::formatter<mamba::specs::VersionPartAtom>::format(
-    const ::mamba::specs::VersionPartAtom atom,
-    format_context& ctx
-) const -> decltype(ctx.out())
-{
-    return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.literal());
-}
-
-namespace mamba::specs
-{
-
-    /*******************************
-     *  Implementation of Version  *
-     *******************************/
-
-    Version::Version(std::size_t epoch, CommonVersion version, CommonVersion local) noexcept
-        : m_version{ std::move(version) }
-        , m_local{ std::move(local) }
-        , m_epoch{ epoch }
-    {
-    }
-
-    auto Version::epoch() const noexcept -> std::size_t
-    {
-        return m_epoch;
-    }
-
-    auto Version::version() const noexcept -> const CommonVersion&
-    {
-        return m_version;
-    }
-
-    auto Version::local() const noexcept -> const CommonVersion&
-    {
-        return m_local;
-    }
-
-    auto Version::str() const -> std::string
-    {
-        return fmt::format("{}", *this);
-    }
-
-    auto Version::str(std::size_t level) const -> std::string
-    {
-        // We should be able to do, as it works with numbers but it is not clear how this works
-        // with the custom parser
-        // return fmt::format("{:{}}", *this, level);
-        auto fmt = fmt::format("{{:{}}}", level);
-        return fmt::format(fmt, *this);
-    }
-
-    namespace
-    {
         /**
          * Compare two ranges where some trailing elements can be considered as empty.
          *
@@ -326,19 +134,301 @@ namespace mamba::specs
             );
         }
 
+    }
+
+    /***************************************
+     *  Implementation of VersionPartAtom  *
+     ***************************************/
+
+    VersionPartAtom::VersionPartAtom(std::size_t numeral) noexcept
+        : m_numeral{ numeral }
+    {
+    }
+
+    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::string_view literal)
+        : m_literal{ util::to_lower(literal) }
+        , m_numeral{ numeral }
+    {
+    }
+
+    template <typename Char>
+    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char> literal)
+        : m_literal{ util::to_lower(std::move(literal)) }
+        , m_numeral{ numeral }
+    {
+    }
+
+    template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
+
+    auto VersionPartAtom::numeral() const noexcept -> std::size_t
+    {
+        return m_numeral;
+    }
+
+    auto VersionPartAtom::literal() const& noexcept -> const std::string&
+    {
+        return m_literal;
+    }
+
+    auto VersionPartAtom::literal() && noexcept -> std::string
+    {
+        return std::move(m_literal);
+    }
+
+    auto VersionPartAtom::to_string() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+
+    namespace
+    {
+        template <>
+        auto compare_three_way(const VersionPartAtom& a, const VersionPartAtom& b) -> strong_ordering
+        {
+            const auto num_ord = compare_three_way(a.numeral(), b.numeral());
+            if (num_ord != strong_ordering::equal)
+            {
+                return num_ord;
+            }
+
+            // Certain literals have special meaning we map then to a priority
+            // 0 meaning regular string
+            auto lit_priority = [](const auto& l) -> int
+            {
+                if (l == "*")
+                {
+                    return -3;
+                }
+                if (l == "dev")
+                {
+                    return -2;
+                }
+                if (l == "_")
+                {
+                    return -1;
+                }
+                if (l == "")
+                {
+                    return 1;
+                }
+                if (l == "post")
+                {
+                    return 2;
+                }
+                return 0;
+            };
+            const auto a_lit_val = lit_priority(a.literal());
+            const auto b_lit_val = lit_priority(b.literal());
+            // If two regular string, we need to use string comparison
+            if ((a_lit_val == 0) && (b_lit_val == 0))
+            {
+                return compare_three_way<std::string>(a.literal(), b.literal());
+            }
+            return compare_three_way(a_lit_val, b_lit_val);
+        }
+    }
+
+    auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
+    {
+        // More efficient than three way comparison because of edge cases
+        auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&>
+        { return { a.numeral(), a.literal() }; };
+        return attrs(left) == attrs(right);
+    }
+
+    auto operator!=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
+    {
+        // More efficient than three way comparison
+        return !(left == right);
+    }
+
+    auto operator<(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
+    {
+        return compare_three_way(left, right) == strong_ordering::less;
+    }
+
+    auto operator<=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
+    {
+        return compare_three_way(left, right) != strong_ordering::greater;
+    }
+
+    auto operator>(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
+    {
+        return compare_three_way(left, right) == strong_ordering::greater;
+    }
+
+    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& other) -> bool
+    {
+        return compare_three_way(left, other) != strong_ordering::less;
+    }
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPartAtom>::format(
+    const ::mamba::specs::VersionPartAtom atom,
+    format_context& ctx
+) const -> format_context::iterator
+{
+    return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.literal());
+}
+
+namespace mamba::specs
+{
+
+    /***********************************
+     *  Implementation of VersionPart  *
+     ***********************************/
+
+    VersionPart::VersionPart()
+        : atoms()
+        , implicit_leading_zero(false)
+    {
+    }
+
+    VersionPart::VersionPart(std::initializer_list<VersionPartAtom> init)
+        : atoms(init)
+    {
+    }
+
+    VersionPart::VersionPart(std::vector<VersionPartAtom> p_atoms, bool p_implicit_leading_zero)
+        : atoms(std::move(p_atoms))
+        , implicit_leading_zero(p_implicit_leading_zero)
+    {
+    }
+
+    auto VersionPart::to_string() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+
+    namespace
+    {
         template <>
         auto compare_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
-                       a.cbegin(),
-                       a.cend(),
-                       b.cbegin(),
-                       b.cend(),
+                       a.atoms.cbegin(),
+                       a.atoms.cend(),
+                       b.atoms.cbegin(),
+                       b.atoms.cend(),
                        VersionPartAtom{},
                        [](const auto& x, const auto& y) { return compare_three_way(x, y); }
             ).first;
         }
+    }
 
+    auto operator==(const VersionPart& left, const VersionPart& right) -> bool
+    {
+        return compare_three_way(left, right) == strong_ordering::equal;
+    }
+
+    auto operator!=(const VersionPart& left, const VersionPart& right) -> bool
+    {
+        return !(left == right);
+    }
+
+    auto operator<(const VersionPart& left, const VersionPart& right) -> bool
+    {
+        return compare_three_way(left, right) == strong_ordering::less;
+    }
+
+    auto operator<=(const VersionPart& left, const VersionPart& right) -> bool
+    {
+        return compare_three_way(left, right) != strong_ordering::greater;
+    }
+
+    auto operator>(const VersionPart& left, const VersionPart& right) -> bool
+    {
+        return compare_three_way(left, right) == strong_ordering::greater;
+    }
+
+    auto operator>=(const VersionPart& left, const VersionPart& right) -> bool
+    {
+        return compare_three_way(left, right) != strong_ordering::less;
+    }
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPart>::format(
+    const ::mamba::specs::VersionPart part,
+    format_context& ctx
+) const -> format_context::iterator
+{
+    auto out = ctx.out();
+    if (part.atoms.empty())
+    {
+        return out;
+    }
+
+    const auto& first = part.atoms.front();
+    if (part.implicit_leading_zero && (first.numeral() == 0) && (!first.literal().empty()))
+    {
+        // The implicit leading zero is omitted
+        out = fmt::format_to(out, "{}", first.literal());
+    }
+    else
+    {
+        out = fmt::format_to(out, "{}", first);
+    }
+
+    const auto n_atoms = part.atoms.size();
+    for (std::size_t i = 1; i < n_atoms; ++i)
+    {
+        out = fmt::format_to(out, "{}", part.atoms[i]);
+    }
+    return out;
+}
+
+namespace mamba::specs
+{
+
+    /*******************************
+     *  Implementation of Version  *
+     *******************************/
+
+    Version::Version(std::size_t epoch, CommonVersion version, CommonVersion local) noexcept
+        : m_version{ std::move(version) }
+        , m_local{ std::move(local) }
+        , m_epoch{ epoch }
+    {
+    }
+
+    auto Version::epoch() const noexcept -> std::size_t
+    {
+        return m_epoch;
+    }
+
+    auto Version::version() const noexcept -> const CommonVersion&
+    {
+        return m_version;
+    }
+
+    auto Version::local() const noexcept -> const CommonVersion&
+    {
+        return m_local;
+    }
+
+    auto Version::to_string() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+
+    auto Version::to_string(std::size_t level) const -> std::string
+    {
+        // We should be able to do, as it works with numbers but it is not clear how this works
+        // with the custom parser
+        // return fmt::format("{:{}}", *this, level);
+        auto fmt = fmt::format("{{:{}}}", level);
+        return fmt::format(fmt::runtime(fmt), *this);
+    }
+
+    auto Version::to_string_glob() const -> std::string
+    {
+        return fmt::format("{:g}", *this);
+    }
+
+    namespace
+    {
         template <>
         auto compare_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
         {
@@ -368,34 +458,34 @@ namespace mamba::specs
     }
 
     // TODO(C++20) use operator<=> to simplify code and improve operator<=
-    auto Version::operator==(const Version& other) const -> bool
+    auto operator==(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::equal;
+        return compare_three_way(left, right) == strong_ordering::equal;
     }
 
-    auto Version::operator!=(const Version& other) const -> bool
+    auto operator!=(const Version& left, const Version& right) -> bool
     {
-        return !(*this == other);
+        return !(left == right);
     }
 
-    auto Version::operator<(const Version& other) const -> bool
+    auto operator<(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::less;
+        return compare_three_way(left, right) == strong_ordering::less;
     }
 
-    auto Version::operator<=(const Version& other) const -> bool
+    auto operator<=(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::greater;
+        return compare_three_way(left, right) != strong_ordering::greater;
     }
 
-    auto Version::operator>(const Version& other) const -> bool
+    auto operator>(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) == strong_ordering::greater;
+        return compare_three_way(left, right) == strong_ordering::greater;
     }
 
-    auto Version::operator>=(const Version& other) const -> bool
+    auto operator>=(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(*this, other) != strong_ordering::less;
+        return compare_three_way(left, right) != strong_ordering::less;
     }
 
     namespace
@@ -437,10 +527,10 @@ namespace mamba::specs
         auto starts_with_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
-                       a.cbegin(),
-                       a.cend(),
-                       b.cbegin(),
-                       b.cend(),
+                       a.atoms.cbegin(),
+                       a.atoms.cend(),
+                       b.atoms.cbegin(),
+                       b.atoms.cend(),
                        VersionPartAtom{},
                        AlwaysEqual{},
                        [](const auto& x, const auto& y) { return starts_with_three_way(x, y); }
@@ -608,11 +698,13 @@ namespace mamba::specs
         {
             assert(!str.empty());
 
-            VersionPart atoms = {};
+            auto atoms = VersionPart();
+            atoms.implicit_leading_zero = !util::is_digit(str.front());
+
             while (!str.empty())
             {
-                atoms.emplace_back();
-                std::tie(atoms.back(), str) = parse_leading_part_atom(str);
+                atoms.atoms.emplace_back();
+                std::tie(atoms.atoms.back(), str) = parse_leading_part_atom(str);
             }
             return atoms;
         }
@@ -773,26 +865,8 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<mamba::specs::Version>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is not empty
-    if (ctx.begin() == ctx.end() || *ctx.begin() == '}')
-    {
-        return ctx.begin();
-    }
-    std::size_t val = 0;
-    auto [ptr, ec] = std::from_chars(ctx.begin(), ctx.end(), val);
-    if (ec != std::errc())
-    {
-        throw fmt::format_error("Invalid format" + std::string(ctx.begin(), ctx.end()));
-    }
-    m_level = val;
-    return ptr;
-}
-
-auto
 fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, format_context& ctx) const
-    -> decltype(ctx.out())
+    -> format_context::iterator
 {
     auto out = ctx.out();
     if (v.epoch() != 0)
@@ -812,9 +886,13 @@ fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, f
             }
             if (i < version.size())
             {
-                for (const auto& atom : version[i])
+                if (m_type == FormatType::Glob && version[i] == mamba::specs::VERSION_GLOB_SEGMENT)
                 {
-                    l_out = fmt::format_to(l_out, "{}", atom);
+                    l_out = fmt::format_to(l_out, "{}", mamba::specs::GLOB_PATTERN_STR);
+                }
+                else
+                {
+                    l_out = fmt::format_to(l_out, "{}", version[i]);
                 }
             }
             else

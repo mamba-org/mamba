@@ -12,7 +12,7 @@ dependencies:
   - nlohmann_json
   - simdjson-static >=3.3.0
   - spdlog
-  - fmt
+  - fmt >=11.1.0
   - libsolv-static >=0.7.24
   - yaml-cpp-static >=0.8.0
   - reproc-static >=14.2.4.post0
@@ -21,7 +21,9 @@ dependencies:
   - libcurl-static >=8.4.0
   - xz-static
   - libssh2-static
-  - libarchive-minimal-static
+  # As of libarchive 3.8, builds of libarchive for different licenses
+  # are available. We use the LGPL version here.
+  - libarchive-minimal-static>=3.8 lgpl_*
   - krb5-static
   - openssl
   - libopenssl-static

@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifndef LIBMAMBAPY_PATH_CASTER_HPP
+#define LIBMAMBAPY_PATH_CASTER_HPP
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl/filesystem.h>
 
@@ -19,3 +22,5 @@ namespace PYBIND11_NAMESPACE
         };
     }
 }
+
+#endif

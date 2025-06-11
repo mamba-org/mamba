@@ -503,6 +503,7 @@ namespace mamba
       | into record
       | load-env
     )
+    $env.PATH = $env.PATH | split row (char esep)
     # update prompt
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
@@ -512,24 +513,32 @@ namespace mamba
         content << R"nu(def --env ")nu" << exe_name << R"nu( deactivate"  [] {)nu";
         content << R"###(
     #remove active environment except base env
-    if $env.CONDA_PROMPT_MODIFIER? != null {
-      # unset set variables
-      for x in (^$env.MAMBA_EXE shell deactivate --shell nu
-              | split row ";") {
-          if ("hide-env" in $x) {
-            hide-env ($x | parse "hide-env {var}").var.0
-          } else if $x != "" {
-            let keyValue = ($x
-            | str replace --regex '\s+' "" --all
-            | parse '{key}={value}'
-            )
-            load-env {$keyValue.0.key: $keyValue.0.value}
-          }
-    }
+    def --env "micromamba deactivate"  [] {
+        for x in (^$env.MAMBA_EXE shell deactivate --shell nu | lines) {
+            if ("hide-env" in $x) {
+                hide-env (($x | parse "hide-env {var}").0.var)
+            } else if ($x =~ "=") {
+                let keyValue = ($x
+                    | str replace --regex '\s+' "" --all
+                    | parse '{key}={value}'
+                )
+            if ($keyValue | is-empty) == false {
+                let k = $keyValue.0.key
+                let v = $keyValue.0.value
+                # special-case PATH: convert to list
+                if $k == "PATH" {
+                    let path_list = ($v | split row ":")
+                    load-env { PATH: $path_list }
+                } else {
+                    load-env { $k: $v }
+                    }
+                }
+            }
+        }
     # reset prompt
     $env.PROMPT_COMMAND = $env.PROMPT_COMMAND_BK
-  }
-})###" << "\n";
+    }
+)###" << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }
@@ -747,7 +756,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(context, context.prefix_params.root_prefix);
+            init_root_prefix_cmdexe(context.prefix_params.root_prefix);
             LOG_WARNING << "Hook installed, now 'manually' execute:";
             LOG_WARNING
                 << "       CALL "
@@ -770,7 +779,7 @@ namespace mamba
         return "";
     }
 
-    void init_root_prefix_cmdexe(const Context&, const fs::u8path& root_prefix)
+    void init_root_prefix_cmdexe(const fs::u8path& root_prefix)
     {
         const ShellInitPathsWindowsCmd paths{ root_prefix };
 
@@ -980,7 +989,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(context, root_prefix);
+            init_root_prefix_cmdexe(root_prefix);
         }
         else if (shell == "powershell")
         {

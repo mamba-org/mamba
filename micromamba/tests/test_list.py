@@ -82,6 +82,7 @@ def test_list_no_json(
 
 @pytest.mark.parametrize("explicit_flag", ["", "--explicit"])
 @pytest.mark.parametrize("md5_flag", ["", "--md5"])
+@pytest.mark.parametrize("sha256_flag", ["", "--sha256"])
 @pytest.mark.parametrize("canonical_flag", ["", "-c", "--canonical"])
 @pytest.mark.parametrize("export_flag", ["", "-e", "--export"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
@@ -94,19 +95,24 @@ def test_list_subcommands(
     env_selector,
     explicit_flag,
     md5_flag,
+    sha256_flag,
     canonical_flag,
     export_flag,
 ):
+    args = []
     if env_selector == "prefix":
-        res = helpers.umamba_list(
-            "-p", tmp_xtensor_env, explicit_flag, md5_flag, canonical_flag, export_flag
-        )
+        args += ["-p", tmp_xtensor_env]
     elif env_selector == "name":
-        res = helpers.umamba_list(
-            "-n", tmp_env_name, explicit_flag, md5_flag, canonical_flag, export_flag
-        )
-    else:
-        res = helpers.umamba_list(explicit_flag, md5_flag, canonical_flag, export_flag)
+        args += ["-n", tmp_env_name]
+    args += [explicit_flag, md5_flag, sha256_flag, canonical_flag, export_flag]
+
+    if (explicit_flag == "--explicit") and (md5_flag == "--md5") and (sha256_flag == "--sha256"):
+        with pytest.raises(subprocess.CalledProcessError) as excinfo:
+            helpers.umamba_list(*args)
+            assert "Only one of --md5 and --sha256 can be specified at the same time." in excinfo
+        return None
+
+    res = helpers.umamba_list(*args)
 
     outputs_list = res.strip().split("\n")[2:]
     outputs_list = [i for i in outputs_list if i != "" and not i.startswith("Warning")]
@@ -114,8 +120,14 @@ def test_list_subcommands(
     if explicit_flag == "--explicit":
         for output in outputs_list:
             assert "/conda-forge/" in output
-            if md5_flag == "--md5":
+            if (md5_flag == "--md5") or (sha256_flag == "--sha256"):
                 assert "#" in output
+                hash = output.split("#")[-1]
+                hash = hash.replace("\r", "")
+                if md5_flag == "--md5":
+                    assert len(hash) == 32
+                else:
+                    assert len(hash) == 64
             else:
                 assert "#" not in output
     elif canonical_flag in ["-c", "--canonical"]:
@@ -148,7 +160,7 @@ channels:
 dependencies:
 - pip
 - pip:
-  - numpy==1.26.4
+  - pandas==2.2.3
 """
 
 
@@ -167,8 +179,17 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path, no_pip_flag):
     res = helpers.umamba_list("-n", env_name, "--json", no_pip_flag)
     if no_pip_flag == "":
         assert any(
+            package["name"] == "pandas"
+            and package["version"] == "2.2.3"
+            and package["base_url"] == "https://pypi.org/"
+            and package["build_string"] == "pypi_0"
+            and package["channel"] == "pypi"
+            and package["platform"] == sys.platform + "-" + platform.machine()
+            for package in res
+        )
+        # Check that dependencies are listed
+        assert any(
             package["name"] == "numpy"
-            and package["version"] == "1.26.4"
             and package["base_url"] == "https://pypi.org/"
             and package["build_string"] == "pypi_0"
             and package["channel"] == "pypi"
@@ -176,7 +197,9 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path, no_pip_flag):
             for package in res
         )
     else:  # --no-pip
-        # Check that numpy installed with pip is not listed
+        # Check that pandas installed with pip is not listed
+        assert all(package["name"] != "pandas" for package in res)
+        # Check that dependencies are not there either
         assert all(package["name"] != "numpy" for package in res)
 
 

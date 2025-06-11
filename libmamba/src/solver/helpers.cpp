@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <ranges>
+
 #include "solver/helpers.hpp"
 
 namespace mamba::solver
@@ -11,20 +13,13 @@ namespace mamba::solver
     auto find_new_python_in_solution(const Solution& solution)
         -> std::optional<std::reference_wrapper<const specs::PackageInfo>>
     {
-        auto out = std::optional<std::reference_wrapper<const specs::PackageInfo>>{};
-        for_each_to_install(
-            solution.actions,
-            [&](const auto& pkg)
-            {
-                if (pkg.name == "python")
-                {
-                    out = std::cref(pkg);
-                    return util::LoopControl::Break;
-                }
-                return util::LoopControl::Continue;
-            }
-        );
-        return out;
+        auto packages = solution.packages_to_install();
+        auto it = std::ranges::find_if(packages, [](const auto& pkg) { return pkg.name == "python"; });
+        if (it != packages.end())
+        {
+            return std::cref(*it);
+        }
+        return std::nullopt;
     }
 
     auto python_binary_compatible(const specs::Version& older, const specs::Version& newer) -> bool

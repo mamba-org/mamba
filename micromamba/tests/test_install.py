@@ -415,10 +415,9 @@ class TestInstall:
 
             if not helpers.dry_run_tests:
                 pkg_name = helpers.get_concrete_pkg(res, "xtensor")
-                orig_file_path = helpers.get_pkg(
-                    pkg_name, helpers.xtensor_hpp, TestInstall.current_root_prefix
-                )
-                assert orig_file_path.exists()
+                checker = helpers.PackageChecker("xtensor", TestInstall.current_root_prefix)
+                checker.check_install_integrity()
+                assert checker.get_name_version_build() == pkg_name
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,

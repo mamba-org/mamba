@@ -66,7 +66,7 @@ namespace mamba
     );
 
     // we need this function during linking...
-    void init_root_prefix_cmdexe(const Context& context, const fs::u8path& root_prefix);
+    void init_root_prefix_cmdexe(const fs::u8path& root_prefix);
     void deinit_root_prefix_cmdexe(const Context& context, const fs::u8path& root_prefix);
     void init_root_prefix(Context& context, const std::string& shell, const fs::u8path& root_prefix);
     void

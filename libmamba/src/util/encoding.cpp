@@ -7,10 +7,11 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <ranges>
+#include <utility>
 
 #include <openssl/evp.h>
 
-#include "mamba/util/compare.hpp"
 #include "mamba/util/conditional.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
@@ -268,7 +269,7 @@ namespace mamba::util
             static_cast<int>(input.size())
         );
 
-        if (util::cmp_not_equal(expected_size, written_size))
+        if (std::cmp_not_equal(expected_size, written_size))
         {
             return tl::make_unexpected(EncodingError());
         }
@@ -285,7 +286,7 @@ namespace mamba::util
             reinterpret_cast<const unsigned char*>(input.data()),
             static_cast<int>(input.size())
         );
-        if (util::cmp_not_equal(max_expected_size, max_possible_written_size))
+        if (std::cmp_not_equal(max_expected_size, max_possible_written_size))
         {
             return tl::make_unexpected(EncodingError());
         }
@@ -295,5 +296,21 @@ namespace mamba::util
         auto extra = std::strlen(out.c_str() + min_expected_size);
         out.resize(min_expected_size + extra);
         return { std::move(out) };
+    }
+
+    auto to_utf8_std_string(std::u8string_view text) -> std::string
+    {
+        static constexpr auto to_char = [](char8_t c) { return static_cast<char>(c); };
+        auto bytes = text | std::ranges::views::transform(to_char);
+        // TODO(C++23): Use std::ranges::to<std::string>
+        return { bytes.begin(), bytes.end() };
+    }
+
+    auto to_u8string(std::string_view text) -> std::u8string
+    {
+        static constexpr auto to_char8_t = [](char c) { return static_cast<char8_t>(c); };
+        auto bytes = text | std::ranges::views::transform(to_char8_t);
+        // TODO(C++23): Use std::ranges::to<std::string>
+        return { bytes.begin(), bytes.end() };
     }
 }

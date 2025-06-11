@@ -9,8 +9,10 @@ dependencies:
   - make # not always present
   # libmamba dependencies
   - cpp-expected
-  - fmt
-  - libarchive
+  - fmt >=11.1.0
+  # As of libarchive 3.8, builds of libarchive for different licenses
+  # are available. We use the LGPL version here.
+  - libarchive>=3.8 lgpl_*
   - libcurl >=7.86
   - libsodium
   - libsolv >=0.7.18
@@ -43,10 +45,13 @@ dependencies:
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build
-  - pybind11-stubgen <1.0
   # libmambapy dependencies
   - python
   - pybind11
+  # libmambapy-stubs build dependencies
+  - mypy # For stubgen
+  - setuptools
+  - python-build
   # dev dependencies
   - pre-commit
   # Documentation dependencies

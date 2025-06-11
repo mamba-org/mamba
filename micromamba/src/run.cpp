@@ -17,6 +17,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
@@ -66,7 +67,7 @@ set_ps_command(CLI::App* subcom, Context& context)
             auto prefix = el["prefix"].get<std::string>();
             if (!prefix.empty())
             {
-                prefix = env_name(context, prefix);
+                prefix = env_name(context.envs_dirs, context.prefix_params.root_prefix, prefix);
             }
 
             table.add_row({

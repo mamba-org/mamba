@@ -23,20 +23,20 @@ namespace mamba
         bool no_clear_progress_bar = false;
     };
 
-    class SubdirDataMonitor : public download::Monitor
+    class SubdirIndexMonitor : public download::Monitor
     {
     public:
 
         static bool can_monitor(const Context& context);
 
-        explicit SubdirDataMonitor(MonitorOptions options = {});
-        virtual ~SubdirDataMonitor() = default;
+        explicit SubdirIndexMonitor(MonitorOptions options = {});
+        virtual ~SubdirIndexMonitor() = default;
 
-        SubdirDataMonitor(const SubdirDataMonitor&) = delete;
-        SubdirDataMonitor& operator=(const SubdirDataMonitor&) = delete;
+        SubdirIndexMonitor(const SubdirIndexMonitor&) = delete;
+        SubdirIndexMonitor& operator=(const SubdirIndexMonitor&) = delete;
 
-        SubdirDataMonitor(SubdirDataMonitor&&) = delete;
-        SubdirDataMonitor& operator=(SubdirDataMonitor&&) = delete;
+        SubdirIndexMonitor(SubdirIndexMonitor&&) = delete;
+        SubdirIndexMonitor& operator=(SubdirIndexMonitor&&) = delete;
 
         void reset_options(MonitorOptions options);
 

@@ -407,7 +407,7 @@ set_shell_command(CLI::App* shell_subcmd, Configuration& config)
 
     auto* reacti_subsubcmd = shell_subcmd->add_subcommand(
         "reactivate",
-        "Output reactivateion code for the given shell"
+        "Output reactivation code for the given shell"
     );
     set_shell_reactivate_command(reacti_subsubcmd, config);
 

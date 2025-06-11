@@ -17,7 +17,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
@@ -52,9 +52,11 @@ namespace mamba
         );
     }
 
-    auto
-    load_subdir_in_database(const Context& ctx, solver::libsolv::Database& database, const SubdirData& subdir)
-        -> expected_t<solver::libsolv::RepoInfo>
+    auto load_subdir_in_database(
+        const Context& ctx,
+        solver::libsolv::Database& database,
+        const SubdirIndexLoader& subdir
+    ) -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
@@ -72,7 +74,7 @@ namespace mamba
         // Solv files are too slow on Windows.
         if (!util::on_win)
         {
-            auto maybe_repo = subdir.valid_solv_cache().and_then(
+            auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)
                 {
                     return database.add_repo_from_native_serialization(
@@ -89,7 +91,7 @@ namespace mamba
             }
         }
 
-        return subdir.valid_json_cache()
+        return subdir.valid_json_cache_path()
             .and_then(
                 [&](fs::u8path&& repodata_json)
                 {
@@ -115,13 +117,18 @@ namespace mamba
                     if (!util::on_win)
                     {
                         database
-                            .native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
+                            .native_serialize_repo(
+                                repo,
+                                subdir.writable_libsolv_cache_path(),
+                                expected_cache_origin
+                            )
                             .or_else(
                                 [&](const auto& err)
                                 {
                                     LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                                << subdir.writable_solv_cache() << R"(" for repo ")"
-                                                << subdir.name() << ": " << err.what();
+                                                << subdir.writable_libsolv_cache_path()
+                                                << R"(" for repo ")" << subdir.name() << ": "
+                                                << err.what();
                                     ;
                                 }
                             );

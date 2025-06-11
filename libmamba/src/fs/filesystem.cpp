@@ -21,6 +21,7 @@
 #endif
 
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/encoding.hpp"
 
 namespace mamba::fs
 {
@@ -44,26 +45,27 @@ namespace mamba::fs
     }
 #endif
 
-#if __cplusplus == 201703L
     std::string to_utf8(const std::filesystem::path& path, Utf8Options utf8_options)
     {
-        if (utf8_options.normalize_sep)
+        const auto u8str = [&]
         {
-            return normalized_separators(path).u8string();
-        }
-        else
-        {
-            return path.u8string();
-        }
+            if (utf8_options.normalize_sep)
+            {
+                return normalized_separators(path).u8string();
+            }
+            else
+            {
+                return path.u8string();
+            }
+        }();
+
+        return util::to_utf8_std_string(u8str);
     }
 
     std::filesystem::path from_utf8(std::string_view u8string)
     {
-        return normalized_separators(std::filesystem::u8path(u8string));
+        return normalized_separators(util::to_u8string(u8string));
     }
-#else
-#error UTF8 functions implementation is specific to C++17, using another version requires a different implementation.
-#endif
 
     void last_write_time(const u8path& path, now, std::error_code& ec) noexcept
     {

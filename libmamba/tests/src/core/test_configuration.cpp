@@ -88,6 +88,21 @@ namespace mamba
                 config.load();
             }
 
+            void load_file_specs_config(std::string file_specs)
+            {
+                const auto unique_location = tempfile_specs_ptr->path();
+                std::ofstream out_file(
+                    unique_location.std_path(),
+                    std::ofstream::out | std::ofstream::trunc
+                );
+                out_file << file_specs;
+                out_file.close();
+
+                config.reset_configurables();
+                config.at("file_specs").set_value<std::vector<std::string>>({ unique_location.string() });
+                config.load();
+            }
+
             std::string shrink_source(std::size_t position)
             {
                 return util::shrink_home(config.valid_sources()[position].string());
@@ -106,6 +121,10 @@ namespace mamba
                 ".yaml"
             );
 
+            std::unique_ptr<TemporaryFile> tempfile_specs_ptr = std::make_unique<TemporaryFile>(
+                "file_specs",
+                ".yaml"
+            );
 
             mamba::Context& ctx = mambatests::context();
             mamba::Configuration config{ ctx };
@@ -288,6 +307,27 @@ namespace mamba
                                         ssl_verify: <false>  # ')"
                                  + src1 + "'")
                                     .c_str())
+                );
+            }
+
+            TEST_CASE_METHOD(Configuration, "load_file_specs")
+            {
+                std::string file_specs = unindent(R"(
+                    name: env_name
+                    channels:
+                    - https://private.cloud/t/$SOME_PRIVATE_KEY/get/channel
+                    - https://private.cloud/t/${SOME_OTHER_PRIVATE_KEY}/get/channel
+                    - https://private.cloud/t/SOME_TOKEN/get/channel
+                    - conda-forge
+                    dependencies:
+                    - spec1)");
+                util::set_env("SOME_PRIVATE_KEY", "hdfd5256h6degd5");
+                util::set_env("SOME_OTHER_PRIVATE_KEY", "kqf458r1h127de9");
+                load_file_specs_config(file_specs);
+                const auto src = util::shrink_home(tempfile_ptr->path().string());
+                REQUIRE(
+                    config.dump()
+                    == "channels:\n  - https://private.cloud/t/hdfd5256h6degd5/get/channel\n  - https://private.cloud/t/kqf458r1h127de9/get/channel\n  - https://private.cloud/t/SOME_TOKEN/get/channel\n  - conda-forge"
                 );
             }
 
@@ -1080,11 +1120,11 @@ namespace mamba
 
             TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
 
-            TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.allow_softlinks);
+            TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.link_params.allow_softlinks);
 
-            TEST_BOOL_CONFIGURABLE(always_softlink, ctx.always_softlink);
+            TEST_BOOL_CONFIGURABLE(always_softlink, ctx.link_params.always_softlink);
 
-            TEST_BOOL_CONFIGURABLE(always_copy, ctx.always_copy);
+            TEST_BOOL_CONFIGURABLE(always_copy, ctx.link_params.always_copy);
 
             TEST_CASE_METHOD(Configuration, "always_softlink_and_copy")
             {

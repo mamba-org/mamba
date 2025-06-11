@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: "software"
+title: "mamba"
+date-released: "2019-03"
+authors:
+  - family-names: "QuantStack and Mamba Contributors"
+    given-names: ""
+    website: "https://github.com/mamba-org/mamba"
+repository-code: "https://github.com/mamba-org/mamba"
+url: "https://mamba.readthedocs.io/"
+abstract: "Mamba is a fast, robust, and cross-platform package manager for the Conda ecosystem."
+license: "BSD-3-Clause"
+keywords:
+  - "package manager"
+  - "conda"
+  - "python"
+  - "dependency resolution"
+  - "cross-platform"

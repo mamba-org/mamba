@@ -11,11 +11,11 @@
 #include <variant>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/regex_spec.hpp"
-#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -50,7 +50,7 @@ namespace mamba::specs
          */
         [[nodiscard]] auto is_glob() const -> bool;
 
-        [[nodiscard]] auto str() const -> const std::string&;
+        [[nodiscard]] auto to_string() const -> const std::string&;
 
         // TODO(C++20): replace by the `= default` implementation of `operator==`
         [[nodiscard]] auto operator==(const ChimeraStringSpec& other) const -> bool
@@ -72,19 +72,24 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<mamba::specs::ChimeraStringSpec>
 {
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::ChimeraStringSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct std::hash<mamba::specs::ChimeraStringSpec>
 {
-    auto operator()(const mamba::specs::ChimeraStringSpec& spec) const -> std::size_t
-    {
-        return mamba::util::hash_vals(spec.str());
-    }
+    auto operator()(const mamba::specs::ChimeraStringSpec& spec) const -> std::size_t;
 };
 
 #endif

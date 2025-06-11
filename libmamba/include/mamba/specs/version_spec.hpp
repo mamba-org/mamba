@@ -17,7 +17,6 @@
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/flat_bool_expr_tree.hpp"
-#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -39,6 +38,8 @@ namespace mamba::specs
         [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
             -> VersionPredicate;
+        [[nodiscard]] static auto make_version_glob(Version pattern) -> VersionPredicate;
+        [[nodiscard]] static auto make_not_version_glob(Version pattern) -> VersionPredicate;
 
         /** Construct an free interval. */
         VersionPredicate() = default;
@@ -48,14 +49,21 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
-        [[nodiscard]] auto str() const -> std::string;
+        /**
+         * True if it contains a glob or negative glob expression.
+         *
+         * Does not return true for predicates that could be written as globs but are not.
+         */
+        [[nodiscard]] auto has_glob() const -> bool;
+
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * An alternative string representation of the version spec.
          *
          * Attempts to be compatible with conda-build/libsolv.
          */
-        [[nodiscard]] auto str_conda_build() const -> std::string;
+        [[nodiscard]] auto to_string_conda_build() const -> std::string;
 
     private:
 
@@ -80,6 +88,16 @@ namespace mamba::specs
             auto operator()(const Version&, const Version&) const -> bool;
         };
 
+        struct version_glob
+        {
+            auto operator()(const Version&, const Version&) const -> bool;
+        };
+
+        struct not_version_glob
+        {
+            auto operator()(const Version&, const Version&) const -> bool;
+        };
+
         /**
          * Operator to compare with the stored version.
          *
@@ -87,6 +105,10 @@ namespace mamba::specs
          * ``VersionSpec`` parsing (hence not user-extensible), and performance-sensitive,
          * we choose an ``std::variant`` for dynamic dispatch.
          * An alternative could be a type-erased wrapper with local storage.
+         *
+         * Not alternatives (``not_starts_with``, ``not_version_glob``) could also be implemented
+         * as a not operator in VersionSpec rather than a predicate, but they are used often enough
+         * to deserve their specialization.
          */
         using BinaryOperator = std::variant<
             free_interval,
@@ -98,8 +120,15 @@ namespace mamba::specs
             std::less_equal<Version>,
             starts_with,
             not_starts_with,
-            compatible_with>;
+            compatible_with,
+            not_version_glob,
+            version_glob>;
 
+        // Originally, with only stateless operators, it made sense to have the version factored
+        // in this class' attributes. However, with additions of variants that use the version
+        // for a different meaning (version_glob, compatible_with), or not at all (free interval),
+        // it would make sense to move it to each individual class for better scoping (e.g. see
+        // this class' operator==).
         Version m_version = {};
         BinaryOperator m_operator = free_interval{};
 
@@ -109,6 +138,8 @@ namespace mamba::specs
         friend auto operator==(starts_with, starts_with) -> bool;
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
+        friend auto operator==(version_glob, version_glob) -> bool;
+        friend auto operator==(not_version_glob, not_version_glob) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
         friend struct ::fmt::formatter<VersionPredicate>;
     };
@@ -149,7 +180,7 @@ namespace mamba::specs
         static constexpr std::string_view less_equal_str = "<=";
         static constexpr std::string_view compatible_str = "~=";
         static constexpr std::string_view glob_suffix_str = ".*";
-        static constexpr char glob_suffix_token = '*';
+        static constexpr std::string_view glob_pattern_str = "*";
 
         [[nodiscard]] static auto parse(std::string_view str) -> expected_parse_t<VersionSpec>;
 
@@ -172,19 +203,25 @@ namespace mamba::specs
         [[nodiscard]] auto is_explicitly_free() const -> bool;
 
         /**
+         * True if it contains a glob or negative glob expression anywhere in the tree.
+         *
+         * Does not return true for predicates that could be written as globs but are not.
+         */
+        [[nodiscard]] auto has_glob() const -> bool;
+        /**
          * A string representation of the version spec.
          *
          * May not always be the same as the parsed string (due to reconstruction) but reparsing
          * this string will give the same version spec.
          */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto to_string() const -> std::string;
 
         /**
          * An alternative string representation of the version spec.
          *
          * Attempts to be compatible with conda-build/libsolv.
          */
-        [[nodiscard]] auto str_conda_build() const -> std::string;
+        [[nodiscard]] auto to_string_conda_build() const -> std::string;
 
         /**
          * True if the set described by the VersionSpec contains the given version.
@@ -227,10 +264,22 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
      */
     bool conda_build_form = false;
 
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        const auto end = ctx.end();
+        for (auto it = ctx.begin(); it != end; ++it)
+        {
+            if (*it == 'b')
+            {
+                conda_build_form = true;
+                return ++it;
+            }
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
@@ -241,28 +290,34 @@ struct fmt::formatter<mamba::specs::VersionSpec>
      */
     bool conda_build_form = false;
 
-    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        const auto end = ctx.end();
+        for (auto it = ctx.begin(); it != end; ++it)
+        {
+            if (*it == 'b')
+            {
+                conda_build_form = true;
+                return ++it;
+            }
+        }
+        return ctx.begin();
+    }
 
     auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) const
-        -> decltype(ctx.out());
+        -> format_context::iterator;
 };
 
 template <>
 struct std::hash<mamba::specs::VersionPredicate>
 {
-    auto operator()(const mamba::specs::VersionPredicate& pred) const -> std::size_t
-    {
-        return mamba::util::hash_vals(pred.str());
-    }
+    auto operator()(const mamba::specs::VersionPredicate& pred) const -> std::size_t;
 };
 
 template <>
 struct std::hash<mamba::specs::VersionSpec>
 {
-    auto operator()(const mamba::specs::VersionSpec& spec) const -> std::size_t
-    {
-        return mamba::util::hash_vals(spec.str());
-    }
+    auto operator()(const mamba::specs::VersionSpec& spec) const -> std::size_t;
 };
 
 #endif

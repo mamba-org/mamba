@@ -13,10 +13,14 @@
 #include <vector>
 
 #include "mamba/core/common_types.hpp"
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/palette.hpp"
+#include "mamba/core/subdir_parameters.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
+#include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
@@ -60,9 +64,6 @@ namespace mamba
     class Logger;
     class Context;
 
-    std::string env_name(const Context& context, const fs::u8path& prefix);
-    std::string env_name(const Context& context);
-
     struct ContextOptions
     {
         bool enable_logging = false;
@@ -75,26 +76,6 @@ namespace mamba
     public:
 
         static void use_default_signal_handler(bool val);
-
-        struct RemoteFetchParams
-        {
-            // ssl_verify can be either an empty string (regular SSL verification),
-            // the string "<false>" to indicate no SSL verification, or a path to
-            // a directory with cert files, or a cert file.
-            std::string ssl_verify{ "" };
-            bool ssl_no_revoke{ false };
-            bool curl_initialized{ false };  // non configurable, used in fetch only
-
-            std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
-
-            double connect_timeout_secs{ 10. };
-            // int read_timeout_secs { 60 };
-            int retry_timeout{ 2 };  // seconds
-            int retry_backoff{ 3 };  // retry_timeout * retry_backoff
-            int max_retries{ 3 };    // max number of retries
-
-            std::map<std::string, std::string> proxy_servers;
-        };
 
         struct OutputParams
         {
@@ -120,33 +101,12 @@ namespace mamba
             bool no_env{ false };
         };
 
-        struct CommandParams
-        {
-            std::string caller_version{ "" };
-            std::string conda_version{ "3.8.0" };
-            std::string current_command{ "mamba" };
-            /** Is the Context used in a mamba or mamba executable (instead of a lib). */
-            bool is_mamba_exe{ false };
-        };
-
-        struct ThreadsParams
-        {
-            std::size_t download_threads{ 5 };
-            int extract_threads{ 0 };
-        };
-
-        struct PrefixParams
-        {
-            fs::u8path target_prefix;
-            fs::u8path root_prefix;
-            fs::u8path conda_prefix;
-            fs::u8path relocate_prefix;
-        };
-
         // Configurable
         bool experimental = false;
         bool experimental_repodata_parsing = true;
+        bool experimental_matchspec_parsing = false;
         bool debug = false;
+        bool use_uv = false;
 
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;
@@ -162,15 +122,10 @@ namespace mamba
 
         bool extract_sparse = false;
 
-        bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
-                           // be removed if this is the case...
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
 
-        bool allow_softlinks = false;
-        bool always_copy = false;
-        bool always_softlink = false;
         bool register_envs = true;
 
         bool show_anaconda_channel_warnings = true;
@@ -191,7 +146,6 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        RemoteFetchParams remote_fetch_params;
         OutputParams output_params;
         GraphicsParams graphics_params;
         SrcParams src_params;
@@ -199,11 +153,77 @@ namespace mamba
         ThreadsParams threads_params;
         PrefixParams prefix_params;
         ValidationParams validation_params;
+        LinkParams link_params;
+
+        download::RemoteFetchParams remote_fetch_params = {
+            /* .ssl_verify */ { "" },
+            /* .ssl_no_revoke */ false,
+            /* .curl_initialized */ false,
+            /* .user_agent */ { "mamba/" LIBMAMBA_VERSION_STRING },
+            /* .connect_timeout_secs */ 10.,
+            /* .retry_timeout */ 2,
+            /* .retry_backoff */ 3,
+            /* .max_retries */ 3,
+            /* .proxy_servers */ {},
+        };
+
+        download::Options download_options() const
+        {
+            return {
+                /* .download_threads */ this->threads_params.download_threads,
+                /* .fail_fast */ false,
+                /* .sort */ true,
+                /* .verbose */ this->output_params.verbosity >= 2,
+            };
+        }
+
+        SubdirParams subdir_params() const
+        {
+            const auto get_local_repodata_ttl = [&]() -> std::optional<std::size_t>
+            {
+                // Force the use of index cache by setting TTL to 0
+                if (this->use_index_cache)
+                {
+                    return { 0 };
+                }
+                // This is legacy where from where 1 meant to read from header
+                if (this->local_repodata_ttl == 1)
+                {
+                    return std::nullopt;
+                }
+                return { this->local_repodata_ttl };
+            };
+
+            return {
+                /* .local_repodata_ttl */ get_local_repodata_ttl(),
+                /* .offline */ this->offline,
+                /* .force_use_zst */ false  // Must override based on ChannelContext
+            };
+        }
+
+        SubdirDownloadParams subdir_download_params() const
+        {
+            return {
+                /* .offline */ this->offline,
+                /* .repodata_check_zst */ this->repodata_use_zst,
+            };
+        }
+
+        TransactionParams transaction_params() const
+        {
+            return { /* .is_mamba_exe */ command_params.is_mamba_exe,
+                     /* .json_output */ output_params.json,
+                     /* .verbosity */ output_params.verbosity,
+                     /* .shortcut */ shortcuts,
+                     /* .envs_dirs */ envs_dirs,
+                     /* .platform */ platform,
+                     /* .prefix_params */ prefix_params,
+                     /* .link_params */ link_params,
+                     /* .threads_params */ threads_params };
+        }
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
-
-        bool compile_pyc = true;
 
         // Conda compat
         bool add_pip_as_python_dependency = true;

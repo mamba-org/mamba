@@ -7,16 +7,10 @@
 #ifndef MAMBA_UTIL_DEPRECATION_HPP
 #define MAMBA_UTIL_DEPRECATION_HPP
 
-#if __cplusplus >= 202002L
-#define MAMBA_UTIL_COMPARE_DEPRECATED [[deprecated("Use C++20 functions with the same name")]]
-#else
-#define MAMBA_DEPRECATED_CXX20
-#endif
-
 #if __cplusplus >= 202302L
-#define MAMBA_UTIL_COMPARE_DEPRECATED [[deprecated("Use C++23 functions with the same name")]]
+#define MAMBA_DEPRECATED_CXX23 [[deprecated("Use C++23 functions with the same name")]]
 #else
-#define MAMBA_DEPRECATED_CXX23
+#define MAMBA_DEPRECATED_CXX23 [[]]
 #endif
 
 #endif

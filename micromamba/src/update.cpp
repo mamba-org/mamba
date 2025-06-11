@@ -27,6 +27,33 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+void
+set_update_command(CLI::App* subcom, Configuration& config)
+{
+    init_install_options(subcom, config);
+
+    static bool prune_deps = true;
+    static bool update_all = false;
+    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
+
+    subcom->get_option("specs")->description("Specs to update in the environment");
+    subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
+
+    subcom->callback(
+        [&]
+        {
+            auto update_params = UpdateParams{
+                update_all ? UpdateAll::Yes : UpdateAll::No,
+                prune_deps ? PruneDeps::Yes : PruneDeps::No,
+                EnvUpdate::No,
+                RemoveNotSpecified::No,
+            };
+            return update(config, update_params);
+        }
+    );
+}
+
+#ifdef BUILDING_MICROMAMBA
 namespace
 {
     auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
@@ -198,32 +225,6 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 }
 
 void
-set_update_command(CLI::App* subcom, Configuration& config)
-{
-    init_install_options(subcom, config);
-
-    static bool prune_deps = true;
-    static bool update_all = false;
-    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
-
-    subcom->get_option("specs")->description("Specs to update in the environment");
-    subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
-
-    subcom->callback(
-        [&]
-        {
-            auto update_params = UpdateParams{
-                update_all ? UpdateAll::Yes : UpdateAll::No,
-                prune_deps ? PruneDeps::Yes : PruneDeps::No,
-                EnvUpdate::No,
-                RemoveNotSpecified::No,
-            };
-            return update(config, update_params);
-        }
-    );
-}
-
-void
 set_self_update_command(CLI::App* subcom, Configuration& config)
 {
     init_install_options(subcom, config);
@@ -234,3 +235,4 @@ set_self_update_command(CLI::App* subcom, Configuration& config)
 
     subcom->callback([&] { return update_self(config, version); });
 }
+#endif

@@ -4,7 +4,14 @@ add_executable(testing_libmamba_lock libmamba_lock/lock.cpp)
 
 target_link_libraries(testing_libmamba_lock PUBLIC mamba::libmamba)
 
-target_compile_features(testing_libmamba_lock PUBLIC cxx_std_17)
+target_compile_features(testing_libmamba_lock PUBLIC cxx_std_20)
+set_target_properties(
+    testing_libmamba_lock
+    PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+)
 
 mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
@@ -18,7 +25,7 @@ set(
     src/catch-utils/msvc_catch_string_view.cpp
     # Utility library
     src/util/test_cast.cpp
-    src/util/test_compare.cpp
+    src/util/test_charconv.cpp
     src/util/test_cryptography.cpp
     src/util/test_encoding.cpp
     src/util/test_environment.cpp
@@ -89,6 +96,7 @@ set(
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
+    src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
     src/core/test_transaction_context.cpp
@@ -135,11 +143,20 @@ add_dependencies(test_libmamba test_libmamba_data)
 
 target_compile_definitions(
     test_libmamba
-    PRIVATE MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
-            MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
+    PRIVATE
+        MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+        MAMBA_REPO_DIR="${CMAKE_SOURCE_DIR}"
+        MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )
 
-target_compile_features(test_libmamba PUBLIC cxx_std_17)
+target_compile_features(test_libmamba PUBLIC cxx_std_20)
+set_target_properties(
+    test_libmamba
+    PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+)
 
 add_custom_target(
     test

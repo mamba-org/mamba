@@ -6,7 +6,6 @@
 
 #include <cmath>
 #include <limits>
-#include <utility>
 
 #include <catch2/catch_all.hpp>
 
@@ -28,7 +27,7 @@ namespace
         REQUIRE(safe_num_cast<To>(from_max) == static_cast<To>(from_max));
     }
 
-    TEST_CASE("Exact num cast widen - integers")
+    TEST_CASE("Exact num cast widen - integers", "[mamba::util]")
     {
         check_exact_num_cast_widen<char, int>();
         check_exact_num_cast_widen<unsigned char, int>();
@@ -38,12 +37,12 @@ namespace
         check_exact_num_cast_widen<unsigned int, unsigned long long int>();
     }
 
-    TEST_CASE("Exact num cast widen - floats")
+    TEST_CASE("Exact num cast widen - floats", "[mamba::util]")
     {
         check_exact_num_cast_widen<float, double>();
     }
 
-    TEST_CASE("Exact num cast widen - mixed")
+    TEST_CASE("Exact num cast widen - mixed", "[mamba::util]")
     {
         check_exact_num_cast_widen<char, float>();
         check_exact_num_cast_widen<unsigned char, float>();
@@ -58,7 +57,7 @@ namespace
         REQUIRE(safe_num_cast<To>(From(1)) == To(1));
     }
 
-    TEST_CASE("Exact num cast narrow - integers")
+    TEST_CASE("Exact num cast narrow - integers", "[mamba::util]")
     {
         check_exact_num_cast_narrow<int, char>();
         check_exact_num_cast_narrow<unsigned int, unsigned char>();
@@ -66,7 +65,7 @@ namespace
         check_exact_num_cast_narrow<unsigned long long int, unsigned int>();
     }
 
-    TEST_CASE("Exact num cast narrow - floats")
+    TEST_CASE("Exact num cast narrow - floats", "[mamba::util]")
     {
         check_exact_num_cast_narrow<double, float>();
     }
@@ -78,7 +77,7 @@ namespace
         REQUIRE_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
     }
 
-    TEST_CASE("Exact num cast overflow - integers")
+    TEST_CASE("Exact num cast overflow - integers", "[mamba::util]")
     {
         check_exact_num_cast_overflow<char, unsigned char>();
         check_exact_num_cast_overflow<char, unsigned int>();
@@ -86,18 +85,18 @@ namespace
         check_exact_num_cast_overflow<int, unsigned long long int>();
     }
 
-    TEST_CASE("Exact num cast overflow - floats")
+    TEST_CASE("Exact num cast overflow - floats", "[mamba::util]")
     {
         check_exact_num_cast_overflow<double, float>();
     }
 
-    TEST_CASE("Exact num cast overflow - mixed")
+    TEST_CASE("Exact num cast overflow - mixed", "[mamba::util]")
     {
         check_exact_num_cast_overflow<double, int>();
         check_exact_num_cast_overflow<float, char>();
     }
 
-    TEST_CASE("precision")
+    TEST_CASE("precision", "[mamba::util]")
     {
         REQUIRE_THROWS_AS(safe_num_cast<int>(1.1), std::runtime_error);
         REQUIRE_THROWS_AS(safe_num_cast<float>(std::nextafter(double(1), 2)), std::runtime_error);

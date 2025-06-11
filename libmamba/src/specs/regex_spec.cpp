@@ -8,8 +8,6 @@
 #include <cassert>
 #include <sstream>
 
-#include <fmt/format.h>
-
 #include "mamba/specs/regex_spec.hpp"
 #include "mamba/util/string.hpp"
 
@@ -121,28 +119,24 @@ namespace mamba::specs
         return std::all_of(m_raw_pattern.cbegin() + 1, m_raw_pattern.cend() - 1, no_special_meaning);
     }
 
-    auto RegexSpec::str() const -> const std::string&
+    auto RegexSpec::to_string() const -> const std::string&
     {
         return m_raw_pattern;
     }
 }
 
 auto
-fmt::formatter<mamba::specs::RegexSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<mamba::specs::RegexSpec>::format(
     const ::mamba::specs::RegexSpec& spec,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
-    return fmt::format_to(ctx.out(), "{}", spec.str());
+    return fmt::format_to(ctx.out(), "{}", spec.to_string());
+}
+
+auto
+std::hash<mamba::specs::RegexSpec>::operator()(const mamba::specs::RegexSpec& spec) const
+    -> std::size_t
+{
+    return std::hash<std::string>{}(spec.to_string());
 }

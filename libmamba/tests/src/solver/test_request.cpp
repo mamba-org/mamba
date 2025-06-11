@@ -18,7 +18,7 @@ namespace
 {
     using namespace specs::match_spec_literals;
 
-    TEST_CASE("Create a request")
+    TEST_CASE("Create a request", "[mamba::solver]")
     {
         auto request = Request{
             {},

@@ -1,3 +1,87 @@
+## 2025.06.04
+
+Release: 2.2.0 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [all] Allow users to set labels on PRs by @Hind-M in <https://github.com/mamba-org/mamba/pull/3936>
+- [libmamba, micromamba] support installing pip dependencies with uv by @iisakkirotko in <https://github.com/mamba-org/mamba/pull/3918>
+- [libmamba] Load local path when offline by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3937>
+
+Bug fixes:
+
+- [libmamba, micromamba] Fix listing dependencies pulled with `pip` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3963>
+- [libmamba, micromamba] Handle environment variables from `yaml` file by @Hind-M in <https://github.com/mamba-org/mamba/pull/3955>
+- [libmamba] Fix fmt headers includes by @Hind-M in <https://github.com/mamba-org/mamba/pull/3956>
+- [libmamba, micromamba] unify channels of installed and removed packages written in history by @SandrineP in <https://github.com/mamba-org/mamba/pull/3892>
+- [libmamba] Create packages diff between the current state and a revision by @SandrineP in <https://github.com/mamba-org/mamba/pull/3911>
+- [libmamba] Fix deactivate nushell by @cvanelteren in <https://github.com/mamba-org/mamba/pull/3929>
+- [libmamba] Fix wrong use of deprecation macro by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3941>
+- [libmamba, micromamba] Fix typo in help menu for the `reactivate` command by @ickc in <https://github.com/mamba-org/mamba/pull/3932>
+- [libmamba, micromamba] Unify CONDA_ENVS_PATH, CONDA_ENVS_DIRS by @holzman in <https://github.com/mamba-org/mamba/pull/3855>
+- [libmamba, micromamba] Allow creating environment with empty folder as target prefix by @nsoranzo in <https://github.com/mamba-org/mamba/pull/3919>
+- [libmamba] [Unix] Fix slashes usage in file urls by @Hind-M in <https://github.com/mamba-org/mamba/pull/3871>
+- [libmamba] fix: Avoid use-after-free in MessageLogger by @jmakovicka in <https://github.com/mamba-org/mamba/pull/3873>
+- [libmamba, libmambapy] Remove implicit zero in Version formatting by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3915>
+
+CI fixes and doc:
+
+- [all] ci: Disable GitHub annotations for Codecov in PRs by @jjerphan in <https://github.com/mamba-org/mamba/pull/3930>
+- [all] Remove obsolete mamba/micromamba differences by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3924>
+
+Maintenance:
+
+- [all] Compile with C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3965>
+- [libmamba] Use fmt::runtime where needed in C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3962>
+- [libmamba] Out of context by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3952>
+- [all] Transaction context by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3950>
+- [libmamba, libmambapy] Context dependency reduction by @JohanMabille in <https://github.com/mamba-org/mamba/pull/3949>
+- [micromamba] Make integration tests not rely on specific organisation of packages by @Klaim in <https://github.com/mamba-org/mamba/pull/3897>
+- [libmamba] Constexpr `fmt::formatter::parse` for C++20 with `from_chars` by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3944>
+- [libmamba] Constexpr `fmt::formatter::parse` for C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3942>
+- [all] Refactor `SubdirData` > `SubdirIndexLoader` by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3940>
+- [libmambapy] Avoid ODR violation for `type_caster<mamba::fs::u8path>` by @jjerphan in <https://github.com/mamba-org/mamba/pull/3903>
+- [libmamba] Remove temp_file from public API by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3935>
+- [all] Adapt citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3931>
+- [libmamba] Use range in subdir iteration by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3934>
+- [libmamba, libmambapy] Simplify SubdirData by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3926>
+- [libmamba, libmambapy] Remove Context from downloaders by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3928>
+- [all] Rename str > to_string by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3917>
+- [libmamba, libmambapy] Matchspec hardening by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3907>
+
+## 2025.05.05
+
+Release: 2.1.1 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [libmamba] Use Simdjson ondemand parser instead of DOM parser by @Klaim in <https://github.com/mamba-org/mamba/pull/3878>
+
+Bug fixes:
+
+- [libmamba] Fix segfault in error messages by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3912>
+- [libmamba] fix: Requalify warning when parsing the "mod/etag" header by @jjerphan in <https://github.com/mamba-org/mamba/pull/3910>
+- [micromamba] Make `self-update` a command for micromamba only by @jjerphan in <https://github.com/mamba-org/mamba/pull/3906>
+- [libmamba] Fix nushell env for Windows by @cvanelteren in <https://github.com/mamba-org/mamba/pull/3880>
+- [libmamba, micromamba] fix: Give precedence to repodata when constructing `repodata_record` files by @jjerphan in <https://github.com/mamba-org/mamba/pull/3901>
+- [libmamba, micromamba] feat: add sha256 flag to list command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3885>
+- [libmamba, libmambapy] Fix VersionSpec globs by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3889>
+- [micromamba] hotfix: in integration tests assume xtensor is v0.26 by @Klaim in <https://github.com/mamba-org/mamba/pull/3898>
+
+CI fixes and doc:
+
+- [all] Explicit API and ABI stability commitments by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3913>
+- [all] Add minimal citation information for mamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/3914>
+
+Maintenance:
+
+- [libmambapy] DX: libmambapy import in build tree by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3916>
+- [libmamba] Internally add flag for switching MatchSpec parser by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3905>
+- [micromamba] Some test isolation by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3900>
+- [libmamba] Ready Libsolv for C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3899>
+- [all] build(deps): bump codecov/codecov-action from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/3896>
+- [all] ci: Adapt code coverage workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/3890>
+
 ## 2025.04.01
 
 Release: 2.1.0 (libmamba, mamba, micromamba, libmambapy)

@@ -8,7 +8,6 @@
 #include <string_view>
 #include <tuple>
 
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include "mamba/specs/archive.hpp"
@@ -16,6 +15,7 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -1013,7 +1013,7 @@ namespace mamba::specs
         };
     }
 
-    auto MatchSpec::str() const -> std::string
+    auto MatchSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);
     }
@@ -1023,6 +1023,7 @@ namespace mamba::specs
         // Based on what libsolv and conda_build_form can handle.
         // Glob in names and build_string are fine
         return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
+               && !version().has_glob()                //
                && build_number().is_explicitly_free()  //
                && build_string().is_glob()             //
                && !channel().has_value()               //
@@ -1037,12 +1038,19 @@ namespace mamba::specs
                && !track_features().has_value();
     }
 
-    [[nodiscard]] auto MatchSpec::is_only_package_name() const -> bool
+    auto MatchSpec::is_only_package_name() const -> bool
     {
         return name().is_exact()                       //
                && version().is_explicitly_free()       //
                && build_string().is_explicitly_free()  //
                && is_simple();
+    }
+
+    auto MatchSpec::to_named_spec() const -> MatchSpec
+    {
+        auto out = MatchSpec();
+        out.m_name = this->m_name;
+        return out;
     }
 
     auto MatchSpec::contains_except_channel(const PackageInfo& pkg) const -> bool
@@ -1104,21 +1112,10 @@ namespace mamba::specs
 }
 
 auto
-fmt::formatter<::mamba::specs::MatchSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
-{
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
-    {
-        throw fmt::format_error("Invalid format");
-    }
-    return ctx.begin();
-}
-
-auto
 fmt::formatter<::mamba::specs::MatchSpec>::format(
     const ::mamba::specs::MatchSpec& spec,
     format_context& ctx
-) const -> decltype(ctx.out())
+) const -> format_context::iterator
 {
     using MatchSpec = ::mamba::specs::MatchSpec;
 
@@ -1257,4 +1254,37 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
     ensure_bracket_close();
 
     return out;
+}
+
+auto
+std::hash<mamba::specs::MatchSpec>::operator()(const mamba::specs::MatchSpec& spec) const
+    -> std::size_t
+{
+    return mamba::util::hash_vals(
+        spec.channel(),
+        spec.version(),
+        spec.name(),
+        spec.build_string(),
+        spec.name_space(),
+        spec.build_number(),
+        spec.extra_members_hash()
+    );
+}
+
+auto
+std::hash<mamba::specs::MatchSpec::ExtraMembers>::operator()(
+    const mamba::specs::MatchSpec::ExtraMembers& extra
+) const -> std::size_t
+{
+    return mamba::util::hash_vals(
+        extra.filename,
+        extra.subdirs,
+        extra.md5,
+        extra.sha256,
+        extra.license,
+        extra.license_family,
+        extra.features,
+        extra.track_features,
+        extra.optional
+    );
 }

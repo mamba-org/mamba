@@ -3,14 +3,14 @@ import libmambapy
 
 def test_context_instance_scoped():
     ctx = libmambapy.Context()  # Initialize and then terminate libmamba internals
-    return ctx
+    assert ctx is not None
 
 
 def test_context_no_log_nor_signal_handling():
     ctx = libmambapy.Context(
         libmambapy.ContextOptions(enable_logging=False, enable_signal_handling=False)
     )
-    return ctx
+    assert ctx is not None
 
 
 def test_channel_context():

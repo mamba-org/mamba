@@ -1,8 +1,4 @@
-echo "WARNING: @CMAKE_INSTALL_PREFIX@/etc/profile.d/mamba.sh (the file emitting this warning) is deprecated."
-echo "WARNING: This file will be removed on the next release after 30th September 2025."
-echo "WARNING: Please use 'mamba shell init' to get the correct initialization for your shell."
-
-if [ -z "${MAMBA_ROOT_PREFIX}" ]; then
+if [ ! -v MAMBA_ROOT_PREFIX ]; then
     echo "WARNING: The MAMBA_ROOT_PREFIX environment variable is not set."
     echo "WARNING: This is required for mamba to work correctly as of 2.0."
     echo "WARNING: "

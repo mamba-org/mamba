@@ -17,8 +17,6 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <vector>
 
 #include <time.h>
 
@@ -45,23 +43,22 @@ extern "C"
 #include <process.h>
 #include <sys/locking.h>
 }
+
+#include "mamba/core/shell_init.hpp"
 #endif
 
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
-#include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/shell_init.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
-#include "mamba/util/compare.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
@@ -87,6 +84,42 @@ namespace mamba
     {
         static const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
         return http_basicauth_regex;
+    }
+
+    std::string expandvars(std::string s)
+    {
+        if (s.find("$") == std::string::npos)
+        {
+            // Bail out early
+            return s;
+        }
+        std::regex env_var_re(R"(\$(\{\w+\}|\w+))");
+        for (auto matches = std::sregex_iterator(s.begin(), s.end(), env_var_re);
+             matches != std::sregex_iterator();
+             ++matches)
+        {
+            std::smatch match = *matches;
+            auto var = match[0].str();
+            if (util::starts_with(var, "${"))
+            {
+                // strip ${ and }
+                var = var.substr(2, var.size() - 3);
+            }
+            else
+            {
+                // strip $
+                var = var.substr(1);
+            }
+            auto val = util::get_env(var);
+            if (val)
+            {
+                s.replace(match[0].first, match[0].second, val.value());
+                // It turns out to be unsafe to modify the string during
+                // sregex_iterator iteration. Start a new search by recursing.
+                return expandvars(s);
+            }
+        }
+        return s;
     }
 
     bool must_persist_temporary_files()
@@ -565,7 +598,7 @@ namespace mamba
         return deleted_files;
     }
 
-    std::size_t remove_or_rename(const Context& context, const fs::u8path& path)
+    std::size_t remove_or_rename(const fs::u8path& target_prefix, const fs::u8path& path)
     {
         std::error_code ec;
         std::size_t result = 0;
@@ -620,13 +653,12 @@ namespace mamba
                 {
                     // The conda-meta directory is locked by transaction execute
                     auto trash_index = open_ofstream(
-                        context.prefix_params.target_prefix / "conda-meta" / "mamba_trash.txt",
+                        target_prefix / "conda-meta" / "mamba_trash.txt",
                         std::ios::app | std::ios::binary
                     );
 
                     // TODO add some unicode tests here?
-                    trash_index << fs::relative(trash_file, context.prefix_params.target_prefix).string()
-                                << "\n";
+                    trash_index << fs::relative(trash_file, target_prefix).string() << "\n";
                     return 1;
                 }
 
@@ -1395,21 +1427,16 @@ namespace mamba
         return infile;
     }
 
-    WrappedCallOptions WrappedCallOptions::from_context(const Context& context)
+    namespace
     {
-        return {
-            /* .is_mamba_exe = */ context.command_params.is_mamba_exe,
-            /* .dev_mode = */ context.dev,
-            /* .debug_wrapper_scripts = */ false,
-        };
+        constexpr bool debug_wrapper_scripts = false;
     }
 
     std::unique_ptr<TemporaryFile> wrap_call(
-        const Context& context [[maybe_unused]],
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,
-        const WrappedCallOptions options
+        bool is_mamba_exe
     )
     {
         // todo add abspath here
@@ -1424,26 +1451,19 @@ namespace mamba
 
         std::string bat_name = get_self_exe_path().stem().string();
 
-        if (options.dev_mode)
-        {
-            conda_bat = (fs::u8path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
-        }
-        else
-        {
-            conda_bat = util::get_env("CONDA_BAT")
-                            .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
-        }
-        if (!fs::exists(conda_bat) && options.is_mamba_exe)
+        conda_bat = util::get_env("CONDA_BAT")
+                        .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
+        if (!fs::exists(conda_bat) && is_mamba_exe)
         {
             // this adds in the needed .bat files for activation
-            init_root_prefix_cmdexe(context, root_prefix);
+            init_root_prefix_cmdexe(root_prefix);
         }
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
 
         std::ofstream out = open_ofstream(tf->path());
 
-        std::string silencer = options.debug_wrapper_scripts ? "" : "@";
+        std::string silencer = debug_wrapper_scripts ? "" : "@";
 
         out << silencer << "ECHO OFF\n";
         out << silencer << "SET PYTHONIOENCODING=utf-8\n";
@@ -1453,21 +1473,7 @@ namespace mamba
                "do set \"_CONDA_OLD_CHCP=%%B\"\n";
         out << silencer << "chcp 65001 > NUL\n";
 
-        if (options.dev_mode)
-        {
-            // from conda.core.initialize import CONDA_PACKAGE_ROOT
-            out << silencer << "SET CONDA_DEV=1\n";
-            // In dev mode, conda is really:
-            // 'python -m conda'
-            // *with* PYTHONPATH set.
-            out << silencer << "SET PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
-            out << silencer << "SET CONDA_EXE=" << "python.exe" << "\n";  // TODO this should be
-                                                                          // `sys.executable`
-            out << silencer << "SET _CE_M=-m\n";
-            out << silencer << "SET _CE_CONDA=conda\n";
-        }
-
-        if (options.debug_wrapper_scripts)
+        if (debug_wrapper_scripts)
         {
             out << "echo *** environment before *** 1>&2\n";
             out << "SET 1>&2\n";
@@ -1476,7 +1482,7 @@ namespace mamba
         out << silencer << "CALL \"" << conda_bat << "\" activate " << prefix << "\n";
         out << silencer << "IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n";
 
-        if (options.debug_wrapper_scripts)
+        if (debug_wrapper_scripts)
         {
             out << "echo *** environment after *** 1>&2\n";
             out << "SET 1>&2\n";
@@ -1488,33 +1494,15 @@ namespace mamba
 
         std::string shebang, dev_arg;
 
-        if (!options.is_mamba_exe)
+        if (!is_mamba_exe)
         {
-            // During tests, we sometimes like to have a temp env with e.g. an old python
-            // in it and have it run tests against the very latest development sources.
-            // For that to work we need extra smarts here, we want it to be instead:
-            if (options.dev_mode)
+            if (auto exe = util::get_env("CONDA_EXE"))
             {
-                shebang += std::string(root_prefix / "bin" / "python");
-                shebang += " -m conda";
-
-                dev_arg = "--dev";
+                shebang = exe.value();
             }
             else
             {
-                if (auto exe = util::get_env("CONDA_EXE"))
-                {
-                    shebang = exe.value();
-                }
-                else
-                {
-                    shebang = std::string(root_prefix / "bin" / "conda");
-                }
-            }
-
-            if (options.dev_mode)
-            {
-                // out << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+                shebang = std::string(root_prefix / "bin" / "conda");
             }
 
             hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
@@ -1526,7 +1514,7 @@ namespace mamba
             hook_quoted << "\"$MAMBA_EXE\" 'shell' 'hook' '-s' 'bash' '-r' "
                         << std::quoted(root_prefix.string(), '\'');
         }
-        if (options.debug_wrapper_scripts)
+        if (debug_wrapper_scripts)
         {
             out << "set -x\n";
             out << ">&2 echo \"*** environment before ***\"\n"
@@ -1535,7 +1523,7 @@ namespace mamba
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
 
-        if (!options.is_mamba_exe)
+        if (!is_mamba_exe)
         {
             out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
         }
@@ -1546,7 +1534,7 @@ namespace mamba
         }
 
 
-        if (options.debug_wrapper_scripts)
+        if (debug_wrapper_scripts)
         {
             out << ">&2 echo \"*** environment after ***\"\n"
                 << ">&2 env\n";
@@ -1558,9 +1546,9 @@ namespace mamba
     }
 
     PreparedWrappedCall prepare_wrapped_call(
-        const Context& context,
-        const fs::u8path& prefix,
-        const std::vector<std::string>& cmd
+        const PrefixParams& prefix_params,
+        const std::vector<std::string>& cmd,
+        bool is_mamba_exe
     )
     {
         std::vector<std::string> command_args;
@@ -1578,11 +1566,10 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                context,
-                context.prefix_params.root_prefix,
-                prefix,
+                prefix_params.root_prefix,
+                prefix_params.target_prefix,
                 cmd,
-                WrappedCallOptions::from_context(context)
+                is_mamba_exe
             );
 
             command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
@@ -1602,11 +1589,10 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                context,
-                context.prefix_params.root_prefix,
-                prefix,
+                prefix_params.root_prefix,
+                prefix_params.target_prefix,
                 cmd,
-                WrappedCallOptions::from_context(context)
+                is_mamba_exe
             );
             command_args.push_back(shell_path.string());
             command_args.push_back(script_file->path().string());

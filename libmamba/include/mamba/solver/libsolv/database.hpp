@@ -53,9 +53,18 @@ namespace mamba::solver::libsolv
     {
     public:
 
+        /**
+         * Global Database settings.
+         */
+        struct Settings
+        {
+            MatchSpecParser matchspec_parser = MatchSpecParser::Libsolv;
+        };
+
         using logger_type = std::function<void(LogLevel, std::string_view)>;
 
         explicit Database(specs::ChannelResolveParams channel_params);
+        Database(specs::ChannelResolveParams channel_params, Settings settings);
         Database(const Database&) = delete;
         Database(Database&&);
 
@@ -66,6 +75,8 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto channel_params() const -> const specs::ChannelResolveParams&;
 
+        [[nodiscard]] auto settings() const -> const Settings&;
+
         void set_logger(logger_type callback);
 
         auto add_repo_from_repodata_json(
@@ -75,7 +86,7 @@ namespace mamba::solver::libsolv
             PipAsPythonDependency add = PipAsPythonDependency::No,
             PackageTypes package_types = PackageTypes::CondaOrElseTarBz2,
             VerifyPackages verify_packages = VerifyPackages::No,
-            RepodataParser parser = RepodataParser::Mamba
+            RepodataParser repo_parser = RepodataParser::Mamba
         ) -> expected_t<RepoInfo>;
 
         auto add_repo_from_native_serialization(

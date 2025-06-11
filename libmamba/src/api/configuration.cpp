@@ -378,42 +378,6 @@ namespace mamba
      * hooks *
      *********/
 
-    static std::string expandvars(std::string s)
-    {
-        if (s.find("$") == std::string::npos)
-        {
-            // Bail out early
-            return s;
-        }
-        std::regex env_var_re(R"(\$(\{\w+\}|\w+))");
-        for (auto matches = std::sregex_iterator(s.begin(), s.end(), env_var_re);
-             matches != std::sregex_iterator();
-             ++matches)
-        {
-            std::smatch match = *matches;
-            auto var = match[0].str();
-            if (mamba::util::starts_with(var, "${"))
-            {
-                // strip ${ and }
-                var = var.substr(2, var.size() - 3);
-            }
-            else
-            {
-                // strip $
-                var = var.substr(1);
-            }
-            auto val = util::get_env(var);
-            if (val)
-            {
-                s.replace(match[0].first, match[0].second, val.value());
-                // It turns out to be unsafe to modify the string during
-                // sregex_iterator iteration. Start a new search by recursing.
-                return expandvars(s);
-            }
-        }
-        return s;
-    }
-
     namespace detail
     {
         void ssl_verify_hook(Configuration& config, std::string& value)
@@ -1008,18 +972,20 @@ namespace mamba
         {
             // Prepend all the directories in the environment variable `CONDA_ENVS_PATH`.
             auto conda_envs_path = util::get_env("CONDA_ENVS_PATH");
+            auto conda_envs_dirs = util::get_env("CONDA_ENVS_DIRS");
 
-            if (conda_envs_path)
+            if (conda_envs_path && conda_envs_dirs)
             {
-                if (util::get_env("CONDA_ENVS_DIRS"))
-                {
-                    const auto message = "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared. We recommend setting `CONDA_ENVS_DIRS` only. Aborting.";
-                    throw mamba_error(message, mamba_error_code::incorrect_usage);
-                }
+                const auto message = "The `CONDA_ENVS_DIRS` and `CONDA_ENVS_PATH` environment variables are both set, but only one must be declared. We recommend setting `CONDA_ENVS_DIRS` only. Aborting.";
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
 
+            auto envs_path = conda_envs_dirs.value_or(conda_envs_path.value_or(""));
+
+            if (!envs_path.empty())
+            {
                 auto paths_separator = util::pathsep();
-
-                auto paths = util::split(conda_envs_path.value(), paths_separator);
+                auto paths = util::split(envs_path, paths_separator);
 
                 dirs.reserve(dirs.size() + paths.size());
                 dirs.insert(dirs.begin(), paths.rbegin(), paths.rend());
@@ -1359,10 +1325,11 @@ namespace mamba
                                                      { return detail::env_name_hook(*this, value); })
                    .description("Name of the target prefix"));
 
+        // don't use set_env_var_names for CONDA_ENVS_DIRS, since it is a path-sep delimited
+        // list rather than a YAML list
         insert(Configurable("envs_dirs", &m_context.envs_dirs)
                    .group("Basic")
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
-                   .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
                    .set_post_merge_hook<decltype(m_context.envs_dirs)>(
                        [this](decltype(m_context.envs_dirs)& value)
@@ -1398,6 +1365,12 @@ namespace mamba
                    .set_post_merge_hook(detail::file_spec_env_name_hook)
                    .description("Name of the target prefix, specified in a YAML spec file"));
 
+        insert(Configurable("spec_file_env_vars", std::map<std::string, std::string>({}))
+                   .group("Basic")
+                   .needs({ "file_specs" })
+                   .set_single_op_lifetime()
+                   .description("Environment variables specified in a YAML spec file"));
+
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")
                    .needs({ "file_specs" })  // explicit file specs overwrite current specs
@@ -1428,6 +1401,14 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .set_post_merge_hook(detail::not_supported_option_hook));
+
+        insert(Configurable("experimental_matchspec_parsing", &m_context.experimental_matchspec_parsing)
+                   .group("Basic")
+                   .description(  //
+                       "Enable internal parsing and matching of MatchSpecs using Mamba's experimental implementation rather than Libsolv's.\n"
+                       "This is not mean for production"
+                   )
+                   .set_env_var_names());
 
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
@@ -1740,7 +1721,7 @@ namespace mamba
                         host max concurrency minus the value, zero (default) is the host max
                         concurrency value.)")));
 
-        insert(Configurable("allow_softlinks", &m_context.allow_softlinks)
+        insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1750,7 +1731,7 @@ namespace mamba
                         such as when installing on a different filesystem than the one that
                         the package cache is on.)")));
 
-        insert(Configurable("always_copy", &m_context.always_copy)
+        insert(Configurable("always_copy", &m_context.link_params.always_copy)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1759,13 +1740,13 @@ namespace mamba
                         Register a preference that files be copied into a prefix during
                         install rather than hard-linked.)")));
 
-        insert(Configurable("always_softlink", &m_context.always_softlink)
+        insert(Configurable("always_softlink", &m_context.link_params.always_softlink)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
-                   .set_post_merge_hook<decltype(m_context.always_softlink)>(
-                       [&](decltype(m_context.always_softlink)& value)
+                   .set_post_merge_hook<decltype(m_context.link_params.always_softlink)>(
+                       [&](decltype(m_context.link_params.always_softlink)& value)
                        { return detail::always_softlink_hook(*this, value); }
                    )
                    .description("Use soft-link instead of hard-link")
@@ -1849,11 +1830,18 @@ namespace mamba
                         However, some filesystems do not support file locking and locks do not always
                         make sense - like when on an HPC.  Default is true (use a lockfile)")));
 
-        insert(Configurable("compile_pyc", &m_context.compile_pyc)
+        insert(Configurable("compile_pyc", &m_context.link_params.compile_pyc)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
+
+        insert(Configurable("use_uv", &m_context.use_uv)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Whether to use uv for installing pip dependencies. Defaults to false."
+                   ));
 
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &m_context.always_yes)

@@ -278,7 +278,7 @@ namespace mamba::solver
             Ver v = std::invoke(&TT::version, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(v)>, specs::VersionSpec>)
             {
-                return std::forward<Ver>(v).str();
+                return std::forward<Ver>(v).to_string();
             }
             else
             {
@@ -294,7 +294,7 @@ namespace mamba::solver
             Num num = std::invoke(&TT::build_number, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(num)>, specs::BuildNumberSpec>)
             {
-                return std::forward<Num>(num).str();
+                return std::forward<Num>(num).to_string();
             }
             else
             {
@@ -310,7 +310,7 @@ namespace mamba::solver
             Build bld = std::invoke(&TT::build_string, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(bld)>, specs::ChimeraStringSpec>)
             {
-                return std::forward<Build>(bld).str();
+                return std::forward<Build>(bld).to_string();
             }
             else
             {
@@ -326,7 +326,7 @@ namespace mamba::solver
             Name name = std::invoke(&TT::name, std::forward<T>(e));
             if constexpr (std::is_same_v<std::decay_t<decltype(name)>, specs::GlobSpec>)
             {
-                return std::forward<Name>(name).str();
+                return std::forward<Name>(name).to_string();
             }
             else
             {
@@ -984,8 +984,9 @@ namespace mamba::solver
         auto TreeDFS::explore() -> std::vector<TreeNode>
         {
             // Using the number of edges as an upper bound on the number of split nodes inserted
+            // and another time as the number of visited nodes
             auto path = std::vector<TreeNode>(
-                m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
+                2 * m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
             );
             auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
             path.resize(static_cast<std::size_t>(out - path.begin()));
@@ -1178,6 +1179,9 @@ namespace mamba::solver
             {
                 return { out, status.value() };
             }
+            // This placeholder is required in case of directed loops, which we don't how to handle,
+            // but we need to avoid infinite loops.
+            m_node_visited[id] = std::optional{ false };
 
             Status status = true;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
@@ -1310,8 +1314,12 @@ namespace mamba::solver
                 {
                     const auto style = tn.status ? m_format.available : m_format.unavailable;
                     auto [versions_trunc, size] = node.versions_trunc();
-                    write(fmt::format(style, (size == 1 ? "{} {}" : "{} [{}]"), node.name(), versions_trunc)
-                    );
+                    write(fmt::format(
+                        style,
+                        fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
+                        node.name(),
+                        versions_trunc
+                    ));
                 }
             };
             std::visit(do_write, concat_nodes(tn.ids));
@@ -1377,7 +1385,7 @@ namespace mamba::solver
                 {
                     write(fmt::format(
                         style,
-                        (size == 1 ? "{} {}" : "{} [{}]"),
+                        fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
                         edges.name(),
                         relevant_vers_builds_trunc
                     ));

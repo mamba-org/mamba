@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <catch2/catch_all.hpp>
@@ -17,7 +18,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -35,7 +36,7 @@ using namespace mamba::solver;
 
 namespace
 {
-    TEST_CASE("symmetric")
+    TEST_CASE("conflict_map::symmetric", "[mamba::solver]")
     {
         auto c = conflict_map<std::size_t>();
         REQUIRE(c.size() == 0);
@@ -55,7 +56,7 @@ namespace
         REQUIRE(c.in_conflict(5, 5));
     }
 
-    TEST_CASE("remove")
+    TEST_CASE("conflict_map::remove", "[mamba::solver]")
     {
         auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
         REQUIRE(c.size() == 4);
@@ -110,7 +111,7 @@ namespace
     }
 }
 
-TEST_CASE("Test create_pkgs_database utility")
+TEST_CASE("Test create_pkgs_database utility", "[mamba::solver]")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -120,7 +121,7 @@ TEST_CASE("Test create_pkgs_database utility")
     REQUIRE(std::holds_alternative<solver::Solution>(outcome));
 }
 
-TEST_CASE("Test empty specs")
+TEST_CASE("Test empty specs", "[mamba::solver]")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -334,7 +335,7 @@ namespace
         std::vector<std::string>&& channels
     )
     {
-        auto sub_dirs = std::vector<SubdirData>();
+        auto sub_dirs = std::vector<SubdirIndexLoader>();
         for (const auto& location : channels)
         {
             for (const auto& chan : channel_context.make_channel(location))
@@ -342,14 +343,22 @@ namespace
                 create_mirrors(ctx, chan);
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = SubdirData::create(ctx, channel_context, chan, platform, cache)
+                    auto sub_dir = SubdirIndexLoader::create(ctx.subdir_params(), chan, platform, cache)
                                        .value();
                     sub_dirs.push_back(std::move(sub_dir));
                 }
             }
         }
 
-        SubdirData::download_indexes(sub_dirs, mambatests::context());
+        const auto result = SubdirIndexLoader::download_required_indexes(
+            sub_dirs,
+            mambatests::context().subdir_download_params(),
+            mambatests::context().authentication_info(),
+            mambatests::context().mirrors,
+            mambatests::context().download_options(),
+            mambatests::context().remote_fetch_params
+        );
+        REQUIRE(result.has_value());
 
         for (auto& sub_dir : sub_dirs)
         {
@@ -396,7 +405,7 @@ namespace
     }
 }
 
-TEST_CASE("Test create_conda_forge utility")
+TEST_CASE("Test create_conda_forge utility", "[mamba::solver]")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -534,6 +543,39 @@ namespace
         );
     }
 
+    auto create_sudoku(Context&, ChannelContext& channel_context)
+    {
+        auto db = solver::libsolv::Database{ channel_context.params() };
+        const auto xpt = db.add_repo_from_repodata_json(
+            mambatests::test_data_dir / "repodata/sudoku.json",
+            "https://conda.anaconda.org/jjhelmus/label/sudoku/noarch/repodata.json",
+            "sudoku"
+        );
+
+        auto request = Request{
+            {},
+            {
+                Request::Install{ "sudoku_0_0 == 5"_ms }, Request::Install{ "sudoku_1_0 == 3"_ms },
+                Request::Install{ "sudoku_4_0 == 7"_ms }, Request::Install{ "sudoku_0_1 == 6"_ms },
+                Request::Install{ "sudoku_3_1 == 1"_ms }, Request::Install{ "sudoku_4_1 == 9"_ms },
+                Request::Install{ "sudoku_5_1 == 5"_ms }, Request::Install{ "sudoku_1_2 == 9"_ms },
+                Request::Install{ "sudoku_2_2 == 8"_ms }, Request::Install{ "sudoku_7_2 == 6"_ms },
+                Request::Install{ "sudoku_0_3 == 8"_ms }, Request::Install{ "sudoku_4_3 == 6"_ms },
+                Request::Install{ "sudoku_8_3 == 3"_ms }, Request::Install{ "sudoku_0_4 == 4"_ms },
+                Request::Install{ "sudoku_3_4 == 8"_ms }, Request::Install{ "sudoku_5_4 == 3"_ms },
+                Request::Install{ "sudoku_8_4 == 1"_ms }, Request::Install{ "sudoku_0_5 == 7"_ms },
+                Request::Install{ "sudoku_4_5 == 2"_ms }, Request::Install{ "sudoku_8_5 == 6"_ms },
+                Request::Install{ "sudoku_1_6 == 6"_ms }, Request::Install{ "sudoku_6_6 == 2"_ms },
+                Request::Install{ "sudoku_7_6 == 8"_ms }, Request::Install{ "sudoku_3_7 == 4"_ms },
+                Request::Install{ "sudoku_4_7 == 1"_ms }, Request::Install{ "sudoku_5_7 == 9"_ms },
+                Request::Install{ "sudoku_8_7 == 5"_ms }, Request::Install{ "sudoku_4_8 == 8"_ms },
+                Request::Install{ "sudoku_7_8 == 7"_ms }, Request::Install{ "sudoku_8_8 == 9"_ms },
+            },
+        };
+
+        return std::pair(std::move(db), std::move(request));
+    }
+
     template <typename NodeVariant>
     auto is_virtual_package(const NodeVariant& node) -> bool
     {
@@ -548,7 +590,7 @@ namespace
                 else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode>
                                    || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
                 {
-                    return util::starts_with(std::invoke(&Node::name, n).str(), "__");
+                    return util::starts_with(std::invoke(&Node::name, n).to_string(), "__");
                 }
                 else
                 {
@@ -560,7 +602,7 @@ namespace
     };
 }
 
-TEST_CASE("NamedList")
+TEST_CASE("NamedList", "[mamba::solver]")
 {
     auto l = CompressedProblemsGraph::PackageListNode();
     static constexpr std::size_t n_packages = 9;
@@ -592,12 +634,9 @@ TEST_CASE("NamedList")
     }
 }
 
-TEST_CASE("Create problem graph")
+TEST_CASE("Create problem graph", "[mamba::solver]")
 {
-    using PbGr = ProblemsGraph;
-    using CpPbGr = CompressedProblemsGraph;
-
-    const auto issues = std::array{
+    const auto [name, factory] = GENERATE(
         std::pair{ "Basic conflict", &create_basic_conflict },
         std::pair{ "PubGrub example", &create_pubgrub },
         std::pair{ "Harder PubGrub example", &create_pubgrub_hard },
@@ -611,149 +650,157 @@ TEST_CASE("Create problem graph")
         std::pair{ "SCIP", &create_scip },
         std::pair{ "Two different Python", &create_double_python },
         std::pair{ "Numba", &create_numba },
-    };
+        std::pair{ "Sudoku", &create_sudoku }
+    );
 
-    for (const auto& [name, factory] : issues)
-    {
-        auto& ctx = mambatests::context();
-        auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    auto& ctx = mambatests::context();
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        // Somehow the capture does not work directly on ``name``
-        std::string_view name_copy = name;
-        CAPTURE(name_copy);
-        auto [db, request] = factory(ctx, channel_context);
-        auto outcome = solver::libsolv::Solver().solve(db, request).value();
-        // REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
-        auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
-        const auto pbs_init = unsolvable.problems_graph(db);
-        const auto& graph_init = pbs_init.graph();
+    // Somehow the capture does not work directly on ``name``
+    std::string_view name_copy = name;
+    CAPTURE(name_copy);
+    auto [db, request] = factory(ctx, channel_context);
+    auto outcome = solver::libsolv::Solver().solve(db, request).value();
+    REQUIRE(std::holds_alternative<solver::libsolv::UnSolvable>(outcome));
+    auto& unsolvable = std::get<solver::libsolv::UnSolvable>(outcome);
+    const auto pbs_init = unsolvable.problems_graph(db);
+    const auto& graph_init = pbs_init.graph();
 
-        REQUIRE(graph_init.number_of_nodes() >= 1);
-        graph_init.for_each_node_id(
-            [&](auto id)
-            {
-                const auto& node = graph_init.node(id);
-                // Currently we do not make assumption about virtual package since
-                // we are not sure we are including them the same way than they would be in
-                // practice
-                if (!is_virtual_package(node))
-                {
-                    if (graph_init.in_degree(id) == 0)
-                    {
-                        // Only one root node
-                        REQUIRE(id == pbs_init.root_node());
-                        REQUIRE(std::holds_alternative<PbGr::RootNode>(node));
-                    }
-                    else if (graph_init.out_degree(id) == 0)
-                    {
-                        REQUIRE_FALSE(std::holds_alternative<PbGr::RootNode>(node));
-                    }
-                    else
-                    {
-                        REQUIRE(std::holds_alternative<PbGr::PackageNode>(node));
-                    }
-                    // All nodes reachable from the root
-                    REQUIRE(is_reachable(pbs_init.graph(), pbs_init.root_node(), id));
-                }
-            }
-        );
-
-        const auto& conflicts_init = pbs_init.conflicts();
-        for (const auto& [n, _] : conflicts_init)
+    REQUIRE(graph_init.number_of_nodes() >= 1);
+    graph_init.for_each_node_id(
+        [&](auto id)
         {
-            bool tmp = std::holds_alternative<PbGr::PackageNode>(graph_init.node(n))
-                       || std::holds_alternative<PbGr::ConstraintNode>(graph_init.node(n));
-            REQUIRE(tmp);
+            const ProblemsGraph::node_t& node = graph_init.node(id);
+            // Currently we do not make assumption about virtual package since
+            // we are not sure we are including them the same way than they would be in
+            // practice
+            if (!is_virtual_package(node))
+            {
+                if (graph_init.in_degree(id) == 0)
+                {
+                    // Only one root node
+                    REQUIRE(id == pbs_init.root_node());
+                    REQUIRE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                }
+                else if (graph_init.out_degree(id) == 0)
+                {
+                    REQUIRE_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                }
+                else
+                {
+                    REQUIRE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
+                }
+                // All nodes reachable from the root
+                REQUIRE(is_reachable(pbs_init.graph(), pbs_init.root_node(), id));
+            }
+        }
+    );
+
+    const auto& conflicts_init = pbs_init.conflicts();
+    for (const auto& [n, _] : conflicts_init)
+    {
+        bool tmp = std::holds_alternative<ProblemsGraph::PackageNode>(graph_init.node(n))
+                   || std::holds_alternative<ProblemsGraph::ConstraintNode>(graph_init.node(n));
+        REQUIRE(tmp);
+    }
+
+    SECTION("Simplify conflicts")
+    {
+        const auto& pbs_simplified = simplify_conflicts(pbs_init);
+        const auto& graph_simplified = pbs_simplified.graph();
+
+        REQUIRE(graph_simplified.number_of_nodes() >= 1);
+        REQUIRE(graph_simplified.number_of_nodes() <= pbs_init.graph().number_of_nodes());
+
+        for (const auto& [id, _] : pbs_simplified.conflicts())
+        {
+            const auto& node = graph_simplified.node(id);
+            // Currently we do not make assumption about virtual package since
+            // we are not sure we are including them the same way than they would be in
+            // practice
+            if (!is_virtual_package(node))
+            {
+                REQUIRE(graph_simplified.has_node(id));
+                // Unfortunately not all conflicts are on leaves
+                // REQUIRE(graph_simplified.out_degree(id) == 0);
+                REQUIRE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
+            }
         }
 
-        SECTION("Simplify conflicts")
+        SECTION("Compress graph")
         {
-            const auto& pbs_simplified = simplify_conflicts(pbs_init);
-            const auto& graph_simplified = pbs_simplified.graph();
+            const auto pbs_comp = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
+            const auto& graph_comp = pbs_comp.graph();
 
-            REQUIRE(graph_simplified.number_of_nodes() >= 1);
-            REQUIRE(graph_simplified.number_of_nodes() <= pbs_init.graph().number_of_nodes());
-
-            for (const auto& [id, _] : pbs_simplified.conflicts())
-            {
-                const auto& node = graph_simplified.node(id);
-                // Currently we do not make assumption about virtual package since
-                // we are not sure we are including them the same way than they would be in
-                // practice
-                if (!is_virtual_package(node))
+            REQUIRE(pbs_init.graph().number_of_nodes() >= graph_comp.number_of_nodes());
+            REQUIRE(graph_comp.number_of_nodes() >= 1);
+            graph_comp.for_each_node_id(
+                [&](auto id)
                 {
-                    REQUIRE(graph_simplified.has_node(id));
-                    // Unfortunately not all conflicts are on leaves
-                    // REQUIRE(graph_simplified.out_degree(id) == 0);
-                    REQUIRE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
+                    const CompressedProblemsGraph::node_t& node = graph_comp.node(id);
+                    // Currently we do not make assumption about virtual package since
+                    // we are not sure we are including them the same way than they
+                    // would be in
+                    if (!is_virtual_package(node))
+                    {
+                        if (graph_comp.in_degree(id) == 0)
+                        {
+                            // Only one root node
+                            REQUIRE(id == pbs_init.root_node());
+                            REQUIRE(std::holds_alternative<CompressedProblemsGraph::RootNode>(node));
+                        }
+                        else if (graph_comp.out_degree(id) == 0)
+                        {
+                            REQUIRE_FALSE(
+                                std::holds_alternative<CompressedProblemsGraph::RootNode>(node)
+                            );
+                        }
+                        else
+                        {
+                            REQUIRE(std::holds_alternative<CompressedProblemsGraph::PackageListNode>(node
+                            ));
+                        }
+                        // All nodes reachable from the root
+                        REQUIRE(is_reachable(graph_comp, pbs_comp.root_node(), id));
+                    }
                 }
+            );
+
+            const auto& conflicts_comp = pbs_comp.conflicts();
+            for (const auto& [n, _] : conflicts_comp)
+            {
+                bool tmp = std::holds_alternative<CompressedProblemsGraph::PackageListNode>(
+                               graph_comp.node(n)
+                           )
+                           || std::holds_alternative<CompressedProblemsGraph::ConstraintListNode>(
+                               graph_comp.node(n)
+                           );
+                REQUIRE(tmp);
             }
 
-            SECTION("Compress graph")
+            SECTION("Compose error message")
             {
-                const auto pbs_comp = CpPbGr::from_problems_graph(pbs_simplified);
-                const auto& graph_comp = pbs_comp.graph();
+                const auto message = problem_tree_msg(pbs_comp);
 
-                REQUIRE(pbs_init.graph().number_of_nodes() >= graph_comp.number_of_nodes());
-                REQUIRE(graph_comp.number_of_nodes() >= 1);
-                graph_comp.for_each_node_id(
-                    [&](auto id)
+                auto message_contains = [&message, &name_copy](const auto& node)
+                {
+                    using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+                    if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                     {
-                        const auto& node = graph_comp.node(id);
-                        // Currently we do not make assumption about virtual package since
-                        // we are not sure we are including them the same way than they
-                        // would be in
-                        if (!is_virtual_package(node))
+                        if ((name_copy == "Pin conflict") && util::contains(node.name(), "pin on"))
                         {
-                            if (graph_comp.in_degree(id) == 0)
-                            {
-                                // Only one root node
-                                REQUIRE(id == pbs_init.root_node());
-                                REQUIRE(std::holds_alternative<CpPbGr::RootNode>(node));
-                            }
-                            else if (graph_comp.out_degree(id) == 0)
-                            {
-                                REQUIRE_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
-                            }
-                            else
-                            {
-                                REQUIRE(std::holds_alternative<CpPbGr::PackageListNode>(node));
-                            }
-                            // All nodes reachable from the root
-                            REQUIRE(is_reachable(graph_comp, pbs_comp.root_node(), id));
+                            return;
                         }
+                        REQUIRE(util::contains(message, node.name()));
+                    }
+                };
+
+                pbs_comp.graph().for_each_node_id(
+                    [&message_contains, &g = pbs_comp.graph()](auto id)
+                    {
+                        std::visit(message_contains, g.node(id));  //
                     }
                 );
-
-                const auto& conflicts_comp = pbs_comp.conflicts();
-                for (const auto& [n, _] : conflicts_comp)
-                {
-                    bool tmp = std::holds_alternative<CpPbGr::PackageListNode>(graph_comp.node(n))
-                               || std::holds_alternative<CpPbGr::ConstraintListNode>(graph_comp.node(n
-                               ));
-                    REQUIRE(tmp);
-                }
-
-                SECTION("Compose error message")
-                {
-                    const auto message = problem_tree_msg(pbs_comp);
-
-                    auto message_contains = [&message](const auto& node)
-                    {
-                        using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
-                        if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
-                        {
-                            REQUIRE(util::contains(message, node.name()));
-                        }
-                    };
-
-                    pbs_comp.graph().for_each_node_id(
-                        [&message_contains, &g = pbs_comp.graph()](auto id)
-                        {
-                            std::visit(message_contains, g.node(id));  //
-                        }
-                    );
-                }
             }
         }
     }

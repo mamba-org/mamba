@@ -16,6 +16,7 @@
 #include <string_view>
 #include <vector>
 
+#include "mamba/core/context_params.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/fs/filesystem.hpp"
 
@@ -25,10 +26,14 @@
 
 namespace mamba
 {
-    class Context;
-
     const std::regex& token_regex();
     const std::regex& http_basicauth_regex();
+
+    /**
+     * Expand environment variables present in `s`
+     * if matching R"(\$(\{\w+\}|\w+))" regex.
+     */
+    std::string expandvars(std::string s);
 
     // Used when we want a callback which does nothing.
     struct no_op
@@ -336,7 +341,7 @@ namespace mamba
     quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const Context& context, const fs::u8path& path);
+    std::size_t remove_or_rename(const fs::u8path& target_prefix, const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -363,21 +368,11 @@ namespace mamba
 
     bool ensure_comspec_set();
 
-    struct WrappedCallOptions
-    {
-        bool is_mamba_exe = false;
-        bool dev_mode = false;
-        bool debug_wrapper_scripts = false;
-
-        static WrappedCallOptions from_context(const Context&);
-    };
-
     std::unique_ptr<TemporaryFile> wrap_call(
-        const Context& context,
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,  // TODO: c++20 replace by std::span
-        WrappedCallOptions options = {}
+        bool is_mamba_exe = false
     );
 
     struct PreparedWrappedCall
@@ -387,9 +382,9 @@ namespace mamba
     };
 
     PreparedWrappedCall prepare_wrapped_call(
-        const Context& context,
-        const fs::u8path& prefix,
-        const std::vector<std::string>& cmd
+        const PrefixParams& prefix_params,
+        const std::vector<std::string>& cmd,
+        bool is_mamba_exe
     );
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.

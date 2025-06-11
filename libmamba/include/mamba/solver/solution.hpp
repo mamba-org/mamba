@@ -7,12 +7,12 @@
 #ifndef MAMBA_CORE_SOLUTION_HPP
 #define MAMBA_CORE_SOLUTION_HPP
 
+#include <ranges>
 #include <type_traits>
 #include <variant>
 #include <vector>
 
 #include "mamba/specs/package_info.hpp"
-#include "mamba/util/loop_control.hpp"
 #include "mamba/util/type_traits.hpp"
 
 namespace mamba::solver
@@ -67,22 +67,39 @@ namespace mamba::solver
         using action_list = std::vector<Action>;
 
         action_list actions = {};
+
+        /**
+         * Return a view of all unique packages involved in the solution.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
+        [[nodiscard]] auto packages() const;
+        [[nodiscard]] auto packages();
+
+        /**
+         * Return a view of all packages that need to be removed.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
+        [[nodiscard]] auto packages_to_remove() const;
+        [[nodiscard]] auto packages_to_remove();
+
+        /**
+         * Return a view of all packages that need to be installed.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
+        [[nodiscard]] auto packages_to_install() const;
+        [[nodiscard]] auto packages_to_install();
+
+        /**
+         * Return a view of all packages that are omitted.
+         *
+         * The view is invalidated if @ref actions is modified.
+         */
+        [[nodiscard]] auto packages_to_omit() const;
+        [[nodiscard]] auto packages_to_omit();
     };
-
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func);
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_remove(Range&& actions, UnaryFunc&& func);
-
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_install(Iter first, Iter last, UnaryFunc&& func);
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_install(Range&& actions, UnaryFunc&& func);
-
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func);
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_omit(Range&& actions, UnaryFunc&& func);
 
     /********************************
      *  Implementation of Solution  *
@@ -112,35 +129,27 @@ namespace mamba::solver
                 action
             );
         }
-    }
 
-    // TODO(C++20): Poor man's replacement to range filter transform
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func)
-    {
-        for (; first != last; ++first)
+        template <std::ranges::range Range>
+        auto packages_to_remove_impl(Range& actions)
         {
-            if (auto* const ptr = detail::to_remove_ptr(*first))
-            {
-                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
-                {
-                    if (func(*ptr) == util::LoopControl::Break)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    func(*ptr);
-                }
-            }
+            namespace views = std::ranges::views;
+            return actions  //
+                   | views::transform([](auto& a) { return detail::to_remove_ptr(a); })
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
         }
+
     }
 
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_remove(Range&& actions, UnaryFunc&& func)
+    inline auto Solution::packages_to_remove() const
     {
-        return for_each_to_remove(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
+        return detail::packages_to_remove_impl(actions);
+    }
+
+    inline auto Solution::packages_to_remove()
+    {
+        return detail::packages_to_remove_impl(actions);
     }
 
     namespace detail
@@ -167,35 +176,27 @@ namespace mamba::solver
                 action
             );
         }
-    }
 
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_install(Iter first, Iter last, UnaryFunc&& func)
-    {
-        for (; first != last; ++first)
+        template <std::ranges::range Range>
+        auto packages_to_install_impl(Range& actions)
         {
-            if (auto* const ptr = detail::to_install_ptr(*first))
-            {
-                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
-                {
-                    if (func(*ptr) == util::LoopControl::Break)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    func(*ptr);
-                }
-            }
+            namespace views = std::ranges::views;
+            return actions  //
+                   | views::transform([](auto& a) { return detail::to_install_ptr(a); })
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
         }
+
     }
 
-    // TODO(C++20): Poor man's replacement to range filter transform
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_install(Range&& actions, UnaryFunc&& func)
+    inline auto Solution::packages_to_install() const
     {
-        return for_each_to_install(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
+        return detail::packages_to_install_impl(actions);
+    }
+
+    inline auto Solution::packages_to_install()
+    {
+        return detail::packages_to_install_impl(actions);
     }
 
     namespace detail
@@ -218,35 +219,72 @@ namespace mamba::solver
                 action
             );
         }
+
+        template <std::ranges::range Range>
+        auto packages_to_omit_impl(Range& actions)
+        {
+            namespace views = std::ranges::views;
+            return actions  //
+                   | views::transform([](auto& a) { return detail::to_omit_ptr(a); })
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
+        }
+
     }
 
-    // TODO(C++20): Poor man's replacement to range filter transform
-    template <typename Iter, typename UnaryFunc>
-    void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func)
+    inline auto Solution::packages_to_omit() const
     {
-        for (; first != last; ++first)
+        return detail::packages_to_omit_impl(actions);
+    }
+
+    inline auto Solution::packages_to_omit()
+    {
+        return detail::packages_to_omit_impl(actions);
+    }
+
+    namespace detail
+    {
+        template <typename Action>
+        constexpr auto package_unique_ptrs(Action& action)
         {
-            if (auto* const ptr = detail::to_omit_ptr(*first))
+            auto out = std::array{
+                to_omit_ptr(action),
+                to_install_ptr(action),
+                to_remove_ptr(action),
+            };
+            for (std::size_t i = 1; i < out.size(); ++i)
             {
-                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                for (std::size_t j = i + 1; j < out.size(); ++j)
                 {
-                    if (func(*ptr) == util::LoopControl::Break)
+                    if (out[j] == out[i])
                     {
-                        break;
+                        out[j] = nullptr;
                     }
                 }
-                else
-                {
-                    func(*ptr);
-                }
             }
+            return out;
+        }
+
+        template <std::ranges::range Range>
+        auto packages_impl(Range& actions)
+        {
+            namespace views = std::ranges::views;
+            return actions                                                             //
+                   | views::transform([](auto& a) { return package_unique_ptrs(a); })  //
+                   | views::join                                                       //
+                   | views::filter([](const auto* ptr) { return ptr != nullptr; })     //
+                   | views::transform([](auto* ptr) -> decltype(auto) { return *ptr; });
         }
     }
 
-    template <typename Range, typename UnaryFunc>
-    void for_each_to_omit(Range&& actions, UnaryFunc&& func)
+    inline auto Solution::packages() const
     {
-        return for_each_to_omit(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
+        return detail::packages_impl(actions);
+    }
+
+    inline auto Solution::packages()
+    {
+        return detail::packages_impl(actions);
     }
 }
 #endif

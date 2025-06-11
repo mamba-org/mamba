@@ -19,7 +19,7 @@ namespace
         REQUIRE(spec.contains(""));
         REQUIRE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "^.*$");
+        REQUIRE(spec.to_string() == "^.*$");
         REQUIRE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -33,7 +33,7 @@ namespace
         REQUIRE_FALSE(spec.contains("nomkl"));
         REQUIRE_FALSE(spec.contains("hello"));
 
-        REQUIRE(spec.str() == "^mkl$");
+        REQUIRE(spec.to_string() == "^mkl$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE(spec.is_exact());
     }
@@ -48,7 +48,7 @@ namespace
         REQUIRE_FALSE(spec.contains(""));
         REQUIRE_FALSE(spec.contains("cpython"));
 
-        REQUIRE(spec.str() == "^py.*$");
+        REQUIRE(spec.to_string() == "^py.*$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
     }
@@ -62,7 +62,7 @@ namespace
         REQUIRE_FALSE(spec.contains(""));
         REQUIRE_FALSE(spec.contains("openblas"));
 
-        REQUIRE(spec.str() == "^.*(accelerate|mkl)$");
+        REQUIRE(spec.to_string() == "^.*(accelerate|mkl)$");
         REQUIRE_FALSE(spec.is_explicitly_free());
         REQUIRE_FALSE(spec.is_exact());
     }

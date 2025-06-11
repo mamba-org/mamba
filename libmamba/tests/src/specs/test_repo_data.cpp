@@ -30,7 +30,7 @@ namespace
 
         const nl::json j = p;
         REQUIRE(j.at("name") == p.name);
-        REQUIRE(j.at("version") == p.version.str());
+        REQUIRE(j.at("version") == p.version.to_string());
         REQUIRE(j.at("build") == p.build_string);
         REQUIRE(j.at("build_number") == p.build_number);
         REQUIRE(j.at("subdir") == p.subdir);
@@ -53,12 +53,12 @@ namespace
         j["track_features"] = nl::json::array();
         {
             const auto p = j.get<RepoDataPackage>();
-            REQUIRE(p.name == j.at("name"));
+            REQUIRE(j.at("name") == p.name);
             // Note Version::parse is not injective
-            REQUIRE(p.version.str() == j.at("version"));
-            REQUIRE(p.build_string == j.at("build"));
-            REQUIRE(p.build_number == j.at("build_number"));
-            REQUIRE(p.subdir == j.at("subdir"));
+            REQUIRE(j.at("version") == p.version.to_string());
+            REQUIRE(j.at("build") == p.build_string);
+            REQUIRE(j.at("build_number") == p.build_number);
+            REQUIRE(j.at("subdir") == p.subdir);
             REQUIRE_FALSE(p.md5.has_value());
             REQUIRE_FALSE(p.platform.has_value());
             REQUIRE(p.depends == decltype(p.depends){ "libsolv>=1.0" });
@@ -134,11 +134,11 @@ namespace
         REQUIRE(data.info.has_value());
         REQUIRE(platform_name(data.info.value().subdir) == j["info"]["subdir"].get<std::string_view>());
         REQUIRE(
-            data.packages.at("mamba-1.0-h12345.tar.bz2").name
-            == j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]
+            j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]
+            == data.packages.at("mamba-1.0-h12345.tar.bz2").name
         );
         REQUIRE(data.conda_packages.empty());
-        REQUIRE(data.removed == j["removed"]);
+        REQUIRE(j["removed"] == data.removed);
     }
 
     TEST_CASE("repodata_json")

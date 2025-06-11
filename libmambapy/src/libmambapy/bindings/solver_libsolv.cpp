@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <ranges>
+
 #include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -32,6 +34,13 @@ namespace mambapy
             .value("Libsolv", RepodataParser::Libsolv)
             .def(py::init(&enum_from_str<RepodataParser>));
         py::implicitly_convertible<py::str, RepodataParser>();
+
+        py::enum_<MatchSpecParser>(m, "MatchSpecParser")
+            .value("Mixed", MatchSpecParser::Mixed)
+            .value("Mamba", MatchSpecParser::Mamba)
+            .value("Libsolv", MatchSpecParser::Libsolv)
+            .def(py::init(&enum_from_str<MatchSpecParser>));
+        py::implicitly_convertible<py::str, MatchSpecParser>();
 
         py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
             .value("No", PipAsPythonDependency::No)
@@ -117,7 +126,21 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
 
         py::class_<Database>(m, "Database")
-            .def(py::init<specs::ChannelResolveParams>(), py::arg("channel_params"))
+            .def(
+                py::init(
+                    [](specs::ChannelResolveParams channel_params, MatchSpecParser matchspec_parser)
+                    {
+                        return Database(
+                            channel_params,
+                            Database::Settings{
+                                matchspec_parser,
+                            }
+                        );
+                    }
+                ),
+                py::arg("channel_params"),
+                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
+            )
             .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
             .def(
                 "add_repo_from_repodata_json",
@@ -145,13 +168,14 @@ namespace mambapy
                    std::string_view name,
                    PipAsPythonDependency add)
                 {
-                    // TODO(C++20): No need to copy in a vector, simply transform the input range.
-                    auto pkg_infos = std::vector<specs::PackageInfo>();
-                    for (py::handle pkg : packages)
-                    {
-                        pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
-                    }
-                    return database.add_repo_from_packages(pkg_infos, name, add);
+                    static constexpr auto cast = [](py::handle pkg)
+                    { return pkg.cast<specs::PackageInfo>(); };
+
+                    return database.add_repo_from_packages(
+                        packages | std::ranges::views::transform(cast),
+                        name,
+                        add
+                    );
                 },
                 py::arg("packages"),
                 py::arg("name") = "",
@@ -235,12 +259,15 @@ namespace mambapy
         constexpr auto solver_job_v2_migrator = [](Solver&, py::args, py::kwargs)
         { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
 
-        py::class_<Solver>(m, "Solver")  //
+        py::class_<Solver>(m, "Solver")
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& database, const solver::Request& request)
-                { return self.solve(database, request); }
+                [](Solver& self, Database& database, const solver::Request& request, MatchSpecParser ms_parser
+                ) { return self.solve(database, request, ms_parser); },
+                py::arg("database"),
+                py::arg("request"),
+                py::arg("matchspec_parser") = MatchSpecParser::Mixed
             )
             .def("add_jobs", solver_job_v2_migrator)
             .def("add_global_job", solver_job_v2_migrator)

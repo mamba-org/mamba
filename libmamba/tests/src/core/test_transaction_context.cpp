@@ -6,7 +6,8 @@
 
 #include <catch2/catch_all.hpp>
 
-#include "mamba/core/transaction_context.hpp"
+// Private libmamba header
+#include "core/transaction_context.hpp"
 
 namespace mamba
 {

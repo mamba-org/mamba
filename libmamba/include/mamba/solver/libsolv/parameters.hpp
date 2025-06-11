@@ -19,6 +19,13 @@ namespace mamba::solver::libsolv
         Libsolv,
     };
 
+    enum class MatchSpecParser
+    {
+        Mixed,
+        Mamba,
+        Libsolv,
+    };
+
     enum class PipAsPythonDependency : bool
     {
         No = false,

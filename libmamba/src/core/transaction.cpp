@@ -87,21 +87,26 @@ namespace mamba
         find_python_version(const solver::Solution& solution, const solver::DatabaseVariant& database)
             -> std::pair<std::string, std::string>
         {
-            auto old_python = installed_python(database);
-            auto new_python = std::optional<std::string>();
+            // We need to find the python version that will be there after this
+            // Transaction is finished in order to compile the noarch packages correctly,
 
-            for_each_to_install(
-                solution.actions,
-                [&](const auto& pkg)
-                {
-                    if (pkg.name == "python")
-                    {
-                        new_python = pkg.version;
-                    }
-                }
-            );
+            // We need to look into installed packages in case we are not installing a new python
+            // version but keeping the current one.
+            // Could also be written in term of PrefixData.
+            std::string installed_py_ver = {};
+            if (auto python_version = installed_python(database))
+            {
+                installed_py_ver = python_version.value();
+                LOG_INFO << "Found python in installed packages " << installed_py_ver;
+            }
 
-            return { new_python.value_or(""), old_python.value_or("") };
+            std::string new_py_ver = installed_py_ver;
+            if (auto py = solver::find_new_python_in_solution(solution))
+            {
+                new_py_ver = py->get().version;
+            }
+
+            return { std::move(new_py_ver), std::move(installed_py_ver) };
         }
 
         auto explicit_spec(const specs::PackageInfo& pkg) -> specs::MatchSpec

@@ -43,18 +43,24 @@ namespace mamba::util
     template< std::default_initializable T, Mutex M, bool readonly >
     class scoped_locked_ptr
     {
-        T& m_value;
+        T* m_value;
         std::scoped_lock<M> m_lock;
 
     public:
         scoped_locked_ptr(T& value, M& mutex)
-        : m_value(value), m_lock(mutex)
+        : m_value(&value), m_lock(mutex)
         {}
 
-        auto operator*() -> T& requires(not readonly)  { return m_value; }
-        auto operator*() const -> const T& { return m_value; }
-        auto operator->() -> T*  requires(not readonly) { return &m_value; }
-        auto operator->() const -> const T* { return &m_value; }
+        scoped_locked_ptr(scoped_locked_ptr&& other) noexcept
+            : m_value(std::move(other.m_value)), m_lock(std::move(other.m_lock))
+        {
+            other.m_value = nullptr;
+        }
+
+        auto operator*() -> T& requires(not readonly)  { return *m_value; }
+        auto operator*() const -> const T& { return *m_value; }
+        auto operator->() -> T*  requires(not readonly) { return m_value; }
+        auto operator->() const -> const T* { return m_value; }
 
 
     };
@@ -65,7 +71,6 @@ namespace mamba::util
         T& m_ref;
         std::scoped_lock<M> m_lock;
     private:
-        using this_type = locking_ref<T, M, readonly>;
 
         locking_ref(T& value, M& mutex)
             : m_ref(value), m_lock(mutex)
@@ -75,7 +80,7 @@ namespace mamba::util
         operator const T& () const requires(readonly) { return m_ref; }
 
         template<typename V>
-        this_type& operator=( V&& new_value )
+        locking_ref& operator=( V&& new_value )
             requires(not readonly) and std::assignable_from<T&, V>
         {
             m_ref = std::forward<V>(new_value);

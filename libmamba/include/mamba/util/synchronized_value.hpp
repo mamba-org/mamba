@@ -104,10 +104,13 @@ namespace mamba::util
         synchronized_value& operator=(const synchronized_value& other);
         synchronized_value& operator=(synchronized_value&& other);
 
-        synchronized_value(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>);
-        synchronized_value(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>);
-        synchronized_value& operator=(const T& value);
-        synchronized_value& operator=(T&& value);
+        template< typename V >
+            requires std::assignable_from<T&, V>
+        synchronized_value(V&& value);
+
+        template< typename V >
+            requires std::assignable_from<T&, V>
+        synchronized_value& operator=(V&& value);
 
         auto swap(synchronized_value& other) -> void;
         auto swap(T& value) -> void;
@@ -133,17 +136,17 @@ namespace mamba::util
         auto synchronize() -> lock_ptr;
         auto synchronize() const -> const_lock_ptr;
 
-        template< std::invocable<T> Func >
-        auto apply(Func&& func);
+        template< std::invocable<T> Func, typename... Args >
+        auto apply(Func&& func, Args&&... args);
 
-        template< std::invocable<T> Func >
-        auto apply(Func&& func) const;
+        template< std::invocable<T> Func, typename... Args >
+        auto apply(Func&& func, Args&&... args) const;
 
-        template< std::invocable<T> Func >
-        auto operator()(Func&& func) { return apply(std::forward<Func>(func)); }
+        template< std::invocable<T> Func, typename... Args >
+        auto operator()(Func&& func, Args&&... args) { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
 
-        template< std::invocable<T> Func >
-        auto operator()(Func&& func) const { return apply(std::forward<Func>(func)); }
+        template< std::invocable<T> Func, typename... Args >
+        auto operator()(Func&& func, Args&&... args) const { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
 
     private:
         T m_value;
@@ -156,9 +159,130 @@ namespace mamba::util
     ///////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    template< std::default_initializable T, Mutex M >
+    synchronized_value<T, M>::synchronized_value()
+        noexcept(std::is_nothrow_default_constructible_v<T>)
+        = default;
+
+    template< std::default_initializable T, Mutex M >
+    synchronized_value<T, M>::synchronized_value(const synchronized_value& other)
+    {
+        std::scoped_lock _ {other.m_mutex};
+        m_value = other.m_value;
+    }
 
 
+    template< std::default_initializable T, Mutex M >
+    synchronized_value<T, M>&
+    synchronized_value<T, M>::operator=(const synchronized_value& other)
+    {
+        std::scoped_lock _ { m_mutex, other.m_mutex };
+        m_value = other.m_value;
+        return *this;
+    }
 
+    template< std::default_initializable T, Mutex M >
+    synchronized_value<T, M>::synchronized_value(synchronized_value&& other) = default;
+
+    template< std::default_initializable T, Mutex M >
+    synchronized_value<T, M>&
+    synchronized_value<T, M>::operator=(synchronized_value&& other) = default;
+
+    template< std::default_initializable T, Mutex M >
+    template< typename V >
+        requires std::assignable_from<T&, V>
+    synchronized_value<T, M>::synchronized_value(V&& value)
+        : m_value(std::forward<V>(value))
+    {}
+
+    template< std::default_initializable T, Mutex M >
+    template< typename V >
+        requires std::assignable_from<T&, V>
+    synchronized_value<T, M>&
+    synchronized_value<T, M>::operator=(V&& value)
+    {
+        std::scoped_lock _ { m_mutex };
+        m_value = std::forward<V>(value);
+        return *this;
+    }
+
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::value() const -> T
+    {
+        std::scoped_lock _ { m_mutex };
+        return m_value;
+    }
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::operator*() -> locking_ref
+    {
+        return locking_ref{ m_value, m_mutex };
+    }
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::operator*() const -> locking_const_ref
+    {
+        return locking_const_ref{ m_value, m_mutex };
+    }
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::operator->() -> locking_ref
+    {
+        return locking_ref{ m_value, m_mutex };
+    }
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::operator->() const -> locking_const_ref
+    {
+        return locking_const_ref{ m_value, m_mutex };
+    }
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::synchronize() -> lock_ptr
+    {
+        return lock_ptr{ m_value, m_mutex };
+    }
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::synchronize() const -> const_lock_ptr
+    {
+        return const_lock_ptr{ m_value, m_mutex };
+    }
+
+    template< std::default_initializable T, Mutex M >
+    template< std::invocable<T> Func, typename... Args >
+    auto synchronized_value<T, M>::apply(Func&& func, Args&&... args)
+    {
+        std::scoped_lock _ { m_mutex };
+        return std::invoke(func, m_value, std::forward<Args>(args)...);
+    }
+
+    template< std::default_initializable T, Mutex M >
+    template< std::invocable<T> Func, typename... Args  >
+    auto synchronized_value<T, M>::apply(Func&& func, Args&&... args) const
+    {
+        std::scoped_lock _ { m_mutex };
+        return std::invoke(func, m_value, std::forward<Args>(args)...);
+    }
+
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::swap(synchronized_value& other) -> void
+    {
+        std::scoped_lock _ { m_mutex, other.m_mutex };
+        using std::swap;
+        swap(m_value, other.m_value);
+    }
+
+
+    template< std::default_initializable T, Mutex M >
+    auto synchronized_value<T, M>::swap(T& value) -> void
+    {
+        std::scoped_lock _ { m_mutex };
+        using std::swap;
+        swap(m_value, value);
+    }
 
 }
 

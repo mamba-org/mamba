@@ -440,7 +440,8 @@ namespace mamba
                 for (const auto& dir : dirs)
                 {
                     const auto candidate = dir / name;
-                    if (fs::exists(candidate) && fs::is_directory(candidate))
+                    std::error_code _ec;
+                    if (fs::exists(candidate, _ec) && fs::is_directory(candidate))
                     {
                         return candidate;
                     }
@@ -990,14 +991,19 @@ namespace mamba
                 dirs.insert(dirs.begin(), paths.rbegin(), paths.rend());
             }
 
+            std::error_code ec;
             // Check that the values exist as directories
             for (auto& d : dirs)
             {
-                d = fs::weakly_canonical(util::expand_home(d.string())).string();
-                if (fs::exists(d) && !fs::is_directory(d))
+                auto canonical_dir = fs::weakly_canonical(util::expand_home(d.string()), ec).string();
+                if (!ec)
                 {
-                    LOG_ERROR << "Env dir specified is not a directory: " << d.string();
-                    throw std::runtime_error("Aborting.");
+                    d = std::move(canonical_dir);
+                    if (fs::exists(d) && !fs::is_directory(d))
+                    {
+                        LOG_ERROR << "Env dir specified is not a directory: " << d.string();
+                        throw std::runtime_error("Aborting.");
+                    }
                 }
             }
 

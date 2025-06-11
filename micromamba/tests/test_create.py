@@ -741,8 +741,52 @@ def test_create_conda_envs_dirs_and_path(tmp_root_prefix, monkeypatch):
     )
 
 
+def remove_perms(path, unreadable=False):
+    if platform.system() == "Windows":
+        # Make path less accessible on Windows - this requires:
+        #   Removing inherited and granted permissions, removing ownership,
+        #   and optionally granting group Everyone RX access.
+
+        perms = [
+            "/inheritance:r",  # remove inherited permissions
+            "/remove",  # remove ownership from all groups
+            r"BUILTIN\Administrators",
+            "/remove",
+            r"NT AUTHORITY\SYSTEM",
+            "/remove",
+            "OWNER RIGHTS",
+            "/remove:g",
+            "Everyone",
+        ]
+        if not unreadable:
+            perms.extend(["/grant:r", "Everyone:(RX)"])  # grant Read-Execute to everyone
+
+        subprocess.run(
+            ["icacls", path] + perms,
+            check=True,
+        )
+
+    else:
+        # Make path less accessible on Linux
+        os.chmod(path, 0o000 if unreadable else 0o555)
+
+
+def restore_perms(path):
+    if platform.system() == "Windows":
+        # Revert ownership change on Windows so that we can clean up
+        subprocess.run(["icacls", path, "/grant", r"BUILTIN\Administrators:F"], check=True)
+        subprocess.run(["icacls", path, "/reset"], check=True)
+    else:
+        # Revert permission change on Linux so that we can clean up
+        os.chmod(path, 0o755)
+
+
+@pytest.mark.parametrize("unreadable", (True, False))
+@pytest.mark.parametrize("noperm_dir", ("root_dir", "envs_dir"))
 @pytest.mark.parametrize("conda_envs_x", ("CONDA_ENVS_DIRS", "CONDA_ENVS_PATH"))
-def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, conda_envs_x, monkeypatch):
+def test_create_envs_dirs(
+    tmp_root_prefix: Path, tmp_path: Path, unreadable, noperm_dir, conda_envs_x, monkeypatch
+):
     """Create an environment when the first env dir is not writable."""
 
     noperm_root_dir = Path(tmp_path / "noperm")
@@ -750,46 +794,15 @@ def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path, conda_envs_x, m
 
     monkeypatch.setenv(conda_envs_x, f"{noperm_envs_dir}{os.pathsep}{tmp_path}")
     env_name = "myenv"
-    os.makedirs(noperm_root_dir, exist_ok=True)
+    target_dir = noperm_root_dir if noperm_dir == "root_dir" else noperm_envs_dir
 
-    if platform.system() == "Windows":
-        # Make first env_dir read-only on Windows - this requires:
-        #   Removing inherited and granted permissions, removing ownership,
-        #   and granting group Everyone RX access.
-
-        subprocess.run(
-            [
-                "icacls",
-                noperm_root_dir,
-                "/inheritance:r",  # remove inherited permissions
-                "/grant:r",  # remove explicitly granted permissions
-                "Everyone:(RX)",  # grant Read-Execute to everyone
-                "/remove",  # remove ownership from all groups
-                r"BUILTIN\Administrators",
-                "/remove",
-                r"NT AUTHORITY\SYSTEM",
-                "/remove",
-                "OWNER RIGHTS",
-            ],
-            check=True,
-        )
-
-    else:
-        # Make first env_dir read-only on Linux
-        os.chmod(noperm_root_dir, 0o555)
+    os.makedirs(target_dir, exist_ok=True)
+    remove_perms(target_dir, unreadable)
 
     try:
         helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
     finally:
-        if platform.system() == "Windows":
-            # Revert ownership change on Windows so that we can clean up
-            subprocess.run(
-                ["icacls", noperm_root_dir, "/grant", r"BUILTIN\Administrators:F"], check=True
-            )
-            subprocess.run(["icacls", noperm_root_dir, "/reset"], check=True)
-        else:
-            # Revert permission change on Linux so that we can clean up
-            os.chmod(noperm_root_dir, 0o755)
+        restore_perms(target_dir)
 
     assert (tmp_path / env_name / "conda-meta" / "history").exists()
 

@@ -126,9 +126,7 @@ namespace mamba::util
 
         // TODO : ADD COMPARISON OPERATORS
 
-        template< typename X >
-        auto operator==(const X& other_value) const
-            requires std::equality_comparable_with<X, T>
+        auto operator==(const std::equality_comparable_with<T>  auto& other_value) const -> bool
         {
             return std::as_const(m_ref) == other_value;
         }
@@ -195,9 +193,7 @@ namespace mamba::util
         auto operator()(Func&& func, Args&&... args) const { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
 
         // TODO : ADD COMPARISON OPERATORS
-        template< typename X >
-        auto operator==(const X& other_value) const
-            requires std::equality_comparable_with<X, T>
+        auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool
         {
             auto _ = lock_as_readonly(m_mutex);
             return m_value == other_value;

@@ -53,13 +53,18 @@ namespace {
                 REQUIRE(*sptr == initial_value);
                 (*sptr)++;
                 REQUIRE(*sptr == initial_value + 1);
+                auto& value = *sptr;
+                value = initial_value;
+                REQUIRE(*sptr == initial_value);
             }
 
             sv.apply([](int& value){
                 value = 123;
             });
             REQUIRE(sv.value() == 123);
-            *sv = initial_value;
+            *sv = 12;
+            REQUIRE(*sv == 12);
+            sv = initial_value;
             REQUIRE(*sv == initial_value);
         }
     }

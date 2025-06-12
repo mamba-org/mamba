@@ -432,6 +432,14 @@ bind_submodule_impl(pybind11::module_ m)
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
 
+    auto pyOutputParams = py::class_<Context::OutputParams>(pyContext, "OutputParams");
+
+    auto pyThreadsParams = py::class_<ThreadsParams>(pyContext, "ThreadsParams");
+
+    auto pyPrefixParams = py::class_<PrefixParams>(pyContext, "PrefixParams");
+
+    auto pyValidationParams = py::class_<ValidationParams>(pyContext, "ValidationParams");
+
     /**************
      *  Bindings  *
      **************/
@@ -470,7 +478,41 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<download::mirror_map>(m, "MirrorMap")
         .def(py::init<>())
+        .def_static(
+            "from_names_and_urls",
+            [](py::iterable names_urls) -> download::mirror_map
+            {
+                auto map = download::mirror_map();
+                for (py::handle mirror : names_urls)
+                {
+                    auto name = py::cast<std::string_view>(mirror[py::int_(0)]);
+                    auto url = py::cast<std::string_view>(mirror[py::int_(1)]);
+                    bool added = map.add_unique_mirror(name, download::make_mirror(std::string(url)));
+                    if (!added)
+                    {
+                        throw mamba_error(
+                            fmt::format(R"(Cannot add mirror "{}" with url "{}")", name, url),
+                            mamba_error_code::incorrect_usage
+                        );
+                    }
+                }
+                return map;
+            }
+        )
         .def("has_mirrors", &download::mirror_map::has_mirrors, py::arg("mirror_name"))
+        .def(
+            "add_mirror_from_url",
+            [](download::mirror_map& self, std::string_view mirror_name, std::string url) -> bool
+            {
+                return self.add_unique_mirror(
+                    mirror_name,
+                    download::make_mirror(url)
+
+                );
+            },
+            py::arg("mirror_name"),
+            py::arg("url")
+        )
         .def("__contains__", &download::mirror_map::has_mirrors)
         .def("__len__", &download::mirror_map::size);
 
@@ -495,6 +537,10 @@ bind_submodule_impl(pybind11::module_ m)
             py::init<>(
                 [](Context& context, const std::vector<fs::u8path>& pkgs_dirs)
                 {
+                    deprecated(
+                        "Use MultiPackageCache(pkgs_dirs, validation_params=context.validation_params) instead",
+                        "2.2.1"
+                    );
                     return MultiPackageCache{
                         pkgs_dirs,
                         context.validation_params,
@@ -503,6 +549,11 @@ bind_submodule_impl(pybind11::module_ m)
             ),
             py::arg("context"),
             py::arg("pkgs_dirs")
+        )
+        .def(
+            py::init<const std::vector<fs::u8path>&, const ValidationParams&>(),
+            py::arg("pkgs_dirs"),
+            py::arg("validation_params")
         )
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
@@ -958,25 +1009,97 @@ bind_submodule_impl(pybind11::module_ m)
         [](py::handle) { return py::type::of<download::RemoteFetchParams>(); }
     );
 
-    py::class_<Context::OutputParams>(pyContext, "OutputParams")
-        .def(py::init<>())
+    static const auto default_output_params = Context::OutputParams{};
+    pyOutputParams
+        .def(
+            py::init(
+                [](decltype(Context::OutputParams::verbosity) verbosity,
+                   decltype(Context::OutputParams::json) json,
+                   decltype(Context::OutputParams::quiet) quiet) -> Context::OutputParams
+                {
+                    return {
+                        .verbosity = std::move(verbosity),
+                        .json = std::move(json),
+                        .quiet = std::move(quiet),
+                    };
+                }
+            ),
+            py::arg("verbosity") = default_output_params.verbosity,
+            py::arg("json") = default_output_params.json,
+            py::arg("quiet") = default_output_params.quiet
+        )
         .def_readwrite("verbosity", &Context::OutputParams::verbosity)
         .def_readwrite("json", &Context::OutputParams::json)
         .def_readwrite("quiet", &Context::OutputParams::quiet);
 
-    py::class_<ThreadsParams>(pyContext, "ThreadsParams")
-        .def(py::init<>())
+    static constexpr auto default_threads_params = ThreadsParams{};
+    pyThreadsParams
+        .def(
+            py::init(
+                [](decltype(ThreadsParams::download_threads) download_threads,
+                   decltype(ThreadsParams::extract_threads) extract_threads) -> ThreadsParams
+                {
+                    return {
+                        .download_threads = std::move(download_threads),
+                        .extract_threads = std::move(extract_threads),
+                    };
+                }
+            ),
+            py::arg("download_threads") = default_threads_params.download_threads,
+            py::arg("extract_threads") = default_threads_params.extract_threads
+        )
         .def_readwrite("download_threads", &ThreadsParams::download_threads)
         .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
 
-    py::class_<PrefixParams>(pyContext, "PrefixParams")
-        .def(py::init<>())
+    static const auto default_prefix_params = PrefixParams{};
+    pyPrefixParams
+        .def(
+            py::init(
+                [](decltype(PrefixParams::target_prefix) target_prefix,
+                   decltype(PrefixParams::conda_prefix) conda_prefix,
+                   decltype(PrefixParams::root_prefix) root_prefix,
+                   decltype(PrefixParams::relocate_prefix) relocate_prefix) -> PrefixParams
+                {
+                    return {
+                        .target_prefix = std::move(target_prefix),
+                        .root_prefix = std::move(root_prefix),
+                        .conda_prefix = std::move(conda_prefix),
+                        .relocate_prefix = std::move(relocate_prefix),
+                    };
+                }
+            ),
+            py::arg("target_prefix") = default_prefix_params.target_prefix,
+            py::arg("conda_prefix") = default_prefix_params.conda_prefix,
+            py::arg("root_prefix") = default_prefix_params.root_prefix,
+            py::arg("relocate_prefix") = default_prefix_params.relocate_prefix
+        )
         .def_readwrite("target_prefix", &PrefixParams::target_prefix)
         .def_readwrite("conda_prefix", &PrefixParams::conda_prefix)
+        .def_readwrite("relocate_prefix", &PrefixParams::relocate_prefix)
         .def_readwrite("root_prefix", &PrefixParams::root_prefix);
 
-    py::class_<ValidationParams>(pyContext, "ValidationParams")
-        .def(py::init<>())
+    static const auto default_validation_params = ValidationParams{};
+    pyValidationParams
+        .def(
+            py::init(
+                [](decltype(ValidationParams::safety_checks) safety_checks,
+                   decltype(ValidationParams::extra_safety_checks) extra_safety_checks,
+                   decltype(ValidationParams::verify_artifacts) verify_artifacts,
+                   decltype(ValidationParams::trusted_channels) trusted_channels) -> ValidationParams
+                {
+                    return {
+                        .safety_checks = std::move(safety_checks),
+                        .extra_safety_checks = std::move(extra_safety_checks),
+                        .verify_artifacts = std::move(verify_artifacts),
+                        .trusted_channels = std::move(trusted_channels),
+                    };
+                }
+            ),
+            py::arg("safety_checks") = default_validation_params.safety_checks,
+            py::arg("extra_safety_checks") = default_validation_params.extra_safety_checks,
+            py::arg("verify_artifacts") = default_validation_params.verify_artifacts,
+            py::arg("trusted_channels") = default_validation_params.trusted_channels
+        )
         .def_readwrite("safety_checks", &ValidationParams::safety_checks)
         .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks)
         .def_readwrite("verify_artifacts", &ValidationParams::verify_artifacts)

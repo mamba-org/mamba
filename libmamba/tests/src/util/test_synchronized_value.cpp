@@ -51,8 +51,16 @@ namespace {
             {
                 auto sptr = sv.synchronize();
                 REQUIRE(*sptr == initial_value);
+                (*sptr)++;
+                REQUIRE(*sptr == initial_value + 1);
             }
 
+            sv.apply([](int& value){
+                value = 123;
+            });
+            REQUIRE(sv.value() == 123);
+            *sv = initial_value;
+            REQUIRE(*sv == initial_value);
         }
     }
 }

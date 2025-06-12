@@ -39,12 +39,39 @@ namespace mamba::util
         and (not std::movable<T>)
         and (not std::copyable<T>);
 
+    // see https://en.cppreference.com/w/cpp/named_req/SharedMutex.html
+    template<class T>
+    concept SharedMutex = Mutex<T>
+        and requires(T& x)
+        {
+            x.lock_shared();
+            { x.try_lock_shared() } -> std::convertible_to<bool>;
+            x.unlock_shared();
+        };
+
+    auto lock_as_readonly(Mutex auto& mutex)
+    {
+        return std::unique_lock{ mutex };
+    }
+
+    auto lock_as_readonly(SharedMutex auto& mutex)
+    {
+        return std::shared_lock{ mutex };
+    }
+
+    auto lock_as_exclusive(Mutex auto& mutex)
+    {
+        return std::unique_lock{ mutex };
+    }
+
+    template< Mutex M, bool readonly>
+    using lock_type = std::conditional<readonly, decltype(lock_as_readonly(std::declval<M>())), decltype(lock_as_exclusive(std::declval<M>()))>;
 
     template< std::default_initializable T, Mutex M, bool readonly >
     class scoped_locked_ptr
     {
         T* m_value;
-        std::scoped_lock<M> m_lock;
+        lock_type<M, readonly> m_lock;
 
     public:
         scoped_locked_ptr(T& value, M& mutex)
@@ -69,7 +96,7 @@ namespace mamba::util
     class locking_ref
     {
         T& m_ref;
-        std::scoped_lock<M> m_lock;
+        lock_type<M, readonly> m_lock;
     private:
 
         locking_ref(T& value, M& mutex)
@@ -151,6 +178,7 @@ namespace mamba::util
     private:
         T m_value;
         mutable M m_mutex;
+
     };
 
     template< std::default_initializable... Ts, Mutex... Ms, bool... is_const >
@@ -167,7 +195,7 @@ namespace mamba::util
     template< std::default_initializable T, Mutex M >
     synchronized_value<T, M>::synchronized_value(const synchronized_value& other)
     {
-        std::scoped_lock _ {other.m_mutex};
+        auto _ = lock_as_exclusive(other.m_mutex);
         m_value = other.m_value;
     }
 
@@ -201,7 +229,7 @@ namespace mamba::util
     synchronized_value<T, M>&
     synchronized_value<T, M>::operator=(V&& value)
     {
-        std::scoped_lock _ { m_mutex };
+        auto _ = lock_as_exclusive( m_mutex );
         m_value = std::forward<V>(value);
         return *this;
     }
@@ -210,7 +238,7 @@ namespace mamba::util
     template< std::default_initializable T, Mutex M >
     auto synchronized_value<T, M>::value() const -> T
     {
-        std::scoped_lock _ { m_mutex };
+        auto _ = lock_as_exclusive( m_mutex );
         return m_value;
     }
 
@@ -254,16 +282,16 @@ namespace mamba::util
     template< std::invocable<T> Func, typename... Args >
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args)
     {
-        std::scoped_lock _ { m_mutex };
-        return std::invoke(func, m_value, std::forward<Args>(args)...);
+        auto _ = lock_as_exclusive( m_mutex );
+        return std::invoke(std::forward<Func>(func), m_value, std::forward<Args>(args)...);
     }
 
     template< std::default_initializable T, Mutex M >
     template< std::invocable<T> Func, typename... Args  >
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args) const
     {
-        std::scoped_lock _ { m_mutex };
-        return std::invoke(func, m_value, std::forward<Args>(args)...);
+        auto _ = lock_as_readonly( m_mutex );
+        return std::invoke(std::forward<Func>(func), m_value, std::forward<Args>(args)...);
     }
 
 
@@ -279,7 +307,7 @@ namespace mamba::util
     template< std::default_initializable T, Mutex M >
     auto synchronized_value<T, M>::swap(T& value) -> void
     {
-        std::scoped_lock _ { m_mutex };
+        auto _ = lock_as_exclusive( m_mutex );
         using std::swap;
         swap(m_value, value);
     }

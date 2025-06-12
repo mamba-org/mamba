@@ -123,6 +123,16 @@ namespace mamba::util
             return *this;
         }
 
+
+        // TODO : ADD COMPARISON OPERATORS
+
+        template< typename X >
+        auto operator==(const X& other_value) const
+            requires std::equality_comparable_with<X, T>
+        {
+            return std::as_const(m_ref) == other_value;
+        }
+
     };
 
     template< std::default_initializable T, Mutex M = std::mutex >
@@ -158,8 +168,8 @@ namespace mamba::util
         auto unsafe_get() -> T& { return m_value; }
 
 
-        using locking_ref = mamba::util::locking_ref<T, M, true>;
-        using locking_const_ref = mamba::util::locking_ref<T, M, false>;
+        using locking_ref = mamba::util::locking_ref<T, M, false>;
+        using locking_const_ref = mamba::util::locking_ref<T, M, true>;
 
         auto operator*() -> locking_ref;
         auto operator*() const -> locking_const_ref;
@@ -172,17 +182,26 @@ namespace mamba::util
         auto synchronize() -> lock_ptr;
         auto synchronize() const -> const_lock_ptr;
 
-        template< std::invocable<T> Func, typename... Args >
+        template< std::invocable<T&> Func, typename... Args >
         auto apply(Func&& func, Args&&... args);
 
-        template< std::invocable<T> Func, typename... Args >
+        template< std::invocable<const T&> Func, typename... Args >
         auto apply(Func&& func, Args&&... args) const;
 
-        template< std::invocable<T> Func, typename... Args >
+        template< std::invocable<T&> Func, typename... Args >
         auto operator()(Func&& func, Args&&... args) { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
 
-        template< std::invocable<T> Func, typename... Args >
+        template< std::invocable<const T&> Func, typename... Args >
         auto operator()(Func&& func, Args&&... args) const { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
+
+        // TODO : ADD COMPARISON OPERATORS
+        template< typename X >
+        auto operator==(const X& other_value) const
+            requires std::equality_comparable_with<X, T>
+        {
+            auto _ = lock_as_readonly(m_mutex);
+            return m_value == other_value;
+        }
 
     private:
         T m_value;
@@ -288,7 +307,7 @@ namespace mamba::util
     }
 
     template< std::default_initializable T, Mutex M >
-    template< std::invocable<T> Func, typename... Args >
+    template< std::invocable<T&> Func, typename... Args >
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args)
     {
         auto _ = lock_as_exclusive( m_mutex );
@@ -296,11 +315,11 @@ namespace mamba::util
     }
 
     template< std::default_initializable T, Mutex M >
-    template< std::invocable<T> Func, typename... Args  >
+    template< std::invocable<const T&> Func, typename... Args  >
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args) const
     {
         auto _ = lock_as_readonly( m_mutex );
-        return std::invoke(std::forward<Func>(func), m_value, std::forward<Args>(args)...);
+        return std::invoke(std::forward<Func>(func), std::as_const(m_value), std::forward<Args>(args)...);
     }
 
 

@@ -25,6 +25,9 @@ namespace mamba::util
     static_assert(Mutex<std::mutex>);
     static_assert(Mutex<std::recursive_mutex>);
     static_assert(Mutex<std::shared_mutex>);
+
+
+    static_assert(SharedMutex<std::shared_mutex>);
 }
 
 // TODO: parametrize with a various set of basic types
@@ -39,8 +42,17 @@ namespace {
 
         SECTION("basic value access")
         {
-            mamba::util::synchronized_value<int> a{ 42 };
-            REQUIRE(a.value() == 42);
+            static constexpr auto initial_value = 42;
+            mamba::util::synchronized_value<int> sv{ initial_value };
+            REQUIRE(sv.unsafe_get() == initial_value);
+            REQUIRE(sv.value() == initial_value);
+            REQUIRE(*sv == initial_value);
+
+            {
+                auto sptr = sv.synchronize();
+                REQUIRE(*sptr == initial_value);
+            }
+
         }
     }
 }

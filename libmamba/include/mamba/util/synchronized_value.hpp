@@ -49,23 +49,32 @@ namespace mamba::util
             x.unlock_shared();
         };
 
-    auto lock_as_readonly(Mutex auto& mutex)
+    template<Mutex M>
+    auto lock_as_readonly(M& mutex)
     {
         return std::unique_lock{ mutex };
     }
 
-    auto lock_as_readonly(SharedMutex auto& mutex)
+    template<SharedMutex M>
+    auto lock_as_readonly(M& mutex)
     {
         return std::shared_lock{ mutex };
     }
 
-    auto lock_as_exclusive(Mutex auto& mutex)
+    template<Mutex M>
+    auto lock_as_exclusive(M& mutex)
     {
         return std::unique_lock{ mutex };
     }
 
+    namespace details
+    {
+        template<Mutex M>
+        M& mutex_ref() { static M m; return m; }
+    }
+
     template< Mutex M, bool readonly>
-    using lock_type = std::conditional<readonly, decltype(lock_as_readonly(std::declval<M>())), decltype(lock_as_exclusive(std::declval<M>()))>;
+    using lock_type = std::conditional_t<readonly, decltype(lock_as_readonly(details::mutex_ref<M>())), decltype(lock_as_exclusive(details::mutex_ref<M>()))>;
 
     template< std::default_initializable T, Mutex M, bool readonly >
     class scoped_locked_ptr
@@ -97,7 +106,7 @@ namespace mamba::util
     {
         T& m_ref;
         lock_type<M, readonly> m_lock;
-    private:
+    public:
 
         locking_ref(T& value, M& mutex)
             : m_ref(value), m_lock(mutex)

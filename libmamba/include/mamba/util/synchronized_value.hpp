@@ -205,8 +205,8 @@ namespace mamba::util
 
     };
 
-    template< std::default_initializable... Ts, Mutex... Ms, bool... is_const >
-    auto synchronize(synchronized_value<Ts, Ms>&&... sync_values) -> std::tuple<scoped_locked_ptr<Ts, Ms, is_const>...>;
+    // template< std::default_initializable... Ts, Mutex... Ms, bool... is_const >
+    // auto synchronize(synchronized_value<Ts, Ms>&&... sync_values) -> std::tuple<scoped_locked_ptr<Ts, Ms, is_const>...>;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////

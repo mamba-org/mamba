@@ -50,18 +50,21 @@ namespace mamba::util
         };
 
     template<Mutex M>
+    [[nodiscard]]
     auto lock_as_readonly(M& mutex)
     {
         return std::unique_lock{ mutex };
     }
 
     template<SharedMutex M>
+    [[nodiscard]]
     auto lock_as_readonly(M& mutex)
     {
         return std::shared_lock{ mutex };
     }
 
     template<Mutex M>
+    [[nodiscard]]
     auto lock_as_exclusive(M& mutex)
     {
         return std::unique_lock{ mutex };
@@ -77,7 +80,7 @@ namespace mamba::util
     using lock_type = std::conditional_t<readonly, decltype(lock_as_readonly(details::mutex_ref<M>())), decltype(lock_as_exclusive(details::mutex_ref<M>()))>;
 
     template< std::default_initializable T, Mutex M, bool readonly >
-    class scoped_locked_ptr
+    class [[nodiscard]] scoped_locked_ptr
     {
         std::conditional_t<readonly, const T*, T*> m_value;
         lock_type<M, readonly> m_lock;
@@ -99,10 +102,10 @@ namespace mamba::util
             other.m_value = nullptr;
         }
 
-        auto operator*() -> T& requires(not readonly)  { return *m_value; }
-        auto operator*() const -> const T& { return *m_value; }
-        auto operator->() -> T*  requires(not readonly) { return m_value; }
-        auto operator->() const -> const T* { return m_value; }
+        [[nodiscard]] auto operator*() -> T& requires(not readonly)  { return *m_value; }
+        [[nodiscard]] auto operator*() const -> const T& { return *m_value; }
+        [[nodiscard]] auto operator->() -> T*  requires(not readonly) { return m_value; }
+        [[nodiscard]] auto operator->() const -> const T* { return m_value; }
 
 
     };
@@ -130,20 +133,32 @@ namespace mamba::util
             requires std::assignable_from<T&, V>
         synchronized_value& operator=(V&& value);
 
+        [[nodiscard]]
         auto value() const -> T;
+
+        [[nodiscard]]
         explicit operator T() const { return value(); }
 
+        [[nodiscard]]
         auto unsafe_get() const -> const T& { return m_value; }
+
+        [[nodiscard]]
         auto unsafe_get() -> T& { return m_value; }
 
 
         using locked_ptr = scoped_locked_ptr<T, M, false>;
         using const_locked_ptr = scoped_locked_ptr<T, M, true>;
 
+        [[nodiscard]]
         auto operator->() -> locked_ptr;
+
+        [[nodiscard]]
         auto operator->() const -> const_locked_ptr;
 
+        [[nodiscard]]
         auto synchronize() -> locked_ptr;
+
+        [[nodiscard]]
         auto synchronize() const -> const_locked_ptr;
 
         template< std::invocable<T&> Func, typename... Args >

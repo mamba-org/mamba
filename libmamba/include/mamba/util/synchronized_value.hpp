@@ -79,12 +79,18 @@ namespace mamba::util
     template< std::default_initializable T, Mutex M, bool readonly >
     class scoped_locked_ptr
     {
-        T* m_value;
+        std::conditional_t<readonly, const T*, T*> m_value;
         lock_type<M, readonly> m_lock;
 
     public:
         scoped_locked_ptr(T& value, M& mutex)
-        : m_value(&value), m_lock(mutex)
+            requires(not readonly)
+            : m_value(&value), m_lock(mutex)
+        {}
+
+        scoped_locked_ptr(const T& value, M& mutex)
+            requires(readonly)
+            : m_value(&value), m_lock(mutex)
         {}
 
         scoped_locked_ptr(scoped_locked_ptr&& other) noexcept
@@ -98,38 +104,6 @@ namespace mamba::util
         auto operator->() -> T*  requires(not readonly) { return m_value; }
         auto operator->() const -> const T* { return m_value; }
 
-
-    };
-
-    template< std::default_initializable T, Mutex M, bool readonly >
-    class locking_ref
-    {
-        T& m_ref;
-        lock_type<M, readonly> m_lock;
-    public:
-
-        locking_ref(T& value, M& mutex)
-            : m_ref(value), m_lock(mutex)
-        {}
-
-        operator T& () requires(not readonly) { return m_ref; }
-        operator const T& () const requires(readonly) { return m_ref; }
-
-        template<typename V>
-        locking_ref& operator=( V&& new_value )
-            requires(not readonly) and std::assignable_from<T&, V>
-        {
-            m_ref = std::forward<V>(new_value);
-            return *this;
-        }
-
-
-        // TODO : ADD COMPARISON OPERATORS
-
-        auto operator==(const std::equality_comparable_with<T>  auto& other_value) const -> bool
-        {
-            return std::as_const(m_ref) == other_value;
-        }
 
     };
 
@@ -156,9 +130,6 @@ namespace mamba::util
             requires std::assignable_from<T&, V>
         synchronized_value& operator=(V&& value);
 
-        auto swap(synchronized_value& other) -> void;
-        auto swap(T& value) -> void;
-
         auto value() const -> T;
         explicit operator T() const { return value(); }
 
@@ -166,19 +137,14 @@ namespace mamba::util
         auto unsafe_get() -> T& { return m_value; }
 
 
-        using locking_ref = mamba::util::locking_ref<T, M, false>;
-        using locking_const_ref = mamba::util::locking_ref<T, M, true>;
+        using locked_ptr = scoped_locked_ptr<T, M, false>;
+        using const_locked_ptr = scoped_locked_ptr<T, M, true>;
 
-        auto operator*() -> locking_ref;
-        auto operator*() const -> locking_const_ref;
-        auto operator->() -> locking_ref;
-        auto operator->() const -> locking_const_ref;
+        auto operator->() -> locked_ptr;
+        auto operator->() const -> const_locked_ptr;
 
-        using lock_ptr = mamba::util::scoped_locked_ptr<T, M, false>;
-        using const_lock_ptr = mamba::util::scoped_locked_ptr<T, M, true>;
-
-        auto synchronize() -> lock_ptr;
-        auto synchronize() const -> const_lock_ptr;
+        auto synchronize() -> locked_ptr;
+        auto synchronize() const -> const_locked_ptr;
 
         template< std::invocable<T&> Func, typename... Args >
         auto apply(Func&& func, Args&&... args);
@@ -198,6 +164,9 @@ namespace mamba::util
             auto _ = lock_as_readonly(m_mutex);
             return m_value == other_value;
         }
+
+        auto swap(synchronized_value& other) -> void;
+        auto swap(T& value) -> void;
 
     private:
         T m_value;
@@ -267,39 +236,27 @@ namespace mamba::util
     }
 
     template< std::default_initializable T, Mutex M >
-    auto synchronized_value<T, M>::operator*() -> locking_ref
+    auto synchronized_value<T, M>::operator->() -> locked_ptr
     {
-        return locking_ref{ m_value, m_mutex };
+        return locked_ptr{ m_value, m_mutex };
     }
 
     template< std::default_initializable T, Mutex M >
-    auto synchronized_value<T, M>::operator*() const -> locking_const_ref
+    auto synchronized_value<T, M>::operator->() const -> const_locked_ptr
     {
-        return locking_const_ref{ m_value, m_mutex };
+        return const_locked_ptr{ m_value, m_mutex };
     }
 
     template< std::default_initializable T, Mutex M >
-    auto synchronized_value<T, M>::operator->() -> locking_ref
+    auto synchronized_value<T, M>::synchronize() -> locked_ptr
     {
-        return locking_ref{ m_value, m_mutex };
+        return locked_ptr{ m_value, m_mutex };
     }
 
     template< std::default_initializable T, Mutex M >
-    auto synchronized_value<T, M>::operator->() const -> locking_const_ref
+    auto synchronized_value<T, M>::synchronize() const -> const_locked_ptr
     {
-        return locking_const_ref{ m_value, m_mutex };
-    }
-
-    template< std::default_initializable T, Mutex M >
-    auto synchronized_value<T, M>::synchronize() -> lock_ptr
-    {
-        return lock_ptr{ m_value, m_mutex };
-    }
-
-    template< std::default_initializable T, Mutex M >
-    auto synchronized_value<T, M>::synchronize() const -> const_lock_ptr
-    {
-        return const_lock_ptr{ m_value, m_mutex };
+        return const_locked_ptr{ m_value, m_mutex };
     }
 
     template< std::default_initializable T, Mutex M >

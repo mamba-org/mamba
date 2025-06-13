@@ -30,42 +30,65 @@ namespace mamba::util
     static_assert(SharedMutex<std::shared_mutex>);
 }
 
-// TODO: parametrize with a various set of basic types
+// TODO: parametrize with a various set of basic types?
+// TODO: parametrize with the different supported mutexes
 
 namespace {
+
+    struct ValueType
+    {
+        int x = 0;
+
+        auto increment() -> void { x++; }
+        auto next_value() const -> ValueType { return {x + 1}; }
+
+        auto operator<=>(const ValueType&) const noexcept = default;
+    };
+
     TEST_CASE("synchronized_value")
     {
+
         SECTION("default constructible")
         {
-            mamba::util::synchronized_value<int> a;
+            mamba::util::synchronized_value<ValueType> a;
         }
 
-        SECTION("basic value access")
+        static constexpr auto initial_value = ValueType{42};
+
+        SECTION("basic value access and assignation")
         {
-            static constexpr auto initial_value = 42;
-            mamba::util::synchronized_value<int> sv{ initial_value };
+            mamba::util::synchronized_value<ValueType> sv{ initial_value };
             REQUIRE(sv.unsafe_get() == initial_value);
             REQUIRE(sv.value() == initial_value);
-            REQUIRE(*sv == initial_value);
+            REQUIRE(sv == initial_value);
+            REQUIRE(sv->x == initial_value.x);
 
-            {
-                auto sptr = sv.synchronize();
-                REQUIRE(*sptr == initial_value);
-                (*sptr)++;
-                REQUIRE(*sptr == initial_value + 1);
-                auto& value = *sptr;
-                value = initial_value;
-                REQUIRE(*sptr == initial_value);
-            }
+            const auto& const_sv = std::as_const(sv);
+            REQUIRE(const_sv.unsafe_get() == initial_value);
+            REQUIRE(const_sv.value() == initial_value);
+            REQUIRE(const_sv == initial_value);
+            REQUIRE(const_sv->x == initial_value.x);
 
-            sv.apply([](int& value){
-                value = 123;
-            });
-            REQUIRE(sv.value() == 123);
-            *sv = 12;
-            REQUIRE(*sv == 12);
+            sv->increment();
+            const auto expected_new_value = initial_value.next_value();
+            REQUIRE(sv.unsafe_get() == expected_new_value);
+            REQUIRE(sv.value() == expected_new_value);
+            REQUIRE(sv == expected_new_value);
+            REQUIRE(sv->x == expected_new_value.x);
+            REQUIRE(const_sv.unsafe_get() == expected_new_value);
+            REQUIRE(const_sv.value() == expected_new_value);
+            REQUIRE(const_sv == expected_new_value);
+            REQUIRE(const_sv->x == expected_new_value.x);
+
             sv = initial_value;
-            REQUIRE(*sv == initial_value);
+            REQUIRE(sv.unsafe_get() == initial_value);
+            REQUIRE(sv.value() == initial_value);
+            REQUIRE(sv == initial_value);
+            REQUIRE(sv->x == initial_value.x);
+            REQUIRE(const_sv.unsafe_get() == initial_value);
+            REQUIRE(const_sv.value() == initial_value);
+            REQUIRE(const_sv == initial_value);
+            REQUIRE(const_sv->x == initial_value.x);
         }
     }
 }

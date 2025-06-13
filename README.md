@@ -99,7 +99,6 @@ It can significantly reduce your CI setup time by:
 
 While `mamba` and `micromamba` are generally a drop-in replacement for `conda` there are some differences:
 
-- `mamba` and `micromamba` do no support revisions (for discussions, see <https://github.com/mamba-org/mamba/issues/803>)
 - `mamba` and `micromamba` normalize `MatchSpec` strings to the simplest form, whereas `conda` use a more verbose form
   This can lead to slight differences in the output of `conda env export` and `mamba env export`.
 

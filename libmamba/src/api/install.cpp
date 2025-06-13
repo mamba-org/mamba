@@ -1204,7 +1204,7 @@ namespace mamba
             PrefixData& prefix_data = maybe_prefix_data.value();
             const auto user_requests = prefix_data.history().get_user_requests();
 
-            PackageDiff pkg_diff = pkg_diff.from_revision(user_requests, target_revision);
+            PackageDiff pkg_diff = PackageDiff::from_revision(user_requests, target_revision);
             auto removed_pkg_diff = pkg_diff.removed_pkg_diff;
             auto installed_pkg_diff = pkg_diff.installed_pkg_diff;
 

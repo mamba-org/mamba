@@ -434,9 +434,15 @@ bind_submodule_impl(pybind11::module_ m)
 
     auto pyOutputParams = py::class_<Context::OutputParams>(pyContext, "OutputParams");
 
+    auto pyCommandParams = py::class_<CommandParams>(pyContext, "CommandParams");
+
     auto pyThreadsParams = py::class_<ThreadsParams>(pyContext, "ThreadsParams");
 
     auto pyPrefixParams = py::class_<PrefixParams>(pyContext, "PrefixParams");
+
+    auto pyLinkParams = py::class_<LinkParams>(pyContext, "LinkParams");
+
+    auto pyTransactionParams = py::class_<TransactionParams>(pyContext, "TransactionParams");
 
     auto pyValidationParams = py::class_<ValidationParams>(pyContext, "ValidationParams");
 
@@ -1051,6 +1057,33 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("download_threads", &ThreadsParams::download_threads)
         .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
 
+    static const auto default_command_params = CommandParams{};
+    pyCommandParams
+        .def(
+            py::init(
+                [](std::string caller_version,
+                   std::string conda_version,
+                   std::string current_command,
+                   bool is_mamba_exe) -> CommandParams
+                {
+                    return {
+                        .caller_version = std::move(caller_version),
+                        .conda_version = std::move(conda_version),
+                        .current_command = std::move(current_command),
+                        .is_mamba_exe = is_mamba_exe,
+                    };
+                }
+            ),
+            py::arg("caller_version") = default_command_params.caller_version,
+            py::arg("conda_version") = default_command_params.conda_version,
+            py::arg("current_command") = default_command_params.current_command,
+            py::arg("is_mamba_exe") = default_command_params.is_mamba_exe
+        )
+        .def_readwrite("caller_version", &CommandParams::caller_version)
+        .def_readwrite("conda_version", &CommandParams::conda_version)
+        .def_readwrite("current_command", &CommandParams::current_command)
+        .def_readwrite("is_mamba_exe", &CommandParams::is_mamba_exe);
+
     static const auto default_prefix_params = PrefixParams{};
     pyPrefixParams
         .def(
@@ -1077,6 +1110,31 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("conda_prefix", &PrefixParams::conda_prefix)
         .def_readwrite("relocate_prefix", &PrefixParams::relocate_prefix)
         .def_readwrite("root_prefix", &PrefixParams::root_prefix);
+
+    static constexpr auto default_link_params = LinkParams{};
+    pyLinkParams
+        .def(
+            py::init(
+                [](bool allow_softlinks, bool always_copy, bool always_softlink, bool compile_pyc
+                ) -> LinkParams
+                {
+                    return {
+                        .allow_softlinks = allow_softlinks,
+                        .always_copy = always_copy,
+                        .always_softlink = always_softlink,
+                        .compile_pyc = compile_pyc,
+                    };
+                }
+            ),
+            py::arg("allow_softlinks") = default_link_params.allow_softlinks,
+            py::arg("always_copy") = default_link_params.always_copy,
+            py::arg("always_softlink") = default_link_params.always_softlink,
+            py::arg("compile_pyc") = default_link_params.compile_pyc
+        )
+        .def_readwrite("allow_softlinks", &LinkParams::allow_softlinks)
+        .def_readwrite("always_copy", &LinkParams::always_copy)
+        .def_readwrite("always_softlink", &LinkParams::always_softlink)
+        .def_readwrite("compile_pyc", &LinkParams::compile_pyc);
 
     static const auto default_validation_params = ValidationParams{};
     pyValidationParams
@@ -1110,6 +1168,53 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("threads_params", &Context::threads_params)
         .def_readwrite("prefix_params", &Context::prefix_params)
         .def_readwrite("validation_params", &Context::validation_params);
+
+    static const auto default_transaction_params = TransactionParams{};
+    pyTransactionParams
+        .def(
+            py::init(
+                [](bool is_mamba_exe,
+                   bool json_output,
+                   int verbosity,
+                   bool shortcuts,
+                   std::vector<fs::u8path> envs_dirs,
+                   std::string platform,
+                   PrefixParams prefix_params,
+                   LinkParams link_params,
+                   ThreadsParams threads_params) -> TransactionParams
+                {
+                    return {
+                        .is_mamba_exe = is_mamba_exe,
+                        .json_output = json_output,
+                        .verbosity = verbosity,
+                        .shortcuts = shortcuts,
+                        .envs_dirs = std::move(envs_dirs),
+                        .platform = std::move(platform),
+                        .prefix_params = std::move(prefix_params),
+                        .link_params = std::move(link_params),
+                        .threads_params = std::move(threads_params),
+                    };
+                }
+            ),
+            py::arg("is_mamba_exe") = default_transaction_params.is_mamba_exe,
+            py::arg("json_output") = default_transaction_params.json_output,
+            py::arg("verbosity") = default_transaction_params.verbosity,
+            py::arg("shortcuts") = default_transaction_params.shortcuts,
+            py::arg("envs_dirs") = default_transaction_params.envs_dirs,
+            py::arg("platform") = default_transaction_params.platform,
+            py::arg("prefix_params") = default_transaction_params.prefix_params,
+            py::arg("link_params") = default_transaction_params.link_params,
+            py::arg("threads_params") = default_transaction_params.threads_params
+        )
+        .def_readwrite("is_mamba_exe", &TransactionParams::is_mamba_exe)
+        .def_readwrite("json_output", &TransactionParams::json_output)
+        .def_readwrite("verbosity", &TransactionParams::verbosity)
+        .def_readwrite("shortcuts", &TransactionParams::shortcuts)
+        .def_readwrite("envs_dirs", &TransactionParams::envs_dirs)
+        .def_readwrite("platform", &TransactionParams::platform)
+        .def_readwrite("prefix_params", &TransactionParams::prefix_params)
+        .def_readwrite("link_params", &TransactionParams::link_params)
+        .def_readwrite("threads_params", &TransactionParams::threads_params);
 
     ////////////////////////////////////////////
     //    Support the old deprecated API     ///

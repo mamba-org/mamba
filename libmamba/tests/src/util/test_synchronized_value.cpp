@@ -11,6 +11,7 @@
 #include <future>
 #include <thread>
 #include <atomic>
+#include <concepts>
 
 #include "mamba/util/synchronized_value.hpp"
 
@@ -35,9 +36,6 @@ namespace mamba::util
     static_assert(SharedMutex<std::shared_mutex>);
 }
 
-// TODO: parametrize with a various set of basic types?
-// TODO: parametrize with the different supported mutexes
-
 namespace {
 
     struct ValueType
@@ -50,16 +48,19 @@ namespace {
         auto operator<=>(const ValueType&) const noexcept = default;
     };
 
-    TEST_CASE("synchronized_value-basics")
+    using supported_mutex_types = std::tuple< std::mutex, std::shared_mutex, std::recursive_mutex >;
+
+    TEMPLATE_LIST_TEST_CASE("synchronized_value basics", "[template][thread-safe]", supported_mutex_types)
     {
+        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
 
         SECTION("default constructible")
         {
-            mamba::util::synchronized_value<ValueType> a;
+            synchronized_value a;
         }
 
         static constexpr auto initial_value = ValueType{42};
-        mamba::util::synchronized_value<ValueType> sv{ initial_value };
+        synchronized_value sv{ initial_value };
 
         SECTION("value access and assignation")
         {
@@ -164,11 +165,12 @@ namespace {
         }
     }
 
-    auto test_concurrent_increment(auto increment_task)
+    template< mamba::util::Mutex M >
+    auto test_concurrent_increment(std::invocable<mamba::util::synchronized_value<ValueType, M>&> auto increment_task)
     {
         static constexpr auto arbitrary_number_of_executing_threads = 1024;
 
-        mamba::util::synchronized_value<ValueType> current_value;
+        mamba::util::synchronized_value<ValueType, M> current_value;
         static constexpr int expected_result = arbitrary_number_of_executing_threads;
 
         std::atomic<bool> run_tasks = false; // used to launch tasks about the same time, simpler than condition_variable
@@ -192,25 +194,28 @@ namespace {
         REQUIRE(current_value->x == expected_result);
     }
 
-    TEST_CASE("synchronized_value-thread_safe-direct_access")
+    TEMPLATE_LIST_TEST_CASE("synchronized_value thread-safe direct_access", "[template][thread-safe]", supported_mutex_types)
     {
-        test_concurrent_increment([](mamba::util::synchronized_value<ValueType>& sv){
+        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
+        test_concurrent_increment<TestType>([](synchronized_value& sv){
             sv->x += 1;
         });
     }
 
-    TEST_CASE("synchronized_value-thread_safe-synchronize")
+    TEMPLATE_LIST_TEST_CASE("synchronized_value thread-safe synchronize", "[template][thread-safe]", supported_mutex_types)
     {
-        test_concurrent_increment([](mamba::util::synchronized_value<ValueType>& sv){
+        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
+        test_concurrent_increment<TestType>([](synchronized_value& sv){
             auto synched_sv = sv.synchronize();
             synched_sv->x += 1;
         });
     }
 
 
-    TEST_CASE("synchronized_value-thread_safe-apply")
+    TEMPLATE_LIST_TEST_CASE("synchronized_value thread-safe apply", "[template][thread-safe]", supported_mutex_types)
     {
-        test_concurrent_increment([](mamba::util::synchronized_value<ValueType>& sv){
+        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
+        test_concurrent_increment<TestType>([](synchronized_value& sv){
             sv.apply([](ValueType& value){
                 value.x += 1;
             });

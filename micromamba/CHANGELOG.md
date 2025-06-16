@@ -1,3 +1,49 @@
+## micromamba 2.3.0 (June 16, 2025)
+
+Enhancements:
+
+- feat: add option revision to install command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3966>
+- Adapt label check to bot by @Hind-M in <https://github.com/mamba-org/mamba/pull/3974>
+- Move PR template by @Hind-M in <https://github.com/mamba-org/mamba/pull/3971>
+
+Bug fixes:
+
+- fix: Skip inaccessible CONDA_ENVS_DIRS by @holzman in <https://github.com/mamba-org/mamba/pull/3887>
+
+CI fixes and doc:
+
+- doc: Mention fix for `libmamba Download error (7) Could not connect ...` by @OverLordGoldDragon in <https://github.com/mamba-org/mamba/pull/3980>
+- Add constraint on `fmt` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3969>
+
+Maintenance:
+
+- Depend on LGPL builds of libarchive>=3.8 by @jjerphan in <https://github.com/mamba-org/mamba/pull/3982>
+- maint: Cancel activation script removal by @jjerphan in <https://github.com/mamba-org/mamba/pull/3946>
+- Compile with C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3965>
+
+## micromamba 2.3.0 (June 16, 2025)
+
+Enhancements:
+
+- feat: add option revision to install command by @SandrineP in <https://github.com/mamba-org/mamba/pull/3966>
+- Adapt label check to bot by @Hind-M in <https://github.com/mamba-org/mamba/pull/3974>
+- Move PR template by @Hind-M in <https://github.com/mamba-org/mamba/pull/3971>
+
+Bug fixes:
+
+- fix: Skip inaccessible CONDA_ENVS_DIRS by @holzman in <https://github.com/mamba-org/mamba/pull/3887>
+
+CI fixes and doc:
+
+- doc: Mention fix for `libmamba Download error (7) Could not connect ...` by @OverLordGoldDragon in <https://github.com/mamba-org/mamba/pull/3980>
+- Add constraint on `fmt` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3969>
+
+Maintenance:
+
+- Depend on LGPL builds of libarchive>=3.8 by @jjerphan in <https://github.com/mamba-org/mamba/pull/3982>
+- maint: Cancel activation script removal by @jjerphan in <https://github.com/mamba-org/mamba/pull/3946>
+- Compile with C++20 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3965>
+
 ## micromamba 2.2.0 (June 04, 2025)
 
 Enhancements:

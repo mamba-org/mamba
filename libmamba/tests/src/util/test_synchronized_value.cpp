@@ -9,8 +9,12 @@
 #include <mutex>
 #include <shared_mutex>
 #include <future>
+#include <thread>
+#include <atomic>
 
 #include "mamba/util/synchronized_value.hpp"
+
+#include "mambatests_utils.hpp"
 
 namespace mamba::util
 {
@@ -160,9 +164,56 @@ namespace {
         }
     }
 
-
-    TEST_CASE("synchronized_value-thread_safe-assignation")
+    auto test_concurrent_increment(auto increment_task)
     {
+        static constexpr auto arbitrary_number_of_executing_threads = 1024;
 
+        mamba::util::synchronized_value<ValueType> current_value;
+        static constexpr int expected_result = arbitrary_number_of_executing_threads;
+
+        std::atomic<bool> run_tasks = false; // used to launch tasks about the same time, simpler than condition_variable
+        std::vector<std::future<void>> tasks; // REVIEW: should I use TaskSynchronizer here instead?
+
+        // Launch the tasks (maybe threads, depends on how async is implemented)
+        for(int i = 0; i < expected_result; ++i)
+        {
+            tasks.push_back(std::async(std::launch::async
+                ,[&, increment_task]{
+                    // dont actually run until we get the green light
+                    mambatests::wait_condition([&]{ return run_tasks == true; });
+                    increment_task(current_value);
+                }
+            ));
+        }
+
+        run_tasks = true; // green light
+        for(auto& task : tasks) task.wait(); // wait all to be finished
+
+        REQUIRE(current_value->x == expected_result);
+    }
+
+    TEST_CASE("synchronized_value-thread_safe-direct_access")
+    {
+        test_concurrent_increment([](mamba::util::synchronized_value<ValueType>& sv){
+            sv->x += 1;
+        });
+    }
+
+    TEST_CASE("synchronized_value-thread_safe-synchronize")
+    {
+        test_concurrent_increment([](mamba::util::synchronized_value<ValueType>& sv){
+            auto synched_sv = sv.synchronize();
+            synched_sv->x += 1;
+        });
+    }
+
+
+    TEST_CASE("synchronized_value-thread_safe-apply")
+    {
+        test_concurrent_increment([](mamba::util::synchronized_value<ValueType>& sv){
+            sv.apply([](ValueType& value){
+                value.x += 1;
+            });
+        });
     }
 }

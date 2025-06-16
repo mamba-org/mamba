@@ -1,4 +1,3 @@
-import os
 import re
 import shutil
 
@@ -22,7 +21,7 @@ def test_env_list(tmp_home, tmp_root_prefix, tmp_empty_env):
     assert str(tmp_empty_env) in env_json["envs"]
 
 
-def test_env_list_table(tmp_home, tmp_root_prefix, tmp_prefix):
+def test_env_list_table(tmp_home, tmp_root_prefix, tmp_prefix, monkeypatch):
     res = helpers.run_env("list")
 
     assert "Name" in res
@@ -34,8 +33,6 @@ def test_env_list_table(tmp_home, tmp_root_prefix, tmp_prefix):
         if "*" in line:
             active_env_l = line
     assert str(tmp_root_prefix) in active_env_l
-
-    os.environ["CONDA_PREFIX"] = str(tmp_prefix)
 
     res = helpers.run_env("list")
 
@@ -470,10 +467,10 @@ dependencies:
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path):
+def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path, monkeypatch):
     env_prefix = tmp_path / "env-update-empty-base"
 
-    os.environ["MAMBA_ROOT_PREFIX"] = str(env_prefix)
+    monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(env_prefix))
 
     env_file_yml = tmp_path / "test_env_empty_base.yaml"
     env_file_yml.write_text(env_yaml_content_to_update_empty_base)

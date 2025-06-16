@@ -294,6 +294,7 @@ def test_target_prefix(
     similar_non_canonical,
     non_canonical_position,
     root_prefix_env_exists,
+    monkeypatch,
 ):
     cmd = []
 
@@ -352,12 +353,12 @@ def test_target_prefix(
         cmd += ["-f", spec_file]
 
     if env_var:
-        os.environ["MAMBA_TARGET_PREFIX"] = str(p)
+        monkeypatch.setenv("MAMBA_TARGET_PREFIX", str(p))
 
     if not current_target_prefix_fallback:
-        os.environ.pop("CONDA_PREFIX", None)
+        monkeypatch.delenv("CONDA_PREFIX", raising=False)
     else:
-        os.environ["CONDA_PREFIX"] = str(p)
+        monkeypatch.setenv("CONDA_PREFIX", str(p))
 
     if (
         (cli_prefix and cli_env_name)
@@ -376,7 +377,7 @@ def test_target_prefix(
 @pytest.mark.parametrize("yaml", (False, True))
 @pytest.mark.parametrize("env_var", (False, True))
 @pytest.mark.parametrize("rc_file", (False, True))
-def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_file):
+def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_file, monkeypatch):
     env_prefix = tmp_path / "myenv"
     spec_file = tmp_path / "env.yaml"
     rc_file = tmp_path / "rc.yaml"
@@ -400,7 +401,7 @@ def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_fi
         expected_channels += ["yaml"]
 
     if env_var:
-        os.environ["CONDA_CHANNELS"] = "env_var"
+        monkeypatch.setenv("CONDA_CHANNELS", "env_var")
         expected_channels += ["env_var"]
 
     if rc_file:
@@ -622,9 +623,9 @@ def test_create_base(tmp_home, tmp_root_prefix, already_exists, is_conda_env, ha
     reason="Running only ultra-dry tests",
 )
 @pytest.mark.parametrize("outside_root_prefix", (False, True))
-def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix):
+def test_classic_specs(tmp_home, tmp_root_prefix, tmp_path, outside_root_prefix, monkeypatch):
     tmp_pkgs_dirs = tmp_path / "cache"
-    os.environ["CONDA_PKGS_DIRS"] = str(tmp_pkgs_dirs)
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_pkgs_dirs))
     if outside_root_prefix:
         p = tmp_path / "myenv"
     else:
@@ -941,18 +942,15 @@ def test_root_prefix_precedence(
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("source", ["cli", "env_var", "rc_file"])
-def test_always_yes(tmp_home, tmp_root_prefix, tmp_path, source):
+def test_always_yes(tmp_home, tmp_root_prefix, tmp_path, source, monkeypatch):
     env_name = "myenv"
     helpers.create("-n", env_name, "xtensor", no_dry_run=True)
 
     if source == "cli":
         res = helpers.create("-n", env_name, "xtensor", "--json", always_yes=True)
     elif source == "env_var":
-        try:
-            os.environ["MAMBA_ALWAYS_YES"] = "true"
-            res = helpers.create("-n", env_name, "xtensor", "--json", always_yes=False)
-        finally:
-            os.environ.pop("MAMBA_ALWAYS_YES")
+        monkeypatch.setenv("MAMBA_ALWAYS_YES", "true")
+        res = helpers.create("-n", env_name, "xtensor", "--json", always_yes=False)
     else:  # rc_file
         rc_file = tmp_path / "config.yaml"
         with open(rc_file, "w") as f:
@@ -1090,7 +1088,7 @@ def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
 
 
-def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
+def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix, monkeypatch):
     "https://github.com/mamba-org/mamba/pull/2926"
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create("-n", "env1", "pkgs/main/noarch::python", "--dry-run")
@@ -1101,7 +1099,7 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
         assert "The following package could not be installed" in msg
         assert "python" in msg
 
-    os.environ["CONDA_SUBDIR"] = "linux-64"
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
     helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")
     helpers.create("-n", "env3", "pkgs/main::python", "--dry-run")
 

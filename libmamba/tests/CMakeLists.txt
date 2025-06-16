@@ -18,6 +18,7 @@ mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA
 set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
+    include/mambatests_utils.hpp
     src/test_main.cpp
     # Catch utils
     src/catch-utils/conda_url.hpp

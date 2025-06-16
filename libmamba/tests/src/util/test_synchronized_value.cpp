@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include <shared_mutex>
+#include <future>
 
 #include "mamba/util/synchronized_value.hpp"
 
@@ -45,7 +46,7 @@ namespace {
         auto operator<=>(const ValueType&) const noexcept = default;
     };
 
-    TEST_CASE("synchronized_value")
+    TEST_CASE("synchronized_value-basics")
     {
 
         SECTION("default constructible")
@@ -54,10 +55,10 @@ namespace {
         }
 
         static constexpr auto initial_value = ValueType{42};
+        mamba::util::synchronized_value<ValueType> sv{ initial_value };
 
-        SECTION("basic value access and assignation")
+        SECTION("value access and assignation")
         {
-            mamba::util::synchronized_value<ValueType> sv{ initial_value };
             REQUIRE(sv.unsafe_get() == initial_value);
             REQUIRE(sv.value() == initial_value);
             REQUIRE(sv == initial_value);
@@ -90,5 +91,78 @@ namespace {
             REQUIRE(const_sv == initial_value);
             REQUIRE(const_sv->x == initial_value.x);
         }
+
+        SECTION("value access using synchronize")
+        {
+            sv = initial_value;
+            {
+                auto sync_sv = std::as_const(sv).synchronize();
+                REQUIRE(*sync_sv == initial_value);
+                REQUIRE(sync_sv->x == initial_value.x);
+            }
+            REQUIRE(sv.unsafe_get() == initial_value);
+            REQUIRE(sv.value() == initial_value);
+            REQUIRE(sv == initial_value);
+            REQUIRE(sv->x == initial_value.x);
+
+            static constexpr auto expected_value = ValueType{12345};
+            {
+                auto sync_sv = sv.synchronize();
+                sync_sv->x = expected_value.x;
+            }
+            REQUIRE(sv.unsafe_get() == expected_value);
+            REQUIRE(sv.value() == expected_value);
+            REQUIRE(sv == expected_value);
+            REQUIRE(sv->x == expected_value.x);
+
+            {
+                auto sync_sv = sv.synchronize();
+                *sync_sv = initial_value;
+            }
+            REQUIRE(sv.unsafe_get() == initial_value);
+            REQUIRE(sv.value() == initial_value);
+            REQUIRE(sv == initial_value);
+            REQUIRE(sv->x == initial_value.x);
+
+        }
+
+        SECTION("value access using apply")
+        {
+            sv = initial_value;
+            {
+                auto result = std::as_const(sv).apply([](const ValueType& value){
+                    return value.x;
+                });
+                REQUIRE(result == initial_value.x);
+            }
+            REQUIRE(sv.unsafe_get() == initial_value);
+            REQUIRE(sv.value() == initial_value);
+            REQUIRE(sv == initial_value);
+            REQUIRE(sv->x == initial_value.x);
+
+            static constexpr auto expected_value = ValueType{98765};
+            sv.apply([](ValueType& value){
+                value = expected_value;
+            });
+            REQUIRE(sv.unsafe_get() == expected_value);
+            REQUIRE(sv.value() == expected_value);
+            REQUIRE(sv == expected_value);
+            REQUIRE(sv->x == expected_value.x);
+
+            sv.apply([](ValueType& value, auto new_value){
+                value = new_value;
+            }, initial_value);
+            REQUIRE(sv.unsafe_get() == initial_value);
+            REQUIRE(sv.value() == initial_value);
+            REQUIRE(sv == initial_value);
+            REQUIRE(sv->x == initial_value.x);
+
+        }
+    }
+
+
+    TEST_CASE("synchronized_value-thread_safe-assignation")
+    {
+
     }
 }

@@ -161,16 +161,20 @@ namespace mamba::util
         [[nodiscard]]
         auto synchronize() const -> const_locked_ptr;
 
-        template< std::invocable<T&> Func, typename... Args >
+        template<typename Func, typename... Args >
+            requires std::invocable<Func, T&, Args...>
         auto apply(Func&& func, Args&&... args);
 
-        template< std::invocable<const T&> Func, typename... Args >
+        template<typename Func, typename... Args >
+            requires std::invocable<Func, T&, Args...>
         auto apply(Func&& func, Args&&... args) const;
 
-        template< std::invocable<T&> Func, typename... Args >
+        template<typename Func, typename... Args >
+            requires std::invocable<Func, T&, Args...>
         auto operator()(Func&& func, Args&&... args) { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
 
-        template< std::invocable<const T&> Func, typename... Args >
+        template<typename Func, typename... Args >
+            requires std::invocable<Func, T&, Args...>
         auto operator()(Func&& func, Args&&... args) const { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
 
         // TODO : ADD COMPARISON OPERATORS
@@ -275,7 +279,8 @@ namespace mamba::util
     }
 
     template< std::default_initializable T, Mutex M >
-    template< std::invocable<T&> Func, typename... Args >
+    template<typename Func, typename... Args >
+            requires std::invocable<Func, T&, Args...>
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args)
     {
         auto _ = lock_as_exclusive( m_mutex );
@@ -283,7 +288,8 @@ namespace mamba::util
     }
 
     template< std::default_initializable T, Mutex M >
-    template< std::invocable<const T&> Func, typename... Args  >
+    template<typename Func, typename... Args >
+        requires std::invocable<Func, T&, Args...>
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args) const
     {
         auto _ = lock_as_readonly( m_mutex );

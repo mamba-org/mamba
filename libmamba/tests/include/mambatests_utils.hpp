@@ -23,14 +23,15 @@ namespace mambatests
     }
 
 
-    // Blocks the current thread until the provided predicates returns `true`.
-    // This is useful to make multiple threads wait on the change of value of a
-    // thread-safe object (for example `std::atomic<bool>`), without having to
-    // do the complicated dance with `std::condition_variable`.
-    // Not recommended to use outside testing purpose.
-    // Calling this will release the thread to the system as much as possible to limit
-    // thread exhaustion. In consequence it is not possible to decied when exactly the
-    // predicate will be evaluated, it depends on when the system resumes the thread.
+    /** Blocks the current thread until the provided predicates returns `true`.
+        This is useful to make multiple threads wait on the change of value of a
+        thread-safe object (for example `std::atomic<bool>`), without having to
+        do the complicated dance with `std::condition_variable`.
+        Not recommended to use outside testing purpose.
+        Calling this will release the thread to the system as much as possible to limit
+        thread exhaustion. In consequence it is not possible to decied when exactly the
+        predicate will be evaluated, it depends on when the system resumes the thread.
+    */
     template <std::predicate<> Predicate>
     void wait_condition(Predicate&& predicate)
     {
@@ -39,5 +40,6 @@ namespace mambatests
             std::this_thread::yield();
         }
     }
+
 }
 #endif

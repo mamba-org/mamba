@@ -14,6 +14,15 @@
 namespace mamba::util
 {
 
+    // TODO: move that in a more general location
+    template<class T, template<class> class U>
+    inline constexpr bool is_instance_of_v = std::false_type{};
+
+    // TODO: move that in a more general location
+    template<template<class> class U, class V>
+    inline constexpr bool is_instance_of_v<U<V>,U> = std::true_type{};
+
+
     /// see https://en.cppreference.com/w/cpp/named_req/BasicLockable.html
     template<class T>
     concept BasicLockable = requires(T& x)
@@ -100,6 +109,8 @@ namespace mamba::util
 
     public:
 
+        static constexpr bool is_readonly = readonly;
+
         /** Locks the provided mutex immediately.
             The provided value will then be accessible as mutable through the member functions.
         */
@@ -164,6 +175,11 @@ namespace mamba::util
             requires std::assignable_from<T&, V>
                  and (not std::same_as<synchronized_value, std::decay_t<V>>)
         synchronized_value(V&& value);
+
+        /// Constructs with a provided initializer list used to initialize the stored object.
+        template< typename V >
+            requires std::constructible_from<T, std::initializer_list<V>>
+        synchronized_value(std::initializer_list<V> values);
 
         /** Locks the provided `synchronized_value`'s mutex and copies/move it's stored object value
             to this instance's stored object.
@@ -351,8 +367,23 @@ namespace mamba::util
         mutable M m_mutex;
     };
 
-    // template< std::default_initializable... Ts, Mutex... Ms, bool... is_const >
-    // auto synchronize(synchronized_value<Ts, Ms>&&... sync_values) -> std::tuple<scoped_locked_ptr<Ts, Ms, is_const>...>;
+    /** Locks all the provided `synchronized_value` objects using `.synchronize` and
+        returns the resulting set of `scoped_locked_ptr`.
+        Used to lock multiple values into one same scope.
+
+        @see `synchronized_value::synchronize()`
+
+        @param sync_values Various `synchronized_value` objects with potentially different mutex types and value types.
+                           Any of these objects that is provided through a `const &` will result in a shared-lock for
+                           that object.
+
+        @returns A tuple of `scoped_locked_ptr`, one for each `sync_values` object, in the same order.
+                 If an object in `sync_values` was passed using `const &`, then for the associated `scoped_locked_ptr`
+                 `scoped_locked_ptr::is_readonly == true`.
+    */
+    template< typename... SynchronizedValues >
+        // requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
+    auto synchronize(SynchronizedValues&&... sync_values);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -392,6 +423,13 @@ namespace mamba::util
              and (not std::same_as<synchronized_value<T, M>, std::decay_t<V>>)
     synchronized_value<T, M>::synchronized_value(V&& value)
         : m_value(std::forward<V>(value))
+    {}
+
+    template< std::default_initializable T, Mutex M >
+    template< typename V >
+        requires std::constructible_from<T, std::initializer_list<V>>
+    synchronized_value<T, M>::synchronized_value(std::initializer_list<V> values)
+        : m_value(std::move(values))
     {}
 
     template< std::default_initializable T, Mutex M >
@@ -472,6 +510,14 @@ namespace mamba::util
         auto _ = lock_as_exclusive( m_mutex );
         using std::swap;
         swap(m_value, value);
+    }
+
+
+    template< typename... SynchronizedValues >
+        // requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
+    auto synchronize(SynchronizedValues&&... sync_values)
+    {
+        return std::make_tuple( std::forward<SynchronizedValues>(sync_values).synchronize()... );
     }
 
 }

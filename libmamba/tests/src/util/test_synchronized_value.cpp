@@ -174,6 +174,12 @@ namespace {
         }
     }
 
+    TEMPLATE_LIST_TEST_CASE("synchronized_value initializer-list", "[template][thread-safe]", supported_mutex_types)
+    {
+        using synchronized_value = mamba::util::synchronized_value< std::vector<int>, TestType >;
+        synchronized_value values{ 1, 2, 3, 4};
+    }
+
     TEMPLATE_LIST_TEST_CASE("synchronized_value apply example", "[template][thread-safe]", supported_mutex_types)
     {
         using synchronized_value = mamba::util::synchronized_value< std::vector<int>, TestType >;
@@ -268,5 +274,67 @@ namespace {
                 value.x += 1;
             });
         });
+    }
+
+    TEMPLATE_LIST_TEST_CASE("synchronized_value thread-safe multiple syncrhonize", "[template][thread-safe]", supported_mutex_types)
+    {
+        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
+        const mamba::util::synchronized_value<std::vector<int>, std::shared_mutex> extra_values{ 1 };
+        test_concurrent_increment<TestType>([&](synchronized_value& sv){
+            auto [ssv, sev] = synchronize(sv, extra_values);
+            ssv->x += sev->front();
+        });
+    }
+
+    TEST_CASE("synchronized_value basics multiple synchronize")
+    {
+        using namespace mamba::util;
+        synchronized_value<ValueType> a{ ValueType{ 1 } };
+        synchronized_value<ValueType, std::recursive_mutex> b { ValueType{ 3 } };
+        synchronized_value<ValueType, std::shared_mutex> c { ValueType{ 5 } };
+        synchronized_value<std::vector<int>> d { 7 };
+        synchronized_value<std::vector<int>, std::recursive_mutex> e { 9 };
+        synchronized_value<std::vector<int>, std::shared_mutex> f { 11 };
+
+        const synchronized_value<ValueType> ca { ValueType{ 2 } };
+        const synchronized_value<ValueType, std::recursive_mutex> cb { ValueType{ 4 } };
+        const synchronized_value<ValueType, std::shared_mutex> cc { ValueType{ 6 } };
+        const synchronized_value<std::vector<int>> cd { 8 };
+        const synchronized_value<std::vector<int>, std::recursive_mutex> ce { 10 };
+        const synchronized_value<std::vector<int>, std::shared_mutex> cf { 12 };
+
+        std::vector<int> values;
+        {
+            auto [sa, sca, sb, scb, sc, scc, sd, scd, se, sce, sf, scf] = mamba::util::synchronize(a, ca, b, cb, c, cc, d, cd, e, ce, f, cf);
+            static_assert(std::same_as< decltype(sa) , scoped_locked_ptr<ValueType, std::mutex, false>>);
+            static_assert(std::same_as< decltype(sca), scoped_locked_ptr<ValueType, std::mutex, true>>);
+            static_assert(std::same_as< decltype(sb) , scoped_locked_ptr<ValueType, std::recursive_mutex, false>>);
+            static_assert(std::same_as< decltype(scb), scoped_locked_ptr<ValueType, std::recursive_mutex, true>>);
+            static_assert(std::same_as< decltype(sc) , scoped_locked_ptr<ValueType, std::shared_mutex, false>>);
+            static_assert(std::same_as< decltype(scc), scoped_locked_ptr<ValueType, std::shared_mutex, true>>);
+            static_assert(std::same_as< decltype(sd) , scoped_locked_ptr<std::vector<int>, std::mutex, false>>);
+            static_assert(std::same_as< decltype(scd), scoped_locked_ptr<std::vector<int>, std::mutex, true>>);
+            static_assert(std::same_as< decltype(se) , scoped_locked_ptr<std::vector<int>, std::recursive_mutex, false>>);
+            static_assert(std::same_as< decltype(sce), scoped_locked_ptr<std::vector<int>, std::recursive_mutex, true>>);
+            static_assert(std::same_as< decltype(sf) , scoped_locked_ptr<std::vector<int>, std::shared_mutex, false>>);
+            static_assert(std::same_as< decltype(scf), scoped_locked_ptr<std::vector<int>, std::shared_mutex, true>>);
+
+            values.push_back(sa->x);
+            values.push_back(sca->x);
+            values.push_back(sb->x);
+            values.push_back(scb->x);
+            values.push_back(sc->x);
+            values.push_back(scc->x);
+            values.push_back(sd->front());
+            values.push_back(scd->front());
+            values.push_back(se->front());
+            values.push_back(sce->front());
+            values.push_back(sf->front());
+            values.push_back(scf->front());
+        }
+        std::ranges::sort(values);
+        REQUIRE(values == std::vector{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 } );
+
+
     }
 }

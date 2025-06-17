@@ -12,6 +12,8 @@
 #include <thread>
 #include <atomic>
 #include <concepts>
+#include <memory>
+#include <ranges>
 
 #include "mamba/util/synchronized_value.hpp"
 
@@ -34,6 +36,13 @@ namespace mamba::util
 
 
     static_assert(SharedMutex<std::shared_mutex>);
+
+    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , true>>);
+    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
+    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , true>>);
+    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , false>>);
+    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
+    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , false>>);
 }
 
 namespace {
@@ -163,6 +172,20 @@ namespace {
             REQUIRE(sv->x == initial_value.x);
 
         }
+    }
+
+    TEMPLATE_LIST_TEST_CASE("synchronized_value apply example", "[template][thread-safe]", supported_mutex_types)
+    {
+        using synchronized_value = mamba::util::synchronized_value< std::vector<int>, TestType >;
+
+        const std::vector initial_values{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+        const std::vector sorted_values{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        synchronized_value values{ initial_values };
+        values.apply(std::ranges::sort);
+        REQUIRE(values == sorted_values);
+        values.apply(std::ranges::sort, std::ranges::greater{});
+        REQUIRE(values == initial_values);
     }
 
     template< mamba::util::Mutex M >

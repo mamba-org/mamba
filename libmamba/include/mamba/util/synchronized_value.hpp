@@ -15,60 +15,52 @@ namespace mamba::util
 {
 
     // TODO: move that in a more general location
-    template<class T, template<class> class U>
+    template <class T, template <class> class U>
     inline constexpr bool is_instance_of_v = std::false_type{};
 
     // TODO: move that in a more general location
-    template<template<class> class U, class V>
-    inline constexpr bool is_instance_of_v<U<V>,U> = std::true_type{};
+    template <template <class> class U, class V>
+    inline constexpr bool is_instance_of_v<U<V>, U> = std::true_type{};
 
 
     /// see https://en.cppreference.com/w/cpp/named_req/BasicLockable.html
-    template<class T>
-    concept BasicLockable = requires(T& x)
-        {
-            x.lock();
-            x.unlock();
-        };
-        //and noexcept(T{}.unlock());
+    template <class T>
+    concept BasicLockable = requires(T& x) {
+        x.lock();
+        x.unlock();
+    };
+    // and noexcept(T{}.unlock());
 
     /// see https://en.cppreference.com/w/cpp/named_req/LockableMutex.html
-    template<class T>
-    concept Lockable = BasicLockable<T>
-        and requires(T& x)
-        {
-            { x.try_lock() } -> std::convertible_to<bool>;
-        };
+    template <class T>
+    concept Lockable = BasicLockable<T> and requires(T& x) {
+        { x.try_lock() } -> std::convertible_to<bool>;
+    };
 
     /// see https://en.cppreference.com/w/cpp/named_req/Mutex.html
-    template<class T>
-    concept Mutex = Lockable<T>
-        and std::default_initializable<T>
-        and std::destructible<T>
-        and (not std::movable<T>)
-        and (not std::copyable<T>);
+    template <class T>
+    concept Mutex = Lockable<T> and std::default_initializable<T> and std::destructible<T>
+                    and (not std::movable<T>) and (not std::copyable<T>);
 
     /// see https://en.cppreference.com/w/cpp/named_req/SharedMutex.html
-    template<class T>
-    concept SharedMutex = Mutex<T>
-        and requires(T& x)
-        {
-            x.lock_shared();
-            { x.try_lock_shared() } -> std::convertible_to<bool>;
-            x.unlock_shared();
-        };
+    template <class T>
+    concept SharedMutex = Mutex<T> and requires(T& x) {
+        x.lock_shared();
+        { x.try_lock_shared() } -> std::convertible_to<bool>;
+        x.unlock_shared();
+    };
 
     /** Locks a mutex object using the most constrained sharing lock available for that mutex type.
         @returns A scoped locking object. The exact type depends on the mutex type.
     */
-    template<Mutex M>
+    template <Mutex M>
     [[nodiscard]]
     auto lock_as_readonly(M& mutex)
     {
         return std::unique_lock{ mutex };
     }
 
-    template<SharedMutex M>
+    template <SharedMutex M>
     [[nodiscard]]
     auto lock_as_readonly(M& mutex)
     {
@@ -78,7 +70,7 @@ namespace mamba::util
     /** Locks a mutex object using an exclusive lock available for that mutex type.
         @returns A scoped locking object.
     */
-    template<Mutex M>
+    template <Mutex M>
     [[nodiscard]]
     auto lock_as_exclusive(M& mutex)
     {
@@ -87,21 +79,31 @@ namespace mamba::util
 
     namespace details
     {
-        template<Mutex M>
-        M& mutex_ref() { static M m; return m; }
+        template <Mutex M>
+        M& mutex_ref()
+        {
+            static M m;
+            return m;
+        }
     }
 
-    /** Scoped locking type that would result from locking the provided mutex in the most constrained way.  */
-    template< Mutex M, bool readonly>
-    using lock_type = std::conditional_t<readonly, decltype(lock_as_readonly(details::mutex_ref<M>())), decltype(lock_as_exclusive(details::mutex_ref<M>()))>;
+    /** Scoped locking type that would result from locking the provided mutex in the most
+        constrained way.
+    */
+    template <Mutex M, bool readonly>
+    using lock_type = std::conditional_t<
+        readonly,
+        decltype(lock_as_readonly(details::mutex_ref<M>())),
+        decltype(lock_as_exclusive(details::mutex_ref<M>()))>;
 
-    /** Locks a mutex for the lifetime of this type's instance and provide access to an associated value.
+    /** Locks a mutex for the lifetime of this type's instance and provide access to an associated
+        value.
 
         If `readonly == true`, only non-mutable access to the associated value will be provided.
         The access to the value is pointer-like, but this type does not own or copy that value,
         it is accessed directly.
     */
-    template< std::default_initializable T, Mutex M, bool readonly >
+    template <std::default_initializable T, Mutex M, bool readonly>
     class [[nodiscard]] scoped_locked_ptr
     {
         std::conditional_t<readonly, const T*, T*> m_value;
@@ -116,18 +118,23 @@ namespace mamba::util
         */
         scoped_locked_ptr(T& value, M& mutex)
             requires(not readonly)
-            : m_value(&value), m_lock(mutex)
-        {}
+            : m_value(&value)
+            , m_lock(mutex)
+        {
+        }
 
         /** Locks the provided mutex immediately.
             The provided value will then be accessible as non-mutable through the member functions.
         */
         scoped_locked_ptr(const T& value, M& mutex)
             requires(readonly)
-            : m_value(&value), m_lock(mutex)
-        {}
+            : m_value(&value)
+            , m_lock(mutex)
+        {
+        }
 
         scoped_locked_ptr(scoped_locked_ptr&& other) noexcept
+            // Both objects are locking at this point, so it is safe to modify both values.
             : m_value(std::move(other.m_value))
             , m_lock(std::move(other.m_lock))
         {
@@ -142,37 +149,44 @@ namespace mamba::util
             return *this;
         }
 
-        [[nodiscard]] auto operator*() -> T& requires(not readonly)  { return *m_value; }
-        [[nodiscard]] auto operator*() const -> const T& { return *m_value; }
-        [[nodiscard]] auto operator->() -> T*  requires(not readonly) { return m_value; }
-        [[nodiscard]] auto operator->() const -> const T* { return m_value; }
+        [[nodiscard]] auto operator*() -> T& requires(not readonly) { return *m_value; }
+        [[nodiscard]] auto operator*() const -> const T&
+        {
+            return *m_value;
+        }
 
-
+        [[nodiscard]] auto
+        operator->() -> T* requires(not readonly) { return m_value; }
+        [[nodiscard]] auto operator->() const -> const T*
+        {
+            return m_value;
+        }
     };
 
     /** Thread-safe value storage.
 
         Holds an object which access is always implying a lock to an associated mutex.
-        The only access to the object without a lock are "unsafe" functions, which are marked as such.
-        Also provides ways to lock the access to the object in scopes.
-        Mainly used when a value needs to be protected by a mutex and we want to make sure the code
-        always does the right locking mechanism.
+        The only access to the object without a lock are "unsafe" functions, which are marked as
+        such. Also provides ways to lock the access to the object in scopes. Mainly used when a
+       value needs to be protected by a mutex and we want to make sure the code always does the
+       right locking mechanism.
 
-        If the mutex type satisfies `SharedMutex`, the locks will be shared if using `const` functions,
-        enabling cheaper read-only access to the object in that context.
+        If the mutex type satisfies `SharedMutex`, the locks will be shared if using `const`
+        functions, enabling cheaper read-only access to the object in that context.
 
         Some operations will lock for the time of the call, others (like `operator->`) will
         return a `scoped_locked_ptr` so that the lock will hold for a whole expression or
-        a bigger scope. `synchronize()` explicitely only builds such scoped-lock and provides it
+        a bigger scope. `synchronize()` explicitly only builds such scoped-lock and provides it
         for scoped usage of the object.
 
-        Note: this is inspired by boost::thread::synchronized_value and the C++ Concurrent TS 2 paper,
-        refer to these to compare the features and correctness.
+        Note: this is inspired by boost::thread::synchronized_value and the C++ Concurrent TS 2
+        paper, refer to these to compare the features and correctness.
     */
-    template< std::default_initializable T, Mutex M = std::mutex >
+    template <std::default_initializable T, Mutex M = std::mutex>
     class synchronized_value
     {
     public:
+
         using value_type = T;
         using mutex_type = M;
 
@@ -195,27 +209,28 @@ namespace mamba::util
 
 
         /// Constructs with a provided value as initializer for the stored object.
-        template< typename V >
+        template <typename V>
         synchronized_value(V&& value) noexcept
             requires std::assignable_from<T&, V>
-                 and (not std::same_as<synchronized_value, std::decay_t<V>>);
+                     and (not std::same_as<synchronized_value, std::decay_t<V>>);
 
         /// Constructs with a provided initializer list used to initialize the stored object.
-        template< typename V >
+        template <typename V>
             requires std::constructible_from<T, std::initializer_list<V>>
         synchronized_value(std::initializer_list<V> values);
 
         /** Locks the provided `synchronized_value`'s mutex and copies it's stored object value
             to this instance's stored object.
             The lock is released before the end of the call.
-            If `SharedMutex<M> == true`, the lock is a shared-lock for the provided `synchronized_value`'s mutex.
+            If `SharedMutex<M> == true`, the lock is a shared-lock for the provided
+           `synchronized_value`'s mutex.
         */
         synchronized_value(const synchronized_value& other);
 
-        /** Locks both mutexes and copies/move the value of the provided `synchronized_value`'s stored object
-            to this instance's stored object.
-            The lock is released before the end of the call.
-            If `SharedMutex<M> == true`, the lock is a shared-lock for the provided `synchronized_value`'s mutex.
+        /** Locks both mutexes and copies/move the value of the provided `synchronized_value`'s
+            stored object to this instance's stored object. The lock is released before the end of
+            the call. If `SharedMutex<M> == true`, the lock is a shared-lock for the provided
+           `synchronized_value`'s mutex.
         */
         synchronized_value& operator=(const synchronized_value& other);
 
@@ -223,11 +238,10 @@ namespace mamba::util
         /** Locks and assign the provided value to the stored object.
             The lock is released before the end of the call.
         */
-        template< typename V >
-        auto operator=(V&& value) noexcept
-            -> synchronized_value&
+        template <typename V>
+        auto operator=(V&& value) noexcept -> synchronized_value&
             requires std::assignable_from<T&, V>
-                 and (not std::same_as<synchronized_value, std::decay_t<V>>);
+                     and (not std::same_as<synchronized_value, std::decay_t<V>>);
 
         /** Locks and return the value of the current object.
             The lock is released before the end of the call.
@@ -241,20 +255,28 @@ namespace mamba::util
             If `SharedMutex<M> == true`, the lock is a shared-lock.
         */
         [[nodiscard]]
-        explicit operator T() const { return value(); }
+        explicit operator T() const
+        {
+            return value();
+        }
 
         /** Not-thread-safe access to the stored object.
             Only used this for testing purposes.
         */
         [[nodiscard]]
-        auto unsafe_get() const -> const T& { return m_value; }
+        auto unsafe_get() const -> const T&
+        {
+            return m_value;
+        }
 
         /** Not-thread-safe access to the stored object.
             Only used this for testing purposes.
         */
         [[nodiscard]]
-        auto unsafe_get() -> T& { return m_value; }
-
+        auto unsafe_get() -> T&
+        {
+            return m_value;
+        }
 
         using locked_ptr = scoped_locked_ptr<T, M, false>;
         using const_locked_ptr = scoped_locked_ptr<T, M, true>;
@@ -290,9 +312,8 @@ namespace mamba::util
             lifetime.
             The lock is released only once the returned object is destroyed.
 
-            This is mainly used to get exclusive mutable access to the stored object for a whole scope.
-            Example:
-                synchronized_value<std::vector<int>> values;
+            This is mainly used to get exclusive mutable access to the stored object for a whole
+            scope. Example: synchronized_value<std::vector<int>> values;
                 {
                     auto sync_values = values.synchronize(); // locks
                     const auto x = sync_values->size();
@@ -325,33 +346,32 @@ namespace mamba::util
 
         /** Locks the mutex and calls the provided invocable, passing the mutable stored object
             and the other provided values as arguments.
-            The lock is released after the provided invocable returns but before this function returns.
+            The lock is released after the provided invocable returns but before this function
+            returns.
 
-            This is mainly used to safely execute an already existing function taking the stored object
-            as parameter.
-            Example:
+            This is mainly used to safely execute an already existing function taking the stored
+            object as parameter. Example:
 
                 synchronized_value<std::vector<int>> values{ random_values };
                 values.apply(std::ranges::sort); // locks, sort, unlocks
-                values.apply(std::ranges::sort, std::ranges::greater{}); // locks, reverse sort, unlocks
-                values.apply([](std::vector<int>& vs, auto& input){ // locks
-                    for(int& value : vs)
+                values.apply(std::ranges::sort, std::ranges::greater{}); // locks, reverse sort,
+                                                                         // unlocks
+                values.apply([](std::vector<int>& vs, auto& input){ // locks for(int& value : vs)
                         input >> value;
                 }], file_stream); // unlocks
 
          */
-        template<typename Func, typename... Args >
+        template <typename Func, typename... Args>
             requires std::invocable<Func, T&, Args...>
         auto apply(Func&& func, Args&&... args);
 
         /** Locks the mutex and calls the provided invocable, passing the non-mutable stored object
             and the other provided values as arguments.
-            The lock is released after the provided invocable returns but before this function returns.
-            If `SharedMutex<M> == true`, the lock is a shared-lock.
+            The lock is released after the provided invocable returns but before this function
+           returns. If `SharedMutex<M> == true`, the lock is a shared-lock.
 
-            This is mainly used to safely execute an already existing function taking the stored object
-            as parameter.
-            Example:
+            This is mainly used to safely execute an already existing function taking the stored
+           object as parameter. Example:
 
                 synchronized_value<std::vector<int>> values{ random_values };
                 values.apply([](const std::vector<int>& vs, auto& out){ // locks
@@ -360,22 +380,30 @@ namespace mamba::util
                 }], file_stream); // unlocks
 
         */
-        template<typename Func, typename... Args >
+        template <typename Func, typename... Args>
             requires std::invocable<Func, T&, Args...>
         auto apply(Func&& func, Args&&... args) const;
 
-        /// @see `apply`
-        template<typename Func, typename... Args >
+        /// @see `apply()`
+        template <typename Func, typename... Args>
             requires std::invocable<Func, T&, Args...>
-        auto operator()(Func&& func, Args&&... args) { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
+        auto operator()(Func&& func, Args&&... args)
+        {
+            return apply(std::forward<Func>(func), std::forward<Args>(args)...);
+        }
 
-        /// @see `apply`
-        template<typename Func, typename... Args >
+        /// @see `apply()`
+        template <typename Func, typename... Args>
             requires std::invocable<Func, T&, Args...>
-        auto operator()(Func&& func, Args&&... args) const { return apply(std::forward<Func>(func), std::forward<Args>(args)...); }
+        auto operator()(Func&& func, Args&&... args) const
+        {
+            return apply(std::forward<Func>(func), std::forward<Args>(args)...);
+        }
 
-        /// Locks (shared if possible) and compare equality of the stored object's value with the provided value.
-        // TODO : ADD COMPARISON OPERATORS
+        // TODO : ADD MORE COMPARISON OPERATORS
+        /** Locks (shared if possible) and compare equality of the stored object's value with the
+            provided value.
+        */
         auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool
         {
             auto _ = lock_as_readonly(m_mutex);
@@ -386,157 +414,150 @@ namespace mamba::util
         auto swap(T& value) -> void;
 
     private:
+
         T m_value;
         mutable M m_mutex;
     };
 
     /** Locks all the provided `synchronized_value` objects using `.synchronize` and
         returns the resulting set of `scoped_locked_ptr`.
-        Used to lock multiple values into one same scope.
+        Used to keep a lock on multiple values at a time under for the lifetime of one same scope.
 
         @see `synchronized_value::synchronize()`
 
-        @param sync_values Various `synchronized_value` objects with potentially different mutex types and value types.
-                           Any of these objects that is provided through a `const &` will result in a shared-lock for
-                           that object.
+        @param sync_values Various `synchronized_value` objects with potentially different mutex
+       types and value types. Any of these objects that is provided through a `const &` will result
+       in a shared-lock for that object.
 
-        @returns A tuple of `scoped_locked_ptr`, one for each `sync_values` object, in the same order.
-                 If an object in `sync_values` was passed using `const &`, then for the associated `scoped_locked_ptr`
-                 `scoped_locked_ptr::is_readonly == true`.
+        @returns A tuple of `scoped_locked_ptr`, one for each `sync_values` object, in the same
+       order. If an object in `sync_values` was passed using `const &`, then for the associated
+       `scoped_locked_ptr` `scoped_locked_ptr::is_readonly == true`.
     */
-    template< typename... SynchronizedValues >
-        // requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
+    template <typename... SynchronizedValues>
+    //  requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
     auto synchronize(SynchronizedValues&&... sync_values);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    template< std::default_initializable T, Mutex M >
-    synchronized_value<T, M>::synchronized_value()
-        noexcept(std::is_nothrow_default_constructible_v<T>)
-        = default;
+    template <std::default_initializable T, Mutex M>
+    synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
 
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(const synchronized_value& other)
     {
         auto _ = lock_as_exclusive(other.m_mutex);
         m_value = other.m_value;
     }
 
-
-    template< std::default_initializable T, Mutex M >
-    synchronized_value<T, M>&
-    synchronized_value<T, M>::operator=(const synchronized_value& other)
+    template <std::default_initializable T, Mutex M>
+    synchronized_value<T, M>& synchronized_value<T, M>::operator=(const synchronized_value& other)
     {
-        std::scoped_lock _ { m_mutex, other.m_mutex };
+        std::scoped_lock _{ m_mutex, other.m_mutex };
         m_value = other.m_value;
         return *this;
     }
 
-    template< std::default_initializable T, Mutex M >
-    template< typename V >
+    template <std::default_initializable T, Mutex M>
+    template <typename V>
     synchronized_value<T, M>::synchronized_value(V&& value) noexcept
         requires std::assignable_from<T&, V>
-             and (not std::same_as<synchronized_value, std::decay_t<V>>)
+                 and (not std::same_as<synchronized_value, std::decay_t<V>>)
         : m_value(std::forward<V>(value))
-    {}
+    {
+    }
 
-    template< std::default_initializable T, Mutex M >
-    template< typename V >
+    template <std::default_initializable T, Mutex M>
+    template <typename V>
         requires std::constructible_from<T, std::initializer_list<V>>
     synchronized_value<T, M>::synchronized_value(std::initializer_list<V> values)
         : m_value(std::move(values))
-    {}
-
-    template< std::default_initializable T, Mutex M >
-    template< typename V >
-    auto synchronized_value<T, M>::operator=(V&& value) noexcept
-        -> synchronized_value&
-        requires std::assignable_from<T&, V>
-             and (not std::same_as<synchronized_value, std::decay_t<V>>)
     {
-        auto _ = lock_as_exclusive( m_mutex );
+    }
+
+    template <std::default_initializable T, Mutex M>
+    template <typename V>
+    auto synchronized_value<T, M>::operator=(V&& value) noexcept -> synchronized_value&
+        requires std::assignable_from<T&, V>
+                 and (not std::same_as<synchronized_value, std::decay_t<V>>)
+    {
+        auto _ = lock_as_exclusive(m_mutex);
         m_value = std::forward<V>(value);
         return *this;
     }
 
-
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::value() const -> T
     {
-        auto _ = lock_as_exclusive( m_mutex );
+        auto _ = lock_as_exclusive(m_mutex);
         return m_value;
     }
 
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::operator->() -> locked_ptr
     {
         return locked_ptr{ m_value, m_mutex };
     }
 
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::operator->() const -> const_locked_ptr
     {
         return const_locked_ptr{ m_value, m_mutex };
     }
 
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::synchronize() -> locked_ptr
     {
         return locked_ptr{ m_value, m_mutex };
     }
 
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::synchronize() const -> const_locked_ptr
     {
         return const_locked_ptr{ m_value, m_mutex };
     }
 
-    template< std::default_initializable T, Mutex M >
-    template<typename Func, typename... Args >
-            requires std::invocable<Func, T&, Args...>
+    template <std::default_initializable T, Mutex M>
+    template <typename Func, typename... Args>
+        requires std::invocable<Func, T&, Args...>
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args)
     {
-        auto _ = lock_as_exclusive( m_mutex );
+        auto _ = lock_as_exclusive(m_mutex);
         return std::invoke(std::forward<Func>(func), m_value, std::forward<Args>(args)...);
     }
 
-    template< std::default_initializable T, Mutex M >
-    template<typename Func, typename... Args >
+    template <std::default_initializable T, Mutex M>
+    template <typename Func, typename... Args>
         requires std::invocable<Func, T&, Args...>
     auto synchronized_value<T, M>::apply(Func&& func, Args&&... args) const
     {
-        auto _ = lock_as_readonly( m_mutex );
+        auto _ = lock_as_readonly(m_mutex);
         return std::invoke(std::forward<Func>(func), std::as_const(m_value), std::forward<Args>(args)...);
     }
 
-
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::swap(synchronized_value& other) -> void
     {
-        std::scoped_lock _ { m_mutex, other.m_mutex };
+        std::scoped_lock _{ m_mutex, other.m_mutex };
         using std::swap;
         swap(m_value, other.m_value);
     }
 
-
-    template< std::default_initializable T, Mutex M >
+    template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::swap(T& value) -> void
     {
-        auto _ = lock_as_exclusive( m_mutex );
+        auto _ = lock_as_exclusive(m_mutex);
         using std::swap;
         swap(m_value, value);
     }
 
-
-    template< typename... SynchronizedValues >
-        // requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
+    template <typename... SynchronizedValues>
+    //  requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
     auto synchronize(SynchronizedValues&&... sync_values)
     {
-        return std::make_tuple( std::forward<SynchronizedValues>(sync_values).synchronize()... );
+        return std::make_tuple(std::forward<SynchronizedValues>(sync_values).synchronize()...);
     }
 
 }
 
 #endif
-

@@ -178,15 +178,21 @@ namespace mamba::util
 
         synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
 
+
+        // NOTE FOR FUTURE DEVS: move operations could be implemented correctly by interpreting it
+        // as moving the stored object after locking `other` first. However,
+        // right now we have no need for this and it might be misleading semantics (we are
+        // not moving the `synchronized_value` per-say, we have moving only it's value).
+        // If the need comes, implement it correctly as a lock followed by a `T` move.
+        // Do not move the `other.m_mutex`, do not `= default;` as these solutions are
+        // incorrect.
         /** Moves are forbidden so that the mutex can protect the memory region represented
             by the stored object.
+
         */
         synchronized_value(synchronized_value&& other) noexcept = delete;
-
-        /** Moves are forbidden so that the mutex can protect the memory region represented
-            by the stored object.
-        */
         synchronized_value& operator=(synchronized_value&& other) noexcept = delete;
+
 
         /// Constructs with a provided value as initializer for the stored object.
         template< typename V >

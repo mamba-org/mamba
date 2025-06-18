@@ -127,11 +127,19 @@ namespace mamba::util
             : m_value(&value), m_lock(mutex)
         {}
 
-        /** Locks the other `scoped_locked_ptr` immediately and move it's objectś value to this instance. */
         scoped_locked_ptr(scoped_locked_ptr&& other) noexcept
-            : m_value(std::move(other.m_value)), m_lock(std::move(other.m_lock))
+            : m_value(std::move(other.m_value))
+            , m_lock(std::move(other.m_lock))
         {
             other.m_value = nullptr;
+        }
+
+        scoped_locked_ptr& operator=(scoped_locked_ptr&& other) noexcept
+        {
+            // Both objects are locking at this point, so it is safe to modify both values.
+            m_value = std::move(other.m_value);
+            other.m_value = nullptr;
+            return *this;
         }
 
         [[nodiscard]] auto operator*() -> T& requires(not readonly)  { return *m_value; }
@@ -170,24 +178,33 @@ namespace mamba::util
 
         synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
 
+        /** Moves are forbidden so that the mutex can protect the memory region represented
+            by the stored object.
+        */
+        synchronized_value(synchronized_value&& other) noexcept = delete;
+
+        /** Moves are forbidden so that the mutex can protect the memory region represented
+            by the stored object.
+        */
+        synchronized_value& operator=(synchronized_value&& other) noexcept = delete;
+
         /// Constructs with a provided value as initializer for the stored object.
         template< typename V >
+        synchronized_value(V&& value) noexcept
             requires std::assignable_from<T&, V>
-                 and (not std::same_as<synchronized_value, std::decay_t<V>>)
-        synchronized_value(V&& value);
+                 and (not std::same_as<synchronized_value, std::decay_t<V>>);
 
         /// Constructs with a provided initializer list used to initialize the stored object.
         template< typename V >
             requires std::constructible_from<T, std::initializer_list<V>>
         synchronized_value(std::initializer_list<V> values);
 
-        /** Locks the provided `synchronized_value`'s mutex and copies/move it's stored object value
+        /** Locks the provided `synchronized_value`'s mutex and copies it's stored object value
             to this instance's stored object.
             The lock is released before the end of the call.
             If `SharedMutex<M> == true`, the lock is a shared-lock for the provided `synchronized_value`'s mutex.
         */
         synchronized_value(const synchronized_value& other);
-        synchronized_value(synchronized_value&& other);
 
         /** Locks both mutexes and copies/move the value of the provided `synchronized_value`'s stored object
             to this instance's stored object.
@@ -195,16 +212,16 @@ namespace mamba::util
             If `SharedMutex<M> == true`, the lock is a shared-lock for the provided `synchronized_value`'s mutex.
         */
         synchronized_value& operator=(const synchronized_value& other);
-        synchronized_value& operator=(synchronized_value&& other);
 
 
         /** Locks and assign the provided value to the stored object.
             The lock is released before the end of the call.
         */
         template< typename V >
+        auto operator=(V&& value) noexcept
+            -> synchronized_value&
             requires std::assignable_from<T&, V>
-                 and (not std::same_as<synchronized_value, std::decay_t<V>>)
-        synchronized_value& operator=(V&& value);
+                 and (not std::same_as<synchronized_value, std::decay_t<V>>);
 
         /** Locks and return the value of the current object.
             The lock is released before the end of the call.
@@ -411,17 +428,10 @@ namespace mamba::util
     }
 
     template< std::default_initializable T, Mutex M >
-    synchronized_value<T, M>::synchronized_value(synchronized_value&& other) = default;
-
-    template< std::default_initializable T, Mutex M >
-    synchronized_value<T, M>&
-    synchronized_value<T, M>::operator=(synchronized_value&& other) = default;
-
-    template< std::default_initializable T, Mutex M >
     template< typename V >
+    synchronized_value<T, M>::synchronized_value(V&& value) noexcept
         requires std::assignable_from<T&, V>
-             and (not std::same_as<synchronized_value<T, M>, std::decay_t<V>>)
-    synchronized_value<T, M>::synchronized_value(V&& value)
+             and (not std::same_as<synchronized_value, std::decay_t<V>>)
         : m_value(std::forward<V>(value))
     {}
 
@@ -434,10 +444,10 @@ namespace mamba::util
 
     template< std::default_initializable T, Mutex M >
     template< typename V >
+    auto synchronized_value<T, M>::operator=(V&& value) noexcept
+        -> synchronized_value&
         requires std::assignable_from<T&, V>
-             and (not std::same_as<synchronized_value<T, M>, std::decay_t<V>>)
-    synchronized_value<T, M>&
-    synchronized_value<T, M>::operator=(V&& value)
+             and (not std::same_as<synchronized_value, std::decay_t<V>>)
     {
         auto _ = lock_as_exclusive( m_mutex );
         m_value = std::forward<V>(value);

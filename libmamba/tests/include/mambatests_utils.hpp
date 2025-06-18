@@ -8,20 +8,18 @@
 #ifndef LIBMAMBATESTS_UTIL_HPP
 #define LIBMAMBATESTS_UTIL_HPP
 
-#include <thread>
-#include <functional>
-#include <utility>
 #include <concepts>
+#include <functional>
+#include <thread>
+#include <utility>
 
 namespace mambatests
 {
-    // Throws a string immediately, used in tests for code that should not be reachable.
-    inline
-    void fail_now()
+    /** Throws a string immediately, used in tests for code that should not be reachable. */
+    inline void fail_now()
     {
         throw "this code should never be executed";
     }
-
 
     /** Blocks the current thread until the provided predicates returns `true`.
         This is useful to make multiple threads wait on the change of value of a

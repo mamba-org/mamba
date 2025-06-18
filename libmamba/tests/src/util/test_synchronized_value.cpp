@@ -333,7 +333,7 @@ namespace
     }
 
     TEMPLATE_LIST_TEST_CASE(
-        "synchronized_value thread-safe multiple syncrhonize",
+        "synchronized_value thread-safe multiple synchronize",
         "[template][thread-safe]",
         supported_mutex_types
     )

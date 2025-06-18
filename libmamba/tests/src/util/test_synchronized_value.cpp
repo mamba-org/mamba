@@ -37,12 +37,27 @@ namespace mamba::util
 
     static_assert(SharedMutex<std::shared_mutex>);
 
+    // Scope locked must be possible to move in different scopes without unlocking-relocking,
+    // so it is imperative that they are moveable, but should not be copyable.
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , true>>);
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , true>>);
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , false>>);
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , false>>);
+    static_assert(std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , true>>);
+    static_assert(std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
+    static_assert(std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , true>>);
+    static_assert(std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , false>>);
+    static_assert(std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
+    static_assert(std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , false>>);
+    static_assert(std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , true>>);
+    static_assert(std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
+    static_assert(std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , true>>);
+    static_assert(std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex          , false>>);
+    static_assert(std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
+    static_assert(std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex   , false>>);
+
 }
 
 namespace {

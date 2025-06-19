@@ -452,8 +452,8 @@ namespace mamba::util
         template <std::equality_comparable_with<T> U, Mutex OtherMutex>
         auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool
         {
-            auto [[maybe_unused]] this_lock = lock_as_readonly(m_mutex);
-            auto [[maybe_unused]] other_lock = lock_as_readonly(other_value.m_mutex);
+            auto this_lock [[maybe_unused]] = lock_as_readonly(m_mutex);
+            auto other_lock [[maybe_unused]] = lock_as_readonly(other_value.m_mutex);
 
             return m_value == other_value.m_value;
         }
@@ -505,8 +505,8 @@ namespace mamba::util
     auto synchronized_value<T, M>::operator=(const synchronized_value<U, OtherMutex>& other)
         -> synchronized_value<T, M>&
     {
-        auto [[maybe_unused]] this_lock = lock_as_exclusive(m_mutex);
-        auto [[maybe_unused]] other_lock = lock_as_readonly(other.m_mutex);
+        auto this_lock [[maybe_unused]] = lock_as_exclusive(m_mutex);
+        auto other_lock [[maybe_unused]] = lock_as_readonly(other.m_mutex);
         m_value = other.m_value;
         return *this;
     }

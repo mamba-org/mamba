@@ -381,10 +381,10 @@ namespace mamba::util
         /** Locks the mutex and calls the provided invocable, passing the non-mutable stored object
             and the other provided values as arguments.
             The lock is released after the provided invocable returns but before this function
-           returns. If `SharedMutex<M> == true`, the lock is a shared-lock.
+            returns. If `SharedMutex<M> == true`, the lock is a shared-lock.
 
             This is mainly used to safely execute an already existing function taking the stored
-           object as parameter. Example:
+            object as parameter. Example:
 
                 synchronized_value<std::vector<int>> values{ random_values };
                 values.apply([](const std::vector<int>& vs, auto& out){ // locks
@@ -439,12 +439,12 @@ namespace mamba::util
         @see `synchronized_value::synchronize()`
 
         @param sync_values Various `synchronized_value` objects with potentially different mutex
-       types and value types. Any of these objects that is provided through a `const &` will result
-       in a shared-lock for that object.
+                           types and value types. Any of these objects that is provided through
+                           a `const &` will result in a shared-lock for that object.
 
         @returns A tuple of `scoped_locked_ptr`, one for each `sync_values` object, in the same
-       order. If an object in `sync_values` was passed using `const &`, then for the associated
-       `scoped_locked_ptr` `scoped_locked_ptr::is_readonly == true`.
+                 order. If an object in `sync_values` was passed using `const &`, then for the
+                 associated `scoped_locked_ptr` `scoped_locked_ptr::is_readonly == true`.
     */
     template <typename... SynchronizedValues>
     //  requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)

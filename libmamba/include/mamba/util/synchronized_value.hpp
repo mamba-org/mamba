@@ -392,7 +392,8 @@ namespace mamba::util
                 values.apply(std::ranges::sort); // locks, sort, unlocks
                 values.apply(std::ranges::sort, std::ranges::greater{}); // locks, reverse sort,
                                                                          // unlocks
-                values.apply([](std::vector<int>& vs, auto& input){ // locks for(int& value : vs)
+                values.apply([](std::vector<int>& vs, auto& input){ // locks
+                    for(int& value : vs)
                         input >> value;
                 }], file_stream); // unlocks
 

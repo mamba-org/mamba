@@ -208,7 +208,6 @@ namespace mamba::util
         synchronized_value(synchronized_value&& other) noexcept = delete;
         synchronized_value& operator=(synchronized_value&& other) noexcept = delete;
 
-
         /// Constructs with a provided value as initializer for the stored object.
         template <typename V>
             requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
@@ -240,7 +239,6 @@ namespace mamba::util
            `synchronized_value`'s mutex.
         */
         synchronized_value& operator=(const synchronized_value& other);
-
 
         /** Locks and assign the provided value to the stored object.
             The lock is released before the end of the call.
@@ -472,7 +470,6 @@ namespace mamba::util
         m_value = other.m_value;
         return *this;
     }
-
 
     template <std::default_initializable T, Mutex M>
     template <typename V>

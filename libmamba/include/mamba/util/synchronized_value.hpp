@@ -13,14 +13,28 @@
 
 namespace mamba::util
 {
-
+    /////////////////////////////
     // TODO: move that in a more general location
-    template <class T, template <class> class U>
-    inline constexpr bool is_instance_of_v = std::false_type{};
+    // original: https://github.com/man-group/sparrow/blob/main/include/sparrow/utils/mp_utils.hpp
 
-    // TODO: move that in a more general location
-    template <template <class> class U, class V>
-    inline constexpr bool is_instance_of_v<U<V>, U> = std::true_type{};
+
+    template <class L, template <class...> class U>
+    struct is_type_instance_of : std::false_type
+    {
+    };
+
+    template <template <class...> class L, template <class...> class U, class... T>
+        requires std::same_as<L<T...>, U<T...>>
+    struct is_type_instance_of<L<T...>, U> : std::true_type
+    {
+    };
+
+    /// `true` if `T` is a concrete type template instantiation of `U` which is a type template.
+    /// Example: is_type_instance_of_v< std::vector<int>, std::vector > == true
+    template <class T, template <class...> class U>
+    constexpr bool is_type_instance_of_v = is_type_instance_of<T, U>::value;
+
+    /////////////////////////////
 
 
     /// see https://en.cppreference.com/w/cpp/named_req/BasicLockable.html
@@ -438,6 +452,8 @@ namespace mamba::util
 
         @see `synchronized_value::synchronize()`
 
+        @tparam SynchronizedValues Must be `synchronized_value` type instances.
+
         @param sync_values Various `synchronized_value` objects with potentially different mutex
                            types and value types. Any of these objects that is provided through
                            a `const &` will result in a shared-lock for that object.
@@ -447,7 +463,7 @@ namespace mamba::util
                  associated `scoped_locked_ptr` `scoped_locked_ptr::is_readonly == true`.
     */
     template <typename... SynchronizedValues>
-    //  requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
+        requires(is_type_instance_of_v<std::remove_cvref_t<SynchronizedValues>, synchronized_value> and ...)
     auto synchronize(SynchronizedValues&&... sync_values);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -545,7 +561,7 @@ namespace mamba::util
     }
 
     template <typename... SynchronizedValues>
-    //  requires (is_instance_of_v<synchronized_value, SynchronizedValues> and ...)
+        requires(is_type_instance_of_v<std::remove_cvref_t<SynchronizedValues>, synchronized_value> and ...)
     auto synchronize(SynchronizedValues&&... sync_values)
     {
         return std::make_tuple(std::forward<SynchronizedValues>(sync_values).synchronize()...);

@@ -189,6 +189,7 @@ namespace mamba::util
 
         using value_type = T;
         using mutex_type = M;
+        using this_type = synchronized_value<T, M>;
 
         synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
 
@@ -210,9 +211,15 @@ namespace mamba::util
 
         /// Constructs with a provided value as initializer for the stored object.
         template <typename V>
+            requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
         synchronized_value(V&& value) noexcept
-            requires std::assignable_from<T&, V>
-                     and (not std::same_as<synchronized_value, std::decay_t<V>>);
+            : m_value(std::forward<V>(value))
+        {
+            // NOTE: when moving the definition outside the class,
+            // VS2022 will not match the declaration with the definition
+            // which is probably a bug. To workaround that we keep
+            // the definition here.
+        }
 
         /// Constructs with a provided initializer list used to initialize the stored object.
         template <typename V>
@@ -239,9 +246,17 @@ namespace mamba::util
             The lock is released before the end of the call.
         */
         template <typename V>
+            requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
         auto operator=(V&& value) noexcept -> synchronized_value&
-            requires std::assignable_from<T&, V>
-                     and (not std::same_as<synchronized_value, std::decay_t<V>>);
+        {
+            // NOTE: when moving the definition outside the class,
+            // VS2022 will not match the declaration with the definition
+            // which is probably a bug. To workaround that we keep
+            // the definition here.
+            auto _ = lock_as_exclusive(m_mutex);
+            m_value = std::forward<V>(value);
+            return *this;
+        }
 
         /** Locks and return the value of the current object.
             The lock is released before the end of the call.
@@ -458,14 +473,6 @@ namespace mamba::util
         return *this;
     }
 
-    template <std::default_initializable T, Mutex M>
-    template <typename V>
-    synchronized_value<T, M>::synchronized_value(V&& value) noexcept
-        requires std::assignable_from<T&, V>
-                 and (not std::same_as<synchronized_value, std::decay_t<V>>)
-        : m_value(std::forward<V>(value))
-    {
-    }
 
     template <std::default_initializable T, Mutex M>
     template <typename V>
@@ -473,17 +480,6 @@ namespace mamba::util
     synchronized_value<T, M>::synchronized_value(std::initializer_list<V> values)
         : m_value(std::move(values))
     {
-    }
-
-    template <std::default_initializable T, Mutex M>
-    template <typename V>
-    auto synchronized_value<T, M>::operator=(V&& value) noexcept -> synchronized_value&
-        requires std::assignable_from<T&, V>
-                 and (not std::same_as<synchronized_value, std::decay_t<V>>)
-    {
-        auto _ = lock_as_exclusive(m_mutex);
-        m_value = std::forward<V>(value);
-        return *this;
     }
 
     template <std::default_initializable T, Mutex M>

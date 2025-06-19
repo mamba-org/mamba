@@ -440,23 +440,13 @@ namespace mamba::util
         /** Locks (shared if possible) and compare equality of the stored object's value with the
             provided value.
         */
-        auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool
-        {
-            auto _ = lock_as_readonly(m_mutex);
-            return m_value == other_value;
-        }
+        auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool;
 
-        /** Locks (shared if possible) and compare equality of the stored object's value with the
+        /** Locks both (shared if possible) and compare equality of the stored object's value with the
             provided value.
         */
         template <std::equality_comparable_with<T> U, Mutex OtherMutex>
-        auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool
-        {
-            auto this_lock [[maybe_unused]] = lock_as_readonly(m_mutex);
-            auto other_lock [[maybe_unused]] = lock_as_readonly(other_value.m_mutex);
-
-            return m_value == other_value.m_value;
-        }
+        auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool;
 
         auto swap(synchronized_value& other) -> void;
         auto swap(T& value) -> void;
@@ -566,6 +556,26 @@ namespace mamba::util
     {
         auto _ = lock_as_readonly(m_mutex);
         return std::invoke(std::forward<Func>(func), std::as_const(m_value), std::forward<Args>(args)...);
+    }
+
+    template <std::default_initializable T, Mutex M>
+    auto synchronized_value<T, M>::operator==(const std::equality_comparable_with<T> auto& other_value
+    ) const -> bool
+    {
+        auto _ = lock_as_readonly(m_mutex);
+        return m_value == other_value;
+    }
+
+    template <std::default_initializable T, Mutex M>
+    template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+    auto
+    synchronized_value<T, M>::operator==(const synchronized_value<U, OtherMutex>& other_value) const
+        -> bool
+    {
+        auto this_lock [[maybe_unused]] = lock_as_readonly(m_mutex);
+        auto other_lock [[maybe_unused]] = lock_as_readonly(other_value.m_mutex);
+
+        return m_value == other_value.m_value;
     }
 
     template <std::default_initializable T, Mutex M>

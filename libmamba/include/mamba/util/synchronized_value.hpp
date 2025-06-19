@@ -442,8 +442,8 @@ namespace mamba::util
         */
         auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool;
 
-        /** Locks both (shared if possible) and compare equality of the stored object's value with the
-            provided value.
+        /** Locks both (shared if possible) and compare equality of the stored object's value with
+           the provided value.
         */
         template <std::equality_comparable_with<T> U, Mutex OtherMutex>
         auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool;

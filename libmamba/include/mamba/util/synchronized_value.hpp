@@ -91,6 +91,14 @@ namespace mamba::util
         return std::unique_lock{ mutex };
     }
 
+    template <Mutex... M>
+        requires(sizeof...(M) > 1)
+    [[nodiscard]]
+    auto lock_as_exclusive(M&... mutex)
+    {
+        return std::scoped_lock{ mutex... };
+    }
+
     namespace details
     {
         template <Mutex M>
@@ -252,7 +260,8 @@ namespace mamba::util
             the call. If `SharedMutex<M> == true`, the lock is a shared-lock for the provided
            `synchronized_value`'s mutex.
         */
-        synchronized_value& operator=(const synchronized_value& other);
+        template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+        auto operator=(const synchronized_value<U, OtherMutex>& other) -> synchronized_value&;
 
         /** Locks and assign the provided value to the stored object.
             The lock is released before the end of the call.
@@ -437,6 +446,18 @@ namespace mamba::util
             return m_value == other_value;
         }
 
+        /** Locks (shared if possible) and compare equality of the stored object's value with the
+            provided value.
+        */
+        template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+        auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool
+        {
+            auto [[maybe_unused]] this_lock = lock_as_readonly(m_mutex);
+            auto [[maybe_unused]] other_lock = lock_as_readonly(other_value.m_mutex);
+
+            return m_value == other_value.m_value;
+        }
+
         auto swap(synchronized_value& other) -> void;
         auto swap(T& value) -> void;
 
@@ -480,9 +501,12 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    synchronized_value<T, M>& synchronized_value<T, M>::operator=(const synchronized_value& other)
+    template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+    auto synchronized_value<T, M>::operator=(const synchronized_value<U, OtherMutex>& other)
+        -> synchronized_value<T, M>&
     {
-        std::scoped_lock _{ m_mutex, other.m_mutex };
+        auto [[maybe_unused]] this_lock = lock_as_exclusive(m_mutex);
+        auto [[maybe_unused]] other_lock = lock_as_readonly(other.m_mutex);
         m_value = other.m_value;
         return *this;
     }
@@ -498,7 +522,7 @@ namespace mamba::util
     template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::value() const -> T
     {
-        auto _ = lock_as_exclusive(m_mutex);
+        auto _ = lock_as_readonly(m_mutex);
         return m_value;
     }
 
@@ -547,7 +571,7 @@ namespace mamba::util
     template <std::default_initializable T, Mutex M>
     auto synchronized_value<T, M>::swap(synchronized_value& other) -> void
     {
-        std::scoped_lock _{ m_mutex, other.m_mutex };
+        auto _ = lock_as_exclusive(m_mutex, other.m_mutex);
         using std::swap;
         swap(m_value, other.m_value);
     }

@@ -127,20 +127,24 @@ namespace
             REQUIRE(sv.unsafe_get() == expected_new_value);
             REQUIRE(sv.value() == expected_new_value);
             REQUIRE(sv == expected_new_value);
+            REQUIRE(sv != initial_value);
             REQUIRE(sv->x == expected_new_value.x);
             REQUIRE(const_sv.unsafe_get() == expected_new_value);
             REQUIRE(const_sv.value() == expected_new_value);
             REQUIRE(const_sv == expected_new_value);
+            REQUIRE(const_sv != initial_value);
             REQUIRE(const_sv->x == expected_new_value.x);
 
             sv = initial_value;
             REQUIRE(sv.unsafe_get() == initial_value);
             REQUIRE(sv.value() == initial_value);
             REQUIRE(sv == initial_value);
+            REQUIRE(sv != expected_new_value);
             REQUIRE(sv->x == initial_value.x);
             REQUIRE(const_sv.unsafe_get() == initial_value);
             REQUIRE(const_sv.value() == initial_value);
             REQUIRE(const_sv == initial_value);
+            REQUIRE(const_sv != expected_new_value);
             REQUIRE(const_sv->x == initial_value.x);
         }
 

@@ -81,7 +81,31 @@ namespace mamba::util
         return std::shared_lock{ mutex };
     }
 
-    /** Locks a mutex object using an exclusive lock available for that mutex type.
+    /** Locks multiple mutex objects using the most constrained sharing lock available for that
+        mutex type.
+        @returns A tuple of scoped locking objects, one for each mutex. The exact types depends on the
+                 mutex types.
+    */
+    template <Mutex... M>
+        requires(sizeof...(M) > 1)
+    [[nodiscard]]
+    auto lock_as_readonly(M&... mutex)
+    {
+        return std::make_tuple(lock_as_readonly(mutex)...);
+    }
+
+    /** Locks multiple non-shared mutex objects using the most constrained sharing lock available
+        for that mutex type.
+        @returns A scoped locking object.
+    */
+    template <Mutex... M>
+        requires(sizeof...(M) > 1) and ((not SharedMutex<M>) and ...)
+    [[nodiscard]] auto lock_as_readonly(M&... mutex)
+    {
+        return std::scoped_lock{ mutex... };
+    }
+
+    /** Locks a mutex object using an exclusive lock.
         @returns A scoped locking object.
     */
     template <Mutex M>
@@ -91,6 +115,9 @@ namespace mamba::util
         return std::unique_lock{ mutex };
     }
 
+    /** Locks multiple mutex objects using an exclusive lock.
+        @returns A scoped locking object.
+    */
     template <Mutex... M>
         requires(sizeof...(M) > 1)
     [[nodiscard]]
@@ -487,7 +514,7 @@ namespace mamba::util
     template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(const synchronized_value& other)
     {
-        auto _ = lock_as_exclusive(other.m_mutex);
+        auto _ = lock_as_readonly(other.m_mutex);
         m_value = other.m_value;
     }
 
@@ -573,9 +600,7 @@ namespace mamba::util
     synchronized_value<T, M>::operator==(const synchronized_value<U, OtherMutex>& other_value) const
         -> bool
     {
-        auto this_lock [[maybe_unused]] = lock_as_readonly(m_mutex);
-        auto other_lock [[maybe_unused]] = lock_as_readonly(other_value.m_mutex);
-
+        auto _ = lock_as_readonly(m_mutex, other_value.m_mutex);
         return m_value == other_value.m_value;
     }
 

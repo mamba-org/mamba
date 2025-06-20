@@ -83,8 +83,8 @@ namespace mamba::util
 
     /** Locks multiple mutex objects using the most constrained sharing lock available for that
         mutex type.
-        @returns A tuple of scoped locking objects, one for each mutex. The exact types depends on the
-                 mutex types.
+        @returns A tuple of scoped locking objects, one for each mutex. The exact types depends on
+        the mutex types.
     */
     template <Mutex... M>
         requires(sizeof...(M) > 1)
@@ -129,7 +129,7 @@ namespace mamba::util
     namespace details
     {
         template <typename T>
-        T& ref_of(); // used only in non-executed contexts
+        T& ref_of();  // used only in non-executed contexts
     }
 
     /** Scoped locking type that would result from locking the provided mutex in the most

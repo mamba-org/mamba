@@ -128,12 +128,8 @@ namespace mamba::util
 
     namespace details
     {
-        template <Mutex M>
-        M& mutex_ref()
-        {
-            static M m;
-            return m;
-        }
+        template <typename T>
+        T& ref_of(); // used only in non-executed contexts
     }
 
     /** Scoped locking type that would result from locking the provided mutex in the most
@@ -142,8 +138,8 @@ namespace mamba::util
     template <Mutex M, bool readonly>
     using lock_type = std::conditional_t<
         readonly,
-        decltype(lock_as_readonly(details::mutex_ref<M>())),
-        decltype(lock_as_exclusive(details::mutex_ref<M>()))>;
+        decltype(lock_as_readonly(details::ref_of<M>())),
+        decltype(lock_as_exclusive(details::ref_of<M>()))>;
 
     /** Locks a mutex for the lifetime of this type's instance and provide access to an associated
         value.

@@ -9,6 +9,7 @@
 
 #include <concepts>
 #include <mutex>
+#include <shared_mutex>
 #include <tuple>
 
 namespace mamba::util

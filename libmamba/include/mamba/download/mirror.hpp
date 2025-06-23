@@ -17,6 +17,7 @@
 #include <fmt/core.h>
 
 #include "mamba/download/request.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 namespace mamba::download
 {
@@ -109,13 +110,17 @@ namespace mamba::download
         MirrorID m_id;
         size_t m_max_retries;
 
-        // TODO: use synchronized value
-        std::mutex m_stats_mutex;
-        std::optional<std::size_t> m_allowed_connections = std::nullopt;
-        std::size_t m_max_tried_connections = 0;
-        std::size_t m_running_transfers = 0;
-        std::size_t m_successful_transfers = 0;
-        std::size_t m_failed_transfers = 0;
+        struct Stats
+        {
+            std::optional<std::size_t> allowed_connections = std::nullopt;
+            std::size_t max_tried_connections = 0;
+            std::size_t running_transfers = 0;
+            std::size_t successful_transfers = 0;
+            std::size_t failed_transfers = 0;
+        };
+
+        util::synchronized_value<Stats> m_stats;
+
     };
 
     std::unique_ptr<Mirror> make_mirror(std::string url);

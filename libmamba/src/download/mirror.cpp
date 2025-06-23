@@ -92,23 +92,27 @@ namespace mamba::download
 
     std::size_t Mirror::successful_transfers() const
     {
-        return m_successful_transfers;
+        return m_stats->successful_transfers;
     }
 
     std::size_t Mirror::failed_transfers() const
     {
-        return m_failed_transfers;
+        return m_stats->failed_transfers;
     }
 
     bool Mirror::can_accept_more_connections() const
     {
-        return !m_allowed_connections.has_value() || m_running_transfers < m_allowed_connections;
+        const auto stats = m_stats.synchronize();
+        return !stats->allowed_connections.has_value()
+               || stats->running_transfers < stats->allowed_connections;
     }
 
     bool Mirror::can_retry_with_fewer_connections() const
     {
-        return m_running_transfers > 0
-               || (m_successful_transfers > 0 && m_failed_transfers < m_max_tried_connections);
+        const auto stats = m_stats.synchronize();
+        return stats->running_transfers > 0
+               || (stats->successful_transfers > 0
+                   && stats->failed_transfers < stats->max_tried_connections);
     }
 
     namespace
@@ -118,40 +122,40 @@ namespace mamba::download
 
     void Mirror::cap_allowed_connections()
     {
-        lock_guard lock(m_stats_mutex);
-        if (m_running_transfers > 0)
+        auto stats = m_stats.synchronize();
+        if (stats->running_transfers > 0)
         {
-            m_allowed_connections = m_running_transfers;
+            stats->allowed_connections = stats->running_transfers;
         }
         else
         {
-            m_allowed_connections = std::size_t(1);
+            stats->allowed_connections = std::size_t(1);
         }
     }
 
     void Mirror::increase_running_transfers()
     {
-        lock_guard lock(m_stats_mutex);
-        ++m_running_transfers;
-        if (m_max_tried_connections < m_running_transfers)
+        auto stats = m_stats.synchronize();
+        ++stats->running_transfers;
+        if (stats->max_tried_connections < stats->running_transfers)
         {
-            m_max_tried_connections = m_running_transfers;
+            stats->max_tried_connections = stats->running_transfers;
         }
     }
 
     void Mirror::update_transfers_done(bool success, bool record_success)
     {
-        lock_guard lock(m_stats_mutex);
-        --m_running_transfers;
+        auto stats = m_stats.synchronize();
+        --stats->running_transfers;
         if (record_success)
         {
             if (success)
             {
-                ++m_successful_transfers;
+                ++stats->successful_transfers;
             }
             else
             {
-                ++m_failed_transfers;
+                ++stats->failed_transfers;
             }
         }
     }

@@ -195,7 +195,7 @@ namespace mamba::util
         return util::get_windows_known_user_folder(WindowsKnowUserFolder::LocalAppData);
     }
 
-    auto which_system(std::string_view exe) -> fs::u8path
+    auto which_system(std::string_view /*exe*/) -> fs::u8path
     {
         return "";
     }

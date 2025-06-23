@@ -106,12 +106,19 @@ namespace mamba::util
         // when followed with a drive letter
         // to make it compatible with libcurl on unix
         auto [is_file_scheme, slashes, rest] = check_file_scheme_and_slashes(uri);
-        if (!on_win && is_file_scheme && path_has_drive_letter(rest)
-            && ((slashes.size() == 2) || (slashes.size() == 3)))
+        if constexpr (!on_win)
         {
-            return util::concat("file:////", rest);
+            if (is_file_scheme && path_has_drive_letter(rest)
+                && ((slashes.size() == 2) || (slashes.size() == 3)))
+            {
+                return util::concat("file:////", rest);
+            }
+            return uri;
         }
-        return uri;
+        else
+        {
+            return uri;
+        }
     }
 
     auto file_uri_unc2_to_unc4(std::string_view uri) -> std::string

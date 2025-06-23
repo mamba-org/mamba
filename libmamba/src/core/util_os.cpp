@@ -494,7 +494,7 @@ namespace mamba
 #else
 
         CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+        auto res [[maybe_unused]] = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
         return coninfo.dwSize.X;
 #endif
     }
@@ -508,7 +508,7 @@ namespace mamba
 #else
 
         CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+        auto res [[maybe_unused]] = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
         return coninfo.srWindow.Bottom - coninfo.srWindow.Top + 1;
 #endif
     }

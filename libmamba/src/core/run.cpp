@@ -197,7 +197,7 @@ namespace mamba
         const Context& context,
         const std::string& name,
         const std::vector<std::string>& command,
-        LockFile proc_dir_lock
+        LockFile proc_dir_lock [[maybe_unused]]
     )
         : location{ proc_dir() / fmt::format("{}.json", getpid()) }
     {
@@ -302,9 +302,9 @@ namespace mamba
         const std::string& cwd,
         int stream_options,
         bool clean_env,
-        bool detach,
+        bool detach [[maybe_unused]],
         const std::vector<std::string>& env_vars,
-        const std::string& specific_process_name
+        const std::string& specific_process_name [[maybe_unused]]
     )
     {
         if (!fs::exists(prefix))

@@ -1676,7 +1676,7 @@ namespace mamba::solver::libsolv
             }
             else
             {
-                assert(false); // TODO c++23: replace by  `std::unreachable();`
+                assert(false);  // TODO c++23: replace by `std::unreachable();`
                 return {};
             }
         }

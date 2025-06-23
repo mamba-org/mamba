@@ -1167,6 +1167,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("output_params", &Context::output_params)
         .def_readwrite("threads_params", &Context::threads_params)
         .def_readwrite("prefix_params", &Context::prefix_params)
+        .def_readwrite("link_params", &Context::link_params)
         .def_readwrite("validation_params", &Context::validation_params);
 
     static const auto default_transaction_params = TransactionParams{};

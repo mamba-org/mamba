@@ -124,7 +124,10 @@ namespace mamba::solver
                     {
                         return &(a.what);
                     }
-                    return nullptr;
+                    else
+                    {
+                        return nullptr;
+                    }
                 },
                 action
             );
@@ -171,7 +174,10 @@ namespace mamba::solver
                     {
                         return &(a.what);
                     }
-                    return nullptr;
+                    else
+                    {
+                        return nullptr;
+                    }
                 },
                 action
             );
@@ -214,7 +220,10 @@ namespace mamba::solver
                     {
                         return &(a.what);
                     }
-                    return nullptr;
+                    else
+                    {
+                        return nullptr;
+                    }
                 },
                 action
             );

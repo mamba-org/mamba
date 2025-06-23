@@ -1647,17 +1647,17 @@ namespace mamba::solver::libsolv
                 );
                 return {};
             }
-            if constexpr (std::is_same_v<Job, Request::Freeze>)
+            else if constexpr (std::is_same_v<Job, Request::Freeze>)
             {
                 return pool_add_matchspec(pool, job.spec, parser)
                     .transform([&](auto id) { raw_jobs.push_back(SOLVER_LOCK, id); });
             }
-            if constexpr (std::is_same_v<Job, Request::Keep>)
+            else if constexpr (std::is_same_v<Job, Request::Keep>)
             {
                 return pool_add_matchspec(pool, job.spec, parser)
                     .transform([&](auto id) { raw_jobs.push_back(SOLVER_USERINSTALLED, id); });
             }
-            if constexpr (std::is_same_v<Job, Request::Pin>)
+            else if constexpr (std::is_same_v<Job, Request::Pin>)
             {
                 // WARNING pins are not working with namespace dependencies so far
                 return pool_add_pin(pool, job.spec, MatchSpecParser::Libsolv)
@@ -1674,8 +1674,11 @@ namespace mamba::solver::libsolv
                         }
                     );
             }
-            assert(false);
-            return {};
+            else
+            {
+                assert(false); // TODO c++23: replace by  `std::unreachable();`
+                return {};
+            }
         }
     }
 
@@ -1698,7 +1701,10 @@ namespace mamba::solver::libsolv
                     {
                         return add_job(job, solv_jobs, pool, force_reinstall, parser);
                     }
-                    return {};
+                    else
+                    {
+                        return {};
+                    }
                 },
                 unknown_job
             );
@@ -1719,7 +1725,10 @@ namespace mamba::solver::libsolv
                     {
                         return add_job(job, solv_jobs, pool, force_reinstall, parser);
                     }
-                    return {};
+                    else
+                    {
+                        return {};
+                    }
                 },
                 unknown_job
             );

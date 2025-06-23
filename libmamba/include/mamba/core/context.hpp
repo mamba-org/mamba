@@ -156,24 +156,24 @@ namespace mamba
         LinkParams link_params;
 
         download::RemoteFetchParams remote_fetch_params = {
-            /* .ssl_verify */ { "" },
-            /* .ssl_no_revoke */ false,
-            /* .curl_initialized */ false,
-            /* .user_agent */ { "mamba/" LIBMAMBA_VERSION_STRING },
-            /* .connect_timeout_secs */ 10.,
-            /* .retry_timeout */ 2,
-            /* .retry_backoff */ 3,
-            /* .max_retries */ 3,
-            /* .proxy_servers */ {},
+            .ssl_verify = { "" },
+            .ssl_no_revoke = false,
+            .curl_initialized = false,
+            .user_agent = { "mamba/" LIBMAMBA_VERSION_STRING },
+            .connect_timeout_secs = 10.,
+            .retry_timeout = 2,
+            .retry_backoff = 3,
+            .max_retries = 3,
+            .proxy_servers = {},
         };
 
         download::Options download_options() const
         {
             return {
-                /* .download_threads */ this->threads_params.download_threads,
-                /* .fail_fast */ false,
-                /* .sort */ true,
-                /* .verbose */ this->output_params.verbosity >= 2,
+                .download_threads = this->threads_params.download_threads,
+                .fail_fast = false,
+                .sort = true,
+                .verbose = this->output_params.verbosity >= 2,
             };
         }
 
@@ -195,31 +195,33 @@ namespace mamba
             };
 
             return {
-                /* .local_repodata_ttl */ get_local_repodata_ttl(),
-                /* .offline */ this->offline,
-                /* .force_use_zst */ false  // Must override based on ChannelContext
+                .local_repodata_ttl_s = get_local_repodata_ttl(),
+                .offline = this->offline,
+                .repodata_force_use_zst = false  // Must override based on ChannelContext
             };
         }
 
         SubdirDownloadParams subdir_download_params() const
         {
             return {
-                /* .offline */ this->offline,
-                /* .repodata_check_zst */ this->repodata_use_zst,
+                .offline = this->offline,
+                .repodata_check_zst = this->repodata_use_zst,
             };
         }
 
         TransactionParams transaction_params() const
         {
-            return { /* .is_mamba_exe */ command_params.is_mamba_exe,
-                     /* .json_output */ output_params.json,
-                     /* .verbosity */ output_params.verbosity,
-                     /* .shortcut */ shortcuts,
-                     /* .envs_dirs */ envs_dirs,
-                     /* .platform */ platform,
-                     /* .prefix_params */ prefix_params,
-                     /* .link_params */ link_params,
-                     /* .threads_params */ threads_params };
+            return {
+                .is_mamba_exe = command_params.is_mamba_exe,
+                .json_output = output_params.json,
+                .verbosity = output_params.verbosity,
+                .shortcuts = shortcuts,
+                .envs_dirs = envs_dirs,
+                .platform = platform,
+                .prefix_params = prefix_params,
+                .link_params = link_params,
+                .threads_params = threads_params,
+            };
         }
 
         std::size_t lock_timeout = 0;

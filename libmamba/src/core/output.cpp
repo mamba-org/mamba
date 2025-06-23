@@ -25,6 +25,7 @@
 #include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/synchronized_value.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -283,15 +284,21 @@ namespace mamba
 
         const Context& m_context;
 
-        std::mutex m_mutex;
-        std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
 
         std::string json_hier;
         unsigned int json_index;
         nlohmann::json json_log;
         bool is_json_print_cancelled = false;
 
-        std::vector<std::string> m_buffer;
+        using Buffer = std::vector<std::string>;
+
+        struct Data
+        {
+            std::unique_ptr<ProgressBarManager> progress_bar_manager;
+            Buffer buffer;
+        };
+
+        util::synchronized_value<Data> m_synched_data;
 
         TaskSynchronizer m_tasksync;
     };
@@ -346,11 +353,11 @@ namespace mamba
     {
         if (force_print || !(context().output_params.quiet || context().output_params.json))
         {
-            const std::lock_guard<std::mutex> lock(p_data->m_mutex);
+            auto synched_data = p_data->m_synched_data.synchronize();
 
-            if (p_data->p_progress_bar_manager && p_data->p_progress_bar_manager->started())
+            if (synched_data->progress_bar_manager && synched_data->progress_bar_manager->started())
             {
-                p_data->m_buffer.push_back(hide_secrets(str));
+                synched_data->buffer.push_back(hide_secrets(str));
             }
             else
             {
@@ -362,12 +369,8 @@ namespace mamba
     void Console::print_buffer(std::ostream& ostream)
     {
         auto& data = instance().p_data;
-        decltype(data->m_buffer) tmp;
-
-        {
-            const std::lock_guard<std::mutex> lock(data->m_mutex);
-            data->m_buffer.swap(tmp);
-        }
+        ConsoleData::Buffer tmp;
+        data->m_synched_data->buffer.swap(tmp);
 
         for (const auto& message : tmp)
         {
@@ -436,7 +439,7 @@ namespace mamba
         }
         else
         {
-            return p_data->p_progress_bar_manager->add_progress_bar(
+            return p_data->m_synched_data->progress_bar_manager->add_progress_bar(
                 name,
                 {
                     /* .graphics = */ context().graphics_params,
@@ -449,31 +452,35 @@ namespace mamba
 
     void Console::clear_progress_bars()
     {
-        return p_data->p_progress_bar_manager->clear_progress_bars();
+        return p_data->m_synched_data->progress_bar_manager->clear_progress_bars();
     }
 
     ProgressBarManager& Console::init_progress_bar_manager(ProgressBarMode mode)
     {
-        p_data->p_progress_bar_manager = make_progress_bar_manager(mode);
-        p_data->p_progress_bar_manager->register_print_hook(Console::print_buffer);
-        p_data->p_progress_bar_manager->register_print_hook(MessageLogger::print_buffer);
-        p_data->p_progress_bar_manager->register_pre_start_hook(MessageLogger::activate_buffer);
-        p_data->p_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
+        auto new_progress_bar_manager = make_progress_bar_manager(mode);
+        new_progress_bar_manager->register_print_hook(Console::print_buffer);
+        new_progress_bar_manager->register_print_hook(MessageLogger::print_buffer);
+        new_progress_bar_manager->register_pre_start_hook(MessageLogger::activate_buffer);
+        new_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
 
-        return *(p_data->p_progress_bar_manager);
+        auto synched_data = p_data->m_synched_data.synchronize();
+        synched_data->progress_bar_manager = std::move(new_progress_bar_manager);
+
+        return *(synched_data->progress_bar_manager);  // unsafe!
     }
 
     void Console::terminate_progress_bar_manager()
     {
-        if (p_data->p_progress_bar_manager)
+        auto synched_data = p_data->m_synched_data.synchronize();
+        if (synched_data->progress_bar_manager)
         {
-            p_data->p_progress_bar_manager->terminate();
+            synched_data->progress_bar_manager->terminate();
         }
     }
 
     ProgressBarManager& Console::progress_bar_manager()
     {
-        return *(p_data->p_progress_bar_manager);
+        return *(p_data->m_synched_data->progress_bar_manager);
     }
 
     void Console::json_print()
@@ -543,12 +550,10 @@ namespace mamba
      * MessageLogger *
      *****************/
 
-    struct MessageLoggerData
-    {
-        static std::mutex m_mutex;
-        static bool use_buffer;
-        static std::vector<std::pair<std::string, log_level>> m_buffer;
-    };
+    static std::atomic<bool> message_logger_use_buffer;
+
+    using MessageLoggerBuffer = std::vector<std::pair<std::string, log_level>>;
+    static util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
 
     MessageLogger::MessageLogger(log_level level)
         : m_level(level)
@@ -558,14 +563,13 @@ namespace mamba
 
     MessageLogger::~MessageLogger()
     {
-        if (!MessageLoggerData::use_buffer && Console::is_available())
+        if (!message_logger_use_buffer && Console::is_available())
         {
             emit(m_stream.str(), m_level);
         }
         else
         {
-            const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
-            MessageLoggerData::m_buffer.push_back({ m_stream.str(), m_level });
+            message_logger_buffer->push_back({ m_stream.str(), m_level });
         }
     }
 
@@ -608,22 +612,18 @@ namespace mamba
 
     void MessageLogger::activate_buffer()
     {
-        MessageLoggerData::use_buffer = true;
+        message_logger_use_buffer = true;
     }
 
     void MessageLogger::deactivate_buffer()
     {
-        MessageLoggerData::use_buffer = false;
+        message_logger_use_buffer = false;
     }
 
     void MessageLogger::print_buffer(std::ostream& /*ostream*/)
     {
-        decltype(MessageLoggerData::m_buffer) tmp;
-
-        {
-            const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
-            MessageLoggerData::m_buffer.swap(tmp);
-        }
+        MessageLoggerBuffer tmp;
+        message_logger_buffer->swap(tmp);
 
         for (const auto& [msg, level] : tmp)
         {

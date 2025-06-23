@@ -740,7 +740,7 @@ namespace mamba
     void extract(const fs::u8path& file, const fs::u8path& dest, const ExtractOptions& options)
     {
         static std::mutex extract_mutex;
-        std::lock_guard<std::mutex> lock(extract_mutex);
+        std::unique_lock lock{ extract_mutex };
 
         if (util::ends_with(file.string(), ".tar.bz2"))
         {

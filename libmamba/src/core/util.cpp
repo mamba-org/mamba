@@ -892,7 +892,7 @@ namespace mamba
         int ret = 0;
         if (m_fd > -1)
         {
-            ret = close(m_fd);
+            ret = _close(m_fd);
             m_fd = -1;
         }
         return ret;

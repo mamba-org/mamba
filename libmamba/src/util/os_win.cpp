@@ -89,7 +89,14 @@ namespace mamba::util
         }
 
         assert(utf8_text.size() <= std::numeric_limits<int>::max());
-        const int size = ::MultiByteToWideChar(CP_UTF8, 0, utf8_text.data(), utf8_text.size(), nullptr, 0);
+        const int size = ::MultiByteToWideChar(
+            CP_UTF8,
+            0,
+            utf8_text.data(),
+            static_cast<int>(utf8_text.size()),
+            nullptr,
+            0
+        );
         if (size <= 0)
         {
             throw std::runtime_error(fmt::format(
@@ -100,13 +107,14 @@ namespace mamba::util
         }
 
         auto output = std::wstring(static_cast<std::size_t>(size), char(0));
+        assert(output.size() <= std::numeric_limits<int>::max());
         [[maybe_unused]] const int res_size = ::MultiByteToWideChar(
             CP_UTF8,
             0,
             utf8_text.data(),
-            utf8_text.size(),
+            static_cast<int>(utf8_text.size()),
             output.data(),
-            output.size()
+            static_cast<int>(output.size())
         );
         assert(res_size == size);
         return output;

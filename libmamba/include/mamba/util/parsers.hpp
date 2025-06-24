@@ -343,7 +343,7 @@ namespace mamba::util
         {
             // TODO(C++20): After allocating tokens and depths here, call an impl function using
             // std::span defined in .cpp
-            static constexpr auto npos = std::string_view::npos;
+            static constexpr auto sv_npos = std::string_view::npos;
 
             const auto tokens = detail_parsers::concat_array<char>(open, close);
             const auto tokens_str = std::string_view(tokens.data(), tokens.size());
@@ -351,13 +351,13 @@ namespace mamba::util
             auto depths = std::array<int, P + 1>{};  // Plus one for branchless depths code
 
             const auto start = searcher.find_first(text, tokens_str);
-            if (start == npos)
+            if (start == sv_npos)
             {
-                return { npos, npos };
+                return { sv_npos, sv_npos };
             }
 
             auto pos = start;
-            while (pos != npos)
+            while (pos != sv_npos)
             {
                 // Change depth of corresponding open/close pair, writing in index P for
                 // the one not matching.
@@ -390,7 +390,7 @@ namespace mamba::util
             }
 
             err = ParseError::InvalidInput;
-            return { start, npos };
+            return { start, sv_npos };
         }
 
         template <std::size_t P, typename Str, typename Searcher>
@@ -405,12 +405,12 @@ namespace mamba::util
         {
             // TODO(C++20): After allocating tokens and depths here, call an impl function using
             // std::span defined in .cpp
-            static constexpr auto npos = std::string_view::npos;
+            static constexpr auto sv_npos = std::string_view::npos;
 
             if (detail_parsers::empty(val))
             {
                 err = ParseError::InvalidInput;
-                return npos;
+                return sv_npos;
             }
 
             const auto tokens = detail_parsers::concat_array<char>(
@@ -421,9 +421,9 @@ namespace mamba::util
             const auto tokens_str = std::string_view(tokens.data(), tokens.size());
 
             auto depths = std::array<int, P + 1>{};  // last for easy branchless access
-            auto first_val_pos = npos;
+            auto first_val_pos = sv_npos;
             auto pos = searcher.find_first(text, tokens_str);
-            while (pos != npos)
+            while (pos != sv_npos)
             {
                 const auto open_pos = detail_parsers::find(open, text[pos]);
                 const auto close_pos = detail_parsers::find(close, text[pos]);
@@ -441,7 +441,7 @@ namespace mamba::util
                     err = if_else(d < 0, ParseError::InvalidInput, err);
                 }
                 const bool match = starts_with(text.substr(pos), val);
-                first_val_pos = if_else(match && (pos == npos), pos, first_val_pos);
+                first_val_pos = if_else(match && (pos == sv_npos), pos, first_val_pos);
                 if (match && (depths == decltype(depths){}))
                 {
                     return pos;
@@ -454,7 +454,7 @@ namespace mamba::util
                 err = ParseError::InvalidInput;
                 return first_val_pos;
             }
-            return npos;  // not found
+            return sv_npos;  // not found
         }
     }
 

@@ -89,7 +89,14 @@ namespace mamba::util
         }
 
         assert(utf8_text.size() <= std::numeric_limits<int>::max());
-        const int size = ::MultiByteToWideChar(CP_UTF8, 0, utf8_text.data(), static_cast<int>(utf8_text.size()), nullptr, 0);
+        const int size = ::MultiByteToWideChar(
+            CP_UTF8,
+            0,
+            utf8_text.data(),
+            static_cast<int>(utf8_text.size()),
+            nullptr,
+            0
+        );
         if (size <= 0)
         {
             throw std::runtime_error(fmt::format(

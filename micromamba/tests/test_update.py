@@ -426,8 +426,8 @@ class TestUpdateConfig:
         res = helpers.install(*cmd, "--print-config-only")
         TestUpdateConfig.config_tests(
             res,
-            root_prefix=TestUpdateConfig.root_prefix,
-            target_prefix=TestUpdateConfig.root_prefix,
+            root_prefix=TestUpdateConfig.current_root_prefix,
+            target_prefix=TestUpdateConfig.current_root_prefix,
         )
 
     @pytest.mark.skipif(

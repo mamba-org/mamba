@@ -169,7 +169,7 @@ namespace
         REQUIRE(current_value->x == expected_result);
     }
 
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_basics()
     {
         using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
@@ -297,7 +297,7 @@ namespace
     }
 
     // Factorized initializer-list test
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_initializer_list()
     {
         using synchronized_value = mamba::util::synchronized_value<std::vector<int>, MutexType>;
@@ -305,7 +305,7 @@ namespace
     }
 
     // Factorized apply example test
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_apply_example()
     {
         using synchronized_value = mamba::util::synchronized_value<std::vector<int>, MutexType>;
@@ -319,7 +319,7 @@ namespace
     }
 
     // Factorized thread-safe direct_access test
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_threadsafe_direct_access()
     {
         using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
@@ -327,7 +327,7 @@ namespace
     }
 
     // Factorized thread-safe synchronize test
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_threadsafe_synchronize()
     {
         using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
@@ -341,7 +341,7 @@ namespace
     }
 
     // Factorized thread-safe apply test
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_threadsafe_apply()
     {
         using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
@@ -350,7 +350,7 @@ namespace
     }
 
     // Factorized thread-safe multiple synchronize test
-    template <typename MutexType>
+    template <mamba::util::Mutex MutexType>
     void test_synchronized_value_threadsafe_multiple_synchronize()
     {
         using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;

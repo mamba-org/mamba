@@ -95,11 +95,11 @@ namespace
         auto operator<=>(const ValueType&) const noexcept = default;
     };
 
-    // NOTE: We do not use TEMPLATE_LIST_TEST_CASE here because code coverage tools (such as
-    // gcov/lcov) do not properly attribute coverage to tests instantiated via
-    // TEMPLATE_LIST_TEST_CASE. Instead, we use individual TEMPLATE_TEST_CASEs for each mutex type,
-    // and factorize the test logic into function templates to avoid code duplication. This ensures
-    // accurate code coverage reporting.
+    // NOTE: We do not use TEMPLATE_TEST_CASE or TEMPLATE_LIST_TEST_CASE here because code coverage
+    // tools (such as gcov/lcov) do not properly attribute coverage to tests instantiated via
+    // template test cases. Instead, we use individual TEST_CASEs for each mutex type, and factorize
+    // the test logic into function templates to avoid code duplication. This ensures accurate code
+    // coverage reporting.
 
     using supported_mutex_types = std::tuple<std::mutex, std::shared_mutex, std::recursive_mutex>;
 
@@ -281,25 +281,17 @@ namespace
         }
     }
 
-    TEMPLATE_TEST_CASE("synchronized_value basics with std::mutex", "[template][thread-safe]", std::mutex)
+    TEST_CASE("synchronized_value basics with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_basics<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value basics with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value basics with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_basics<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value basics with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value basics with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_basics<std::recursive_mutex>();
     }
@@ -372,165 +364,93 @@ namespace
         );
     }
 
-    // Now call these from the TEMPLATE_TEST_CASEs
-    TEMPLATE_TEST_CASE(
-        "synchronized_value initializer-list with std::mutex",
-        "[template][thread-safe]",
-        std::mutex
-    )
+    // Individual test cases for each mutex type
+    TEST_CASE("synchronized_value initializer-list with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_initializer_list<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value initializer-list with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value initializer-list with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_initializer_list<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value initializer-list with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value initializer-list with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_initializer_list<std::recursive_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value apply example with std::mutex",
-        "[template][thread-safe]",
-        std::mutex
-    )
+    TEST_CASE("synchronized_value apply example with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_apply_example<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value apply example with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value apply example with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_apply_example<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value apply example with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value apply example with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_apply_example<std::recursive_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe direct_access with std::mutex",
-        "[template][thread-safe]",
-        std::mutex
-    )
+    TEST_CASE("synchronized_value thread-safe direct_access with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_direct_access<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe direct_access with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe direct_access with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_direct_access<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe direct_access with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe direct_access with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_direct_access<std::recursive_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe synchronize with std::mutex",
-        "[template][thread-safe]",
-        std::mutex
-    )
+    TEST_CASE("synchronized_value thread-safe synchronize with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_synchronize<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe synchronize with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe synchronize with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_synchronize<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe synchronize with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe synchronize with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_synchronize<std::recursive_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe apply with std::mutex",
-        "[template][thread-safe]",
-        std::mutex
-    )
+    TEST_CASE("synchronized_value thread-safe apply with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_apply<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe apply with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe apply with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_apply<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe apply with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe apply with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_apply<std::recursive_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe multiple synchronize with std::mutex",
-        "[template][thread-safe]",
-        std::mutex
-    )
+    TEST_CASE("synchronized_value thread-safe multiple synchronize with std::mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_multiple_synchronize<std::mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe multiple synchronize with std::shared_mutex",
-        "[template][thread-safe]",
-        std::shared_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe multiple synchronize with std::shared_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_multiple_synchronize<std::shared_mutex>();
     }
 
-    TEMPLATE_TEST_CASE(
-        "synchronized_value thread-safe multiple synchronize with std::recursive_mutex",
-        "[template][thread-safe]",
-        std::recursive_mutex
-    )
+    TEST_CASE("synchronized_value thread-safe multiple synchronize with std::recursive_mutex", "[thread-safe]")
     {
         test_synchronized_value_threadsafe_multiple_synchronize<std::recursive_mutex>();
     }

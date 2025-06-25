@@ -95,11 +95,18 @@ namespace
         auto operator<=>(const ValueType&) const noexcept = default;
     };
 
+    // NOTE: We do not use TEMPLATE_TEST_CASE or TEMPLATE_LIST_TEST_CASE here because code coverage
+    // tools (such as gcov/lcov) do not properly attribute coverage to tests instantiated via
+    // template test cases. Instead, we use individual TEST_CASEs for each mutex type, and factorize
+    // the test logic into function templates to avoid code duplication. This ensures accurate code
+    // coverage reporting.
+
     using supported_mutex_types = std::tuple<std::mutex, std::shared_mutex, std::recursive_mutex>;
 
-    TEMPLATE_LIST_TEST_CASE("synchronized_value basics", "[template][thread-safe]", supported_mutex_types)
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_basics()
     {
-        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
+        using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
 
         SECTION("default constructible")
         {
@@ -208,23 +215,36 @@ namespace
         }
     }
 
-    TEMPLATE_LIST_TEST_CASE(
-        "synchronized_value initializer-list",
-        "[template][thread-safe]",
-        supported_mutex_types
-    )
+    TEST_CASE("synchronized_value basics with std::mutex", "[thread-safe]")
     {
-        using synchronized_value = mamba::util::synchronized_value<std::vector<int>, TestType>;
+        test_synchronized_value_basics<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value basics with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_basics<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value basics with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_basics<std::recursive_mutex>();
+    }
+
+    // Factorized initializer-list test
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_initializer_list()
+    {
+        using synchronized_value = mamba::util::synchronized_value<std::vector<int>, MutexType>;
         synchronized_value values{ 1, 2, 3, 4 };
     }
 
-    TEMPLATE_LIST_TEST_CASE("synchronized_value apply example", "[template][thread-safe]", supported_mutex_types)
+    // Factorized apply example test
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_apply_example()
     {
-        using synchronized_value = mamba::util::synchronized_value<std::vector<int>, TestType>;
-
+        using synchronized_value = mamba::util::synchronized_value<std::vector<int>, MutexType>;
         const std::vector initial_values{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
         const std::vector sorted_values{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
         synchronized_value values{ initial_values };
         values.apply(std::ranges::sort);
         REQUIRE(values == sorted_values);
@@ -288,7 +308,6 @@ namespace
             }
         }
 
-
         run_tasks = true;  // green light, tasks will run probably concurrently, worse case in
                            // unpredictable order
         for (auto& task : tasks)
@@ -299,24 +318,20 @@ namespace
         REQUIRE(current_value->x == expected_result);
     }
 
-    TEMPLATE_LIST_TEST_CASE(
-        "synchronized_value thread-safe direct_access",
-        "[template][thread-safe]",
-        supported_mutex_types
-    )
+    // Factorized thread-safe direct_access test
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_threadsafe_direct_access()
     {
-        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
-        test_concurrent_increment<TestType>([](synchronized_value& sv) { sv->x += 1; });
+        using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
+        test_concurrent_increment<MutexType>([](synchronized_value& sv) { sv->x += 1; });
     }
 
-    TEMPLATE_LIST_TEST_CASE(
-        "synchronized_value thread-safe synchronize",
-        "[template][thread-safe]",
-        supported_mutex_types
-    )
+    // Factorized thread-safe synchronize test
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_threadsafe_synchronize()
     {
-        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
-        test_concurrent_increment<TestType>(
+        using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
+        test_concurrent_increment<MutexType>(
             [](synchronized_value& sv)
             {
                 auto synched_sv = sv.synchronize();
@@ -325,32 +340,119 @@ namespace
         );
     }
 
-    TEMPLATE_LIST_TEST_CASE(
-        "synchronized_value thread-safe apply",
-        "[template][thread-safe]",
-        supported_mutex_types
-    )
+    // Factorized thread-safe apply test
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_threadsafe_apply()
     {
-        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
-        test_concurrent_increment<TestType>([](synchronized_value& sv)
-                                            { sv.apply([](ValueType& value) { value.x += 1; }); });
+        using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
+        test_concurrent_increment<MutexType>([](synchronized_value& sv)
+                                             { sv.apply([](ValueType& value) { value.x += 1; }); });
     }
 
-    TEMPLATE_LIST_TEST_CASE(
-        "synchronized_value thread-safe multiple synchronize",
-        "[template][thread-safe]",
-        supported_mutex_types
-    )
+    // Factorized thread-safe multiple synchronize test
+    template <mamba::util::Mutex MutexType>
+    void test_synchronized_value_threadsafe_multiple_synchronize()
     {
-        using synchronized_value = mamba::util::synchronized_value<ValueType, TestType>;
+        using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
         const mamba::util::synchronized_value<std::vector<int>, std::shared_mutex> extra_values{ 1 };
-        test_concurrent_increment<TestType>(
+        test_concurrent_increment<MutexType>(
             [&](synchronized_value& sv)
             {
                 auto [ssv, sev] = synchronize(sv, extra_values);
                 ssv->x += sev->front();
             }
         );
+    }
+
+    // Individual test cases for each mutex type
+    TEST_CASE("synchronized_value initializer-list with std::mutex", "[thread-safe]")
+    {
+        test_synchronized_value_initializer_list<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value initializer-list with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_initializer_list<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value initializer-list with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_initializer_list<std::recursive_mutex>();
+    }
+
+    TEST_CASE("synchronized_value apply example with std::mutex", "[thread-safe]")
+    {
+        test_synchronized_value_apply_example<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value apply example with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_apply_example<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value apply example with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_apply_example<std::recursive_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe direct_access with std::mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_direct_access<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe direct_access with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_direct_access<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe direct_access with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_direct_access<std::recursive_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe synchronize with std::mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_synchronize<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe synchronize with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_synchronize<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe synchronize with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_synchronize<std::recursive_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe apply with std::mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_apply<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe apply with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_apply<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe apply with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_apply<std::recursive_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe multiple synchronize with std::mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_multiple_synchronize<std::mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe multiple synchronize with std::shared_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_multiple_synchronize<std::shared_mutex>();
+    }
+
+    TEST_CASE("synchronized_value thread-safe multiple synchronize with std::recursive_mutex", "[thread-safe]")
+    {
+        test_synchronized_value_threadsafe_multiple_synchronize<std::recursive_mutex>();
     }
 
     TEST_CASE("synchronized_value basics multiple synchronize")

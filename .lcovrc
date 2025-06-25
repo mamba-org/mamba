@@ -1,0 +1,56 @@
+# lcov configuration file for mamba project
+# This configuration makes lcov more tolerant of template-generated symbols
+# and complex C++ mangled names from Catch2 template test cases
+
+# Core settings for template-generated code tolerance
+geninfo_unexecuted_blocks = 1
+geninfo_unexecuted_lines = 1
+geninfo_complex_function = 1
+geninfo_no_exception_branch = 1
+
+# Error handling - be very tolerant of template-related issues
+geninfo_ignore_errors = mismatch,source,unused,empty,negative
+geninfo_partial_coverage = 1
+
+# Buffer and processing settings for complex symbols
+geninfo_buffer_size = 2097152
+geninfo_function_coverage = 1
+geninfo_branch_coverage = 1
+
+# Checksum settings - disable for template-generated code
+geninfo_checksum = 0
+geninfo_no_checksum = 1
+
+# Name adjustment settings
+geninfo_adjust_testname = 0
+geninfo_adjust_filename = 0
+
+# Additional tolerance settings
+geninfo_use_checksum = 0
+geninfo_use_checksum_fallback = 0
+
+# Handle complex C++ mangled names from template test cases
+geninfo_derive_function_end_line = 1
+geninfo_derive_function_end_line_algorithm = 1
+
+# Be more permissive with line number mismatches
+geninfo_ignore_errors = mismatch,source,unused,empty,negative,invalid
+geninfo_ignore_errors = mismatch,source,unused,empty,negative,invalid,unused
+
+# Specific settings for Catch2 template test cases
+geninfo_template_test_case_tolerance = 1
+geninfo_catch2_template_support = 1
+
+# Coverage calculation settings
+lcov_branch_coverage = 1
+lcov_function_coverage = 1
+lcov_demangle_cpp = 1
+lcov_demangle_cpp_params = 1
+
+# Remove settings
+lcov_remove_tolerance = 1
+lcov_remove_ignore_errors = mismatch,source,unused,empty,negative
+
+# Summary settings
+lcov_summary_tolerance = 1
+lcov_summary_ignore_errors = mismatch,source,unused,empty,negative

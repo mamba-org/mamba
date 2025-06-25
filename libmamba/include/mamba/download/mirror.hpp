@@ -112,6 +112,12 @@ namespace mamba::download
 
         struct Stats
         {
+            Stats() = default;
+            Stats(const Stats&) = default;
+            Stats(Stats&&) noexcept = default;
+            Stats& operator=(const Stats&) = default;
+            Stats& operator=(Stats&&) noexcept = default;
+
             std::optional<std::size_t> allowed_connections = std::nullopt;
             std::size_t max_tried_connections = 0;
             std::size_t running_transfers = 0;
@@ -119,11 +125,14 @@ namespace mamba::download
             std::size_t failed_transfers = 0;
         };
 
+        static_assert(std::default_initializable<Stats>);
+
         util::synchronized_value<Stats> m_stats;
 
     };
 
     std::unique_ptr<Mirror> make_mirror(std::string url);
+
 }
 
 #endif

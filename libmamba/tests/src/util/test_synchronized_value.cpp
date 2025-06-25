@@ -103,72 +103,6 @@ namespace
 
     using supported_mutex_types = std::tuple<std::mutex, std::shared_mutex, std::recursive_mutex>;
 
-    template <mamba::util::Mutex M>
-    auto test_concurrent_increment(
-        std::invocable<mamba::util::synchronized_value<ValueType, M>&> auto increment_task
-    )
-    {
-        static constexpr auto arbitrary_number_of_executing_threads = 512;
-
-        mamba::util::synchronized_value<ValueType, M> current_value;
-        static constexpr int expected_result = arbitrary_number_of_executing_threads;
-
-        std::atomic<bool> run_tasks = false;  // used to launch tasks about the same time, simpler
-                                              // than condition_variable
-        std::vector<std::future<void>> tasks;
-
-        // Launch the reading and writing tasks (maybe threads, depends on how async is implemented)
-        for (int i = 0; i < expected_result * 2; ++i)
-        {
-            if (i % 2)  // intertwine reading and writing tasks
-            {
-                // add writing task
-                tasks.push_back(std::async(
-                    std::launch::async,
-                    [&, increment_task]
-                    {
-                        // don't actually run until we get the green light
-                        mambatests::wait_condition([&] { return run_tasks == true; });
-                        increment_task(current_value);
-                    }
-                ));
-            }
-            else
-            {
-                // add reading task
-                tasks.push_back(std::async(
-                    std::launch::async,
-                    [&]
-                    {
-                        // don't actually run until we get the green light
-                        mambatests::wait_condition([&] { return run_tasks == true; });
-                        const auto& readonly_value = std::as_const(current_value);
-                        static constexpr auto arbitrary_read_count = 100;
-                        long long sum = 0;
-                        for (int c = 0; c < arbitrary_read_count; ++c)
-                        {
-                            sum += readonly_value->x;   // TODO: also try to mix reading and writing
-                                                        // using different kinds of access
-                            std::this_thread::yield();  // for timing randomness and limit
-                                                        // over-exhaustion
-                        }
-                        REQUIRE(sum != 0);  // It is possible but extremely unlikely that all
-                                            // reading tasks will read before any writing tasks.
-                    }
-                ));
-            }
-        }
-
-        run_tasks = true;  // green light, tasks will run probably concurrently, worse case in
-                           // unpredictable order
-        for (auto& task : tasks)
-        {
-            task.wait();  // wait all to be finished
-        }
-
-        REQUIRE(current_value->x == expected_result);
-    }
-
     template <mamba::util::Mutex MutexType>
     void test_synchronized_value_basics()
     {
@@ -316,6 +250,72 @@ namespace
         REQUIRE(values == sorted_values);
         values.apply(std::ranges::sort, std::ranges::greater{});
         REQUIRE(values == initial_values);
+    }
+
+    template <mamba::util::Mutex M>
+    auto test_concurrent_increment(
+        std::invocable<mamba::util::synchronized_value<ValueType, M>&> auto increment_task
+    )
+    {
+        static constexpr auto arbitrary_number_of_executing_threads = 512;
+
+        mamba::util::synchronized_value<ValueType, M> current_value;
+        static constexpr int expected_result = arbitrary_number_of_executing_threads;
+
+        std::atomic<bool> run_tasks = false;  // used to launch tasks about the same time, simpler
+                                              // than condition_variable
+        std::vector<std::future<void>> tasks;
+
+        // Launch the reading and writing tasks (maybe threads, depends on how async is implemented)
+        for (int i = 0; i < expected_result * 2; ++i)
+        {
+            if (i % 2)  // intertwine reading and writing tasks
+            {
+                // add writing task
+                tasks.push_back(std::async(
+                    std::launch::async,
+                    [&, increment_task]
+                    {
+                        // don't actually run until we get the green light
+                        mambatests::wait_condition([&] { return run_tasks == true; });
+                        increment_task(current_value);
+                    }
+                ));
+            }
+            else
+            {
+                // add reading task
+                tasks.push_back(std::async(
+                    std::launch::async,
+                    [&]
+                    {
+                        // don't actually run until we get the green light
+                        mambatests::wait_condition([&] { return run_tasks == true; });
+                        const auto& readonly_value = std::as_const(current_value);
+                        static constexpr auto arbitrary_read_count = 100;
+                        long long sum = 0;
+                        for (int c = 0; c < arbitrary_read_count; ++c)
+                        {
+                            sum += readonly_value->x;   // TODO: also try to mix reading and writing
+                                                        // using different kinds of access
+                            std::this_thread::yield();  // for timing randomness and limit
+                                                        // over-exhaustion
+                        }
+                        REQUIRE(sum != 0);  // It is possible but extremely unlikely that all
+                                            // reading tasks will read before any writing tasks.
+                    }
+                ));
+            }
+        }
+
+        run_tasks = true;  // green light, tasks will run probably concurrently, worse case in
+                           // unpredictable order
+        for (auto& task : tasks)
+        {
+            task.wait();  // wait all to be finished
+        }
+
+        REQUIRE(current_value->x == expected_result);
     }
 
     // Factorized thread-safe direct_access test

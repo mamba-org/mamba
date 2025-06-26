@@ -291,11 +291,16 @@ namespace mamba
         {
         }
 
+        ConsoleData(const ConsoleData&) = delete;
+        ConsoleData& operator=(const ConsoleData&) = delete;
+
+        ConsoleData(ConsoleData&&) noexcept = delete;
+        ConsoleData& operator=(ConsoleData&&) noexcept = delete;
+
         const Context& m_context;
 
-
         std::string json_hier;
-        unsigned int json_index;
+        unsigned int json_index = 0;
         nlohmann::json json_log;
         bool is_json_print_cancelled = false;
 
@@ -306,7 +311,7 @@ namespace mamba
     };
 
     Console::Console(const Context& context)
-        : p_data(new ConsoleData{ context })
+        : p_data(std::make_unique<ConsoleData>(context))
     {
         set_singleton(*this);
 

@@ -75,12 +75,21 @@ namespace mamba
 
         std::unique_lock<std::mutex> chrono_lock();
 
+
     private:
 
-        time_point_t m_start;
-        duration_t m_elapsed_ns = duration_t::zero();
-        ChronoState m_state = ChronoState::unset;
-        std::mutex m_mutex;
+        struct Data
+        {
+            Data()  // workaround for CWG2335
+            {
+            }
+
+            time_point_t start;
+            duration_t elapsed_ns = duration_t::zero();
+            ChronoState state = ChronoState::unset;
+        };
+
+        util::synchronized_value<Data> m_data;
 
         void compute_elapsed();
 

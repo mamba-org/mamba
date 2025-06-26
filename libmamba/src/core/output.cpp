@@ -273,6 +273,15 @@ namespace mamba
      * Console *
      ***********/
 
+
+    using ConsoleBuffer = std::vector<std::string>;
+
+    struct ConsoleSynchedData
+    {
+        std::unique_ptr<ProgressBarManager> progress_bar_manager;
+        ConsoleBuffer buffer;
+    };
+
     class ConsoleData
     {
     public:
@@ -290,15 +299,8 @@ namespace mamba
         nlohmann::json json_log;
         bool is_json_print_cancelled = false;
 
-        using Buffer = std::vector<std::string>;
 
-        struct Data
-        {
-            std::unique_ptr<ProgressBarManager> progress_bar_manager;
-            Buffer buffer;
-        };
-
-        util::synchronized_value<Data> m_synched_data;
+        util::synchronized_value<ConsoleSynchedData> m_synched_data;
 
         TaskSynchronizer m_tasksync;
     };
@@ -369,7 +371,7 @@ namespace mamba
     void Console::print_buffer(std::ostream& ostream)
     {
         auto& data = instance().p_data;
-        ConsoleData::Buffer tmp;
+        ConsoleBuffer tmp;
         data->m_synched_data->buffer.swap(tmp);
 
         for (const auto& message : tmp)
@@ -442,8 +444,8 @@ namespace mamba
             return p_data->m_synched_data->progress_bar_manager->add_progress_bar(
                 name,
                 {
-                    /* .graphics = */ context().graphics_params,
-                    /* .ascii_only =  */ context().ascii_only,
+                    .graphics = context().graphics_params,
+                    .ascii_only =  context().ascii_only,
                 },
                 expected_total
             );

@@ -239,32 +239,32 @@ namespace mamba
 
     bool Chrono::started() const
     {
-        return m_state == ChronoState::started;
+        return m_data->state == ChronoState::started;
     }
 
     bool Chrono::paused() const
     {
-        return m_state == ChronoState::paused;
+        return m_data->state == ChronoState::paused;
     }
 
     bool Chrono::stopped() const
     {
-        return m_state == ChronoState::stopped;
+        return m_data->state == ChronoState::stopped;
     }
 
     bool Chrono::terminated() const
     {
-        return m_state == ChronoState::terminated;
+        return m_data->state == ChronoState::terminated;
     }
 
     bool Chrono::unset() const
     {
-        return m_state == ChronoState::unset;
+        return m_data->state == ChronoState::unset;
     }
 
     ChronoState Chrono::status() const
     {
-        return m_state;
+        return m_data->state;
     }
 
     void Chrono::start()
@@ -274,25 +274,24 @@ namespace mamba
 
     void Chrono::start(const time_point_t& time_point)
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_start = time_point;
-        m_state = ChronoState::started;
+        auto synched_data = m_data.synchronize();
+        synched_data->start = time_point;
+        synched_data->state = ChronoState::started;
     }
 
     void Chrono::pause()
     {
         compute_elapsed();
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_state = ChronoState::paused;
+        m_data->state = ChronoState::paused;
     }
 
     void Chrono::resume()
     {
-        if (m_state != ChronoState::started)
+        auto synched_data = m_data.synchronize();
+        if (synched_data->state != ChronoState::started)
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_state = ChronoState::started;
-            m_start = now() - m_elapsed_ns;
+            synched_data->state = ChronoState::started;
+            synched_data->start = now() - synched_data->elapsed_ns;
         }
     }
 

@@ -458,7 +458,7 @@ namespace mamba
     void PackageFetcher::update_urls_txt() const
     {
         // TODO: check if this lock is really required
-        std::lock_guard<std::mutex> lock(urls_txt_mutex);
+        std::unique_lock lock{ urls_txt_mutex };
         const auto urls_file_path = m_cache_path / "urls.txt";
         std::ofstream urls_txt(urls_file_path.std_path(), std::ios::app);
         urls_txt << url() << std::endl;

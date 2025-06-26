@@ -276,11 +276,6 @@ namespace mamba
 
     using ConsoleBuffer = std::vector<std::string>;
 
-    struct ConsoleSynchedData
-    {
-        std::unique_ptr<ProgressBarManager> progress_bar_manager;
-        ConsoleBuffer buffer;
-    };
 
     class ConsoleData
     {
@@ -297,6 +292,7 @@ namespace mamba
         ConsoleData(ConsoleData&&) noexcept = delete;
         ConsoleData& operator=(ConsoleData&&) noexcept = delete;
 
+
         const Context& m_context;
 
         std::string json_hier;
@@ -304,8 +300,12 @@ namespace mamba
         nlohmann::json json_log;
         bool is_json_print_cancelled = false;
 
-
-        util::synchronized_value<ConsoleSynchedData> m_synched_data;
+        struct Data
+        {
+            std::unique_ptr<ProgressBarManager> progress_bar_manager;
+            ConsoleBuffer buffer;
+        };
+        util::synchronized_value<Data> m_synched_data;
 
         TaskSynchronizer m_tasksync;
     };

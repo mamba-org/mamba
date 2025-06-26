@@ -144,8 +144,10 @@ namespace mamba
     private:
 
         std::atomic<bool> is_open{ true };
-        util::synchronized_value<std::vector<std::thread>> threads;
-        util::synchronized_value<std::vector<on_close_handler>> close_handlers;
+        using Threads = std::vector<std::thread>;
+        using CloseHandlers = std::vector<on_close_handler>;
+        util::synchronized_value<Threads, std::recursive_mutex> threads;
+        util::synchronized_value<CloseHandlers, std::recursive_mutex> close_handlers;
 
         void invoke_close_handlers();
     };

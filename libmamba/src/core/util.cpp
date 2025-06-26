@@ -1065,6 +1065,27 @@ namespace mamba
 #pragma GCC diagnostic pop
 #endif
 
+        struct LockedFilesData
+        {
+            // TODO: replace by something like boost::multiindex or equivalent to avoid having to
+            // handle 2 hashmaps
+            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
+                                                                                        // consider
+                                                                                        // replacing
+                                                                                        // by real
+                                                                                        // concurrent
+                                                                                        // set to
+                                                                                        // avoid
+                                                                                        // having to
+                                                                                        // lock the
+                                                                                        // whole
+                                                                                        // container
+
+            std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
+                                                                    // usage of file descriptors on
+                                                                    // linux instead of paths
+        };
+
         class LockedFilesRegistry
         {
         public:
@@ -1105,10 +1126,10 @@ namespace mamba
                 }
 
                 const auto absolute_file_path = fs::absolute(file_path);
-                std::scoped_lock lock{ mutex };
+                auto data = m_data.synchronize();
 
-                const auto it = locked_files.find(absolute_file_path);
-                if (it != locked_files.end())
+                const auto it = data->locked_files.find(absolute_file_path);
+                if (it != data->locked_files.end())
                 {
                     if (auto lockedfile = it->second.lock())
                     {
@@ -1123,8 +1144,8 @@ namespace mamba
                     {
                         auto lockedfile = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
                         auto tracker = std::weak_ptr{ lockedfile };
-                        locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
-                        fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
+                        data->locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
+                        data->fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
                         assert(is_lockfile_locked(*lockedfile));
                         return lockedfile;
                     }
@@ -1135,9 +1156,9 @@ namespace mamba
             bool is_locked(const fs::u8path& file_path) const
             {
                 const auto absolute_file_path = fs::absolute(file_path);
-                std::scoped_lock lock{ mutex };
-                auto it = locked_files.find(file_path);
-                if (it != locked_files.end())
+                auto data = m_data.synchronize();
+                auto it = data->locked_files.find(file_path);
+                if (it != data->locked_files.end())
                 {
                     return !it->second.expired();
                 }
@@ -1150,9 +1171,9 @@ namespace mamba
             // note: the resulting value will be obsolete before returning.
             bool is_locked(int fd) const
             {
-                std::scoped_lock lock{ mutex };
-                const auto it = fd_to_locked_path.find(fd);
-                if (it != fd_to_locked_path.end())
+                auto data = m_data.synchronize();
+                const auto it = data->fd_to_locked_path.find(fd);
+                if (it != data->fd_to_locked_path.end())
                 {
                     return is_locked(it->second);
                 }
@@ -1167,25 +1188,7 @@ namespace mamba
             std::atomic_bool m_is_file_locking_allowed{ true };
             std::atomic<std::chrono::seconds> m_default_lock_timeout{ std::chrono::seconds::zero() };
 
-            // TODO: replace by something like boost::multiindex or equivalent to avoid having to
-            // handle 2 hashmaps
-            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
-                                                                                        // consider
-                                                                                        // replacing
-                                                                                        // by real
-                                                                                        // concurrent
-                                                                                        // set to
-                                                                                        // avoid
-                                                                                        // having to
-                                                                                        // lock the
-                                                                                        // whole
-                                                                                        // container
-
-            std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
-                                                                    // usage of file descriptors on
-                                                                    // linux instead of paths
-            mutable std::recursive_mutex mutex;  // TODO: replace by synchronized_value once
-                                                 // available
+            util::synchronized_value<LockedFilesData, std::recursive_mutex> m_data;
         };
 
         static LockedFilesRegistry files_locked_by_this_process;

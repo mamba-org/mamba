@@ -9,6 +9,7 @@
 #include <mutex>
 
 #include "mamba/util/build.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 extern "C"
 {
@@ -105,19 +106,18 @@ namespace mamba
 
     static std::atomic<MainExecutor*> main_executor{ nullptr };
 
-    static std::unique_ptr<MainExecutor> default_executor;
-    static std::mutex default_executor_mutex;  // TODO: replace by synchronized_value once available
+    static util::synchronized_value<std::unique_ptr<MainExecutor>> default_executor;
 
     MainExecutor& MainExecutor::instance()
     {
         if (!main_executor)
         {
             // When no MainExecutor was created before we create a static one.
-            std::scoped_lock lock{ default_executor_mutex };
+            auto synched_default_executor = default_executor.synchronize();
             if (!main_executor)  // double check necessary to avoid data race
             {
-                default_executor = std::make_unique<MainExecutor>();
-                assert(main_executor == default_executor.get());
+                *synched_default_executor = std::make_unique<MainExecutor>();
+                assert(main_executor == synched_default_executor->get());
             }
         }
 
@@ -126,8 +126,7 @@ namespace mamba
 
     void MainExecutor::stop_default()
     {
-        std::scoped_lock lock{ default_executor_mutex };
-        default_executor.reset();
+        default_executor->reset();
     }
 
     MainExecutor::MainExecutor()

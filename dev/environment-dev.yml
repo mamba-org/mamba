@@ -15,6 +15,7 @@ dependencies:
   - libarchive>=3.8 lgpl_*
   - libcurl >=7.86
   - libsodium
+  - resolvo-cpp==0.1.0
   - libsolv >=0.7.18
   - nlohmann_json
   - reproc-cpp >=14.2.4.post0

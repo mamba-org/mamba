@@ -11,9 +11,12 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdir_index.hpp"
+#include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/solver_factory.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -22,9 +25,9 @@ namespace mamba
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& database,
+            solver::DatabaseVariant& database,
             const fs::u8path& pkgs_dir
-        ) -> solver::libsolv::RepoInfo
+        ) -> void
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -46,7 +49,42 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return load_installed_packages_in_database(ctx, database, prefix_data);
+
+            // Create a repo from the packages
+            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+            {
+                libsolv_db->add_repo_from_packages(
+                    prefix_data.sorted_records(),
+                    "pkgs_dir",
+                    solver::libsolv::PipAsPythonDependency::No
+                );
+
+                // Load the packages into the database
+                load_installed_packages_in_database(
+                    ctx,
+                    std::variant<
+                        std::reference_wrapper<solver::libsolv::Database>,
+                        std::reference_wrapper<solver::resolvo::Database>>(std::ref(*libsolv_db)),
+                    prefix_data
+                );
+            }
+            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+            {
+                resolvo_db->add_repo_from_packages(prefix_data.sorted_records(), "pkgs_dir", false);
+
+                // Load the packages into the database
+                load_installed_packages_in_database(
+                    ctx,
+                    std::variant<
+                        std::reference_wrapper<solver::libsolv::Database>,
+                        std::reference_wrapper<solver::resolvo::Database>>(std::ref(*resolvo_db)),
+                    prefix_data
+                );
+            }
+            else
+            {
+                throw std::runtime_error("Invalid database variant");
+            }
         }
 
         void create_subdirs(
@@ -131,7 +169,7 @@ namespace mamba
         auto load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
-            solver::libsolv::Database& database,
+            solver::DatabaseVariant& database,
             MultiPackageCache& package_caches,
             bool is_retry
         ) -> expected_t<void, mamba_aggregated_error>
@@ -202,7 +240,14 @@ namespace mamba
 
             if (!packages.empty())
             {
-                database.add_repo_from_packages(packages, "packages");
+                if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+                {
+                    libsolv_db->add_repo_from_packages(packages, "packages");
+                }
+                else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+                {
+                    resolvo_db->add_repo_from_packages(packages, "packages");
+                }
             }
 
             expected_t<void> download_res;
@@ -269,31 +314,86 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_database(ctx, database, subdir)
-                    .transform([&](solver::libsolv::RepoInfo&& repo)
-                               { database.set_repo_priority(repo, priorities[i]); })
-                    .or_else(
-                        [&](const auto&)
+                if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+                {
+                    auto res = load_subdir_in_database(ctx, *libsolv_db, subdir);
+                    if (!res)
+                    {
+                        if (is_retry)
                         {
-                            if (is_retry)
-                            {
-                                std::stringstream ss;
-                                ss << "Could not load repodata.json for " << subdir.name()
-                                   << " after retry." << "Please check repodata source. Exiting."
-                                   << std::endl;
-                                error_list.push_back(
-                                    mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
-                                );
-                            }
-                            else
-                            {
-                                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                                            << ". Deleting cache, and retrying.";
-                                subdir.clear_valid_cache_files();
-                                loading_failed = true;
-                            }
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry."
+                               << "Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
                         }
-                    );
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ". Deleting cache, and retrying.";
+                            subdir.clear_valid_cache_files();
+                            loading_failed = true;
+                        }
+                    }
+                }
+                else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+                {
+                    // For resolvo, we need to load the repodata.json file and add it to the
+                    // database
+                    auto repodata_json = subdir.valid_json_cache_path();
+                    if (!repodata_json)
+                    {
+                        if (is_retry)
+                        {
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry."
+                               << "Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ". Deleting cache, and retrying.";
+                            subdir.clear_valid_cache_files();
+                            loading_failed = true;
+                        }
+                        continue;
+                    }
+
+                    try
+                    {
+                        resolvo_db->add_repo_from_repodata_json(
+                            repodata_json.value(),
+                            util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                            subdir.channel_id()
+                        );
+                    }
+                    catch (const std::exception& e)
+                    {
+                        if (is_retry)
+                        {
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry: " << e.what()
+                               << ". Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ": " << e.what() << ". Deleting cache, and retrying.";
+                            subdir.clear_valid_cache_files();
+                            loading_failed = true;
+                        }
+                    }
+                }
             }
 
             if (loading_failed)
@@ -318,7 +418,7 @@ namespace mamba
     auto load_channels(
         Context& ctx,
         ChannelContext& channel_context,
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         MultiPackageCache& package_caches
     ) -> expected_t<void, mamba_aggregated_error>
     {

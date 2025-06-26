@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 namespace mamba
 {
@@ -71,10 +72,10 @@ namespace mamba
                 return;
             }
 
-            std::scoped_lock lock{ threads_mutex };
+            auto synched_threads = threads.synchronize();
             if (is_open)  // Double check necessary for correctness
             {
-                threads.emplace_back(std::forward<Task>(task), std::forward<Args>(args)...);
+                synched_threads->emplace_back(std::forward<Task>(task), std::forward<Args>(args)...);
             }
         }
 
@@ -92,10 +93,10 @@ namespace mamba
                 return;
             }
 
-            std::scoped_lock lock{ threads_mutex };
+            auto synched_threads = threads.synchronize();
             if (is_open)  // Double check necessary for correctness
             {
-                threads.push_back(std::move(thread));
+                synched_threads->push_back(std::move(thread));
             }
         }
 
@@ -116,12 +117,12 @@ namespace mamba
 
             invoke_close_handlers();
 
-            std::scoped_lock lock{ threads_mutex };
-            for (auto&& t : threads)
+            auto synched_threads = threads.synchronize();
+            for (auto&& t : *synched_threads)
             {
                 t.join();
             }
-            threads.clear();
+            synched_threads->clear();
         }
 
         using on_close_handler = std::function<void()>;
@@ -133,21 +134,18 @@ namespace mamba
                 return;
             }
 
-            std::scoped_lock lock{ handlers_mutex };
+            auto handlers = close_handlers.synchronize();
             if (is_open)  // Double check needed to avoid adding new handles while closing.
             {
-                close_handlers.push_back(std::move(handler));
+                handlers->push_back(std::move(handler));
             }
         }
 
     private:
 
         std::atomic<bool> is_open{ true };
-        std::vector<std::thread> threads;
-        std::recursive_mutex threads_mutex;  // TODO: replace by synchronized_value once available
-
-        std::vector<on_close_handler> close_handlers;
-        std::recursive_mutex handlers_mutex;  // TODO: replace by synchronized_value once available
+        util::synchronized_value<std::vector<std::thread>> threads;
+        util::synchronized_value<std::vector<on_close_handler>> close_handlers;
 
         void invoke_close_handlers();
     };

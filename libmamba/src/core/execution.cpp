@@ -8,8 +8,8 @@ namespace mamba
 
     void MainExecutor::invoke_close_handlers()
     {
-        std::scoped_lock lock{ handlers_mutex };
-        for (auto&& handler : close_handlers)
+        auto synched_handlers = close_handlers.synchronize();
+        for (auto&& handler : *synched_handlers)
         {
             const auto result = safe_invoke(handler);
             if (!result)

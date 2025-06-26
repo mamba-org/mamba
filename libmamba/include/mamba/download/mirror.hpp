@@ -67,6 +67,15 @@ namespace mamba::download
         MirrorRequest& operator=(MirrorRequest&&) = default;
     };
 
+    struct MirrorStats // Moved out of Mirror internals because of compilers not agreeing: https://godbolt.org/z/GcjWhrb9W
+    {
+        std::optional<std::size_t> allowed_connections = std::nullopt;
+        std::size_t max_tried_connections = 0;
+        std::size_t running_transfers = 0;
+        std::size_t successful_transfers = 0;
+        std::size_t failed_transfers = 0;
+    };
+
     // A Mirror represents a location from where an asset can be downloaded.
     // It handles the generation of required requests to get the asset, and
     // provides some statistics about its usage.
@@ -110,24 +119,9 @@ namespace mamba::download
         MirrorID m_id;
         size_t m_max_retries;
 
-        struct Stats
-        {
-            Stats() = default;
-            Stats(const Stats&) = default;
-            Stats(Stats&&) noexcept = default;
-            Stats& operator=(const Stats&) = default;
-            Stats& operator=(Stats&&) noexcept = default;
+        static_assert(std::default_initializable<MirrorStats>);
 
-            std::optional<std::size_t> allowed_connections = std::nullopt;
-            std::size_t max_tried_connections = 0;
-            std::size_t running_transfers = 0;
-            std::size_t successful_transfers = 0;
-            std::size_t failed_transfers = 0;
-        };
-
-        static_assert(std::default_initializable<Stats>);
-
-        util::synchronized_value<Stats> m_stats;
+        util::synchronized_value<MirrorStats> m_stats;
 
     };
 

@@ -460,6 +460,10 @@ namespace
             std::vector<std::string> v21 = { "conda-forge/linux64:", "xtensor==0.12.3" };
 
             REQUIRE(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1) == v21);
+
+            std::vector<std::string> es3 = { "" };
+            REQUIRE(split(es3[0], ".") == es3);
+            REQUIRE(rsplit(es3[0], ".") == es3);
         }
 
         TEST_CASE("join")

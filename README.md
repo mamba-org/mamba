@@ -1,3 +1,34 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="right">
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=en">English</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=zh-CN">简体中文</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=zh-TW">繁體中文</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=ja">日本語</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=ko">한국어</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=hi">हिन्दी</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=th">ไทย</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=fr">Français</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=de">Deutsch</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=es">Español</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=it">Itapano</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=ru">Русский</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=pt">Português</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=nl">Nederlands</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=pl">Polski</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=ar">العربية</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=fa">فارسی</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=tr">Türkçe</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=vi">Tiếng Việt</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=mamba-org&project=mamba&lang=id">Bahasa Indonesia</a></p>
+      </div>
+    </div>
+  </details>
+</div>
+
 # Mamba: The Fast Cross-Platform Package Manager
 
 ![mamba header image](docs/assets/mamba_header.png)

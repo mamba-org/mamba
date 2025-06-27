@@ -17,6 +17,20 @@
 
 namespace mambapy
 {
+    // NOTE: These fmt "internals" are for internal use only.
+    // External users should not use them in their projects.
+    // Instead, rely on the public API or appropriate abstractions.
+    // (not sure if they exist at the moment for this specific use case though)
+    // cf. https://github.com/fmtlib/fmt/issues/4466
+    bool fmt_is_rgb(const fmt::detail::color_type& color_type)
+    {
+#if FMT_VERSION >= 110200
+        return !color_type.is_terminal_color();
+#else
+        return color_type.is_rgb;
+#endif
+    }
+
     void bind_submodule_utils(pybind11::module_ m)
     {
         namespace py = pybind11;
@@ -110,7 +124,7 @@ namespace mambapy
                         return std::nullopt;
                     }
                     const auto fg = style.get_foreground();
-                    if (fg.is_rgb)
+                    if (fmt_is_rgb(fg))
                     {
                         return { { fmt::rgb(fg.value.rgb_color) } };
                     }
@@ -126,7 +140,7 @@ namespace mambapy
                         return std::nullopt;
                     }
                     const auto bg = style.get_background();
-                    if (bg.is_rgb)
+                    if (fmt_is_rgb(bg))
                     {
                         return { { fmt::rgb(bg.value.rgb_color) } };
                     }

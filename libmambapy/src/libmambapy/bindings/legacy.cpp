@@ -524,7 +524,15 @@ bind_submodule_impl(pybind11::module_ m)
 
     m.def(
         "load_subdir_in_database",
-        &load_subdir_in_database,
+        [](Context& context, auto& database, SubdirIndexLoader& subdir)
+        {
+            auto res = load_subdir_in_database(context, database, subdir);
+            if (!res)
+            {
+                throw std::runtime_error(res.error().what());
+            }
+            return py::none();
+        },
         py::arg("context"),
         py::arg("database"),
         py::arg("subdir")
@@ -738,10 +746,15 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create_repo",
             [](SubdirDataMigrator& self, Context& context, solver::libsolv::Database& database
-            ) -> solver::libsolv::RepoInfo
+            ) -> py::object
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
-                return extract(load_subdir_in_database(context, database, *self.p_subdir_index));
+                auto res = load_subdir_in_database(context, database, *self.p_subdir_index);
+                if (!res)
+                {
+                    throw std::runtime_error(res.error().what());
+                }
+                return py::none();
             },
             py::arg("context"),
             py::arg("db")

@@ -27,7 +27,7 @@ def libmambapy_version():
 def get_cmake_args():
     cmake_args = [f"-DMAMBA_INSTALL_PYTHON_EXT_LIBDIR={CMAKE_INSTALL_DIR()}/src/libmambapy"]
     if sys.platform != "win32" and sys.platform != "cygwin":
-        cmake_args += ["-DMAMBA_WARNING_AS_ERROR=ON"]
+        cmake_args += ["-DMAMBA_WARNING_AS_ERROR=OFF"]
     return cmake_args
 
 

@@ -13,6 +13,7 @@
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
+#include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
 
 namespace mamba::solver

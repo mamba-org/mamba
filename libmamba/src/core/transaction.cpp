@@ -28,6 +28,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/solver/database_utils.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
@@ -51,21 +52,62 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        // TODO duplicated function, consider moving it to Pool
-        auto database_has_package(solver::libsolv::Database& database, const specs::MatchSpec& spec)
-            -> bool
+        auto installed_python(const solver::DatabaseVariant& database) -> std::optional<std::string>
         {
-            bool found = false;
-            database.for_each_package_matching(
-                spec,
-                [&](const auto&)
+            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&database))
+            {
+                auto out = std::optional<std::string>();
+                if (auto repo = libsolv_db->installed_repo())
                 {
-                    found = true;
-                    return util::LoopControl::Break;
+                    libsolv_db->for_each_package_in_repo(
+                        *repo,
+                        [&](specs::PackageInfo&& pkg)
+                        {
+                            if (pkg.name == "python")
+                            {
+                                out = pkg.version;
+                                return util::LoopControl::Break;
+                            }
+                            return util::LoopControl::Continue;
+                        }
+                    );
                 }
-            );
-            return found;
-        };
+                return out;
+            }
+            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&database))
+            {
+                // TODO: Implement for resolvo database
+                throw std::runtime_error("Python version lookup not yet implemented for resolvo database"
+                );
+            }
+            return std::nullopt;
+        }
+
+        auto
+        find_python_version(const solver::Solution& solution, const solver::DatabaseVariant& database)
+            -> std::pair<std::string, std::string>
+        {
+            // We need to find the python version that will be there after this
+            // Transaction is finished in order to compile the noarch packages correctly,
+
+            // We need to look into installed packages in case we are not installing a new python
+            // version but keeping the current one.
+            // Could also be written in term of PrefixData.
+            std::string installed_py_ver = {};
+            if (auto python_version = installed_python(database))
+            {
+                installed_py_ver = python_version.value();
+                LOG_INFO << "Found python in installed packages " << installed_py_ver;
+            }
+
+            std::string new_py_ver = installed_py_ver;
+            if (auto py = solver::find_new_python_in_solution(solution))
+            {
+                new_py_ver = py->get().version;
+            }
+
+            return { std::move(new_py_ver), std::move(installed_py_ver) };
+        }
 
         auto explicit_spec(const specs::PackageInfo& pkg) -> specs::MatchSpec
         {
@@ -86,55 +128,6 @@ namespace mamba
             }
             return out;
         }
-
-        auto installed_python(const solver::libsolv::Database& database)
-            -> std::optional<specs::PackageInfo>
-        {
-            // TODO combine Repo and MatchSpec search API in Pool
-            auto out = std::optional<specs::PackageInfo>();
-            if (auto repo = database.installed_repo())
-            {
-                database.for_each_package_in_repo(
-                    *repo,
-                    [&](specs::PackageInfo&& pkg)
-                    {
-                        if (pkg.name == "python")
-                        {
-                            out = std::move(pkg);
-                            return util::LoopControl::Break;
-                        }
-                        return util::LoopControl::Continue;
-                    }
-                );
-            }
-            return out;
-        }
-
-        auto
-        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& database)
-            -> std::pair<std::string, std::string>
-        {
-            // We need to find the python version that will be there after this
-            // Transaction is finished in order to compile the noarch packages correctly,
-
-            // We need to look into installed packages in case we are not installing a new python
-            // version but keeping the current one.
-            // Could also be written in term of PrefixData.
-            std::string installed_py_ver = {};
-            if (auto pkg = installed_python(database))
-            {
-                installed_py_ver = pkg->version;
-                LOG_INFO << "Found python in installed packages " << installed_py_ver;
-            }
-
-            std::string new_py_ver = installed_py_ver;
-            if (auto py = solver::find_new_python_in_solution(solution))
-            {
-                new_py_ver = py->get().version;
-            }
-
-            return { std::move(new_py_ver), std::move(installed_py_ver) };
-        }
     }
 
     MTransaction::MTransaction(const CommandParams& command_params, MultiPackageCache& caches)
@@ -145,7 +138,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         std::vector<specs::PackageInfo> pkgs_to_remove,
         std::vector<specs::PackageInfo> pkgs_to_install,
         MultiPackageCache& caches
@@ -156,7 +149,7 @@ namespace mamba
         for (const auto& pkg : pkgs_to_remove)
         {
             auto spec = explicit_spec(pkg);
-            if (!database_has_package(database, spec))
+            if (!mamba::solver::database_has_package(database, spec))
             {
                 not_found << "\n - " << spec.to_string();
             }
@@ -191,26 +184,13 @@ namespace mamba
         }
 
         m_solution.actions.reserve(pkgs_to_install.size() + pkgs_to_remove.size());
-
-        std::transform(
-            std::move_iterator(pkgs_to_install.begin()),
-            std::move_iterator(pkgs_to_install.end()),
-            std::back_insert_iterator(m_solution.actions),
-            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
-        );
-
-        std::transform(
-            std::move_iterator(pkgs_to_remove.begin()),
-            std::move_iterator(pkgs_to_remove.end()),
-            std::back_insert_iterator(m_solution.actions),
-            [](specs::PackageInfo&& pkg) { return solver::Solution::Remove{ std::move(pkg) }; }
-        );
-
-        // if no action required, don't even start logging them
-        if (!empty())
+        for (auto& pkg : pkgs_to_install)
         {
-            Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
+            m_solution.actions.push_back(solver::Solution::Install{ std::move(pkg) });
+        }
+        for (auto& pkg : pkgs_to_remove)
+        {
+            m_solution.actions.push_back(solver::Solution::Remove{ std::move(pkg) });
         }
 
         m_py_versions = find_python_version(m_solution, database);
@@ -218,7 +198,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         const solver::Request& request,
         solver::Solution solution,
         MultiPackageCache& caches
@@ -272,7 +252,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
@@ -807,6 +787,8 @@ namespace mamba
 
         Console::instance().print("Transaction\n");
         Console::stream() << "  Prefix: " << ctx.prefix_params.target_prefix.string() << "\n";
+        Console::stream() << "  Solver: "
+                          << (ctx.experimental_resolvo_solver ? "resolvo" : "libsolv") << "\n";
 
         // check size of transaction
         if (empty())
@@ -1076,8 +1058,13 @@ namespace mamba
         t.print(out);
     }
 
-    MTransaction
-    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& database, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
+    MTransaction create_explicit_transaction_from_urls(
+        const Context& ctx,
+        solver::DatabaseVariant& database,
+        const std::vector<std::string>& urls,
+        MultiPackageCache& package_caches,
+        std::vector<detail::other_pkg_mgr_spec>& other_specs
+    )
     {
         std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
@@ -1097,7 +1084,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_lockfile(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        solver::DatabaseVariant& database,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
@@ -1161,7 +1148,7 @@ namespace mamba
             );
         }
 
-        return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
+        return MTransaction(ctx, database, conda_packages, package_caches);
     }
 
 }  // namespace mamba

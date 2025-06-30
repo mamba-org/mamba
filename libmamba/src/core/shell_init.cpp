@@ -97,6 +97,14 @@ namespace mamba
         {
             return "fish";
         }
+
+        // Get `SHELL` environment variable if set
+        // Standard values are assumed to be `/bin/{shell_type}` or `/usr/bin/{shell_type}`
+        if (util::get_env("SHELL").has_value())
+        {
+            return util::split(util::get_env("SHELL").value(), "/").back();
+        }
+
         return "";
     }
 

@@ -17,18 +17,40 @@
 
 namespace mambapy
 {
-    // NOTE: These fmt "internals" are for internal use only.
-    // External users should not use them in their projects.
-    // Instead, rely on the public API or appropriate abstractions.
-    // (not sure if they exist at the moment for this specific use case though)
-    // cf. https://github.com/fmtlib/fmt/issues/4466
-    bool fmt_is_rgb(const fmt::detail::color_type& color_type)
+    namespace
     {
+
+        // NOTE: These fmt "internals" are for internal use only.
+        // External users should not use them in their projects.
+        // Instead, rely on the public API or appropriate abstractions.
+        // (not sure if they exist at the moment for this specific use case though)
+        // cf. https://github.com/fmtlib/fmt/issues/4466
+        bool fmt_is_rgb(const fmt::detail::color_type& color_type)
+        {
 #if FMT_VERSION >= 110200
-        return !color_type.is_terminal_color();
+            return !color_type.is_terminal_color();
 #else
-        return color_type.is_rgb;
+            return color_type.is_rgb;
 #endif
+        }
+
+        auto fmt_color_value(const fmt::detail::color_type& color) -> uint32_t
+        {
+#if FMT_VERSION >= 110200
+            return color.value();
+#else
+            return color.value.rgb_color;
+#endif
+        }
+
+        auto fmt_terminal_color(const fmt::detail::color_type& color) -> uint32_t
+        {
+#if FMT_VERSION >= 110200
+            return color.value();
+#else
+            return color.value.term_color;
+#endif
+        }
     }
 
     void bind_submodule_utils(pybind11::module_ m)
@@ -126,9 +148,9 @@ namespace mambapy
                     const auto fg = style.get_foreground();
                     if (fmt_is_rgb(fg))
                     {
-                        return { { fmt::rgb(fg.value.rgb_color) } };
+                        return { { fmt::rgb(fmt_color_value(fg)) } };
                     }
-                    return { { static_cast<fmt::terminal_color>(fg.value.term_color) } };
+                    return { { static_cast<fmt::terminal_color>(fmt_terminal_color(fg)) } };
                 }
             )
             .def_property_readonly(
@@ -142,9 +164,9 @@ namespace mambapy
                     const auto bg = style.get_background();
                     if (fmt_is_rgb(bg))
                     {
-                        return { { fmt::rgb(bg.value.rgb_color) } };
+                        return { { fmt::rgb(fmt_color_value(bg)) } };
                     }
-                    return { { static_cast<fmt::terminal_color>(bg.value.term_color) } };
+                    return { { static_cast<fmt::terminal_color>(fmt_terminal_color(bg)) } };
                 }
             )
             .def_property_readonly(

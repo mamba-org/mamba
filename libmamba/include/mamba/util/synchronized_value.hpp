@@ -308,7 +308,7 @@ namespace mamba::util
             The lock is released before the end of the call.
         */
         // NOTE: this is redundant with the generic impl, but required to workaround
-        // apple-clang failing to properly constrain the generic impl.
+        // apple-clang failing to properly
         auto operator=(const T& value) noexcept -> synchronized_value&;
 
         /** Locks and return the value of the current object.

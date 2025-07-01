@@ -258,8 +258,9 @@ namespace mamba::util
 
         /// Constructs with a provided value as initializer for the stored object.
         template <typename V>
-            requires(not std::same_as<T, std::decay_t<V>>) and std::assignable_from<T&, V>
+            requires(not std::same_as<T, std::decay_t<V>>)
                     and (not std::same_as<this_type, std::decay_t<V>>)
+                    and std::assignable_from<T&, V>
         synchronized_value(V&& value) noexcept
             : m_value(std::forward<V>(value))
         {
@@ -270,6 +271,8 @@ namespace mamba::util
         }
 
         /// Constructs with a provided value as initializer for the stored object.
+        // NOTE: this is redundant with the generic impl, but required to workaround
+        // apple-clang failing to properly constrain the generic impl.
         synchronized_value(T value) noexcept;
 
         /// Constructs with a provided initializer list used to initialize the stored object.
@@ -297,8 +300,9 @@ namespace mamba::util
             The lock is released before the end of the call.
         */
         template <typename V>
-            requires(not std::same_as<T, std::decay_t<V>>) and std::assignable_from<T&, V>
+            requires(not std::same_as<T, std::decay_t<V>>)
                     and (not std::same_as<this_type, std::decay_t<V>>)
+                    and std::assignable_from<T&, V>
         auto operator=(V&& value) noexcept -> synchronized_value&
         {
             // NOTE: when moving the definition outside the class,

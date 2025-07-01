@@ -126,9 +126,9 @@ namespace mambapy
                     const auto fg = style.get_foreground();
                     if (fmt_is_rgb(fg))
                     {
-                        return { { fmt::rgb(fg.value.rgb_color) } };
+                        return { { fmt::rgb(fg.value()) } };
                     }
-                    return { { static_cast<fmt::terminal_color>(fg.value.term_color) } };
+                    return { { static_cast<fmt::terminal_color>(fg.value()) } };
                 }
             )
             .def_property_readonly(
@@ -142,9 +142,9 @@ namespace mambapy
                     const auto bg = style.get_background();
                     if (fmt_is_rgb(bg))
                     {
-                        return { { fmt::rgb(bg.value.rgb_color) } };
+                        return { { fmt::rgb(bg.value()) } };
                     }
-                    return { { static_cast<fmt::terminal_color>(bg.value.term_color) } };
+                    return { { static_cast<fmt::terminal_color>(bg.value()) } };
                 }
             )
             .def_property_readonly(

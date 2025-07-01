@@ -256,7 +256,8 @@ namespace mamba::util
 
         /// Constructs with a provided value as initializer for the stored object.
         template <typename V>
-            requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
+            requires(not std::same_as<T, std::decay_t<V>>) and std::assignable_from<T&, V>
+                    and (not std::same_as<this_type, std::decay_t<V>>)
         synchronized_value(V&& value) noexcept
             : m_value(std::forward<V>(value))
         {
@@ -265,6 +266,9 @@ namespace mamba::util
             // which is probably a bug. To workaround that we keep
             // the definition here.
         }
+
+        /// Constructs with a provided value as initializer for the stored object.
+        synchronized_value(T value) noexcept;
 
         /// Constructs with a provided initializer list used to initialize the stored object.
         template <typename V>
@@ -308,7 +312,7 @@ namespace mamba::util
             The lock is released before the end of the call.
         */
         // NOTE: this is redundant with the generic impl, but required to workaround
-        // apple-clang failing to properly
+        // apple-clang failing to properly constrain the generic impl.
         auto operator=(const T& value) noexcept -> synchronized_value&;
 
         /** Locks and return the value of the current object.
@@ -515,6 +519,12 @@ namespace mamba::util
 
     template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
+
+    template <std::default_initializable T, Mutex M>
+    synchronized_value<T, M>::synchronized_value(T value) noexcept
+        : m_value(std::move(value))
+    {
+    }
 
     template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(const synchronized_value& other)

@@ -1171,6 +1171,11 @@ namespace mamba
 
             struct Data
             {
+                Data()
+                {
+                    // this user-defined constructor is a workaround for CWG2335 and related compiler issues
+                }
+
                 // TODO: replace by something like boost::multiindex or equivalent to avoid having
                 // to handle 2 hashmaps
                 std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:

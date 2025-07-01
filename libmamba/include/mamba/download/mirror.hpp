@@ -66,7 +66,8 @@ namespace mamba::download
         MirrorRequest& operator=(MirrorRequest&&) = default;
     };
 
-    struct MirrorStats // Moved out of Mirror internals because of compilers not agreeing: https://godbolt.org/z/GcjWhrb9W
+    struct MirrorStats  // Moved out of Mirror internals because of compilers not agreeing:
+                        // https://godbolt.org/z/GcjWhrb9W
     {
         std::optional<std::size_t> allowed_connections = std::nullopt;
         std::size_t max_tried_connections = 0;
@@ -121,7 +122,6 @@ namespace mamba::download
         static_assert(std::default_initializable<MirrorStats>);
 
         util::synchronized_value<MirrorStats> m_stats;
-
     };
 
     std::unique_ptr<Mirror> make_mirror(std::string url);

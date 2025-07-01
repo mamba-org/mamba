@@ -25,9 +25,9 @@
 #include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/util/synchronized_value.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/synchronized_value.hpp"
 #include "mamba/util/url_manip.hpp"
 
 #include "progress_bar_impl.hpp"
@@ -276,7 +276,6 @@ namespace mamba
 
     using ConsoleBuffer = std::vector<std::string>;
 
-
     class ConsoleData
     {
     public:
@@ -305,6 +304,7 @@ namespace mamba
             std::unique_ptr<ProgressBarManager> progress_bar_manager;
             ConsoleBuffer buffer;
         };
+
         util::synchronized_value<Data> m_synched_data;
 
         TaskSynchronizer m_tasksync;
@@ -450,7 +450,7 @@ namespace mamba
                 name,
                 {
                     .graphics = context().graphics_params,
-                    .ascii_only =  context().ascii_only,
+                    .ascii_only = context().ascii_only,
                 },
                 expected_total
             );

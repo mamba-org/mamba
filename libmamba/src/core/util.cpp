@@ -1066,7 +1066,7 @@ namespace mamba
 #endif
 
         struct LockedFilesRegistry_Data  // made public to workaround CWG2335, should be private
-                                            // otherwise
+                                         // otherwise
         {
             // TODO: replace by something like boost::multiindex or equivalent to avoid having
             // to handle 2 hashmaps

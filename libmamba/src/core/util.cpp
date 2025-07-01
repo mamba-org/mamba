@@ -1065,7 +1065,34 @@ namespace mamba
 #pragma GCC diagnostic pop
 #endif
 
+        namespace
+        {
+            struct LockedFilesRegistry_Data  // made public to workaround CWG2335, should be private
+                                             // otherwise
+            {
+                // TODO: replace by something like boost::multiindex or equivalent to avoid having
+                // to handle 2 hashmaps
+                std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
+                                                                                            // consider
+                                                                                            // replacing
+                                                                                            // by
+                                                                                            // real
+                                                                                            // concurrent
+                                                                                            // set
+                                                                                            // to
+                                                                                            // avoid
+                                                                                            // having
+                                                                                            // to
+                                                                                            // lock
+                                                                                            // the
+                                                                                            // whole
+                                                                                            // container
 
+                std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
+                                                                        // usage of file descriptors
+                                                                        // on linux instead of paths
+            };
+        }
 
         class LockedFilesRegistry
         {
@@ -1164,41 +1191,12 @@ namespace mamba
                 }
             }
 
+
         private:
 
             std::atomic_bool m_is_file_locking_allowed{ true };
             std::atomic<std::chrono::seconds> m_default_lock_timeout{ std::chrono::seconds::zero() };
-
-            struct Data
-            {
-                Data()
-                {
-                    // this user-defined constructor is a workaround for CWG2335 and related compiler issues
-                }
-
-                // TODO: replace by something like boost::multiindex or equivalent to avoid having
-                // to handle 2 hashmaps
-                std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
-                                                                                            // consider
-                                                                                            // replacing
-                                                                                            // by
-                                                                                            // real
-                                                                                            // concurrent
-                                                                                            // set
-                                                                                            // to
-                                                                                            // avoid
-                                                                                            // having
-                                                                                            // to
-                                                                                            // lock
-                                                                                            // the
-                                                                                            // whole
-                                                                                            // container
-
-                std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
-                                                                        // usage of file descriptors
-                                                                        // on linux instead of paths
-            };
-            util::synchronized_value<Data, std::recursive_mutex> m_data;
+            util::synchronized_value<LockedFilesRegistry_Data, std::recursive_mutex> m_data;
         };
 
         static LockedFilesRegistry files_locked_by_this_process;

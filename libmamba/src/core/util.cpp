@@ -1065,34 +1065,31 @@ namespace mamba
 #pragma GCC diagnostic pop
 #endif
 
-        namespace
+        struct LockedFilesRegistry_Data  // made public to workaround CWG2335, should be private
+                                            // otherwise
         {
-            struct LockedFilesRegistry_Data  // made public to workaround CWG2335, should be private
-                                             // otherwise
-            {
-                // TODO: replace by something like boost::multiindex or equivalent to avoid having
-                // to handle 2 hashmaps
-                std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
-                                                                                            // consider
-                                                                                            // replacing
-                                                                                            // by
-                                                                                            // real
-                                                                                            // concurrent
-                                                                                            // set
-                                                                                            // to
-                                                                                            // avoid
-                                                                                            // having
-                                                                                            // to
-                                                                                            // lock
-                                                                                            // the
-                                                                                            // whole
-                                                                                            // container
+            // TODO: replace by something like boost::multiindex or equivalent to avoid having
+            // to handle 2 hashmaps
+            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
+                                                                                        // consider
+                                                                                        // replacing
+                                                                                        // by
+                                                                                        // real
+                                                                                        // concurrent
+                                                                                        // set
+                                                                                        // to
+                                                                                        // avoid
+                                                                                        // having
+                                                                                        // to
+                                                                                        // lock
+                                                                                        // the
+                                                                                        // whole
+                                                                                        // container
 
-                std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
-                                                                        // usage of file descriptors
-                                                                        // on linux instead of paths
-            };
-        }
+            std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
+                                                                    // usage of file descriptors
+                                                                    // on linux instead of paths
+        };
 
         class LockedFilesRegistry
         {

@@ -291,7 +291,8 @@ namespace mamba::util
             The lock is released before the end of the call.
         */
         template <typename V>
-            requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
+            requires(not std::same_as<T, std::decay_t<V>>) and std::assignable_from<T&, V>
+                    and (not std::same_as<this_type, std::decay_t<V>>)
         auto operator=(V&& value) noexcept -> synchronized_value&
         {
             // NOTE: when moving the definition outside the class,
@@ -302,6 +303,13 @@ namespace mamba::util
             m_value = std::forward<V>(value);
             return *this;
         }
+
+        /** Locks and assign the provided value to the stored object.
+            The lock is released before the end of the call.
+        */
+        // NOTE: this is redundant with the generic impl, but required to workaround
+        // apple-clang failing to properly constrain the generic impl.
+        auto operator=(const T& value) noexcept -> synchronized_value&;
 
         /** Locks and return the value of the current object.
             The lock is released before the end of the call.
@@ -523,6 +531,14 @@ namespace mamba::util
         auto this_lock [[maybe_unused]] = lock_as_exclusive(m_mutex);
         auto other_lock [[maybe_unused]] = lock_as_readonly(other.m_mutex);
         m_value = other.m_value;
+        return *this;
+    }
+
+    template <std::default_initializable T, Mutex M>
+    auto synchronized_value<T, M>::operator=(const T& value) noexcept -> synchronized_value&
+    {
+        auto _ = lock_as_exclusive(m_mutex);
+        m_value = value;
         return *this;
     }
 

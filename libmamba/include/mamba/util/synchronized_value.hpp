@@ -8,10 +8,10 @@
 #define MAMBA_UTIL_SYNCHRONIZED_VALUE_HPP
 
 #include <concepts>
+#include <functional>
 #include <mutex>
 #include <shared_mutex>
 #include <tuple>
-#include <functional>
 #include <utility>
 
 namespace mamba::util

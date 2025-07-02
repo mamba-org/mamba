@@ -95,6 +95,28 @@ namespace
         auto operator<=>(const ValueType&) const noexcept = default;
     };
 
+    struct ConvertibleToValueType
+    {
+        int i = 0;
+
+        operator ValueType() const
+        {
+            return { i };
+        }
+
+    };
+
+    struct ComparableToValueType
+    {
+        int j = 0;
+    };
+
+    bool operator==(const ValueType& left, const ComparableToValueType& right)
+    {
+        return left.x == right.j;
+    }
+
+
     // NOTE: We do not use TEMPLATE_TEST_CASE or TEMPLATE_LIST_TEST_CASE here because code coverage
     // tools (such as gcov/lcov) do not properly attribute coverage to tests instantiated via
     // template test cases. Instead, we use individual TEST_CASEs for each mutex type, and factorize
@@ -111,6 +133,23 @@ namespace
         SECTION("default constructible")
         {
             synchronized_value a;
+        }
+
+        SECTION("compatible value assignation")
+        {
+            synchronized_value a;
+            a = ConvertibleToValueType{ 1234 };
+            REQUIRE(a->x == 1234);
+        }
+
+        SECTION("compatible comparison")
+        {
+            synchronized_value a;
+            ComparableToValueType x{ a->x };
+            REQUIRE(a == x);
+            ComparableToValueType y{ a->x +1 };
+            REQUIRE(a != y);
+
         }
 
         static constexpr auto initial_value = ValueType{ 42 };

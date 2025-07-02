@@ -37,6 +37,26 @@ namespace mamba::util
     template <class T, template <class...> class U>
     constexpr bool is_type_instance_of_v = is_type_instance_of<T, U>::value;
 
+    /// `true` if the instances of two provided types can be compared with operator==.
+    /// Notice that this concept is less restrictive than `std::equality_comparable_with`,
+    /// which requires the existence of a common reference type for T and U. This additional
+    /// restriction makes it impossible to use it in the context here (orginally of sparrow), where
+    /// we want to compare objects that are logically similar while being "physically" different.
+    // Source:
+    // https://github.com/man-group/sparrow/blob/66f70418cf1b00cc294c99bbbe04b5b4d2f83c98/include/sparrow/utils/mp_utils.hpp#L604-L619
+
+    template <class T, class U>
+    concept weakly_equality_comparable_with = requires(
+        const std::remove_reference_t<T>& t,
+        const std::remove_reference_t<U>& u
+    ) {
+        { t == u } -> std::convertible_to<bool>;
+        { t != u } -> std::convertible_to<bool>;
+        { u == t } -> std::convertible_to<bool>;
+        { u != t } -> std::convertible_to<bool>;
+    };
+
+
     /////////////////////////////
 
 
@@ -293,7 +313,8 @@ namespace mamba::util
             the call. If `SharedMutex<M> == true`, the lock is a shared-lock for the provided
            `synchronized_value`'s mutex.
         */
-        template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+        template <std::default_initializable U, Mutex OtherMutex>
+            requires std::assignable_from<T&, U>
         auto operator=(const synchronized_value<U, OtherMutex>& other) -> synchronized_value&;
 
         /** Locks and assign the provided value to the stored object.
@@ -483,12 +504,12 @@ namespace mamba::util
         /** Locks (shared if possible) and compare equality of the stored object's value with the
             provided value.
         */
-        auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool;
+        auto operator==(const weakly_equality_comparable_with<T> auto& other_value) const -> bool;
 
         /** Locks both (shared if possible) and compare equality of the stored object's value with
            the provided value.
         */
-        template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+        template <weakly_equality_comparable_with<T> U, Mutex OtherMutex>
         auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool;
 
         auto swap(synchronized_value& other) -> void;
@@ -540,7 +561,8 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+    template <std::default_initializable U, Mutex OtherMutex>
+        requires std::assignable_from<T&, U>
     auto synchronized_value<T, M>::operator=(const synchronized_value<U, OtherMutex>& other)
         -> synchronized_value<T, M>&
     {
@@ -616,7 +638,8 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    auto synchronized_value<T, M>::operator==(const std::equality_comparable_with<T> auto& other_value
+    auto
+    synchronized_value<T, M>::operator==(const weakly_equality_comparable_with<T> auto& other_value
     ) const -> bool
     {
         auto _ = lock_as_readonly(m_mutex);
@@ -624,7 +647,7 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+    template <weakly_equality_comparable_with<T> U, Mutex OtherMutex>
     auto
     synchronized_value<T, M>::operator==(const synchronized_value<U, OtherMutex>& other_value) const
         -> bool
@@ -655,7 +678,6 @@ namespace mamba::util
     {
         return std::make_tuple(std::forward<SynchronizedValues>(sync_values).synchronize()...);
     }
-
 }
 
 #endif

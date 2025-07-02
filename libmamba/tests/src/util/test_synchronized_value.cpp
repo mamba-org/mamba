@@ -103,7 +103,6 @@ namespace
         {
             return { i };
         }
-
     };
 
     struct ComparableToValueType
@@ -115,7 +114,6 @@ namespace
     {
         return left.x == right.j;
     }
-
 
     // NOTE: We do not use TEMPLATE_TEST_CASE or TEMPLATE_LIST_TEST_CASE here because code coverage
     // tools (such as gcov/lcov) do not properly attribute coverage to tests instantiated via
@@ -147,9 +145,8 @@ namespace
             synchronized_value a;
             ComparableToValueType x{ a->x };
             REQUIRE(a == x);
-            ComparableToValueType y{ a->x +1 };
+            ComparableToValueType y{ a->x + 1 };
             REQUIRE(a != y);
-
         }
 
         static constexpr auto initial_value = ValueType{ 42 };

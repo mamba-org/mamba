@@ -402,7 +402,7 @@ set_shell_command(CLI::App* shell_subcmd, Configuration& config)
     );
     set_shell_reinit_command(reinit_subsubcmd, config);
 
-    auto* hook_subsubcmd = shell_subcmd->add_subcommand("hook", "Micromamba hook scripts ");
+    auto* hook_subsubcmd = shell_subcmd->add_subcommand("hook", "Output shell hook scripts for environment activation");
     set_shell_hook_command(hook_subsubcmd, config);
 
     auto* acti_subsubcmd = shell_subcmd->add_subcommand(
@@ -425,7 +425,7 @@ set_shell_command(CLI::App* shell_subcmd, Configuration& config)
 
     auto* long_path_subsubcmd = shell_subcmd->add_subcommand(
         "enable_long_path_support",
-        "Output deactivation code for the given shell"
+        "Enable long path support on Windows"
     );
     set_shell_long_path_command(long_path_subsubcmd, config);
 

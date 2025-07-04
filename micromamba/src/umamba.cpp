@@ -39,7 +39,7 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     com->add_flag_function("--version", print_version);
 
-    CLI::App* shell_subcom = com->add_subcommand("shell", "Generate shell init scripts");
+    CLI::App* shell_subcom = com->add_subcommand("shell", "Launch a shell or manage shell initialization scripts");
     set_shell_command(shell_subcom, config);
 
     CLI::App* create_subcom = com->add_subcommand("create", "Create new environment");

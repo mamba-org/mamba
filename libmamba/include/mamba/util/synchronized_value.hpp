@@ -8,9 +8,11 @@
 #define MAMBA_UTIL_SYNCHRONIZED_VALUE_HPP
 
 #include <concepts>
+#include <functional>
 #include <mutex>
 #include <shared_mutex>
 #include <tuple>
+#include <utility>
 
 namespace mamba::util
 {
@@ -34,6 +36,26 @@ namespace mamba::util
     /// Example: is_type_instance_of_v< std::vector<int>, std::vector > == true
     template <class T, template <class...> class U>
     constexpr bool is_type_instance_of_v = is_type_instance_of<T, U>::value;
+
+    /// `true` if the instances of two provided types can be compared with operator==.
+    /// Notice that this concept is less restrictive than `std::equality_comparable_with`,
+    /// which requires the existence of a common reference type for T and U. This additional
+    /// restriction makes it impossible to use it in the context here (originally of sparrow), where
+    /// we want to compare objects that are logically similar while being "physically" different.
+    // Source:
+    // https://github.com/man-group/sparrow/blob/66f70418cf1b00cc294c99bbbe04b5b4d2f83c98/include/sparrow/utils/mp_utils.hpp#L604-L619
+
+    template <class T, class U>
+    concept weakly_equality_comparable_with = requires(
+        const std::remove_reference_t<T>& t,
+        const std::remove_reference_t<U>& u
+    ) {
+        { t == u } -> std::convertible_to<bool>;
+        { t != u } -> std::convertible_to<bool>;
+        { u == t } -> std::convertible_to<bool>;
+        { u != t } -> std::convertible_to<bool>;
+    };
+
 
     /////////////////////////////
 
@@ -256,7 +278,9 @@ namespace mamba::util
 
         /// Constructs with a provided value as initializer for the stored object.
         template <typename V>
-            requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
+            requires(not std::same_as<T, std::decay_t<V>>)
+                    and (not std::same_as<this_type, std::decay_t<V>>)
+                    and std::assignable_from<T&, V>
         synchronized_value(V&& value) noexcept
             : m_value(std::forward<V>(value))
         {
@@ -265,6 +289,11 @@ namespace mamba::util
             // which is probably a bug. To workaround that we keep
             // the definition here.
         }
+
+        /// Constructs with a provided value as initializer for the stored object.
+        // NOTE: this is redundant with the generic impl, but required to workaround
+        // apple-clang failing to properly constrain the generic impl.
+        synchronized_value(T value) noexcept;
 
         /// Constructs with a provided initializer list used to initialize the stored object.
         template <typename V>
@@ -284,14 +313,17 @@ namespace mamba::util
             the call. If `SharedMutex<M> == true`, the lock is a shared-lock for the provided
            `synchronized_value`'s mutex.
         */
-        template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+        template <std::default_initializable U, Mutex OtherMutex>
+            requires std::assignable_from<T&, U>
         auto operator=(const synchronized_value<U, OtherMutex>& other) -> synchronized_value&;
 
         /** Locks and assign the provided value to the stored object.
             The lock is released before the end of the call.
         */
         template <typename V>
-            requires std::assignable_from<T&, V> and (not std::same_as<this_type, std::decay_t<V>>)
+            requires(not std::same_as<T, std::decay_t<V>>)
+                    and (not std::same_as<this_type, std::decay_t<V>>)
+                    and std::assignable_from<T&, V>
         auto operator=(V&& value) noexcept -> synchronized_value&
         {
             // NOTE: when moving the definition outside the class,
@@ -302,6 +334,13 @@ namespace mamba::util
             m_value = std::forward<V>(value);
             return *this;
         }
+
+        /** Locks and assign the provided value to the stored object.
+            The lock is released before the end of the call.
+        */
+        // NOTE: this is redundant with the generic impl, but required to workaround
+        // apple-clang failing to properly constrain the generic impl.
+        auto operator=(const T& value) noexcept -> synchronized_value&;
 
         /** Locks and return the value of the current object.
             The lock is released before the end of the call.
@@ -465,12 +504,12 @@ namespace mamba::util
         /** Locks (shared if possible) and compare equality of the stored object's value with the
             provided value.
         */
-        auto operator==(const std::equality_comparable_with<T> auto& other_value) const -> bool;
+        auto operator==(const weakly_equality_comparable_with<T> auto& other_value) const -> bool;
 
         /** Locks both (shared if possible) and compare equality of the stored object's value with
            the provided value.
         */
-        template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+        template <weakly_equality_comparable_with<T> U, Mutex OtherMutex>
         auto operator==(const synchronized_value<U, OtherMutex>& other_value) const -> bool;
 
         auto swap(synchronized_value& other) -> void;
@@ -509,6 +548,12 @@ namespace mamba::util
     synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
 
     template <std::default_initializable T, Mutex M>
+    synchronized_value<T, M>::synchronized_value(T value) noexcept
+        : m_value(std::move(value))
+    {
+    }
+
+    template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(const synchronized_value& other)
     {
         auto _ = lock_as_readonly(other.m_mutex);
@@ -516,13 +561,22 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+    template <std::default_initializable U, Mutex OtherMutex>
+        requires std::assignable_from<T&, U>
     auto synchronized_value<T, M>::operator=(const synchronized_value<U, OtherMutex>& other)
         -> synchronized_value<T, M>&
     {
         auto this_lock [[maybe_unused]] = lock_as_exclusive(m_mutex);
         auto other_lock [[maybe_unused]] = lock_as_readonly(other.m_mutex);
         m_value = other.m_value;
+        return *this;
+    }
+
+    template <std::default_initializable T, Mutex M>
+    auto synchronized_value<T, M>::operator=(const T& value) noexcept -> synchronized_value&
+    {
+        auto _ = lock_as_exclusive(m_mutex);
+        m_value = value;
         return *this;
     }
 
@@ -584,7 +638,8 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    auto synchronized_value<T, M>::operator==(const std::equality_comparable_with<T> auto& other_value
+    auto
+    synchronized_value<T, M>::operator==(const weakly_equality_comparable_with<T> auto& other_value
     ) const -> bool
     {
         auto _ = lock_as_readonly(m_mutex);
@@ -592,7 +647,7 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    template <std::equality_comparable_with<T> U, Mutex OtherMutex>
+    template <weakly_equality_comparable_with<T> U, Mutex OtherMutex>
     auto
     synchronized_value<T, M>::operator==(const synchronized_value<U, OtherMutex>& other_value) const
         -> bool
@@ -623,7 +678,6 @@ namespace mamba::util
     {
         return std::make_tuple(std::forward<SynchronizedValues>(sync_values).synchronize()...);
     }
-
 }
 
 #endif

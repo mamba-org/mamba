@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
 
 #include "mamba/api/channel_loader.hpp"
@@ -25,6 +26,7 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/resolvo/solver.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -552,16 +554,26 @@ namespace mamba
                 LOG_WARNING << "No 'channels' specified";
             }
 
-            solver::libsolv::Database db{
-                channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
-            add_spdlog_logger_to_database(db);
+            solver::DatabaseVariant db_variant = ctx.experimental_resolvo_solver
+                                                     ? solver::DatabaseVariant(
+                                                           std::in_place_type<solver::resolvo::Database>,
+                                                           channel_context.params()
+                                                       )
+                                                     : solver::DatabaseVariant(
+                                                           std::in_place_type<solver::libsolv::Database>,
+                                                           channel_context.params(),
+                                                           solver::libsolv::Database::Settings{
+                                                               ctx.experimental_matchspec_parsing
+                                                                   ? solver::libsolv::MatchSpecParser::Mamba
+                                                                   : solver::libsolv::MatchSpecParser::Libsolv }
+                                                       );
 
-            auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
+            if (!ctx.experimental_resolvo_solver)
+            {
+                add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
+            }
+
+            auto maybe_load = load_channels(ctx, channel_context, db_variant, package_caches);
             if (!maybe_load)
             {
                 throw std::runtime_error(maybe_load.error().what());
@@ -574,11 +586,18 @@ namespace mamba
             }
             PrefixData& prefix_data = maybe_prefix_data.value();
 
-            load_installed_packages_in_database(ctx, db, prefix_data);
-
+            if (auto* libsolv_db_ptr = std::get_if<solver::libsolv::Database>(&db_variant))
+            {
+                load_installed_packages_in_database(ctx, *libsolv_db_ptr, prefix_data);
+            }
+            else if (auto* resolvo_db_ptr = std::get_if<solver::resolvo::Database>(&db_variant))
+            {
+                load_installed_packages_in_database(ctx, *resolvo_db_ptr, prefix_data);
+            }
 
             auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
+
             request.flags = ctx.solver_flags;
 
             {
@@ -587,56 +606,55 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
-            auto outcome = solver::libsolv::Solver()
-                               .solve(
-                                   db,
-                                   request,
-                                   ctx.experimental_matchspec_parsing
-                                       ? solver::libsolv::MatchSpecParser::Mamba
-                                       : solver::libsolv::MatchSpecParser::Mixed
-                               )
-                               .value();
+            using LibsolvOutcome = std::variant<mamba::solver::Solution, mamba::solver::libsolv::UnSolvable>;
+            auto outcome = ctx.experimental_resolvo_solver
+                               ? solver::resolvo::Solver()
+                                     .solve(std::get<solver::resolvo::Database>(db_variant), request)
+                                     .map(
+                                         [](auto&& result) -> LibsolvOutcome
+                                         {
+                                             // resolvo only returns Solution
+                                             return std::get<mamba::solver::Solution>(result);
+                                         }
+                                     )
+                               : solver::libsolv::Solver().solve(
+                                     std::get<solver::libsolv::Database>(db_variant),
+                                     request,
+                                     ctx.experimental_matchspec_parsing
+                                         ? solver::libsolv::MatchSpecParser::Mamba
+                                         : solver::libsolv::MatchSpecParser::Libsolv
+                                 );
 
-            if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
+            if (!outcome.has_value())
             {
-                unsolvable->explain_problems_to(
-                    db,
-                    LOG_ERROR,
-                    {
-                        /* .unavailable= */ ctx.graphics_params.palette.failure,
-                        /* .available= */ ctx.graphics_params.palette.success,
-                    }
-                );
-                if (retry_clean_cache && !is_retry)
-                {
-                    ctx.local_repodata_ttl = 2;
-                    bool retry = true;
-                    return install_specs_impl(
-                        ctx,
-                        channel_context,
-                        config,
-                        raw_specs,
-                        create_env,
-                        remove_prefix_on_failure,
-                        retry
-                    );
-                }
-                if (freeze_installed)
-                {
-                    Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n"
-                    );
-                }
+                throw std::runtime_error(outcome.error().what());
+            }
+            auto& result = outcome.value();
 
-                if (ctx.output_params.json)
+            // If resolvo is used, we don't need to handle UnSolvable
+            if (!ctx.experimental_resolvo_solver)
+            {
+                if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&result))
                 {
-                    Console::instance().json_write(
-                        { { "success", false }, { "solver_problems", unsolvable->problems(db) } }
+                    unsolvable->explain_problems_to(
+                        std::get<solver::libsolv::Database>(db_variant),
+                        std::cout,
+                        mamba::solver::ProblemsMessageFormat{}
+                    );
+                    if (ctx.output_params.json)
+                    {
+                        nlohmann::json j;
+                        j["success"] = false;
+                        j["solver_problems"] = unsolvable->problems(
+                            std::get<solver::libsolv::Database>(db_variant)
+                        );
+                        Console::instance().json_write(j);
+                    }
+                    throw mamba_error(
+                        "Could not solve for environment specs",
+                        mamba_error_code::satisfiablitity_error
                     );
                 }
-                throw mamba_error(
-                    "Could not solve for environment specs",
-                    mamba_error_code::satisfiablitity_error
-                );
             }
 
             std::vector<LockFile> locks;
@@ -646,24 +664,10 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
-            Console::instance().json_write({ { "success", true } });
+            auto& solution = std::get<solver::Solution>(result);
 
-            // The point here is to delete the database before executing the transaction.
-            // The database can have high memory impact, since installing packages
-            // requires downloading, extracting, and launching Python interpreters for
-            // creating ``.pyc`` files.
-            // Ideally this whole function should be properly refactored and the transaction itself
-            // should not need the database.
-            auto trans = [&](auto database)
-            {
-                return MTransaction(  //
-                    ctx,
-                    database,
-                    request,
-                    std::get<solver::Solution>(outcome),
-                    package_caches
-                );
-            }(std::move(db));
+            Console::instance().json_write({ { "success", true } });
+            auto trans = MTransaction(ctx, db_variant, request, solution, package_caches);
 
             if (ctx.output_params.json)
             {
@@ -734,8 +738,8 @@ namespace mamba
 
     namespace
     {
-
-        // TransactionFunc: (Database& database, MultiPackageCache& package_caches) -> MTransaction
+        // TransactionFunc: (DatabaseVariant& database, MultiPackageCache& package_caches, ...) ->
+        // MTransaction
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             Context& ctx,
@@ -746,14 +750,23 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            solver::libsolv::Database database{
-                channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
-            add_spdlog_logger_to_database(database);
+            solver::DatabaseVariant db_variant = ctx.experimental_resolvo_solver
+                                                     ? solver::DatabaseVariant(
+                                                           std::in_place_type<solver::resolvo::Database>,
+                                                           channel_context.params()
+                                                       )
+                                                     : solver::DatabaseVariant(
+                                                           std::in_place_type<solver::libsolv::Database>,
+                                                           channel_context.params(),
+                                                           solver::libsolv::Database::Settings{
+                                                               ctx.experimental_matchspec_parsing
+                                                                   ? solver::libsolv::MatchSpecParser::Mamba
+                                                                   : solver::libsolv::MatchSpecParser::Libsolv }
+                                                       );
+            if (!ctx.experimental_resolvo_solver)
+            {
+                add_spdlog_logger_to_database(std::get<solver::libsolv::Database>(db_variant));
+            }
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty
@@ -772,12 +785,19 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-            load_installed_packages_in_database(ctx, database, prefix_data);
+            if (auto* libsolv_db = std::get_if<solver::libsolv::Database>(&db_variant))
+            {
+                load_installed_packages_in_database(ctx, *libsolv_db, prefix_data);
+            }
+            else if (auto* resolvo_db = std::get_if<solver::resolvo::Database>(&db_variant))
+            {
+                load_installed_packages_in_database(ctx, *resolvo_db, prefix_data);
+            }
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the database's pool before this line
-            auto transaction = create_transaction(database, pkg_caches, others);
+            auto transaction = create_transaction(db_variant, pkg_caches, others);
 
             std::vector<LockFile> lock_pkgs;
 
@@ -836,7 +856,7 @@ namespace mamba
             ctx,
             channel_context,
             specs,
-            [&](auto& db, auto& pkg_caches, auto& others)
+            [&](solver::DatabaseVariant& db, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(ctx, db, specs, pkg_caches, others); },
             create_env,
             remove_prefix_on_failure
@@ -868,7 +888,7 @@ namespace mamba
             ctx,
             channel_context,
             {},
-            [&](auto& db, auto& pkg_caches, auto& others)
+            [&](solver::DatabaseVariant& db, auto& pkg_caches, auto& others)
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,

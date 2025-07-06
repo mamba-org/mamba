@@ -136,6 +136,20 @@ namespace mamba::solver::libsolv
         template <typename Func>
         void for_each_package_depending_on(const specs::MatchSpec& ms, Func&&);
 
+        bool has_package(const specs::MatchSpec& spec)
+        {
+            bool found = false;
+            for_each_package_matching(
+                spec,
+                [&](const auto&)
+                {
+                    found = true;
+                    return util::LoopControl::Break;
+                }
+            );
+            return found;
+        }
+
         /**
          * An access control wrapper.
          *

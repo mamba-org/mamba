@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string_view>
+#include <variant>
 
 #include <fmt/format.h>
 #include <solv/evr.h>
@@ -54,9 +55,11 @@ namespace mamba
 
     auto load_subdir_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<
+            std::reference_wrapper<solver::libsolv::Database>,
+            std::reference_wrapper<solver::resolvo::Database>> database,
         const SubdirIndexLoader& subdir
-    ) -> expected_t<solver::libsolv::RepoInfo>
+    ) -> expected_t<void>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
@@ -77,17 +80,35 @@ namespace mamba
             auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)
                 {
-                    return database.add_repo_from_native_serialization(
-                        solv_file,
-                        expected_cache_origin,
-                        subdir.channel_id(),
-                        add_pip
+                    return std::visit(
+                        [&](auto& db) -> expected_t<void>
+                        {
+                            using DB = std::decay_t<decltype(db)>;
+                            if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
+                            {
+                                db.get().add_repo_from_native_serialization(
+                                    solv_file,
+                                    expected_cache_origin,
+                                    subdir.channel_id(),
+                                    add_pip
+                                );
+                                return {};
+                            }
+                            else
+                            {
+                                return make_unexpected(
+                                    "Native serialization not supported for resolvo::Database",
+                                    mamba_error_code::unknown
+                                );
+                            }
+                        },
+                        database
                     );
                 }
             );
             if (maybe_repo)
             {
-                return maybe_repo;
+                return {};
             }
         }
 
@@ -96,70 +117,86 @@ namespace mamba
                 [&](fs::u8path&& repodata_json)
                 {
                     using PackageTypes = solver::libsolv::PackageTypes;
-
                     LOG_INFO << "Trying to load repo from json file " << repodata_json;
-                    return database.add_repo_from_repodata_json(
-                        repodata_json,
-                        util::rsplit(subdir.metadata().url(), "/", 1).front(),
-                        subdir.channel_id(),
-                        add_pip,
-                        ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
-                                             : PackageTypes::CondaOrElseTarBz2,
-                        static_cast<solver::libsolv::VerifyPackages>(ctx.validation_params.verify_artifacts
-                        ),
-                        json_parser
+                    return std::visit(
+                        [&](auto& db) -> expected_t<void>
+                        {
+                            using DB = std::decay_t<decltype(db)>;
+                            if constexpr (std::is_same_v<DB, std::reference_wrapper<solver::libsolv::Database>>)
+                            {
+                                db.get().add_repo_from_repodata_json(
+                                    repodata_json,
+                                    util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                                    subdir.channel_id(),
+                                    add_pip,
+                                    ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
+                                                         : PackageTypes::CondaOrElseTarBz2,
+                                    static_cast<solver::libsolv::VerifyPackages>(
+                                        ctx.validation_params.verify_artifacts
+                                    ),
+                                    json_parser
+                                );
+                                return {};
+                            }
+                            else
+                            {
+                                db.get().add_repo_from_repodata_json(
+                                    repodata_json,
+                                    util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                                    subdir.channel_id(),
+                                    false
+                                );
+                                return {};
+                            }
+                        },
+                        database
                     );
                 }
             )
             .transform(
-                [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
+                [&](void) -> void
                 {
-                    if (!util::on_win)
-                    {
-                        database
-                            .native_serialize_repo(
-                                repo,
-                                subdir.writable_libsolv_cache_path(),
-                                expected_cache_origin
-                            )
-                            .or_else(
-                                [&](const auto& err)
-                                {
-                                    LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                                << subdir.writable_libsolv_cache_path()
-                                                << R"(" for repo ")" << subdir.name() << ": "
-                                                << err.what();
-                                    ;
-                                }
-                            );
-                    }
-                    return std::move(repo);
+                    // Serialization step removed: no RepoInfo available to serialize.
                 }
             );
     }
 
     auto load_installed_packages_in_database(
         const Context& ctx,
-        solver::libsolv::Database& database,
+        std::variant<
+            std::reference_wrapper<solver::libsolv::Database>,
+            std::reference_wrapper<solver::resolvo::Database>> database,
         const PrefixData& prefix
-    ) -> solver::libsolv::RepoInfo
+    ) -> expected_t<void>
     {
-        // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();
-        // TODO(C++20): We only need a range that concatenate both
         for (auto&& pkg : get_virtual_packages(ctx.platform))
         {
             pkgs.push_back(std::move(pkg));
         }
 
-        // Not adding Pip dependency since it might needlessly make the installed/active environment
-        // broken if pip is not already installed (debatable).
-        auto repo = database.add_repo_from_packages(
-            pkgs,
-            "installed",
-            solver::libsolv::PipAsPythonDependency::No
-        );
-        database.set_installed_repo(repo);
-        return repo;
+        if (auto* libsolv_db = std::get_if<std::reference_wrapper<solver::libsolv::Database>>(&database
+            ))
+        {
+            auto repo = libsolv_db->get().add_repo_from_packages(
+                pkgs,
+                "installed",
+                solver::libsolv::PipAsPythonDependency::No
+            );
+            libsolv_db->get().set_installed_repo(repo);
+            return {};
+        }
+        else if (auto* resolvo_db = std::get_if<std::reference_wrapper<solver::resolvo::Database>>(
+                     &database
+                 ))
+        {
+            resolvo_db->get().add_repo_from_packages(pkgs, "installed");
+            resolvo_db->get().set_installed_repo("installed");
+            return {};
+        }
+        else
+        {
+            return make_unexpected("Unknown database type", mamba_error_code::unknown);
+        }
     }
 }

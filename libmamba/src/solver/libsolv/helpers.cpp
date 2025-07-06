@@ -149,12 +149,6 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        auto lsplit_track_features(std::string_view features)
-        {
-            constexpr auto is_sep = [](char c) -> bool { return (c == ',') || util::is_space(c); };
-            auto [_, tail] = util::lstrip_if_parts(features, is_sep);
-            return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
-        }
 
         void set_solv_signatures(
             solv::ObjSolvableView solv,
@@ -364,26 +358,34 @@ namespace mamba::solver::libsolv
                 }
             }
 
-            if (auto obj = pkg["track_features"]; !obj.error())
+            if (auto track_features = pkg["track_features"]; !track_features.error())
             {
-                if (obj.is_string())
+                if (auto track_features_arr = track_features.get_array(); !track_features_arr.error())
                 {
-                    auto splits = lsplit_track_features(obj.get_string().value_unsafe());
+                    for (auto elem : track_features_arr)
+                    {
+                        if (auto feat = elem.get_string(); !feat.error())
+                        {
+                            solv.add_track_feature(feat.value());
+                        }
+                    }
+                }
+                else if (auto track_features_str = track_features.get_string();
+                         !track_features_str.error())
+                {
+                    const auto lsplit_track_features = [](std::string_view features)
+                    {
+                        constexpr auto is_sep = [](char c) -> bool
+                        { return (c == ',') || util::is_space(c); };
+                        auto [_, tail] = util::lstrip_if_parts(features, is_sep);
+                        return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
+                    };
+
+                    auto splits = lsplit_track_features(track_features_str.value());
                     while (!splits[0].empty())
                     {
                         solv.add_track_feature(splits[0]);
                         splits = lsplit_track_features(splits[1]);
-                    }
-                }
-                else
-                {
-                    // assuming obj is an array
-                    for (auto elem : obj.get_array())
-                    {
-                        if (!elem.error() && elem.is_string())
-                        {
-                            solv.add_track_feature(elem.get_string().value_unsafe());
-                        }
                     }
                 }
             }

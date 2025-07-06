@@ -1609,6 +1609,17 @@ namespace mamba
                        }
                    ));
 
+        insert(Configurable("experimental_resolvo_solver", false)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Use the experimental resolvo solver instead of libsolv")
+                   .long_description(unindent(R"(
+                        When enabled, use the experimental resolvo solver instead of libsolv.
+                        This is an experimental feature and may not be fully functional.)"))
+                   .set_post_merge_hook<bool>([&](bool& value)
+                                              { m_context.experimental_resolvo_solver = value; }));
+
         insert(Configurable("explicit_install", false)
                    .group("Solver")
                    .description("Use explicit install instead of solving environment"));

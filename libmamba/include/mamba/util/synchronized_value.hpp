@@ -264,7 +264,7 @@ namespace mamba::util
         using mutex_type = M;
         using this_type = synchronized_value<T, M>;
 
-        synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
+        constexpr synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
 
         /// Constructs with a provided value as initializer for the stored object.
         template <typename V>
@@ -599,7 +599,7 @@ namespace mamba::util
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     template <std::default_initializable T, Mutex M>
-    synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
+    constexpr synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
 
     template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(T value) noexcept

@@ -67,7 +67,7 @@ namespace mamba
         }
     }
 
-    Context::Context(const ContextOptions& options)
+    Context::Context(const ContextOptions& options, logging::AnyLogHandler log_handler)
     {
         on_ci = static_cast<bool>(util::get_env("CI"));
         prefix_params.root_prefix = detail::get_root_prefix();
@@ -107,7 +107,7 @@ namespace mamba
 
         if (options.enable_logging)
         {
-            enable_logging(options.log_handler);
+            enable_logging(std::move(log_handler));
         }
     }
 

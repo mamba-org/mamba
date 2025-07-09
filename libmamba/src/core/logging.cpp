@@ -34,7 +34,7 @@ namespace mamba::logging
         // best strategy.
         //
         // So instead of protecting at this level, we require the implementation of the handler
-        // to be thread-safe, whatever the means. We can't enforce that property and can only
+        // to be thread-safe, whatever the details. We can't enforce that property and can only
         // require it with the documentation which should guide the implementers anyway.
         AnyLogHandler current_log_handler;
 
@@ -55,7 +55,7 @@ namespace mamba::logging
         }
     }
 
-    auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_params)
+    auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params)
         -> AnyLogHandler
     {
         if (current_log_handler)
@@ -65,7 +65,7 @@ namespace mamba::logging
 
         auto previous_handler = std::exchange(current_log_handler, std::move(new_handler));
 
-        auto params = synchronize_with_value(logging_params, maybe_params);
+        auto params = synchronize_with_value(logging_params, maybe_new_params);
 
         if (current_log_handler)
         {

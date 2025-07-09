@@ -392,6 +392,11 @@ namespace mamba::logging
     {
         T object;
 
+        Wrapper(T new_object)
+            : object(std::move(new_object))
+        {
+        }
+
         void start_log_handling(LoggingParams params, std::vector<log_source> sources) override
         {
             as_ref(object).start_log_handling(std::move(params), std::move(sources));

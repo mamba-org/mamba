@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_LOGGING_HPP
 #define MAMBA_CORE_LOGGING_HPP
 
+#include <array>
 #include <concepts>
 #include <functional>
 #include <optional>
@@ -45,26 +46,11 @@ namespace mamba
         libsolv
     };
 
-    inline auto name_of(log_source source)
-    {
-        switch (source)
-        {
-            case log_source::libmamba:
-                return "libmamba";
-            case log_source::libcurl:
-                return "libcurl";
-            case log_source::libsolv:
-                return "libsolv";
-        }
+    auto name_of(log_source source) -> const char*;
 
-        // TODO(c++23): std::unreachable();
-        return "";
-    }
 
-    inline auto all_log_sources() -> std::vector<log_source>  // TODO: do better :|
-    {
-        return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
-    }
+    /// @returns All `log_source` values as a range.
+    auto all_log_sources() -> std::initializer_list<log_source>;
 
     namespace logging
     {
@@ -207,54 +193,13 @@ namespace mamba
 
         private:
 
-            struct Interface
-            {
-                virtual ~Interface() = default;
-
-                virtual void start_log_handling(LoggingParams params, std::vector<log_source> sources) = 0;
-                virtual void stop_log_handling() = 0;
-                virtual void set_log_level(log_level new_level) = 0;
-                virtual void set_params(LoggingParams new_params) = 0;
-                virtual void log(LogRecord record) noexcept = 0;
-                virtual void log_stacktrace(std::optional<log_source> source = {}) noexcept = 0;
-                virtual void log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept = 0;
-                virtual void flush(std::optional<log_source> source = {}) noexcept = 0;
-                virtual std::optional<std::type_index> type_id() const = 0;
-            };
+            struct Interface;
 
             template <LogHandler T>
-            struct OwningImpl : Interface
-            {
-                T object;
-                void
-                start_log_handling(LoggingParams params, std::vector<log_source> sources) override;
-                void stop_log_handling() override;
-                void set_log_level(log_level new_level) override;
-                void set_params(LoggingParams new_params) override;
-                void log(LogRecord record) noexcept override;
-                void log_stacktrace(std::optional<log_source> source = {}) noexcept override;
-                void
-                log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept override;
-                void flush(std::optional<log_source> source = {}) noexcept override;
-                std::optional<std::type_index> type_id() const override;
-            };
+            struct OwningImpl;
 
             template <LogHandler T>
-            struct NonOwningImpl : Interface
-            {
-                T* object;
-                void
-                start_log_handling(LoggingParams params, std::vector<log_source> sources) override;
-                void stop_log_handling() override;
-                void set_log_level(log_level new_level) override;
-                void set_params(LoggingParams new_params) override;
-                void log(LogRecord record) noexcept override;
-                void log_stacktrace(std::optional<log_source> source = {}) noexcept override;
-                void
-                log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept override;
-                void flush(std::optional<log_source> source = {}) noexcept override;
-                std::optional<std::type_index> type_id() const override;
-            };
+            struct NonOwningImpl;
 
             SBO_storage<Interface> m_stored;
         };
@@ -320,49 +265,6 @@ namespace mamba
 
             static void emit(const std::string& msg, const log_level& level);
         };
-
-        //////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////
-
-        // NOTE: the following definitions are inline to help with performance.
-
-        // TODO: find a better name?
-        template <typename Func, typename... Args>
-            requires std::invocable<Func, AnyLogHandler&, Args...>
-        auto call_log_handler_if_existing(Func&& func, Args&&... args) -> void
-        {
-            // TODO: consider enabling for user to specify that no check is needed (one less branch)
-            if (auto& log_handler = get_log_handler())
-            {
-                std::invoke(std::forward<Func>(func), log_handler, std::forward<Args>(args)...);
-            }
-        }
-
-        // as thread-safe as handler's implementation
-        inline auto log(LogRecord record) noexcept -> void
-        {
-            call_log_handler_if_existing(&AnyLogHandler::log, std::move(record));
-        }
-
-        // as thread-safe as handler's implementation
-        inline auto log_stacktrace(std::optional<log_source> source) noexcept -> void
-        {
-            call_log_handler_if_existing(&AnyLogHandler::log_stacktrace, std::move(source));
-        }
-
-        // as thread-safe as handler's implementation
-        inline auto flush_logs(std::optional<log_source> source) noexcept -> void
-        {
-            call_log_handler_if_existing(&AnyLogHandler::flush, std::move(source));
-        }
-
-        // as thread-safe as handler's implementation
-        inline auto log_stacktrace_no_guards(std::optional<log_source> source) noexcept -> void
-        {
-            call_log_handler_if_existing(&AnyLogHandler::log_stacktrace_no_guards, std::move(source));
-        }
-
-
     }
 }
 
@@ -382,5 +284,120 @@ namespace mamba
 #define LOG_ERROR LOG(mamba::log_level::err)
 #define LOG_CRITICAL LOG(mamba::log_level::critical)
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace mamba::logging
+{
+    // NOTE: the following definitions are inline for performance reasons.
+
+    inline auto name_of(log_source source) -> const char*
+    {
+        switch (source)
+        {
+            case log_source::libmamba:
+                return "libmamba";
+            case log_source::libcurl:
+                return "libcurl";
+            case log_source::libsolv:
+                return "libsolv";
+        }
+
+        // TODO(c++23): std::unreachable();
+        return "";
+    }
+
+    inline auto all_log_sources() -> std::initializer_list<log_source>
+    {
+        return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
+    }
+
+    // TODO: find a better name?
+    template <typename Func, typename... Args>
+        requires std::invocable<Func, AnyLogHandler&, Args...>
+    auto call_log_handler_if_existing(Func&& func, Args&&... args) -> void
+    {
+        // TODO: consider enabling for user to specify that no check is needed (one less branch)
+        if (auto& log_handler = get_log_handler())
+        {
+            std::invoke(std::forward<Func>(func), log_handler, std::forward<Args>(args)...);
+        }
+    }
+
+    // as thread-safe as handler's implementation
+    inline auto log(LogRecord record) noexcept -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log, std::move(record));
+    }
+
+    // as thread-safe as handler's implementation
+    inline auto log_stacktrace(std::optional<log_source> source) noexcept -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log_stacktrace, std::move(source));
+    }
+
+    // as thread-safe as handler's implementation
+    inline auto flush_logs(std::optional<log_source> source) noexcept -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::flush, std::move(source));
+    }
+
+    // as thread-safe as handler's implementation
+    inline auto log_stacktrace_no_guards(std::optional<log_source> source) noexcept -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log_stacktrace_no_guards, std::move(source));
+    }
+
+    //////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+
+
+    struct AnyLogHandler::Interface
+    {
+        virtual ~Interface() = default;
+
+        virtual void start_log_handling(LoggingParams params, std::vector<log_source> sources) = 0;
+        virtual void stop_log_handling() = 0;
+        virtual void set_log_level(log_level new_level) = 0;
+        virtual void set_params(LoggingParams new_params) = 0;
+        virtual void log(LogRecord record) noexcept = 0;
+        virtual void log_stacktrace(std::optional<log_source> source = {}) noexcept = 0;
+        virtual void log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept = 0;
+        virtual void flush(std::optional<log_source> source = {}) noexcept = 0;
+        virtual std::optional<std::type_index> type_id() const = 0;
+    };
+
+    template <LogHandler T>
+    struct AnyLogHandler::OwningImpl : Interface
+    {
+        T object;
+        void start_log_handling(LoggingParams params, std::vector<log_source> sources) override;
+        void stop_log_handling() override;
+        void set_log_level(log_level new_level) override;
+        void set_params(LoggingParams new_params) override;
+        void log(LogRecord record) noexcept override;
+        void log_stacktrace(std::optional<log_source> source = {}) noexcept override;
+        void log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept override;
+        void flush(std::optional<log_source> source = {}) noexcept override;
+        std::optional<std::type_index> type_id() const override;
+    };
+
+    template <LogHandler T>
+    struct AnyLogHandler::NonOwningImpl : Interface
+    {
+        T* object;
+        void start_log_handling(LoggingParams params, std::vector<log_source> sources) override;
+        void stop_log_handling() override;
+        void set_log_level(log_level new_level) override;
+        void set_params(LoggingParams new_params) override;
+        void log(LogRecord record) noexcept override;
+        void log_stacktrace(std::optional<log_source> source = {}) noexcept override;
+        void log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept override;
+        void flush(std::optional<log_source> source = {}) noexcept override;
+        std::optional<std::type_index> type_id() const override;
+    };
+
+}
 
 #endif

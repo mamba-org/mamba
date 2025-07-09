@@ -3,44 +3,39 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include <mamba/core/logging_spdlog.hpp>
-
-#include <vector>
 #include <mutex>
+#include <vector>
+
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 #include <mamba/core/context.hpp>
-#include <mamba/core/output.hpp> // TODO: remove
-#include <mamba/core/util.hpp>
 #include <mamba/core/execution.hpp>
+#include <mamba/core/logging_spdlog.hpp>
+#include <mamba/core/output.hpp>  // TODO: remove
 #include <mamba/core/tasksync.hpp>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-
+#include <mamba/core/util.hpp>
 
 namespace mamba
 {
-    // FIXME: merge scoped logger with this type, they are the samem, scopepd logger as introduced to patch logger
+    // FIXME: merge scoped logger with this type, they are the samem, scopepd logger as introduced
+    // to patch logger
     class Logger : public spdlog::logger
     {
     public:
 
-        Logger(const std::string& name, const std::string& pattern, const std::string& eol);
+        Logger(std::string_view name, std::string_view pattern, std::string_view eol);
 
         void dump_backtrace_no_guards();
     };
 
-    Logger::Logger(
-        const std::string& name,
-        const std::string& pattern,
-        const std::string& eol
-    )
-        : spdlog::logger(name, std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
+    Logger::Logger(std::string_view name, std::string_view pattern, std::string_view eol)
+        : spdlog::logger(std::string(name), std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
     {
         auto f = std::make_unique<spdlog::pattern_formatter>(
-            pattern,
+            std::string(pattern),
             spdlog::pattern_time_type::local,
-            eol
+            std::string(eol)
         );
         set_formatter(std::move(f));
     }
@@ -78,10 +73,7 @@ namespace mamba
 
     public:
 
-        explicit ScopedLogger(
-            std::shared_ptr<Logger> new_logger,
-            logger_kind kind = logger_kind::normal_logger
-        )
+        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal_logger)
             : m_logger(std::move(new_logger))
         {
             assert(m_logger);
@@ -116,20 +108,18 @@ namespace mamba
         ScopedLogger& operator=(const ScopedLogger&) = delete;
     };
 
-
-
     struct LogHandler_spdlog::Impl
     {
         std::vector<ScopedLogger> loggers;
         TaskSynchronizer tasksync;
     };
 
-
     LogHandler_spdlog::LogHandler_spdlog() = default;
     LogHandler_spdlog::~LogHandler_spdlog() = default;
 
-
-    auto LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources) -> void
+    auto
+    LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources)
+        -> void
     {
         pimpl = std::make_unique<Impl>();
 
@@ -153,7 +143,6 @@ namespace mamba
 
         spdlog::set_level(convert_log_level(params.logging_level));
     }
-
 
 
 }

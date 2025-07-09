@@ -114,13 +114,6 @@ namespace mamba::logging
 
 
     ///////////////////////////////////////////////////////////////////
-    // AnyLogHandler
-
-    AnyLogHandler::AnyLogHandler() = default;
-    AnyLogHandler::~AnyLogHandler() = default;
-
-
-    ///////////////////////////////////////////////////////////////////
     // MessageLogger
 
     static std::atomic<bool> message_logger_use_buffer;

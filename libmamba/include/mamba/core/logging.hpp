@@ -8,11 +8,13 @@
 #define MAMBA_CORE_LOGGING_HPP
 
 #include <concepts>
+#include <functional>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+#include <typeindex>
 
 namespace mamba
 {
@@ -78,8 +80,9 @@ namespace mamba
         // implementation
 
         template <class T>
-        concept LogHandler = std::equality_comparable<T>  //
-                             && requires(
+        concept LogHandler = std::movable<T> // at a minimum it must be movable
+                             and std::equality_comparable<T>  // and comparable TODO: is this really necessary?
+                             and requires(
                                  T& handler,
                                  const T& const_handler  //
                                  ,
@@ -94,14 +97,14 @@ namespace mamba
                                     handler.set_log_level(params.logging_level);  //
                                     handler.set_params(std::as_const(params));    //
                                     handler.log(log_record);                      //
-                                    handler.log_stacktrace();                     // log stacktrace in all sources
+                                    handler.log_stacktrace();  // log stacktrace in all sources
                                     handler.log_stacktrace(source);      // log stacktrace only in
                                                                          // specific source
                                     handler.log_stacktrace_no_guards();  // log stacktrace in all
                                                                          // sources
-                                    handler.log_stacktrace_no_guards(source);  // log stacktrace
-                                                                               // only in specific
-                                                                               // source
+                                    handler.log_stacktrace_no_guards(source);    // log stacktrace
+                                                                                 // only in specific
+                                                                                 // source
                                     handler.flush();                             // flush all
                                     handler.flush(std::optional<log_source>{});  // flush only a
                                                                                  // specific source
@@ -155,14 +158,15 @@ namespace mamba
                 return has_value();
             }
 
+            /// @returns An identifier for the stored object's type, or `std::nullopt` if there is no
+            ///          stored object.
+            std::optional<std::type_index> type_id() const;
+
         private:
 
             struct Interface
             {
                 virtual ~Interface() = 0;
-
-
-
             };
         };
 
@@ -174,7 +178,7 @@ namespace mamba
             -> AnyLogHandler;
 
         // not thread-safe
-        auto get_log_handler() -> const AnyLogHandler&;
+        auto get_log_handler() -> AnyLogHandler&;
 
         // thread-safe
         auto set_log_level(log_level new_level) -> log_level;
@@ -188,16 +192,16 @@ namespace mamba
         // thread-safe
         auto set_logging_params(LoggingParams new_params);
 
-        // as thread-safe as handler's implementation
+        // as thread-safe as handler's implementation if set
         auto log(LogRecord record) noexcept -> void;
 
-        // as thread-safe as handler's implementation
+        // as thread-safe as handler's implementation if set
         auto log_stacktrace(std::optional<log_source> source = {}) noexcept -> void;
 
-        // as thread-safe as handler's implementation
+        // as thread-safe as handler's implementation if set
         auto flush_logs(std::optional<log_source> source = {}) noexcept -> void;
 
-        // as thread-safe as handler's implementation
+        // as thread-safe as handler's implementation if set
         auto log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept -> void;
 
         ///////////////////////////////////////////////////////
@@ -226,6 +230,48 @@ namespace mamba
 
             static void emit(const std::string& msg, const log_level& level);
         };
+
+        //////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////
+
+        // NOTE: the following definitions are inline to help with performance.
+
+        // TODO: find a better name?
+        template <typename Func, typename... Args>
+           requires std::invocable<Func, AnyLogHandler&, Args...>
+        auto call_log_handler_if_existing(Func&& func, Args&&... args) -> void
+        {
+            // TODO: consider enabling for user to specify that no check is needed (one less branch)
+            if (auto& log_handler = get_log_handler())
+            {
+                std::invoke(std::forward<Func>(func), log_handler, std::forward<Args>(args)...);
+            }
+        }
+
+        // as thread-safe as handler's implementation
+        inline auto log(LogRecord record) noexcept -> void
+        {
+            call_log_handler_if_existing(&AnyLogHandler::log, std::move(record));
+        }
+
+        // as thread-safe as handler's implementation
+        inline auto log_stacktrace(std::optional<log_source> source) noexcept -> void
+        {
+            call_log_handler_if_existing(&AnyLogHandler::log_stacktrace, std::move(source));
+        }
+
+        // as thread-safe as handler's implementation
+        inline auto flush_logs(std::optional<log_source> source) noexcept -> void
+        {
+            call_log_handler_if_existing(&AnyLogHandler::flush, std::move(source));
+        }
+
+        // as thread-safe as handler's implementation
+        inline auto log_stacktrace_no_guards(std::optional<log_source> source) noexcept -> void
+        {
+            call_log_handler_if_existing(&AnyLogHandler::log_stacktrace_no_guards, std::move(source));
+        }
+
 
     }
 }

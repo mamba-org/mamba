@@ -29,6 +29,9 @@ namespace mamba
         LogHandler_spdlog();
         ~LogHandler_spdlog();
 
+        LogHandler_spdlog(LogHandler_spdlog&& other);
+        LogHandler_spdlog& operator=(LogHandler_spdlog&& other);
+
         auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
         auto stop_log_handling() -> void;
 
@@ -41,15 +44,13 @@ namespace mamba
         auto log_stacktrace_no_guards(std::optional<log_source> source = {}) -> void;
         auto flush(std::optional<log_source> source = {}) -> void;
 
-        auto operator==(const LogHandler_spdlog& other) const noexcept -> bool;
-
-
     private:
 
         struct Impl;
         std::unique_ptr<Impl> pimpl;
 
     };
+
     static_assert(logging::LogHandler<LogHandler_spdlog>);
 
 }

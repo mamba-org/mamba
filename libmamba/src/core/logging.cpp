@@ -38,12 +38,13 @@ namespace mamba::logging
         // require it with the documentation which should guide the implementers anyway.
         AnyLogHandler current_log_handler;
 
-
         // FIXME: maybe generalize and move in synchronized_value.hpp
-        template<std::default_initializable T, typename U, typename... OtherArgs>
+        template <std::default_initializable T, typename U, typename... OtherArgs>
             requires std::assignable_from<T&, U>
-        auto
-        synchronize_with_value(util::synchronized_value<T, OtherArgs...>& sv, const std::optional<U>& new_value)
+        auto synchronize_with_value(
+            util::synchronized_value<T, OtherArgs...>& sv,
+            const std::optional<U>& new_value
+        )
         {
             auto synched_value = sv.synchronize();
             if (new_value)
@@ -54,7 +55,6 @@ namespace mamba::logging
         }
     }
 
-
     auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_params)
         -> AnyLogHandler
     {
@@ -62,7 +62,6 @@ namespace mamba::logging
         {
             current_log_handler.stop_log_handling();
         }
-
 
         auto previous_handler = std::exchange(current_log_handler, std::move(new_handler));
 
@@ -72,9 +71,11 @@ namespace mamba::logging
         {
             current_log_handler.start_log_handling(*params, all_log_sources());
         }
+
+        return previous_handler;
     }
 
-    auto get_log_handler() -> const AnyLogHandler&
+    auto get_log_handler() -> AnyLogHandler&
     {
         return current_log_handler;
     }
@@ -84,7 +85,10 @@ namespace mamba::logging
         auto synched_params = logging_params.synchronize();
         const auto previous_level = synched_params->logging_level;
         synched_params->logging_level = new_level;
-        current_log_handler.set_log_level(synched_params->logging_level);
+        if (current_log_handler)
+        {
+            current_log_handler.set_log_level(synched_params->logging_level);
+        }
         return previous_level;
     }
 
@@ -100,28 +104,14 @@ namespace mamba::logging
 
     auto set_logging_params(LoggingParams new_params)
     {
-        logging_params = std::move(new_params);
+        auto synched_params = logging_params.synchronize();
+        *synched_params = std::move(new_params);
+        if (current_log_handler)
+        {
+            current_log_handler.set_params(*synched_params);
+        }
     }
 
-    auto log(LogRecord record) noexcept -> void
-    {
-        current_log_handler.log(std::move(record));
-    }
-
-    auto log_stacktrace(std::optional<log_source> source) noexcept -> void
-    {
-        current_log_handler.log_stacktrace(std::move(source));
-    }
-
-    auto flush_logs(std::optional<log_source> source) noexcept -> void
-    {
-        current_log_handler.flush(std::move(source));
-    }
-
-    auto log_stacktrace_no_guards(std::optional<log_source> source) noexcept -> void
-    {
-        current_log_handler.log_stacktrace_no_guards(std::move(source));
-    }
 
     ///////////////////////////////////////////////////////////////////
     // AnyLogHandler
@@ -133,12 +123,10 @@ namespace mamba::logging
     ///////////////////////////////////////////////////////////////////
     // MessageLogger
 
-    struct MessageLoggerData
-    {
-        static std::mutex m_mutex;
-        static bool use_buffer;
-        static std::vector<std::pair<std::string, log_level>> m_buffer;
-    };
+    static std::atomic<bool> message_logger_use_buffer;
+
+    using MessageLoggerBuffer = std::vector<std::pair<std::string, log_level>>;
+    static util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
 
     MessageLogger::MessageLogger(log_level level)
         : m_level(level)
@@ -147,14 +135,13 @@ namespace mamba::logging
 
     MessageLogger::~MessageLogger()
     {
-        if (!MessageLoggerData::use_buffer && Console::is_available())
+        if (!message_logger_use_buffer && Console::is_available())
         {
             emit(m_stream.str(), m_level);
         }
         else
         {
-            const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
-            MessageLoggerData::m_buffer.push_back({ m_stream.str(), m_level });
+            message_logger_buffer->push_back({ m_stream.str(), m_level });
         }
     }
 
@@ -178,22 +165,18 @@ namespace mamba::logging
 
     void MessageLogger::activate_buffer()
     {
-        MessageLoggerData::use_buffer = true;
+        message_logger_use_buffer = true;
     }
 
     void MessageLogger::deactivate_buffer()
     {
-        MessageLoggerData::use_buffer = false;
+        message_logger_use_buffer = false;
     }
 
     void MessageLogger::print_buffer(std::ostream& /*ostream*/)
     {
-        decltype(MessageLoggerData::m_buffer) tmp;
-
-        {
-            const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
-            MessageLoggerData::m_buffer.swap(tmp);
-        }
+        MessageLoggerBuffer tmp;
+        message_logger_buffer->swap(tmp);
 
         for (const auto& [msg, level] : tmp)
         {

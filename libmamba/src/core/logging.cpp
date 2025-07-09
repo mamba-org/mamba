@@ -19,7 +19,7 @@ namespace mamba::logging
 {
     namespace  // TODO: STATIC INIT FIASCO!!!
     {
-        util::synchronized_value<LoggingParams> logging_params;
+        constinit util::synchronized_value<LoggingParams> logging_params;
 
         // IMPRTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level
@@ -36,7 +36,7 @@ namespace mamba::logging
         // So instead of protecting at this level, we require the implementation of the handler
         // to be thread-safe, whatever the details. We can't enforce that property and can only
         // require it with the documentation which should guide the implementers anyway.
-        AnyLogHandler current_log_handler;
+        constinit AnyLogHandler current_log_handler;
 
         // FIXME: maybe generalize and move in synchronized_value.hpp
         template <std::default_initializable T, typename U, typename... OtherArgs>
@@ -115,11 +115,14 @@ namespace mamba::logging
 
     ///////////////////////////////////////////////////////////////////
     // MessageLogger
+    namespace
+    {
+        constinit std::atomic<bool> message_logger_use_buffer;
 
-    static std::atomic<bool> message_logger_use_buffer;
+        using MessageLoggerBuffer = std::vector<std::pair<std::string, log_level>>;
+        constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
 
-    using MessageLoggerBuffer = std::vector<std::pair<std::string, log_level>>;
-    static util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
+    }
 
     MessageLogger::MessageLogger(log_level level)
         : m_level(level)

@@ -36,7 +36,7 @@ namespace mamba
     {
         int verbosity{ 0 };
         log_level logging_level{ log_level::warn };
-        std::string log_pattern{ "%^%-9!l%-8n%$ %v" };  // IS THIS SPECIFIC TO spdlog???
+        std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // IS THIS SPECIFIC TO spdlog???
         std::size_t log_backtrace{ 0 };
     };
 
@@ -125,8 +125,8 @@ namespace mamba
         {
         public:
 
-            AnyLogHandler() = default;
-            ~AnyLogHandler() = default;
+            constexpr AnyLogHandler() = default;
+            constexpr ~AnyLogHandler() = default;
 
             AnyLogHandler(AnyLogHandler&&) noexcept = default;
             AnyLogHandler& operator=(AnyLogHandler&&) noexcept = default;

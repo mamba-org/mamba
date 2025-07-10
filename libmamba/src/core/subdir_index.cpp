@@ -1056,8 +1056,11 @@ namespace mamba
 
         const auto permissions = fs::perms::owner_all | fs::perms::group_all
                                  | fs::perms::others_read | fs::perms::others_exec;
-        fs::permissions(cache_dir, permissions, fs::perm_options::replace);
-        LOG_TRACE << "Set permissions on cache directory " << cache_dir << " to 'rwxrwxr-x'";
+        if (! fs::has_permissions(cache_dir, permissions)) {
+            fs::permissions(cache_dir, permissions, fs::perm_options::replace);
+            LOG_TRACE << "Set permissions on cache directory " << cache_dir
+                << " to 'rwxrwxr-x'";
+        }
 
         std::error_code ec;
         fs::permissions(cache_dir, fs::perms::set_gid, fs::perm_options::add, ec);

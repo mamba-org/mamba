@@ -57,7 +57,7 @@ namespace mamba
 
         class ScopedLogger;
         std::vector<ScopedLogger> loggers;
-        std::unique_ptr<TaskSynchronizer> tasksync = std::make_unique<TaskSynchronizer>();
+        std::unique_ptr<TaskSynchronizer> tasksync;
         // THINK: consider only using spdlog to get the loggers
         auto default_logger() -> ScopedLogger&;
         auto get_logger(log_source source) -> ScopedLogger&;

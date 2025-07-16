@@ -312,9 +312,9 @@ namespace mamba::download
                 case CURLINFO_HEADER_OUT:
                 case CURLINFO_HEADER_IN:
                 {
-                    const auto message = fmt::format("{} {}", symbol_for(type), Console::hide_secrets(std::string_view(data, size)));
+                    auto message = fmt::format("{} {}", symbol_for(type), Console::hide_secrets(std::string_view(data, size)));
                     logging::log({
-                        .message = message,
+                        .message = std::move(message),
                         .level = log_level::info,
                         .source = log_source::libcurl
                     });
@@ -390,7 +390,7 @@ namespace mamba::download
         p_handle->set_opt(CURLOPT_VERBOSE, verbose);
 
         configure_handle_headers(params, auth_info);
-
+        p_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
     }
 
     void DownloadAttempt::Impl::configure_handle_headers(

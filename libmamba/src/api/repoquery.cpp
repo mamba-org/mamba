@@ -41,7 +41,7 @@ namespace mamba
                                                        : solver::libsolv::MatchSpecParser::Libsolv,
                 },
             };
-            add_spdlog_logger_to_database(db);
+            add_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);

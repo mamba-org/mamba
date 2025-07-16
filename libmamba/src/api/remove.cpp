@@ -145,7 +145,7 @@ namespace mamba
                                                        : solver::libsolv::MatchSpecParser::Libsolv,
                 },
             };
-            add_spdlog_logger_to_database(database);
+            add_logger_to_database(database);
             load_installed_packages_in_database(ctx, database, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");

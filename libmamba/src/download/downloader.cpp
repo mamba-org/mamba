@@ -292,19 +292,20 @@ namespace mamba::download
         int
         curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void*)
         {
-            static constexpr auto symbol_for = [](curl_infotype type) {
-                    switch (type)
-                    {
-                        case CURLINFO_TEXT:
-                            return "*";
-                        case CURLINFO_HEADER_OUT:
-                            return ">";
-                        case CURLINFO_HEADER_IN:
-                            return "<";
-                        default:
-                            return "";
-                    };
+            static constexpr auto symbol_for = [](curl_infotype type_)
+            {
+                switch (type_)
+                {
+                    case CURLINFO_TEXT:
+                        return "*";
+                    case CURLINFO_HEADER_OUT:
+                        return ">";
+                    case CURLINFO_HEADER_IN:
+                        return "<";
+                    default:
+                        return "";
                 };
+            };
 
             switch (type)
             {
@@ -312,12 +313,14 @@ namespace mamba::download
                 case CURLINFO_HEADER_OUT:
                 case CURLINFO_HEADER_IN:
                 {
-                    auto message = fmt::format("{} {}", symbol_for(type), Console::hide_secrets(std::string_view(data, size)));
-                    logging::log({
-                        .message = std::move(message),
-                        .level = log_level::info,
-                        .source = log_source::libcurl
-                    });
+                    auto message = fmt::format(
+                        "{} {}",
+                        symbol_for(type),
+                        Console::hide_secrets(std::string_view(data, size))
+                    );
+                    logging::log({ .message = std::move(message),
+                                   .level = log_level::info,
+                                   .source = log_source::libcurl });
                     break;
                 }
                 default:

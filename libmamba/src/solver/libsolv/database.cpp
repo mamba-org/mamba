@@ -12,7 +12,6 @@
 #include <solv/evr.h>
 #include <solv/selection.h>
 #include <solv/solver.h>
-#include <spdlog/spdlog.h>
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"

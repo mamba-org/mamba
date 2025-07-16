@@ -8,8 +8,8 @@
 
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
+#include "mamba/core/logging.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/encoding.hpp"
@@ -1188,12 +1188,12 @@ public:
         write_role(key_mgr_json, channel_dir->path() / "key_mgr.json");
         write_role(pkg_mgr_json, channel_dir->path() / "pkg_mgr.json");
 
-        spdlog::set_level(spdlog::level::debug);
+        logging::set_log_level(log_level::debug);
     }
 
     ~RepoCheckerT()
     {
-        spdlog::set_level(spdlog::level::warn);
+        logging::set_log_level(log_level::warn);
     }
 
 protected:

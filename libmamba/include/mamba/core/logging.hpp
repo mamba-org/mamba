@@ -17,6 +17,7 @@
 #include <typeindex>
 #include <utility>
 #include <vector>
+#include <source_location>
 
 namespace mamba
 {
@@ -29,7 +30,10 @@ namespace mamba
         warn,
         err,
         critical,
-        off
+
+        // Special values:
+        off,
+        all
     };
 
     struct LoggingParams
@@ -42,17 +46,35 @@ namespace mamba
 
     enum class log_source  // "source" isnt the best way to put it, maybe channel? component? sink?
     {
-        libmamba,
+        libmamba, // default
         libcurl,
         libsolv
     };
 
     /// @returns The name of the specified log source as an UTF-8 null-terminated string.
-    constexpr auto name_of(log_source source) -> const char*;
+    inline constexpr auto name_of(log_source source) -> const char*
+    {
+        switch (source)
+        {
+            case log_source::libmamba:
+                return "libmamba";
+            case log_source::libcurl:
+                return "libcurl";
+            case log_source::libsolv:
+                return "libsolv";
+        }
+
+        // TODO(c++23): std::unreachable();
+        assert(false);
+        return "unknown";
+    }
 
 
     /// @returns All `log_source` values as a range.
-    constexpr auto all_log_sources() -> std::initializer_list<log_source>;
+    inline constexpr auto all_log_sources() -> std::initializer_list<log_source>
+    {
+        return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
+    }
 
     namespace logging
     {
@@ -62,13 +84,14 @@ namespace mamba
 
         struct LogRecord
         {
-            std::string message; // THINK: cool be made lazy if it was a function instead
+            std::string message; // THINK: could be made lazy if it was a function instead
             log_level level;
             log_source source;
+            std::source_location location;
         };
 
 
-        // NOTE: it might make more sense to talka bout sinks than sources when it comes to the
+        // NOTE: it might make more sense to talk about sinks than sources when it comes to the
         // implementation
 
         template <typename T>
@@ -83,6 +106,8 @@ namespace mamba
                              )  // no value means all sources
         {
             // REQUIREMENT: all the following operations must be thread-safe
+
+            // TODO: how to make sure calls are noexcepts?
 
             //
             handler.start_log_handling(params, sources);
@@ -99,23 +124,26 @@ namespace mamba
             //
             handler.log(log_record);
 
-            // log stacktrace in all sources
-            handler.log_stacktrace();
+            // enable buffering a provided number of log records, dont log until `log_backtrace()` is called
+            handler.enable_backtrace(size_t(42));
 
-            // log stacktrace only in specific source
-            handler.log_stacktrace(source);
+            // disable log buffering
+            handler.disable_backtrace();
 
-            // log stacktrace in all sources
-            handler.log_stacktrace_no_guards();
+            // log buffered records
+            handler.log_backtrace();
 
-            // log stacktrace only in specific source
-            handler.log_stacktrace_no_guards(source);
+            // log buffered records without filtering
+            handler.log_backtrace_no_guards();
 
             // flush all sources
             handler.flush();
 
             // flush only a specific source
             handler.flush(std::optional<log_source>{});
+
+            // when a log's record is equal or higher than the specified level, flush
+            handler.set_flush_threshold(log_level::all);
         };
 
         template <typename T>
@@ -173,15 +201,27 @@ namespace mamba
 
             ///
             /// Pre-condition: `has_value() == true`
-            auto log_stacktrace(std::optional<log_source> source = {}) noexcept -> void;
+            auto enable_backtrace(size_t record_buffer_size) -> void;
 
             ///
             /// Pre-condition: `has_value() == true`
-            auto log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept -> void;
+            auto disable_backtrace() -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto log_backtrace() noexcept -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto log_backtrace_no_guards() noexcept -> void;
 
             ///
             /// Pre-condition: `has_value() == true`
             auto flush(std::optional<log_source> source = {}) noexcept -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto set_flush_threshold(log_level threshold_level) noexcept -> void;
 
             /// @returns `true` if there is an handler object stored in `this`, `false` otherwise.
             auto has_value() const noexcept -> bool;
@@ -212,6 +252,8 @@ namespace mamba
         ////////////////////////////////////////////////////////////////////////////////
         // Logging System API
 
+        // not thread-safe
+        auto stop_logging() -> AnyLogHandler;
 
         // not thread-safe
         auto
@@ -237,13 +279,24 @@ namespace mamba
         auto log(LogRecord record) noexcept -> void;
 
         // as thread-safe as handler's implementation if set
-        auto log_stacktrace(std::optional<log_source> source = {}) noexcept -> void;
+        auto enable_backtrace(size_t records_buffer_size) -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto disable_backtrace() -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto log_backtrace() noexcept -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto log_backtrace_no_guards() noexcept -> void;
+
 
         // as thread-safe as handler's implementation if set
         auto flush_logs(std::optional<log_source> source = {}) noexcept -> void;
 
+
         // as thread-safe as handler's implementation if set
-        auto log_stacktrace_no_guards(std::optional<log_source> source = {}) noexcept -> void;
+        auto set_flush_threshold(log_level threshold_level) noexcept -> void;
 
         ///////////////////////////////////////////////////////
         // MIGT DISAPPEAR SOON
@@ -251,7 +304,7 @@ namespace mamba
         {
         public:
 
-            MessageLogger(log_level level);
+            MessageLogger(log_level level, std::source_location location = std::source_location::current());
             ~MessageLogger();
 
             std::stringstream& stream()
@@ -268,8 +321,9 @@ namespace mamba
 
             log_level m_level;
             std::stringstream m_stream;
+            std::source_location m_location;
 
-            static void emit(const std::string& msg, const log_level& level);
+            static void emit(LogRecord log_record);
         };
     }
 }
@@ -298,31 +352,19 @@ namespace mamba::logging
 {
     // NOTE: the following definitions are inline for performance reasons.
 
-    inline constexpr auto name_of(log_source source) -> const char*
+    // not thread-safe
+    inline auto stop_logging() -> AnyLogHandler
     {
-        switch (source)
-        {
-            case log_source::libmamba:
-                return "libmamba";
-            case log_source::libcurl:
-                return "libcurl";
-            case log_source::libsolv:
-                return "libsolv";
-        }
-
-        // TODO(c++23): std::unreachable();
-        return "unknown";
+        return set_log_handler({});
     }
 
-    inline constexpr auto all_log_sources() -> std::initializer_list<log_source>
-    {
-        return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
-    }
 
     // TODO: find a better name?
     template <typename Func, typename... Args>
         requires std::invocable<Func, AnyLogHandler&, Args...>
-    auto call_log_handler_if_existing(Func&& func, Args&&... args) -> void
+    auto call_log_handler_if_existing(Func&& func, Args&&... args)
+        noexcept(noexcept(std::invoke(std::forward<Func>(func), get_log_handler(), std::forward<Args>(args)...)))
+        -> void
     {
         // TODO: consider enabling for user to specify that no check is needed (one less branch)
         if (auto& log_handler = get_log_handler())
@@ -337,10 +379,27 @@ namespace mamba::logging
         call_log_handler_if_existing(&AnyLogHandler::log, std::move(record));
     }
 
-    // as thread-safe as handler's implementation
-    inline auto log_stacktrace(std::optional<log_source> source) noexcept -> void
+    inline auto enable_backtrace(size_t records_buffer_size) -> void
     {
-        call_log_handler_if_existing(&AnyLogHandler::log_stacktrace, std::move(source));
+        call_log_handler_if_existing(&AnyLogHandler::enable_backtrace, records_buffer_size);
+    }
+
+    // as thread-safe as handler's implementation if set
+    inline auto disable_backtrace() -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::disable_backtrace);
+    }
+
+    // as thread-safe as handler's implementation if set
+    inline auto log_backtrace() noexcept -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log_backtrace);
+    }
+
+    // as thread-safe as handler's implementation if set
+    inline auto log_backtrace_no_guards() noexcept -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log_backtrace_no_guards);
     }
 
     // as thread-safe as handler's implementation
@@ -349,11 +408,11 @@ namespace mamba::logging
         call_log_handler_if_existing(&AnyLogHandler::flush, std::move(source));
     }
 
-    // as thread-safe as handler's implementation
-    inline auto log_stacktrace_no_guards(std::optional<log_source> source) noexcept -> void
+    inline auto set_flush_threshold(log_level threshold_level) noexcept -> void
     {
-        call_log_handler_if_existing(&AnyLogHandler::log_stacktrace_no_guards, std::move(source));
+        call_log_handler_if_existing(&AnyLogHandler::set_flush_threshold, threshold_level);
     }
+
 
     //////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
@@ -368,9 +427,12 @@ namespace mamba::logging
         virtual void set_log_level(log_level new_level) = 0;
         virtual void set_params(LoggingParams new_params) = 0;
         virtual void log(LogRecord record) noexcept = 0;
-        virtual void log_stacktrace(std::optional<log_source> source) noexcept = 0;
-        virtual void log_stacktrace_no_guards(std::optional<log_source> source) noexcept = 0;
+        virtual void enable_backtrace(size_t record_buffer_size) = 0;
+        virtual void disable_backtrace() = 0;
+        virtual void log_backtrace() noexcept = 0;
+        virtual void log_backtrace_no_guards() noexcept = 0;
         virtual void flush(std::optional<log_source> source) noexcept = 0;
+        virtual void set_flush_threshold(log_level threshold_level) noexcept = 0;
         virtual std::type_index type_id() const = 0;
     };
 
@@ -422,20 +484,36 @@ namespace mamba::logging
             as_ref(object).log(std::move(record));
         }
 
-        void log_stacktrace(std::optional<log_source> source) noexcept override
+        void enable_backtrace(size_t records_buffer_size) override
         {
-            as_ref(object).log_stacktrace(std::move(source));
+            as_ref(object).enable_backtrace(records_buffer_size);
         }
 
-        void log_stacktrace_no_guards(std::optional<log_source> source) noexcept override
+        void disable_backtrace() override
         {
-            as_ref(object).log_stacktrace_no_guards(std::move(source));
+            as_ref(object).disable_backtrace();
+        }
+
+        void log_backtrace() noexcept override
+        {
+            as_ref(object).log_backtrace();
+        }
+
+        void log_backtrace_no_guards() noexcept override
+        {
+            as_ref(object).log_backtrace_no_guards();
         }
 
         void flush(std::optional<log_source> source) noexcept override
         {
             as_ref(object).flush(std::move(source));
         }
+
+        void set_flush_threshold(log_level threshold_level) noexcept override
+        {
+            as_ref(object).set_flush_threshold(threshold_level);
+        }
+
 
         std::type_index type_id() const override
         {
@@ -520,24 +598,40 @@ namespace mamba::logging
         m_storage->log(std::move(record));
     }
 
-    inline auto AnyLogHandler::log_stacktrace(std::optional<log_source> source) noexcept -> void
+    inline auto AnyLogHandler::enable_backtrace(size_t record_buffer_size) -> void
     {
         assert(m_storage);
-        m_storage->log_stacktrace_no_guards(std::move(source));
+        m_storage->enable_backtrace(record_buffer_size);
     }
 
-    inline auto
-        AnyLogHandler::log_stacktrace_no_guards(std::optional<log_source> source) noexcept
-        -> void
+    inline auto AnyLogHandler::disable_backtrace() -> void
     {
         assert(m_storage);
-        m_storage->log_stacktrace_no_guards(std::move(source));
+        m_storage->disable_backtrace();
+    }
+
+    inline auto AnyLogHandler::log_backtrace() noexcept -> void
+    {
+        assert(m_storage);
+        m_storage->log_backtrace();
+    }
+
+    inline auto AnyLogHandler::log_backtrace_no_guards() noexcept -> void
+    {
+        assert(m_storage);
+        m_storage->log_backtrace_no_guards();
     }
 
     inline auto AnyLogHandler::flush(std::optional<log_source> source) noexcept -> void
     {
         assert(m_storage);
         m_storage->flush(std::move(source));
+    }
+
+    inline auto AnyLogHandler::set_flush_threshold(log_level threshold_level) noexcept -> void
+    {
+        assert(m_storage);
+        m_storage->set_flush_threshold(threshold_level);
     }
 
     inline auto AnyLogHandler::has_value() const noexcept -> bool

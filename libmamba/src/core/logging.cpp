@@ -17,9 +17,9 @@
 
 namespace mamba::logging
 {
-    namespace  // TODO: STATIC INIT FIASCO!!!
+    namespace
     {
-        constinit util::synchronized_value<LoggingParams> logging_params;
+        constinit util::synchronized_value<LoggingParams, std::shared_mutex> logging_params;
 
         // IMPRTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level
@@ -112,50 +112,61 @@ namespace mamba::logging
         }
     }
 
-
     ///////////////////////////////////////////////////////////////////
     // MessageLogger
     namespace
     {
         constinit std::atomic<bool> message_logger_use_buffer;
 
-        using MessageLoggerBuffer = std::vector<std::pair<std::string, log_level>>;
+        using MessageLoggerBuffer = std::vector<LogRecord>;
         constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
+
+        auto make_safe_log_record(std::string_view message, log_level level, std::source_location location)
+        {
+            // THINK: maybe remove as much locals as possible to enable optimizations with
+            // temporaries
+            // TODO: use fmt or std::format to do the space prepend
+            const auto secured_message = Console::hide_secrets(message);
+            auto formatted_message = prepend(secured_message, "", std::string(4, ' ').c_str());
+            return LogRecord{
+                .message = std::move(formatted_message),   //
+                .level = level,                 //
+                .source = log_source::libmamba, // default logging source, other sources will log
+                                                // through other mechanisms
+                .location = std::move(location) //
+            };
+        }
 
     }
 
-    MessageLogger::MessageLogger(log_level level)
+    MessageLogger::MessageLogger(log_level level, std::source_location location)
         : m_level(level)
+        , m_location(std::move(location))
     {
     }
 
     MessageLogger::~MessageLogger()
     {
+        auto log_record = make_safe_log_record(m_stream.str(), m_level, std::move(m_location));
         if (!message_logger_use_buffer && Console::is_available())
         {
-            emit(m_stream.str(), m_level);
+            emit(std::move(log_record));
         }
         else
         {
-            message_logger_buffer->push_back({ m_stream.str(), m_level });
+            message_logger_buffer->push_back(log_record);
         }
     }
 
-    void MessageLogger::emit(const std::string& msg, const log_level& level)
+    void MessageLogger::emit(LogRecord log_record)
     {
-        // THINK: maybe remove as much locals as possible to enable optimizations with temporaries
-        // TODO: use fmt or std::format to do the space prepend
-        const auto secured_message = Console::hide_secrets(msg);
-        const auto formatted_message = prepend(secured_message, "", std::string(4, ' ').c_str());
-        logging::log(LogRecord{
-            .message = formatted_message,   //
-            .level = level,                 //
-            .source = log_source::libmamba  //
-        });
+        logging::log(std::move(log_record));
 
-        if (level == log_level::critical and get_log_level() != log_level::off)
+        if (log_record.level == log_level::critical and get_log_level() != log_level::off)  // WARNING:
+                                                                                           // THERE
+                                                                                 // IS A LOCK HERE!
         {
-            log_stacktrace();
+            log_backtrace();
         }
     }
 
@@ -174,13 +185,11 @@ namespace mamba::logging
         MessageLoggerBuffer tmp;
         message_logger_buffer->swap(tmp);
 
-        for (const auto& [msg, level] : tmp)
+        for (auto& log_record : tmp)
         {
-            emit(msg, level);
+            emit(std::move(log_record));
         }
 
-        // TODO impl commented
-        /*spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });*/
         flush_logs();
     }
 

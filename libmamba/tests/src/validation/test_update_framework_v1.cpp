@@ -8,7 +8,6 @@
 
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"

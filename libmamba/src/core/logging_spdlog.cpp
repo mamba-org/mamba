@@ -108,7 +108,12 @@ namespace mamba
         ScopedLogger& operator=(const ScopedLogger&) = delete;
     };
 
-    LogHandler_spdlog::LogHandler_spdlog() = default;
+    LogHandler_spdlog::LogHandler_spdlog()
+        : tasksync(std::make_unique<TaskSynchronizer>())
+    {
+
+    }
+
     LogHandler_spdlog::~LogHandler_spdlog() = default;
 
     LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog&& other) = default;

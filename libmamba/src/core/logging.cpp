@@ -154,7 +154,7 @@ namespace mamba::logging
         }
         else
         {
-            message_logger_buffer->push_back(log_record);
+            message_logger_buffer->push_back(std::move(log_record));
         }
     }
 

@@ -134,9 +134,9 @@ namespace mamba
         -> void
     {
         assert(tasksync);
+        assert(sources.size() > 0);
 
         const auto main_source = sources.front();
-        sources.pop_back();
 
         loggers.emplace_back(
             std::make_shared<Logger>(name_of(main_source), params.log_pattern, "\n"),
@@ -146,7 +146,7 @@ namespace mamba
             tasksync->synchronized([this] { loggers.front().logger()->flush(); })
         );
 
-        for (const auto source : sources)
+        for (const auto source : sources | std::views::drop(1) )
         {
             loggers.emplace_back(std::make_shared<Logger>(name_of(source), params.log_pattern, ""));
         }

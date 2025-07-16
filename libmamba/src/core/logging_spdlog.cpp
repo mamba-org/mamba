@@ -67,7 +67,7 @@ namespace mamba
     // Associate the registration of a logger to the lifetime of this object.
     // This is used to help with making sure loggers are unregistered once
     // their logical owner is destroyed.
-    class ScopedLogger
+    class LogHandler_spdlog::ScopedLogger
     {
         std::shared_ptr<Logger> m_logger;
 
@@ -108,41 +108,119 @@ namespace mamba
         ScopedLogger& operator=(const ScopedLogger&) = delete;
     };
 
-    struct LogHandler_spdlog::Impl
-    {
-        std::vector<ScopedLogger> loggers;
-        TaskSynchronizer tasksync;
-    };
-
     LogHandler_spdlog::LogHandler_spdlog() = default;
     LogHandler_spdlog::~LogHandler_spdlog() = default;
+
+    LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog&& other) = default;
+    LogHandler_spdlog& LogHandler_spdlog::operator=(LogHandler_spdlog&& other) = default;
+
+    auto LogHandler_spdlog::get_logger(log_source source) -> ScopedLogger&
+    {
+        // THINK: consider only using spdlog to get the loggers
+        const auto logger_idx = static_cast<size_t>(source);
+        assert(logger_idx > 0 && logger_idx < loggers.size());
+        auto& logger = loggers[logger_idx];
+        assert(logger.logger());
+        return logger;
+    }
+
+    auto LogHandler_spdlog::default_logger() -> ScopedLogger&
+    {
+        return get_logger(log_source::libmamba);
+    }
 
     auto
     LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources)
         -> void
     {
-        pimpl = std::make_unique<Impl>();
+        assert(tasksync);
 
         const auto main_source = sources.front();
         sources.pop_back();
 
-        pimpl->loggers.emplace_back(
+        loggers.emplace_back(
             std::make_shared<Logger>(name_of(main_source), params.log_pattern, "\n"),
             logger_kind::default_logger
         );
         MainExecutor::instance().on_close(
-            pimpl->tasksync.synchronized([this] { pimpl->loggers.front().logger()->flush(); })
+            tasksync->synchronized([this] { loggers.front().logger()->flush(); })
         );
 
         for (const auto source : sources)
         {
-            pimpl->loggers.emplace_back(
-                std::make_shared<Logger>(name_of(source), params.log_pattern, "")
-            );
+            loggers.emplace_back(std::make_shared<Logger>(name_of(source), params.log_pattern, ""));
         }
 
-        spdlog::set_level(convert_log_level(params.logging_level));
+        spdlog::set_level(to_spdlog(params.logging_level));
     }
 
+    auto LogHandler_spdlog::stop_log_handling() -> void
+    {
+        loggers.clear();
+        spdlog::shutdown();  // ? or drop_all?
+    }
+
+    auto LogHandler_spdlog::set_log_level(log_level new_level) -> void
+    {
+        spdlog::set_level(to_spdlog(new_level));
+    }
+
+    auto LogHandler_spdlog::set_params(LoggingParams new_params) -> void
+    {
+        // TODO: add missing parameters
+        spdlog::set_level(to_spdlog(new_params.logging_level));
+    }
+
+    auto LogHandler_spdlog::log(const logging::LogRecord record) -> void
+    {
+        // THINK: consider only using spdlog to get the loggers
+        auto logger = get_logger(record.source).logger();
+        logger->log(
+            spdlog::source_loc{
+                record.location.file_name(),
+                static_cast<int>(record.location.line()), // CRINGE
+                record.location.function_name(),
+            },
+            to_spdlog(record.level),
+            record.message
+        );
+    }
+
+    auto LogHandler_spdlog::enable_backtrace(size_t record_buffer_size) -> void
+    {
+        spdlog::enable_backtrace(record_buffer_size);
+    }
+
+    auto LogHandler_spdlog::disable_backtrace() -> void
+    {
+        spdlog::disable_backtrace();
+    }
+
+    auto LogHandler_spdlog::log_backtrace() noexcept -> void
+    {
+        spdlog::dump_backtrace();
+    }
+
+    auto LogHandler_spdlog::log_backtrace_no_guards() noexcept -> void
+    {
+        default_logger().logger()->dump_backtrace_no_guards();
+    }
+
+    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) noexcept -> void
+    {
+        spdlog::flush_on(to_spdlog(threshold_level));
+    }
+
+    auto LogHandler_spdlog::flush(std::optional<log_source> source) -> void
+    {
+        if (source)
+        {
+            get_logger(source.value()).logger()->flush(); // THINK: consider only using spdlog to get the loggers
+        }
+        else
+        {
+            spdlog::apply_all([](std::shared_ptr<spdlog::logger> l) { l->flush(); });
+        }
+    }
 
 }

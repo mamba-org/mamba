@@ -54,7 +54,7 @@ namespace mamba
 
     void Context::enable_logging(logging::AnyLogHandler log_handler)  // THINK: change name? start_logging?
     {
-        if (not logging::get_log_handler())
+        if (not logging::get_log_handler()) // don't allow replacing one already set; THINK: OR DO WE ALLOW THAT????
         {
             if (log_handler)
             {
@@ -111,7 +111,10 @@ namespace mamba
         }
     }
 
-    Context::~Context() = default;
+    Context::~Context()
+    {
+        logging::stop_logging();
+    }
 
     void Context::set_verbosity(int lvl)
     {
@@ -314,7 +317,7 @@ namespace mamba
 
     void Context::dump_backtrace_no_guards()
     {
-        logging::log_stacktrace_no_guards(log_source::libmamba);
+        logging::log_backtrace_no_guards();
     }
 
 }  // namespace mamba

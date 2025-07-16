@@ -17,7 +17,7 @@ namespace mamba
     class ProgressBar;
     struct ProgressBarOptions;
     // TODO: find a way to define it here without
-    // impoorting spdlog and modst of the STL.
+    // importing spdlog and most of the STL.
     class ProgressBarRepr;
 
     enum ProgressBarMode

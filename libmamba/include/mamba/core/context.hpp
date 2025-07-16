@@ -274,7 +274,6 @@ namespace mamba
 
         void set_verbosity(int lvl);
 
-        [[deprecated("Use `mamba::logging::set_log_level` instead")]]
         void set_log_level(log_level level);
 
         /// Setups the required core subsystems for `libmamba`'s high-level operations to work,

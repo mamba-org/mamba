@@ -4,8 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <spdlog/spdlog.h>
-
+#include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -124,8 +123,8 @@ namespace mamba::download
             }
             catch (const nlohmann::detail::parse_error& e)
             {
-                spdlog::error("Could not parse JSON\n{}", value);
-                spdlog::error("Error message: {}", e.what());
+                LOG_ERROR << fmt::format("Could not parse JSON\n{}", value);
+                LOG_ERROR << fmt::format("Error message: {}", e.what());
                 return nl::json::object();
             }
         }

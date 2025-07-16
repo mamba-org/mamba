@@ -154,7 +154,7 @@ namespace mamba
         public:
 
             constexpr AnyLogHandler() = default;
-            constexpr ~AnyLogHandler() = default;
+            ~AnyLogHandler() = default; // cannot be constexpr, unfortunately
 
             AnyLogHandler(AnyLogHandler&&) noexcept = default;
             AnyLogHandler& operator=(AnyLogHandler&&) noexcept = default;

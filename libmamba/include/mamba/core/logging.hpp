@@ -12,12 +12,12 @@
 #include <concepts>
 #include <functional>
 #include <optional>
+#include <source_location>
 #include <sstream>
 #include <string>
 #include <typeindex>
 #include <utility>
 #include <vector>
-#include <source_location>
 
 namespace mamba
 {
@@ -46,13 +46,13 @@ namespace mamba
 
     enum class log_source  // "source" isnt the best way to put it, maybe channel? component? sink?
     {
-        libmamba, // default
+        libmamba,  // default
         libcurl,
         libsolv
     };
 
     /// @returns The name of the specified log source as an UTF-8 null-terminated string.
-    inline constexpr auto name_of(log_source source) -> const char*
+    inline constexpr auto name_of(log_source source) noexcept -> const char*
     {
         switch (source)
         {
@@ -69,9 +69,8 @@ namespace mamba
         return "unknown";
     }
 
-
     /// @returns All `log_source` values as a range.
-    inline constexpr auto all_log_sources() -> std::initializer_list<log_source>
+    inline constexpr auto all_log_sources() noexcept -> std::vector<log_source>
     {
         return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
     }
@@ -84,12 +83,11 @@ namespace mamba
 
         struct LogRecord
         {
-            std::string message; // THINK: could be made lazy if it was a function instead
+            std::string message;  // THINK: could be made lazy if it was a function instead
             log_level level;
             log_source source;
             std::source_location location;
         };
-
 
         // NOTE: it might make more sense to talk about sinks than sources when it comes to the
         // implementation
@@ -124,7 +122,8 @@ namespace mamba
             //
             handler.log(log_record);
 
-            // enable buffering a provided number of log records, dont log until `log_backtrace()` is called
+            // enable buffering a provided number of log records, dont log until `log_backtrace()`
+            // is called
             handler.enable_backtrace(size_t(42));
 
             // disable log buffering
@@ -147,7 +146,8 @@ namespace mamba
         };
 
         template <typename T>
-        concept LogHandlerOrPtr = LogHandler<T> or (std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>);
+        concept LogHandlerOrPtr = LogHandler<T>
+                                  or (std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>);
 
         class AnyLogHandler
         {
@@ -304,7 +304,10 @@ namespace mamba
         {
         public:
 
-            MessageLogger(log_level level, std::source_location location = std::source_location::current());
+            MessageLogger(
+                log_level level,
+                std::source_location location = std::source_location::current()
+            );
             ~MessageLogger();
 
             std::stringstream& stream()
@@ -358,13 +361,12 @@ namespace mamba::logging
         return set_log_handler({});
     }
 
-
     // TODO: find a better name?
     template <typename Func, typename... Args>
         requires std::invocable<Func, AnyLogHandler&, Args...>
-    auto call_log_handler_if_existing(Func&& func, Args&&... args)
-        noexcept(noexcept(std::invoke(std::forward<Func>(func), get_log_handler(), std::forward<Args>(args)...)))
-        -> void
+    auto call_log_handler_if_existing(Func&& func, Args&&... args) noexcept(noexcept(
+        std::invoke(std::forward<Func>(func), get_log_handler(), std::forward<Args>(args)...)
+    )) -> void
     {
         // TODO: consider enabling for user to specify that no check is needed (one less branch)
         if (auto& log_handler = get_log_handler())
@@ -412,7 +414,6 @@ namespace mamba::logging
     {
         call_log_handler_if_existing(&AnyLogHandler::set_flush_threshold, threshold_level);
     }
-
 
     //////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
@@ -514,7 +515,6 @@ namespace mamba::logging
             as_ref(object).set_flush_threshold(threshold_level);
         }
 
-
         std::type_index type_id() const override
         {
             return typeid(object);
@@ -526,7 +526,6 @@ namespace mamba::logging
     AnyLogHandler::AnyLogHandler(T&& handler)
         : m_storage(std::make_unique<Wrapper<T>>(std::forward<T>(handler)))
     {
-
     }
 
     template <class T>
@@ -568,7 +567,8 @@ namespace mamba::logging
         return *this;
     }
 
-    inline auto AnyLogHandler::start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void
+    inline auto
+    AnyLogHandler::start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void
     {
         assert(m_storage);
         m_storage->start_log_handling(std::move(params), std::move(sources));

@@ -11,6 +11,7 @@
 #include <cassert>
 #include <concepts>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <source_location>
 #include <sstream>
@@ -83,10 +84,11 @@ namespace mamba
 
         struct LogRecord
         {
-            std::string message;  // THINK: could be made lazy if it was a function instead
-            log_level level;
-            log_source source;
-            std::source_location location;
+            std::string message;  // THINK: could be made lazy if it was a function instead, but
+                                  // requires macros to be functions
+            log_level level = log_level::off;
+            log_source source = log_source::libmamba;
+            std::source_location location = {};  // assigned explicitly to please apple-clang
         };
 
         // NOTE: it might make more sense to talk about sinks than sources when it comes to the
@@ -154,7 +156,7 @@ namespace mamba
         public:
 
             constexpr AnyLogHandler() = default;
-            ~AnyLogHandler() = default; // cannot be constexpr, unfortunately
+            ~AnyLogHandler() = default;  // cannot be constexpr, unfortunately
 
             AnyLogHandler(AnyLogHandler&&) noexcept = default;
             AnyLogHandler& operator=(AnyLogHandler&&) noexcept = default;

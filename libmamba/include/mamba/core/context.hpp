@@ -273,6 +273,8 @@ namespace mamba
         void dump_backtrace_no_guards();
 
         void set_verbosity(int lvl);
+
+        [[deprecated("Use `mamba::logging::set_log_level` instead")]]
         void set_log_level(log_level level);
 
         /// Setups the required core subsystems for `libmamba`'s high-level operations to work,
@@ -283,9 +285,9 @@ namespace mamba
         /// @param log_handler
         ///     Log handler implementation to use once the logging system starts.
         ///     Ignored if `options.enable_logging == false`.
-        ///     If `options.enable_logging == true and log_handler.has_value() == false`,\
+        ///     If `options.enable_logging == true and log_handler.has_value() == false`,
         ///     which is the default if this parameter is not specified,
-        ///     then a default implementation-defined log handler implementation will be installed.
+        ///     then a default implementation-defined log handler implementation will be used.
         Context(const ContextOptions& options = {}, logging::AnyLogHandler log_handler = {});
 
         ~Context();

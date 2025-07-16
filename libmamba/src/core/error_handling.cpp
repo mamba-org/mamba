@@ -10,7 +10,7 @@ namespace mamba
         {
             if (ec == mamba_error_code::internal_failure)
             {
-                logging::log_stacktrace();
+                logging::log_backtrace();
             }
         }
 

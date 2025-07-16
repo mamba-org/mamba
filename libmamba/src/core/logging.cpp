@@ -19,7 +19,16 @@ namespace mamba::logging
 {
     namespace
     {
-        constinit util::synchronized_value<LoggingParams, std::shared_mutex> logging_params;
+        // We need the mutex to be constructible compile-time to allow using `constinit`
+        // and avoid static-init-fiasco.
+        // But depending on the implementation it is not always possible, so we pay
+        // the locking cost in these platforms.
+#if defined(__apple_build_version__) // apple-clang
+        using params_mutex = std::mutex;
+#else
+        using params_mutex = std::shared_mutex;
+#endif
+        constinit util::synchronized_value<LoggingParams, params_mutex> logging_params;
 
         // IMPRTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level

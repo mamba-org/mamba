@@ -15,10 +15,13 @@
 #include <fmt/ostream.h>
 #include <fmt/xchar.h>
 #include <reproc++/run.hpp>
-#ifdef _WIN32
-#include <WinReg.hpp>
 
-#include "mamba/util/os_win.hpp"
+#ifdef _WIN32
+#   include <WinReg.hpp>
+
+#   include "mamba/util/os_win.hpp"
+#else
+#   include <unistd.h>
 #endif
 
 #include "mamba/core/activation.hpp"

@@ -23,7 +23,7 @@ namespace mamba::logging
         // and avoid static-init-fiasco.
         // But depending on the implementation it is not always possible, so we pay
         // the locking cost in these platforms.
-#if defined(__apple_build_version__) // apple-clang
+#if defined(__apple_build_version__) or (defined(_LIBCPP_VERSION) and _LIBCPP_VERSION < 19)  // apple-clang or libc++
         using params_mutex = std::mutex;
 #else
         using params_mutex = std::shared_mutex;

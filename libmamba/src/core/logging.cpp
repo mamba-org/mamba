@@ -23,12 +23,33 @@ namespace mamba::logging
         // and avoid static-init-fiasco.
         // But depending on the implementation it is not always possible, so we pay
         // the locking cost in these platforms.
-#if defined(__apple_build_version__) or (defined(_LIBCPP_VERSION) and _LIBCPP_VERSION < 19)  // apple-clang or libc++
-        using params_mutex = std::mutex;
-#else
-        using params_mutex = std::shared_mutex;
-#endif
-        constinit util::synchronized_value<LoggingParams, params_mutex> logging_params;
+        /*namespace
+        {
+            template<class T>
+            consteval auto try_constant_init() -> T
+            {
+                constexpr T x{};
+                return x;
+            }
+
+            template <class T>
+            concept can_be_constinit = requires() { try_constant_init<T>(); };
+
+            static_assert(can_be_constinit<std::mutex>);
+
+            struct X
+            {
+                std::shared_ptr<int> value = std::make_shared<int>(42);
+            };
+
+            static_assert(not can_be_constinit<X>);
+
+            using params_mutex = std::
+                conditional_t<can_be_constinit<std::shared_mutex>, std::shared_mutex, std::mutex>;
+
+        }*/
+
+        constinit util::synchronized_value<LoggingParams, std::shared_mutex> logging_params;
 
         // IMPRTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level
@@ -130,7 +151,8 @@ namespace mamba::logging
         using MessageLoggerBuffer = std::vector<LogRecord>;
         constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
 
-        auto make_safe_log_record(std::string_view message, log_level level, std::source_location location)
+        auto
+        make_safe_log_record(std::string_view message, log_level level, std::source_location location)
         {
             // THINK: maybe remove as much locals as possible to enable optimizations with
             // temporaries
@@ -138,11 +160,11 @@ namespace mamba::logging
             const auto secured_message = Console::hide_secrets(message);
             auto formatted_message = prepend(secured_message, "", std::string(4, ' ').c_str());
             return LogRecord{
-                .message = std::move(formatted_message),   //
-                .level = level,                 //
-                .source = log_source::libmamba, // default logging source, other sources will log
-                                                // through other mechanisms
-                .location = std::move(location) //
+                .message = std::move(formatted_message),  //
+                .level = level,                           //
+                .source = log_source::libmamba,  // default logging source, other sources will log
+                                                 // through other mechanisms
+                .location = std::move(location)  //
             };
         }
 
@@ -172,8 +194,8 @@ namespace mamba::logging
         logging::log(std::move(log_record));
 
         if (log_record.level == log_level::critical and get_log_level() != log_level::off)  // WARNING:
-                                                                                           // THERE
-                                                                                 // IS A LOCK HERE!
+                                                                                            // THERE
+        // IS A LOCK HERE!
         {
             log_backtrace();
         }

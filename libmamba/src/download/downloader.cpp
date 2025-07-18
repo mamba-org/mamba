@@ -1173,7 +1173,7 @@ namespace mamba::download
             auto completion_callback = m_completion_map.find(msg.m_handle_id);
             if (completion_callback == m_completion_map.end())
             {
-                LOG_ERROR << std::format(
+                LOG_ERROR << fmt::format(
                     "Received DONE message from unknown target - running transfers left = {}",
                     still_running
                 );

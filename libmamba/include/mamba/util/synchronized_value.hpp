@@ -577,8 +577,9 @@ namespace mamba::util
 
     private:
 
-        T m_value;
-        mutable M m_mutex;
+        T m_value{};
+        mutable M m_mutex{};  // BEWARE: explicit initializers are required to allow
+                              // synchronized_value instances to be `constinit`
 
         template <std::default_initializable, Mutex>
         friend class synchronized_value;

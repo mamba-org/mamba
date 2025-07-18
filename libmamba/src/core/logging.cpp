@@ -24,7 +24,12 @@ namespace mamba::logging
         // dont accept `constinit` here, so until this is fixed we'll lose performance using
         // `std::mutex` when we mostly are reading data, not modifying,
         // but at least we maintain correctness and avoid static-init fiasco.
-        constinit util::synchronized_value<LoggingParams, std::mutex> logging_params;
+#if defined(__APPLE__)
+        using params_mutex = std::mutex;
+#else
+        using params_mutex = std::shared_mutex;
+#endif
+        constinit util::synchronized_value<LoggingParams, params_mutex> logging_params;
 
         // IMPRTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level

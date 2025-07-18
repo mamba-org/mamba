@@ -71,7 +71,7 @@ namespace mamba
     }
 
     /// @returns All `log_source` values as a range.
-    inline constexpr auto all_log_sources() noexcept -> std::vector<log_source>
+    inline constexpr auto all_log_sources() noexcept -> std::initializer_list<log_source>
     {
         return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
     }

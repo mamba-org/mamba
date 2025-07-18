@@ -19,37 +19,12 @@ namespace mamba::logging
 {
     namespace
     {
-        // We need the mutex to be constructible compile-time to allow using `constinit`
-        // and avoid static-init-fiasco.
-        // But depending on the implementation it is not always possible, so we pay
-        // the locking cost in these platforms.
-        /*namespace
-        {
-            template<class T>
-            consteval auto try_constant_init() -> T
-            {
-                constexpr T x{};
-                return x;
-            }
-
-            template <class T>
-            concept can_be_constinit = requires() { try_constant_init<T>(); };
-
-            static_assert(can_be_constinit<std::mutex>);
-
-            struct X
-            {
-                std::shared_ptr<int> value = std::make_shared<int>(42);
-            };
-
-            static_assert(not can_be_constinit<X>);
-
-            using params_mutex = std::
-                conditional_t<can_be_constinit<std::shared_mutex>, std::shared_mutex, std::mutex>;
-
-        }*/
-
-        constinit util::synchronized_value<LoggingParams, std::shared_mutex> logging_params;
+        // FIXME:
+        // This should really be using `std::shared_mutex` but on some compilers they
+        // dont accept `constinit` here, so until this is fixed we'll lose performance using
+        // `std::mutex` when we mostly are reading data, not modifying,
+        // but at least we maintain correctness and avoid static-init fiasco.
+        constinit util::synchronized_value<LoggingParams, std::mutex> logging_params;
 
         // IMPRTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level

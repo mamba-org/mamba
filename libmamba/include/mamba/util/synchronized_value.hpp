@@ -259,7 +259,7 @@ namespace mamba::util
         using mutex_type = M;
         using this_type = synchronized_value<T, M>;
 
-        synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
+        constexpr synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>);
 
 
         // NOTE FOR FUTURE DEVS: move operations could be implemented correctly by interpreting it
@@ -517,8 +517,9 @@ namespace mamba::util
 
     private:
 
-        T m_value;
-        mutable M m_mutex;
+        T m_value{};
+        mutable M m_mutex{};  // BEWARE: explicit initializers are required to allow
+                              // synchronized_value instances to be `constinit` with some compilers
     };
 
     /** Locks all the provided `synchronized_value` objects using `.synchronize` and
@@ -545,7 +546,12 @@ namespace mamba::util
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     template <std::default_initializable T, Mutex M>
-    synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
+    constexpr synchronized_value<T, M>::synchronized_value(
+    ) noexcept(std::is_nothrow_default_constructible_v<T>)
+    {
+        // NOTE: non-defaulted because of homebrew/clang compiler not liking the defaulted version
+        // for some reason
+    }
 
     template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(T value) noexcept

@@ -123,7 +123,7 @@ namespace mamba
     {
         // THINK: consider only using spdlog to get the loggers
         const auto logger_idx = static_cast<size_t>(source);
-        assert(logger_idx >= 0 && logger_idx < loggers.size());
+        assert(logger_idx < loggers.size());
         auto& logger = loggers[logger_idx];
         assert(logger.logger());
         return logger;

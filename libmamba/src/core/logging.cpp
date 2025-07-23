@@ -129,20 +129,17 @@ namespace mamba::logging
         constinit std::atomic<bool> message_logger_use_buffer;
 
         // NOTE: this looks complicated because it's a workaround `std::vector` implementations
-        // which are not `constexpr` (required by c++20), we defer the vector creation to the moment it's needed.
-        // Constexpr constructor is required for a type which is usable in a `constinit` declaration,
-        // which is required to avoid the static-initialization-fiasco (at least for initialization).
+        // which are not `constexpr` (required by c++20), we defer the vector creation to the moment
+        // it's needed. Constexpr constructor is required for a type which is usable in a
+        // `constinit` declaration, which is required to avoid the static-initialization-fiasco (at
+        // least for initialization).
+        // TODO: once homebrew stl impl has `constexpr` vector, replace al lthis by just `using
+        // MessageLoggerBuffer = vector<LogRecord>;`
         struct MessageLoggerBuffer
         {
             using buffer = std::vector<LogRecord>;
 
             constexpr MessageLoggerBuffer() = default;
-
-            template<class T>
-            auto push_back(T&& record)
-            {
-                return ready_records().push_back(std::forward<T>(record));
-            }
 
             auto ready_records() -> buffer&
             {
@@ -155,6 +152,7 @@ namespace mamba::logging
 
             std::optional<buffer> records;
         };
+
         constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
 
         auto
@@ -191,7 +189,7 @@ namespace mamba::logging
         }
         else
         {
-            message_logger_buffer->push_back(std::move(log_record));
+            message_logger_buffer->ready_records().push_back(std::move(log_record));
         }
     }
 

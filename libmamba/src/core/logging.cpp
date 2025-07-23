@@ -128,7 +128,33 @@ namespace mamba::logging
     {
         constinit std::atomic<bool> message_logger_use_buffer;
 
-        using MessageLoggerBuffer = std::vector<LogRecord>;
+        // NOTE: this looks complicated because it's a workaround `std::vector` implementations
+        // which are not `constexpr` (required by c++20), we defer the vector creation to the moment it's needed.
+        // Constexpr constructor is required for a type which is usable in a `constinit` declaration,
+        // which is required to avoid the static-initialization-fiasco (at least for initialization).
+        struct MessageLoggerBuffer
+        {
+            using buffer = std::vector<LogRecord>;
+
+            constexpr MessageLoggerBuffer() = default;
+
+            template<class T>
+            auto push_back(T&& record)
+            {
+                return ready_records().push_back(std::forward<T>(record));
+            }
+
+            auto ready_records() -> buffer&
+            {
+                if (not records)
+                {
+                    records = buffer{};
+                }
+                return *records;
+            }
+
+            std::optional<buffer> records;
+        };
         constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
 
         auto
@@ -193,8 +219,8 @@ namespace mamba::logging
 
     void MessageLogger::print_buffer(std::ostream& /*ostream*/)
     {
-        MessageLoggerBuffer tmp;
-        message_logger_buffer->swap(tmp);
+        MessageLoggerBuffer::buffer tmp;
+        message_logger_buffer->ready_records().swap(tmp);
 
         for (auto& log_record : tmp)
         {

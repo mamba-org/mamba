@@ -562,7 +562,8 @@ macro(libmamba_create_target target_name linkage output_name)
         elseif(WIN32)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
-            set(ENABLE_WIN32_XMLLITE ON) # libarchive uses xmllite on windows if using libxml and not expat
+            set(ENABLE_WIN32_XMLLITE ON) # libarchive uses xmllite on windows if using libxml and
+                                         # not expat
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)

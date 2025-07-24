@@ -3,8 +3,11 @@
   "dependencies": [
     "zstd",
     "curl",
-    "libxml2",
     "libiconv",
+    {
+      "features": ["iconv", "lzma", "zlib"],
+      "name": "libxml2"
+    },
     {
       "name": "winreg",
       "platform": "windows"

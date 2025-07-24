@@ -583,6 +583,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${target_name}
                 PUBLIC
                     ${CRYPTO_LIBRARIES}
+                    XmlLite.lib
                     ${LibArchive_LIBRARY}
                     ${LIBXML2_LIBRARY}
                     ${ICONV_LIBRARY}

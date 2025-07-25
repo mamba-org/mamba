@@ -203,6 +203,48 @@ def test_list_with_pip(tmp_home, tmp_root_prefix, tmp_path, no_pip_flag):
         assert all(package["name"] != "numpy" for package in res)
 
 
+env_yaml_content_to_install_numpy_with_uv = """
+channels:
+- conda-forge
+dependencies:
+- uv
+- pip:
+  - pandas==2.2.3
+"""
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_with_uv(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "env-list_with_uv"
+    tmp_root_prefix / "envs" / env_name
+
+    env_file_yml = tmp_path / "test_env_yaml_content_to_install_numpy_with_uv.yaml"
+    env_file_yml.write_text(env_yaml_content_to_install_numpy_with_uv)
+
+    helpers.create("-n", env_name, "python=3.12", "--json", no_dry_run=True)
+    helpers.install("-n", env_name, "-f", env_file_yml, "--json", no_dry_run=True)
+
+    res = helpers.umamba_list("-n", env_name, "--json")
+    assert any(
+        package["name"] == "pandas"
+        and package["version"] == "2.2.3"
+        and package["base_url"] == "https://pypi.org/"
+        and package["build_string"] == "pypi_0"
+        and package["channel"] == "pypi"
+        and package["platform"] == sys.platform + "-" + platform.machine()
+        for package in res
+    )
+    # Check that dependencies are listed
+    assert any(
+        package["name"] == "numpy"
+        and package["base_url"] == "https://pypi.org/"
+        and package["build_string"] == "pypi_0"
+        and package["channel"] == "pypi"
+        and package["platform"] == sys.platform + "-" + platform.machine()
+        for package in res
+    )
+
+
 @pytest.mark.parametrize("env_selector", ["name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_not_existing(tmp_home, tmp_root_prefix, tmp_xtensor_env, env_selector):

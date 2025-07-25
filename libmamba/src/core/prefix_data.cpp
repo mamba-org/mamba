@@ -303,7 +303,8 @@ namespace mamba
             for (const auto& package : j["installed"])
             {
                 // Get the package metadata, if installed with `pip`
-                if (package.contains("installer") && package["installer"] == "pip")
+                if (package.contains("installer")
+                    && (package["installer"] == "pip" || package["installer"] == "uv"))
                 {
                     if (package.contains("metadata"))
                     {

@@ -562,8 +562,16 @@ macro(libmamba_create_target target_name linkage output_name)
         elseif(WIN32)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
-            set(ENABLE_WIN32_XMLLITE ON) # libarchive uses xmllite on windows if using libxml and
-                                         # not expat
+            
+            # TODO AND CONTEXT: We found a link error in libarchive which lacked a link to
+            # XmlLite which is provided by Windows. libarchive has cmake
+            # scripts doing the necessary work to link that library but for some
+            # reason we couldnt idenfity it is not linking in this specific case
+            # (it was before but the version changed apparently). As a workaround
+            # we manually link with that required library but a better solution
+            # would be to find why libarchive doesnt do it itself.
+            set(SYSTEM_PROVIDED_LIBRARIES XmlLite.lib) # required by libarchive
+            set(ENABLE_WIN32_XMLLITE ON)
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)
@@ -584,7 +592,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${target_name}
                 PUBLIC
                     ${CRYPTO_LIBRARIES}
-                    XmlLite.lib # required by libarchive
+                    ${SYSTEM_PROVIDED_LIBRARIES}
                     ${LibArchive_LIBRARY}
                     ${LIBXML2_LIBRARY}
                     ${ICONV_LIBRARY}

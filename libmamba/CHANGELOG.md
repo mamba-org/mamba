@@ -1,3 +1,27 @@
+## libmamba 2.3.1 (July 28, 2025)
+
+Enhancements:
+
+- Add missing bindings and other improvements by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3990>
+
+Bug fixes:
+
+- Consider `SHELL` env var by @Hind-M in <https://github.com/mamba-org/mamba/pull/3997>
+
+CI fixes and doc:
+
+- [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
+Maintenance:
+
+- fix CI issues related to moving dependencies by @Klaim in <https://github.com/mamba-org/mamba/pull/4023>
+- maint: use `synchronized_value` where we use a mutex to protect data by @Klaim in <https://github.com/mamba-org/mamba/pull/3992>
+- Replace macros used in tests for compatibility with coverage report by @jjerphan in <https://github.com/mamba-org/mamba/pull/3995>
+- maint: fixes warnings by @Klaim in <https://github.com/mamba-org/mamba/pull/3993>
+- `synchronized_value` by @Klaim in <https://github.com/mamba-org/mamba/pull/3984>
+- maintenance: fixed msvc warnings about unreachable code by @Klaim in <https://github.com/mamba-org/mamba/pull/3991>
+
 ## libmamba 2.3.0 (June 16, 2025)
 
 Enhancements:

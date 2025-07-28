@@ -1,3 +1,31 @@
+## 2025.07.28
+
+Release: 2.3.1 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [libmambapy, libmamba] Add missing bindings and other improvements by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3990>
+
+Bug fixes:
+
+- [libmamba, micromamba] Consider `SHELL` env var by @Hind-M in <https://github.com/mamba-org/mamba/pull/3997>
+
+CI fixes and doc:
+
+- [all] [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- [all] ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
+Maintenance:
+
+- [libmamba] fix CI issues related to moving dependencies by @Klaim in <https://github.com/mamba-org/mamba/pull/4023>
+- [libmamba] maint: use `synchronized_value` where we use a mutex to protect data by @Klaim in <https://github.com/mamba-org/mamba/pull/3992>
+- [libmambapy] maint: handle `fmt>=11.2` by @Klaim in <https://github.com/mamba-org/mamba/pull/4001>
+- [libmambapy] Handle removed `is_rgb` from `fmt 11.2.0` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3998>
+- [libmamba] Replace macros used in tests for compatibility with coverage report by @jjerphan in <https://github.com/mamba-org/mamba/pull/3995>
+- [libmamba] maint: fixes warnings by @Klaim in <https://github.com/mamba-org/mamba/pull/3993>
+- [libmamba] `synchronized_value` by @Klaim in <https://github.com/mamba-org/mamba/pull/3984>
+- [libmamba] maintenance: fixed msvc warnings about unreachable code by @Klaim in <https://github.com/mamba-org/mamba/pull/3991>
+
 ## 2025.06.16
 
 Release: 2.3.0 (libmamba, mamba, micromamba, libmambapy)

@@ -1,3 +1,14 @@
+## micromamba 2.3.1 (July 28, 2025)
+
+Bug fixes:
+
+- Consider `SHELL` env var by @Hind-M in <https://github.com/mamba-org/mamba/pull/3997>
+
+CI fixes and doc:
+
+- [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
 ## micromamba 2.3.0 (June 16, 2025)
 
 Enhancements:

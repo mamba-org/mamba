@@ -1,3 +1,19 @@
+## libmambapy 2.3.1 (July 28, 2025)
+
+Enhancements:
+
+- Add missing bindings and other improvements by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3990>
+
+CI fixes and doc:
+
+- [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
+Maintenance:
+
+- maint: handle `fmt>=11.2` by @Klaim in <https://github.com/mamba-org/mamba/pull/4001>
+- Handle removed `is_rgb` from `fmt 11.2.0` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3998>
+
 ## libmambapy 2.3.0 (June 16, 2025)
 
 Enhancements:

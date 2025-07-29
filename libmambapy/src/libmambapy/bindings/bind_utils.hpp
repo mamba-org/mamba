@@ -15,10 +15,9 @@
 namespace mambapy
 {
     template <typename Enum>
-    auto enum_from_str(const pybind11::str& name)
+    auto enum_from_str(const pybind11::str& name, pybind11::handle enum_class)
     {
-        auto pyenum = pybind11::type::of<Enum>();
-        return pyenum.attr("__members__")[name].template cast<Enum>();
+        return enum_class.attr("__members__")[name].template cast<Enum>();
     }
 
     template <typename T>

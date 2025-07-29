@@ -1484,21 +1484,26 @@ bind_submodule_impl(pybind11::module_ m)
 
     ////////////////////////////////////////////
 
-    py::enum_<QueryType>(m, "QueryType")
-        .value("Search", QueryType::Search)
-        .value("Depends", QueryType::Depends)
-        .value("WhoNeeds", QueryType::WhoNeeds)
-        .def(py::init(&mambapy::enum_from_str<QueryType>))
-        .def_static("parse", &query_type_parse);
+    auto query_type_enum = py::enum_<QueryType>(m, "QueryType")
+                               .value("Search", QueryType::Search)
+                               .value("Depends", QueryType::Depends)
+                               .value("WhoNeeds", QueryType::WhoNeeds)
+                               .def_static("parse", &query_type_parse);
+    query_type_enum.def(py::init([&query_type_enum](const py::str& name)
+                                 { return mambapy::enum_from_str<QueryType>(name, query_type_enum); }
+    ));
     py::implicitly_convertible<py::str, QueryType>();
 
-    py::enum_<QueryResultFormat>(m, "QueryResultFormat")
-        .value("Json", QueryResultFormat::Json)
-        .value("Tree", QueryResultFormat::Tree)
-        .value("Table", QueryResultFormat::Table)
-        .value("Pretty", QueryResultFormat::Pretty)
-        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
-        .def(py::init(&mambapy::enum_from_str<QueryResultFormat>));
+    auto query_result_format_enum = py::enum_<QueryResultFormat>(m, "QueryResultFormat")
+                                        .value("Json", QueryResultFormat::Json)
+                                        .value("Tree", QueryResultFormat::Tree)
+                                        .value("Table", QueryResultFormat::Table)
+                                        .value("Pretty", QueryResultFormat::Pretty)
+                                        .value("RecursiveTable", QueryResultFormat::RecursiveTable);
+    query_result_format_enum.def(py::init(
+        [&query_result_format_enum](const py::str& name)
+        { return mambapy::enum_from_str<QueryResultFormat>(name, query_result_format_enum); }
+    ));
     py::implicitly_convertible<py::str, QueryType>();
 
     py::class_<QueryResult>(m, "QueryResult")

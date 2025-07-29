@@ -27,7 +27,7 @@ defaults:
 jobs:
   coverage:
     name: Code Coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout mamba repository
         uses: actions/checkout@v4

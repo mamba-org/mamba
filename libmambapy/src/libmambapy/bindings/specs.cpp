@@ -897,6 +897,8 @@ namespace mambapy
             .def("is_simple", &MatchSpec::is_simple)
             .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
             .def("__str__", &MatchSpec::to_string)
             .def("__copy__", &copy<MatchSpec>)
             .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));

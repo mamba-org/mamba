@@ -1400,17 +1400,18 @@ namespace mamba::solver::libsolv
 
     auto solution_needs_python_relink(const solv::ObjPool& pool, const Solution& solution) -> bool
     {
-        if (auto installed = installed_python(pool))
+        const auto installed = installed_python(pool);
+        const auto newer = find_new_python_in_solution(solution);
+        if (!installed.has_value() || !newer.has_value())
         {
-            if (auto newer = find_new_python_in_solution(solution))
-            {
-                auto installed_ver = specs::Version::parse(installed->version());
-                auto newer_ver = specs::Version::parse(newer->get().version);
-                return !installed_ver.has_value() || !newer_ver.has_value()
-                       || !python_binary_compatible(installed_ver.value(), newer_ver.value());
-            }
+            return false;
         }
-        return false;
+        const auto installed_ver = specs::Version::parse(installed->version());
+        const auto newer_ver = specs::Version::parse(newer->get().version);
+        return !installed_ver.has_value() || !newer_ver.has_value()
+               || !python_binary_compatible(installed_ver.value(), newer_ver.value())
+               // Site package can be overridden by https://conda.org/learn/ceps/cep-0017
+               || (installed->python_site_packages_path() != newer->get().python_site_packages_path);
     }
 
     namespace

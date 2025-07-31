@@ -932,6 +932,8 @@ def test_MatchSpec():
     assert ms.is_file()
     assert str(ms.name) == "pkg"
     assert ms.filename == "pkg-2-bld.conda"
+    assert ms == ms
+    assert ms != MatchSpec.parse("foo")
 
     # Errors
     with pytest.raises(libmambapy.specs.ParseError):

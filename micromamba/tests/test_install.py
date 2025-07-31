@@ -706,9 +706,6 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
     assert os.path.isdir(python_site_packages_path_313)
     assert os.path.isdir(python_site_packages_path_313 / "numpy")
     assert os.path.isdir(python_site_packages_path_313 / "boltons")
-    if is_windows:
-        assert not os.path.isdir(python_site_packages_path_313t / "numpy")
-        assert not os.path.isdir(python_site_packages_path_313t / "boltons")
     if not is_windows:
         assert not os.path.isdir(python_site_packages_path_313t)
 

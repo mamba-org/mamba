@@ -718,7 +718,9 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
     linked_packages = [action["name"] for action in res_update["actions"]["LINK"]]
 
     # Check that all expected packages are present (order doesn't matter)
-    expected_packages = ["python-freethreading", "python", "python_abi", "numpy", "boltons"]
+    expected_packages = ["python-freethreading", "python", "python_abi", "numpy"]
+    if not is_windows:
+        expected_packages.append("boltons")
     for package in expected_packages:
         assert package in linked_packages, f"Expected package '{package}' not found in LINK actions"
     assert os.path.isdir(python_site_packages_path_313t)

@@ -30,7 +30,7 @@ def test_depends_local(yaml_env: Path):
     assert any(x["version"] == "0.2.5" for x in pkgs)
 
     if platform.system() == "Linux":
-        assert any(x["name"] == "libgcc-ng" for x in pkgs)
+        assert any(x["name"] == "libgcc" for x in pkgs)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -53,7 +53,7 @@ def test_depends_remote(yaml_env: Path):
     assert any(x["version"] == "0.2.5" for x in pkgs)
 
     if platform.system() == "Linux":
-        assert any(x["name"] == "libgcc-ng" for x in pkgs)
+        assert any(x["name"] == "libgcc" for x in pkgs)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

@@ -108,7 +108,7 @@ namespace mamba
         {
             // REQUIREMENT: all the following operations must be thread-safe
 
-            // TODO: how to make sure calls are noexcepts?
+            // TODO: how to make sure calls are noexcept?
 
             //
             handler.start_log_handling(params, sources);

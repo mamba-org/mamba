@@ -1023,11 +1023,12 @@ bind_submodule_impl(pybind11::module_ m)
                    decltype(Context::OutputParams::json) json,
                    decltype(Context::OutputParams::quiet) quiet) -> Context::OutputParams
                 {
-                    return {
-                        .verbosity = std::move(verbosity),
-                        .json = std::move(json),
-                        .quiet = std::move(quiet),
-                    };
+                    // TODO: improve this, see https://wg21.link/p2287 for the reason why we dont use initializers here.
+                    auto params = Context::OutputParams{};
+                    params.json = std::move(json),
+                    params.quiet = std::move(quiet),
+                    params.verbosity = std::move(verbosity);
+                    return params;
                 }
             ),
             py::arg("verbosity") = default_output_params.verbosity,

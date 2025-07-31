@@ -27,17 +27,15 @@
 #include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util_os.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
-#include "mamba/util/environment.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
-#include "./link.hpp"
-#include "./transaction_context.hpp"
 #include "solver/helpers.hpp"
 
+#include "link.hpp"
 #include "progress_bar_impl.hpp"
+#include "transaction_context.hpp"
 
 namespace mamba
 {
@@ -110,36 +108,10 @@ namespace mamba
             return out;
         }
 
-        auto
-        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& database)
-            -> std::pair<std::string, std::string>
-        {
-            // We need to find the python version that will be there after this
-            // Transaction is finished in order to compile the noarch packages correctly,
-
-            // We need to look into installed packages in case we are not installing a new python
-            // version but keeping the current one.
-            // Could also be written in term of PrefixData.
-            std::string installed_py_ver = {};
-            if (auto pkg = installed_python(database))
-            {
-                installed_py_ver = pkg->version;
-                LOG_INFO << "Found python in installed packages " << installed_py_ver;
-            }
-
-            std::string new_py_ver = installed_py_ver;
-            if (auto py = solver::find_new_python_in_solution(solution))
-            {
-                new_py_ver = py->get().version;
-            }
-
-            return { std::move(new_py_ver), std::move(installed_py_ver) };
-        }
-
-        auto find_python_site_packages_path(
+        auto find_python_versions_and_site_packages(
             const solver::Solution& solution,
             const solver::libsolv::Database& database
-        ) -> std::string
+        ) -> std::pair<std::pair<std::string, std::string>, std::string>
         {
             // We need to find the python version that will be there after this
             // Transaction is finished in order to compile the noarch packages correctly,
@@ -148,18 +120,25 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string python_site_packages_path = {};
+            std::string installed_py_ver = {};
             if (auto pkg = installed_python(database))
             {
                 python_site_packages_path = pkg->python_site_packages_path;
-                LOG_INFO << "Found python in installed packages " << python_site_packages_path;
+                installed_py_ver = pkg->version;
+                LOG_INFO << "Found python in installed packages " << installed_py_ver;
             }
 
+            std::string new_py_ver = installed_py_ver;
             if (auto py = solver::find_new_python_in_solution(solution))
             {
+                new_py_ver = py->get().version;
                 python_site_packages_path = py->get().python_site_packages_path;
             }
 
-            return { python_site_packages_path };
+            return {
+                { std::move(new_py_ver), std::move(installed_py_ver) },
+                std::move(python_site_packages_path),
+            };
         }
     }
 
@@ -239,8 +218,10 @@ namespace mamba
             Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
         }
 
-        m_py_versions = find_python_version(m_solution, database);
-        m_python_site_packages_path = find_python_site_packages_path(m_solution, database);
+        std::tie(
+            m_py_versions,
+            m_python_site_packages_path
+        ) = find_python_versions_and_site_packages(m_solution, database);
     }
 
     MTransaction::MTransaction(
@@ -285,8 +266,10 @@ namespace mamba
             [&](const auto& item) { m_requested_specs.push_back(item.spec); }
         );
 
-        m_py_versions = find_python_version(m_solution, database);
-        m_python_site_packages_path = find_python_site_packages_path(m_solution, database);
+        std::tie(
+            m_py_versions,
+            m_python_site_packages_path
+        ) = find_python_versions_and_site_packages(m_solution, database);
 
         // if no action required, don't even start logging them
         if (!empty())
@@ -331,8 +314,10 @@ namespace mamba
             [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
         );
 
-        m_py_versions = find_python_version(m_solution, database);
-        m_python_site_packages_path = find_python_site_packages_path(m_solution, database);
+        std::tie(
+            m_py_versions,
+            m_python_site_packages_path
+        ) = find_python_versions_and_site_packages(m_solution, database);
     }
 
     class TransactionRollback

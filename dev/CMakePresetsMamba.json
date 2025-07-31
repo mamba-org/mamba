@@ -23,8 +23,7 @@
     {
       "cacheVariables": {
         "BUILD_MICROMAMBA": "ON",
-        "BUILD_STATIC": "ON",
-        "ENABLE_WIN32_XMLLITE": "ON"
+        "BUILD_STATIC": "ON"
       },
       "hidden": true,
       "name": "mamba-static"

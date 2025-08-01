@@ -29,6 +29,7 @@ dependencies:
   # micromamba test dependencies
   - python
   - mitmproxy
+  - bcrypt==4.0.1 # An indirect dependency pin due to failures on MacOS
   - pytest >=7.3.0
   - pytest-asyncio
   - pytest-timeout

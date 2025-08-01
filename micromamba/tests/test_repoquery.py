@@ -238,3 +238,27 @@ def test_remote_search_not_installed_pkg(yaml_env: Path):
     assert "conda-forge" in res["result"]["pkgs"][0]["channel"]
     assert res["result"]["pkgs"][0]["name"] == "xtensor"
     assert res["result"]["pkgs"][0]["version"] == "0.24.5"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_remote_search_python_site_packages_path(yaml_env: Path):
+    res = helpers.umamba_repoquery(
+        "search",
+        "-c",
+        "conda-forge",
+        "--platform",
+        "linux-64",
+        "python=3.13.1=h9a34b6e_5_cp313t",
+        "--json",
+    )
+
+    assert res["query"]["query"] == "python=3.13.1=h9a34b6e_5_cp313t"
+    assert res["query"]["type"] == "search"
+
+    package_info = res["result"]["pkgs"][0]
+
+    assert "conda-forge" in package_info["channel"]
+    assert package_info["name"] == "python"
+    assert package_info["version"] == "3.13.1"
+    assert package_info["track_features"] == "py_freethreading"
+    assert package_info["python_site_packages_path"] == "lib/python3.13t/site-packages"

@@ -325,6 +325,11 @@ namespace mamba
                 fmt::print(out, fmtstring, "Track Features", fmt::join(pkg.track_features, ","));
             }
 
+            if (!pkg.python_site_packages_path.empty())
+            {
+                fmt::print(out, fmtstring, "Site-packages", pkg.python_site_packages_path);
+            }
+
             // std::cout << fmt::format<char>(
             // " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg.timestamp));
 

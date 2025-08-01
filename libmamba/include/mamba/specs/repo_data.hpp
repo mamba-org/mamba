@@ -63,6 +63,9 @@ namespace mamba::specs
         /** Optionally a SHA256 hash of the package archive. */
         std::optional<std::string> sha256 = {};
 
+        /** Optionally a path to the site-packages directory. */
+        std::optional<std::string> python_site_packages_path = {};
+
         /** A deprecated md5 hash. */
         std::optional<std::string> legacy_bz2_md5 = {};
 

@@ -1213,6 +1213,7 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     "version,build,cache_tag",
     [
         ["3.10", "*_cpython", "cpython-310"],
+        ["3.13", "*_cp313t", "cpython-313"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
     ],
@@ -1227,7 +1228,10 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
     else:
-        site_packages = env_prefix / "lib" / f"python{version}" / "site-packages"
+        if build.endswith("t"):
+            site_packages = env_prefix / "lib" / f"python{version}t" / "site-packages"
+        else:
+            site_packages = env_prefix / "lib" / f"python{version}" / "site-packages"
 
     if cache_tag:
         pyc_fn = Path("__pycache__") / f"six.{cache_tag}.pyc"
@@ -1259,6 +1263,26 @@ def test_create_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "site-packages" / "traitlets")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages" / "traitlets")
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+    # imagesize is a noarch: python package
+    cmd = ["-n", env_name, "python=3.13", "python-freethreading", "imagesize=1.4.1"]
+    helpers.create(*cmd)
+
+    assert os.path.isdir(env_prefix)
+
+    if platform.system() == "Windows":
+        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13t")
+    else:
+        # check that the noarch: python package installs into the python_site_packages_path directory
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        # and not into the "standard" site-packages directory
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

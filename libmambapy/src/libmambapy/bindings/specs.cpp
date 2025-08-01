@@ -663,6 +663,7 @@ namespace mambapy
                        decltype(PackageInfo::platform) platform,
                        decltype(PackageInfo::filename) filename,
                        decltype(PackageInfo::license) license,
+                       decltype(PackageInfo::python_site_packages_path) python_site_packages_path,
                        decltype(PackageInfo::md5) md5,
                        decltype(PackageInfo::sha256) sha256,
                        decltype(PackageInfo::signatures) signatures,
@@ -684,6 +685,7 @@ namespace mambapy
                         pkg.platform = std::move(platform);
                         pkg.filename = std::move(filename);
                         pkg.license = std::move(license);
+                        pkg.python_site_packages_path = std::move(python_site_packages_path);
                         pkg.md5 = std::move(md5);
                         pkg.sha256 = std::move(sha256);
                         pkg.signatures = std::move(signatures);
@@ -706,6 +708,8 @@ namespace mambapy
                 py::arg("platform") = decltype(PackageInfo::platform)(),
                 py::arg("filename") = decltype(PackageInfo::filename)(),
                 py::arg("license") = decltype(PackageInfo::license)(),
+                py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(
+                ),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
                 py::arg("signatures") = decltype(PackageInfo::signatures)(),
@@ -741,6 +745,7 @@ namespace mambapy
                 { throw std::runtime_error("'fn' has been renamed 'filename'"); }
             )
             .def_readwrite("license", &PackageInfo::license)
+            .def_readwrite("python_site_packages_path", &PackageInfo::python_site_packages_path)
             .def_readwrite("size", &PackageInfo::size)
             .def_readwrite("timestamp", &PackageInfo::timestamp)
             .def_readwrite("md5", &PackageInfo::md5)
@@ -898,6 +903,8 @@ namespace mambapy
             .def("is_simple", &MatchSpec::is_simple)
             .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
             .def("__str__", &MatchSpec::to_string)
             .def("__copy__", &copy<MatchSpec>)
             .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));

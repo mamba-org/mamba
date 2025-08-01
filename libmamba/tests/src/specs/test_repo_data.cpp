@@ -24,6 +24,7 @@ namespace
         p.version = Version::parse("1.0.0").value();
         p.build_string = "bld";
         p.build_number = 3;
+        p.python_site_packages_path = "dummpy_pspp";
         p.subdir = "linux";
         p.md5 = "ffsd";
         p.noarch = NoArchType::Python;
@@ -33,6 +34,7 @@ namespace
         REQUIRE(j.at("version") == p.version.to_string());
         REQUIRE(j.at("build") == p.build_string);
         REQUIRE(j.at("build_number") == p.build_number);
+        REQUIRE(j.at("python_site_packages_path") == p.python_site_packages_path);
         REQUIRE(j.at("subdir") == p.subdir);
         REQUIRE(j.at("md5") == p.md5);
         REQUIRE(j.at("sha256").is_null());
@@ -46,6 +48,7 @@ namespace
         j["version"] = "1.1.0";
         j["build"] = "foo1";
         j["build_number"] = 2;
+        j["python_site_packages_path"] = "dummy_pspp";
         j["subdir"] = "linux";
         j["platform"] = nullptr;
         j["depends"] = nl::json::array({ "libsolv>=1.0" });
@@ -59,6 +62,7 @@ namespace
             REQUIRE(j.at("build") == p.build_string);
             REQUIRE(j.at("build_number") == p.build_number);
             REQUIRE(j.at("subdir") == p.subdir);
+            REQUIRE(j.at("python_site_packages_path") == p.python_site_packages_path);
             REQUIRE_FALSE(p.md5.has_value());
             REQUIRE_FALSE(p.platform.has_value());
             REQUIRE(p.depends == decltype(p.depends){ "libsolv>=1.0" });

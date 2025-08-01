@@ -82,7 +82,16 @@ namespace mamba
         History::UserRequest m_history_entry;
         solver::Solution m_solution;
 
+        /** Pair of current Python version, and potential update. */
         std::pair<std::string, std::string> m_py_versions;
+        /**
+         * The potential "python_site_package" entry.
+         *
+         * Found in the the new or installed python interpreter.
+         * Key is added as part of CEP-17.
+         * https://conda.org/learn/ceps/cep-0017
+         */
+        std::string m_python_site_packages_path;
         std::vector<specs::MatchSpec> m_requested_specs;
 
         MTransaction(const CommandParams& command_params, MultiPackageCache&);

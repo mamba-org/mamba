@@ -23,7 +23,6 @@
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/heap_optional.hpp"
-#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
@@ -142,22 +141,15 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains_except_channel(const PackageInfo& pkg) const -> bool;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool
-        {
-            return m_channel == other.m_channel               //
-                   && m_version == other.m_version            //
-                   && m_name == other.m_name                  //
-                   && m_build_string == other.m_build_string  //
-                   && m_name_space == other.m_name_space      //
-                   && m_build_number == other.m_build_number  //
-                   && m_extra == other.m_extra;
-        }
+        /**
+         * Naive attribute-wise comparison.
+         *
+         * @warning Some complex matchspec could compare to false but actually represent the same
+         * set of packages. This strong equality is hard to detect.
+         */
+        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool = default;
 
-        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool
-        {
-            return !(*this == other);
-        }
+        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool = default;
 
         auto extra_members_hash() const -> std::size_t;
 

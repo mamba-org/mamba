@@ -124,16 +124,9 @@ namespace mamba::specs
          */
         [[nodiscard]] auto contains(BuildNumber point) const -> bool;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const BuildNumberSpec& other) const -> bool
-        {
-            return m_predicate == other.m_predicate;
-        }
+        [[nodiscard]] auto operator==(const BuildNumberSpec& other) const -> bool = default;
 
-        [[nodiscard]] auto operator!=(const BuildNumberSpec& other) const -> bool
-        {
-            return !(*this == other);
-        }
+        [[nodiscard]] auto operator!=(const BuildNumberSpec& other) const -> bool = default;
 
     private:
 

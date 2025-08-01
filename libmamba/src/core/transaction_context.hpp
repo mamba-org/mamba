@@ -45,6 +45,7 @@ namespace mamba
         TransactionContext(
             TransactionParams transaction_params,
             std::pair<std::string, std::string> py_versions,
+            std::string python_site_packages_path,
             std::vector<specs::MatchSpec> requested_specs
         );
 

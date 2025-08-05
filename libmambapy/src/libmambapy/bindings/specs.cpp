@@ -85,7 +85,7 @@ namespace mambapy
                                        .def_static("count", &known_platforms_count)
                                        .def_static("build_platform", &build_platform);
         known_platform_enum.def(
-            py::init([&known_platform_enum](const py::str& name)
+            py::init([known_platform_enum](const py::str& name)
                      { return enum_from_str<KnownPlatform>(name, known_platform_enum); })
         );
         py::implicitly_convertible<py::str, KnownPlatform>();
@@ -96,7 +96,7 @@ namespace mambapy
                                     .value("Python", NoArchType::Python)
                                     .def_static("parse", &noarch_parse)
                                     .def_static("count", &known_noarch_count);
-        noarch_type_enum.def(py::init([&noarch_type_enum](const py::str& name)
+        noarch_type_enum.def(py::init([noarch_type_enum](const py::str& name)
                                       { return enum_from_str<NoArchType>(name, noarch_type_enum); }));
         py::implicitly_convertible<py::str, NoArchType>();
 
@@ -107,7 +107,7 @@ namespace mambapy
                                               .value("Show", CondaURL::Credentials::Show)
                                               .value("Remove", CondaURL::Credentials::Remove);
         conda_url_credentials_enum.def(py::init(
-            [&conda_url_credentials_enum](const py::str& name)
+            [conda_url_credentials_enum](const py::str& name)
             { return enum_from_str<CondaURL::Credentials>(name, conda_url_credentials_enum); }
         ));
         py::implicitly_convertible<py::str, CondaURL::Credentials>();
@@ -333,7 +333,7 @@ namespace mambapy
                                                 .value("Name", UnresolvedChannel::Type::Name)
                                                 .value("Unknown", UnresolvedChannel::Type::Unknown);
         unresolved_channel_type_enum.def(py::init(
-            [&unresolved_channel_type_enum](const py::str& name)
+            [unresolved_channel_type_enum](const py::str& name)
             { return enum_from_str<UnresolvedChannel::Type>(name, unresolved_channel_type_enum); }
         ));
         py::implicitly_convertible<py::str, UnresolvedChannel::Type>();
@@ -454,7 +454,7 @@ namespace mambapy
                                       .value("InOtherPlatform", Channel::Match::InOtherPlatform)
                                       .value("Full", Channel::Match::Full);
         channel_match_enum.def(
-            py::init([&channel_match_enum](const py::str& name)
+            py::init([channel_match_enum](const py::str& name)
                      { return enum_from_str<Channel::Match>(name, channel_match_enum); })
         );
         py::implicitly_convertible<py::str, Channel::Match>();

@@ -67,7 +67,7 @@ namespace mambapy
                                       .value("Conceal", fmt::emphasis::conceal)
                                       .value("Strikethrough", fmt::emphasis::strikethrough);
         text_emphasis_enum.def(
-            py::init([&text_emphasis_enum](const py::str& name)
+            py::init([text_emphasis_enum](const py::str& name)
                      { return enum_from_str<fmt::emphasis>(name, text_emphasis_enum); })
         );
         py::implicitly_convertible<py::str, fmt::emphasis>();
@@ -90,7 +90,7 @@ namespace mambapy
                                             .value("BrightCyan", fmt::terminal_color::bright_cyan)
                                             .value("BrightWhite", fmt::terminal_color::bright_white);
         text_terminal_color_enum.def(
-            py::init([&text_terminal_color_enum](const py::str& name)
+            py::init([text_terminal_color_enum](const py::str& name)
                      { return enum_from_str<fmt::terminal_color>(name, text_terminal_color_enum); })
         );
         py::implicitly_convertible<py::str, fmt::terminal_color>();

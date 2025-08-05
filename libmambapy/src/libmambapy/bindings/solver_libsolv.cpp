@@ -33,7 +33,7 @@ namespace mambapy
                                         .value("Mamba", RepodataParser::Mamba)
                                         .value("Libsolv", RepodataParser::Libsolv);
         repodata_parser_enum.def(
-            py::init([&repodata_parser_enum](const py::str& name)
+            py::init([repodata_parser_enum](const py::str& name)
                      { return enum_from_str<RepodataParser>(name, repodata_parser_enum); })
         );
         py::implicitly_convertible<py::str, RepodataParser>();
@@ -43,7 +43,7 @@ namespace mambapy
                                           .value("Mamba", MatchSpecParser::Mamba)
                                           .value("Libsolv", MatchSpecParser::Libsolv);
         match_spec_parser_enum.def(
-            py::init([&match_spec_parser_enum](const py::str& name)
+            py::init([match_spec_parser_enum](const py::str& name)
                      { return enum_from_str<MatchSpecParser>(name, match_spec_parser_enum); })
         );
         py::implicitly_convertible<py::str, MatchSpecParser>();
@@ -60,7 +60,7 @@ namespace mambapy
                                       .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
                                       .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2);
         package_types_enum.def(
-            py::init([&package_types_enum](const py::str& name)
+            py::init([package_types_enum](const py::str& name)
                      { return enum_from_str<PackageTypes>(name, package_types_enum); })
         );
         py::implicitly_convertible<py::str, PackageTypes>();
@@ -76,7 +76,7 @@ namespace mambapy
                                   .value("Warning", LogLevel::Warning)
                                   .value("Error", LogLevel::Error)
                                   .value("Fatal", LogLevel::Fatal);
-        log_level_enum.def(py::init([&log_level_enum](const py::str& name)
+        log_level_enum.def(py::init([log_level_enum](const py::str& name)
                                     { return enum_from_str<LogLevel>(name, log_level_enum); }));
         py::implicitly_convertible<py::bool_, LogLevel>();
 

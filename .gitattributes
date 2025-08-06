@@ -1,1 +1,4 @@
+# Generate the .git_archival.txt file with the git metadata when running `git archive`
+# This is used by libmambapy to construct the version information when built from a git
+# archive (e.g. downstream packagers would need it)
 .git_archival.txt  export-subst

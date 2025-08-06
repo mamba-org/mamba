@@ -753,7 +753,7 @@ namespace mamba
                 codesign(dst, m_context->transaction_params().verbosity > 1);
             }
 #endif
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
+            return std::tuple(validation::sha256sum(dst), rel_dst.generic_string());
         }
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
@@ -814,8 +814,8 @@ namespace mamba
                 + std::to_string(static_cast<int>(path_data.path_type))
             );
         }
-        return std::make_tuple(
-            path_data.sha256.empty() ? std::string(validation::sha256sum(dst)) : path_data.sha256,
+        return std::tuple(
+            path_data.sha256.empty() ? validation::sha256sum(dst) : path_data.sha256,
             rel_dst.generic_string()
         );
     }

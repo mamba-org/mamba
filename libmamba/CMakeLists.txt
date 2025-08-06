@@ -381,6 +381,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging_spdlog.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging_tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp

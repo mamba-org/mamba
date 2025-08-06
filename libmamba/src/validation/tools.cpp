@@ -20,17 +20,23 @@ namespace mamba::validation
 {
     auto sha256sum(const fs::u8path& path) -> std::string_view
     {
-        std::ifstream infile = mamba::open_ifstream(path);
         thread_local auto hasher = util::Sha256Hasher();
-        thread_local auto hash = hasher.file_hex(infile);
+        thread_local util::Sha256Hasher::hex_array hash = {};
+
+        std::ifstream infile = mamba::open_ifstream(path);
+        hash = {};
+        hasher.file_hex_to(infile, hash.data());
         return { hash.data(), hash.size() };
     }
 
     auto md5sum(const fs::u8path& path) -> std::string_view
     {
-        std::ifstream infile = mamba::open_ifstream(path);
         thread_local auto hasher = util::Md5Hasher();
-        thread_local auto hash = hasher.file_hex(infile);
+        thread_local util::Md5Hasher::hex_array hash = {};
+
+        std::ifstream infile = mamba::open_ifstream(path);
+        hash = {};
+        hasher.file_hex_to(infile, hash.data());
         return { hash.data(), hash.size() };
     }
 

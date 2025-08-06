@@ -782,8 +782,7 @@ configure_package_config_file(
 # Configure 'mambaConfig.cmake' for an install tree
 set(MAMBA_CONFIG_CODE "")
 configure_package_config_file(
-    ${PROJECT_NAME}Config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+    ${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     INSTALL_DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
 
@@ -793,7 +792,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
@@ -804,3 +803,4 @@ install(
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
     COMPONENT Mamba_Development
 )
+export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)

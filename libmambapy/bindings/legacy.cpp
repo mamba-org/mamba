@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/iostream.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -1484,27 +1485,25 @@ bind_submodule_impl(pybind11::module_ m)
 
     ////////////////////////////////////////////
 
-    auto query_type_enum = py::enum_<QueryType>(m, "QueryType")
-                               .value("Search", QueryType::Search)
-                               .value("Depends", QueryType::Depends)
-                               .value("WhoNeeds", QueryType::WhoNeeds)
-                               .def_static("parse", &query_type_parse);
-    query_type_enum.def(py::init([query_type_enum](const py::str& name)
-                                 { return mambapy::enum_from_str<QueryType>(name, query_type_enum); }
-    ));
+    py::native_enum<QueryType>(m, "QueryType", "enum.Enum")
+        .value("Search", QueryType::Search)
+        .value("Depends", QueryType::Depends)
+        .value("WhoNeeds", QueryType::WhoNeeds)
+        .export_values()
+        .finalize();
     py::implicitly_convertible<py::str, QueryType>();
 
-    auto query_result_format_enum = py::enum_<QueryResultFormat>(m, "QueryResultFormat")
-                                        .value("Json", QueryResultFormat::Json)
-                                        .value("Tree", QueryResultFormat::Tree)
-                                        .value("Table", QueryResultFormat::Table)
-                                        .value("Pretty", QueryResultFormat::Pretty)
-                                        .value("RecursiveTable", QueryResultFormat::RecursiveTable);
-    query_result_format_enum.def(py::init(
-        [query_result_format_enum](const py::str& name)
-        { return mambapy::enum_from_str<QueryResultFormat>(name, query_result_format_enum); }
-    ));
-    py::implicitly_convertible<py::str, QueryType>();
+    m.def("query_type_parse", &query_type_parse);
+
+    py::native_enum<QueryResultFormat>(m, "QueryResultFormat", "enum.Enum")
+        .value("Json", QueryResultFormat::Json)
+        .value("Tree", QueryResultFormat::Tree)
+        .value("Table", QueryResultFormat::Table)
+        .value("Pretty", QueryResultFormat::Pretty)
+        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
+        .export_values()
+        .finalize();
+    py::implicitly_convertible<py::str, QueryResultFormat>();
 
     py::class_<QueryResult>(m, "QueryResult")
         .def_property_readonly("type", &QueryResult::type)

@@ -8,6 +8,7 @@
 #include <variant>
 
 #include <fmt/color.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
@@ -57,42 +58,38 @@ namespace mambapy
     {
         namespace py = pybind11;
 
-        auto text_emphasis_enum = py::enum_<fmt::emphasis>(m, "TextEmphasis")
-                                      .value("Bold", fmt::emphasis::bold)
-                                      .value("Faint", fmt::emphasis::faint)
-                                      .value("Italic", fmt::emphasis::italic)
-                                      .value("Underline", fmt::emphasis::underline)
-                                      .value("Blink", fmt::emphasis::blink)
-                                      .value("Reverse", fmt::emphasis::reverse)
-                                      .value("Conceal", fmt::emphasis::conceal)
-                                      .value("Strikethrough", fmt::emphasis::strikethrough);
-        text_emphasis_enum.def(
-            py::init([text_emphasis_enum](const py::str& name)
-                     { return enum_from_str<fmt::emphasis>(name, text_emphasis_enum); })
-        );
+        py::native_enum<fmt::emphasis>(m, "TextEmphasis", "enum.IntEnum")
+            .value("Bold", fmt::emphasis::bold)
+            .value("Faint", fmt::emphasis::faint)
+            .value("Italic", fmt::emphasis::italic)
+            .value("Underline", fmt::emphasis::underline)
+            .value("Blink", fmt::emphasis::blink)
+            .value("Reverse", fmt::emphasis::reverse)
+            .value("Conceal", fmt::emphasis::conceal)
+            .value("Strikethrough", fmt::emphasis::strikethrough)
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::str, fmt::emphasis>();
 
-        auto text_terminal_color_enum = py::enum_<fmt::terminal_color>(m, "TextTerminalColor")
-                                            .value("Black", fmt::terminal_color::black)
-                                            .value("Red", fmt::terminal_color::red)
-                                            .value("Green", fmt::terminal_color::green)
-                                            .value("Yellow", fmt::terminal_color::yellow)
-                                            .value("Blue", fmt::terminal_color::blue)
-                                            .value("Magenta", fmt::terminal_color::magenta)
-                                            .value("Cyan", fmt::terminal_color::cyan)
-                                            .value("White", fmt::terminal_color::white)
-                                            .value("BrightBlack", fmt::terminal_color::bright_black)
-                                            .value("BrightRed", fmt::terminal_color::bright_red)
-                                            .value("BrightGreen", fmt::terminal_color::bright_green)
-                                            .value("BrightYellow", fmt::terminal_color::bright_yellow)
-                                            .value("BrightBlue", fmt::terminal_color::bright_blue)
-                                            .value("BrightMagenta", fmt::terminal_color::bright_magenta)
-                                            .value("BrightCyan", fmt::terminal_color::bright_cyan)
-                                            .value("BrightWhite", fmt::terminal_color::bright_white);
-        text_terminal_color_enum.def(
-            py::init([text_terminal_color_enum](const py::str& name)
-                     { return enum_from_str<fmt::terminal_color>(name, text_terminal_color_enum); })
-        );
+        py::native_enum<fmt::terminal_color>(m, "TextTerminalColor", "enum.IntEnum")
+            .value("Black", fmt::terminal_color::black)
+            .value("Red", fmt::terminal_color::red)
+            .value("Green", fmt::terminal_color::green)
+            .value("Yellow", fmt::terminal_color::yellow)
+            .value("Blue", fmt::terminal_color::blue)
+            .value("Magenta", fmt::terminal_color::magenta)
+            .value("Cyan", fmt::terminal_color::cyan)
+            .value("White", fmt::terminal_color::white)
+            .value("BrightBlack", fmt::terminal_color::bright_black)
+            .value("BrightRed", fmt::terminal_color::bright_red)
+            .value("BrightGreen", fmt::terminal_color::bright_green)
+            .value("BrightYellow", fmt::terminal_color::bright_yellow)
+            .value("BrightBlue", fmt::terminal_color::bright_blue)
+            .value("BrightMagenta", fmt::terminal_color::bright_magenta)
+            .value("BrightCyan", fmt::terminal_color::bright_cyan)
+            .value("BrightWhite", fmt::terminal_color::bright_white)
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::str, fmt::terminal_color>();
 
         py::class_<fmt::rgb>(m, "TextRGBColor")

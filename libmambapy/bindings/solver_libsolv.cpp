@@ -7,6 +7,7 @@
 #include <ranges>
 
 #include <pybind11/functional.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
@@ -29,55 +30,51 @@ namespace mambapy
         using namespace mamba;
         using namespace mamba::solver::libsolv;
 
-        auto repodata_parser_enum = py::enum_<RepodataParser>(m, "RepodataParser")
-                                        .value("Mamba", RepodataParser::Mamba)
-                                        .value("Libsolv", RepodataParser::Libsolv);
-        repodata_parser_enum.def(
-            py::init([repodata_parser_enum](const py::str& name)
-                     { return enum_from_str<RepodataParser>(name, repodata_parser_enum); })
-        );
+        py::native_enum<RepodataParser>(m, "RepodataParser", "enum.Enum")
+            .value("Mamba", RepodataParser::Mamba)
+            .value("Libsolv", RepodataParser::Libsolv)
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::str, RepodataParser>();
 
-        auto match_spec_parser_enum = py::enum_<MatchSpecParser>(m, "MatchSpecParser")
-                                          .value("Mixed", MatchSpecParser::Mixed)
-                                          .value("Mamba", MatchSpecParser::Mamba)
-                                          .value("Libsolv", MatchSpecParser::Libsolv);
-        match_spec_parser_enum.def(
-            py::init([match_spec_parser_enum](const py::str& name)
-                     { return enum_from_str<MatchSpecParser>(name, match_spec_parser_enum); })
-        );
+        py::native_enum<MatchSpecParser>(m, "MatchSpecParser", "enum.Enum")
+            .value("Mixed", MatchSpecParser::Mixed)
+            .value("Mamba", MatchSpecParser::Mamba)
+            .value("Libsolv", MatchSpecParser::Libsolv)
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::str, MatchSpecParser>();
 
-        py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
+        py::native_enum<PipAsPythonDependency>(m, "PipAsPythonDependency", "enum.Enum")
             .value("No", PipAsPythonDependency::No)
             .value("Yes", PipAsPythonDependency::Yes)
-            .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
 
-        auto package_types_enum = py::enum_<PackageTypes>(m, "PackageTypes")
-                                      .value("CondaOnly", PackageTypes::CondaOnly)
-                                      .value("TarBz2Only", PackageTypes::TarBz2Only)
-                                      .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
-                                      .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2);
-        package_types_enum.def(
-            py::init([package_types_enum](const py::str& name)
-                     { return enum_from_str<PackageTypes>(name, package_types_enum); })
-        );
+        py::native_enum<PackageTypes>(m, "PackageTypes", "enum.Enum")
+            .value("CondaOnly", PackageTypes::CondaOnly)
+            .value("TarBz2Only", PackageTypes::TarBz2Only)
+            .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
+            .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2)
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::str, PackageTypes>();
 
-        py::enum_<VerifyPackages>(m, "VerifyPackages")
+        py::native_enum<VerifyPackages>(m, "VerifyPackages", "enum.Enum")
             .value("No", VerifyPackages::No)
             .value("Yes", VerifyPackages::Yes)
-            .def(py::init([](bool val) { return static_cast<VerifyPackages>(val); }));
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::bool_, VerifyPackages>();
 
-        auto log_level_enum = py::enum_<LogLevel>(m, "LogLevel")
-                                  .value("Debug", LogLevel::Debug)
-                                  .value("Warning", LogLevel::Warning)
-                                  .value("Error", LogLevel::Error)
-                                  .value("Fatal", LogLevel::Fatal);
-        log_level_enum.def(py::init([log_level_enum](const py::str& name)
-                                    { return enum_from_str<LogLevel>(name, log_level_enum); }));
+        py::native_enum<LogLevel>(m, "LogLevel", "enum.Enum")
+            .value("Debug", LogLevel::Debug)
+            .value("Warning", LogLevel::Warning)
+            .value("Error", LogLevel::Error)
+            .value("Fatal", LogLevel::Fatal)
+            .export_values()
+            .finalize();
         py::implicitly_convertible<py::bool_, LogLevel>();
 
         py::class_<Priorities>(m, "Priorities")

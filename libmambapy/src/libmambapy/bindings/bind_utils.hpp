@@ -14,12 +14,6 @@
 
 namespace mambapy
 {
-    template <typename Enum>
-    auto enum_from_str(const pybind11::str& name, pybind11::handle enum_class)
-    {
-        return enum_class.attr("__members__")[name].template cast<Enum>();
-    }
-
     template <typename T>
     auto copy(const T& x) -> std::unique_ptr<T>
     {

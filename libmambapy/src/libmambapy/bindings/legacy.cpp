@@ -1489,7 +1489,6 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Search", QueryType::Search)
         .value("Depends", QueryType::Depends)
         .value("WhoNeeds", QueryType::WhoNeeds)
-        .export_values()
         .finalize();
     py::implicitly_convertible<py::str, QueryType>();
 
@@ -1501,7 +1500,6 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Table", QueryResultFormat::Table)
         .value("Pretty", QueryResultFormat::Pretty)
         .value("RecursiveTable", QueryResultFormat::RecursiveTable)
-        .export_values()
         .finalize();
     py::implicitly_convertible<py::str, QueryResultFormat>();
 

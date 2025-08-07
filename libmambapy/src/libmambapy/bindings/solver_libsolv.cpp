@@ -33,7 +33,6 @@ namespace mambapy
         py::native_enum<RepodataParser>(m, "RepodataParser", "enum.Enum")
             .value("Mamba", RepodataParser::Mamba)
             .value("Libsolv", RepodataParser::Libsolv)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, RepodataParser>();
 
@@ -41,14 +40,12 @@ namespace mambapy
             .value("Mixed", MatchSpecParser::Mixed)
             .value("Mamba", MatchSpecParser::Mamba)
             .value("Libsolv", MatchSpecParser::Libsolv)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, MatchSpecParser>();
 
         py::native_enum<PipAsPythonDependency>(m, "PipAsPythonDependency", "enum.Enum")
             .value("No", PipAsPythonDependency::No)
             .value("Yes", PipAsPythonDependency::Yes)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
 
@@ -57,14 +54,12 @@ namespace mambapy
             .value("TarBz2Only", PackageTypes::TarBz2Only)
             .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
             .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, PackageTypes>();
 
         py::native_enum<VerifyPackages>(m, "VerifyPackages", "enum.Enum")
             .value("No", VerifyPackages::No)
             .value("Yes", VerifyPackages::Yes)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::bool_, VerifyPackages>();
 
@@ -73,7 +68,6 @@ namespace mambapy
             .value("Warning", LogLevel::Warning)
             .value("Error", LogLevel::Error)
             .value("Fatal", LogLevel::Fatal)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::bool_, LogLevel>();
 

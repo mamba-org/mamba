@@ -82,7 +82,6 @@ namespace mambapy
             .value("win_64", KnownPlatform::win_64)
             .value("win_arm64", KnownPlatform::win_arm64)
             .value("zos_z", KnownPlatform::zos_z)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, KnownPlatform>();
 
@@ -94,7 +93,6 @@ namespace mambapy
             .value("No", NoArchType::No)
             .value("Generic", NoArchType::Generic)
             .value("Python", NoArchType::Python)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, NoArchType>();
 
@@ -107,7 +105,6 @@ namespace mambapy
             .value("Hide", CondaURL::Credentials::Hide)
             .value("Show", CondaURL::Credentials::Show)
             .value("Remove", CondaURL::Credentials::Remove)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, CondaURL::Credentials>();
 
@@ -328,7 +325,6 @@ namespace mambapy
             .value("PackagePath", UnresolvedChannel::Type::PackagePath)
             .value("Name", UnresolvedChannel::Type::Name)
             .value("Unknown", UnresolvedChannel::Type::Unknown)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, UnresolvedChannel::Type>();
 
@@ -447,7 +443,6 @@ namespace mambapy
             .value("No", Channel::Match::No)
             .value("InOtherPlatform", Channel::Match::InOtherPlatform)
             .value("Full", Channel::Match::Full)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, Channel::Match>();
 

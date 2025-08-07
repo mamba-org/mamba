@@ -293,7 +293,6 @@ namespace
 
             synched_convertible_value c{ { a->x + 1 } };
             REQUIRE(a != c);
-
         }
 
         SECTION("move constructible")

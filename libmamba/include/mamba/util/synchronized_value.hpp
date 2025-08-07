@@ -270,7 +270,7 @@ namespace mamba::util
         template <typename V>
             requires(not std::same_as<T, std::decay_t<V>>)
                     and (not std::same_as<this_type, std::decay_t<V>>)
-                    and (not is_type_instance_of_v<synchronized_value, std::decay_t<V>>)
+                    and (not is_type_instance_of_v<std::decay_t<V>, synchronized_value>)
                     and weakly_assignable_from<T&, V>
         synchronized_value(V&& value) noexcept
             : m_value(std::forward<V>(value))
@@ -372,7 +372,7 @@ namespace mamba::util
         template <typename V>
             requires(not std::same_as<T, std::decay_t<V>>)
                     and (not std::same_as<this_type, std::decay_t<V>>)
-                    and (not is_type_instance_of_v<synchronized_value, std::decay_t<V>>)
+                    and (not is_type_instance_of_v<std::decay_t<V>, synchronized_value>)
                     and weakly_assignable_from<T&, V>
         auto operator=(V&& value) noexcept -> synchronized_value&
         {

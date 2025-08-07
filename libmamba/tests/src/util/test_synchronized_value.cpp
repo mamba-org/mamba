@@ -287,6 +287,13 @@ namespace
             REQUIRE(a == x);
             ComparableToValueType y{ a->x + 1 };
             REQUIRE(a != y);
+
+            synched_convertible_value b{ { a->x } };
+            REQUIRE(a == b);
+
+            synched_convertible_value c{ { a->x + 1 } };
+            REQUIRE(a != c);
+
         }
 
         SECTION("move constructible")

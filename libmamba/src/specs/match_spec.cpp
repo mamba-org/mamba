@@ -456,8 +456,17 @@ namespace mamba::specs
             }
 
             pos = str.find_last_of('=');
-            const char d = str[pos - 1];
+            if (pos == str.npos)
+            {
+                // That means that there is no operator, and version and build are separated with
+                // space(s)
+                pos = str.find_last_of(' ');
+                return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
+            }
 
+            assert(pos != str.npos);
+            assert(pos < str.size());
+            const char d = str[pos - 1];
             if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
             {
                 // Find the position of the first non-space character after operator
@@ -473,14 +482,6 @@ namespace mamba::specs
                 }
                 // Otherwise no build is present after the version
                 return { str, {} };
-            }
-
-            if (pos == str.npos)
-            {
-                // That means that there is no operator, and version and build are separated with
-                // space(s)
-                pos = str.find_last_of(' ');
-                return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
             }
 
             // '=' is found but not combined with `d` above

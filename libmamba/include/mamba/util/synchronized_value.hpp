@@ -57,10 +57,7 @@ namespace mamba::util
     };
 
     template <class T, class U>
-    concept weakly_assignable_from = requires(T t, U&& u)
-    {
-        t = std::forward<U>(u);
-    };
+    concept weakly_assignable_from = requires(T t, U&& u) { t = std::forward<U>(u); };
 
 
     /////////////////////////////
@@ -117,8 +114,7 @@ namespace mamba::util
     */
     template <Mutex... M>
         requires(sizeof...(M) > 1) and (SharedMutex<M> or ...)
-    [[nodiscard]]
-    auto lock_as_readonly(M&... mutex)
+    [[nodiscard]] auto lock_as_readonly(M&... mutex)
     {
         return std::make_tuple(lock_as_readonly(mutex)...);
     }
@@ -368,7 +364,7 @@ namespace mamba::util
         template <std::default_initializable U, Mutex OtherMutex>
             requires(not std::same_as<synchronized_value<T, M>, synchronized_value<U, OtherMutex>>)
                     and weakly_assignable_from<T&, U&&>
-        auto operator=(synchronized_value<U, OtherMutex>&& other)  noexcept -> synchronized_value&;
+        auto operator=(synchronized_value<U, OtherMutex>&& other) noexcept -> synchronized_value&;
 
         /** Locks and assign the provided value to the stored object.
             The lock is released before the end of the call.
@@ -575,7 +571,7 @@ namespace mamba::util
         T m_value;
         mutable M m_mutex;
 
-        template<std::default_initializable, Mutex>
+        template <std::default_initializable, Mutex>
         friend class synchronized_value;
     };
 
@@ -646,8 +642,7 @@ namespace mamba::util
     }
 
     template <std::default_initializable T, Mutex M>
-    auto synchronized_value<T, M>::operator=(const synchronized_value& other)
-        -> synchronized_value&
+    auto synchronized_value<T, M>::operator=(const synchronized_value& other) -> synchronized_value&
     {
         auto this_lock [[maybe_unused]] = lock_as_exclusive(m_mutex);
         auto other_lock [[maybe_unused]] = lock_as_readonly(other.m_mutex);

@@ -136,7 +136,6 @@ namespace
         constexpr ConvertibleToValueType(ValueType&& v) noexcept
             : i(std::move(v.x))
         {
-
         }
 
         constexpr ConvertibleToValueType& operator=(const ValueType& v)
@@ -150,7 +149,6 @@ namespace
             i = std::move(v.x);
             return *this;
         }
-
     };
 
     constexpr bool operator==(const ValueType& left, const ConvertibleToValueType& right)
@@ -162,7 +160,6 @@ namespace
     static_assert(std::convertible_to<ValueType, ConvertibleToValueType>);
     static_assert(std::convertible_to<ConvertibleToValueType, ValueType&&>);
     static_assert(std::convertible_to<ValueType, ConvertibleToValueType&&>);
-
 
     struct ComparableToValueType
     {
@@ -200,16 +197,18 @@ namespace
 
         constexpr ConvertibleMultipleValues(std::vector<int> values)
             : values(std::move(values))
-            {}
+        {
+        }
 
         constexpr ConvertibleMultipleValues(const MultipleValues& m)
             : values(m.values)
-            {}
+        {
+        }
 
         constexpr ConvertibleMultipleValues(MultipleValues&& m) noexcept
-                : values(std::move(m.values))
-            {
-            }
+            : values(std::move(m.values))
+        {
+        }
 
         constexpr ConvertibleMultipleValues& operator=(const MultipleValues& m)
         {
@@ -232,7 +231,6 @@ namespace
         {
             return values.empty();
         }
-
     };
 
     constexpr bool operator==(const MultipleValues& left, const ConvertibleMultipleValues& right)
@@ -244,7 +242,6 @@ namespace
     static_assert(std::convertible_to<MultipleValues, ConvertibleMultipleValues>);
     static_assert(std::convertible_to<ConvertibleMultipleValues, MultipleValues&&>);
     static_assert(std::convertible_to<MultipleValues, ConvertibleMultipleValues&&>);
-
 
 
     // NOTE: We do not use TEMPLATE_TEST_CASE or TEMPLATE_LIST_TEST_CASE here because code coverage

@@ -105,6 +105,12 @@ namespace
             : x(other.x)
         {
         }
+
+        constexpr ValueType& operator=(const ValueType& other)
+        {
+            x = other.x;
+            return *this;
+        }
     };
 
     struct ConvertibleToValueType

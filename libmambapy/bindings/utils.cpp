@@ -67,7 +67,6 @@ namespace mambapy
             .value("Reverse", fmt::emphasis::reverse)
             .value("Conceal", fmt::emphasis::conceal)
             .value("Strikethrough", fmt::emphasis::strikethrough)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, fmt::emphasis>();
 
@@ -88,7 +87,6 @@ namespace mambapy
             .value("BrightMagenta", fmt::terminal_color::bright_magenta)
             .value("BrightCyan", fmt::terminal_color::bright_cyan)
             .value("BrightWhite", fmt::terminal_color::bright_white)
-            .export_values()
             .finalize();
         py::implicitly_convertible<py::str, fmt::terminal_color>();
 

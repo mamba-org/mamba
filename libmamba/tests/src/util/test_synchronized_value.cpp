@@ -195,8 +195,8 @@ namespace
         constexpr ConvertibleMultipleValues& operator=(const ConvertibleMultipleValues&) = default;
         constexpr ConvertibleMultipleValues& operator=(ConvertibleMultipleValues&&) noexcept = default;
 
-        constexpr ConvertibleMultipleValues(std::vector<int> values)
-            : values(std::move(values))
+        constexpr ConvertibleMultipleValues(std::vector<int> v)
+            : values(std::move(v))
         {
         }
 

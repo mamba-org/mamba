@@ -260,7 +260,7 @@ namespace
 
         using synched_values = mamba::util::synchronized_value<MultipleValues, MutexType>;
         using synched_convertible_values = mamba::util::synchronized_value<ConvertibleMultipleValues, MutexType>;
-        static const MultipleValues values{ .values = { { 1 }, { 2 }, { 3 }, { 4 } } };
+        static const MultipleValues values{ .values = { 1, 2, 3, 4 } };
 
         SECTION("default constructible")
         {

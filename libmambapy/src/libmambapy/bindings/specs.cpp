@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <pybind11/native_enum.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
@@ -63,15 +64,15 @@ namespace mambapy
             [](const mamba::fs::u8path& p) { return strip_archive_extension(p); }
         );
 
-        py::enum_<KnownPlatform>(m, "KnownPlatform")
+        py::native_enum<KnownPlatform>(m, "KnownPlatform", "enum.Enum")
             .value("noarch", KnownPlatform::noarch)
             .value("linux_32", KnownPlatform::linux_32)
             .value("linux_64", KnownPlatform::linux_64)
+            .value("linux_aarch64", KnownPlatform::linux_aarch64)
             .value("linux_armv6l", KnownPlatform::linux_armv6l)
             .value("linux_armv7l", KnownPlatform::linux_armv7l)
-            .value("linux_aarch64", KnownPlatform::linux_aarch64)
-            .value("linux_ppc64le", KnownPlatform::linux_ppc64le)
             .value("linux_ppc64", KnownPlatform::linux_ppc64)
+            .value("linux_ppc64le", KnownPlatform::linux_ppc64le)
             .value("linux_s390x", KnownPlatform::linux_s390x)
             .value("linux_riscv32", KnownPlatform::linux_riscv32)
             .value("linux_riscv64", KnownPlatform::linux_riscv64)
@@ -81,28 +82,30 @@ namespace mambapy
             .value("win_64", KnownPlatform::win_64)
             .value("win_arm64", KnownPlatform::win_arm64)
             .value("zos_z", KnownPlatform::zos_z)
-            .def(py::init(&enum_from_str<KnownPlatform>))
-            .def_static("parse", &platform_parse)
-            .def_static("count", &known_platforms_count)
-            .def_static("build_platform", &build_platform);
+            .finalize();
         py::implicitly_convertible<py::str, KnownPlatform>();
 
-        py::enum_<NoArchType>(m, "NoArchType")
+        m.def("platform_parse", &platform_parse);
+        m.def("known_platforms_count", &known_platforms_count);
+        m.def("build_platform", &build_platform);
+
+        py::native_enum<NoArchType>(m, "NoArchType", "enum.Enum")
             .value("No", NoArchType::No)
             .value("Generic", NoArchType::Generic)
             .value("Python", NoArchType::Python)
-            .def(py::init(&enum_from_str<NoArchType>))
-            .def_static("parse", &noarch_parse)
-            .def_static("count", &known_noarch_count);
+            .finalize();
         py::implicitly_convertible<py::str, NoArchType>();
+
+        m.def("noarch_parse", &noarch_parse);
+        m.def("known_noarch_count", &known_noarch_count);
 
         auto py_conda_url = py::class_<CondaURL>(m, "CondaURL");
 
-        py::enum_<CondaURL::Credentials>(py_conda_url, "Credentials")
+        py::native_enum<CondaURL::Credentials>(py_conda_url, "Credentials", "enum.Enum")
             .value("Hide", CondaURL::Credentials::Hide)
             .value("Show", CondaURL::Credentials::Show)
             .value("Remove", CondaURL::Credentials::Remove)
-            .def(py::init(&enum_from_str<CondaURL::Credentials>));
+            .finalize();
         py::implicitly_convertible<py::str, CondaURL::Credentials>();
 
         py_conda_url  //
@@ -315,14 +318,14 @@ namespace mambapy
 
         auto py_unresolved_channel = py::class_<UnresolvedChannel>(m, "UnresolvedChannel");
 
-        py::enum_<UnresolvedChannel::Type>(py_unresolved_channel, "Type")
+        py::native_enum<UnresolvedChannel::Type>(py_unresolved_channel, "Type", "enum.Enum")
             .value("URL", UnresolvedChannel::Type::URL)
             .value("PackageURL", UnresolvedChannel::Type::PackageURL)
             .value("Path", UnresolvedChannel::Type::Path)
             .value("PackagePath", UnresolvedChannel::Type::PackagePath)
             .value("Name", UnresolvedChannel::Type::Name)
             .value("Unknown", UnresolvedChannel::Type::Unknown)
-            .def(py::init(&enum_from_str<UnresolvedChannel::Type>));
+            .finalize();
         py::implicitly_convertible<py::str, UnresolvedChannel::Type>();
 
         py_unresolved_channel  //
@@ -436,11 +439,11 @@ namespace mambapy
             .def("__copy__", &copy<BasicHTTPAuthentication>)
             .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"));
 
-        py::enum_<Channel::Match>(py_channel, "Match")
+        py::native_enum<Channel::Match>(py_channel, "Match", "enum.Enum")
             .value("No", Channel::Match::No)
             .value("InOtherPlatform", Channel::Match::InOtherPlatform)
             .value("Full", Channel::Match::Full)
-            .def(py::init(&enum_from_str<Channel::Match>));
+            .finalize();
         py::implicitly_convertible<py::str, Channel::Match>();
 
         py_channel  //

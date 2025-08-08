@@ -82,38 +82,173 @@ namespace
     {
         int x = 0;
 
-        auto increment() -> void
+        constexpr auto increment() -> void
         {
             x++;
         }
 
-        auto next_value() const -> ValueType
+        constexpr auto next_value() const -> ValueType
         {
             return { x + 1 };
         }
 
-        auto operator<=>(const ValueType&) const noexcept = default;
+        constexpr auto operator<=>(const ValueType&) const noexcept = default;
+
+        constexpr ValueType() = default;
+
+        constexpr ValueType(int v)
+            : x(v)
+        {
+        }
+
+        constexpr ValueType(const ValueType& other)
+            : x(other.x)
+        {
+        }
+
+        constexpr ValueType& operator=(const ValueType& other)
+        {
+            x = other.x;
+            return *this;
+        }
     };
 
     struct ConvertibleToValueType
     {
         int i = 0;
 
-        operator ValueType() const
+        constexpr operator ValueType() const
         {
             return { i };
         }
+
+        constexpr ConvertibleToValueType() = default;
+
+        constexpr ConvertibleToValueType(int v)
+            : i(v)
+        {
+        }
+
+        constexpr ConvertibleToValueType(const ConvertibleToValueType&) = default;
+        constexpr ConvertibleToValueType(ConvertibleToValueType&&) noexcept = default;
+        constexpr ConvertibleToValueType& operator=(const ConvertibleToValueType&) = default;
+        constexpr ConvertibleToValueType& operator=(ConvertibleToValueType&&) noexcept = default;
+
+        constexpr ConvertibleToValueType(const ValueType& v)
+            : i(v.x)
+        {
+        }
+
+        constexpr ConvertibleToValueType(ValueType&& v) noexcept
+            : i(std::move(v.x))
+        {
+        }
+
+        constexpr ConvertibleToValueType& operator=(const ValueType& v)
+        {
+            i = v.x;
+            return *this;
+        }
+
+        constexpr ConvertibleToValueType& operator=(ValueType&& v) noexcept
+        {
+            i = std::move(v.x);
+            return *this;
+        }
     };
+
+    constexpr bool operator==(const ValueType& left, const ConvertibleToValueType& right)
+    {
+        return left.x == right.i;
+    }
+
+    static_assert(std::convertible_to<ConvertibleToValueType, ValueType>);
+    static_assert(std::convertible_to<ValueType, ConvertibleToValueType>);
+    static_assert(std::convertible_to<ConvertibleToValueType, ValueType&&>);
+    static_assert(std::convertible_to<ValueType, ConvertibleToValueType&&>);
 
     struct ComparableToValueType
     {
         int j = 0;
     };
 
-    bool operator==(const ValueType& left, const ComparableToValueType& right)
+    constexpr bool operator==(const ValueType& left, const ComparableToValueType& right)
     {
         return left.x == right.j;
     }
+
+    struct MultipleValues
+    {
+        std::vector<int> values;
+
+        constexpr auto operator<=>(const MultipleValues&) const noexcept = default;
+
+        constexpr bool empty() const
+        {
+            return values.empty();
+        }
+    };
+
+    struct ConvertibleMultipleValues
+    {
+        std::vector<int> values;
+        auto operator<=>(const ConvertibleMultipleValues&) const noexcept = default;
+
+        constexpr ConvertibleMultipleValues() = default;
+
+        constexpr ConvertibleMultipleValues(const ConvertibleMultipleValues&) = default;
+        constexpr ConvertibleMultipleValues(ConvertibleMultipleValues&&) noexcept = default;
+        constexpr ConvertibleMultipleValues& operator=(const ConvertibleMultipleValues&) = default;
+        constexpr ConvertibleMultipleValues& operator=(ConvertibleMultipleValues&&) noexcept = default;
+
+        constexpr ConvertibleMultipleValues(std::vector<int> v)
+            : values(std::move(v))
+        {
+        }
+
+        constexpr ConvertibleMultipleValues(const MultipleValues& m)
+            : values(m.values)
+        {
+        }
+
+        constexpr ConvertibleMultipleValues(MultipleValues&& m) noexcept
+            : values(std::move(m.values))
+        {
+        }
+
+        constexpr ConvertibleMultipleValues& operator=(const MultipleValues& m)
+        {
+            values = m.values;
+            return *this;
+        }
+
+        constexpr ConvertibleMultipleValues& operator=(MultipleValues&& m) noexcept
+        {
+            values = std::move(m.values);
+            return *this;
+        }
+
+        constexpr operator MultipleValues() const
+        {
+            return { values };
+        }
+
+        constexpr bool empty() const
+        {
+            return values.empty();
+        }
+    };
+
+    constexpr bool operator==(const MultipleValues& left, const ConvertibleMultipleValues& right)
+    {
+        return left.values == right.values;
+    }
+
+    static_assert(std::convertible_to<ConvertibleMultipleValues, MultipleValues>);
+    static_assert(std::convertible_to<MultipleValues, ConvertibleMultipleValues>);
+    static_assert(std::convertible_to<ConvertibleMultipleValues, MultipleValues&&>);
+    static_assert(std::convertible_to<MultipleValues, ConvertibleMultipleValues&&>);
+
 
     // NOTE: We do not use TEMPLATE_TEST_CASE or TEMPLATE_LIST_TEST_CASE here because code coverage
     // tools (such as gcov/lcov) do not properly attribute coverage to tests instantiated via
@@ -126,31 +261,111 @@ namespace
     template <mamba::util::Mutex MutexType>
     void test_synchronized_value_basics()
     {
-        using synchronized_value = mamba::util::synchronized_value<ValueType, MutexType>;
+        using synched_value = mamba::util::synchronized_value<ValueType, MutexType>;
+        using synched_convertible_value = mamba::util::synchronized_value<ConvertibleToValueType, MutexType>;
+
+        using synched_values = mamba::util::synchronized_value<MultipleValues, MutexType>;
+        using synched_convertible_values = mamba::util::synchronized_value<ConvertibleMultipleValues, MutexType>;
+        static const MultipleValues values{ .values = { 1, 2, 3, 4 } };
 
         SECTION("default constructible")
         {
-            synchronized_value a;
+            synched_value a;
         }
 
         SECTION("compatible value assignation")
         {
-            synchronized_value a;
+            synched_value a;
             a = ConvertibleToValueType{ 1234 };
             REQUIRE(a->x == 1234);
         }
 
         SECTION("compatible comparison")
         {
-            synchronized_value a;
+            synched_value a;
             ComparableToValueType x{ a->x };
             REQUIRE(a == x);
             ComparableToValueType y{ a->x + 1 };
             REQUIRE(a != y);
+
+            synched_convertible_value b{ { a->x } };
+            REQUIRE(a == b);
+
+            synched_convertible_value c{ { a->x + 1 } };
+            REQUIRE(a != c);
         }
 
+        SECTION("move constructible")
+        {
+            synched_values a{ values };
+            synched_values b = std::move(a);
+            REQUIRE(a->empty());
+            REQUIRE(a != b);
+            REQUIRE(b == values);
+
+            synched_convertible_values c = std::move(b);
+            REQUIRE(a->empty());
+            REQUIRE(b->empty());
+            REQUIRE(c != a);
+            REQUIRE(c != b);
+            REQUIRE(c == values);
+        }
+
+        SECTION("move assignable")
+        {
+            synched_values a{ values };
+            synched_values b{ { { { 0 }, { -1 } } } };
+            b = std::move(a);
+            REQUIRE(a->empty());
+            REQUIRE(a != b);
+            REQUIRE(b == values);
+
+            synched_convertible_values c{ { { { -1 }, { -2 }, { -3 } } } };
+            REQUIRE(a->empty());
+            REQUIRE(c != a);
+            REQUIRE(c != b);
+            c = std::move(b);
+            REQUIRE(a->empty());
+            REQUIRE(b->empty());
+            REQUIRE(c != a);
+            REQUIRE(c != b);
+            REQUIRE(c == values);
+        }
+
+        SECTION("copy constructible")
+        {
+            synched_values a{ values };
+            synched_values b = a;
+            REQUIRE(a == b);
+            REQUIRE(b == values);
+
+            synched_convertible_values c = b;
+            REQUIRE(a == b);
+            REQUIRE(c == b);
+            REQUIRE(c == values);
+        }
+
+        SECTION("copy assignable")
+        {
+            synched_values a{ values };
+            synched_values b{ { { { 0 }, { -1 } } } };
+            b = a;
+            REQUIRE(a == b);
+            REQUIRE(b == values);
+
+            synched_convertible_values c{ { { { -1 }, { -2 }, { -3 } } } };
+            REQUIRE(a == b);
+            REQUIRE(b == values);
+            REQUIRE(c != values);
+            c = b;
+            REQUIRE(a == b);
+            REQUIRE(b == c);
+            REQUIRE(c == values);
+        }
+
+
         static constexpr auto initial_value = ValueType{ 42 };
-        synchronized_value sv{ initial_value };
+        synched_value sv{ initial_value };
 
         SECTION("value access and assignation")
         {

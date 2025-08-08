@@ -14,9 +14,9 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
-#include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -77,16 +77,10 @@ namespace mamba
 
         static void use_default_signal_handler(bool val);
 
-        struct OutputParams
+        struct OutputParams : LoggingParams
         {
-            int verbosity{ 0 };
-            log_level logging_level{ log_level::warn };
-
             bool json{ false };
             bool quiet{ false };
-
-            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
-            std::size_t log_backtrace{ 0 };
         };
 
         struct GraphicsParams
@@ -279,9 +273,22 @@ namespace mamba
         void dump_backtrace_no_guards();
 
         void set_verbosity(int lvl);
+
         void set_log_level(log_level level);
 
-        Context(const ContextOptions& options = {});
+        /// Setups the required core subsystems for `libmamba`'s high-level operations to work,
+        /// following the provided options.
+        ///
+        /// @param options General options, see @ContextOptions
+        ///
+        /// @param log_handler
+        ///     Log handler implementation to use once the logging system starts.
+        ///     Ignored if `options.enable_logging == false`.
+        ///     If `options.enable_logging == true and log_handler.has_value() == false`,
+        ///     which is the default if this parameter is not specified,
+        ///     then a default implementation-defined log handler implementation will be used.
+        Context(const ContextOptions& options = {}, logging::AnyLogHandler log_handler = {});
+
         ~Context();
 
     private:
@@ -293,14 +300,6 @@ namespace mamba
         specs::AuthenticationDataBase m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
-        class ScopedLogger;
-        std::vector<ScopedLogger> loggers;
-
-        std::shared_ptr<Logger> main_logger();
-        void add_logger(std::shared_ptr<Logger>);
-
-        TaskSynchronizer tasksync;
-
 
         // Enables the provided context setup signal handling.
         // This function must be called only for one Context in the lifetime of the program.
@@ -308,7 +307,7 @@ namespace mamba
 
         // Enables the provided context to drive the logging system.
         // This function must be called only for one Context in the lifetime of the program.
-        void enable_logging();
+        void enable_logging(logging::AnyLogHandler log_handler);
     };
 
 

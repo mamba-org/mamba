@@ -102,12 +102,12 @@ namespace mamba::logging
         return previous_level;
     }
 
-    auto get_log_level() noexcept -> log_level
+    auto get_log_level() /*noexcept*/ -> log_level
     {
         return logging_params->logging_level;
     }
 
-    auto get_logging_params() noexcept -> LoggingParams
+    auto get_logging_params() /*noexcept*/ -> LoggingParams
     {
         return logging_params.value();
     }

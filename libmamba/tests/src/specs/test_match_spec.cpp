@@ -693,6 +693,15 @@ namespace
             REQUIRE(ms.build_string().to_string() == "^.*(accelerate|mkl)$");
             REQUIRE_FALSE(ms.build_string().is_glob());
         }
+
+        SECTION("python[version='*,=3.12.*']")
+        {
+            auto ms = MatchSpec::parse("python[version='*,=3.12.*']").value();
+            REQUIRE(ms.name().to_string() == "python");
+            REQUIRE(ms.version().expression_size() == 3);
+            REQUIRE(!ms.is_simple());
+            REQUIRE(!ms.version().is_explicitly_free());
+        }
     }
 
     TEST_CASE("parse_url", "[mamba::specs][mamba::specs::MatchSpec]")
@@ -781,8 +790,11 @@ namespace
                      "libblas",
                      "libblas=12.9=abcdef",
                      "libblas=0.15*",
+                     "libblas=0.15.*",
+                     "libblas *",
                      "libblas[version=12.2]",
                      "xtensor =0.15*",
+                     "python>=3.6,<4.0",
                  })
             {
                 CAPTURE(str);
@@ -802,6 +814,9 @@ namespace
                      "pkg[version='(>2,<3)|=4']",
                      "conda-forge::pkg",
                      "pypi:pkg",
+                     "python[version='*,=3.12.*']",
+                     "pkg *.0.*",
+                     "pkg *.1",
                  })
             {
                 CAPTURE(str);

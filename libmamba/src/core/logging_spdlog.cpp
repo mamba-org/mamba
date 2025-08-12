@@ -161,7 +161,7 @@ namespace mamba
 
     auto LogHandler_spdlog::stop_log_handling() -> void
     {
-        loggers.clear();
+        //loggers.clear();
         spdlog::shutdown();  // ? or drop_all?
     }
 
@@ -201,17 +201,17 @@ namespace mamba
         spdlog::disable_backtrace();
     }
 
-    auto LogHandler_spdlog::log_backtrace() noexcept -> void
+    auto LogHandler_spdlog::log_backtrace() /*noexcept*/ -> void
     {
         spdlog::dump_backtrace();
     }
 
-    auto LogHandler_spdlog::log_backtrace_no_guards() noexcept -> void
+    auto LogHandler_spdlog::log_backtrace_no_guards() /*noexcept*/ -> void
     {
         default_logger().logger()->dump_backtrace_no_guards();
     }
 
-    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) noexcept -> void
+    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) /*noexcept*/ -> void
     {
         spdlog::flush_on(to_spdlog(threshold_level));
     }

@@ -1021,10 +1021,19 @@ namespace mamba::specs
 
     auto MatchSpec::is_simple() const -> bool
     {
+        const bool is_simple_version = (  //
+            (
+                // Cases likes ``>3,<4`` can be managed by libsolv
+                ((version().expression_size() == 3) && (version().is_classic_operator_expression()))
+                // And simple ones
+                || (version().expression_size() <= 1)
+            )
+            // Complex globs do not include free ranges and starts with
+            && !version().has_glob()
+        );
         // Based on what libsolv and conda_build_form can handle.
         // Glob in names and build_string are fine
-        return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
-               && !version().has_glob()                //
+        return is_simple_version                       //
                && build_number().is_explicitly_free()  //
                && build_string().is_glob()             //
                && !channel().has_value()               //

@@ -33,6 +33,7 @@ namespace
         REQUIRE(free.contains(v4));
         REQUIRE(free.to_string() == "=*");
         REQUIRE_FALSE(free.has_glob());
+        REQUIRE_FALSE(free.is_classic_operator());
 
         const auto eq = VersionPredicate::make_equal_to(v2);
         REQUIRE_FALSE(eq.contains(v1));
@@ -41,6 +42,7 @@ namespace
         REQUIRE_FALSE(eq.contains(v4));
         REQUIRE(eq.to_string() == "==2.0");
         REQUIRE_FALSE(eq.has_glob());
+        REQUIRE(eq.is_classic_operator());
 
         const auto ne = VersionPredicate::make_not_equal_to(v2);
         REQUIRE(ne.contains(v1));
@@ -49,6 +51,7 @@ namespace
         REQUIRE(ne.contains(v4));
         REQUIRE(ne.to_string() == "!=2.0");
         REQUIRE_FALSE(ne.has_glob());
+        REQUIRE(ne.is_classic_operator());
 
         const auto gt = VersionPredicate::make_greater(v2);
         REQUIRE_FALSE(gt.contains(v1));
@@ -57,6 +60,7 @@ namespace
         REQUIRE(gt.contains(v4));
         REQUIRE(gt.to_string() == ">2.0");
         REQUIRE_FALSE(gt.has_glob());
+        REQUIRE(gt.is_classic_operator());
 
         const auto ge = VersionPredicate::make_greater_equal(v2);
         REQUIRE_FALSE(ge.contains(v1));
@@ -65,6 +69,7 @@ namespace
         REQUIRE(ge.contains(v4));
         REQUIRE(ge.to_string() == ">=2.0");
         REQUIRE_FALSE(ge.has_glob());
+        REQUIRE(ge.is_classic_operator());
 
         const auto lt = VersionPredicate::make_less(v2);
         REQUIRE(lt.contains(v1));
@@ -73,6 +78,7 @@ namespace
         REQUIRE_FALSE(lt.contains(v4));
         REQUIRE(lt.to_string() == "<2.0");
         REQUIRE_FALSE(lt.has_glob());
+        REQUIRE(lt.is_classic_operator());
 
         const auto le = VersionPredicate::make_less_equal(v2);
         REQUIRE(le.contains(v1));
@@ -81,6 +87,7 @@ namespace
         REQUIRE_FALSE(le.contains(v4));
         REQUIRE(le.to_string() == "<=2.0");
         REQUIRE_FALSE(le.has_glob());
+        REQUIRE(le.is_classic_operator());
 
         const auto sw = VersionPredicate::make_starts_with(v2);
         REQUIRE_FALSE(sw.contains(v1));
@@ -91,6 +98,7 @@ namespace
         REQUIRE(sw.to_string() == "=2.0");
         REQUIRE(sw.to_string_conda_build() == "2.0.*");
         REQUIRE_FALSE(sw.has_glob());
+        REQUIRE_FALSE(sw.is_classic_operator());
 
         const auto nsw = VersionPredicate::make_not_starts_with(v2);
         REQUIRE(nsw.contains(v1));
@@ -100,6 +108,7 @@ namespace
         REQUIRE(nsw.contains(v4));
         REQUIRE(nsw.to_string() == "!=2.0.*");
         REQUIRE_FALSE(nsw.has_glob());
+        REQUIRE_FALSE(nsw.is_classic_operator());
 
         const auto cp2 = VersionPredicate::make_compatible_with(v2, 2);
         REQUIRE_FALSE(cp2.contains(v1));
@@ -109,6 +118,7 @@ namespace
         REQUIRE_FALSE(cp2.contains(v4));
         REQUIRE(cp2.to_string() == "~=2.0");
         REQUIRE_FALSE(cp2.has_glob());
+        REQUIRE_FALSE(cp2.is_classic_operator());
 
         const auto cp3 = VersionPredicate::make_compatible_with(v2, 3);
         REQUIRE_FALSE(cp3.contains(v1));
@@ -117,6 +127,7 @@ namespace
         REQUIRE_FALSE(cp3.contains(v3));
         REQUIRE_FALSE(cp3.contains(v4));
         REQUIRE(cp3.to_string() == "~=2.0.0");
+        REQUIRE_FALSE(cp3.is_classic_operator());
 
         const auto g1 = VersionPredicate::make_version_glob("*"_v);
         REQUIRE(g1.contains(v1));
@@ -126,6 +137,7 @@ namespace
         REQUIRE(g1.contains(v4));
         REQUIRE(g1.to_string() == "*");
         REQUIRE(g1.has_glob());
+        REQUIRE_FALSE(g1.is_classic_operator());
 
         const auto g2 = VersionPredicate::make_version_glob("*.0.*"_v);
         REQUIRE_FALSE(g2.contains(v1));
@@ -183,6 +195,7 @@ namespace
         REQUIRE(ng1.contains(v4));
         REQUIRE(ng1.to_string() == "!=2.*.1");
         REQUIRE(ng1.has_glob());
+        REQUIRE_FALSE(ng1.is_classic_operator());
 
         const auto predicates = std::array{
             free, eq, ne, lt, le, gt, ge, sw, cp2, cp3, g1, g2, g3, g4, g5, g6, g7, ng1,
@@ -581,6 +594,20 @@ namespace
 
         REQUIRE_FALSE(VersionSpec::parse("*").value().has_glob());
         REQUIRE_FALSE(VersionSpec::parse("3.*").value().has_glob());
+    }
+
+    TEST_CASE("VersionSpec::is_classic_operator_expression", "[mamba::specs][mamba::specs::VersionSpec]")
+    {
+        REQUIRE(VersionSpec::parse("==1.0").value().is_classic_operator_expression());
+        REQUIRE(VersionSpec::parse("==1.0,<3.0").value().is_classic_operator_expression());
+        REQUIRE(VersionSpec::parse("<1.0,<3.0").value().is_classic_operator_expression());
+        REQUIRE(
+            VersionSpec::parse("(<1.0,<3.0)|(>=4.0,!=4.1)").value().is_classic_operator_expression()
+        );
+
+        REQUIRE_FALSE(VersionSpec::parse("*.4").value().is_classic_operator_expression());
+        REQUIRE_FALSE(VersionSpec::parse("*").value().is_classic_operator_expression());
+        REQUIRE_FALSE(VersionSpec::parse("3.*").value().is_classic_operator_expression());
     }
 
     TEST_CASE("VersionSpec Comparability and hashability", "[mamba::specs][mamba::specs::VersionSpec]")

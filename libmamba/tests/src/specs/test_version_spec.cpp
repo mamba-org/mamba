@@ -596,6 +596,20 @@ namespace
         REQUIRE_FALSE(VersionSpec::parse("3.*").value().has_glob());
     }
 
+    TEST_CASE("VersionSpec::is_classic_operator_expression", "[mamba::specs][mamba::specs::VersionSpec]")
+    {
+        REQUIRE(VersionSpec::parse("==1.0").value().is_classic_operator_expression());
+        REQUIRE(VersionSpec::parse("==1.0,<3.0").value().is_classic_operator_expression());
+        REQUIRE(VersionSpec::parse("<1.0,<3.0").value().is_classic_operator_expression());
+        REQUIRE(
+            VersionSpec::parse("(<1.0,<3.0)|(>=4.0,!=4.1)").value().is_classic_operator_expression()
+        );
+
+        REQUIRE_FALSE(VersionSpec::parse("*.4").value().is_classic_operator_expression());
+        REQUIRE_FALSE(VersionSpec::parse("*").value().is_classic_operator_expression());
+        REQUIRE_FALSE(VersionSpec::parse("3.*").value().is_classic_operator_expression());
+    }
+
     TEST_CASE("VersionSpec Comparability and hashability", "[mamba::specs][mamba::specs::VersionSpec]")
     {
         auto spec1 = VersionSpec::parse("*").value();

@@ -215,6 +215,14 @@ namespace mamba::specs
          * Does not return true for predicates that could be written as globs but are not.
          */
         [[nodiscard]] auto has_glob() const -> bool;
+
+        /**
+         * True if the version spec is an expression composed of simple operators.
+         *
+         * @see VersionPredicate::is_classic_operator
+         */
+        [[nodiscard]] auto is_classic_operator_expression() const -> bool;
+
         /**
          * A string representation of the version spec.
          *

@@ -461,6 +461,28 @@ namespace mamba::specs
         return found;
     }
 
+    auto VersionSpec::is_classic_operator_expression() const -> bool
+    {
+        if (expression_size() == 0)
+        {
+            return false;
+        }
+
+        auto only_operator = true;
+        m_tree.infix_for_each(
+            [&only_operator](const auto& elem)
+            {
+                using Elem = std::decay_t<decltype(elem)>;
+                if constexpr (std::is_same_v<Elem, VersionPredicate>)
+                {
+                    only_operator &= elem.is_classic_operator();
+                }
+            }
+
+        );
+        return only_operator;
+    }
+
     auto VersionSpec::to_string() const -> std::string
     {
         return fmt::format("{}", *this);

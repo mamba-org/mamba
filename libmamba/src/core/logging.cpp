@@ -65,6 +65,16 @@ namespace mamba::logging
         }
     }
 
+    AnyLogHandler::~AnyLogHandler()
+    {
+        // This handles the case where we don't exit normally (calling `exit(0);` for example)
+        // but we still need to properly end the logging system.
+        if (has_value() and this == &current_log_handler)
+        {
+            stop_log_handling();
+        }
+    }
+
     auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params)
         -> AnyLogHandler
     {
@@ -102,12 +112,12 @@ namespace mamba::logging
         return previous_level;
     }
 
-    auto get_log_level() /*noexcept*/ -> log_level
+    auto get_log_level() noexcept -> log_level
     {
         return logging_params->logging_level;
     }
 
-    auto get_logging_params() /*noexcept*/ -> LoggingParams
+    auto get_logging_params() noexcept -> LoggingParams
     {
         return logging_params.value();
     }
@@ -133,7 +143,7 @@ namespace mamba::logging
         // it's needed. Constexpr constructor is required for a type which is usable in a
         // `constinit` declaration, which is required to avoid the static-initialization-fiasco (at
         // least for initialization).
-        // TODO: once homebrew stl impl has `constexpr` vector, replace al lthis by just `using
+        // TODO: once homebrew stl impl has `constexpr` vector, replace all this by just `using
         // MessageLoggerBuffer = vector<LogRecord>;`
         struct MessageLoggerBuffer
         {

@@ -46,12 +46,12 @@ namespace mamba
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() noexcept -> void;
-        auto log_backtrace_no_guards() noexcept -> void;
+        auto log_backtrace() /*noexcept*/ -> void;
+        auto log_backtrace_no_guards() /*noexcept*/ -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
 
-        auto set_flush_threshold(log_level threshold_level) noexcept -> void;
+        auto set_flush_threshold(log_level threshold_level) /*noexcept*/ -> void;
 
     private:
 

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 #include <mutex>
 #include <vector>
+#include <ranges>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -12,14 +13,11 @@
 #include <mamba/core/context.hpp>
 #include <mamba/core/execution.hpp>
 #include <mamba/core/logging_spdlog.hpp>
-#include <mamba/core/output.hpp>  // TODO: remove
 #include <mamba/core/tasksync.hpp>
 #include <mamba/core/util.hpp>
 
-namespace mamba
+namespace mamba::logging::spdlogimpl
 {
-    // FIXME: merge scoped logger with this type, they are the samem, scopepd logger as introduced
-    // to patch logger
     class Logger : public spdlog::logger
     {
     public:
@@ -64,54 +62,9 @@ namespace mamba
         default_logger,
     };
 
-    // Associate the registration of a logger to the lifetime of this object.
-    // This is used to help with making sure loggers are unregistered once
-    // their logical owner is destroyed.
-    class LogHandler_spdlog::ScopedLogger
-    {
-        std::shared_ptr<Logger> m_logger;
-
-    public:
-
-        explicit ScopedLogger(std::shared_ptr<Logger> new_logger, logger_kind kind = logger_kind::normal_logger)
-            : m_logger(std::move(new_logger))
-        {
-            assert(m_logger);
-            if (kind == logger_kind::default_logger)
-            {
-                spdlog::set_default_logger(m_logger);
-            }
-            else
-            {
-                spdlog::register_logger(m_logger);
-            }
-        }
-
-        ~ScopedLogger()
-        {
-            if (m_logger)
-            {
-                spdlog::drop(m_logger->name());
-            }
-        }
-
-        std::shared_ptr<Logger> logger() const
-        {
-            assert(m_logger);
-            return m_logger;
-        }
-
-        ScopedLogger(ScopedLogger&&) = default;
-        ScopedLogger& operator=(ScopedLogger&&) = default;
-
-        ScopedLogger(const ScopedLogger&) = delete;
-        ScopedLogger& operator=(const ScopedLogger&) = delete;
-    };
-
     LogHandler_spdlog::LogHandler_spdlog()
         : tasksync(std::make_unique<TaskSynchronizer>())
     {
-
     }
 
     LogHandler_spdlog::~LogHandler_spdlog() = default;
@@ -119,20 +72,6 @@ namespace mamba
     LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog&& other) = default;
     LogHandler_spdlog& LogHandler_spdlog::operator=(LogHandler_spdlog&& other) = default;
 
-    auto LogHandler_spdlog::get_logger(log_source source) -> ScopedLogger&
-    {
-        // THINK: consider only using spdlog to get the loggers
-        const auto logger_idx = static_cast<size_t>(source);
-        assert(logger_idx < loggers.size());
-        auto& logger = loggers[logger_idx];
-        assert(logger.logger());
-        return logger;
-    }
-
-    auto LogHandler_spdlog::default_logger() -> ScopedLogger&
-    {
-        return get_logger(log_source::libmamba);
-    }
 
     auto
     LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources)
@@ -143,17 +82,22 @@ namespace mamba
 
         const auto main_source = sources.front();
 
-        loggers.emplace_back(
-            std::make_shared<Logger>(name_of(main_source), params.log_pattern, "\n"),
-            logger_kind::default_logger
+        spdlog::set_default_logger(
+            std::make_shared<Logger>(name_of(main_source), params.log_pattern, "\n")
         );
-        MainExecutor::instance().on_close(
-            tasksync->synchronized([this] { loggers.front().logger()->flush(); })
-        );
+        MainExecutor::instance().on_close(tasksync->synchronized(
+            [this]
+            {
+                if (auto logger = spdlog::default_logger())
+                {
+                    logger->flush();
+                }
+            }
+        ));
 
-        for (const auto source : sources | std::views::drop(1) )
+        for (const auto source : sources | std::views::drop(1))
         {
-            loggers.emplace_back(std::make_shared<Logger>(name_of(source), params.log_pattern, ""));
+            spdlog::register_logger(std::make_shared<Logger>(name_of(source), params.log_pattern, ""));
         }
 
         spdlog::set_level(to_spdlog(params.logging_level));
@@ -161,8 +105,9 @@ namespace mamba
 
     auto LogHandler_spdlog::stop_log_handling() -> void
     {
-        //loggers.clear();
-        spdlog::shutdown();  // ? or drop_all?
+        tasksync->join_tasks();
+        spdlog::default_logger()->flush();
+        spdlog::drop_all();
     }
 
     auto LogHandler_spdlog::set_log_level(log_level new_level) -> void
@@ -178,12 +123,11 @@ namespace mamba
 
     auto LogHandler_spdlog::log(const logging::LogRecord record) -> void
     {
-        // THINK: consider only using spdlog to get the loggers
-        auto logger = get_logger(record.source).logger();
+        auto logger = spdlog::get(name_of(record.source));
         logger->log(
             spdlog::source_loc{
                 record.location.file_name(),
-                static_cast<int>(record.location.line()), // CRINGE
+                static_cast<int>(record.location.line()),  // CRINGE
                 record.location.function_name(),
             },
             to_spdlog(record.level),
@@ -201,17 +145,19 @@ namespace mamba
         spdlog::disable_backtrace();
     }
 
-    auto LogHandler_spdlog::log_backtrace() /*noexcept*/ -> void
+    auto LogHandler_spdlog::log_backtrace() noexcept -> void
     {
         spdlog::dump_backtrace();
     }
 
-    auto LogHandler_spdlog::log_backtrace_no_guards() /*noexcept*/ -> void
+    auto LogHandler_spdlog::log_backtrace_no_guards() noexcept -> void
     {
-        default_logger().logger()->dump_backtrace_no_guards();
+        auto logger = spdlog::default_logger();
+        auto plogger = static_cast<Logger*>(logger.get());
+        plogger->dump_backtrace_no_guards();
     }
 
-    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) /*noexcept*/ -> void
+    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) noexcept -> void
     {
         spdlog::flush_on(to_spdlog(threshold_level));
     }
@@ -220,7 +166,7 @@ namespace mamba
     {
         if (source)
         {
-            get_logger(source.value()).logger()->flush(); // THINK: consider only using spdlog to get the loggers
+            spdlog::get(name_of(source.value()))->flush();
         }
         else
         {

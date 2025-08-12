@@ -62,7 +62,7 @@ namespace mamba
             }
             else
             {
-                logging::set_log_handler(LogHandler_spdlog(), output_params);
+                logging::set_log_handler(logging::spdlogimpl::LogHandler_spdlog{}, output_params);
             }
         }
     }

@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 #include <mutex>
-#include <vector>
 #include <ranges>
+#include <vector>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -72,7 +72,6 @@ namespace mamba::logging::spdlogimpl
     LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog&& other) = default;
     LogHandler_spdlog& LogHandler_spdlog::operator=(LogHandler_spdlog&& other) = default;
 
-
     auto
     LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources)
         -> void
@@ -86,7 +85,7 @@ namespace mamba::logging::spdlogimpl
             std::make_shared<Logger>(name_of(main_source), params.log_pattern, "\n")
         );
         MainExecutor::instance().on_close(tasksync->synchronized(
-            [this]
+            []
             {
                 if (auto logger = spdlog::default_logger())
                 {

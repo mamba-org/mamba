@@ -213,6 +213,16 @@ namespace mamba::specs
                || std::holds_alternative<VersionPredicate::not_version_glob>(m_operator);
     }
 
+    auto VersionPredicate::is_classic_operator() const -> bool
+    {
+        return std::holds_alternative<std::equal_to<Version>>(m_operator)
+               || std::holds_alternative<std::not_equal_to<Version>>(m_operator)
+               || std::holds_alternative<std::greater<Version>>(m_operator)
+               || std::holds_alternative<std::greater_equal<Version>>(m_operator)
+               || std::holds_alternative<std::less<Version>>(m_operator)
+               || std::holds_alternative<std::less_equal<Version>>(m_operator);
+    }
+
     auto VersionPredicate::make_free() -> VersionPredicate
     {
         return VersionPredicate({}, free_interval{});
@@ -374,7 +384,7 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
             }
             if constexpr (std::is_same_v<Op, VersionPredicate::compatible_with>)
             {
-                // Make sure to print the version without loosing information.
+                // Make sure to print the version without losing information.
                 auto version_level = pred.m_version.version().size();
                 auto format_level = std::max(op.level, version_level);
                 out = fmt::format_to(

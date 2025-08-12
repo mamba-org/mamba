@@ -56,6 +56,13 @@ namespace mamba::specs
          */
         [[nodiscard]] auto has_glob() const -> bool;
 
+        /**
+         * True if the predicate is a simple operator.
+         *
+         * Simple operators are ``=``, ``!=``, ``<``, ``<=``, ``>``, ``>=``.
+         */
+        [[nodiscard]] auto is_classic_operator() const -> bool;
+
         [[nodiscard]] auto to_string() const -> std::string;
 
         /**

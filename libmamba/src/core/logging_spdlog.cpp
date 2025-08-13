@@ -144,19 +144,19 @@ namespace mamba::logging::spdlogimpl
         spdlog::disable_backtrace();
     }
 
-    auto LogHandler_spdlog::log_backtrace() noexcept -> void
+    auto LogHandler_spdlog::log_backtrace() -> void
     {
         spdlog::dump_backtrace();
     }
 
-    auto LogHandler_spdlog::log_backtrace_no_guards() noexcept -> void
+    auto LogHandler_spdlog::log_backtrace_no_guards() -> void
     {
         auto logger = spdlog::default_logger();
         auto plogger = static_cast<Logger*>(logger.get());
         plogger->dump_backtrace_no_guards();
     }
 
-    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) noexcept -> void
+    auto LogHandler_spdlog::set_flush_threshold(log_level threshold_level) -> void
     {
         spdlog::flush_on(to_spdlog(threshold_level));
     }

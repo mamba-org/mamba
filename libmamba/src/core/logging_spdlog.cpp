@@ -55,13 +55,6 @@ namespace mamba::logging::spdlogimpl
         }
     }
 
-
-    enum class logger_kind
-    {
-        normal_logger,
-        default_logger,
-    };
-
     LogHandler_spdlog::LogHandler_spdlog()
         : tasksync(std::make_unique<TaskSynchronizer>())
     {

@@ -279,13 +279,13 @@ namespace mamba
         /** Setups the required core subsystems for `libmamba`'s high-level operations to work,
             following the provided options.
 
-             @param options General options, see @ContextOptions
+            @param options General options, see @ContextOptions
 
-             @param log_handler Log handler implementation to use once the logging system starts.
-                    Ignored if `options.enable_logging == false`.
-                    If `options.enable_logging == true and log_handler.has_value() == false`,
-                    which is the default if this parameter is not specified,
-                    then a default implementation-defined log handler implementation will be used.
+            @param log_handler Log handler implementation to use once the logging system starts.
+                   Ignored if `options.enable_logging == false`.
+                   If `options.enable_logging == true and log_handler.has_value() == false`,
+                   which is the default if this parameter is not specified,
+                   then a default implementation-defined log handler implementation will be used.
         */
         Context(const ContextOptions& options = {}, logging::AnyLogHandler log_handler = {});
 

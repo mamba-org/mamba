@@ -27,7 +27,9 @@ namespace mamba::logging::spdlogimpl
     inline constexpr auto to_spdlog(log_level level) -> spdlog::level::level_enum
     {
         static_assert(sizeof(log_level) == sizeof(spdlog::level::level_enum));
-        static_assert(static_cast<int>(log_level::all) == static_cast<int>(spdlog::level::level_enum::n_levels));
+        static_assert(
+            static_cast<int>(log_level::all) == static_cast<int>(spdlog::level::level_enum::n_levels)
+        );
         return static_cast<spdlog::level::level_enum>(level);
     }
 
@@ -51,12 +53,12 @@ namespace mamba::logging::spdlogimpl
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() noexcept -> void;
-        auto log_backtrace_no_guards() noexcept -> void;
+        auto log_backtrace() -> void;
+        auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
 
-        auto set_flush_threshold(log_level threshold_level) noexcept -> void;
+        auto set_flush_threshold(log_level threshold_level) -> void;
 
     private:
 

@@ -37,16 +37,16 @@ namespace mamba::logging
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
 
-        auto log(logging::LogRecord record) -> void;
+        auto log(LogRecord record) -> void;
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() noexcept -> void;
-        auto log_backtrace_no_guards() noexcept -> void;
+        auto log_backtrace() -> void;
+        auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
 
-        auto set_flush_threshold(log_level threshold_level) noexcept -> void;
+        auto set_flush_threshold(log_level threshold_level) -> void;
 
         // History api
         auto capture_history() const -> std::vector<LogRecord>;
@@ -68,16 +68,16 @@ namespace mamba::logging
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
 
-        auto log(logging::LogRecord record) -> void;
+        auto log(LogRecord record) -> void;
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() noexcept -> void;
-        auto log_backtrace_no_guards() noexcept -> void;
+        auto log_backtrace() -> void;
+        auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
 
-        auto set_flush_threshold(log_level threshold_level) noexcept -> void;
+        auto set_flush_threshold(log_level threshold_level) -> void;
     };
 
     static_assert(LogHandler<LogHandler_StandardOutput>);
@@ -95,16 +95,16 @@ namespace mamba::logging
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
 
-        auto log(logging::LogRecord record) -> void;
+        auto log(LogRecord record) -> void;
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() noexcept -> void;
-        auto log_backtrace_no_guards() noexcept -> void;
+        auto log_backtrace() -> void;
+        auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
 
-        auto set_flush_threshold(log_level threshold_level) noexcept -> void;
+        auto set_flush_threshold(log_level threshold_level) -> void;
     };
 
     static_assert(LogHandler<LogHandler_StandardPrint>);
@@ -113,53 +113,5 @@ namespace mamba::logging
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-    auto
-    LogHandler_StandardOutput::start_log_handling(LoggingParams, std::vector<log_source>)
-        -> void
-    {
-        // nothing to do
-    }
-
-    auto LogHandler_StandardOutput::stop_log_handling() -> void
-    {
-        // nothing to do
-    }
-
-    auto LogHandler_StandardOutput::set_log_level(log_level new_level) -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::set_params(LoggingParams new_params) -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::log(logging::LogRecord record) -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::enable_backtrace(size_t record_buffer_size) -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::disable_backtrace() -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::log_backtrace() noexcept -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::log_backtrace_no_guards() noexcept -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::flush(std::optional<log_source> source = {}) -> void
-    {
-    }
-
-    auto LogHandler_StandardOutput::set_flush_threshold(log_level threshold_level) noexcept -> void
-    {
-    }
 
 }

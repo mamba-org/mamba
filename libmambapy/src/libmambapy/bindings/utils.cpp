@@ -8,6 +8,7 @@
 #include <variant>
 
 #include <fmt/color.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
@@ -57,7 +58,7 @@ namespace mambapy
     {
         namespace py = pybind11;
 
-        py::enum_<fmt::emphasis>(m, "TextEmphasis")
+        py::native_enum<fmt::emphasis>(m, "TextEmphasis", "enum.IntEnum")
             .value("Bold", fmt::emphasis::bold)
             .value("Faint", fmt::emphasis::faint)
             .value("Italic", fmt::emphasis::italic)
@@ -66,10 +67,10 @@ namespace mambapy
             .value("Reverse", fmt::emphasis::reverse)
             .value("Conceal", fmt::emphasis::conceal)
             .value("Strikethrough", fmt::emphasis::strikethrough)
-            .def(py::init(&enum_from_str<fmt::emphasis>));
+            .finalize();
         py::implicitly_convertible<py::str, fmt::emphasis>();
 
-        py::enum_<fmt::terminal_color>(m, "TextTerminalColor")
+        py::native_enum<fmt::terminal_color>(m, "TextTerminalColor", "enum.IntEnum")
             .value("Black", fmt::terminal_color::black)
             .value("Red", fmt::terminal_color::red)
             .value("Green", fmt::terminal_color::green)
@@ -86,7 +87,7 @@ namespace mambapy
             .value("BrightMagenta", fmt::terminal_color::bright_magenta)
             .value("BrightCyan", fmt::terminal_color::bright_cyan)
             .value("BrightWhite", fmt::terminal_color::bright_white)
-            .def(py::init(&enum_from_str<fmt::terminal_color>));
+            .finalize();
         py::implicitly_convertible<py::str, fmt::terminal_color>();
 
         py::class_<fmt::rgb>(m, "TextRGBColor")

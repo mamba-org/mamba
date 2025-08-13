@@ -7,6 +7,7 @@
 #include <ranges>
 
 #include <pybind11/functional.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
@@ -29,45 +30,45 @@ namespace mambapy
         using namespace mamba;
         using namespace mamba::solver::libsolv;
 
-        py::enum_<RepodataParser>(m, "RepodataParser")
+        py::native_enum<RepodataParser>(m, "RepodataParser", "enum.Enum")
             .value("Mamba", RepodataParser::Mamba)
             .value("Libsolv", RepodataParser::Libsolv)
-            .def(py::init(&enum_from_str<RepodataParser>));
+            .finalize();
         py::implicitly_convertible<py::str, RepodataParser>();
 
-        py::enum_<MatchSpecParser>(m, "MatchSpecParser")
+        py::native_enum<MatchSpecParser>(m, "MatchSpecParser", "enum.Enum")
             .value("Mixed", MatchSpecParser::Mixed)
             .value("Mamba", MatchSpecParser::Mamba)
             .value("Libsolv", MatchSpecParser::Libsolv)
-            .def(py::init(&enum_from_str<MatchSpecParser>));
+            .finalize();
         py::implicitly_convertible<py::str, MatchSpecParser>();
 
-        py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
+        py::native_enum<PipAsPythonDependency>(m, "PipAsPythonDependency", "enum.Enum")
             .value("No", PipAsPythonDependency::No)
             .value("Yes", PipAsPythonDependency::Yes)
-            .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
+            .finalize();
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
 
-        py::enum_<PackageTypes>(m, "PackageTypes")
+        py::native_enum<PackageTypes>(m, "PackageTypes", "enum.Enum")
             .value("CondaOnly", PackageTypes::CondaOnly)
             .value("TarBz2Only", PackageTypes::TarBz2Only)
             .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
             .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2)
-            .def(py::init(&enum_from_str<PackageTypes>));
+            .finalize();
         py::implicitly_convertible<py::str, PackageTypes>();
 
-        py::enum_<VerifyPackages>(m, "VerifyPackages")
+        py::native_enum<VerifyPackages>(m, "VerifyPackages", "enum.Enum")
             .value("No", VerifyPackages::No)
             .value("Yes", VerifyPackages::Yes)
-            .def(py::init([](bool val) { return static_cast<VerifyPackages>(val); }));
+            .finalize();
         py::implicitly_convertible<py::bool_, VerifyPackages>();
 
-        py::enum_<LogLevel>(m, "LogLevel")
+        py::native_enum<LogLevel>(m, "LogLevel", "enum.Enum")
             .value("Debug", LogLevel::Debug)
             .value("Warning", LogLevel::Warning)
             .value("Error", LogLevel::Error)
             .value("Fatal", LogLevel::Fatal)
-            .def(py::init(&enum_from_str<LogLevel>));
+            .finalize();
         py::implicitly_convertible<py::bool_, LogLevel>();
 
         py::class_<Priorities>(m, "Priorities")

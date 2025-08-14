@@ -199,7 +199,7 @@ namespace mamba
         const std::vector<std::string>& command,
         LockFile proc_dir_lock [[maybe_unused]]
     )
-        : location{ proc_dir() / fmt::format("{}.json", getpid()) }
+        : location{ proc_dir() / fmt::format("{}.json", _getpid()) }
     {
         // Lock must be hold for the duraction of this constructor.
         if (is_file_locking_allowed())

@@ -32,6 +32,7 @@ namespace mamba::specs
         linux_aarch64,
         linux_ppc64le,
         linux_ppc64,
+	linux_ppc,
         linux_s390x,
         linux_riscv32,
         linux_riscv64,
@@ -184,6 +185,8 @@ namespace mamba::specs
                 return "linux-ppc64";
             case KnownPlatform::linux_ppc64le:
                 return "linux-ppc64le";
+	    case KnownPlatform::linux_ppc:
+		return "linux-ppc";
             case KnownPlatform::linux_s390x:
                 return "linux-s390x";
             case KnownPlatform::linux_riscv32:

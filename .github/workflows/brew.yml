@@ -13,7 +13,7 @@ jobs:
     steps:
       # v1 required due to permissions error
       - name: Checkout mamba repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v5
 
       - name: Correct the creation permissions
         run: sudo chown -R linuxbrew .
@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install host and build dependencies
         run: brew install fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd cmake cli11 nlohmann-json spdlog tl-expected pkgconfig python

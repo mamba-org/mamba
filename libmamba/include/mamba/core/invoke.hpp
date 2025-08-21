@@ -1,8 +1,9 @@
 #ifndef MAMBA_INVOKE_HPP
 #define MAMBA_INVOKE_HPP
 
-#include <format>
 #include <functional>
+
+#include <fmt/core.h>  // TODO: replace by `<format>` once availalbe on all ci compilers
 
 #include "mamba/core/error_handling.hpp"
 
@@ -34,7 +35,7 @@ namespace mamba
         catch (const std::exception& err)
         {
             return make_unexpected(
-                std::format(
+                fmt::format(
                     "invocation failed : `{}` threw exception `{}` : {}",
                     typeid(func).name(),
                     typeid(err).name(),
@@ -46,7 +47,7 @@ namespace mamba
         catch (...)
         {
             return make_unexpected(
-                std::format("invocation failed : `{}` threw an unknown error", typeid(func).name()),
+                fmt::format("invocation failed : `{}` threw an unknown error", typeid(func).name()),
                 mamba_error_code::unknown
             );
         }

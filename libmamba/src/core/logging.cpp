@@ -3,12 +3,14 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include <format>
+
 #include <iostream>
 #include <mutex>
 #include <shared_mutex>
 #include <utility>
 #include <vector>
+
+#include <fmt/core.h>  // TODO: replace by `<format>` once availalbe on all ci compilers
 
 #include <mamba/core/context.hpp>
 #include <mamba/core/error_handling.hpp>
@@ -67,7 +69,7 @@ namespace mamba::logging
                     {
                         // Here with report the error in the standard output to avoid any logging
                         // implementation.
-                        const auto message = std::format(
+                        const auto message = fmt::format(
                             "mamba::logging termination failure: call to `stop_log_handling()` ended with an error (caught, logged, skiped): {}",
                             error.what()
                         );
@@ -150,7 +152,7 @@ namespace mamba::logging
         {
             // THINK: maybe remove as much locals as possible to enable optimizations with
             // temporaries
-            // TODO: use fmt or std::format to do the space prepend
+            // TODO: use fmt or fmt::format to do the space prepend
             const auto secured_message = Console::hide_secrets(message);
             auto formatted_message = prepend(secured_message, "", std::string(4, ' ').c_str());
             return LogRecord{

@@ -37,6 +37,16 @@ namespace mamba
         all
     };
 
+    inline auto operator<=>(log_level left, log_level right) noexcept
+    {
+        return static_cast<int>(left) <=> static_cast<int>(right);
+    }
+
+    inline auto operator<(log_level left, unsigned long right) noexcept -> bool
+    {
+        return static_cast<unsigned long>(left) < right;
+    }
+
     /// @returns The name of the specified log level as an UTF-8 null-terminated string.
     inline constexpr auto name_of(log_level level) noexcept -> const char*
     {

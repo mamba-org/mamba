@@ -7,22 +7,135 @@
 #include <concepts>
 #include <deque>
 #include <format>
-#include <print>
+#include <iostream>
+#include <optional>
 
 #include <mamba/core/logging.hpp>
 #include <mamba/util/synchronized_value.hpp>
 
+// REVIEW: should this be in utils?
+
+
 namespace mamba::logging
 {
-    /// `LogHandler` that retains `LogRecord`s in order of being logged.
-    /// Can hold any number of records or just the specified number of last records.
-    /// BEWARE: If not the max number of records is not specified, memory will be consumed at each
-    /// new log record until cleared.
+
+    namespace details
+    {
+        inline auto queue_push(std::deque<LogRecord>& queue, size_t max_elements, LogRecord record)
+            -> void
+        {
+            queue.push_back(std::move(record));
+            if (max_elements > 0 and queue.size() > max_elements)
+            {
+                queue.pop_front();
+            }
+        }
+
+        class BasicBacktrace
+        {
+            std::deque<LogRecord> backtrace;
+            size_t backtrace_max = 0;  // 0 means disabled
+
+        public:
+
+            auto is_enabled() const
+            {
+                return backtrace_max > 0;
+            }
+
+            auto push_if_enabled(LogRecord& record) -> bool
+            {
+                if (not is_enabled())
+                {
+                    return false;
+                }
+
+                queue_push(backtrace, backtrace_max, std::move(record));
+
+                return true;
+            }
+
+            auto set_max_trace(size_t max_trace_size) -> void
+            {
+                backtrace_max = max_trace_size;
+                if (backtrace_max > 0)
+                {
+                    while (backtrace.size() > backtrace_max)
+                    {
+                        backtrace.pop_front();
+                    }
+                }
+                else
+                {
+                    backtrace.clear();
+                }
+            }
+
+            auto disable() -> void
+            {
+                set_max_trace(0);
+            }
+
+            auto clear() -> void
+            {
+                backtrace.clear();
+            }
+
+            auto begin()
+            {
+                return backtrace.begin();
+            }
+
+            auto begin() const
+            {
+                return backtrace.begin();
+            }
+
+            auto end()
+            {
+                return backtrace.end();
+            }
+
+            auto end() const
+            {
+                return backtrace.end();
+            }
+        };
+
+        inline auto as_log(const std::source_location& location) -> std::string
+        {
+            return std::format(
+                "{}:{}:{} {}",
+                location.file_name(),
+                location.line(),
+                location.column(),
+                location.function_name()
+            );
+        }
+
+        inline auto log_to_stream(std::ostream& out, const LogRecord& record, bool with_location)
+        {
+            auto location_str = with_location
+                                    ? std::format(" ({})", details::as_log(record.location))
+                                    : std::string{};
+
+            out << std::format(
+                "\n{} {}{} : {}",
+                name_of(record.level),
+                name_of(record.source),
+                location_str,
+                record.message
+            );
+        }
+    }
+
+    /** `LogHandler` that retains `LogRecord`s in order of being logged.
+        Can hold any number of records or just the specified number of last records.
+        BEWARE: If not the max number of records is not specified, memory will be consumed at each
+        new log record until cleared.
+    */
     class LogHandler_History  // THINK: better name
     {
-        util::synchronized_value<std::deque<LogRecord>> m_log_history;
-        size_t m_max_records_count = 0;
-
     public:
 
         /// Constructor specifying the maximum number of log records to keep in history.
@@ -31,7 +144,7 @@ namespace mamba::logging
 
         // LogHandler API
 
-        auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
+        auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
         auto stop_log_handling() -> void;
 
         auto set_log_level(log_level new_level) -> void;
@@ -51,18 +164,37 @@ namespace mamba::logging
         // History api
         auto capture_history() const -> std::vector<LogRecord>;
         auto clear_history();
+
+    private:
+
+        struct Data
+        {
+            std::deque<LogRecord> history;
+            details::BasicBacktrace backtrace;
+        };
+
+        struct Impl
+        {
+            util::synchronized_value<Data> data;
+            std::atomic<log_level> current_log_level = log_level::info;
+        };
+
+        std::unique_ptr<Impl> pimpl;
+        size_t m_max_records_count = 0;
     };
 
     static_assert(LogHandler<LogHandler_History>);
 
-    /// `LogHandler` that uses `std::cout` as log record sink.
-    class LogHandler_StandardOutput
+    /// `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default.
+    class LogHandler_StdOut
     {
     public:
 
+        LogHandler_StdOut(std::ostream& out = std::cout);
+
         // LogHandler API
 
-        auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
+        auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
         auto stop_log_handling() -> void;
 
         auto set_log_level(log_level new_level) -> void;
@@ -78,40 +210,253 @@ namespace mamba::logging
         auto flush(std::optional<log_source> source = {}) -> void;
 
         auto set_flush_threshold(log_level threshold_level) -> void;
+
+        // Additional functionalities
+
+
+    private:
+
+        struct Impl
+        {
+            util::synchronized_value<details::BasicBacktrace> backtrace;
+            std::atomic<log_level> current_log_level = log_level::warn;
+            std::atomic<bool> log_location = false;
+            std::atomic<log_level> flush_threshold = log_level::warn;
+        };
+
+        std::ostream* out;
+        std::unique_ptr<Impl> pimpl;
     };
 
-    static_assert(LogHandler<LogHandler_StandardOutput>);
+    static_assert(LogHandler<LogHandler_StdOut>);
 
-    /// `LogHandler` that uses `std::print` as log record sink.
-    class LogHandler_StandardPrint
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    inline LogHandler_History::LogHandler_History(size_t max_records_count)
+        : m_max_records_count(max_records_count)
     {
-    public:
+    }
 
-        // LogHandler API
+    inline auto
+    LogHandler_History::start_log_handling(LoggingParams params, const std::vector<log_source>&)
+        -> void
+    {
+        pimpl = std::make_unique<Impl>();
 
-        auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
-        auto stop_log_handling() -> void;
+        pimpl->current_log_level = params.logging_level;
+        pimpl->data.unsafe_get().backtrace.set_max_trace(params.log_backtrace);
+    }
 
-        auto set_log_level(log_level new_level) -> void;
-        auto set_params(LoggingParams new_params) -> void;
+    inline auto LogHandler_History::stop_log_handling() -> void
+    {
+        pimpl.reset();
+    }
 
-        auto log(LogRecord record) -> void;
+    inline auto LogHandler_History::set_log_level(log_level new_level) -> void
+    {
+        assert(pimpl);
+        pimpl->current_log_level = new_level;
+    }
 
-        auto enable_backtrace(size_t record_buffer_size) -> void;
-        auto disable_backtrace() -> void;
-        auto log_backtrace() -> void;
-        auto log_backtrace_no_guards() -> void;
+    inline auto LogHandler_History::set_params(LoggingParams new_params) -> void
+    {
+        assert(pimpl);
+        pimpl->current_log_level = new_params.logging_level;
+        pimpl->data->backtrace.set_max_trace(new_params.log_backtrace);
+    }
 
-        auto flush(std::optional<log_source> source = {}) -> void;
+    inline auto LogHandler_History::log(LogRecord record) -> void
+    {
+        assert(pimpl);
+        if (pimpl->current_log_level < record.level)
+        {
+            return;
+        }
 
-        auto set_flush_threshold(log_level threshold_level) -> void;
-    };
+        auto synched_data = pimpl->data.synchronize();
+        if (not synched_data->backtrace.push_if_enabled(record))
+        {
+            details::queue_push(synched_data->history, m_max_records_count, std::move(record));
+        }
+    }
 
-    static_assert(LogHandler<LogHandler_StandardPrint>);
+    inline auto LogHandler_History::enable_backtrace(size_t record_buffer_size) -> void
+    {
+        assert(pimpl);
+        pimpl->data->backtrace.set_max_trace(record_buffer_size);
+    }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    inline auto LogHandler_History::disable_backtrace() -> void
+    {
+        assert(pimpl);
+        pimpl->data->backtrace.disable();
+    }
+
+    inline auto LogHandler_History::log_backtrace() -> void
+    {
+        assert(pimpl);
+        auto synched_data = pimpl->data.synchronize();
+        for (auto& log : synched_data->backtrace)
+        {
+            details::queue_push(synched_data->history, m_max_records_count, std::move(log));
+        }
+
+        synched_data->backtrace.clear();
+    }
+
+    inline auto LogHandler_History::log_backtrace_no_guards() -> void
+    {
+        assert(pimpl);
+        log_backtrace();  // FIXME: not sure what to do here???
+    }
+
+    inline auto LogHandler_History::flush(std::optional<log_source>) -> void
+    {
+        assert(pimpl);
+        // nothing to do, we keep history, there is no flush
+    }
+
+    inline auto LogHandler_History::set_flush_threshold(log_level) -> void
+    {
+        assert(pimpl);
+        // nothing to do, we keep history, there is no flush
+    }
+
+    inline auto LogHandler_History::capture_history() const -> std::vector<LogRecord>
+    {
+        assert(pimpl);
+        auto synched_data = pimpl->data.synchronize();
+        return std::vector<LogRecord>(synched_data->history.begin(), synched_data->history.end());
+    }
+
+    inline auto LogHandler_History::clear_history()
+    {
+        assert(pimpl);
+        pimpl->data->history.clear();
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    LogHandler_StdOut::LogHandler_StdOut(std::ostream& out)
+        : out(&out)
+    {
+        assert(out);
+    }
+
+    inline auto
+    LogHandler_StdOut::start_log_handling(LoggingParams params, const std::vector<log_source>&)
+        -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl = std::make_unique<Impl>();
+
+        pimpl->current_log_level = params.logging_level;
+        pimpl->backtrace->set_max_trace(params.log_backtrace);
+    }
+
+    inline auto LogHandler_StdOut::stop_log_handling() -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl.reset();
+    }
+
+    inline auto LogHandler_StdOut::set_log_level(log_level new_level) -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl->current_log_level = new_level;
+    }
+
+    inline auto LogHandler_StdOut::set_params(LoggingParams new_params) -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl->current_log_level = new_params.logging_level;
+        pimpl->backtrace->set_max_trace(new_params.log_backtrace);
+    }
+
+    inline auto LogHandler_StdOut::log(LogRecord record) -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        if (pimpl->current_log_level > record.level)
+        {
+            return;
+        }
+
+        auto level = record.level;
+
+        if (not pimpl->backtrace->push_if_enabled(record))
+        {
+            details::log_to_stream(*out, record, pimpl->log_location);
+        }
+
+        if (level <= pimpl->flush_threshold)
+        {
+            out->flush();
+        }
+    }
+
+    inline auto LogHandler_StdOut::enable_backtrace(size_t record_buffer_size) -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl->backtrace->set_max_trace(record_buffer_size);
+    }
+
+    inline auto LogHandler_StdOut::disable_backtrace() -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl->backtrace->disable();
+    }
+
+    inline auto LogHandler_StdOut::log_backtrace() -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        auto synched_backtrace = pimpl->backtrace.synchronize();
+        for (auto& log_record : *synched_backtrace)
+        {
+            details::log_to_stream(*out, log_record, pimpl->log_location);
+        }
+    }
+
+    inline auto LogHandler_StdOut::log_backtrace_no_guards() -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        log_backtrace();  // FIXME: not sure
+    }
+
+    inline auto LogHandler_StdOut::flush(std::optional<log_source>) -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        out->flush();
+    }
+
+    inline auto LogHandler_StdOut::set_flush_threshold(log_level threshold_level) -> void
+    {
+        assert(out);
+        assert(pimpl);
+
+        pimpl->flush_threshold = threshold_level;
+    }
 
 
 }

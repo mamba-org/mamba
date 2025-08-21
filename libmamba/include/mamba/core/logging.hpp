@@ -37,9 +37,18 @@ namespace mamba
         all
     };
 
+    /// @returns The name of the specified log level as an UTF-8 null-terminated string.
+    inline constexpr auto name_of(log_level level) noexcept -> const char*
+    {
+        constexpr std::array names{ "trace", "debug",    "info", "warning",
+                                    "error", "critical", "off",  "all" };
+
+        assert(level < sizeof(names));
+        return names.at(static_cast<size_t>(level));
+    }
+
     struct LoggingParams
     {
-        int verbosity{ 0 };
         log_level logging_level{ log_level::warn };
         std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // FIXME: IS THIS SPECIFIC TO spdlog???
         std::size_t log_backtrace{ 0 };
@@ -156,7 +165,8 @@ namespace mamba
         {
         public:
 
-            constexpr AnyLogHandler() = default; // THINK: should this be moved in the cpp? Doesnt seem necessary.
+            constexpr AnyLogHandler() = default;  // THINK: should this be moved in the cpp? Doesnt
+                                                  // seem necessary.
 
             /** Destructor calling `stop_log_handling()` if this is the currently active log-handler
                 and has an implementation.

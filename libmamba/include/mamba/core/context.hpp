@@ -81,6 +81,7 @@ namespace mamba
         {
             bool json{ false };
             bool quiet{ false };
+            int verbosity{ 0 };
         };
 
         struct GraphicsParams

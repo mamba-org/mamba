@@ -62,8 +62,8 @@ namespace mamba::logging::spdlogimpl
 
     LogHandler_spdlog::~LogHandler_spdlog() = default;
 
-    LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog&& other) = default;
-    LogHandler_spdlog& LogHandler_spdlog::operator=(LogHandler_spdlog&& other) = default;
+    LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog&& other) noexcept = default;
+    LogHandler_spdlog& LogHandler_spdlog::operator=(LogHandler_spdlog&& other) noexcept = default;
 
     auto
     LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources)

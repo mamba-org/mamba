@@ -37,12 +37,12 @@ namespace mamba
         all
     };
 
-    inline auto operator<=>(log_level left, log_level right) noexcept
+    inline constexpr auto operator<=>(log_level left, log_level right) noexcept
     {
         return static_cast<int>(left) <=> static_cast<int>(right);
     }
 
-    inline auto operator<(log_level left, unsigned long right) noexcept -> bool
+    inline constexpr auto operator<(log_level left, unsigned long right) noexcept -> bool
     {
         return static_cast<unsigned long>(left) < right;
     }

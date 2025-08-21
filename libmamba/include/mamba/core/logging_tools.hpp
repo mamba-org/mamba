@@ -144,6 +144,14 @@ namespace mamba::logging
         ///
         LogHandler_History(size_t max_records_count = 0);
 
+
+
+        LogHandler_History(const LogHandler_History& other) = delete;
+        LogHandler_History& operator=(const LogHandler_History& other) = delete;
+
+        LogHandler_History(LogHandler_History&& other) noexcept = default;
+        LogHandler_History& operator=(LogHandler_History&& other) noexcept = default;
+
         // LogHandler API
 
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
@@ -192,7 +200,13 @@ namespace mamba::logging
     {
     public:
 
-        LogHandler_StdOut(std::ostream& out = std::cout);
+        LogHandler_StdOut(std::ostream& out_ = std::cout);
+
+        LogHandler_StdOut(const LogHandler_StdOut& other) = delete;
+        LogHandler_StdOut& operator=(const LogHandler_StdOut& other) = delete;
+
+        LogHandler_StdOut(LogHandler_StdOut&& other) noexcept;
+        LogHandler_StdOut& operator=(LogHandler_StdOut&& other) noexcept;
 
         // LogHandler API
 
@@ -341,10 +355,23 @@ namespace mamba::logging
 
     //////////////////////////////////////////////////////////////////////////////////////
 
-    LogHandler_StdOut::LogHandler_StdOut(std::ostream& out)
-        : out(&out)
+    inline LogHandler_StdOut::LogHandler_StdOut(std::ostream& out_)
+        : out(&out_)
     {
         assert(out);
+    }
+
+    inline LogHandler_StdOut::LogHandler_StdOut(LogHandler_StdOut&& other) noexcept
+        : out(std::exchange(other.out, nullptr))
+        , pimpl(std::move(other.pimpl))
+    {
+    }
+
+    inline LogHandler_StdOut& LogHandler_StdOut::operator=(LogHandler_StdOut&& other) noexcept
+    {
+        out = std::exchange(other.out, nullptr);
+        pimpl = std::move(other.pimpl);
+        return *this;
     }
 
     inline auto

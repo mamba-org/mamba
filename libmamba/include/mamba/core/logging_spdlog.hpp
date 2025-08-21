@@ -40,8 +40,11 @@ namespace mamba::logging::spdlogimpl
         LogHandler_spdlog();
         ~LogHandler_spdlog();
 
-        LogHandler_spdlog(LogHandler_spdlog&& other);
-        LogHandler_spdlog& operator=(LogHandler_spdlog&& other);
+        LogHandler_spdlog(const LogHandler_spdlog& other) = delete;
+        LogHandler_spdlog& operator=(const LogHandler_spdlog& other) = delete;
+
+        LogHandler_spdlog(LogHandler_spdlog&& other) noexcept;
+        LogHandler_spdlog& operator=(LogHandler_spdlog&& other) noexcept;
 
         auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
         auto stop_log_handling() -> void;

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <atomic>
 #include <concepts>
 #include <deque>
 #include <iostream>

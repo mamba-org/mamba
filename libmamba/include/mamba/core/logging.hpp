@@ -104,6 +104,16 @@ namespace mamba
         template <typename Interface, std::size_t local_storage_size = sizeof(std::shared_ptr<Interface>)>
         using SBO_storage = std::unique_ptr<Interface>;
 
+        // Helper comparison of source locations, to help with testing.
+        inline constexpr bool
+        operator==(const std::source_location& left, const std::source_location& right)
+        {
+            return std::string_view(left.file_name()) == std::string_view(right.file_name())
+                   && std::string_view(left.function_name())
+                          == std::string_view(right.function_name())
+                   && left.line() == right.line() && left.column() == right.column();
+        }
+
         struct LogRecord
         {
             std::string message;  // THINK: could be made lazy if it was a function instead, but
@@ -111,6 +121,9 @@ namespace mamba
             log_level level = log_level::off;
             log_source source = log_source::libmamba;
             std::source_location location = {};  // assigned explicitly to please apple-clang
+
+            // comparisons are mainly used for testing
+            auto operator==(const LogRecord& other) const noexcept -> bool = default;
         };
 
         // NOTE: it might make more sense to talk about sinks than sources when it comes to the

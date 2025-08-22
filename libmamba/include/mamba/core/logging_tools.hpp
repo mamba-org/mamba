@@ -102,6 +102,16 @@ namespace mamba::logging
             {
                 return backtrace.end();
             }
+
+            auto size() const -> std::size_t
+            {
+                return backtrace.size();
+            }
+
+            auto empty() const -> bool
+            {
+                return backtrace.empty();
+            }
         };
 
         inline auto as_log(const std::source_location& location) -> std::string
@@ -115,9 +125,16 @@ namespace mamba::logging
             );
         }
 
-        inline auto log_to_stream(std::ostream& out, const LogRecord& record, bool with_location)
+        struct log_to_stream_options
         {
-            auto location_str = with_location
+            bool with_location = false;
+        };
+
+        inline auto
+        log_to_stream(std::ostream& out, const LogRecord& record, log_to_stream_options options = {})
+            -> std::ostream&
+        {
+            auto location_str = options.with_location
                                     ? fmt::format(" ({})", details::as_log(record.location))
                                     : std::string{};
 
@@ -128,6 +145,8 @@ namespace mamba::logging
                 location_str,
                 record.message
             );
+
+            return out;
         }
     }
 
@@ -143,7 +162,6 @@ namespace mamba::logging
         /// Constructor specifying the maximum number of log records to keep in history.
         ///
         LogHandler_History(size_t max_records_count = 0);
-
 
 
         LogHandler_History(const LogHandler_History& other) = delete;
@@ -426,7 +444,7 @@ namespace mamba::logging
 
         if (not pimpl->backtrace->push_if_enabled(record))
         {
-            details::log_to_stream(*out, record, pimpl->log_location);
+            details::log_to_stream(*out, record, { .with_location = pimpl->log_location });
         }
 
         if (level <= pimpl->flush_threshold)
@@ -459,7 +477,7 @@ namespace mamba::logging
         auto synched_backtrace = pimpl->backtrace.synchronize();
         for (auto& log_record : *synched_backtrace)
         {
-            details::log_to_stream(*out, log_record, pimpl->log_location);
+            details::log_to_stream(*out, log_record, { .with_location = pimpl->log_location });
         }
     }
 

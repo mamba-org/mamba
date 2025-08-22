@@ -69,7 +69,9 @@ namespace mamba
     {
         libmamba,  // default
         libcurl,
-        libsolv
+        libsolv,
+
+        tests, // only used for testing
     };
 
     /// @returns The name of the specified log source as an UTF-8 null-terminated string.
@@ -83,6 +85,8 @@ namespace mamba
                 return "libcurl";
             case log_source::libsolv:
                 return "libsolv";
+            case log_source::tests:
+                return "tests";
         }
 
         // TODO(c++23): std::unreachable();

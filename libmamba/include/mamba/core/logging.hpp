@@ -1,0 +1,719 @@
+// Copyright (c) 2025, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#ifndef MAMBA_CORE_LOGGING_HPP
+#define MAMBA_CORE_LOGGING_HPP
+
+#include <array>
+#include <cassert>
+#include <concepts>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <source_location>
+#include <sstream>
+#include <string>
+#include <typeindex>
+#include <utility>
+#include <vector>
+
+namespace mamba
+{
+
+    enum class log_level
+    {
+        trace,
+        debug,
+        info,
+        warn,
+        err,
+        critical,
+
+        // Special values:
+        off,
+        all
+    };
+
+    inline constexpr auto operator<=>(log_level left, log_level right) noexcept
+    {
+        return static_cast<int>(left) <=> static_cast<int>(right);
+    }
+
+    inline constexpr auto operator<(log_level left, unsigned long right) noexcept -> bool
+    {
+        return static_cast<unsigned long>(left) < right;
+    }
+
+    /// @returns The name of the specified log level as an UTF-8 null-terminated string.
+    inline constexpr auto name_of(log_level level) noexcept -> const char*
+    {
+        constexpr std::array names{ "trace", "debug",    "info", "warning",
+                                    "error", "critical", "off",  "all" };
+
+        assert(level < sizeof(names));
+        return names.at(static_cast<size_t>(level));
+    }
+
+    struct LoggingParams
+    {
+        log_level logging_level{ log_level::warn };
+        std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // FIXME: IS THIS SPECIFIC TO spdlog???
+        std::size_t log_backtrace{ 0 };
+    };
+
+    enum class log_source  // THINK: "source" isn't the best way to put it, maybe channel?
+                           // component? sink?
+    {
+        libmamba,  // default
+        libcurl,
+        libsolv,
+
+        tests, // only used for testing
+    };
+
+    /// @returns The name of the specified log source as an UTF-8 null-terminated string.
+    inline constexpr auto name_of(log_source source) noexcept -> const char*
+    {
+        switch (source)
+        {
+            case log_source::libmamba:
+                return "libmamba";
+            case log_source::libcurl:
+                return "libcurl";
+            case log_source::libsolv:
+                return "libsolv";
+            case log_source::tests:
+                return "tests";
+        }
+
+        // TODO(c++23): std::unreachable();
+        assert(false);
+        return "unknown";
+    }
+
+    /// @returns All `log_source` values as a range.
+    // FIXME: should be constexpr but some compilers doesn't implement vector's constexpr destructor
+    // yet
+    inline auto all_log_sources() noexcept -> std::vector<log_source>
+    {
+        return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
+    }
+
+    namespace logging
+    {
+        // FIXME: this is a placeholder, replace it by the real thing once available
+        template <typename Interface, std::size_t local_storage_size = sizeof(std::shared_ptr<Interface>)>
+        using SBO_storage = std::unique_ptr<Interface>;
+
+        // Helper comparison of source locations, to help with testing.
+        inline constexpr bool
+        operator==(const std::source_location& left, const std::source_location& right)
+        {
+            return std::string_view(left.file_name()) == std::string_view(right.file_name())
+                   && std::string_view(left.function_name())
+                          == std::string_view(right.function_name())
+                   && left.line() == right.line() && left.column() == right.column();
+        }
+
+        struct LogRecord
+        {
+            std::string message;  // THINK: could be made lazy if it was a function instead, but
+                                  // requires macros to be functions
+            log_level level = log_level::off;
+            log_source source = log_source::libmamba;
+            std::source_location location = {};  // assigned explicitly to please apple-clang
+
+            // comparisons are mainly used for testing
+            auto operator==(const LogRecord& other) const noexcept -> bool = default;
+        };
+
+        // NOTE: it might make more sense to talk about sinks than sources when it comes to the
+        // implementation
+
+        template <typename T>
+        concept LogHandler = std::movable<T>
+                             and requires(
+                                 T& handler,
+                                 const T& const_handler,
+                                 LoggingParams params,
+                                 std::vector<log_source> sources,
+                                 LogRecord log_record,
+                                 std::optional<log_source> source
+                             )  // no value means all sources
+        {
+            // REQUIREMENT: all the following operations must be thread-safe
+
+            //
+            handler.start_log_handling(params, sources);
+
+            //
+            handler.stop_log_handling();
+
+            //
+            handler.set_log_level(params.logging_level);
+
+            //
+            handler.set_params(std::as_const(params));
+
+            //
+            handler.log(log_record);
+
+            // enable buffering a provided number of log records, dont log until `log_backtrace()`
+            // is called
+            handler.enable_backtrace(size_t(42));
+
+            // disable log buffering
+            handler.disable_backtrace();
+
+            // log buffered records
+            handler.log_backtrace();
+
+            // log buffered records without filtering
+            handler.log_backtrace_no_guards();
+
+            // flush all sources
+            handler.flush();
+
+            // flush only a specific source
+            handler.flush(std::optional<log_source>{});
+
+            // when a log's record is equal or higher than the specified level, flush
+            handler.set_flush_threshold(log_level::all);
+        };
+
+        template <typename T>
+        concept LogHandlerOrPtr = LogHandler<T>
+                                  or (std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>);
+
+        class AnyLogHandler
+        {
+        public:
+
+            constexpr AnyLogHandler() = default;  // THINK: should this be moved in the cpp? Doesnt
+                                                  // seem necessary.
+
+            /** Destructor calling `stop_log_handling()` if this is the currently active log-handler
+                and has an implementation.
+            */
+            ~AnyLogHandler();
+
+            AnyLogHandler(AnyLogHandler&&) noexcept = default;
+            AnyLogHandler& operator=(AnyLogHandler&&) noexcept = default;
+
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandler<T>  //
+            AnyLogHandler(T&& handler);
+
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandler<T>  //
+            AnyLogHandler(T* handler_ptr);
+
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandler<T>  //
+            AnyLogHandler& operator=(T&& new_handler);
+
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandler<T>  //
+            AnyLogHandler& operator=(T* new_handler_ptr);
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto stop_log_handling() -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto set_log_level(log_level new_level) -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto set_params(LoggingParams new_params) -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto log(LogRecord record) -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto enable_backtrace(size_t record_buffer_size) -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto disable_backtrace() -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto log_backtrace() -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto log_backtrace_no_guards() -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto flush(std::optional<log_source> source = {}) -> void;
+
+            ///
+            /// Pre-condition: `has_value() == true`
+            auto set_flush_threshold(log_level threshold_level) -> void;
+
+            /// @returns `true` if there is an handler object stored in `this`, `false` otherwise.
+            auto has_value() const noexcept -> bool;
+
+            /// @returns @see `has_value()`
+            explicit operator bool() const noexcept
+            {
+                return has_value();
+            }
+
+            /// @returns An identifier for the stored object's type, or `std::nullopt` if there is
+            ///          no stored object (`has_value() == false`).
+            auto type_id() const noexcept -> std::optional<std::type_index>;
+
+        private:
+
+            struct Interface;
+
+            template <LogHandlerOrPtr T>
+            struct Wrapper;
+
+            SBO_storage<Interface> m_storage;
+        };
+
+        static_assert(LogHandler<AnyLogHandler>);  // NEEDED? AnyLogHandler must not recursively
+                                                   // host itself
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // Logging System API
+
+        // not thread-safe
+        auto stop_logging() -> AnyLogHandler;
+
+        // not thread-safe
+        auto
+        set_log_handler(AnyLogHandler handler, std::optional<LoggingParams> maybe_new_params = {})
+            -> AnyLogHandler;
+
+        // not thread-safe
+        auto get_log_handler() -> AnyLogHandler&;
+
+        // thread-safe
+        auto set_log_level(log_level new_level) -> log_level;
+
+        // thread-safe, value immediately obsolete
+        auto get_log_level() -> log_level;
+
+        // thread-safe, value immediately obsolete
+        auto get_logging_params() -> LoggingParams;
+
+        // thread-safe
+        auto set_logging_params(LoggingParams new_params);
+
+        // as thread-safe as handler's implementation if set
+        auto log(LogRecord record) -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto enable_backtrace(size_t records_buffer_size) -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto disable_backtrace() -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto log_backtrace() -> void;
+
+        // as thread-safe as handler's implementation if set
+        auto log_backtrace_no_guards() -> void;
+
+
+        // as thread-safe as handler's implementation if set
+        auto flush_logs(std::optional<log_source> source = {}) -> void;
+
+
+        // as thread-safe as handler's implementation if set
+        auto set_flush_threshold(log_level threshold_level) -> void;
+
+        ///////////////////////////////////////////////////////
+        // MIGT DISAPPEAR SOON
+        class MessageLogger
+        {
+        public:
+
+            MessageLogger(
+                log_level level,
+                std::source_location location = std::source_location::current()
+            );
+            ~MessageLogger();
+
+            std::stringstream& stream()
+            {
+                // Keep this implementation inline for performance reasons.
+                return m_stream;
+            }
+
+            static void activate_buffer();
+            static void deactivate_buffer();
+            static void print_buffer(std::ostream& ostream);
+
+        private:
+
+            log_level m_level;
+            std::stringstream m_stream;
+            std::source_location m_location;
+
+            static void emit(LogRecord log_record);
+        };
+
+        namespace details
+        {
+            // NOTE: this looks complicated because it's a workaround for `std::vector`
+            // implementations which are not `constexpr` (required by c++20), we defer the vector
+            // creation to the moment it's needed. Constexpr constructor is required for a type
+            // which is usable in a `constinit` definition, which is required to avoid the
+            // static-initialization-fiasco (at least for initialization).
+            // TODO: once homebrew stl impl has `constexpr` vector, replace all this by just `using
+            // MessageLoggerBuffer = vector<LogRecord>;`
+            struct MessageLoggerBuffer
+            {
+                using buffer = std::vector<LogRecord>;
+
+                constexpr MessageLoggerBuffer() = default;
+
+                auto ready_records() -> buffer&
+                {
+                    if (not records)
+                    {
+                        records = buffer{};
+                    }
+                    return *records;
+                }
+
+                std::optional<buffer> records;
+            };
+        }
+    }
+}
+
+#undef LOG
+#undef LOG_TRACE
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARNING
+#undef LOG_ERROR
+#undef LOG_CRITICAL
+
+#define LOG(severity) mamba::logging::MessageLogger(severity).stream()
+#define LOG_TRACE LOG(mamba::log_level::trace)
+#define LOG_DEBUG LOG(mamba::log_level::debug)
+#define LOG_INFO LOG(mamba::log_level::info)
+#define LOG_WARNING LOG(mamba::log_level::warn)
+#define LOG_ERROR LOG(mamba::log_level::err)
+#define LOG_CRITICAL LOG(mamba::log_level::critical)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace mamba::logging
+{
+    // NOTE: the following definitions are inline for performance reasons.
+
+    // not thread-safe
+    inline auto stop_logging() -> AnyLogHandler
+    {
+        return set_log_handler({});
+    }
+
+    // TODO: find a better name?
+    template <typename Func, typename... Args>
+        requires std::invocable<Func, AnyLogHandler&, Args...>
+    auto call_log_handler_if_existing(Func&& func, Args&&... args) -> void
+    {
+        // TODO: consider enabling for user to specify that no check is needed (one less branch)
+        if (auto& log_handler = get_log_handler())
+        {
+            std::invoke(std::forward<Func>(func), log_handler, std::forward<Args>(args)...);
+        }
+    }
+
+    // as thread-safe as handler's implementation
+    inline auto log(LogRecord record) -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log, std::move(record));
+    }
+
+    inline auto enable_backtrace(size_t records_buffer_size) -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::enable_backtrace, records_buffer_size);
+    }
+
+    // as thread-safe as handler's implementation if set
+    inline auto disable_backtrace() -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::disable_backtrace);
+    }
+
+    // as thread-safe as handler's implementation if set
+    inline auto log_backtrace() -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log_backtrace);
+    }
+
+    // as thread-safe as handler's implementation if set
+    inline auto log_backtrace_no_guards() -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::log_backtrace_no_guards);
+    }
+
+    // as thread-safe as handler's implementation
+    inline auto flush_logs(std::optional<log_source> source) -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::flush, std::move(source));
+    }
+
+    inline auto set_flush_threshold(log_level threshold_level) -> void
+    {
+        call_log_handler_if_existing(&AnyLogHandler::set_flush_threshold, threshold_level);
+    }
+
+    //////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+
+
+    struct AnyLogHandler::Interface
+    {
+        virtual ~Interface() = default;
+
+        virtual void start_log_handling(LoggingParams params, std::vector<log_source> sources) = 0;
+        virtual void stop_log_handling() = 0;
+        virtual void set_log_level(log_level new_level) = 0;
+        virtual void set_params(LoggingParams new_params) = 0;
+        virtual void log(LogRecord record) = 0;
+        virtual void enable_backtrace(size_t record_buffer_size) = 0;
+        virtual void disable_backtrace() = 0;
+        virtual void log_backtrace() = 0;
+        virtual void log_backtrace_no_guards() = 0;
+        virtual void flush(std::optional<log_source> source) = 0;
+        virtual void set_flush_threshold(log_level threshold_level) = 0;
+        virtual std::type_index type_id() const noexcept = 0;
+    };
+
+    template <LogHandler T>
+    T& as_ref(T& object)
+    {
+        return object;
+    }
+
+    template <LogHandler T>
+    T& as_ref(T* object)
+    {
+        assert(object);
+        return *object;
+    }
+
+    template <LogHandlerOrPtr T>
+    struct AnyLogHandler::Wrapper : Interface
+    {
+        T object;
+
+        Wrapper(T new_object)
+            : object(std::move(new_object))
+        {
+        }
+
+        void start_log_handling(LoggingParams params, std::vector<log_source> sources) override
+        {
+            as_ref(object).start_log_handling(std::move(params), std::move(sources));
+        }
+
+        void stop_log_handling() override
+        {
+            as_ref(object).stop_log_handling();
+        }
+
+        void set_log_level(log_level new_level) override
+        {
+            as_ref(object).set_log_level(new_level);
+        }
+
+        void set_params(LoggingParams new_params) override
+        {
+            as_ref(object).set_params(std::move(new_params));
+        }
+
+        void log(LogRecord record) override
+        {
+            as_ref(object).log(std::move(record));
+        }
+
+        void enable_backtrace(size_t records_buffer_size) override
+        {
+            as_ref(object).enable_backtrace(records_buffer_size);
+        }
+
+        void disable_backtrace() override
+        {
+            as_ref(object).disable_backtrace();
+        }
+
+        void log_backtrace() override
+        {
+            as_ref(object).log_backtrace();
+        }
+
+        void log_backtrace_no_guards() override
+        {
+            as_ref(object).log_backtrace_no_guards();
+        }
+
+        void flush(std::optional<log_source> source) override
+        {
+            as_ref(object).flush(std::move(source));
+        }
+
+        void set_flush_threshold(log_level threshold_level) override
+        {
+            as_ref(object).set_flush_threshold(threshold_level);
+        }
+
+        std::type_index type_id() const noexcept override
+        {
+            return typeid(object);
+        }
+    };
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler<T>
+    AnyLogHandler::AnyLogHandler(T&& handler)
+        : m_storage(std::make_unique<Wrapper<T>>(std::forward<T>(handler)))
+    {
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler<T>
+    AnyLogHandler::AnyLogHandler(T* handler_ptr)
+        : m_storage(std::make_unique<Wrapper<T*>>(handler_ptr))
+    {
+        assert(handler_ptr);
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler<T>
+    AnyLogHandler& AnyLogHandler::operator=(T&& new_handler)
+    {
+        if (m_storage and typeid(T) == m_storage->type_id())
+        {
+            static_cast<Wrapper<T>*>(m_storage.get())->object = std::forward<T>(new_handler);
+        }
+        else
+        {
+            m_storage = std::make_unique<Wrapper<T>>(std::forward<T>(new_handler));
+        }
+        return *this;
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler<T>
+    AnyLogHandler& AnyLogHandler::operator=(T* new_handler_ptr)
+    {
+        assert(new_handler_ptr);
+        if (m_storage and typeid(T*) == m_storage->type_id())
+        {
+            static_cast<Wrapper<T>*>(m_storage.get())->object = new_handler_ptr;
+        }
+        else
+        {
+            m_storage = std::make_unique<Wrapper<T*>>(new_handler_ptr);
+        }
+        return *this;
+    }
+
+    inline auto
+    AnyLogHandler::start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void
+    {
+        assert(m_storage);
+        m_storage->start_log_handling(std::move(params), std::move(sources));
+    }
+
+    inline auto AnyLogHandler::stop_log_handling() -> void
+    {
+        assert(m_storage);
+        m_storage->stop_log_handling();
+    }
+
+    inline auto AnyLogHandler::set_log_level(log_level new_level) -> void
+    {
+        assert(m_storage);
+        m_storage->set_log_level(new_level);
+    }
+
+    inline auto AnyLogHandler::set_params(LoggingParams new_params) -> void
+    {
+        assert(m_storage);
+        m_storage->set_params(new_params);
+    }
+
+    inline auto AnyLogHandler::log(LogRecord record) -> void
+    {
+        assert(m_storage);
+        m_storage->log(std::move(record));
+    }
+
+    inline auto AnyLogHandler::enable_backtrace(size_t record_buffer_size) -> void
+    {
+        assert(m_storage);
+        m_storage->enable_backtrace(record_buffer_size);
+    }
+
+    inline auto AnyLogHandler::disable_backtrace() -> void
+    {
+        assert(m_storage);
+        m_storage->disable_backtrace();
+    }
+
+    inline auto AnyLogHandler::log_backtrace() -> void
+    {
+        assert(m_storage);
+        m_storage->log_backtrace();
+    }
+
+    inline auto AnyLogHandler::log_backtrace_no_guards() -> void
+    {
+        assert(m_storage);
+        m_storage->log_backtrace_no_guards();
+    }
+
+    inline auto AnyLogHandler::flush(std::optional<log_source> source) -> void
+    {
+        assert(m_storage);
+        m_storage->flush(std::move(source));
+    }
+
+    inline auto AnyLogHandler::set_flush_threshold(log_level threshold_level) -> void
+    {
+        assert(m_storage);
+        m_storage->set_flush_threshold(threshold_level);
+    }
+
+    inline auto AnyLogHandler::has_value() const noexcept -> bool
+    {
+        return m_storage ? true : false;
+    }
+
+    inline auto AnyLogHandler::type_id() const noexcept -> std::optional<std::type_index>
+    {
+        return has_value() ? std::make_optional(m_storage->type_id()) : std::nullopt;
+    }
+
+}
+
+#endif

@@ -145,7 +145,7 @@ namespace mamba
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_database(db);
+            add_logger_to_database(db);
             mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 
             ctx.platform = "linux-64";

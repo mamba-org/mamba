@@ -23,7 +23,7 @@ maintainers = [
 description = "A fast library to interact with the Conda package ecosystem"
 requires-python = ">=3.7"
 keywords = ["mamba", "conda", "packaging"]
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
 dependencies = []
 dynamic = ["version"]
 [projet.url]

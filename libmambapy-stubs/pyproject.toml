@@ -10,7 +10,7 @@ maintainers = [
 description = "Stub files for libmambapy"
 requires-python = ">=3.12"
 keywords = ["mamba", "stubs"]
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
 dynamic = ["version", "dependencies"]
 [projet.url]
 Documentation = "https://mamba.readthedocs.io"

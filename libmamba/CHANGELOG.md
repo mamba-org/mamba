@@ -1,3 +1,20 @@
+## libmamba 2.3.2 (August 26, 2025)
+
+Enhancements:
+
+- feat: Support for optional `python_site_packages_path` in repodata by @jjhelmus in <https://github.com/mamba-org/mamba/pull/3579>
+
+Bug fixes:
+
+- Fix libsolv MatchSpec parsing by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4046>
+- fix: Workaround `mamba-org/mamba#4043` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4044>
+- Fix string lookup in MatchSpec parsing by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4040>
+- Fix wrong sticky package hash by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4039>
+
+Maintenance:
+
+- `synchronized_value` move and copy implementation by @Klaim in <https://github.com/mamba-org/mamba/pull/4042>
+
 ## libmamba 2.3.1 (July 28, 2025)
 
 Enhancements:

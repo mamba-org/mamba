@@ -173,6 +173,7 @@ add_custom_target(
 # libmamba logging system tests
 
 add_executable(test_libmamba_logging 
+    libmamba_logging/test_logging_common.hpp
     libmamba_logging/test_main_logging.cpp
     libmamba_logging/test_logging_tools.cpp
 )

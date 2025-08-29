@@ -51,7 +51,6 @@ dependencies:
   - securesystemslib
   # libmambapy build dependencies
   - scikit-build-core
-  - setuptools-scm
   # libmambapy dependencies
   - python
   - pybind11<3.0.0

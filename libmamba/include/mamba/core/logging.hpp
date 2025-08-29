@@ -20,9 +20,32 @@
 #include <utility>
 #include <vector>
 
+
+// TODO: rename these macros in a more friendly/conflict-averse manner, with a mamba prefix for example.
+#undef LOG
+#undef LOG_TRACE
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARNING
+#undef LOG_ERROR
+#undef LOG_CRITICAL
+
+#define LOG(severity)   mamba::logging::MessageLogger(severity).stream()
+#define LOG_TRACE       LOG(mamba::log_level::trace)
+#define LOG_DEBUG       LOG(mamba::log_level::debug)
+#define LOG_INFO        LOG(mamba::log_level::info)
+#define LOG_WARNING     LOG(mamba::log_level::warn)
+#define LOG_ERROR       LOG(mamba::log_level::err)
+#define LOG_CRITICAL    LOG(mamba::log_level::critical)
+
+
 namespace mamba
 {
-
+    /** Level of logging, used to filter out logs which are at a lower leve than the current one.
+        @see `mamba::LoggingParams`
+        @see `mamba::logging::LogRecord`
+        @see `mamba::logging::set_log_level`
+     */
     enum class log_level
     {
         trace,
@@ -57,13 +80,27 @@ namespace mamba
         return names.at(static_cast<size_t>(level));
     }
 
+    /** Parameters for the logging system.
+     */
     struct LoggingParams
     {
+        /// Minimum level a log record must have to not be filtered out.
         log_level logging_level{ log_level::warn };
-        std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // FIXME: IS THIS SPECIFIC TO spdlog???
+
+        /** Number of log records to keep in the backtrace history.
+            The backtrace feature will be enabled only if the value
+            is different from `0`.
+        */
         std::size_t log_backtrace{ 0 };
+
+        /// Formatting pattern to use in formatted logs.
+        std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // FIXME: IS THIS SPECIFIC TO spdlog???
     };
 
+    /** Specifies the source a `LogRecord` is originating from.
+        This is mainly useful for debugging issues coming from
+        dependencies that have logging callbacks.
+    */
     enum class log_source  // THINK: "source" isn't the best way to put it, maybe channel?
                            // component? sink?
     {
@@ -95,7 +132,7 @@ namespace mamba
     }
 
     /// @returns All `log_source` values as a range.
-    // FIXME: should be constexpr but some compilers doesn't implement vector's constexpr destructor
+    // FIXME: should be constexpr but some compilers don't implement vector's constexpr destructor
     // yet
     inline auto all_log_sources() noexcept -> std::vector<log_source>
     {
@@ -104,7 +141,9 @@ namespace mamba
 
     namespace logging
     {
-        // FIXME: this is a placeholder, replace it by the real thing once available
+        // FIXME: this is a placeholder, replace it by the real thing once available.
+        // The intent is to have a type doing SBO when possible, but act as unique_ptr otherwise.
+        // Might require allowing to use shared_ptr too, or some kind of value_ptr.
         template <typename Interface, std::size_t local_storage_size = sizeof(std::shared_ptr<Interface>)>
         using SBO_storage = std::unique_ptr<Interface>;
 
@@ -118,21 +157,46 @@ namespace mamba
                    && left.line() == right.line() && left.column() == right.column();
         }
 
+        /** All the information about a log.
+
+            @see `mamba::logging::log`
+            @see `mamba::logging::AnyLogHandler::log`
+            @see The `LOG_...` macros
+         */
         struct LogRecord
         {
+            /// Message to be printed/captured in the logging implementation.
             std::string message;  // THINK: could be made lazy if it was a function instead, but
                                   // requires macros to be functions
+
+            /// Level of this log. If lower than the current level, this log will be ignored.
             log_level level = log_level::off;
+
+            /// Origin of this log.
             log_source source = log_source::libmamba;
+
+            /// Source location of this log if available, otherwise empty.
             std::source_location location = {};  // assigned explicitly to please apple-clang
 
             // comparisons are mainly used for testing
             auto operator==(const LogRecord& other) const noexcept -> bool = default;
         };
 
-        // NOTE: it might make more sense to talk about sinks than sources when it comes to the
+        // TODO REVIEW: it might make more sense to talk about sinks than sources when it comes to the
         // implementation
 
+        /** Requirements for types which provides log handling implementations.
+
+            While all requirements specified here are interface based,
+            there are also some important behavior requirements, as specified for each
+            expression below.
+
+            The most important requirement is the implementation must implement
+            all the required functions or expressions in a thread-safe manner.
+            We cannot guarantee which thread will use these operations.
+
+            The implementation must be at least move-enabled.
+         */
         template <typename T>
         concept LogHandler = std::movable<T>
                              and requires(
@@ -144,130 +208,362 @@ namespace mamba
                                  std::optional<log_source> source
                              )  // no value means all sources
         {
-            // REQUIREMENT: all the following operations must be thread-safe
+            /// REQUIREMENT: All the following operations must be thread-safe.
 
-            //
-            handler.start_log_handling(params, sources);
+            /** Called once by the logging system once the handler is registered as the current active one.
 
-            //
+                The intent is to allow the implemnetation to allocate the necessary
+                resources or proceeds to cleanup or prepare whatever it needs to before
+                starting receiving log records.
+
+                The implementation must keep track of the logging parameters and take them into account as much as possible.
+
+                No other specified operations will be used by the logging system before this one.
+                After this operation ends, all other specified operations might be called
+                concurrently.
+
+                This operation must be thread-safe. REVIEW: is this necessary?
+
+                @see `mamba::logging::set_log_handler`
+                @see `mamba::logging::AnyLogHanlder::start_log_handling`
+
+                @param params  Logging system parameters values currently set in the logging system.
+                @param sources List of possible `LogRecords` origins used by libmamba. This is
+                               mostly used in implementations that need to setup separate log sinks depending
+                               on the source.
+            */
+            handler.start_log_handling(params, sources); // TODO: REVIEW consider not providing `sources` as it is always `all_sources()`?
+
+            /** When this log handler was registered in the logging system and later
+                another implementation object is registed to replace it or while stopping the logging system,
+                this operation will be called once after unregistering the object from the logging system.
+
+                It could also be called once while the program exits without calling `mmamba::logging::stop_logging`, for example when `::exit(0);` is called.
+                Naturally this will always be called before the implementation's destructor.
+
+                The intent is to allow the implementation to cleanup or release resources that wont be necessary anymore after this call,
+                but dont destroy the object at this point.
+
+                No other specied operations will be used by the logging system after this one.
+
+                This operation must be thread-safe. REVIEW: is this necessary?
+
+                @see `mamba::logging::set_log_handler`
+                @see `mamba::logging::stop_logging`
+                @see `mamba::logging::AnyLogHanlder::~AnyLogHandler`
+                @see `mamba::logging::AnyLogHanlder::stop_log_handling`
+             */
             handler.stop_log_handling();
 
-            //
+
+            /** While registered in it, called by the logging system when it's current logging system log level changed.
+
+                The implementation must keep track of the current logging system logging level and
+                filter out log records which are of a lower log level.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::set_log_level`
+                @see `mamba::logging::AnyLogHandler::set_log_level`
+            */
             handler.set_log_level(params.logging_level);
 
-            //
+            /** While registered in it, called by the logging system when it's configuration changed.
+
+                The implementation must keep track of the current logging system configuration and
+                apply it's parameters as expected.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::set_logging_params`
+                @see `mamba::logging::AnyLogHandler::set_params`
+            */
             handler.set_params(std::as_const(params));
 
-            //
+            /** While registered in it, called by the logging system to process a log record.
+
+                The implementation must ignore log records with a log level lower then the current
+                logging system logging level.
+                If the log record is not ignored, it must be either sent in a logging sink, or
+                if backtrace is enabled, it must be pushed in the backtrace history.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::log`
+                @see `mamba::logging::AnyLogHandler::log`
+                @see The `LOG_...` macros.
+            */
             handler.log(log_record);
 
-            // enable buffering a provided number of log records, dont log until `log_backtrace()`
-            // is called
+            /** While registered in it, called by the logging system when enabling, configuring or disabling
+                the backtrace functionality.
+
+                A specified size of zero means disabling the backtrace feature.
+                Any other values means the backtrace functionality is enabled.
+
+                FIXME: do we allow implementation to ignore/no-op this call?
+
+                The backtrace functionality must be provided by the implementation.
+                If the feature is enabled, log records which are not filtered out by their log levels must be
+                kept in order in an history buffer of the specified size.
+
+                The implementation must keep track of only the last log records pushed in the
+                backtrace. If the history size is already equal to the specified sie and
+                a new log should be pushed in the history, the implementation must remove the oldest
+                log record and push the new log record in the history.
+
+                Log records in the backtrace must only be sent to logging sinks once either
+                `log_backtrace` or `log_backtrace_no_guards` is called.
+
+                The implementation is free to flush or not it's internal sinks when the provided log
+                records has a lower logging level than the current flush threshold.
+                However if the log record has a level greater or equal than the current flush threshold,
+                the implementation musth flush the sink related to the log record's source.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::enable_backtrace`
+                @see `mamba::logging::log_backtrace`
+                @see `mamba::logging::AnyLogHandler::enable_backtrace`
+                @see `mamba::logging::AnyLogHandler::log_backtrace`
+
+            */
             handler.enable_backtrace(size_t(42));
 
-            // disable log buffering
+            // FIXME: CONSIder removing this as it will always be implemented by calling enable_backtrace?
+            /** While registered in it, called by the logging system to disable the backtrace functionality.
+                This must be equivalent to `handler.enable_backtrace(0)`.
+
+                @see `mamba::logging::enable_backtrace`
+                @see `mamba::logging::AnyLogHandler::enable_backtrace`
+                @see `mamba::logging::disable_backtrace`
+                @see `mamba::logging::AnyLogHandler::disable_backtrace`
+            */
             handler.disable_backtrace();
 
-            // log buffered records
+            /** While registered in it, called by the logging system when the current backtrace history of
+                log records needs to be sent to the implemntation's logging sinks.
+                After this call, the backtrace history must be empty.
+                The implementation must ignore this call if the backtrace functionality is not enabled. (FIXME: or implemented?)
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::log_backtrace`
+                @see `mamba::logging::AnyLogHandler::log_backtrace`
+            */
             handler.log_backtrace();
 
-            // log buffered records without filtering
+            /** While registered in it, called by the logging system when the current backtrace history of
+                log records needs to be sent to the implemntation's logging sinks but without filtering
+                the logging level of the log records.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::log_backtrace_no_guards`
+                @see `mamba::logging::AnyLogHandler::log_backtrace_no_guards`
+            */
             handler.log_backtrace_no_guards();
 
-            // flush all sources
+            /** While registered in it, called by the logging system when all the logging sinks from the
+                implementation needs to be flushed.
+
+                The implementation is also free to flush at any other time but must guarantee
+                the flush is done after then end of this operation.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::flush_logs`
+                @see `mamba::logging::AnyLogHandler::flush`
+            */
             handler.flush();
 
-            // flush only a specific source
-            handler.flush(std::optional<log_source>{});
+            /** While registered in it, called by the logging system when the logging sink from the
+                implementation associated to the specified source needs to be flushed.
 
-            // when a log's record is equal or higher than the specified level, flush
+                The implementation is also free to flush at any other time but must guarantee
+                the flush is done after then end of this operation.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::flush_logs`
+                @see `mamba::logging::AnyLogHandler::flush`
+            */
+            handler.flush(log_source::libmamba);
+
+            /** While registered in it, called by the logging system when the flush threshold
+                changed.
+
+                The flush threshold is the logging level for which if a log record is pushed
+                and has this level or higher, the implementation must flush it's sinks immediately.
+
+                If the specified level is "all", the implementation must flush at every call
+                to `log`.
+
+                The implementation is also free to flush at any other time but must guarantee
+                the flush is done after then end of this operation.
+
+                This operation must be thread-safe.
+
+                @see `mamba::logging::set_flush_threshold`
+                @see `mamba::logging::AnyLogHandler::set_flush_threshold`
+
+             */
             handler.set_flush_threshold(log_level::all);
         };
 
+        // FIXME: DO NOT REQUIRE THE POINTER TO LOGHANDLER TO HAVE BE MOVABLE!!!
+        /** Matches either a type of a log handler implementation satisfying the requirements of `mamba::logging::LogHandler`,
+            or a pointer to such type.
+        */
         template <typename T>
         concept LogHandlerOrPtr = LogHandler<T>
                                   or (std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>);
 
+        /** Stores or refers to a log handler implementation object which must satisfy the requirements from `mamba::logging::LogHandler`.
+
+            Used in the logging system functions to register a log handler implementation.
+            (This is an API barrier, separating the logging system implementation from the log handler
+            implementation, whatever it is).
+
+            The log handler implementation can be passed to this object through constructor or assigment either:
+            - by copy or move, in which case it will be owned by this object;
+            - using a pointed to the implementation, in which case this object will only refer to the existing
+              implementation object and that object MUST have a greater lifetime than this object.
+
+            Only operations specified as such are thread-safe.
+
+            @see `mamba::logging::LogHandler`
+        */
         class AnyLogHandler
         {
         public:
 
-            constexpr AnyLogHandler() = default;  // THINK: should this be moved in the cpp? Doesnt
+            /** Constructs this object empty.
+
+                Calling any non-const operations on this object is undefined behavior
+                unless it is an assigment opertion.
+
+                post-conditions:
+                    - `this->has_value() == false`
+
+                @see `mamba::logging::LogHandler`
+            */
+            constexpr AnyLogHandler() noexcept = default;  // THINK: should this be moved in the cpp? Doesnt
                                                   // seem necessary.
 
-            /** Destructor calling `stop_log_handling()` if this is the currently active log-handler
-                and has an implementation.
+            /** Destructor calling `stop_log_handling()` if this is the log handler
+                currently registed in the logging system and `has_value() == true`.
             */
             ~AnyLogHandler();
 
+            // move is allowed
             AnyLogHandler(AnyLogHandler&&) noexcept = default;
             AnyLogHandler& operator=(AnyLogHandler&&) noexcept = default;
 
+            // TODO: implement/allow copies (might require value_ptr)
+
+            /** Construction by storing a provided moved log handler implementation.
+                This will take ownership of the moved object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param handler An instance of a log handler type satisfying `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
             template <class T>
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
                         and LogHandler<T>  //
             AnyLogHandler(T&& handler);
 
+            /** Construction by storing the provided pointer to a log handler implementation.
+
+                This will not take ownership of the pointed object.
+                The pointed object MUST be valid and it's lifetime MUST be greater than the lifetime of `this`.
+
+                This is mainly useful for situations where  users cannot or do not want to move the implmentation.
+
+                pre-conditions:
+                    - `handler_ptr != nullptr`
+                    - `handler_ptr` must point to a valid object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param handler_ptr A pointer to a log handler object which type satisfies `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
             template <class T>
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
                         and LogHandler<T>  //
             AnyLogHandler(T* handler_ptr);
 
+            /** Stores a provided moved log handler implementation.
+
+                This will take ownership of the moved object.
+                If `this` already stores an object before this call, it is destroyed before we store the provided one.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param new_handler An instance of a log handler type satisfying `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
             template <class T>
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
                         and LogHandler<T>  //
             AnyLogHandler& operator=(T&& new_handler);
 
+            /** Stores the provided pointer to a log handler implementation.
+
+                This will not take ownership of the pointed object.
+                The pointed object MUST be valid and it's lifetime MUST be greater than the lifetime of `this`.
+
+                If `this` already stores an object before this call, it is destroyed before we store the provided pointer.
+
+                This is mainly useful for situations where users cannot or do not want to move the implmentation.
+
+                pre-conditions:
+                    - `new_handler_ptr != nullptr`
+                    - `new_handler_ptr` must point to a valid object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param new_handler_ptr A pointer to a log handler object which type satisfies `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
             template <class T>
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
                         and LogHandler<T>  //
             AnyLogHandler& operator=(T* new_handler_ptr);
 
-            ///
-            /// Pre-condition: `has_value() == true`
+            /** Calls the same function with the same arguments (if any) in the implementation object pointed or stored in `this`,
+                @see `mamba::logging::LogHandler` specifications for the requirements and behavior that the implementation must perform.
+
+                This call is thread-safe as the stored or pointed implementation is required to be thread-safe.
+
+                pre-condition: `has_value() == true`
+            */
+            ///@{
             auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto stop_log_handling() -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto set_log_level(log_level new_level) -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto set_params(LoggingParams new_params) -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto log(LogRecord record) -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto enable_backtrace(size_t record_buffer_size) -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto disable_backtrace() -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto log_backtrace() -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto log_backtrace_no_guards() -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto flush(std::optional<log_source> source = {}) -> void;
-
-            ///
-            /// Pre-condition: `has_value() == true`
             auto set_flush_threshold(log_level threshold_level) -> void;
+            ///@}
 
-            /// @returns `true` if there is an handler object stored in `this`, `false` otherwise.
+            /// @returns `true` if there is an log handler object or pointer stored in `this`, `false` otherwise.
             auto has_value() const noexcept -> bool;
 
             /// @returns @see `has_value()`
@@ -290,34 +586,69 @@ namespace mamba
             SBO_storage<Interface> m_storage;
         };
 
-        static_assert(LogHandler<AnyLogHandler>);  // NEEDED? AnyLogHandler must not recursively
+        static_assert(LogHandler<AnyLogHandler>);  // FIXME: NEEDED? AnyLogHandler must not recursively
                                                    // host itself
 
         ////////////////////////////////////////////////////////////////////////////////
         // Logging System API
 
-        // not thread-safe
+        /** Stops the logging system.
+
+            Unregisters the current log handler if any.
+            This is equivalent to `set_log_handler({});`.
+
+            This call is NOT thread-safe.
+
+            @returns The registered log handler if any.
+        */
         auto stop_logging() -> AnyLogHandler;
 
-        // not thread-safe
+        /** Registers a log handler to use in the logging system, or no log handler.
+
+            The other logging operations will be no-op if no log handler is registered.
+
+            This call is NOT thread-safe.
+
+            @param handler The log handler implementation to use when the other operations of the logging system
+                           are called, or if no log handler (`handler.has_value() == false`).
+
+            @returns The previously registered log handler if any.
+        */
         auto
         set_log_handler(AnyLogHandler handler, std::optional<LoggingParams> maybe_new_params = {})
             -> AnyLogHandler;
 
-        // not thread-safe
+        /// @returns The currently registered log handler, if any. This call is NOT thread-safe.
         auto get_log_handler() -> AnyLogHandler&;
 
-        // thread-safe
+        /** Changes the logging system logging level.
+
+            After this call, if a log handler is registered and `mamba::logging::log` is called, the provided log record
+            will be ignored if it's log level is lesser than the current logging system log level.
+
+            If a log handler is registered, this function call `AnyLogHandler::set_log_level` with the same arguments.
+
+            This call is thread safe as long as the log handler implementation fulfills the thread-safety requirements, @see `mamba::logging::LogHandler`.
+
+            @returns The previous log level of the logging system.
+        */
         auto set_log_level(log_level new_level) -> log_level;
 
-        // thread-safe, value immediately obsolete
+        /// @returns The current log level of the logging system. This call is thread-safe but the returned value must be considered immediately obsolete.
         auto get_log_level() -> log_level;
 
-        // thread-safe, value immediately obsolete
+        /// @returns The current configuration of the logging system. This call is thread-safe but the returned value must be considered immediately obsolete.
         auto get_logging_params() -> LoggingParams;
 
-        // thread-safe
-        auto set_logging_params(LoggingParams new_params);
+        /** Changes the logging system configuration.
+
+            If a log handler is registered, this function call `AnyLogHandler::set_params` with the same arguments.
+
+            This call is thread safe as long as the log handler implementation fulfills the thread-safety requirements, @see `mamba::logging::LogHandler`.
+
+            @returns The previous configuration of the logging system.
+        */
+        auto set_logging_params(LoggingParams new_params) -> LoggingParams;
 
         // as thread-safe as handler's implementation if set
         auto log(LogRecord record) -> void;
@@ -403,21 +734,6 @@ namespace mamba
     }
 }
 
-#undef LOG
-#undef LOG_TRACE
-#undef LOG_DEBUG
-#undef LOG_INFO
-#undef LOG_WARNING
-#undef LOG_ERROR
-#undef LOG_CRITICAL
-
-#define LOG(severity) mamba::logging::MessageLogger(severity).stream()
-#define LOG_TRACE LOG(mamba::log_level::trace)
-#define LOG_DEBUG LOG(mamba::log_level::debug)
-#define LOG_INFO LOG(mamba::log_level::info)
-#define LOG_WARNING LOG(mamba::log_level::warn)
-#define LOG_ERROR LOG(mamba::log_level::err)
-#define LOG_CRITICAL LOG(mamba::log_level::critical)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

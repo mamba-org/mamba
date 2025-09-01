@@ -27,8 +27,16 @@ Repository = "https://github.com/mamba-org/mamba/"
 
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
+# Which file to read the version information from
 input = "src/libmambapy/version.py"
+# How to get relevant information from file
 regex = '''(?sx)
 version_info\s*=\s*\("(?P<major>\d+)",\s*"(?P<minor>\d+)",\s*"(?P<patch>\d+)"\)\s*
+version_prerelease\s*=\s*"(?P<pre>\w*)"
 '''
-result = "{major}.{minor}.{patch}"
+# Mamba pre-release have a dot separator, see
+# https://github.com/mamba-org/mamba/issues/3638
+result = "{major}.{minor}.{patch}.{pre}"
+# After creating the result, strip potential trailing dot (when the
+# pre-release string is empty)
+remove = ".$"

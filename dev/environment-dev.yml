@@ -50,7 +50,7 @@ dependencies:
   - cryptography
   - securesystemslib
   # libmambapy build dependencies
-  - scikit-build
+  - scikit-build-core
   # libmambapy dependencies
   - python
   - pybind11<3.0.0

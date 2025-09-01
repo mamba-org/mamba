@@ -36,7 +36,7 @@ jobs:
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout micromamba-feedstock
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
@@ -46,7 +46,7 @@ jobs:
           cd micromamba-feedstock/
           sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
       - name: Checkout mamba branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: mamba
       - name: Clear mamba git directory and link source
@@ -130,7 +130,7 @@ jobs:
     name: "win-64"
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cache vcpkg packages
         uses: actions/cache@v4
         with:

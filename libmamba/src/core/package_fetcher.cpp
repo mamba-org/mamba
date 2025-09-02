@@ -468,7 +468,8 @@ namespace mamba
     {
         if (cb)
         {
-            safe_invoke(*cb, event);
+            // FIXME why is this unused?
+            [[maybe_unused]] auto result = safe_invoke(*cb, event);
         }
     }
 

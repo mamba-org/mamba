@@ -259,7 +259,12 @@ namespace mamba
         for (auto other_spec :
              config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
         {
-            install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
+            auto result = install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
+            if (!result.has_value())
+            {
+                static_assert(std::is_base_of_v<std::exception, decltype(result)::error_type>);
+                throw std::move(result).error();
+            }
         }
     }
 }

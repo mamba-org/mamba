@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <regex>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
@@ -746,11 +745,17 @@ namespace mamba
             // and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
             const fs::u8path default_root_prefix_v2 = fs::u8path(util::user_data_dir()) / "mamba";
 
-            validate_existing_root_prefix(default_root_prefix_v1)
-                .or_else([&default_root_prefix_v2](const auto& /* error */)
-                         { return validate_root_prefix(default_root_prefix_v2); })
-                .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
-                .or_else([](mamba_error&& error) { throw std::move(error); });
+            // TODO(C++23): use `.value()` void specialization to assert value.
+            [[maybe_unused]] bool has_value =  //
+                validate_existing_root_prefix(default_root_prefix_v1)
+                    .or_else([&default_root_prefix_v2](const auto& /* error */)
+                             { return validate_root_prefix(default_root_prefix_v2); })
+                    .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
+                    .or_else([](mamba_error&& error) { throw std::move(error); })
+
+                    .has_value();
+            assert(has_value);
+
 
             LOG_TRACE << "Using default root prefix for micromamba: " << root_prefix;
 #endif

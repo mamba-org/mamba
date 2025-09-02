@@ -269,31 +269,36 @@ namespace mamba
                     continue;
                 }
 
-                load_subdir_in_database(ctx, database, subdir)
-                    .transform([&](solver::libsolv::RepoInfo&& repo)
-                               { database.set_repo_priority(repo, priorities[i]); })
-                    .or_else(
-                        [&](const auto&)
-                        {
-                            if (is_retry)
+                // TODO(C++23): use `.value()` void specialization to assert value.
+                [[maybe_unused]] bool has_value =  //
+                    load_subdir_in_database(ctx, database, subdir)
+                        .transform([&](solver::libsolv::RepoInfo&& repo)
+                                   { database.set_repo_priority(repo, priorities[i]); })
+                        .or_else(
+                            [&](const auto&)
                             {
-                                std::stringstream ss;
-                                ss << "Could not load repodata.json for " << subdir.name()
-                                   << " after retry." << "Please check repodata source. Exiting."
-                                   << std::endl;
-                                error_list.push_back(
-                                    mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
-                                );
+                                if (is_retry)
+                                {
+                                    std::stringstream ss;
+                                    ss << "Could not load repodata.json for " << subdir.name()
+                                       << " after retry."
+                                       << "Please check repodata source. Exiting." << std::endl;
+                                    error_list.push_back(
+                                        mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                                    );
+                                }
+                                else
+                                {
+                                    LOG_WARNING << "Could not load repodata.json for "
+                                                << subdir.name()
+                                                << ". Deleting cache, and retrying.";
+                                    subdir.clear_valid_cache_files();
+                                    loading_failed = true;
+                                }
                             }
-                            else
-                            {
-                                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                                            << ". Deleting cache, and retrying.";
-                                subdir.clear_valid_cache_files();
-                                loading_failed = true;
-                            }
-                        }
-                    );
+                        )
+                        .has_value();
+                assert(has_value);
             }
 
             if (loading_failed)

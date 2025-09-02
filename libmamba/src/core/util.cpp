@@ -782,9 +782,13 @@ namespace mamba
                 std::move(error_message)
             );
             LOG_ERROR << error_message;
-            safe_invoke(before_throw_task)
-                .map_error([](const auto& error)
-                           { LOG_ERROR << "While handling LockFile failure: " << error.what(); });
+            // TODO(C++23): use `.value()` void specialization to assert value.
+            [[maybe_unused]] bool has_value =  //
+                safe_invoke(before_throw_task)
+                    .or_else([](const auto& error)
+                             { LOG_ERROR << "While handling LockFile failure: " << error.what(); })
+                    .has_value();
+            assert(has_value);
             throw mamba_error(complete_error_message, mamba_error_code::lockfile_failure);
         }
     };

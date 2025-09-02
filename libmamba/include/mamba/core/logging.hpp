@@ -43,7 +43,7 @@
 
 namespace mamba
 {
-    /** Level of logging, used to filter out logs which are at a lower leve than the current one.
+    /** Level of logging, used to filter out logs which are at a lower level than the current one.
         @see `mamba::LoggingParams`
         @see `mamba::logging::LogRecord`
         @see `mamba::logging::set_log_level`

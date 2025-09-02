@@ -163,22 +163,16 @@ set_target_properties(
         CXX_EXTENSIONS NO
 )
 
-add_custom_target(
-    test
-    COMMAND test_libmamba
-    DEPENDS test_libmamba
-)
-
 #############################################################################
 # libmamba logging system tests
 
-add_executable(test_libmamba_logging 
+add_executable(test_libmamba_logging
     libmamba_logging/test_logging_common.hpp
     libmamba_logging/test_main_logging.cpp
     libmamba_logging/test_logging_tools.cpp
 )
 
-target_link_libraries(test_libmamba_logging 
+target_link_libraries(test_libmamba_logging
     PRIVATE
         mamba::libmamba
         Catch2::Catch2WithMain
@@ -195,3 +189,11 @@ set_target_properties(
 
 mamba_target_add_compile_warnings(test_libmamba_logging WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
+###############################################################################
+
+add_custom_target(
+    test
+    COMMAND test_libmamba_logging
+    COMMAND test_libmamba
+    DEPENDS test_libmamba_logging test_libmamba
+)

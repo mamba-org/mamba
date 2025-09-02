@@ -98,8 +98,7 @@ namespace mamba::logging::spdlogimpl
     auto LogHandler_spdlog::stop_log_handling() -> void
     {
         tasksync->join_tasks();
-        spdlog::default_logger()->flush();
-        spdlog::drop_all();
+        spdlog::shutdown();
     }
 
     auto LogHandler_spdlog::set_log_level(log_level new_level) -> void

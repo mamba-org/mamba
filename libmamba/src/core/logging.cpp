@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/core.h>  // TODO: replace by `<format>` once availalbe on all ci compilers
+#include <fmt/core.h>  // TODO: replace by `<format>` once available on all ci compilers
 
 #include <mamba/core/context.hpp>
 #include <mamba/core/error_handling.hpp>
@@ -64,11 +64,11 @@ namespace mamba::logging
         if (has_value() and this == &details::current_log_handler)
         {
             static std::once_flag flag;
+
+            // clang-format off
             std::call_once(flag, [&]{
                 safe_invoke([this] { this->stop_log_handling(); })
-                    .map_error(
-                        [](const mamba_error& error)
-                        {
+                    .map_error([](const mamba_error& error){
                             // Here with report the error in the standard output to avoid any logging
                             // implementation.
                             const auto message = fmt::format(
@@ -80,6 +80,7 @@ namespace mamba::logging
                         }
                     );
             });
+            // clang-format on
         }
     }
 
@@ -152,7 +153,8 @@ namespace mamba::logging
         extern util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
     }
 
-    namespace {
+    namespace
+    {
         auto
         make_safe_log_record(std::string_view message, log_level level, std::source_location location)
         {

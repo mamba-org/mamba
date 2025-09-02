@@ -16,6 +16,7 @@
 #include <fmt/xchar.h>
 #include <reproc++/run.hpp>
 
+// clang-format off
 #ifdef _WIN32
 #   include <WinReg.hpp>
 
@@ -23,6 +24,7 @@
 #else
 #   include <unistd.h>
 #endif
+// clang-format on
 
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"

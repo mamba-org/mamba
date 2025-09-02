@@ -4,12 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <random>
 #include <thread>
 #include <vector>
-#include <random>
 
 #include <mamba/core/logging.hpp>
-
 
 namespace mamba::logging::testing
 {
@@ -17,10 +16,13 @@ namespace mamba::logging::testing
     // This is useful to make sure there are great chances that the tasks
     // are being scheduled concurrently.
     // Joins all threads before exiting.
-    // (extracted from test_execution.cpp then modified - TOOD: factorize)
+    // (extracted from test_execution.cpp then modified - TODO: factorize)
     template <typename Func>
-    void
-    execute_tasks_from_concurrent_threads(std::size_t task_count, std::size_t tasks_per_thread, Func work_generator)
+    void execute_tasks_from_concurrent_threads(
+        std::size_t task_count,
+        std::size_t tasks_per_thread,
+        Func work_generator
+    )
     {
         const auto estimated_thread_count = (task_count / tasks_per_thread) * 2;
         std::vector<std::thread> producers(estimated_thread_count);
@@ -64,17 +66,16 @@ namespace mamba::logging::testing
 
         struct RandomLoggingOp
         {
-
         };
 
         execute_tasks_from_concurrent_threads(
             arbitrary_operations_count,
             arbitrary_operations_per_generator,
+            // clang-format off
             [] {
                 thread_local std::default_random_engine random_engine;
-
             }
+            // clang-format on
         )
-
     }
 }

@@ -65,9 +65,9 @@ namespace mamba
         return static_cast<int>(left) <=> static_cast<int>(right);
     }
 
-    inline constexpr auto operator<(log_level left, unsigned long right) noexcept -> bool
+    inline constexpr auto operator<=>(log_level left, unsigned long right) noexcept
     {
-        return static_cast<unsigned long>(left) < right;
+        return static_cast<unsigned long>(left) <=> right;
     }
 
     /// @returns The name of the specified log level as an UTF-8 null-terminated string.

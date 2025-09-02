@@ -72,7 +72,7 @@ namespace mamba::logging
                             // Here with report the error in the standard output to avoid any logging
                             // implementation.
                             const auto message = fmt::format(
-                                "mamba::logging termination failure: call to `stop_log_handling()` ended with an error (caught, logged, skiped): {}",
+                                "mamba::logging termination failure: call to `stop_log_handling()` ended with an error (caught, logged, skipped): {}",
                                 error.what()
                             );
                             std::cerr << message << std::endl;

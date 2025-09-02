@@ -661,7 +661,7 @@ namespace mamba::download
     {
         if (m_request.value().on_failure.has_value())
         {
-            // FIXME why is this unused?
+            // We dont want to propagate errors coming from user's callbacks
             [[maybe_unused]] auto result = safe_invoke(m_request.value().on_failure.value(), res);
         }
     }
@@ -901,7 +901,7 @@ namespace mamba::download
         {
             if (p_initial_request->on_failure.has_value())
             {
-                // FIXME why is this unused?
+                // We dont want to propagate errors coming from user's callbacks
                 [[maybe_unused]] auto result = safe_invoke(p_initial_request->on_failure.value(), res);
             }
         }
@@ -1198,7 +1198,7 @@ namespace mamba::download
     {
         if (m_options.on_unexpected_termination.has_value())
         {
-            // FIXME why is this unused?
+            // We dont want to propagate errors coming from user's callbacks
             [[maybe_unused]] auto result = safe_invoke(m_options.on_unexpected_termination.value());
         }
     }

@@ -695,7 +695,7 @@ namespace mamba
                                                .value<std::vector<detail::other_pkg_mgr_spec>>())
                     {
                         auto result = install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
-                        if (!result.has_value())
+                        if (!result)
                         {
                             static_assert(std::is_base_of_v<std::exception, decltype(result)::error_type>);
                             throw std::move(result).error();

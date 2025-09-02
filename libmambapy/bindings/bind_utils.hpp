@@ -14,11 +14,45 @@
 
 namespace mambapy
 {
-    template <typename Enum>
-    auto enum_from_str(const pybind11::str& name)
+    /**
+     * Bind enum values and add a converting string constructor.
+     *
+     * This functions appeared during the migration from pybind 2 to 3.
+     * Pybind 3 introduced py::native_enum, and made changes to previous py::enum.
+     * At this point, libmambapy was relying on the fact that one could create an enum
+     * from a string, using a constructor, and an implicit conversion to pass function enum
+     * parameters as strings (Python catnip).
+     * This function was added to avoid breaking that contract.
+     * ``pybind11::enum_`` was kept because ``pybind11::native_enum`` does not support
+     * to this day constructors needed for implicit conversion.
+     *
+     * Perhaps ``pybind11::native_enum`` will support string implicit conversion in the future,
+     * otherwise the implicit conversion could be broken in a major release.
+     */
+    template <typename Enum, std::size_t N, typename PyEnum>
+    auto make_str_enum(PyEnum&& pyenum, std::array<std::pair<const char*, Enum>, N> name_values)
     {
-        auto pyenum = pybind11::type::of<Enum>();
-        return pyenum.attr("__members__")[name].template cast<Enum>();
+        for (const auto& [name, val] : name_values)
+        {
+            pyenum.value(name, val);
+        }
+
+        pyenum.def(pybind11::init(
+            [name_values](std::string_view s)
+            {
+                for (const auto& [name, val] : name_values)
+                {
+                    if (name == s)
+                    {
+                        return val;
+                    }
+                }
+                throw pybind11::key_error(std::format("No member named {}", s));
+            }
+        ));
+
+        pybind11::implicitly_convertible<pybind11::str, Enum>();
+        return std::forward<PyEnum>(pyenum);
     }
 
     template <typename T>

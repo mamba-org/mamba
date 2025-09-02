@@ -63,20 +63,23 @@ namespace mamba::logging
         // calling the implementation's destruction.
         if (has_value() and this == &details::current_log_handler)
         {
-            safe_invoke([this] { stop_log_handling(); })
-                .map_error(
-                    [](const mamba_error& error)
-                    {
-                        // Here with report the error in the standard output to avoid any logging
-                        // implementation.
-                        const auto message = fmt::format(
-                            "mamba::logging termination failure: call to `stop_log_handling()` ended with an error (caught, logged, skiped): {}",
-                            error.what()
-                        );
-                        std::cerr << message << std::endl;
-                        std::cout << message << std::endl;
-                    }
-                );
+            static std::once_flag flag;
+            std::call_once(flag, [&]{
+                safe_invoke([this] { this->stop_log_handling(); })
+                    .map_error(
+                        [](const mamba_error& error)
+                        {
+                            // Here with report the error in the standard output to avoid any logging
+                            // implementation.
+                            const auto message = fmt::format(
+                                "mamba::logging termination failure: call to `stop_log_handling()` ended with an error (caught, logged, skiped): {}",
+                                error.what()
+                            );
+                            std::cerr << message << std::endl;
+                            std::cout << message << std::endl;
+                        }
+                    );
+            });
         }
     }
 

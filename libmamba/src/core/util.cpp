@@ -782,9 +782,11 @@ namespace mamba
                 std::move(error_message)
             );
             LOG_ERROR << error_message;
-            safe_invoke(before_throw_task)
-                .map_error([](const auto& error)
-                           { LOG_ERROR << "While handling LockFile failure: " << error.what(); });
+            auto result = safe_invoke(before_throw_task);
+            if (!result)
+            {
+                LOG_ERROR << "While handling LockFile failure: " << std::move(result).error().what();
+            }
             throw mamba_error(complete_error_message, mamba_error_code::lockfile_failure);
         }
     };

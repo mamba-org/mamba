@@ -116,22 +116,18 @@ namespace mamba
                 {
                     if (!util::on_win)
                     {
-                        database
-                            .native_serialize_repo(
-                                repo,
-                                subdir.writable_libsolv_cache_path(),
-                                expected_cache_origin
-                            )
-                            .or_else(
-                                [&](const auto& err)
-                                {
-                                    LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                                << subdir.writable_libsolv_cache_path()
-                                                << R"(" for repo ")" << subdir.name() << ": "
-                                                << err.what();
-                                    ;
-                                }
-                            );
+                        auto result = database.native_serialize_repo(
+                            repo,
+                            subdir.writable_libsolv_cache_path(),
+                            expected_cache_origin
+                        );
+                        if (!result)
+                        {
+                            LOG_WARNING << R"(Fail to write native serialization to file ")"
+                                        << subdir.writable_libsolv_cache_path() << R"(" for repo ")"
+                                        << subdir.name() << ": " << std::move(result).error().what();
+                            ;
+                        }
                     }
                     return std::move(repo);
                 }

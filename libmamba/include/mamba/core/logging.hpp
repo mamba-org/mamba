@@ -203,10 +203,10 @@ namespace mamba
                                  T& handler,
                                  const T& const_handler,
                                  LoggingParams params,
-                                 std::vector<log_source> sources,
+                                 std::vector<log_source> sources, // no value means all sources
                                  LogRecord log_record,
                                  std::optional<log_source> source
-                             )  // no value means all sources
+                             )
         {
             /// REQUIREMENT: All the following operations must be thread-safe.
 
@@ -329,17 +329,6 @@ namespace mamba
 
             */
             handler.enable_backtrace(size_t(42));
-
-            // FIXME: CONSIder removing this as it will always be implemented by calling enable_backtrace?
-            /** While registered in it, called by the logging system to disable the backtrace functionality.
-                This must be equivalent to `handler.enable_backtrace(0)`.
-
-                @see `mamba::logging::enable_backtrace`
-                @see `mamba::logging::AnyLogHandler::enable_backtrace`
-                @see `mamba::logging::disable_backtrace`
-                @see `mamba::logging::AnyLogHandler::disable_backtrace`
-            */
-            handler.disable_backtrace();
 
             /** While registered in it, called by the logging system when the current backtrace history of
                 log records needs to be sent to the implemntation's logging sinks.
@@ -545,7 +534,7 @@ namespace mamba
             /** Calls the same function with the same arguments (if any) in the implementation object pointed or stored in `this`,
                 @see `mamba::logging::LogHandler` specifications for the requirements and behavior that the implementation must perform.
 
-                This call is thread-safe as the stored or pointed implementation is required to be thread-safe.
+                This call shall be thread-safe because the stored or pointed implementation is required to be thread-safe.
 
                 pre-condition: `has_value() == true`
             */
@@ -556,7 +545,6 @@ namespace mamba
             auto set_params(LoggingParams new_params) -> void;
             auto log(LogRecord record) -> void;
             auto enable_backtrace(size_t record_buffer_size) -> void;
-            auto disable_backtrace() -> void;
             auto log_backtrace() -> void;
             auto log_backtrace_no_guards() -> void;
             auto flush(std::optional<log_source> source = {}) -> void;
@@ -775,7 +763,7 @@ namespace mamba::logging
     // as thread-safe as handler's implementation if set
     inline auto disable_backtrace() -> void
     {
-        call_log_handler_if_existing(&AnyLogHandler::disable_backtrace);
+        call_log_handler_if_existing(&AnyLogHandler::enable_backtrace, 0);
     }
 
     // as thread-safe as handler's implementation if set
@@ -815,7 +803,6 @@ namespace mamba::logging
         virtual void set_params(LoggingParams new_params) = 0;
         virtual void log(LogRecord record) = 0;
         virtual void enable_backtrace(size_t record_buffer_size) = 0;
-        virtual void disable_backtrace() = 0;
         virtual void log_backtrace() = 0;
         virtual void log_backtrace_no_guards() = 0;
         virtual void flush(std::optional<log_source> source) = 0;
@@ -874,11 +861,6 @@ namespace mamba::logging
         void enable_backtrace(size_t records_buffer_size) override
         {
             as_ref(object).enable_backtrace(records_buffer_size);
-        }
-
-        void disable_backtrace() override
-        {
-            as_ref(object).disable_backtrace();
         }
 
         void log_backtrace() override
@@ -988,12 +970,6 @@ namespace mamba::logging
     {
         assert(m_storage);
         m_storage->enable_backtrace(record_buffer_size);
-    }
-
-    inline auto AnyLogHandler::disable_backtrace() -> void
-    {
-        assert(m_storage);
-        m_storage->disable_backtrace();
     }
 
     inline auto AnyLogHandler::log_backtrace() -> void

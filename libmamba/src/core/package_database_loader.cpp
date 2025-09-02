@@ -116,27 +116,18 @@ namespace mamba
                 {
                     if (!util::on_win)
                     {
-                        // TODO(C++23): use `.value()` void specialization to assert value.
-                        [[maybe_unused]] bool has_value =  //
-                            database
-                                .native_serialize_repo(
-                                    repo,
-                                    subdir.writable_libsolv_cache_path(),
-                                    expected_cache_origin
-                                )
-                                .or_else(
-                                    [&](const auto& err)
-                                    {
-                                        LOG_WARNING
-                                            << R"(Fail to write native serialization to file ")"
-                                            << subdir.writable_libsolv_cache_path()
-                                            << R"(" for repo ")" << subdir.name() << ": "
-                                            << err.what();
-                                        ;
-                                    }
-                                )
-                                .has_value();
-                        assert(has_value);
+                        auto result = database.native_serialize_repo(
+                            repo,
+                            subdir.writable_libsolv_cache_path(),
+                            expected_cache_origin
+                        );
+                        if (!result)
+                        {
+                            LOG_WARNING << R"(Fail to write native serialization to file ")"
+                                        << subdir.writable_libsolv_cache_path() << R"(" for repo ")"
+                                        << subdir.name() << ": " << std::move(result).error().what();
+                            ;
+                        }
                     }
                     return std::move(repo);
                 }

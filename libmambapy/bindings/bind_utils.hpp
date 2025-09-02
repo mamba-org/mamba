@@ -7,6 +7,7 @@
 #ifndef LIBMAMBAPY_BIND_UTILS_HPP
 #define LIBMAMBAPY_BIND_UTILS_HPP
 
+#include <format>
 #include <memory>
 
 #include <pybind11/operators.h>

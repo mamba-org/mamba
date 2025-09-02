@@ -10,8 +10,8 @@
 #include <catch2/catch_all.hpp>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/logging.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"

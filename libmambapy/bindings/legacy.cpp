@@ -386,11 +386,11 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("SOLVER_SETNAME") = global_solver_job_v2_migrator;
     m.attr("SOLVER_SETMASK") = global_solver_job_v2_migrator;
 
-    enum struct SolverRuleinfoV2Migrator
+    struct SolverRuleinfoV2Migrator
     {
     };
 
-    py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
+    py::class_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
         .def(py::init(
             [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator
             {
@@ -398,11 +398,11 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ));
 
-    enum struct SolverV2Migrator
+    struct SolverV2Migrator
     {
     };
 
-    py::enum_<SolverV2Migrator>(m, "Solver")
+    py::class_<SolverV2Migrator>(m, "Solver")
         .def(py::init(
             [](py::args, py::kwargs) -> SolverV2Migrator
             {

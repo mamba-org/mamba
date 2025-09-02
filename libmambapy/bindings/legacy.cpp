@@ -1045,8 +1045,8 @@ bind_submodule_impl(pybind11::module_ m)
                 {
                     // TODO: improve this, see https://wg21.link/p2287 for the reason
                     Context::OutputParams params;
-                    params.json = std::move(json),
-                    params.quiet = std::move(quiet),
+                    params.json = std::move(json);
+                    params.quiet = std::move(quiet);
                     params.verbosity = std::move(verbosity);
                     return params;
                 }

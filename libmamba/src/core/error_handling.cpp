@@ -1,5 +1,4 @@
 #include "mamba/core/error_handling.hpp"
-
 #include "mamba/core/logging.hpp"
 
 namespace mamba

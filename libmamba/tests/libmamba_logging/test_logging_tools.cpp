@@ -180,7 +180,6 @@ namespace mamba::logging
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
         REQUIRE(not log_g.message.empty());
-
     }
 
     TEST_CASE("details::log_to_stream")
@@ -200,9 +199,7 @@ namespace mamba::logging
 
         const auto expected_log = fmt::format("\ndebug tests{} : this is a test", location_str);
         REQUIRE(out.str() == expected_log);
-
     }
-
 
 
 }

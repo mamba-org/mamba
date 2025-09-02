@@ -52,9 +52,11 @@ namespace mamba
         }
     }
 
-    void Context::enable_logging(logging::AnyLogHandler log_handler)  // THINK: change name? start_logging?
+    void Context::enable_logging(logging::AnyLogHandler log_handler)  // THINK: change name?
+                                                                      // start_logging?
     {
-        if (not logging::get_log_handler()) // don't allow replacing one already set; THINK: OR DO WE ALLOW THAT????
+        if (not logging::get_log_handler())  // don't allow replacing one already set; THINK: OR DO
+                                             // WE ALLOW THAT????
         {
             if (log_handler)
             {

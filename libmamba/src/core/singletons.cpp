@@ -51,7 +51,7 @@ namespace mamba
 #endif
         constinit util::synchronized_value<LoggingParams, params_mutex> logging_params;
 
-        // IMPRTANT NOTE:
+        // IMPORTANT NOTE:
         // The handler MUST NOT be protected from concurrent calls at this level
         // as that would add high performance cost to logging from multiple threads.
         // Instead, we expect the implementation to handle concurrent calls correctly

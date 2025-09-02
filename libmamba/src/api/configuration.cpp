@@ -2243,7 +2243,8 @@ namespace mamba
             exit(0);
         }
 
-        m_context.set_log_level(m_context.output_params.logging_level); // TODO remove that function from Context
+        m_context.set_log_level(m_context.output_params.logging_level);  // TODO remove that
+                                                                         // function from Context
 
         logging::flush_logs();
         logging::set_flush_threshold(log_level::off);

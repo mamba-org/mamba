@@ -27,8 +27,9 @@
 
 namespace mamba
 {
-    namespace{
-        
+    namespace
+    {
+
         constexpr auto to_mamba(solver::libsolv::LogLevel level) -> log_level
         {
             switch (level)
@@ -42,7 +43,7 @@ namespace mamba
                 case (solver::libsolv::LogLevel::Debug):
                     return log_level::debug;
             }
-    
+
             // TODO(c++23): std::unreachable()
             assert(false);
             return log_level::off;

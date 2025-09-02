@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include <fmt/core.h>  // TODO: replace by `<format>` once availalbe on all ci compilers
+#include <fmt/core.h>  // TODO: replace by `<format>` once available on all ci compilers
 
 #include "mamba/core/error_handling.hpp"
 

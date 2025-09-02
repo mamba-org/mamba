@@ -9,8 +9,8 @@
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 
-#include "mamba/core/logging.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"

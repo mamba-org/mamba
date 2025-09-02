@@ -10,7 +10,7 @@
 #include <iostream>
 #include <optional>
 
-#include <fmt/core.h>  // TODO: replace by `<format>` once availalbe on all ci compilers
+#include <fmt/core.h>  // TODO: replace by `<format>` once available on all ci compilers
 
 #include <mamba/core/logging.hpp>
 #include <mamba/util/synchronized_value.hpp>

@@ -573,9 +573,13 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.legacy_read_conda_repodata(file_ptr.raw(), flags);
-                    file_ptr.try_close().or_else([&](const auto& err) {  //
-                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
-                    });
+                    auto closed = file_ptr.try_close().transform_error(  //
+                        [](std::error_code&& ec) { return ec.message(); }
+                    );
+                    if (!closed.has_value())
+                    {
+                        return closed;
+                    }
                     return out;
                 }
             )
@@ -799,9 +803,13 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.read(file_ptr.raw());
-                    file_ptr.try_close().or_else([&](const auto& err) {  //
-                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
-                    });
+                    auto closed = file_ptr.try_close().transform_error(  //
+                        [](std::error_code&& ec) { return ec.message(); }
+                    );
+                    if (!closed.has_value())
+                    {
+                        return closed;
+                    }
                     return out;
                 }
             )
@@ -888,9 +896,13 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.write(file_ptr.raw());
-                    file_ptr.try_close().or_else([&](const auto& err) {  //
-                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
-                    });
+                    auto closed = file_ptr.try_close().transform_error(  //
+                        [](std::error_code&& ec) { return ec.message(); }
+                    );
+                    if (!closed.has_value())
+                    {
+                        return closed;
+                    }
                     return out;
                 }
             )
@@ -1491,15 +1503,16 @@ namespace mamba::solver::libsolv
             auto ms = specs::MatchSpec();
             ms.set_name(specs::MatchSpec::NameSpec(std::string(s.name())));
             // Ignoring version error, the point is to find a close match
-            specs::Version::parse(s.version())
-                .transform(
-                    [&](specs::Version&& ver)
-                    {
-                        ms.set_version(specs::VersionSpec::from_predicate(
-                            specs::VersionPredicate::make_equal_to(std::move(ver))
-                        ));
-                    }
-                );
+            [[maybe_unused]] auto unused =  //
+                specs::Version::parse(s.version())
+                    .transform(
+                        [&](specs::Version&& ver)
+                        {
+                            ms.set_version(specs::VersionSpec::from_predicate(
+                                specs::VersionPredicate::make_equal_to(std::move(ver))
+                            ));
+                        }
+                    );
             ms.set_build_string(
                 specs::MatchSpec::BuildStringSpec(specs::GlobSpec(std::string(s.build_string())))
             );

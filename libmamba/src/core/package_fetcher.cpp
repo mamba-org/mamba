@@ -468,7 +468,8 @@ namespace mamba
     {
         if (cb)
         {
-            safe_invoke(*cb, event);
+            // We dont want to propagate errors coming from user's callbacks
+            [[maybe_unused]] auto result = safe_invoke(*cb, event);
         }
     }
 

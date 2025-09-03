@@ -53,7 +53,7 @@ dependencies:
   - scikit-build-core
   # libmambapy dependencies
   - python
-  - pybind11<3.0.0
+  - pybind11>=3.0.0
   # libmambapy-stubs build dependencies
   - mypy # For stubgen
   - setuptools

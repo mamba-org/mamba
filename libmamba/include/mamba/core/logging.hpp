@@ -268,7 +268,7 @@ namespace mamba
                 This operation must be thread-safe. REVIEW: is this necessary?
 
                 @param stop_reason Reason why this function was called, mainly used to inform the implementation about
-                                   the ongoing context while stoping the logging system.
+                                   the ongoing context while stopping the logging system.
                                    @see `mamba::logging::stop_logging` for details.
 
                 @see `mamba::logging::set_log_handler`

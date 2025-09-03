@@ -108,7 +108,7 @@ namespace mamba::logging::spdlogimpl
         // after it has been shutdown.
         // Instead we do nothing when we are exiting the program,
         // otherwise we need to flush and unregister loggers.
-        if(reason != stop_reason::program_exit)
+        if (reason != stop_reason::program_exit)
         {
             spdlog::default_logger()->flush();
             spdlog::drop_all();

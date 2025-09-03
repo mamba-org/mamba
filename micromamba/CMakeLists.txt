@@ -5,9 +5,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 
 cmake_minimum_required(VERSION 3.16...4.1)
-cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
-cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
-cmake_policy(SET CMP0192 NEW) # Introduced in cmake 4.1
 project(micromamba)
 
 include(GNUInstallDirs)

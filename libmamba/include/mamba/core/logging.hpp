@@ -187,6 +187,22 @@ namespace mamba
         // TODO REVIEW: it might make more sense to talk about sinks than sources when it comes to
         // the implementation
 
+
+        /** Reason why we are stopping the logging system.
+            This is mainly used to inform implementations as to why
+            `stop_logging` is being called. Depending on the situation an implementation
+            can decide to do nothing if it is a program exit.
+
+            @see `mamba::logging::stop_logging` for details.
+        */
+        enum class stop_reason
+        {
+            manual_stop,  ///< The stop was requested by user-code, this is not a program exit
+                          ///< situation.
+            program_exit  ///< We are in the process of exiting the program (either after `main()`
+                          ///< or through `exit()` call).
+        };
+
         // clang-format off
         /** Requirements for types which provides log handling implementations.
 
@@ -251,12 +267,16 @@ namespace mamba
 
                 This operation must be thread-safe. REVIEW: is this necessary?
 
+                @param stop_reason Reason why this function was called, mainly used to inform the implementation about
+                                   the ongoing context while stoping the logging system.
+                                   @see `mamba::logging::stop_logging` for details.
+
                 @see `mamba::logging::set_log_handler`
                 @see `mamba::logging::stop_logging`
                 @see `mamba::logging::AnyLogHandler::~AnyLogHandler`
                 @see `mamba::logging::AnyLogHandler::stop_log_handling`
              */
-            handler.stop_log_handling();
+            handler.stop_log_handling(stop_reason::manual_stop);
 
 
             /** While registered in it, called by the logging system when it's current logging system log level changed.
@@ -559,7 +579,7 @@ namespace mamba
             */
             ///@{
             auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
-            auto stop_log_handling() -> void;
+            auto stop_log_handling(stop_reason reason = stop_reason::manual_stop) -> void;
             auto set_log_level(log_level new_level) -> void;
             auto set_params(LoggingParams new_params) -> void;
             auto log(LogRecord record) -> void;
@@ -609,9 +629,17 @@ namespace mamba
 
             This call is NOT thread-safe.
 
+            @param reason The reason why this function has been called. This is to inform the
+                          implementation about the context of the stop. The implementation could
+                          decide to do something different if it could be re-used or when we know it
+                          is the end of the program. Implementations which relies on libraries
+                          having global objects will probably need to do nothing and expect the
+                          library to handle program exit adequately (spdlog is a good example
+                          of that case).
+
             @returns The registered log handler if any.
         */
-        auto stop_logging() -> AnyLogHandler;
+        auto stop_logging(stop_reason reason = stop_reason::manual_stop) -> AnyLogHandler;
 
         /** Registers a log handler to use in the logging system, or no log handler.
 
@@ -877,12 +905,6 @@ namespace mamba::logging
 {
     // NOTE: the following definitions are inline for performance reasons.
 
-    // not thread-safe
-    inline auto stop_logging() -> AnyLogHandler
-    {
-        return set_log_handler({});
-    }
-
     // TODO: find a better name?
     template <typename Func, typename... Args>
         requires std::invocable<Func, AnyLogHandler&, Args...>
@@ -944,7 +966,7 @@ namespace mamba::logging
         virtual ~Interface() = default;
 
         virtual void start_log_handling(LoggingParams params, std::vector<log_source> sources) = 0;
-        virtual void stop_log_handling() = 0;
+        virtual void stop_log_handling(stop_reason reason) = 0;
         virtual void set_log_level(log_level new_level) = 0;
         virtual void set_params(LoggingParams new_params) = 0;
         virtual void log(LogRecord record) = 0;
@@ -984,9 +1006,9 @@ namespace mamba::logging
             as_ref(object).start_log_handling(std::move(params), std::move(sources));
         }
 
-        void stop_log_handling() override
+        void stop_log_handling(stop_reason reason) override
         {
-            as_ref(object).stop_log_handling();
+            as_ref(object).stop_log_handling(reason);
         }
 
         void set_log_level(log_level new_level) override
@@ -1088,10 +1110,10 @@ namespace mamba::logging
         m_storage->start_log_handling(std::move(params), std::move(sources));
     }
 
-    inline auto AnyLogHandler::stop_log_handling() -> void
+    inline auto AnyLogHandler::stop_log_handling(stop_reason reason) -> void
     {
         assert(m_storage);
-        m_storage->stop_log_handling();
+        m_storage->stop_log_handling(reason);
     }
 
     inline auto AnyLogHandler::set_log_level(log_level new_level) -> void

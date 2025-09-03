@@ -89,8 +89,11 @@ namespace mamba::logging
     namespace
     {
 
-        auto change_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params, stop_reason reason)
-            -> AnyLogHandler
+        auto change_log_handler(
+            AnyLogHandler new_handler,
+            std::optional<LoggingParams> maybe_new_params,
+            stop_reason reason
+        ) -> AnyLogHandler
         {
             if (details::current_log_handler)
             {
@@ -119,7 +122,11 @@ namespace mamba::logging
     auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params)
         -> AnyLogHandler
     {
-        return change_log_handler(std::move(new_handler), std::move(maybe_new_params), stop_reason::manual_stop);
+        return change_log_handler(
+            std::move(new_handler),
+            std::move(maybe_new_params),
+            stop_reason::manual_stop
+        );
     }
 
     auto get_log_handler() -> AnyLogHandler&

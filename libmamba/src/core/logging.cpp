@@ -67,7 +67,9 @@ namespace mamba::logging
 
             // clang-format off
             std::call_once(flag, [&]{
-                safe_invoke([this] { this->stop_log_handling(); })
+                // We dont want to propagate the error if any, just log it and continue;
+                // we dont need the resulting value if any.
+                [[maybe_unused]] auto result = safe_invoke([this] { this->stop_log_handling(); })
                     .map_error([](const mamba_error& error){
                             // Here with report the error in the standard output to avoid any logging
                             // implementation.

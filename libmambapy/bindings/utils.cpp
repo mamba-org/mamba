@@ -57,37 +57,41 @@ namespace mambapy
     {
         namespace py = pybind11;
 
-        py::enum_<fmt::emphasis>(m, "TextEmphasis")
-            .value("Bold", fmt::emphasis::bold)
-            .value("Faint", fmt::emphasis::faint)
-            .value("Italic", fmt::emphasis::italic)
-            .value("Underline", fmt::emphasis::underline)
-            .value("Blink", fmt::emphasis::blink)
-            .value("Reverse", fmt::emphasis::reverse)
-            .value("Conceal", fmt::emphasis::conceal)
-            .value("Strikethrough", fmt::emphasis::strikethrough)
-            .def(py::init(&enum_from_str<fmt::emphasis>));
-        py::implicitly_convertible<py::str, fmt::emphasis>();
+        make_str_enum(
+            py::enum_<fmt::emphasis>(m, "TextEmphasis"),
+            std::array{
+                std::pair{ "Bold", fmt::emphasis::bold },
+                std::pair{ "Faint", fmt::emphasis::faint },
+                std::pair{ "Italic", fmt::emphasis::italic },
+                std::pair{ "Underline", fmt::emphasis::underline },
+                std::pair{ "Blink", fmt::emphasis::blink },
+                std::pair{ "Reverse", fmt::emphasis::reverse },
+                std::pair{ "Conceal", fmt::emphasis::conceal },
+                std::pair{ "Strikethrough", fmt::emphasis::strikethrough },
+            }
+        );
 
-        py::enum_<fmt::terminal_color>(m, "TextTerminalColor")
-            .value("Black", fmt::terminal_color::black)
-            .value("Red", fmt::terminal_color::red)
-            .value("Green", fmt::terminal_color::green)
-            .value("Yellow", fmt::terminal_color::yellow)
-            .value("Blue", fmt::terminal_color::blue)
-            .value("Magenta", fmt::terminal_color::magenta)
-            .value("Cyan", fmt::terminal_color::cyan)
-            .value("White", fmt::terminal_color::white)
-            .value("BrightBlack", fmt::terminal_color::bright_black)
-            .value("BrightRed", fmt::terminal_color::bright_red)
-            .value("BrightGreen", fmt::terminal_color::bright_green)
-            .value("BrightYellow", fmt::terminal_color::bright_yellow)
-            .value("BrightBlue", fmt::terminal_color::bright_blue)
-            .value("BrightMagenta", fmt::terminal_color::bright_magenta)
-            .value("BrightCyan", fmt::terminal_color::bright_cyan)
-            .value("BrightWhite", fmt::terminal_color::bright_white)
-            .def(py::init(&enum_from_str<fmt::terminal_color>));
-        py::implicitly_convertible<py::str, fmt::terminal_color>();
+        make_str_enum(
+            py::enum_<fmt::terminal_color>(m, "TextTerminalColor"),
+            std::array{
+                std::pair{ "Black", fmt::terminal_color::black },
+                std::pair{ "Red", fmt::terminal_color::red },
+                std::pair{ "Green", fmt::terminal_color::green },
+                std::pair{ "Yellow", fmt::terminal_color::yellow },
+                std::pair{ "Blue", fmt::terminal_color::blue },
+                std::pair{ "Magenta", fmt::terminal_color::magenta },
+                std::pair{ "Cyan", fmt::terminal_color::cyan },
+                std::pair{ "White", fmt::terminal_color::white },
+                std::pair{ "BrightBlack", fmt::terminal_color::bright_black },
+                std::pair{ "BrightRed", fmt::terminal_color::bright_red },
+                std::pair{ "BrightGreen", fmt::terminal_color::bright_green },
+                std::pair{ "BrightYellow", fmt::terminal_color::bright_yellow },
+                std::pair{ "BrightBlue", fmt::terminal_color::bright_blue },
+                std::pair{ "BrightMagenta", fmt::terminal_color::bright_magenta },
+                std::pair{ "BrightCyan", fmt::terminal_color::bright_cyan },
+                std::pair{ "BrightWhite", fmt::terminal_color::bright_white },
+            }
+        );
 
         py::class_<fmt::rgb>(m, "TextRGBColor")
             .def(py::init())

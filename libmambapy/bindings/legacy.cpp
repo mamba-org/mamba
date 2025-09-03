@@ -386,11 +386,11 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("SOLVER_SETNAME") = global_solver_job_v2_migrator;
     m.attr("SOLVER_SETMASK") = global_solver_job_v2_migrator;
 
-    enum struct SolverRuleinfoV2Migrator
+    struct SolverRuleinfoV2Migrator
     {
     };
 
-    py::enum_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
+    py::class_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
         .def(py::init(
             [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator
             {
@@ -398,11 +398,11 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ));
 
-    enum struct SolverV2Migrator
+    struct SolverV2Migrator
     {
     };
 
-    py::enum_<SolverV2Migrator>(m, "Solver")
+    py::class_<SolverV2Migrator>(m, "Solver")
         .def(py::init(
             [](py::args, py::kwargs) -> SolverV2Migrator
             {
@@ -1484,22 +1484,26 @@ bind_submodule_impl(pybind11::module_ m)
 
     ////////////////////////////////////////////
 
-    py::enum_<QueryType>(m, "QueryType")
-        .value("Search", QueryType::Search)
-        .value("Depends", QueryType::Depends)
-        .value("WhoNeeds", QueryType::WhoNeeds)
-        .def(py::init(&mambapy::enum_from_str<QueryType>))
+    mambapy::make_str_enum(
+        py::enum_<QueryType>(m, "QueryType"),
+        std::array{
+            std::pair{ "Search", QueryType::Search },
+            std::pair{ "Depends", QueryType::Depends },
+            std::pair{ "WhoNeeds", QueryType::WhoNeeds },
+        }
+    )
         .def_static("parse", &query_type_parse);
-    py::implicitly_convertible<py::str, QueryType>();
 
-    py::enum_<QueryResultFormat>(m, "QueryResultFormat")
-        .value("Json", QueryResultFormat::Json)
-        .value("Tree", QueryResultFormat::Tree)
-        .value("Table", QueryResultFormat::Table)
-        .value("Pretty", QueryResultFormat::Pretty)
-        .value("RecursiveTable", QueryResultFormat::RecursiveTable)
-        .def(py::init(&mambapy::enum_from_str<QueryResultFormat>));
-    py::implicitly_convertible<py::str, QueryType>();
+    mambapy::make_str_enum(
+        py::enum_<QueryResultFormat>(m, "QueryResultFormat"),
+        std::array{
+            std::pair{ "Json", QueryResultFormat::Json },
+            std::pair{ "Tree", QueryResultFormat::Tree },
+            std::pair{ "Table", QueryResultFormat::Table },
+            std::pair{ "Pretty", QueryResultFormat::Pretty },
+            std::pair{ "RecursiveTable", QueryResultFormat::RecursiveTable },
+        }
+    );
 
     py::class_<QueryResult>(m, "QueryResult")
         .def_property_readonly("type", &QueryResult::type)

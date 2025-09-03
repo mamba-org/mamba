@@ -69,7 +69,7 @@ namespace mamba::logging
             std::call_once(flag, [&]{
                 // We dont want to propagate the error if any, just log it and continue;
                 // we dont need the resulting value if any.
-                [[maybe_unused]] auto result = safe_invoke([this] { this->stop_log_handling(); })
+                [[maybe_unused]] auto result = safe_invoke([this] { this->stop_log_handling(stop_reason::program_exit); })
                     .map_error([](const mamba_error& error){
                             // Here with report the error in the standard output to avoid any logging
                             // implementation.
@@ -86,24 +86,40 @@ namespace mamba::logging
         }
     }
 
+    namespace
+    {
+
+        auto change_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params, stop_reason reason)
+            -> AnyLogHandler
+        {
+            if (details::current_log_handler)
+            {
+                details::current_log_handler.stop_log_handling(reason);
+            }
+
+            auto previous_handler = std::exchange(details::current_log_handler, std::move(new_handler));
+
+            auto params = synchronize_with_value(details::logging_params, maybe_new_params);
+
+            if (details::current_log_handler)
+            {
+                details::current_log_handler.start_log_handling(*params, all_log_sources());
+            }
+
+            return previous_handler;
+        }
+
+    }
+
+    auto stop_logging(stop_reason reason) -> AnyLogHandler
+    {
+        return change_log_handler({}, {}, reason);
+    }
+
     auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params)
         -> AnyLogHandler
     {
-        if (details::current_log_handler)
-        {
-            details::current_log_handler.stop_log_handling();
-        }
-
-        auto previous_handler = std::exchange(details::current_log_handler, std::move(new_handler));
-
-        auto params = synchronize_with_value(details::logging_params, maybe_new_params);
-
-        if (details::current_log_handler)
-        {
-            details::current_log_handler.start_log_handling(*params, all_log_sources());
-        }
-
-        return previous_handler;
+        return change_log_handler(std::move(new_handler), std::move(maybe_new_params), stop_reason::manual_stop);
     }
 
     auto get_log_handler() -> AnyLogHandler&

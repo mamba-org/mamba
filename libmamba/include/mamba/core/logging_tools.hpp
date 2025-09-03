@@ -173,7 +173,7 @@ namespace mamba::logging
         // LogHandler API
 
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
-        auto stop_log_handling() -> void;
+        auto stop_log_handling(stop_reason reason) -> void;
 
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
@@ -229,7 +229,7 @@ namespace mamba::logging
         // LogHandler API
 
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
-        auto stop_log_handling() -> void;
+        auto stop_log_handling(stop_reason reason) -> void;
 
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
@@ -283,7 +283,7 @@ namespace mamba::logging
         pimpl->data.unsafe_get().backtrace.set_max_trace(params.log_backtrace);
     }
 
-    inline auto LogHandler_History::stop_log_handling() -> void
+    inline auto LogHandler_History::stop_log_handling(stop_reason) -> void
     {
         pimpl.reset();
     }
@@ -405,7 +405,7 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(params.log_backtrace);
     }
 
-    inline auto LogHandler_StdOut::stop_log_handling() -> void
+    inline auto LogHandler_StdOut::stop_log_handling(stop_reason) -> void
     {
         assert(out);
         assert(pimpl);

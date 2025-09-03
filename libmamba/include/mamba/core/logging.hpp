@@ -217,15 +217,14 @@ namespace mamba
             The implementation must be at least move-enabled.
          */
         template <typename T>
-        concept LogHandler = std::movable<T>
-                             and requires(
-                                 T& handler,
-                                 const T& const_handler,
-                                 LoggingParams params,
-                                 std::vector<log_source> sources, // no value means all sources
-                                 LogRecord log_record,
-                                 std::optional<log_source> source
-                             )
+        concept LogHandler = requires(
+                                T& handler,
+                                const T& const_handler,
+                                LoggingParams params,
+                                std::vector<log_source> sources,
+                                LogRecord log_record,
+                                std::optional<log_source> source // no value means all sources
+                            )
         {
             /// REQUIREMENT: All the following operations must be thread-safe.
 
@@ -423,12 +422,17 @@ namespace mamba
         };
         // clang-format on
 
-        // FIXME: DO NOT REQUIRE THE POINTER TO LOGHANDLER TO HAVE BE MOVABLE!!!
+        /** Matches `LogHandler` types which are also move-enabled.
+            @see `mamba::logging::LogHandler`
+        */
+        template <typename T>
+        concept LogHandler_Moveable = LogHandler<T> and std::movable<T>;
+
         /** Matches either a type of a log handler implementation satisfying the requirements of
             `mamba::logging::LogHandler`, or a pointer to such type.
         */
         template <typename T>
-        concept LogHandlerOrPtr = LogHandler<T>
+        concept LogHandlerOrPtr = LogHandler_Moveable<T>
                                   or (std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>);
 
         /** Stores or refers to a log handler implementation object which must satisfy the
@@ -483,14 +487,14 @@ namespace mamba
                 post-conditions:
                     - `has_value() == true`
 
-                @param handler An instance of a log handler type satisfying
+                @param handler An moveable instance of a log handler type satisfying
                                `mamba::logging::LogHandler` requirements.
 
                 @see `mamba::logging::LogHandler`
             */
             template <class T>
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
-                        and LogHandler<T>  //
+                        and LogHandler_Moveable<T>  //
             AnyLogHandler(T&& handler);
 
             /** Construction by storing the provided pointer to a log handler implementation.
@@ -528,14 +532,14 @@ namespace mamba
                 post-conditions:
                     - `has_value() == true`
 
-                @param new_handler An instance of a log handler type satisfying
+                @param new_handler An moveable instance of a log handler type satisfying
                                    `mamba::logging::LogHandler` requirements.
 
                 @see `mamba::logging::LogHandler`
             */
             template <class T>
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
-                        and LogHandler<T>  //
+                        and LogHandler_Moveable<T>  //
             AnyLogHandler& operator=(T&& new_handler);
 
             /** Stores the provided pointer to a log handler implementation.
@@ -1058,7 +1062,7 @@ namespace mamba::logging
     };
 
     template <class T>
-        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler<T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler_Moveable<T>
     AnyLogHandler::AnyLogHandler(T&& handler)
         : m_storage(std::make_unique<Wrapper<T>>(std::forward<T>(handler)))
     {
@@ -1073,7 +1077,7 @@ namespace mamba::logging
     }
 
     template <class T>
-        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler<T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandler_Moveable<T>
     AnyLogHandler& AnyLogHandler::operator=(T&& new_handler)
     {
         if (m_storage and typeid(T) == m_storage->type_id())

@@ -95,10 +95,24 @@ namespace mamba::logging::spdlogimpl
         spdlog::set_level(to_spdlog(params.logging_level));
     }
 
-    auto LogHandler_spdlog::stop_log_handling() -> void
+    auto LogHandler_spdlog::stop_log_handling(stop_reason reason) -> void
     {
         tasksync->join_tasks();
-        // spdlog::shutdown();
+
+        // BEWARE:
+        // When exiting the program, we need to let spdlog handle that
+        // gracefully by itself.
+        // spdlog should flush and properly cleanup, but here we cannot
+        // guarantee if spdlog has been shutdown or not already, which
+        // can lead to crashes if we try to do anything with spdlog
+        // after it has been shutdown.
+        // Instead we do nothing when we are exiting the program,
+        // otherwise we need to flush and unregister loggers.
+        if(reason != stop_reason::program_exit)
+        {
+            spdlog::default_logger()->flush();
+            spdlog::drop_all();
+        }
     }
 
     auto LogHandler_spdlog::set_log_level(log_level new_level) -> void

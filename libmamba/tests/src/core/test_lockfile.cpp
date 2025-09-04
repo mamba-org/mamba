@@ -11,10 +11,10 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
-
-#include "spdlog/spdlog.h"
 
 #ifdef _WIN32
 #include <io.h>
@@ -46,13 +46,13 @@ namespace mamba
                 p_tempdir = std::make_unique<TemporaryDirectory>();
                 tempdir_path = p_tempdir->path();
 
-                spdlog::set_level(spdlog::level::trace);
+                logging::set_log_level(log_level::trace);
             }
 
             ~LockDirTest()
             {
                 mamba::allow_file_locking(true);
-                spdlog::set_level(spdlog::level::info);
+                logging::set_log_level(log_level::info);
             }
         };
 
@@ -205,12 +205,12 @@ namespace mamba
                 p_tempfile = std::make_unique<TemporaryFile>();
                 tempfile_path = p_tempfile->path();
 
-                spdlog::set_level(spdlog::level::trace);
+                logging::set_log_level(log_level::trace);
             }
 
             ~LockFileTest()
             {
-                spdlog::set_level(spdlog::level::info);
+                logging::set_log_level(log_level::info);
             }
         };
 

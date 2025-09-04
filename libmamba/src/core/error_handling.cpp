@@ -1,6 +1,5 @@
 #include "mamba/core/error_handling.hpp"
-
-#include "spdlog/spdlog.h"
+#include "mamba/core/logging.hpp"
 
 namespace mamba
 {
@@ -10,7 +9,7 @@ namespace mamba
         {
             if (ec == mamba_error_code::internal_failure)
             {
-                spdlog::dump_backtrace();
+                logging::log_backtrace();
             }
         }
 

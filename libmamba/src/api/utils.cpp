@@ -14,6 +14,7 @@
 // TODO includes to be removed after moving some functions/structs around
 #include "mamba/api/install.hpp"  // other_pkg_mgr_spec
 #include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/environment.hpp"

@@ -28,9 +28,6 @@ def simple_short_program():
 
 
 class TestRun:
-    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
-
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
     def test_fail_without_command(self, option_flag, make_label_flags):
@@ -100,22 +97,17 @@ class TestRun:
 
 
 @pytest.fixture()
-def temp_env_prefix():
-    previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    previous_prefix = os.environ["CONDA_PREFIX"]
-
+def temp_env_prefix(monkeypatch):
     env_name = random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
-    os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
+    monkeypatch.setenv("MAMBA_ROOT_PREFIX", root_prefix)
     create("-p", prefix, "python")
 
     yield prefix
 
     shutil.rmtree(prefix)
-    os.environ["MAMBA_ROOT_PREFIX"] = previous_root_prefix
-    os.environ["CONDA_PREFIX"] = previous_prefix
 
 
 class TestRunVenv:

@@ -1,3 +1,13 @@
+## libmamba 2.3.3.alpha0 (September 04, 2025)
+
+Bug fixes:
+
+- Fix nodiscard errors by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4058>
+
+Maintenance:
+
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
 ## libmamba 2.3.2 (August 26, 2025)
 
 Enhancements:

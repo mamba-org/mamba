@@ -24,6 +24,7 @@ namespace mamba::logging::spdlogimpl
 
 
     // THINK: add namespace?
+    /// @returns The provided `log_level` value converted to the equivalent value for `spdlog`.
     inline constexpr auto to_spdlog(log_level level) -> spdlog::level::level_enum
     {
         static_assert(sizeof(log_level) == sizeof(spdlog::level::level_enum));
@@ -33,6 +34,15 @@ namespace mamba::logging::spdlogimpl
         return static_cast<spdlog::level::level_enum>(level);
     }
 
+    /** `LogHandler` implementation using `spdlog` library.
+
+        Essentially translates the calls to the interface specified by `mamba::logging::LogHandler`
+        into calls to `spdlog`'s API.
+        This implementation doesn't keep data, every logger implementation is owned by
+        the `spdlog` library.
+
+        @see `mamba::logging::LogHandler`
+    */
     class LogHandler_spdlog
     {
     public:

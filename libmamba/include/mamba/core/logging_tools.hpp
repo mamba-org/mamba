@@ -33,6 +33,14 @@ namespace mamba::logging
             }
         }
 
+        /** Backtrace feature implementation in it's most basic form.
+
+            This is the simplest implementation for a backtrace feature
+            as described by @see `mamba::logging::enable_backtrace`.
+
+            Mainly used in `mamba::logging::LogHandler` basic implementations.
+
+        */
         class BasicBacktrace
         {
             std::deque<LogRecord> backtrace;
@@ -154,6 +162,8 @@ namespace mamba::logging
         Can hold any number of records or just the specified number of last records.
         BEWARE: If not the max number of records is not specified, memory will be consumed at each
         new log record until cleared.
+
+        All operations are thread-safe except move operations.
     */
     class LogHandler_History  // THINK: better name
     {
@@ -163,6 +173,7 @@ namespace mamba::logging
         ///
         LogHandler_History(size_t max_records_count = 0);
 
+        // Only allow moves, not thread-safe.
 
         LogHandler_History(const LogHandler_History& other) = delete;
         LogHandler_History& operator=(const LogHandler_History& other) = delete;
@@ -170,7 +181,7 @@ namespace mamba::logging
         LogHandler_History(LogHandler_History&& other) noexcept = default;
         LogHandler_History& operator=(LogHandler_History&& other) noexcept = default;
 
-        // LogHandler API
+        // LogHandler API - thread-safe
 
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
         auto stop_log_handling(stop_reason reason) -> void;
@@ -189,8 +200,21 @@ namespace mamba::logging
 
         auto set_flush_threshold(log_level threshold_level) -> void;
 
-        // History api
+        ////////////////////////////////////////////
+        // History api - thread-safe
+
+        /** @returns A copy of the current log record history.
+                     The value should be considered immediately obsolete
+                     as new log records could be pushed concurrently.
+        */
         auto capture_history() const -> std::vector<LogRecord>;
+
+        /** Clears the internal history.
+        *
+            post-condition:
+                As long as no non-const operations started (maybe concurrently),
+                `capture_history().empty() == true`.
+        */
         auto clear_history();
 
     private:

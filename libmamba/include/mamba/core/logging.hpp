@@ -1129,7 +1129,7 @@ namespace mamba::logging
     inline auto AnyLogHandler::set_params(LoggingParams new_params) -> void
     {
         assert(m_storage);
-        m_storage->set_params(new_params);
+        m_storage->set_params(std::move(new_params));
     }
 
     inline auto AnyLogHandler::log(LogRecord record) -> void

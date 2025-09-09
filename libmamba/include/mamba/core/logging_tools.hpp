@@ -160,7 +160,7 @@ namespace mamba::logging
 
     /** `LogHandler` that retains `LogRecord`s in order of being logged.
         Can hold any number of records or just the specified number of last records.
-        BEWARE: If not the max number of records is not specified, memory will be consumed at each
+        BEWARE: If the max number of records is not specified, memory will be consumed at each
         new log record until cleared.
 
         All operations are thread-safe except move operations.

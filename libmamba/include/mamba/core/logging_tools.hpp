@@ -48,11 +48,19 @@ namespace mamba::logging
 
         public:
 
+            /// @returns `true` if the backtrace feature is enabled, `false` otherwise.
             auto is_enabled() const
             {
                 return backtrace_max > 0;
             }
 
+            /** If the backtrace feature is enabled, moves the log record into the backtrace
+                history and returns `true`. Otherwise do nothing and returns `false`.
+
+                The log record is taken by reference to allow taking ownership of it through
+                a move, but also not taking ownership and not forcing a copy if we actually
+                don't need it.
+            */
             auto push_if_enabled(LogRecord& record) -> bool
             {
                 if (not is_enabled())
@@ -65,6 +73,10 @@ namespace mamba::logging
                 return true;
             }
 
+            /** Changes the number of log records kept in the backtrace history.
+
+                If set to zero, the feature is disabled.
+            */
             auto set_max_trace(size_t max_trace_size) -> void
             {
                 backtrace_max = max_trace_size;

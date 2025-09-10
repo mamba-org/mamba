@@ -103,8 +103,7 @@ namespace mamba
         This is mainly useful for debugging issues coming from
         dependencies that have logging callbacks.
     */
-    enum class log_source  // THINK: "source" isn't the best way to put it, maybe channel?
-                           // component? sink?
+    enum class log_source
     {
         libmamba,  // default
         libcurl,
@@ -116,21 +115,10 @@ namespace mamba
     /// @returns The name of the specified log source as an UTF-8 null-terminated string.
     inline constexpr auto name_of(log_source source) noexcept -> const char*
     {
-        switch (source)
-        {
-            case log_source::libmamba:
-                return "libmamba";
-            case log_source::libcurl:
-                return "libcurl";
-            case log_source::libsolv:
-                return "libsolv";
-            case log_source::tests:
-                return "tests";
-        }
+        constexpr std::array names{ "libmamba", "libcurl", "libsolv", "tests" };
 
-        // TODO(c++23): std::unreachable();
-        assert(false);
-        return "unknown";
+        assert(level < sizeof(names));
+        return names.at(static_cast<size_t>(source));
     }
 
     /// @returns All `log_source` values as a range.
@@ -143,7 +131,7 @@ namespace mamba
 
     namespace logging
     {
-        // FIXME: this is a placeholder, replace it by the real thing once available.
+        // TODO: this is a placeholder, replace it by the real thing once available.
         // The intent is to have a type doing SBO when possible, but act as unique_ptr otherwise.
         // Might require allowing to use shared_ptr too, or some kind of value_ptr.
         template <typename Interface, std::size_t local_storage_size = sizeof(std::shared_ptr<Interface>)>
@@ -184,10 +172,6 @@ namespace mamba
             auto operator==(const LogRecord& other) const noexcept -> bool = default;
         };
 
-        // TODO REVIEW: it might make more sense to talk about sinks than sources when it comes to
-        // the implementation
-
-
         /** Reason why we are stopping the logging system.
             This is mainly used to inform implementations as to why
             `stop_logging` is being called. Depending on the situation an implementation
@@ -219,7 +203,6 @@ namespace mamba
         template <typename T>
         concept LogHandler = requires(
                                 T& handler,
-                                const T& const_handler,
                                 LoggingParams params,
                                 std::vector<log_source> sources,
                                 LogRecord log_record,
@@ -240,7 +223,7 @@ namespace mamba
                 After this operation ends, all other specified operations might be called
                 concurrently.
 
-                This operation must be thread-safe. REVIEW: is this necessary?
+                This operation must be thread-safe.
 
                 @see `mamba::logging::set_log_handler`
                 @see `mamba::logging::AnyLogHandler::start_log_handling`
@@ -250,21 +233,21 @@ namespace mamba
                                mostly used in implementations that need to setup separate log sinks depending
                                on the source.
             */
-            handler.start_log_handling(params, sources); // TODO: REVIEW consider not providing `sources` as it is always `all_sources()`?
+            handler.start_log_handling(params, sources);
 
             /** When this log handler was registered in the logging system and later
                 another implementation object is registered to replace it or while stopping the logging system,
                 this operation will be called once after unregistering the object from the logging system.
 
-                It could also be called once while the program exits without calling `mmamba::logging::stop_logging`, for example when `::exit(0);` is called.
+                It could also be called once while the program exits without calling `mamba::logging::stop_logging`, for example when `::exit(0);` is called.
                 Naturally this will always be called before the implementation's destructor.
 
                 The intent is to allow the implementation to cleanup or release resources that wont be necessary anymore after this call,
-                but dont destroy the object at this point.
+                but not destroy the object at this point.
 
                 No other specified operations will be used by the logging system after this one.
 
-                This operation must be thread-safe. REVIEW: is this necessary?
+                This operation must be thread-safe.
 
                 @param stop_reason Reason why this function was called, mainly used to inform the implementation about
                                    the ongoing context while stopping the logging system.
@@ -300,7 +283,7 @@ namespace mamba
                 @see `mamba::logging::set_logging_params`
                 @see `mamba::logging::AnyLogHandler::set_params`
             */
-            handler.set_params(std::as_const(params));
+            handler.set_params(params);
 
             /** While registered in it, called by the logging system to process a log record.
 
@@ -312,7 +295,7 @@ namespace mamba
                 The implementation is free to flush or not it's internal sinks when the provided log
                 records has a lower logging level than the current flush threshold.
                 However if the log record has a level greater or equal than the current flush threshold,
-                the implementation musth flush the sink related to the log record's source.
+                the implementation must flush the sink related to the log record's source.
 
                 This operation must be thread-safe.
 
@@ -467,8 +450,7 @@ namespace mamba
 
                 @see `mamba::logging::LogHandler`
             */
-            constexpr AnyLogHandler() noexcept = default;  // THINK: should this be moved in the
-                                                           // cpp? Doesnt seem necessary.
+            constexpr AnyLogHandler() noexcept = default;
 
             /** Destructor calling `stop_log_handling()` if this is the log handler
                 currently registered in the logging system and `has_value() == true`.
@@ -909,7 +891,6 @@ namespace mamba::logging
 {
     // NOTE: the following definitions are inline for performance reasons.
 
-    // TODO: find a better name?
     template <typename Func, typename... Args>
         requires std::invocable<Func, AnyLogHandler&, Args...>
     auto call_log_handler_if_existing(Func&& func, Args&&... args) -> void

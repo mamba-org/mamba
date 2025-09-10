@@ -112,13 +112,18 @@ namespace mamba
         tests,  // only used for testing
     };
 
+    inline constexpr auto operator<=>(log_source left, std::size_t right) noexcept
+    {
+        return static_cast<std::size_t>(left) <=> right;
+    }
+
     /// @returns The name of the specified log source as an UTF-8 null-terminated string.
     inline constexpr auto name_of(log_source source) noexcept -> const char*
     {
         constexpr std::array names{ "libmamba", "libcurl", "libsolv", "tests" };
 
-        assert(level < sizeof(names));
-        return names.at(static_cast<size_t>(source));
+        assert(source < sizeof(names));
+        return names.at(static_cast<std::size_t>(source));
     }
 
     /// @returns All `log_source` values as a range.

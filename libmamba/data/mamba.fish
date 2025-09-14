@@ -54,6 +54,7 @@ if not set -q MAMBA_NO_PROMPT
 end
 
 
+function __fish_mamba_wrapper --inherit-variable MAMBA_EXE
   if test (count $argv) -lt 1 || contains -- --help $argv
     $MAMBA_EXE $argv
   else

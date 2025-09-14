@@ -54,7 +54,6 @@ if not set -q MAMBA_NO_PROMPT
 end
 
 
-function micromamba --inherit-variable MAMBA_EXE
   if test (count $argv) -lt 1 || contains -- --help $argv
     $MAMBA_EXE $argv
   else
@@ -72,7 +71,13 @@ function micromamba --inherit-variable MAMBA_EXE
   end
 end
 
+function mamba --inherit-variable MAMBA_EXE
+  __fish_mamba_wrapper
+end
 
+function micromamba --inherit-variable MAMBA_EXE
+  __fish_mamba_wrapper
+end
 
 # Autocompletions below
 

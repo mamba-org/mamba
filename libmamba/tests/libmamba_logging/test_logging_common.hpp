@@ -32,14 +32,16 @@ namespace mamba::logging::testing
         while (tasks_left_to_launch > 0)
         {
             const std::size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
-            producers[thread_idx] = std::thread{ [=]
-                                                 {
-                                                     for (std::size_t i = 0; i < tasks_to_generate;
-                                                          ++i)
-                                                     {
-                                                         work(args...);
-                                                     }
-                                                 } };
+            producers[thread_idx] = std::thread{
+                [=]{
+                    for (std::size_t i = 0; i < tasks_to_generate;
+                        ++i)
+                    {
+                        work(args...);
+                        std::this_thread::yield();
+                    }
+                }
+            };
             tasks_left_to_launch -= tasks_to_generate;
             ++thread_idx;
             assert(thread_idx < producers.size());

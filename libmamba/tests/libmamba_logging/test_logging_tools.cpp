@@ -20,7 +20,7 @@
 // - test details functions?
 // - at least movable and keep state correct
 // - test all logging operations
-// - test additional functionalities specific to
+// - test additional functionalities specific to log handler type
 // - stress test when logging (and other functions?) from multiple threads
 //
 

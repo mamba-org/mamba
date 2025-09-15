@@ -64,6 +64,13 @@ namespace mamba::logging
 
             std::unique_ptr<Impl> pimpl = std::make_unique<Impl>();
 
+            LogHandler_Tester() = default;
+
+            LogHandler_Tester(LogHandler_Tester&&) noexcept = default;
+            LogHandler_Tester(const LogHandler_Tester&) = default;
+            LogHandler_Tester& operator=(LogHandler_Tester&&) noexcept = default;
+            LogHandler_Tester& operator=(const LogHandler_Tester&) = default;
+
             auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void
             {
                 auto stats = pimpl->stats.synchronize();

@@ -67,9 +67,10 @@ namespace mamba::logging
             LogHandler_Tester() = default;
 
             LogHandler_Tester(LogHandler_Tester&&) noexcept = default;
-            LogHandler_Tester(const LogHandler_Tester&) = default;
             LogHandler_Tester& operator=(LogHandler_Tester&&) noexcept = default;
-            LogHandler_Tester& operator=(const LogHandler_Tester&) = default;
+
+            LogHandler_Tester(const LogHandler_Tester&) = delete;
+            LogHandler_Tester& operator=(const LogHandler_Tester&) = delete;
 
             auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void
             {

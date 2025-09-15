@@ -37,21 +37,21 @@ namespace mamba::logging
         {
             struct Stats
             {
-                size_t start_count = 0;
-                size_t stop_count = 0;
-                size_t log_count = 0;
-                size_t log_level_change_count = 0;
-                size_t params_change_count = 0;
-                size_t backtrace_enabled_count = 0;
-                size_t backtrace_disabled_count = 0;
-                size_t backtrace_log_count = 0;
-                size_t backtrace_log_no_guard_count = 0;
-                size_t flush_all_count = 0;
-                size_t flush_specific_source_count = 0;
-                size_t flush_threshold_change_count = 0;
+                std::size_t start_count = 0;
+                std::size_t stop_count = 0;
+                std::size_t log_count = 0;
+                std::size_t log_level_change_count = 0;
+                std::size_t params_change_count = 0;
+                std::size_t backtrace_enabled_count = 0;
+                std::size_t backtrace_disabled_count = 0;
+                std::size_t backtrace_log_count = 0;
+                std::size_t backtrace_log_no_guard_count = 0;
+                std::size_t flush_all_count = 0;
+                std::size_t flush_specific_source_count = 0;
+                std::size_t flush_threshold_change_count = 0;
 
                 LoggingParams current_params;
-                size_t backtrace_size = 0;
+                std::size_t backtrace_size = 0;
                 log_level flush_threshold = log_level::off;
 
                 auto operator==(const Stats& other) const noexcept -> bool = default;

@@ -48,7 +48,7 @@ namespace mamba::logging
             std::size_t flush_specific_source_count = 0;
             std::size_t flush_threshold_change_count = 0;
 
-            LoggingParams current_params;
+            LoggingParams current_params = {};
             std::size_t backtrace_size = 0;
             log_level flush_threshold = log_level::off;
 

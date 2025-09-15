@@ -97,6 +97,8 @@ namespace mamba
 
         /// Formatting pattern to use in formatted logs.
         std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // FIXME: IS THIS SPECIFIC TO spdlog???
+
+        auto operator==(const LoggingParams& other) const noexcept -> bool = default;
     };
 
     /** Specifies the source a `LogRecord` is originating from.

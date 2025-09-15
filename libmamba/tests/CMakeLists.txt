@@ -171,6 +171,7 @@ add_executable(
     libmamba_logging/test_logging_common.hpp
     libmamba_logging/test_main_logging.cpp
     libmamba_logging/test_logging_tools.cpp
+    libmamba_logging/test_logging_anyloghandler.cpp
 )
 
 target_link_libraries(test_libmamba_logging PRIVATE mamba::libmamba Catch2::Catch2WithMain)

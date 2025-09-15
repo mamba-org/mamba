@@ -38,7 +38,7 @@ namespace mamba::logging
 
     namespace
     {
-        // FIXME: maybe generalize and move in synchronized_value.hpp
+        // TODO: consider generalize and move in synchronized_value.hpp
         template <std::default_initializable T, typename U, typename... OtherArgs>
             requires std::assignable_from<T&, U>
         auto synchronize_with_value(

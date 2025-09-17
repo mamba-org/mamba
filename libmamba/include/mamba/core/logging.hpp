@@ -418,12 +418,14 @@ namespace mamba
         template <typename T>
         concept LogHandler_Moveable = LogHandler<T> and std::movable<T>;
 
+        template <typename T>
+        concept LogHandlerPtr = std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>;
+
         /** Matches either a type of a log handler implementation satisfying the requirements of
             `mamba::logging::LogHandler`, or a pointer to such type.
         */
         template <typename T>
-        concept LogHandlerOrPtr = LogHandler_Moveable<T>
-                                  or (std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>);
+        concept LogHandlerOrPtr = LogHandler_Moveable<T> or LogHandlerPtr<T>;
 
         /** Stores or refers to a log handler implementation object which must satisfy the
             requirements from `mamba::logging::LogHandler`.
@@ -597,6 +599,50 @@ namespace mamba
             /// @returns An identifier for the stored object's type, or `std::nullopt` if there is
             ///          no stored object (`has_value() == false`).
             auto type_id() const noexcept -> std::optional<std::type_index>;
+
+            /** Unsafe access to log handler implementation stored in this object.
+
+                Mainly used for testing and contracts checking.
+
+                This is not thread-safe.
+
+                @tparam X `LogHandler` type that is assumed stored in this object.
+
+                @returns A pointer to the stored `LogHandler`
+                            - if we store an value(`has_value() == true`)
+                            - and `X` matches the stored handler's type (`*type_id() == typeid(X)`),
+                         otherwise return `nullptr`.
+                         If `this` is `const`, the returned pointer is pointing to `const`.
+            */
+            ///@{
+            template <LogHandler X>
+            auto unsafe_get() -> X*;
+
+            template <LogHandler X>
+            auto unsafe_get() const -> const X*;
+            ///@}
+
+            /** Unsafe access to log handler implementation pointer stored in this object.
+
+                Mainly used for testing and contracts checking.
+
+                This is not thread-safe.
+
+                @tparam P Pointer type to a `LogHandler` that is assumed stored in this object.
+
+                @returns The value of the pointer stored
+                           - if there is one (`has_value() == true`)
+                           - and if the pointed handler's type is `P` (`*type_id() == typeid(X)`),
+                         otherwise returns `nullptr`.
+                         If `this` is `const`, the returned pointer is pointing to `const`.
+            */
+            ///@{
+            template <LogHandlerPtr P>
+            auto unsafe_get() -> std::remove_const_t<P>;
+
+            template <LogHandlerPtr P>
+            auto unsafe_get() const -> const std::remove_pointer_t<P>*;
+            ///@}
 
         private:
 
@@ -1166,6 +1212,44 @@ namespace mamba::logging
         return has_value() ? std::make_optional(m_storage->type_id()) : std::nullopt;
     }
 
+    template <LogHandler X>
+    auto AnyLogHandler::unsafe_get() -> X*
+    {
+        auto type = type_id();
+        if (not type or *type != typeid(X))
+        {
+            return nullptr;
+        }
+
+        auto* wrapper = static_cast<AnyLogHandler::Wrapper<X>*>(m_storage.get());
+        return &wrapper->object;
+    }
+
+    template <LogHandler X>
+    auto AnyLogHandler::unsafe_get() const -> const X*
+    {
+        return const_cast<AnyLogHandler*>(this)->unsafe_get<X>();
+    }
+
+    template <LogHandlerPtr P>
+    auto AnyLogHandler::unsafe_get() -> std::remove_const_t<P>
+    {
+        using stored_ptr_type = std::remove_pointer_t<P>*;
+        auto type = type_id();
+        if (not type or *type != typeid(stored_ptr_type))
+        {
+            return nullptr;
+        }
+
+        auto* wrapper = static_cast<AnyLogHandler::Wrapper<stored_ptr_type>*>(m_storage.get());
+        return wrapper->object;
+    }
+
+    template <LogHandlerPtr P>
+    auto AnyLogHandler::unsafe_get() const -> const std::remove_pointer_t<P>*
+    {
+        return const_cast<AnyLogHandler*>(this)->unsafe_get<P>();
+    }
 }
 
 #endif

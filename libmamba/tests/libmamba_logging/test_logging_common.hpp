@@ -58,6 +58,11 @@ namespace mamba::logging::testing
         LogHandler_Tester(const LogHandler_Tester&) = delete;
         LogHandler_Tester& operator=(const LogHandler_Tester&) = delete;
 
+        Stats capture_stats() const
+        {
+            return pimpl->stats.value();
+        }
+
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void
         {
             auto stats = pimpl->stats.synchronize();

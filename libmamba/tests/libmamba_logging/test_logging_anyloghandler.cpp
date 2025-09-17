@@ -47,6 +47,32 @@ namespace mamba::logging
             REQUIRE(not x.type_id().has_value());
         }
 
+
+        SECTION("access to implementation")
+        {
+            SECTION("empty")
+            {
+                AnyLogHandler x;
+                REQUIRE(x.unsafe_get<testing::LogHandler_Tester>() == nullptr);
+                REQUIRE(std::as_const(x).unsafe_get<testing::LogHandler_Tester>() == nullptr);
+            }
+
+            SECTION("with sunk handler")
+            {
+                AnyLogHandler x{ testing::LogHandler_Tester{} };
+                REQUIRE(x.unsafe_get<testing::LogHandler_Tester>() != nullptr);
+                REQUIRE(std::as_const(x).unsafe_get<testing::LogHandler_Tester>() != nullptr);
+            }
+
+            SECTION("with pointer to handler")
+            {
+                testing::LogHandler_NotMovable handler;
+                AnyLogHandler x{ &handler };
+                REQUIRE(x.unsafe_get<testing::LogHandler_NotMovable*>() == &handler);
+                REQUIRE(std::as_const(x).unsafe_get<testing::LogHandler_NotMovable*>() == &handler);
+            }
+        }
+
         SECTION("movable")
         {
             testing::LogHandler_Tester handler;
@@ -59,15 +85,18 @@ namespace mamba::logging
             REQUIRE(static_cast<bool>(x) == true);
             REQUIRE(x.type_id().has_value());
             REQUIRE(x.type_id().value() == typeid(handler));
+            REQUIRE(x.unsafe_get<testing::LogHandler_Tester>()->pimpl.get() == impl_ptr);
 
             AnyLogHandler y = std::move(x);
             REQUIRE(y.has_value());
             REQUIRE(static_cast<bool>(y) == true);
             REQUIRE(y.type_id().has_value());
             REQUIRE(y.type_id().value() == typeid(handler));
+            REQUIRE(y.unsafe_get<testing::LogHandler_Tester>()->pimpl.get() == impl_ptr);
             REQUIRE(not x.has_value());
             REQUIRE(not static_cast<bool>(x) == true);
             REQUIRE(not x.type_id().has_value());
+            REQUIRE(x.unsafe_get<testing::LogHandler_Tester>() == nullptr);
 
             AnyLogHandler z;
             z = std::move(y);
@@ -75,9 +104,11 @@ namespace mamba::logging
             REQUIRE(static_cast<bool>(z) == true);
             REQUIRE(z.type_id().has_value());
             REQUIRE(z.type_id().value() == typeid(handler));
+            REQUIRE(z.unsafe_get<testing::LogHandler_Tester>()->pimpl.get() == impl_ptr);
             REQUIRE(not y.has_value());
             REQUIRE(not static_cast<bool>(y) == true);
             REQUIRE(not y.type_id().has_value());
+            REQUIRE(x.unsafe_get<testing::LogHandler_Tester>() == nullptr);
         }
 
         SECTION("pointer to non-movable LogHandler")
@@ -88,7 +119,9 @@ namespace mamba::logging
             REQUIRE(static_cast<bool>(x) == true);
             REQUIRE(x.type_id().has_value());
             REQUIRE(x.type_id().value() == typeid(&handler));
+            REQUIRE(x.unsafe_get<testing::LogHandler_NotMovable*>() == &handler);
         }
+
     }
 
     TEST_CASE("AnyLogHandler handler ownership")

@@ -201,5 +201,125 @@ namespace mamba::logging
         REQUIRE(out.str() == expected_log);
     }
 
+    TEST_CASE("LogHandler_History basics")
+    {
+        static constexpr LogRecord any_log{ .message = "this is a test", .level = log_level::warn };
+
+        LogHandler_History handler;
+        REQUIRE(not handler.is_started());
+        handler.start_log_handling({}, {});  // must be started to work
+        REQUIRE(handler.is_started());
+
+
+        SECTION("start and stop (manual)")
+        {
+            handler.start_log_handling({}, {});
+            REQUIRE(handler.is_started());
+
+            handler.stop_log_handling(stop_reason::manual_stop);
+            REQUIRE(not handler.is_started());
+        }
+
+        handler.start_log_handling({}, {});
+        REQUIRE(handler.is_started());
+
+        SECTION("history")
+        {
+            REQUIRE(handler.capture_history().empty());
+
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(handler.capture_history() == std::vector<LogRecord>{ any_log });
+
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(handler.capture_history() == std::vector<LogRecord>{ any_log, any_log });
+
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(handler.capture_history() == std::vector<LogRecord>{ any_log, any_log, any_log });
+
+            handler.clear_history();
+            REQUIRE(handler.is_started());
+            REQUIRE(handler.capture_history().empty());
+        }
+
+        SECTION("movable")
+        {
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(handler.capture_history() == std::vector<LogRecord>{ any_log });
+
+            auto other = std::move(handler);
+            REQUIRE(not handler.is_started());
+            REQUIRE(handler.capture_history().empty());
+            REQUIRE(other.is_started());
+            REQUIRE(other.capture_history() == std::vector<LogRecord>{ any_log });
+        }
+    }
+
+    TEST_CASE("LogHandler_StdOut basics")
+    {
+        static constexpr LogRecord any_log{ .message = "this is a test", .level = log_level::warn };
+        static const std::string expected_log_line = []
+        {
+            std::stringstream expected_out;
+            details::log_to_stream(expected_out, any_log);
+            return expected_out.str();
+        }();
+
+        std::stringstream out;
+        LogHandler_StdOut handler{ out };
+        REQUIRE(not handler.is_started());
+        handler.start_log_handling({}, {});  // must be started to work
+        REQUIRE(handler.is_started());
+
+
+        SECTION("start and stop (manual)")
+        {
+            handler.start_log_handling({}, {});
+            REQUIRE(handler.is_started());
+
+            handler.stop_log_handling(stop_reason::manual_stop);
+            REQUIRE(not handler.is_started());
+        }
+
+        handler.start_log_handling({}, {});
+        REQUIRE(handler.is_started());
+
+        SECTION("stream output")
+        {
+            REQUIRE(out.str().empty());
+
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(out.str() == expected_log_line);
+
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(out.str() == expected_log_line + expected_log_line);
+
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(out.str() == expected_log_line + expected_log_line + expected_log_line);
+        }
+
+        SECTION("movable")
+        {
+            out.clear();
+            handler.log(any_log);
+            REQUIRE(handler.is_started());
+            REQUIRE(out.str() == expected_log_line);
+
+            auto other = std::move(handler);
+            REQUIRE(not handler.is_started());
+            REQUIRE(other.is_started());
+
+            other.log(any_log);
+            REQUIRE(not handler.is_started());
+            REQUIRE(other.is_started());
+            REQUIRE(out.str() == expected_log_line + expected_log_line);
+        }
+    }
 
 }

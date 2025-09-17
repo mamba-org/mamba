@@ -181,8 +181,10 @@ namespace mamba::logging
     {
     public:
 
-        /// Constructor specifying the maximum number of log records to keep in history.
-        ///
+        /** Constructor specifying the maximum number of log records to keep in history.
+
+            post-condition: `is_started() == false` until `start_log_handler` is called.
+        */
         LogHandler_History(size_t max_records_count = 0);
 
         // Only allow moves, not thread-safe.
@@ -195,6 +197,21 @@ namespace mamba::logging
 
         // LogHandler API - thread-safe
 
+        /** `LogHandler` API implementation, @see mamba::logging::LogHandler for the expected
+           behavior.
+
+            All these functions are thread-safe except for `start_log_handling` and
+           `stop_log_handling`.
+
+            pre-conditions:
+                - `is_started() == true`, except for `start_log_handling` and `stop_log_handling`
+                  which don't require this pre-condition.
+
+            post-conditions:
+                - after `start_log_handling` call:`is_started() == true`;
+                - after `stop_log_handling` call: `is_started() == true`.
+        */
+        ///@{
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
         auto stop_log_handling(stop_reason reason) -> void;
 
@@ -211,6 +228,7 @@ namespace mamba::logging
         auto flush(std::optional<log_source> source = {}) -> void;
 
         auto set_flush_threshold(log_level threshold_level) -> void;
+        ///@}
 
         ////////////////////////////////////////////
         // History api - thread-safe
@@ -218,16 +236,20 @@ namespace mamba::logging
         /** @returns A copy of the current log record history.
                      The value should be considered immediately obsolete
                      as new log records could be pushed concurrently.
+                     The returned history will be empty if `is_started()` == false.
         */
         auto capture_history() const -> std::vector<LogRecord>;
 
         /** Clears the internal history.
-        *
-            post-condition:
-                As long as no non-const operations started (maybe concurrently),
-                `capture_history().empty() == true`.
+
+            post-condition: `capture_history().empty() == true`.
         */
         auto clear_history();
+
+        /** @returns `true` if `start_log_handling` has been called and since that
+            call `stop_log_handling` has not been called yet, `false` otherwise.
+        */
+        auto is_started() const -> bool;
 
     private:
 
@@ -254,6 +276,14 @@ namespace mamba::logging
     {
     public:
 
+        /** Constructor providing the output stream to write logs into, `std::cout` by default.
+
+            Ownership of the provided output stream is not taken.
+            The lifetime of the provided output stream object must be greater than the lifetime
+            of this object.
+
+            post-condition: `is_started() == false` until `start_log_handler` is called.
+        */
         LogHandler_StdOut(std::ostream& out_ = std::cout);
 
         LogHandler_StdOut(const LogHandler_StdOut& other) = delete;
@@ -262,7 +292,21 @@ namespace mamba::logging
         LogHandler_StdOut(LogHandler_StdOut&& other) noexcept;
         LogHandler_StdOut& operator=(LogHandler_StdOut&& other) noexcept;
 
-        // LogHandler API
+        /** `LogHandler` API implementation, @see mamba::logging::LogHandler for the expected
+           behavior.
+
+            All these functions are thread-safe except for `start_log_handling` and
+           `stop_log_handling`.
+
+            pre-conditions:
+                - `is_started() == true`, except for `start_log_handling` and `stop_log_handling`
+                  which don't require this pre-condition.
+
+            post-conditions:
+                - after `start_log_handling` call:`is_started() == true`;
+                - after `stop_log_handling` call: `is_started() == true`.
+        */
+        ///@{
 
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
         auto stop_log_handling(stop_reason reason) -> void;
@@ -280,9 +324,15 @@ namespace mamba::logging
         auto flush(std::optional<log_source> source = {}) -> void;
 
         auto set_flush_threshold(log_level threshold_level) -> void;
+        ///@}
 
         // Additional functionalities
 
+
+        /** @returns `true` if `start_log_handling` has been called and since that
+            call `stop_log_handling` has not been called yet, `false` otherwise.
+        */
+        auto is_started() const -> bool;
 
     private:
 
@@ -396,15 +446,26 @@ namespace mamba::logging
 
     inline auto LogHandler_History::capture_history() const -> std::vector<LogRecord>
     {
-        assert(pimpl);
-        auto synched_data = pimpl->data.synchronize();
-        return std::vector<LogRecord>(synched_data->history.begin(), synched_data->history.end());
+        if (pimpl)
+        {
+            auto synched_data = pimpl->data.synchronize();
+            return std::vector<LogRecord>(synched_data->history.begin(), synched_data->history.end());
+        }
+
+        return {};
     }
 
     inline auto LogHandler_History::clear_history()
     {
-        assert(pimpl);
-        pimpl->data->history.clear();
+        if (pimpl)
+        {
+            pimpl->data->history.clear();
+        }
+    }
+
+    auto LogHandler_History::is_started() const -> bool
+    {
+        return pimpl != nullptr;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -541,5 +602,9 @@ namespace mamba::logging
         pimpl->flush_threshold = threshold_level;
     }
 
+    auto LogHandler_StdOut::is_started() const -> bool
+    {
+        return pimpl != nullptr;
+    }
 
 }

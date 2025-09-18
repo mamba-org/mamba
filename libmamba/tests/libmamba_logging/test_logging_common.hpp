@@ -171,9 +171,9 @@ namespace mamba::logging::testing
     // (extracted from test_execution.cpp then modified - TODO: factorize)
     template <typename Func>
     auto execute_tasks_from_concurrent_threads(
-        std::size_t task_count,
+        /*std::size_t task_count,
         std::size_t tasks_per_thread,
-        Func work_generator
+        Func work_generator*/
     ) -> void
     {
         // const auto estimated_thread_count = (task_count / tasks_per_thread) * 2;

@@ -170,6 +170,12 @@ namespace mamba::logging
         }
     }
 
+    struct LogHandler_History_Options  // not nested type because clang and gcc dont like it
+    {
+        size_t max_records_count = 0;
+        bool clear_on_stop = true;
+    };
+
     /** `LogHandler` that retains `LogRecord`s in order of being logged.
         Can hold any number of records or just the specified number of last records.
         BEWARE: If the max number of records is not specified, memory will be consumed at each
@@ -181,17 +187,13 @@ namespace mamba::logging
     {
     public:
 
-        struct Options
-        {
-            size_t max_records_count = 0;
-            bool clear_on_stop = true;
-        };
+        using Options = LogHandler_History_Options;
 
         /** Constructor specifying the maximum number of log records to keep in history.
 
             post-condition: `is_started() == false` until `start_log_handler` is called.
         */
-        LogHandler_History(Options options = {});
+        LogHandler_History(Options options = Options{});
 
         // Only allow moves, not thread-safe.
 
@@ -284,15 +286,17 @@ namespace mamba::logging
 
     static_assert(LogHandler<LogHandler_History>);
 
+    struct LogHandler_StdOut_Options  // not nested type because clang and gcc dont like it
+    {
+        bool clear_on_stop = true;
+    };
+
     /// `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default.
     class LogHandler_StdOut
     {
     public:
 
-        struct Options
-        {
-            bool clear_on_stop = true;
-        };
+        using Options = LogHandler_StdOut_Options;
 
         /** Constructor providing the output stream to write logs into, `std::cout` by default.
 
@@ -302,7 +306,7 @@ namespace mamba::logging
 
             post-condition: `is_started() == false` until `start_log_handler` is called.
         */
-        LogHandler_StdOut(std::ostream& out_ = std::cout, Options options = {});
+        LogHandler_StdOut(std::ostream& out_ = std::cout, Options options = Options{});
 
         LogHandler_StdOut(const LogHandler_StdOut& other) = delete;
         LogHandler_StdOut& operator=(const LogHandler_StdOut& other) = delete;

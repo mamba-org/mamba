@@ -8,6 +8,10 @@
 #include <thread>
 #include <vector>
 
+#include <catch2/catch_all.hpp>
+
+#include <fmt/core.h>
+
 #include <mamba/core/logging.hpp>
 #include <mamba/util/synchronized_value.hpp>
 
@@ -100,7 +104,10 @@ namespace mamba::logging::testing
             }
             else
             {
-                stats->backtrace_logs_size = std::min(stats->backtrace_logs_size + 1, stats->backtrace_size);
+                stats->backtrace_logs_size = std::min(
+                    stats->backtrace_logs_size + 1,
+                    stats->backtrace_size
+                );
             }
         }
 
@@ -173,72 +180,157 @@ namespace mamba::logging::testing
         // clang-format on
     };
 
-    // Spawns a number of threads that will execute the provided task a given number of times.
-    // This is useful to make sure there are great chances that the tasks
-    // are being scheduled concurrently.
-    // Joins all threads before exiting.
-    // (extracted from test_execution.cpp then modified - TODO: factorize)
-    template <typename Func>
-    auto execute_tasks_from_concurrent_threads(
-        /*std::size_t task_count,
-        std::size_t tasks_per_thread,
-        Func work_generator*/
-    ) -> void
+    struct LogHandlerTestsResult
     {
-        // const auto estimated_thread_count = (task_count / tasks_per_thread) * 2;
-        // std::vector<std::thread> producers(estimated_thread_count);
+        testing::Stats stats;
+        AnyLogHandler handler;
+    };
 
-        // std::size_t tasks_left_to_launch = task_count;
-        // std::size_t thread_idx = 0;
-        // while (tasks_left_to_launch > 0)
-        //{
-        //     const std::size_t tasks_to_generate = std::min(tasks_per_thread,
-        //     tasks_left_to_launch); producers[thread_idx] = std::thread{ [=]
-        //                                          {
-        //                                              for (std::size_t i = 0; i <
-        //                                              tasks_to_generate;
-        //                                                   ++i)
-        //                                              {
-        //                                                  work(args...);
-        //                                                  std::this_thread::yield();
-        //                                              }
-        //                                          } };
-        //     tasks_left_to_launch -= tasks_to_generate;
-        //     ++thread_idx;
-        //     assert(thread_idx < producers.size());
-        // }
+    struct LogHandlerTestsOptions
+    {
+        size_t log_count = 10;
+    };
 
-        //// Make sure all the producers are finished before continuing.
-        // for (auto&& t : producers)
-        //{
-        //     if (t.joinable())
-        //     {
-        //         t.join();
-        //     }
-        // }
+
+    template <LogHandlerOrPtr T>
+    auto test_classic_inline_logging_api_usage(T&& handler, LogHandlerTestsOptions options = {})
+        -> LogHandlerTestsResult
+    {
+        testing::Stats stats;
+
+        // SECTION("start stop(manual) start")
+        {
+            auto previous_handler = set_log_handler(std::forward<T>(handler));
+            REQUIRE(not previous_handler.has_value());
+            REQUIRE(get_log_handler().has_value());
+            ++stats.start_count;
+
+            auto original_handler = stop_logging(stop_reason::manual_stop);
+            REQUIRE(original_handler.has_value());
+            REQUIRE(not get_log_handler().has_value());
+            ++stats.stop_count;
+
+            previous_handler = set_log_handler(std::move(original_handler));
+            REQUIRE(not previous_handler.has_value());
+            REQUIRE(get_log_handler().has_value());
+            ++stats.start_count;
+        }
+
+        if constexpr (LogHandlerPtr<T>)
+        {
+            // T is a pointer, it should always be pointing to the original handler
+            REQUIRE(get_log_handler().unsafe_get<T>() == handler);
+        }
+
+        // continue using the same handler in operations below
+        REQUIRE(get_log_handler().has_value());
+
+        // SECTION("change parameters")
+        {
+            set_log_level(log_level::debug);
+            REQUIRE(get_log_level() == log_level::debug);
+            ++stats.log_level_change_count;
+
+            set_log_level(log_level::info);
+            REQUIRE(get_log_level() == log_level::info);
+            ++stats.log_level_change_count;
+
+            const LoggingParams logging_params{ .logging_level = log_level::critical };
+            set_logging_params(logging_params);
+            REQUIRE(get_logging_params() == logging_params);
+            ++stats.params_change_count;
+
+            set_logging_params({});
+            REQUIRE(get_logging_params() == LoggingParams{});
+            ++stats.params_change_count;
+
+            stats.current_params = get_logging_params();
+        }
+
+        // SECTION("logging")
+        {
+            for (size_t i = 0; i < options.log_count; ++i)
+            {
+                log({ .message = fmt::format("test log {}", i), .level = log_level::warn });
+            }
+            stats.log_count += options.log_count;
+            stats.real_output_log_count += options.log_count;
+        }
+
+        // SECTION("backtrace")
+        {
+            static constexpr std::size_t arbitrary_backtrace_size = 5;
+            enable_backtrace(arbitrary_backtrace_size);
+            ++stats.backtrace_size_change_count;
+
+            {
+                for (size_t i = 0; i < options.log_count; ++i)
+                {
+                    log({ .message = fmt::format("test log in backtrace {}", i),
+                          .level = log_level::warn });
+                }
+                stats.log_count += options.log_count;
+
+                log_backtrace();
+                ++stats.backtrace_log_count;
+                stats.real_output_log_count += std::min(arbitrary_backtrace_size, options.log_count);
+
+                log_backtrace();
+                ++stats.backtrace_log_count;
+
+                log_backtrace();
+                ++stats.backtrace_log_count;
+            }
+
+            {
+                for (size_t i = 0; i < options.log_count; ++i)
+                {
+                    log({ .message = fmt::format("test log in backtrace without guards {}", i),
+                          .level = log_level::warn });
+                }
+                stats.log_count += options.log_count;
+
+                log_backtrace_no_guards();
+                ++stats.backtrace_log_no_guard_count;
+                stats.real_output_log_count += std::min(arbitrary_backtrace_size, options.log_count);
+
+                log_backtrace_no_guards();
+                ++stats.backtrace_log_no_guard_count;
+                log_backtrace_no_guards();
+                ++stats.backtrace_log_no_guard_count;
+                log_backtrace_no_guards();
+                ++stats.backtrace_log_no_guard_count;
+            }
+
+            disable_backtrace();
+            ++stats.backtrace_size_change_count;
+
+            disable_backtrace();
+            ++stats.backtrace_size_change_count;
+        }
+
+        // SECTION("flush")
+        {
+            flush_logs();
+            ++stats.flush_all_count;
+            flush_logs();
+            ++stats.flush_all_count;
+            flush_logs();
+            ++stats.flush_all_count;
+
+            flush_logs(log_source::tests);
+            ++stats.flush_specific_source_count;
+            flush_logs(log_source::tests);
+            ++stats.flush_specific_source_count;
+
+            set_flush_threshold(log_level::all);
+            ++stats.flush_threshold_change_count;
+            stats.flush_threshold = log_level::all;
+        }
+
+        ++stats.stop_count;
+        return { .stats = std::move(stats), .handler = stop_logging(stop_reason::program_exit) };
     }
 
-    template <LogHandler T>
-    void test_heavy_concurrency()
-    {
-        // constexpr std::size_t arbitrary_operations_count = 2048;
-        // constexpr std::size_t arbitrary_operations_per_generator = 24;
 
-        // T log_handler;
-        // log_handler.start_log_handling({}, all_log_sources());
-
-        // struct RandomLoggingOp
-        //{
-        // };
-
-        // execute_tasks_from_concurrent_threads(
-        //     arbitrary_operations_count,
-        //     arbitrary_operations_per_generator,
-        //     // clang-format off
-        //     [] {
-        //         thread_local std::default_random_engine random_engine;
-        //     }
-        //     // clang-format on
-        //)
-    }
 }

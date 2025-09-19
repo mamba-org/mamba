@@ -12,17 +12,12 @@
 
 #include <mamba/core/logging_tools.hpp>
 
+#include "test_logging_common.hpp"
+
 // TODO:
-// - logging system functions checks
-// - AnyLogHandler checks
-//
-// for each log-handler type
-// - test details functions?
-// - at least movable and keep state correct
-// - test all logging operations
-// - test additional functionalities specific to log handler type
-// - stress test when logging (and other functions?) from multiple threads
-//
+// - specific tests for LogHandler_History
+// - specific tests for LogHandler_StdOut
+
 
 namespace mamba::logging
 {
@@ -321,5 +316,119 @@ namespace mamba::logging
             REQUIRE(out.str() == expected_log_line + expected_log_line);
         }
     }
+
+    TEST_CASE("LogHandler_StdOut logging API basic tests")
+    {
+        // TODO: Generate the expected output algorithmically, or provide it as part of the results
+        // of the test function
+        static constexpr auto expected_output = R"(
+warning libmamba : test log 0
+warning libmamba : test log 1
+warning libmamba : test log 2
+warning libmamba : test log 3
+warning libmamba : test log 4
+warning libmamba : test log 5
+warning libmamba : test log in backtrace 1
+warning libmamba : test log in backtrace 2
+warning libmamba : test log in backtrace 3
+warning libmamba : test log in backtrace 4
+warning libmamba : test log in backtrace 5
+warning libmamba : test log in backtrace 1
+warning libmamba : test log in backtrace 2
+warning libmamba : test log in backtrace 3
+warning libmamba : test log in backtrace 4
+warning libmamba : test log in backtrace 5
+warning libmamba : test log in backtrace 1
+warning libmamba : test log in backtrace 2
+warning libmamba : test log in backtrace 3
+warning libmamba : test log in backtrace 4
+warning libmamba : test log in backtrace 5
+warning libmamba : test log in backtrace without guards 1
+warning libmamba : test log in backtrace without guards 2
+warning libmamba : test log in backtrace without guards 3
+warning libmamba : test log in backtrace without guards 4
+warning libmamba : test log in backtrace without guards 5
+warning libmamba : test log in backtrace without guards 1
+warning libmamba : test log in backtrace without guards 2
+warning libmamba : test log in backtrace without guards 3
+warning libmamba : test log in backtrace without guards 4
+warning libmamba : test log in backtrace without guards 5
+warning libmamba : test log in backtrace without guards 1
+warning libmamba : test log in backtrace without guards 2
+warning libmamba : test log in backtrace without guards 3
+warning libmamba : test log in backtrace without guards 4
+warning libmamba : test log in backtrace without guards 5
+warning libmamba : test log in backtrace without guards 1
+warning libmamba : test log in backtrace without guards 2
+warning libmamba : test log in backtrace without guards 3
+warning libmamba : test log in backtrace without guards 4
+warning libmamba : test log in backtrace without guards 5)";
+
+        SECTION("sunk log handler")
+        {
+            std::stringstream output;
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                LogHandler_StdOut{ output },
+                { .log_count = 6 }
+            );
+            REQUIRE(results.handler.has_value());
+
+            auto final_output = output.str();
+            REQUIRE(final_output == expected_output);
+        }
+
+        SECTION("pointer to movable log handler")
+        {
+            std::stringstream output;
+            LogHandler_StdOut handler{ output };
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                &handler,
+                { .log_count = 6 }
+            );
+            REQUIRE(results.handler.has_value());
+            REQUIRE(results.handler.unsafe_get<LogHandler_StdOut*>() == &handler);
+
+            auto final_output = output.str();
+            REQUIRE(final_output == expected_output);
+        }
+    }
+
+    TEST_CASE("LogHandler_History logging API basic tests")
+    {
+        // TODO: add the expected history as part of the test function results
+
+        SECTION("sunk log handler")
+        {
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                LogHandler_History{ { .clear_on_stop = false } },
+                { .log_count = 24 }
+            );
+            REQUIRE(results.handler.has_value());
+            REQUIRE(results.handler.unsafe_get<LogHandler_History>() != nullptr);
+
+            const LogHandler_History& handler = *results.handler.unsafe_get<LogHandler_History>();
+            const auto log_history = handler.capture_history();
+            REQUIRE(not log_history.empty());
+            REQUIRE(results.stats.real_output_log_count == log_history.size());
+            // TODO: add more checks about the expected results
+        }
+
+        SECTION("pointer to movable log handler")
+        {
+            LogHandler_History handler{ { .clear_on_stop = false } };
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                &handler,
+                { .log_count = 69 }
+            );
+            REQUIRE(results.handler.has_value());
+            REQUIRE(results.handler.unsafe_get<LogHandler_History*>() == &handler);
+
+            const auto log_history = handler.capture_history();
+            REQUIRE(not log_history.empty());
+            REQUIRE(results.stats.real_output_log_count == log_history.size());
+            // TODO: add more checks about the expected results
+        }
+    }
+
 
 }

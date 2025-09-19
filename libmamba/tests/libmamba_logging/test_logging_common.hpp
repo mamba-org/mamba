@@ -24,10 +24,10 @@ namespace mamba::logging::testing
         std::size_t start_count = 0;
         std::size_t stop_count = 0;
         std::size_t log_count = 0;
+        std::size_t real_output_log_count = 0;
         std::size_t log_level_change_count = 0;
         std::size_t params_change_count = 0;
-        std::size_t backtrace_enabled_count = 0;
-        std::size_t backtrace_disabled_count = 0;
+        std::size_t backtrace_size_change_count = 0;
         std::size_t backtrace_log_count = 0;
         std::size_t backtrace_log_no_guard_count = 0;
         std::size_t flush_all_count = 0;
@@ -36,6 +36,7 @@ namespace mamba::logging::testing
 
         LoggingParams current_params = {};
         std::size_t backtrace_size = 0;
+        std::size_t backtrace_logs_size = 0;
         log_level flush_threshold = log_level::off;
 
         auto operator==(const Stats& other) const noexcept -> bool = default;
@@ -91,31 +92,39 @@ namespace mamba::logging::testing
 
         auto log(LogRecord) -> void
         {
-            pimpl->stats->log_count++;
+            auto stats = pimpl->stats.synchronize();
+            stats->log_count++;
+            if (stats->backtrace_size == 0)
+            {
+                ++stats->real_output_log_count;
+            }
+            else
+            {
+                stats->backtrace_logs_size = std::min(stats->backtrace_logs_size + 1, stats->backtrace_size);
+            }
         }
 
         auto enable_backtrace(size_t record_buffer_size) -> void
         {
             auto stats = pimpl->stats.synchronize();
-            ++stats->backtrace_enabled_count;
+            ++stats->backtrace_size_change_count;
             stats->backtrace_size = record_buffer_size;
-        }
-
-        auto disable_backtrace() -> void
-        {
-            auto stats = pimpl->stats.synchronize();
-            ++stats->backtrace_disabled_count;
-            stats->backtrace_size = 0;
         }
 
         auto log_backtrace() -> void
         {
-            ++pimpl->stats->backtrace_log_count;
+            auto stats = pimpl->stats.synchronize();
+            ++stats->backtrace_log_count;
+            stats->real_output_log_count += stats->backtrace_logs_size;
+            stats->backtrace_logs_size = 0;
         }
 
         auto log_backtrace_no_guards() -> void
         {
-            ++pimpl->stats->backtrace_log_no_guard_count;
+            auto stats = pimpl->stats.synchronize();
+            ++stats->backtrace_log_no_guard_count;
+            stats->real_output_log_count += stats->backtrace_logs_size;
+            stats->backtrace_logs_size = 0;
         }
 
         auto flush(std::optional<log_source> source = {}) -> void

@@ -121,7 +121,6 @@ namespace mamba::logging
             REQUIRE(x.type_id().value() == typeid(&handler));
             REQUIRE(x.unsafe_get<testing::LogHandler_NotMovable*>() == &handler);
         }
-
     }
 
     TEST_CASE("AnyLogHandler handler ownership")

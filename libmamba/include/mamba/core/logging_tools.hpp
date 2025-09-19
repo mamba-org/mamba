@@ -181,11 +181,17 @@ namespace mamba::logging
     {
     public:
 
+        struct Options
+        {
+            size_t max_records_count = 0;
+            bool clear_on_stop = true;
+        };
+
         /** Constructor specifying the maximum number of log records to keep in history.
 
             post-condition: `is_started() == false` until `start_log_handler` is called.
         */
-        LogHandler_History(size_t max_records_count = 0);
+        LogHandler_History(Options options = {});
 
         // Only allow moves, not thread-safe.
 
@@ -251,6 +257,13 @@ namespace mamba::logging
         */
         auto is_started() const -> bool;
 
+        /** @returns The options this log handler has been constructed with.
+        */
+        auto get_options() const -> const Options&
+        {
+            return options;
+        }
+
     private:
 
         struct Data
@@ -266,7 +279,7 @@ namespace mamba::logging
         };
 
         std::unique_ptr<Impl> pimpl;
-        size_t m_max_records_count = 0;
+        Options options;
     };
 
     static_assert(LogHandler<LogHandler_History>);
@@ -276,6 +289,11 @@ namespace mamba::logging
     {
     public:
 
+        struct Options
+        {
+            bool clear_on_stop = true;
+        };
+
         /** Constructor providing the output stream to write logs into, `std::cout` by default.
 
             Ownership of the provided output stream is not taken.
@@ -284,7 +302,7 @@ namespace mamba::logging
 
             post-condition: `is_started() == false` until `start_log_handler` is called.
         */
-        LogHandler_StdOut(std::ostream& out_ = std::cout);
+        LogHandler_StdOut(std::ostream& out_ = std::cout, Options options = {});
 
         LogHandler_StdOut(const LogHandler_StdOut& other) = delete;
         LogHandler_StdOut& operator=(const LogHandler_StdOut& other) = delete;
@@ -334,6 +352,13 @@ namespace mamba::logging
         */
         auto is_started() const -> bool;
 
+        /** @returns The options this log handler has been constructed with.
+         */
+        auto get_options() const -> const Options&
+        {
+            return options;
+        }
+
     private:
 
         struct Impl
@@ -346,6 +371,7 @@ namespace mamba::logging
 
         std::ostream* out;
         std::unique_ptr<Impl> pimpl;
+        Options options;
     };
 
     static_assert(LogHandler<LogHandler_StdOut>);
@@ -354,8 +380,8 @@ namespace mamba::logging
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    inline LogHandler_History::LogHandler_History(size_t max_records_count)
-        : m_max_records_count(max_records_count)
+    inline LogHandler_History::LogHandler_History(Options options_)
+        : options(std::move(options_))
     {
     }
 
@@ -363,7 +389,10 @@ namespace mamba::logging
     LogHandler_History::start_log_handling(LoggingParams params, const std::vector<log_source>&)
         -> void
     {
-        pimpl = std::make_unique<Impl>();
+        if (not pimpl)
+        {
+            pimpl = std::make_unique<Impl>();
+        }
 
         pimpl->current_log_level = params.logging_level;
         pimpl->data.unsafe_get().backtrace.set_max_trace(params.log_backtrace);
@@ -371,7 +400,10 @@ namespace mamba::logging
 
     inline auto LogHandler_History::stop_log_handling(stop_reason) -> void
     {
-        pimpl.reset();
+        if (options.clear_on_stop)
+        {
+            pimpl.reset();
+        }
     }
 
     inline auto LogHandler_History::set_log_level(log_level new_level) -> void
@@ -398,7 +430,7 @@ namespace mamba::logging
         auto synched_data = pimpl->data.synchronize();
         if (not synched_data->backtrace.push_if_enabled(record))
         {
-            details::queue_push(synched_data->history, m_max_records_count, std::move(record));
+            details::queue_push(synched_data->history, options.max_records_count, std::move(record));
         }
     }
 
@@ -420,7 +452,7 @@ namespace mamba::logging
         auto synched_data = pimpl->data.synchronize();
         for (auto& log : synched_data->backtrace)
         {
-            details::queue_push(synched_data->history, m_max_records_count, std::move(log));
+            details::queue_push(synched_data->history, options.max_records_count, std::move(log));
         }
 
         synched_data->backtrace.clear();
@@ -470,8 +502,9 @@ namespace mamba::logging
 
     //////////////////////////////////////////////////////////////////////////////////////
 
-    inline LogHandler_StdOut::LogHandler_StdOut(std::ostream& out_)
+    inline LogHandler_StdOut::LogHandler_StdOut(std::ostream& out_, Options options_)
         : out(&out_)
+        , options(std::move(options_))
     {
         assert(out);
     }
@@ -479,6 +512,7 @@ namespace mamba::logging
     inline LogHandler_StdOut::LogHandler_StdOut(LogHandler_StdOut&& other) noexcept
         : out(std::exchange(other.out, nullptr))
         , pimpl(std::move(other.pimpl))
+        , options(std::move(other.options))
     {
     }
 
@@ -486,6 +520,7 @@ namespace mamba::logging
     {
         out = std::exchange(other.out, nullptr);
         pimpl = std::move(other.pimpl);
+        options = std::move(other.options);
         return *this;
     }
 
@@ -496,7 +531,10 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        pimpl = std::make_unique<Impl>();
+        if (not pimpl)
+        {
+            pimpl = std::make_unique<Impl>();
+        }
 
         pimpl->current_log_level = params.logging_level;
         pimpl->backtrace->set_max_trace(params.log_backtrace);
@@ -507,7 +545,10 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        pimpl.reset();
+        if (options.clear_on_stop)
+        {
+            pimpl.reset();
+        }
     }
 
     inline auto LogHandler_StdOut::set_log_level(log_level new_level) -> void

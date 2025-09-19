@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <catch2/catch_all.hpp>
-
 #include <fmt/core.h>
 
 #include <mamba/core/logging.hpp>
@@ -190,7 +189,6 @@ namespace mamba::logging::testing
     {
         size_t log_count = 10;
     };
-
 
     template <LogHandlerOrPtr T>
     auto test_classic_inline_logging_api_usage(T&& handler, LogHandlerTestsOptions options = {})

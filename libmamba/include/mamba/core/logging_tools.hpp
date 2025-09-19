@@ -258,7 +258,7 @@ namespace mamba::logging
         auto is_started() const -> bool;
 
         /** @returns The options this log handler has been constructed with.
-        */
+         */
         auto get_options() const -> const Options&
         {
             return options;

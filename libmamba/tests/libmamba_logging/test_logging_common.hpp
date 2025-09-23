@@ -254,7 +254,8 @@ namespace mamba::logging::testing
         {
             for (size_t i = 0; i < options.log_count; ++i)
             {
-                log({ .message = fmt::format(fmt::runtime(options.format_log_message), i), .level = options.level });
+                log({ .message = fmt::format(fmt::runtime(options.format_log_message), i),
+                      .level = options.level });
             }
             stats.log_count += options.log_count;
             stats.real_output_log_count += options.log_count;
@@ -287,7 +288,10 @@ namespace mamba::logging::testing
             {
                 for (size_t i = 0; i < options.log_count; ++i)
                 {
-                    log({ .message = fmt::format(fmt::runtime(options.format_log_message_backtrace_without_guard), i),
+                    log({ .message = fmt::format(
+                              fmt::runtime(options.format_log_message_backtrace_without_guard),
+                              i
+                          ),
                           .level = options.level });
                 }
                 stats.log_count += options.log_count;
@@ -333,6 +337,40 @@ namespace mamba::logging::testing
         ++stats.stop_count;
         return { .stats = std::move(stats), .handler = stop_logging(stop_reason::program_exit) };
     }
+
+    // This generator must be kept in sync with testing::test_classic_inline_logging_api_usage()
+    auto expected_output_test_classic_inline(
+        std::invocable<LogRecord> auto log_impl_func,
+        const testing::LogHandlerTestsOptions options
+    ) -> void
+    {
+        const auto output_loop = [&](auto message_format, std::size_t backtrace_size = 0)
+        {
+            const std::size_t start_log_idx = [&]() -> std::size_t
+            {
+                if (backtrace_size == 0 or backtrace_size > options.log_count)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return options.log_count - backtrace_size;
+                }
+            }();
+
+            for (std::size_t i = start_log_idx; i < options.log_count; ++i)
+            {
+                log_impl_func({
+                    .message = fmt::format(fmt::runtime(message_format), i),
+                    .level = options.level,
+                });
+            }
+        };
+
+        output_loop(options.format_log_message);
+        output_loop(options.format_log_message_backtrace, options.backtrace_size);
+        output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
+    };
 
 
 }

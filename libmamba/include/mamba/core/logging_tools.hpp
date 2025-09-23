@@ -621,6 +621,7 @@ namespace mamba::logging
         {
             details::log_to_stream(*out, log_record, { .with_location = pimpl->log_location });
         }
+        synched_backtrace->clear();
     }
 
     inline auto LogHandler_StdOut::log_backtrace_no_guards() -> void
@@ -628,7 +629,7 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        log_backtrace();  // FIXME: not sure
+        log_backtrace();  // Similar in this context
     }
 
     inline auto LogHandler_StdOut::flush(std::optional<log_source>) -> void

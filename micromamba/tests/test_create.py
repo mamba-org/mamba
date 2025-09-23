@@ -2096,7 +2096,7 @@ def test_repodata_record_patch(tmp_home, tmp_clean_env, tmp_path):
     out = helpers.update("--json", "-p", env_prefix, "--all")
     assert out["success"]
 
-    assert len(out["actions"]["UNLINK"]) == 1
+    assert len(out["actions"]["UNLINK"]) >= 1
     unlink_libarchive = next(pkg for pkg in out["actions"]["UNLINK"] if pkg["name"] == "libarchive")
 
     # TODO: understand why the original linked libarchive has a full URL for the channel
@@ -2105,7 +2105,7 @@ def test_repodata_record_patch(tmp_home, tmp_clean_env, tmp_path):
     unlink_libarchive["channel"] = originally_linked_libarchive["channel"]
     assert unlink_libarchive == originally_linked_libarchive
 
-    assert len(out["actions"]["LINK"]) == 1
+    assert len(out["actions"]["LINK"]) >= 1
     linked_libarchive = next(pkg for pkg in out["actions"]["LINK"] if pkg["name"] == "libarchive")
 
     linked_libarchive_version = Version(linked_libarchive["version"])

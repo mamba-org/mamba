@@ -319,57 +319,55 @@ namespace mamba::logging
 
     TEST_CASE("LogHandler_StdOut logging API basic tests")
     {
-        // TODO: Generate the expected output algorithmically, or provide it as part of the results
-        // of the test function
-        static constexpr auto expected_output = R"(
-warning libmamba : test log 0
-warning libmamba : test log 1
-warning libmamba : test log 2
-warning libmamba : test log 3
-warning libmamba : test log 4
-warning libmamba : test log 5
-warning libmamba : test log in backtrace 1
-warning libmamba : test log in backtrace 2
-warning libmamba : test log in backtrace 3
-warning libmamba : test log in backtrace 4
-warning libmamba : test log in backtrace 5
-warning libmamba : test log in backtrace 1
-warning libmamba : test log in backtrace 2
-warning libmamba : test log in backtrace 3
-warning libmamba : test log in backtrace 4
-warning libmamba : test log in backtrace 5
-warning libmamba : test log in backtrace 1
-warning libmamba : test log in backtrace 2
-warning libmamba : test log in backtrace 3
-warning libmamba : test log in backtrace 4
-warning libmamba : test log in backtrace 5
-warning libmamba : test log in backtrace without guards 1
-warning libmamba : test log in backtrace without guards 2
-warning libmamba : test log in backtrace without guards 3
-warning libmamba : test log in backtrace without guards 4
-warning libmamba : test log in backtrace without guards 5
-warning libmamba : test log in backtrace without guards 1
-warning libmamba : test log in backtrace without guards 2
-warning libmamba : test log in backtrace without guards 3
-warning libmamba : test log in backtrace without guards 4
-warning libmamba : test log in backtrace without guards 5
-warning libmamba : test log in backtrace without guards 1
-warning libmamba : test log in backtrace without guards 2
-warning libmamba : test log in backtrace without guards 3
-warning libmamba : test log in backtrace without guards 4
-warning libmamba : test log in backtrace without guards 5
-warning libmamba : test log in backtrace without guards 1
-warning libmamba : test log in backtrace without guards 2
-warning libmamba : test log in backtrace without guards 3
-warning libmamba : test log in backtrace without guards 4
-warning libmamba : test log in backtrace without guards 5)";
+        // This generator must be kept in sync with testing::test_classic_inline_logging_api_usage()
+        static constexpr auto generate_expected_output =
+            [](const testing::LogHandlerTestsOptions options)
+        {
+            std::stringstream out;
+
+            const auto output_loop = [&](auto message_format, std::size_t backtrace_size = 0)
+            {
+                const std::size_t start_log_idx = [&]() -> std::size_t
+                {
+                    if (backtrace_size == 0 or backtrace_size > options.log_count)
+                    {
+                        return 0;
+                    }
+                    else
+                    {
+                        return options.log_count - backtrace_size;
+                    }
+                }();
+
+                for (std::size_t i = start_log_idx; i < options.log_count; ++i)
+                {
+                    details::log_to_stream(
+                        out,
+                        {
+                            .message = fmt::format(fmt::runtime(message_format), i),
+                            .level = options.level,
+                        }
+                    );
+                }
+            };
+
+            output_loop(options.format_log_message);
+            output_loop(options.format_log_message_backtrace, options.backtrace_size);
+            output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
+
+            return out.str();
+        };
+
+        static constexpr std::size_t arbitrary_log_count = 6;
+        static const testing::LogHandlerTestsOptions options{ .log_count = arbitrary_log_count };
+        const auto expected_output = generate_expected_output(options);
 
         SECTION("sunk log handler")
         {
             std::stringstream output;
             const auto results = testing::test_classic_inline_logging_api_usage(
                 LogHandler_StdOut{ output },
-                { .log_count = 6 }
+                options
             );
             REQUIRE(results.handler.has_value());
 
@@ -381,10 +379,7 @@ warning libmamba : test log in backtrace without guards 5)";
         {
             std::stringstream output;
             LogHandler_StdOut handler{ output };
-            const auto results = testing::test_classic_inline_logging_api_usage(
-                &handler,
-                { .log_count = 6 }
-            );
+            const auto results = testing::test_classic_inline_logging_api_usage(&handler, options);
             REQUIRE(results.handler.has_value());
             REQUIRE(results.handler.unsafe_get<LogHandler_StdOut*>() == &handler);
 

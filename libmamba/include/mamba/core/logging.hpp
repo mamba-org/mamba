@@ -357,6 +357,7 @@ namespace mamba
             /** While registered in it, called by the logging system when the current backtrace history of
                 log records needs to be sent to the implementation's logging sinks but without filtering the logging level of the log records.
 
+                After this call, the backtrace history must be empty.
                 This operation must be thread-safe.
 
                 @see `mamba::logging::log_backtrace_no_guards`

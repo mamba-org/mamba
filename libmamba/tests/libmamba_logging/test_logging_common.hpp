@@ -187,11 +187,16 @@ namespace mamba::logging::testing
 
     struct LogHandlerTestsOptions
     {
-        size_t log_count = 10;
+        std::size_t log_count = 10;
+        std::string format_log_message = "test log {}";
+        std::string format_log_message_backtrace = "test log in backtrace {}";
+        std::string format_log_message_backtrace_without_guard = "test log in backtrace without guards {}";
+        log_level level = log_level::warn;
+        std::size_t backtrace_size = 5;
     };
 
     template <LogHandlerOrPtr T>
-    auto test_classic_inline_logging_api_usage(T&& handler, LogHandlerTestsOptions options = {})
+    auto test_classic_inline_logging_api_usage(T&& handler, const LogHandlerTestsOptions options = {})
         -> LogHandlerTestsResult
     {
         testing::Stats stats;
@@ -249,7 +254,7 @@ namespace mamba::logging::testing
         {
             for (size_t i = 0; i < options.log_count; ++i)
             {
-                log({ .message = fmt::format("test log {}", i), .level = log_level::warn });
+                log({ .message = fmt::format(fmt::runtime(options.format_log_message), i), .level = options.level });
             }
             stats.log_count += options.log_count;
             stats.real_output_log_count += options.log_count;
@@ -257,21 +262,20 @@ namespace mamba::logging::testing
 
         // SECTION("backtrace")
         {
-            static constexpr std::size_t arbitrary_backtrace_size = 5;
-            enable_backtrace(arbitrary_backtrace_size);
+            enable_backtrace(options.backtrace_size);
             ++stats.backtrace_size_change_count;
 
             {
                 for (size_t i = 0; i < options.log_count; ++i)
                 {
-                    log({ .message = fmt::format("test log in backtrace {}", i),
-                          .level = log_level::warn });
+                    log({ .message = fmt::format(fmt::runtime(options.format_log_message_backtrace), i),
+                          .level = options.level });
                 }
                 stats.log_count += options.log_count;
 
                 log_backtrace();
                 ++stats.backtrace_log_count;
-                stats.real_output_log_count += std::min(arbitrary_backtrace_size, options.log_count);
+                stats.real_output_log_count += std::min(options.backtrace_size, options.log_count);
 
                 log_backtrace();
                 ++stats.backtrace_log_count;
@@ -283,14 +287,14 @@ namespace mamba::logging::testing
             {
                 for (size_t i = 0; i < options.log_count; ++i)
                 {
-                    log({ .message = fmt::format("test log in backtrace without guards {}", i),
-                          .level = log_level::warn });
+                    log({ .message = fmt::format(fmt::runtime(options.format_log_message_backtrace_without_guard), i),
+                          .level = options.level });
                 }
                 stats.log_count += options.log_count;
 
                 log_backtrace_no_guards();
                 ++stats.backtrace_log_no_guard_count;
-                stats.real_output_log_count += std::min(arbitrary_backtrace_size, options.log_count);
+                stats.real_output_log_count += std::min(options.backtrace_size, options.log_count);
 
                 log_backtrace_no_guards();
                 ++stats.backtrace_log_no_guard_count;

@@ -390,13 +390,51 @@ namespace mamba::logging
 
     TEST_CASE("LogHandler_History logging API basic tests")
     {
-        // TODO: add the expected history as part of the test function results
+        // This generator must be kept in sync with testing::test_classic_inline_logging_api_usage()
+        static constexpr auto generate_expected_output =
+            [](const testing::LogHandlerTestsOptions options)
+        {
+            std::vector<LogRecord> output;
+
+            const auto output_loop = [&](auto message_format, std::size_t backtrace_size = 0)
+            {
+                const std::size_t start_log_idx = [&]() -> std::size_t
+                {
+                    if (backtrace_size == 0 or backtrace_size > options.log_count)
+                    {
+                        return 0;
+                    }
+                    else
+                    {
+                        return options.log_count - backtrace_size;
+                    }
+                }();
+
+                for (std::size_t i = start_log_idx; i < options.log_count; ++i)
+                {
+                    output.push_back({
+                        .message = fmt::format(fmt::runtime(message_format), i),
+                        .level = options.level,
+                    });
+                }
+            };
+
+            output_loop(options.format_log_message);
+            output_loop(options.format_log_message_backtrace, options.backtrace_size);
+            output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
+
+            return output;
+        };
+
 
         SECTION("sunk log handler")
         {
+            const testing::LogHandlerTestsOptions options{ .log_count = 24 };
+            const auto expected_output = generate_expected_output(options);
+
             const auto results = testing::test_classic_inline_logging_api_usage(
                 LogHandler_History{ { .clear_on_stop = false } },
-                { .log_count = 24 }
+                options
             );
             REQUIRE(results.handler.has_value());
             REQUIRE(results.handler.unsafe_get<LogHandler_History>() != nullptr);
@@ -405,23 +443,23 @@ namespace mamba::logging
             const auto log_history = handler.capture_history();
             REQUIRE(not log_history.empty());
             REQUIRE(results.stats.real_output_log_count == log_history.size());
-            // TODO: add more checks about the expected results
+            REQUIRE(log_history == expected_output);
         }
 
         SECTION("pointer to movable log handler")
         {
+            const testing::LogHandlerTestsOptions options{ .log_count = 69 };
+            const auto expected_output = generate_expected_output(options);
+
             LogHandler_History handler{ { .clear_on_stop = false } };
-            const auto results = testing::test_classic_inline_logging_api_usage(
-                &handler,
-                { .log_count = 69 }
-            );
+            const auto results = testing::test_classic_inline_logging_api_usage(&handler, options);
             REQUIRE(results.handler.has_value());
             REQUIRE(results.handler.unsafe_get<LogHandler_History*>() == &handler);
 
             const auto log_history = handler.capture_history();
             REQUIRE(not log_history.empty());
             REQUIRE(results.stats.real_output_log_count == log_history.size());
-            // TODO: add more checks about the expected results
+            REQUIRE(log_history == expected_output);
         }
     }
 

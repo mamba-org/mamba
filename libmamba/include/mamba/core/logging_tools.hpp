@@ -465,7 +465,7 @@ namespace mamba::logging
     inline auto LogHandler_History::log_backtrace_no_guards() -> void
     {
         assert(pimpl);
-        log_backtrace();  // FIXME: not sure what to do here???
+        log_backtrace();  // Similar in this context
     }
 
     inline auto LogHandler_History::flush(std::optional<log_source>) -> void

@@ -324,37 +324,10 @@ namespace mamba::logging
             [](const testing::LogHandlerTestsOptions options)
         {
             std::stringstream out;
-
-            const auto output_loop = [&](auto message_format, std::size_t backtrace_size = 0)
-            {
-                const std::size_t start_log_idx = [&]() -> std::size_t
-                {
-                    if (backtrace_size == 0 or backtrace_size > options.log_count)
-                    {
-                        return 0;
-                    }
-                    else
-                    {
-                        return options.log_count - backtrace_size;
-                    }
-                }();
-
-                for (std::size_t i = start_log_idx; i < options.log_count; ++i)
-                {
-                    details::log_to_stream(
-                        out,
-                        {
-                            .message = fmt::format(fmt::runtime(message_format), i),
-                            .level = options.level,
-                        }
-                    );
-                }
-            };
-
-            output_loop(options.format_log_message);
-            output_loop(options.format_log_message_backtrace, options.backtrace_size);
-            output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
-
+            testing::expected_output_test_classic_inline(
+                [&](LogRecord log_record) { details::log_to_stream(out, log_record); },
+                options
+            );
             return out.str();
         };
 
@@ -395,34 +368,10 @@ namespace mamba::logging
             [](const testing::LogHandlerTestsOptions options)
         {
             std::vector<LogRecord> output;
-
-            const auto output_loop = [&](auto message_format, std::size_t backtrace_size = 0)
-            {
-                const std::size_t start_log_idx = [&]() -> std::size_t
-                {
-                    if (backtrace_size == 0 or backtrace_size > options.log_count)
-                    {
-                        return 0;
-                    }
-                    else
-                    {
-                        return options.log_count - backtrace_size;
-                    }
-                }();
-
-                for (std::size_t i = start_log_idx; i < options.log_count; ++i)
-                {
-                    output.push_back({
-                        .message = fmt::format(fmt::runtime(message_format), i),
-                        .level = options.level,
-                    });
-                }
-            };
-
-            output_loop(options.format_log_message);
-            output_loop(options.format_log_message_backtrace, options.backtrace_size);
-            output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
-
+            testing::expected_output_test_classic_inline(
+                [&](LogRecord log_record) {
+                    output.push_back(log_record);
+            }, options);
             return output;
         };
 

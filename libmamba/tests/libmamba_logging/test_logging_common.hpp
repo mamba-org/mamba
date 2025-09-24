@@ -4,14 +4,18 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <functional>
 #include <random>
 #include <thread>
 #include <vector>
 
 #include <catch2/catch_all.hpp>
 #include <fmt/core.h>
+#include <fmt/std.h>
 
 #include <mamba/core/logging.hpp>
+#include <mamba/core/util_scope.hpp>
 #include <mamba/util/synchronized_value.hpp>
 
 namespace mamba::logging::testing
@@ -388,5 +392,176 @@ namespace mamba::logging::testing
         output_loop(options.format_log_message_backtrace, options.backtrace_size);
         output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
     };
+
+    struct Random
+    {
+        std::random_device r;
+        std::seed_seq initial_seed{ r(), r(), r(), r(), r(), r(), r(), r() };
+        std::mt19937 engine{ initial_seed };  // TODO C++26: use less memory-expensive philox
+                                              // engines
+
+        std::size_t roll_dice(std::size_t min, std::size_t max)
+        {
+            std::uniform_int_distribution dice{ min, max };
+            return dice(engine);
+        }
+    };
+
+    template <LogHandlerOrPtr T>
+    auto test_concurrent_logging_api_support(
+        T&& handler,
+        const std::size_t runners_count = 123,
+        const std::size_t max_operations_per_runner = 1234
+    ) -> void
+    {
+        assert(runners_count > 0);
+        assert(operations_per_runner > 0);
+
+        set_log_handler(std::forward<T>(handler));
+        on_scope_exit _{ [] { stop_logging(); } };
+
+        REQUIRE(get_log_handler().has_value());
+
+        std::atomic_bool green_light{ false };
+
+        auto tasks = [&green_light, max_operations_per_runner]
+        {
+            auto random = std::make_unique<Random>();  // on the heap to avoid exploding stacks
+
+
+            // clang-format off
+            const auto random_log_level = [&] {
+                return static_cast<log_level>(random->roll_dice(0, 5));
+            };
+
+            const auto random_log_source = [&] {
+                static const auto sources = all_log_sources();
+                return sources.at(random->roll_dice(0, sources.size() - 1));
+            };
+
+            const auto random_bactrace = [&] {
+                return random->roll_dice(0,1) ? 0 : random->roll_dice(1, 50);
+            };
+
+            const auto random_params = [&] {
+                return LoggingParams{
+                    .logging_level = random_log_level(),
+                    .log_backtrace = random_bactrace(),
+                };
+            };
+
+            const auto random_log_record = [&]
+            {
+                return LogRecord
+                {
+                    .message = fmt::format("concurrent log thread {}", std::this_thread::get_id()),
+                    .level = random_log_level(),
+                    .source = random_log_source(),
+                    .location = std::source_location::current(),
+                };
+            };
+
+            using operation = std::function<void()>;
+
+            std::vector<operation> operations {
+
+                []{
+                    REQUIRE(get_log_handler().has_value());
+                },
+
+                [&]{
+                    set_log_level(random_log_level());
+                },
+
+                []{
+                    const auto level = get_log_level();
+                    REQUIRE(level != log_level::off);
+                    REQUIRE(level != log_level::all);
+                },
+
+                [&]{
+                    set_logging_params(random_params());
+                },
+
+                [&]{
+                    enable_backtrace(random_bactrace());
+                },
+
+                [&]{
+                    disable_backtrace();
+                },
+
+                [&]{
+                    log_backtrace();
+                },
+
+                [&]{
+                    log_backtrace_no_guards();
+                },
+
+                [&]{
+                    flush_logs();
+                },
+
+                [&]{
+                    flush_logs(random_log_source());
+                },
+
+                [&]{
+                    const log_level selected_threshold = random->roll_dice(0, 1) ? log_level::off : random_log_level();
+                    set_flush_threshold(selected_threshold);
+                },
+            };
+
+            // many logs so that there are more chances to call these
+            for (int idx = 0; idx < 20; ++idx)
+            {
+                operations.emplace_back([&]{
+                    log(random_log_record());
+                });
+            }
+
+            // clang-format on
+
+
+            green_light.wait(false);  // wait for the green light
+
+
+            std::size_t operations_left = random->roll_dice(
+                std::min(std::size_t(100), max_operations_per_runner),
+                max_operations_per_runner
+            );
+            while (operations_left != 0)
+            {
+                const auto idx = random->roll_dice(0, operations.size() - 1);
+                auto& operation = operations.at(idx);
+
+                operation();
+
+                // introduce unpredictable delay between loops iterations
+                if (random->roll_dice(0, 1))
+                {
+                    std::this_thread::yield();
+                }
+
+                --operations_left;
+            }
+        };
+
+        std::vector<std::jthread> runners;
+        runners.reserve(runners_count);
+        for (std::size_t idx = 0; idx < runners_count; ++idx)
+        {
+            runners.emplace_back(tasks);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        green_light = true;
+        green_light.notify_all();  // all runners will now start
+
+        // note: std::jthread automatically will join on destruction, so we dont have to explicitly
+        // join them
+    }
 
 }

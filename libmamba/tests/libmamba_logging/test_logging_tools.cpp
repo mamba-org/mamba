@@ -418,5 +418,34 @@ namespace mamba::logging
         }
     }
 
+    TEST_CASE("LogHandler_History concurrency")
+    {
+        LogHandler_History handler;
+
+        SECTION("as sunk object")
+        {
+            testing::test_concurrent_logging_api_support(std::move(handler));
+        }
+
+        SECTION("as pointer")
+        {
+            testing::test_concurrent_logging_api_support(&handler);
+        }
+    }
+
+    TEST_CASE("LogHandler_StdOut concurrency")
+    {
+        LogHandler_History handler;
+
+        SECTION("as sunk object")
+        {
+            testing::test_concurrent_logging_api_support(std::move(handler));
+        }
+
+        SECTION("as pointer")
+        {
+            testing::test_concurrent_logging_api_support(&handler);
+        }
+    }
 
 }

@@ -535,9 +535,9 @@ namespace mamba::logging::testing
             while (operations_left != 0)
             {
                 const auto idx = random->roll_dice(0, operations.size() - 1);
-                auto& operation = operations.at(idx);
+                auto& operation_to_run = operations.at(idx);
 
-                operation();
+                operation_to_run();
 
                 // introduce unpredictable delay between loops iterations
                 if (random->roll_dice(0, 1))

@@ -163,8 +163,9 @@ namespace mamba
         struct LogRecord
         {
             /// Message to be printed/captured in the logging implementation.
-            std::string message;  // THINK: could be made lazy if it was a function instead, but
-                                  // requires macros to be functions
+            std::string message = {};  // THINK: could be made lazy if it was a function instead,
+                                       // but
+                                       // requires macros to be functions
 
             /// Level of this log. If lower than the current level, this log will be ignored.
             log_level level = log_level::off;

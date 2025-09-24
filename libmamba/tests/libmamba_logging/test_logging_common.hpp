@@ -415,7 +415,7 @@ namespace mamba::logging::testing
     ) -> void
     {
         assert(runners_count > 0);
-        assert(operations_per_runner > 0);
+        assert(max_operations_per_runner > 0);
 
         set_log_handler(std::forward<T>(handler));
         on_scope_exit _{ [] { stop_logging(); } };
@@ -531,6 +531,7 @@ namespace mamba::logging::testing
                 std::min(std::size_t(100), max_operations_per_runner),
                 max_operations_per_runner
             );
+
             while (operations_left != 0)
             {
                 const auto idx = random->roll_dice(0, operations.size() - 1);

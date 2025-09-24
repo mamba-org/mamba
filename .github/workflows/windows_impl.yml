@@ -84,6 +84,11 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           ./build/libmamba/ext/solv-cpp/tests/test_solv_cpp
+      - name: Run libmamba logging system tests
+        shell: bash -elo pipefail {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          cd ./build/libmamba && ./tests/test_libmamba_logging
       - name: Run libmamba tests
         shell: bash -elo pipefail {0}
         run: |

@@ -82,6 +82,11 @@ jobs:
         run: |
           unset CONDARC  # Interferes with tests
           ./build/libmamba/tests/test_libmamba
+      - name: Run libmamba logging system tests
+        shell: bash -elo pipefail {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          ./build/libmamba/tests/test_libmamba_logging
 
   libmambapy_tests_unix:
     name: libmambapy tests

@@ -185,6 +185,11 @@ namespace mamba::logging::testing
         AnyLogHandler handler;
     };
 
+    inline auto testing_log_sources() -> std::vector<log_source>
+    {
+        return { log_source::tests };
+    }
+
     struct LogHandlerTestsOptions
     {
         std::size_t log_count = 10;
@@ -193,17 +198,27 @@ namespace mamba::logging::testing
         std::string format_log_message_backtrace_without_guard = "test log in backtrace without guards {}";
         log_level level = log_level::warn;
         std::size_t backtrace_size = 5;
+        stop_reason last_stop_reason = stop_reason::program_exit;
+        std::vector<log_source> log_sources = testing_log_sources();
     };
 
     template <LogHandlerOrPtr T>
     auto test_classic_inline_logging_api_usage(T&& handler, const LogHandlerTestsOptions options = {})
         -> LogHandlerTestsResult
     {
+        if (options.log_sources.empty())
+        {
+            throw std::invalid_argument("at least one log source must be specified");
+        }
+
+        // clear previous log handler if any
+        stop_logging(stop_reason::manual_stop);
+
         testing::Stats stats;
 
-        // SECTION("start stop(manual) start")
+        // start stop(manual) start
         {
-            auto previous_handler = set_log_handler(std::forward<T>(handler));
+            auto previous_handler = set_log_handler(std::forward<T>(handler), {}, options.log_sources);
             REQUIRE(not previous_handler.has_value());
             REQUIRE(get_log_handler().has_value());
             ++stats.start_count;
@@ -213,7 +228,7 @@ namespace mamba::logging::testing
             REQUIRE(not get_log_handler().has_value());
             ++stats.stop_count;
 
-            previous_handler = set_log_handler(std::move(original_handler));
+            previous_handler = set_log_handler(std::move(original_handler), {}, options.log_sources);
             REQUIRE(not previous_handler.has_value());
             REQUIRE(get_log_handler().has_value());
             ++stats.start_count;
@@ -228,7 +243,7 @@ namespace mamba::logging::testing
         // continue using the same handler in operations below
         REQUIRE(get_log_handler().has_value());
 
-        // SECTION("change parameters")
+        // change parameters
         {
             set_log_level(log_level::debug);
             REQUIRE(get_log_level() == log_level::debug);
@@ -250,18 +265,19 @@ namespace mamba::logging::testing
             stats.current_params = get_logging_params();
         }
 
-        // SECTION("logging")
+        // logging
         {
             for (size_t i = 0; i < options.log_count; ++i)
             {
                 log({ .message = fmt::format(fmt::runtime(options.format_log_message), i),
-                      .level = options.level });
+                      .level = options.level,
+                      .source = options.log_sources.front() });
             }
             stats.log_count += options.log_count;
             stats.real_output_log_count += options.log_count;
         }
 
-        // SECTION("backtrace")
+        // backtrace
         {
             enable_backtrace(options.backtrace_size);
             ++stats.backtrace_size_change_count;
@@ -270,7 +286,8 @@ namespace mamba::logging::testing
                 for (size_t i = 0; i < options.log_count; ++i)
                 {
                     log({ .message = fmt::format(fmt::runtime(options.format_log_message_backtrace), i),
-                          .level = options.level });
+                          .level = options.level,
+                          .source = options.log_sources.front() });
                 }
                 stats.log_count += options.log_count;
 
@@ -292,7 +309,8 @@ namespace mamba::logging::testing
                               fmt::runtime(options.format_log_message_backtrace_without_guard),
                               i
                           ),
-                          .level = options.level });
+                          .level = options.level,
+                          .source = options.log_sources.front() });
                 }
                 stats.log_count += options.log_count;
 
@@ -315,7 +333,7 @@ namespace mamba::logging::testing
             ++stats.backtrace_size_change_count;
         }
 
-        // SECTION("flush")
+        // flush
         {
             flush_logs();
             ++stats.flush_all_count;
@@ -335,7 +353,7 @@ namespace mamba::logging::testing
         }
 
         ++stats.stop_count;
-        return { .stats = std::move(stats), .handler = stop_logging(stop_reason::program_exit) };
+        return { .stats = std::move(stats), .handler = stop_logging(options.last_stop_reason) };
     }
 
     // This generator must be kept in sync with testing::test_classic_inline_logging_api_usage()
@@ -360,10 +378,9 @@ namespace mamba::logging::testing
 
             for (std::size_t i = start_log_idx; i < options.log_count; ++i)
             {
-                log_impl_func({
-                    .message = fmt::format(fmt::runtime(message_format), i),
-                    .level = options.level,
-                });
+                log_impl_func({ .message = fmt::format(fmt::runtime(message_format), i),
+                                .level = options.level,
+                                .source = options.log_sources.front() });
             }
         };
 
@@ -371,6 +388,5 @@ namespace mamba::logging::testing
         output_loop(options.format_log_message_backtrace, options.backtrace_size);
         output_loop(options.format_log_message_backtrace_without_guard, options.backtrace_size);
     };
-
 
 }

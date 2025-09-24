@@ -696,12 +696,20 @@ namespace mamba
             @param handler The log handler implementation to use when the other operations of the
                            logging system are called, or if no log handler
                            (`handler.has_value() == false`).
+            @param maybe_new_params Optional new parameters to the logging system. If provided,
+                           overwrites the current parameters. If not, the previous parameters
+                           will be used.
+            @param new_log_sources List of possible `LogRecords` origins used by libmamba. This is
+                                   mostly used in implementations that need to setup separate log
+                                   sinks depending on the source.
 
             @returns The previously registered log handler if any.
         */
-        auto
-        set_log_handler(AnyLogHandler handler, std::optional<LoggingParams> maybe_new_params = {})
-            -> AnyLogHandler;
+        auto set_log_handler(
+            AnyLogHandler handler,
+            std::optional<LoggingParams> maybe_new_params = {},
+            std::vector<log_source> new_log_sources = all_log_sources()
+        ) -> AnyLogHandler;
 
         /// @returns The currently registered log handler, if any. This call is NOT thread-safe.
         auto get_log_handler() -> AnyLogHandler&;

@@ -124,8 +124,7 @@ namespace mamba::logging
         AnyLogHandler new_handler,
         std::optional<LoggingParams> maybe_new_params,
         std::vector<log_source> new_log_sources
-    )
-        -> AnyLogHandler
+    ) -> AnyLogHandler
     {
         return change_log_handler(
             std::move(new_handler),

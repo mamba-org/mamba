@@ -11,7 +11,6 @@
 #include <fmt/core.h>
 
 #include <mamba/core/logging_spdlog.hpp>
-#include <mamba/core/util_scope.hpp>
 
 #include "test_logging_common.hpp"
 
@@ -20,7 +19,9 @@ namespace mamba::logging
 
     TEST_CASE("LogHandler_spdlog basics")
     {
-        static constexpr LogRecord any_log{ .message = "this is a test", .level = log_level::warn, .source = log_source::tests };
+        static constexpr LogRecord any_log{ .message = "this is a test",
+                                            .level = log_level::warn,
+                                            .source = log_source::tests };
 
         spdlogimpl::LogHandler_spdlog handler;
 
@@ -91,5 +92,18 @@ namespace mamba::logging
         }
     }
 
+    TEST_CASE("LogHandler_spdlog concurrency")
+    {
+        spdlogimpl::LogHandler_spdlog handler;
 
+        SECTION("as sunk object")
+        {
+            testing::test_concurrent_logging_api_support(std::move(handler));
+        }
+
+        SECTION("as pointer")
+        {
+            testing::test_concurrent_logging_api_support(&handler);
+        }
+    }
 }

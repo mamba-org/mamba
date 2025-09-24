@@ -175,11 +175,7 @@ add_executable(
     libmamba_logging/test_logging_spdlog.cpp
 )
 
-target_link_libraries(test_libmamba_logging 
-    PRIVATE 
-        mamba::libmamba
-        Catch2::Catch2WithMain
-)
+target_link_libraries(test_libmamba_logging PRIVATE mamba::libmamba Catch2::Catch2WithMain)
 
 target_compile_features(test_libmamba_logging PUBLIC cxx_std_20)
 set_target_properties(

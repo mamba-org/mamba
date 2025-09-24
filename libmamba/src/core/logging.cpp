@@ -92,7 +92,8 @@ namespace mamba::logging
         auto change_log_handler(
             AnyLogHandler new_handler,
             std::optional<LoggingParams> maybe_new_params,
-            stop_reason reason
+            stop_reason reason,
+            std::vector<log_source> sources
         ) -> AnyLogHandler
         {
             if (details::current_log_handler)
@@ -106,7 +107,7 @@ namespace mamba::logging
 
             if (details::current_log_handler)
             {
-                details::current_log_handler.start_log_handling(*params, all_log_sources());
+                details::current_log_handler.start_log_handling(*params, sources);
             }
 
             return previous_handler;
@@ -116,16 +117,21 @@ namespace mamba::logging
 
     auto stop_logging(stop_reason reason) -> AnyLogHandler
     {
-        return change_log_handler({}, {}, reason);
+        return change_log_handler({}, {}, reason, {});
     }
 
-    auto set_log_handler(AnyLogHandler new_handler, std::optional<LoggingParams> maybe_new_params)
+    auto set_log_handler(
+        AnyLogHandler new_handler,
+        std::optional<LoggingParams> maybe_new_params,
+        std::vector<log_source> new_log_sources
+    )
         -> AnyLogHandler
     {
         return change_log_handler(
             std::move(new_handler),
             std::move(maybe_new_params),
-            stop_reason::manual_stop
+            stop_reason::manual_stop,
+            std::move(new_log_sources)
         );
     }
 

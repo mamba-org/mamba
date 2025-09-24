@@ -3,6 +3,7 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
+#include <atomic>
 #include <mutex>
 #include <ranges>
 #include <vector>
@@ -55,8 +56,14 @@ namespace mamba::logging::spdlogimpl
         }
     }
 
+    struct LogHandler_spdlog::Impl
+    {
+        TaskSynchronizer tasksync;
+        std::atomic_bool is_active{ false };
+    };
+
     LogHandler_spdlog::LogHandler_spdlog()
-        : tasksync(std::make_unique<TaskSynchronizer>())
+        : pimpl(std::make_unique<Impl>())
     {
     }
 
@@ -69,15 +76,19 @@ namespace mamba::logging::spdlogimpl
     LogHandler_spdlog::start_log_handling(const LoggingParams params, std::vector<log_source> sources)
         -> void
     {
-        assert(tasksync);
-        assert(sources.size() > 0);
+        assert(pimpl);
+        if (sources.empty())
+        {
+            throw std::invalid_argument("LogHandler_spdlog must be started with at least one log source"
+            );
+        }
 
         const auto main_source = sources.front();
 
         spdlog::set_default_logger(
             std::make_shared<Logger>(name_of(main_source), params.log_pattern, "\n")
         );
-        MainExecutor::instance().on_close(tasksync->synchronized(
+        MainExecutor::instance().on_close(pimpl->tasksync.synchronized(
             []
             {
                 if (auto logger = spdlog::default_logger())
@@ -93,11 +104,18 @@ namespace mamba::logging::spdlogimpl
         }
 
         spdlog::set_level(to_spdlog(params.logging_level));
+
+        pimpl->is_active = true;
     }
 
     auto LogHandler_spdlog::stop_log_handling(stop_reason reason) -> void
     {
-        tasksync->join_tasks();
+        if (not pimpl)
+        {
+            return;
+        }
+
+        pimpl->tasksync.join_tasks();
 
         // BEWARE:
         // When exiting the program, we need to let spdlog handle that
@@ -110,8 +128,36 @@ namespace mamba::logging::spdlogimpl
         // otherwise we need to flush and unregister loggers.
         if (reason != stop_reason::program_exit)
         {
-            spdlog::default_logger()->flush();
+            if (auto default_logger = spdlog::default_logger())
+            {
+                default_logger->flush();
+            }
+
             spdlog::drop_all();
+            pimpl->tasksync.reset();
+        }
+        pimpl->is_active = false;
+    }
+
+    namespace
+    {
+        template <std::invocable<std::shared_ptr<spdlog::logger>> Func>
+        auto apply_to_logger(log_source source, Func&& func) -> void
+        {
+            if (auto logger = spdlog::get(name_of(source)))
+            {
+                std::invoke(std::forward<Func>(func), std::move(logger));
+            }
+            else
+            {
+                auto default_logger = spdlog::default_logger();
+                assert(default_logger);
+                default_logger->log(
+                    to_spdlog(log_level::err),
+                    "spdlog logger for source {} not found - operation skipped",
+                    name_of(source)
+                );
+            }
         }
     }
 
@@ -128,15 +174,20 @@ namespace mamba::logging::spdlogimpl
 
     auto LogHandler_spdlog::log(const logging::LogRecord record) -> void
     {
-        auto logger = spdlog::get(name_of(record.source));
-        logger->log(
-            spdlog::source_loc{
-                record.location.file_name(),
-                static_cast<int>(record.location.line()),  // CRINGE
-                record.location.function_name(),
-            },
-            to_spdlog(record.level),
-            record.message
+        apply_to_logger(
+            record.source,
+            [&](auto logger)
+            {
+                logger->log(
+                    spdlog::source_loc{
+                        record.location.file_name(),
+                        static_cast<int>(record.location.line()),  // CRINGE
+                        record.location.function_name(),
+                    },
+                    to_spdlog(record.level),
+                    record.message
+                );
+            }
         );
     }
 
@@ -158,6 +209,8 @@ namespace mamba::logging::spdlogimpl
     auto LogHandler_spdlog::log_backtrace_no_guards() -> void
     {
         auto logger = spdlog::default_logger();
+        assert(logger);
+
         auto plogger = static_cast<Logger*>(logger.get());
         plogger->dump_backtrace_no_guards();
     }
@@ -171,12 +224,17 @@ namespace mamba::logging::spdlogimpl
     {
         if (source)
         {
-            spdlog::get(name_of(source.value()))->flush();
+            apply_to_logger(*source, [](auto logger) { logger->flush(); });
         }
         else
         {
             spdlog::apply_all([](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         }
+    }
+
+    auto LogHandler_spdlog::is_started() const -> bool
+    {
+        return pimpl and pimpl->is_active;
     }
 
 }

@@ -74,14 +74,14 @@ namespace mamba::logging
 
     TEST_CASE("details::BasicBacktrace")
     {
-        LogRecord log_not_pushed{ .message = "must not be pushed" };
-        LogRecord log_a{ .message = "A" };
-        LogRecord log_b{ .message = "B" };
-        LogRecord log_c{ .message = "C" };
-        LogRecord log_d{ .message = "D" };
-        LogRecord log_e{ .message = "E" };
-        LogRecord log_f{ .message = "F" };
-        LogRecord log_g{ .message = "G" };
+        LogRecord log_not_pushed{ .message = "must not be pushed", .source = log_source::tests };
+        LogRecord log_a{ .message = "A", .source = log_source::tests };
+        LogRecord log_b{ .message = "B", .source = log_source::tests };
+        LogRecord log_c{ .message = "C", .source = log_source::tests };
+        LogRecord log_d{ .message = "D", .source = log_source::tests };
+        LogRecord log_e{ .message = "E", .source = log_source::tests };
+        LogRecord log_f{ .message = "F", .source = log_source::tests };
+        LogRecord log_g{ .message = "G", .source = log_source::tests };
 
         details::BasicBacktrace b;
         REQUIRE(not b.is_enabled());
@@ -198,7 +198,9 @@ namespace mamba::logging
 
     TEST_CASE("LogHandler_History basics")
     {
-        static constexpr LogRecord any_log{ .message = "this is a test", .level = log_level::warn };
+        static constexpr LogRecord any_log{ .message = "this is a test",
+                                            .level = log_level::warn,
+                                            .source = log_source::tests };
 
         LogHandler_History handler;
         REQUIRE(not handler.is_started());
@@ -206,7 +208,7 @@ namespace mamba::logging
         REQUIRE(handler.is_started());
 
 
-        SECTION("start and stop (manual)")
+        // start and stop (manual)
         {
             handler.start_log_handling({}, {});
             REQUIRE(handler.is_started());
@@ -218,7 +220,7 @@ namespace mamba::logging
         handler.start_log_handling({}, {});
         REQUIRE(handler.is_started());
 
-        SECTION("history")
+        // history
         {
             REQUIRE(handler.capture_history().empty());
 
@@ -239,7 +241,7 @@ namespace mamba::logging
             REQUIRE(handler.capture_history().empty());
         }
 
-        SECTION("movable")
+        // movable
         {
             handler.log(any_log);
             REQUIRE(handler.is_started());
@@ -255,7 +257,9 @@ namespace mamba::logging
 
     TEST_CASE("LogHandler_StdOut basics")
     {
-        static constexpr LogRecord any_log{ .message = "this is a test", .level = log_level::warn };
+        static constexpr LogRecord any_log{ .message = "this is a test",
+                                            .level = log_level::warn,
+                                            .source = log_source::tests };
         static const std::string expected_log_line = []
         {
             std::stringstream expected_out;
@@ -270,7 +274,7 @@ namespace mamba::logging
         REQUIRE(handler.is_started());
 
 
-        SECTION("start and stop (manual)")
+        // start and stop (manual)
         {
             handler.start_log_handling({}, {});
             REQUIRE(handler.is_started());
@@ -282,7 +286,7 @@ namespace mamba::logging
         handler.start_log_handling({}, {});
         REQUIRE(handler.is_started());
 
-        SECTION("stream output")
+        // stream output
         {
             REQUIRE(out.str().empty());
 
@@ -299,9 +303,11 @@ namespace mamba::logging
             REQUIRE(out.str() == expected_log_line + expected_log_line + expected_log_line);
         }
 
-        SECTION("movable")
+        // movable
         {
-            out.clear();
+            out = {};  // clear
+            REQUIRE(out.str().empty());
+
             handler.log(any_log);
             REQUIRE(handler.is_started());
             REQUIRE(out.str() == expected_log_line);
@@ -335,7 +341,7 @@ namespace mamba::logging
         static const testing::LogHandlerTestsOptions options{ .log_count = arbitrary_log_count };
         const auto expected_output = generate_expected_output(options);
 
-        SECTION("sunk log handler")
+        // sunk log handler
         {
             std::stringstream output;
             const auto results = testing::test_classic_inline_logging_api_usage(
@@ -348,7 +354,7 @@ namespace mamba::logging
             REQUIRE(final_output == expected_output);
         }
 
-        SECTION("pointer to movable log handler")
+        // pointer to movable log handler
         {
             std::stringstream output;
             LogHandler_StdOut handler{ output };
@@ -369,14 +375,14 @@ namespace mamba::logging
         {
             std::vector<LogRecord> output;
             testing::expected_output_test_classic_inline(
-                [&](LogRecord log_record) {
-                    output.push_back(log_record);
-            }, options);
+                [&](LogRecord log_record) { output.push_back(log_record); },
+                options
+            );
             return output;
         };
 
 
-        SECTION("sunk log handler")
+        // sunk log handler
         {
             const testing::LogHandlerTestsOptions options{ .log_count = 24 };
             const auto expected_output = generate_expected_output(options);
@@ -395,7 +401,7 @@ namespace mamba::logging
             REQUIRE(log_history == expected_output);
         }
 
-        SECTION("pointer to movable log handler")
+        // pointer to movable log handler
         {
             const testing::LogHandlerTestsOptions options{ .log_count = 69 };
             const auto expected_output = generate_expected_output(options);

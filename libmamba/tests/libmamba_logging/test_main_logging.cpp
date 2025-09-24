@@ -10,7 +10,7 @@ namespace mamba::logging
 {
     TEST_CASE("logging API basic tests")
     {
-        SECTION("sunk log handler")
+        // sunk log handler
         {
             const auto results = testing::test_classic_inline_logging_api_usage(
                 testing::LogHandler_Tester{},
@@ -23,7 +23,7 @@ namespace mamba::logging
             );
         }
 
-        SECTION("pointer to movable log handler")
+        // pointer to movable log handler
         {
             testing::LogHandler_Tester tester;
             const auto results = testing::test_classic_inline_logging_api_usage(
@@ -35,7 +35,7 @@ namespace mamba::logging
             REQUIRE(results.stats == tester.capture_stats());
         }
 
-        SECTION("supports pointer to non-movable log handlers")
+        // supports pointer to non-movable log handlers
         {
             testing::LogHandler_NotMovable not_movable;
             const auto results = testing::test_classic_inline_logging_api_usage(

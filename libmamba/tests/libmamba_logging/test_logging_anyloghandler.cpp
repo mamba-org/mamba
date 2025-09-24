@@ -264,7 +264,7 @@ namespace mamba::logging
         static constexpr size_t arbitrary_log_count = 42;
         for (size_t log_idx = 0; log_idx < arbitrary_log_count; ++log_idx)
         {
-            x.log(LogRecord{});
+            x.log(LogRecord{ .source = log_source::tests });
             REQUIRE(
                 stats
                 == Stats{ .start_count = 2,

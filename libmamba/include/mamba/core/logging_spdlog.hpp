@@ -14,11 +14,6 @@
 
 #include <mamba/core/logging.hpp>
 
-namespace mamba
-{
-    class TaskSynchronizer;
-}
-
 namespace mamba::logging::spdlogimpl
 {
 
@@ -73,9 +68,12 @@ namespace mamba::logging::spdlogimpl
 
         auto set_flush_threshold(log_level threshold_level) -> void;
 
+        auto is_started() const -> bool;
+
     private:
 
-        std::unique_ptr<TaskSynchronizer> tasksync;
+        struct Impl;
+        std::unique_ptr<Impl> pimpl;
     };
 
     static_assert(logging::LogHandler<LogHandler_spdlog>);

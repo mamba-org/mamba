@@ -549,7 +549,7 @@ namespace mamba::logging::testing
             }
         };
 
-        std::vector<std::jthread> runners;
+        std::vector<std::thread> runners;
         runners.reserve(runners_count);
         for (std::size_t idx = 0; idx < runners_count; ++idx)
         {
@@ -561,8 +561,12 @@ namespace mamba::logging::testing
         green_light = true;
         green_light.notify_all();  // all runners will now start
 
-        // note: std::jthread automatically will join on destruction, so we dont have to explicitly
-        // join them
+        // TODO: once C++20 library is properly supported by linux compilers,
+        // use `jthread` instead of `thread` and remove the following loop.
+        for (auto& thread : runners)
+        {
+            thread.join();
+        }
     }
 
 }

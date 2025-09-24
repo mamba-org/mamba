@@ -533,7 +533,6 @@ namespace mamba::logging
         -> void
     {
         assert(out);
-        assert(pimpl);
 
         if (not pimpl)
         {

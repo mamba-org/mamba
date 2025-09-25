@@ -20,7 +20,7 @@ namespace mamba::logging::spdlogimpl
 
     // THINK: add namespace?
     /// @returns The provided `log_level` value converted to the equivalent value for `spdlog`.
-    inline constexpr auto to_spdlog(log_level level) -> spdlog::level::level_enum
+    constexpr auto to_spdlog(log_level level) -> spdlog::level::level_enum
     {
         static_assert(sizeof(log_level) == sizeof(spdlog::level::level_enum));
         static_assert(

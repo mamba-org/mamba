@@ -9,8 +9,8 @@
 #include <ranges>
 #include <vector>
 
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/null_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <mamba/core/context.hpp>
@@ -250,9 +250,8 @@ namespace mamba::logging::spdlogimpl
     {
         pimpl->options.redirect_to_null_sink = true;
         spdlog::sink_ptr null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
-        spdlog::apply_all([=](std::shared_ptr<spdlog::logger> logger) {
-            logger->sinks() = { null_sink };
-        });
+        spdlog::apply_all([=](std::shared_ptr<spdlog::logger> logger)
+                          { logger->sinks() = { null_sink }; });
     }
 
 }

@@ -17,8 +17,7 @@
 
 namespace mamba::logging
 {
-    /** Matches types which provide the basic operations of an output stream.
-    */
+    /** Matches types which provide the basic operations of an output stream. */
     template <class T>
     concept OutputStream = requires(T& out, const char* cstr, std::string str) {
         { out << cstr };
@@ -295,9 +294,8 @@ namespace mamba::logging
         bool clear_on_stop = true;
     };
 
-    /** `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default.
-    */
-    template <OutputStream OT = std::ostream>
+    /** `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default. */
+    template <OutputStream T = std::ostream>
     class LogHandler_Stream
     {
     public:
@@ -312,7 +310,7 @@ namespace mamba::logging
 
             post-condition: `is_started() == false` until `start_log_handler` is called.
         */
-        LogHandler_Stream(OT& out_ = std::cout, Options options = Options{});
+        LogHandler_Stream(T& out_ = std::cout, Options options = Options{});
 
         LogHandler_Stream(const LogHandler_Stream& other) = delete;
         LogHandler_Stream& operator=(const LogHandler_Stream& other) = delete;
@@ -378,11 +376,10 @@ namespace mamba::logging
             std::atomic<log_level> flush_threshold = log_level::warn;
         };
 
-        OT* out;
+        T* out;
         std::unique_ptr<Impl> pimpl;
         Options options;
     };
-
 
     using LogHandler_StdOut = LogHandler_Stream<std::ostream>;
 
@@ -513,24 +510,24 @@ namespace mamba::logging
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
-    template <OutputStream OT>
-    inline LogHandler_Stream<OT>::LogHandler_Stream(OT& out_, Options options_)
+    template <OutputStream T>
+    inline LogHandler_Stream<T>::LogHandler_Stream(T& out_, Options options_)
         : out(&out_)
         , options(std::move(options_))
     {
         assert(out);
     }
 
-    template <OutputStream OT>
-    inline LogHandler_Stream<OT>::LogHandler_Stream(LogHandler_Stream&& other) noexcept
+    template <OutputStream T>
+    inline LogHandler_Stream<T>::LogHandler_Stream(LogHandler_Stream&& other) noexcept
         : out(std::exchange(other.out, nullptr))
         , pimpl(std::move(other.pimpl))
         , options(std::move(other.options))
     {
     }
 
-    template <OutputStream OT>
-    inline LogHandler_Stream<OT>& LogHandler_Stream<OT>::operator=(LogHandler_Stream&& other) noexcept
+    template <OutputStream T>
+    inline LogHandler_Stream<T>& LogHandler_Stream<T>::operator=(LogHandler_Stream&& other) noexcept
     {
         out = std::exchange(other.out, nullptr);
         pimpl = std::move(other.pimpl);
@@ -538,9 +535,9 @@ namespace mamba::logging
         return *this;
     }
 
-    template <OutputStream OT>
+    template <OutputStream T>
     inline auto
-    LogHandler_Stream<OT>::start_log_handling(LoggingParams params, const std::vector<log_source>&)
+    LogHandler_Stream<T>::start_log_handling(LoggingParams params, const std::vector<log_source>&)
         -> void
     {
         assert(out);
@@ -554,8 +551,8 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(params.log_backtrace);
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::stop_log_handling(stop_reason) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::stop_log_handling(stop_reason) -> void
     {
         assert(out);
         assert(pimpl);
@@ -566,8 +563,8 @@ namespace mamba::logging
         }
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::set_log_level(log_level new_level) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::set_log_level(log_level new_level) -> void
     {
         assert(out);
         assert(pimpl);
@@ -575,8 +572,8 @@ namespace mamba::logging
         pimpl->current_log_level = new_level;
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::set_params(LoggingParams new_params) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::set_params(LoggingParams new_params) -> void
     {
         assert(out);
         assert(pimpl);
@@ -585,8 +582,8 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(new_params.log_backtrace);
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::log(LogRecord record) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::log(LogRecord record) -> void
     {
         assert(out);
         assert(pimpl);
@@ -609,8 +606,8 @@ namespace mamba::logging
         }
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::enable_backtrace(size_t record_buffer_size) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::enable_backtrace(size_t record_buffer_size) -> void
     {
         assert(out);
         assert(pimpl);
@@ -618,8 +615,8 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(record_buffer_size);
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::disable_backtrace() -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::disable_backtrace() -> void
     {
         assert(out);
         assert(pimpl);
@@ -627,8 +624,8 @@ namespace mamba::logging
         pimpl->backtrace->disable();
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::log_backtrace() -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::log_backtrace() -> void
     {
         assert(out);
         assert(pimpl);
@@ -641,8 +638,8 @@ namespace mamba::logging
         synched_backtrace->clear();
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::log_backtrace_no_guards() -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::log_backtrace_no_guards() -> void
     {
         assert(out);
         assert(pimpl);
@@ -650,8 +647,8 @@ namespace mamba::logging
         log_backtrace();  // Similar in this context
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::flush(std::optional<log_source>) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::flush(std::optional<log_source>) -> void
     {
         assert(out);
         assert(pimpl);
@@ -659,8 +656,8 @@ namespace mamba::logging
         out->flush();
     }
 
-    template <OutputStream OT>
-    inline auto LogHandler_Stream<OT>::set_flush_threshold(log_level threshold_level) -> void
+    template <OutputStream T>
+    inline auto LogHandler_Stream<T>::set_flush_threshold(log_level threshold_level) -> void
     {
         assert(out);
         assert(pimpl);
@@ -668,8 +665,8 @@ namespace mamba::logging
         pimpl->flush_threshold = threshold_level;
     }
 
-    template <OutputStream OT>
-    auto LogHandler_Stream<OT>::is_started() const -> bool
+    template <OutputStream T>
+    auto LogHandler_Stream<T>::is_started() const -> bool
     {
         return pimpl != nullptr;
     }

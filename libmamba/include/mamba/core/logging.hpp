@@ -72,7 +72,7 @@ namespace mamba
         return static_cast<unsigned long>(left) <=> right;
     }
 
-    /// @returns The name of the specified log level as an UTF-8 null-terminated string.
+    /** @returns The name of the specified log level as an UTF-8 null-terminated string. */
     constexpr auto name_of(log_level level) noexcept -> const char*
     {
         constexpr std::array names{ "trace", "debug",    "info", "warning",
@@ -83,10 +83,10 @@ namespace mamba
     }
 
     /** Parameters for the logging system.
-     */
+    */
     struct LoggingParams
     {
-        /// Minimum level a log record must have to not be filtered out.
+        /** Minimum level a log record must have to not be filtered out. */
         log_level logging_level{ log_level::warn };
 
         /** Number of log records to keep in the backtrace history.
@@ -95,7 +95,7 @@ namespace mamba
         */
         std::size_t log_backtrace{ 0 };
 
-        /// Formatting pattern to use in formatted logs.
+        /** Formatting pattern to use in formatted logs. */
         std::string_view log_pattern{ "%^%-9!l%-8n%$ %v" };  // FIXME: IS THIS SPECIFIC TO spdlog???
 
         auto operator==(const LoggingParams& other) const noexcept -> bool = default;
@@ -119,7 +119,7 @@ namespace mamba
         return static_cast<std::size_t>(left) <=> right;
     }
 
-    /// @returns The name of the specified log source as an UTF-8 null-terminated string.
+    /** @returns The name of the specified log source as an UTF-8 null-terminated string. */
     constexpr auto name_of(log_source source) noexcept -> const char*
     {
         constexpr std::array names{ "libmamba", "libcurl", "libsolv", "tests" };
@@ -128,7 +128,7 @@ namespace mamba
         return names.at(static_cast<std::size_t>(source));
     }
 
-    /// @returns All `log_source` values as a range.
+    /** @returns All `log_source` values as a range. */
     // FIXME: should be constexpr but some compilers don't implement vector's constexpr destructor
     // yet
     inline auto all_log_sources() noexcept -> std::vector<log_source>
@@ -162,18 +162,18 @@ namespace mamba
          */
         struct LogRecord
         {
-            /// Message to be printed/captured in the logging implementation.
+            /** Message to be printed/captured in the logging implementation. */
             std::string message = {};  // THINK: could be made lazy if it was a function instead,
                                        // but
                                        // requires macros to be functions
 
-            /// Level of this log. If lower than the current level, this log will be ignored.
+            /** Level of this log. If lower than the current level, this log will be ignored. */
             log_level level = log_level::off;
 
-            /// Origin of this log.
+            /** Origin of this log. */
             log_source source = log_source::libmamba;
 
-            /// Source location of this log if available, otherwise empty.
+            /** Source location of this log if available, otherwise empty. */
             std::source_location location = {};  // assigned explicitly to please apple-clang
 
             // comparisons are mainly used for testing
@@ -732,12 +732,14 @@ namespace mamba
         */
         auto set_log_level(log_level new_level) -> log_level;
 
-        /// @returns The current log level of the logging system. This call is thread-safe but the
-        ///          returned value must be considered immediately obsolete.
+        /** @returns The current log level of the logging system. This call is thread-safe but the
+                     returned value must be considered immediately obsolete.
+        */
         auto get_log_level() -> log_level;
 
-        /// @returns The current configuration of the logging system. This call is thread-safe but
-        ///          the returned value must be considered immediately obsolete.
+        /** @returns The current configuration of the logging system. This call is thread-safe but
+                     the returned value must be considered immediately obsolete.
+        */
         auto get_logging_params() -> LoggingParams;
 
         /** Changes the logging system configuration.
@@ -815,7 +817,7 @@ namespace mamba
         */
         auto enable_backtrace(size_t records_buffer_size) -> void;
 
-        /// Equivalent to `enable_backtrace(0);`. @see `mamba::logging::enable_backtrace`
+        /** Equivalent to `enable_backtrace(0);`. @see `mamba::logging::enable_backtrace` */
         auto disable_backtrace() -> void;
 
         /** Sends the log records in the backtrace history to the implementation's logging sinks.

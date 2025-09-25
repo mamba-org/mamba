@@ -1268,7 +1268,7 @@ namespace mamba
     {
         init_root_prefix(context, shell, conda_prefix);
         auto mamba_exe = get_self_exe_path();
-        fs::u8path home = (shell == "zsh") ? util::zsh_home_dir() : util::user_home_dir();
+        fs::u8path home = util::user_home_dir();
         if (shell == "bash")
         {
             // On Linux, when opening the terminal, .bashrc is sourced (because it is an interactive
@@ -1284,6 +1284,7 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
+            home = util::zsh_home_dir();
             fs::u8path zshrc_path = home / ".zshrc";
             modify_rc_file(context, zshrc_path, conda_prefix, shell, mamba_exe);
         }
@@ -1349,7 +1350,7 @@ namespace mamba
     void deinit_shell(Context& context, const std::string& shell, const fs::u8path& conda_prefix)
     {
         auto mamba_exe = get_self_exe_path();
-        fs::u8path home = (shell == "zsh") ? util::zsh_home_dir() : util::user_home_dir();
+        fs::u8path home = util::user_home_dir();
         if (shell == "bash")
         {
             fs::u8path bashrc_path = (util::on_mac || util::on_win) ? home / ".bash_profile"
@@ -1358,6 +1359,7 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
+            home = util::zsh_home_dir();
             fs::u8path zshrc_path = home / ".zshrc";
             reset_rc_file(context, zshrc_path, shell, mamba_exe);
         }
@@ -1416,7 +1418,7 @@ namespace mamba
 
     fs::u8path config_path_for_shell(const std::string& shell)
     {
-        fs::u8path home = (shell == "zsh") ? util::zsh_home_dir() : util::user_home_dir();
+        fs::u8path home = util::user_home_dir();
         fs::u8path config_path;
         if (shell == "bash")
         {
@@ -1424,6 +1426,7 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
+            home = util::zsh_home_dir();
             config_path = home / ".zshrc";
         }
         else if (shell == "xonsh")

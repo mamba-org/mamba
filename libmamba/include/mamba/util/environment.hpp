@@ -63,6 +63,14 @@ namespace mamba::util
     [[nodiscard]] auto user_home_dir() -> std::string;
 
     /**
+     * Return the directory to zsh dotfiles.
+     *
+     * This function checks for the `ZDOTDIR` environment variable and falls back to the user's
+     * home directory if it is not set.
+     */
+    [[nodiscard]] auto zsh_home_dir() -> std::string;
+
+    /**
      * Return the current user config directory.
      *
      * On all platforms, the XDG_CONFIG_HOME environment variables are honored.

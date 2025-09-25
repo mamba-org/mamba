@@ -192,7 +192,7 @@ namespace mamba::logging
             // temporaries
             // TODO: use fmt or fmt::format to do the space prepend
             const auto secured_message = Console::hide_secrets(message);
-            auto formatted_message = prepend(secured_message, "", std::string(4, ' ').c_str());
+            auto formatted_message = prepend(secured_message, "", "    ");
             return LogRecord{
                 .message = std::move(formatted_message),  //
                 .level = level,                           //

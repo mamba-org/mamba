@@ -4,11 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <ranges>
 #include <vector>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/null_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <mamba/core/context.hpp>
@@ -60,11 +62,13 @@ namespace mamba::logging::spdlogimpl
     {
         TaskSynchronizer tasksync;
         std::atomic_bool is_active{ false };
+        LogHandler_spdlog_Options options;
     };
 
-    LogHandler_spdlog::LogHandler_spdlog()
+    LogHandler_spdlog::LogHandler_spdlog(LogHandler_spdlog_Options options)
         : pimpl(std::make_unique<Impl>())
     {
+        pimpl->options = std::move(options);
     }
 
     LogHandler_spdlog::~LogHandler_spdlog() = default;
@@ -104,6 +108,11 @@ namespace mamba::logging::spdlogimpl
         }
 
         spdlog::set_level(to_spdlog(params.logging_level));
+
+        if (pimpl->options.redirect_to_null_sink)
+        {
+            redirect_all_to_null_sink();
+        }
 
         pimpl->is_active = true;
     }
@@ -235,6 +244,15 @@ namespace mamba::logging::spdlogimpl
     auto LogHandler_spdlog::is_started() const -> bool
     {
         return pimpl and pimpl->is_active;
+    }
+
+    auto LogHandler_spdlog::redirect_all_to_null_sink() -> void
+    {
+        pimpl->options.redirect_to_null_sink = true;
+        spdlog::sink_ptr null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
+        spdlog::apply_all([=](std::shared_ptr<spdlog::logger> logger) {
+            logger->sinks() = { null_sink };
+        });
     }
 
 }

@@ -82,8 +82,7 @@ namespace mamba
         return names.at(static_cast<size_t>(level));
     }
 
-    /** Parameters for the logging system.
-    */
+    /** Parameters for the logging system. */
     struct LoggingParams
     {
         /** Minimum level a log record must have to not be filtered out. */

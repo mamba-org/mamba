@@ -15,9 +15,6 @@
 #include <mamba/core/logging.hpp>
 #include <mamba/util/synchronized_value.hpp>
 
-// REVIEW: should this be in utils?
-
-
 namespace mamba::logging
 {
 
@@ -48,7 +45,7 @@ namespace mamba::logging
 
         public:
 
-            /// @returns `true` if the backtrace feature is enabled, `false` otherwise.
+            /** @returns `true` if the backtrace feature is enabled, `false` otherwise. */
             auto is_enabled() const
             {
                 return backtrace_max > 0;
@@ -183,7 +180,7 @@ namespace mamba::logging
 
         All operations are thread-safe except move operations.
     */
-    class LogHandler_History  // THINK: better name
+    class LogHandler_History
     {
     public:
 
@@ -259,8 +256,7 @@ namespace mamba::logging
         */
         auto is_started() const -> bool;
 
-        /** @returns The options this log handler has been constructed with.
-         */
+        /** @returns The options this log handler has been constructed with. */
         auto get_options() const -> const Options&
         {
             return options;
@@ -291,7 +287,8 @@ namespace mamba::logging
         bool clear_on_stop = true;
     };
 
-    /// `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default.
+    /** `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default.
+    */
     class LogHandler_StdOut
     {
     public:
@@ -329,7 +326,6 @@ namespace mamba::logging
                 - after `stop_log_handling` call: `is_started() == true`.
         */
         ///@{
-
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
         auto stop_log_handling(stop_reason reason) -> void;
 

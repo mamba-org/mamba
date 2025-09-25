@@ -1,3 +1,18 @@
+## 2025.09.04
+
+Release: 2.3.3.alpha0 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [libmamba] Fix nodiscard errors by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4058>
+- [libmambapy] Fix deprecated license key by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4053>
+
+Maintenance:
+
+- [libmambapy] Use fmt::format by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4061>
+- [libmambapy] Move to Pybind 3.0 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4059>
+- [libmamba, libmambapy] libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
 ## 2025.08.26
 
 Release: 2.3.2 (libmamba, mamba, micromamba, libmambapy)

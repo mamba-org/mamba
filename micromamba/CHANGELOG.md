@@ -1,3 +1,5 @@
+## micromamba 2.3.3.alpha0 (September 04, 2025)
+
 ## micromamba 2.3.2 (August 26, 2025)
 
 Enhancements:

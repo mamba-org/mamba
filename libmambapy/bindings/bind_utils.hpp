@@ -7,9 +7,10 @@
 #ifndef LIBMAMBAPY_BIND_UTILS_HPP
 #define LIBMAMBAPY_BIND_UTILS_HPP
 
-#include <format>
 #include <memory>
+#include <utility>
 
+#include <fmt/format.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
@@ -48,7 +49,7 @@ namespace mambapy
                         return val;
                     }
                 }
-                throw pybind11::key_error(std::format("No member named {}", s));
+                throw pybind11::key_error(fmt::format("No member named {}", s));
             }
         ));
 

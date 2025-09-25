@@ -17,6 +17,14 @@
 
 namespace mamba::logging
 {
+    /** Matches types which provide the basic operations of an output stream.
+    */
+    template <class T>
+    concept OutputStream = requires(T& out, const char* cstr, std::string str) {
+        { out << cstr };
+        { out << str };
+        { out.flush() };
+    };
 
     namespace details
     {
@@ -148,8 +156,8 @@ namespace mamba::logging
         };
 
         inline auto
-        log_to_stream(std::ostream& out, const LogRecord& record, log_to_stream_options options = {})
-            -> std::ostream&
+        log_to_stream(OutputStream auto& out, const LogRecord& record, log_to_stream_options options = {})
+            -> OutputStream auto&
         {
             auto location_str = options.with_location
                                     ? fmt::format(" ({})", details::as_log(record.location))
@@ -282,18 +290,19 @@ namespace mamba::logging
 
     static_assert(LogHandler<LogHandler_History>);
 
-    struct LogHandler_StdOut_Options  // not nested type because clang and gcc dont like it
+    struct LogHandler_Stream_Options  // not nested type because clang and gcc dont like it
     {
         bool clear_on_stop = true;
     };
 
     /** `LogHandler` that uses `std::ostream` as log record sink, set to `std::out` by default.
     */
-    class LogHandler_StdOut
+    template <OutputStream OT = std::ostream>
+    class LogHandler_Stream
     {
     public:
 
-        using Options = LogHandler_StdOut_Options;
+        using Options = LogHandler_Stream_Options;
 
         /** Constructor providing the output stream to write logs into, `std::cout` by default.
 
@@ -303,13 +312,13 @@ namespace mamba::logging
 
             post-condition: `is_started() == false` until `start_log_handler` is called.
         */
-        LogHandler_StdOut(std::ostream& out_ = std::cout, Options options = Options{});
+        LogHandler_Stream(OT& out_ = std::cout, Options options = Options{});
 
-        LogHandler_StdOut(const LogHandler_StdOut& other) = delete;
-        LogHandler_StdOut& operator=(const LogHandler_StdOut& other) = delete;
+        LogHandler_Stream(const LogHandler_Stream& other) = delete;
+        LogHandler_Stream& operator=(const LogHandler_Stream& other) = delete;
 
-        LogHandler_StdOut(LogHandler_StdOut&& other) noexcept;
-        LogHandler_StdOut& operator=(LogHandler_StdOut&& other) noexcept;
+        LogHandler_Stream(LogHandler_Stream&& other) noexcept;
+        LogHandler_Stream& operator=(LogHandler_Stream&& other) noexcept;
 
         /** `LogHandler` API implementation, @see mamba::logging::LogHandler for the expected
            behavior.
@@ -369,10 +378,13 @@ namespace mamba::logging
             std::atomic<log_level> flush_threshold = log_level::warn;
         };
 
-        std::ostream* out;
+        OT* out;
         std::unique_ptr<Impl> pimpl;
         Options options;
     };
+
+
+    using LogHandler_StdOut = LogHandler_Stream<std::ostream>;
 
     static_assert(LogHandler<LogHandler_StdOut>);
 
@@ -501,22 +513,24 @@ namespace mamba::logging
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
-
-    inline LogHandler_StdOut::LogHandler_StdOut(std::ostream& out_, Options options_)
+    template <OutputStream OT>
+    inline LogHandler_Stream<OT>::LogHandler_Stream(OT& out_, Options options_)
         : out(&out_)
         , options(std::move(options_))
     {
         assert(out);
     }
 
-    inline LogHandler_StdOut::LogHandler_StdOut(LogHandler_StdOut&& other) noexcept
+    template <OutputStream OT>
+    inline LogHandler_Stream<OT>::LogHandler_Stream(LogHandler_Stream&& other) noexcept
         : out(std::exchange(other.out, nullptr))
         , pimpl(std::move(other.pimpl))
         , options(std::move(other.options))
     {
     }
 
-    inline LogHandler_StdOut& LogHandler_StdOut::operator=(LogHandler_StdOut&& other) noexcept
+    template <OutputStream OT>
+    inline LogHandler_Stream<OT>& LogHandler_Stream<OT>::operator=(LogHandler_Stream&& other) noexcept
     {
         out = std::exchange(other.out, nullptr);
         pimpl = std::move(other.pimpl);
@@ -524,8 +538,9 @@ namespace mamba::logging
         return *this;
     }
 
+    template <OutputStream OT>
     inline auto
-    LogHandler_StdOut::start_log_handling(LoggingParams params, const std::vector<log_source>&)
+    LogHandler_Stream<OT>::start_log_handling(LoggingParams params, const std::vector<log_source>&)
         -> void
     {
         assert(out);
@@ -539,7 +554,8 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(params.log_backtrace);
     }
 
-    inline auto LogHandler_StdOut::stop_log_handling(stop_reason) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::stop_log_handling(stop_reason) -> void
     {
         assert(out);
         assert(pimpl);
@@ -550,7 +566,8 @@ namespace mamba::logging
         }
     }
 
-    inline auto LogHandler_StdOut::set_log_level(log_level new_level) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::set_log_level(log_level new_level) -> void
     {
         assert(out);
         assert(pimpl);
@@ -558,7 +575,8 @@ namespace mamba::logging
         pimpl->current_log_level = new_level;
     }
 
-    inline auto LogHandler_StdOut::set_params(LoggingParams new_params) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::set_params(LoggingParams new_params) -> void
     {
         assert(out);
         assert(pimpl);
@@ -567,7 +585,8 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(new_params.log_backtrace);
     }
 
-    inline auto LogHandler_StdOut::log(LogRecord record) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::log(LogRecord record) -> void
     {
         assert(out);
         assert(pimpl);
@@ -590,7 +609,8 @@ namespace mamba::logging
         }
     }
 
-    inline auto LogHandler_StdOut::enable_backtrace(size_t record_buffer_size) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::enable_backtrace(size_t record_buffer_size) -> void
     {
         assert(out);
         assert(pimpl);
@@ -598,7 +618,8 @@ namespace mamba::logging
         pimpl->backtrace->set_max_trace(record_buffer_size);
     }
 
-    inline auto LogHandler_StdOut::disable_backtrace() -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::disable_backtrace() -> void
     {
         assert(out);
         assert(pimpl);
@@ -606,7 +627,8 @@ namespace mamba::logging
         pimpl->backtrace->disable();
     }
 
-    inline auto LogHandler_StdOut::log_backtrace() -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::log_backtrace() -> void
     {
         assert(out);
         assert(pimpl);
@@ -619,7 +641,8 @@ namespace mamba::logging
         synched_backtrace->clear();
     }
 
-    inline auto LogHandler_StdOut::log_backtrace_no_guards() -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::log_backtrace_no_guards() -> void
     {
         assert(out);
         assert(pimpl);
@@ -627,7 +650,8 @@ namespace mamba::logging
         log_backtrace();  // Similar in this context
     }
 
-    inline auto LogHandler_StdOut::flush(std::optional<log_source>) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::flush(std::optional<log_source>) -> void
     {
         assert(out);
         assert(pimpl);
@@ -635,7 +659,8 @@ namespace mamba::logging
         out->flush();
     }
 
-    inline auto LogHandler_StdOut::set_flush_threshold(log_level threshold_level) -> void
+    template <OutputStream OT>
+    inline auto LogHandler_Stream<OT>::set_flush_threshold(log_level threshold_level) -> void
     {
         assert(out);
         assert(pimpl);
@@ -643,7 +668,8 @@ namespace mamba::logging
         pimpl->flush_threshold = threshold_level;
     }
 
-    auto LogHandler_StdOut::is_started() const -> bool
+    template <OutputStream OT>
+    auto LogHandler_Stream<OT>::is_started() const -> bool
     {
         return pimpl != nullptr;
     }

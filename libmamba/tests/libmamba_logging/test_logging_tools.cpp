@@ -433,9 +433,30 @@ namespace mamba::logging
         }
     }
 
+    namespace
+    {
+        struct synched_stringstream
+        {
+            util::synchronized_value<std::stringstream> stream;
+
+            template <class... Args>
+            auto operator<<(Args&&... args) -> synched_stringstream&
+            {
+                stream.apply([&](auto&& out) { out << (std::forward<Args>(args) << ...); });
+                return *this;
+            }
+
+            void flush()
+            {
+                stream->flush();
+            }
+        };
+    }
+
     TEST_CASE("LogHandler_StdOut concurrency")
     {
-        LogHandler_History handler;
+        synched_stringstream out;
+        LogHandler_Stream handler{ out };
 
         SECTION("as sunk object")
         {

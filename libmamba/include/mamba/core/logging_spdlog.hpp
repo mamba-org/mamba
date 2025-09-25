@@ -27,6 +27,16 @@ namespace mamba::logging::spdlogimpl
         return static_cast<spdlog::level::level_enum>(level);
     }
 
+    struct LogHandler_spdlog_Options
+    {
+        /** At each call to `start_log_handling`, after having setup the internal loggers,
+            we remove the sinks and replace them by a null sink.
+
+            Mostly useful in tests.s
+        */
+        bool redirect_to_null_sink = false;
+    };
+
     /** `LogHandler` implementation using `spdlog` library.
 
         Essentially translates the calls to the interface specified by `mamba::logging::LogHandler`
@@ -40,7 +50,7 @@ namespace mamba::logging::spdlogimpl
     {
     public:
 
-        LogHandler_spdlog();
+        LogHandler_spdlog(LogHandler_spdlog_Options options = LogHandler_spdlog_Options{});
         ~LogHandler_spdlog();
 
         LogHandler_spdlog(const LogHandler_spdlog& other) = delete;
@@ -49,6 +59,21 @@ namespace mamba::logging::spdlogimpl
         LogHandler_spdlog(LogHandler_spdlog&& other) noexcept;
         LogHandler_spdlog& operator=(LogHandler_spdlog&& other) noexcept;
 
+        /** `LogHandler` API implementation, @see mamba::logging::LogHandler for the expected
+           behavior.
+
+            All these functions are thread-safe except for `start_log_handling` and
+           `stop_log_handling`.
+
+            pre-conditions:
+                - `is_started() == true`, except for `start_log_handling` and `stop_log_handling`
+                  which don't require this pre-condition.
+
+            post-conditions:
+                - after `start_log_handling` call:`is_started() == true`;
+                - after `stop_log_handling` call: `is_started() == true`.
+        */
+        ///@{
         auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
         auto stop_log_handling(stop_reason reason) -> void;
 
@@ -65,8 +90,17 @@ namespace mamba::logging::spdlogimpl
         auto flush(std::optional<log_source> source = {}) -> void;
 
         auto set_flush_threshold(log_level threshold_level) -> void;
+        ///@}
 
+        /** @returns `true` after `start_log_handling` has been called and `stop_log_handling` was
+            not called since.
+        */
         auto is_started() const -> bool;
+
+        /** After this call, all log records will be routed to the null sink,
+            which implies that all log records will be ignored.
+        */
+        auto redirect_all_to_null_sink() -> void;
 
     private:
 

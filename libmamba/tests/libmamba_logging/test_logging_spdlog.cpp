@@ -17,13 +17,15 @@
 namespace mamba::logging
 {
 
+    const spdlogimpl::LogHandler_spdlog_Options testing_options{ .redirect_to_null_sink = true };
+
     TEST_CASE("LogHandler_spdlog basics")
     {
         static constexpr LogRecord any_log{ .message = "this is a test",
                                             .level = log_level::warn,
                                             .source = log_source::tests };
 
-        spdlogimpl::LogHandler_spdlog handler;
+        spdlogimpl::LogHandler_spdlog handler{ testing_options };
 
         // we need this handler to cleanup loggers properly at the end of this test
         on_scope_exit _{ [&] { handler.stop_log_handling(stop_reason::manual_stop); } };
@@ -70,11 +72,12 @@ namespace mamba::logging
             .last_stop_reason = stop_reason::manual_stop
         };
 
+        spdlogimpl::LogHandler_spdlog handler{ testing_options };
+
         SECTION("sunk log handler")
         {
-            std::stringstream output;
             const auto results = testing::test_classic_inline_logging_api_usage(
-                spdlogimpl::LogHandler_spdlog{},
+                std::move(handler),
                 options
             );
             REQUIRE(results.handler.has_value());
@@ -83,8 +86,6 @@ namespace mamba::logging
 
         SECTION("pointer to movable log handler")
         {
-            std::stringstream output;
-            spdlogimpl::LogHandler_spdlog handler;
             const auto results = testing::test_classic_inline_logging_api_usage(&handler, options);
             REQUIRE(results.handler.has_value());
             REQUIRE(results.handler.unsafe_get<spdlogimpl::LogHandler_spdlog*>() == &handler);
@@ -94,7 +95,7 @@ namespace mamba::logging
 
     TEST_CASE("LogHandler_spdlog concurrency")
     {
-        spdlogimpl::LogHandler_spdlog handler;
+        spdlogimpl::LogHandler_spdlog handler{ testing_options };
 
         SECTION("as sunk object")
         {

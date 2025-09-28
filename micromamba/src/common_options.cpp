@@ -366,6 +366,11 @@ init_install_options(CLI::App* subcom, Configuration& config)
         ->type_size(1)
         ->allow_extra_args(false);
 
+    auto& clone_env = config.at("clone_env");
+    subcom
+        ->add_option("--clone", clone_env.get_cli_config<std::string>(), clone_env.description())
+        ->option_text("ENV_NAME_OR_PATH");
+
     auto& no_pin = config.at("no_pin");
     subcom->add_flag("--no-pin,!--pin", no_pin.get_cli_config<bool>(), no_pin.description());
 

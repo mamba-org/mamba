@@ -14,8 +14,10 @@ package_to_check = "xtensor"
 package_version_to_check = "0.27.0"
 file_to_find_in_package = "xtensor.hpp"
 
+
 def package_to_check_requirements():
     return f"{package_to_check}={package_version_to_check}"
+
 
 def find_cache_archive(cache: Path, pkg_name: str) -> Optional[Path]:
     """Find the archive used in cache from the complete build name."""
@@ -279,7 +281,9 @@ class TestMultiplePkgCaches:
 
         os.environ["CONDA_PKGS_DIRS"] = f"{cache}"
         env_name = "some_env"
-        res = helpers.create("-n", env_name, package_to_check_requirements(), "-v", "--json", no_dry_run=True)
+        res = helpers.create(
+            "-n", env_name, package_to_check_requirements(), "-v", "--json", no_dry_run=True
+        )
 
         env_dir = tmp_root_prefix / "envs" / env_name
         pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
@@ -307,7 +311,9 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
 
         env_name = "some_env"
-        res = helpers.create("-n", env_name, package_to_check_requirements(), "--json", no_dry_run=True)
+        res = helpers.create(
+            "-n", env_name, package_to_check_requirements(), "--json", no_dry_run=True
+        )
 
         env_dir = tmp_root_prefix / "envs" / env_name
         pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
@@ -348,7 +354,9 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache}"
 
         with pytest.raises(subprocess.CalledProcessError):
-            helpers.create("-n", "myenv", package_to_check_requirements(), "-vv", "--json", no_dry_run=True)
+            helpers.create(
+                "-n", "myenv", package_to_check_requirements(), "-vv", "--json", no_dry_run=True
+            )
 
     def test_first_writable_extracted_dir_corrupted(
         self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
@@ -368,7 +376,9 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
 
-        helpers.create("-n", env_name, package_to_check_requirements(), "-vv", "--json", no_dry_run=True)
+        helpers.create(
+            "-n", env_name, package_to_check_requirements(), "-vv", "--json", no_dry_run=True
+        )
 
         install_env_dir = helpers.get_env(env_name)
         pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)
@@ -499,7 +509,9 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
         env_name = "myenv"
 
-        helpers.create("-n", env_name, "-vv", package_to_check_requirements(), "--json", no_dry_run=True)
+        helpers.create(
+            "-n", env_name, "-vv", package_to_check_requirements(), "--json", no_dry_run=True
+        )
 
         install_env_dir = helpers.get_env(env_name)
         pkg_checker = helpers.PackageChecker(package_to_check, install_env_dir)

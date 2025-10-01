@@ -125,12 +125,12 @@ namespace
         index_json["constrains"] = nlohmann::json::array();
         index_json["size"] = 123456;
 
-        std::ofstream index_file(info_dir / "index.json");
+        std::ofstream index_file((info_dir / "index.json").string());
         index_file << index_json.dump(2);
         index_file.close();
 
         // Create minimal required metadata files for a valid conda package
-        std::ofstream paths_file(info_dir / "paths.json");
+        std::ofstream paths_file((info_dir / "paths.json").string());
         paths_file << R"({"paths": [], "paths_version": 1})";
         paths_file.close();
 
@@ -171,7 +171,7 @@ namespace
         REQUIRE(fs::exists(repodata_record_path));
 
         // Read and parse the created repodata_record.json
-        std::ifstream repodata_file(repodata_record_path);
+        std::ifstream repodata_file(repodata_record_path.string());
         nlohmann::json repodata_record;
         repodata_file >> repodata_record;
 

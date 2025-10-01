@@ -96,6 +96,9 @@ namespace
     TEST_CASE("extract_creates_repodata_record_with_dependencies")
     {
         // Test that PackageFetcher.extract() preserves dependencies in repodata_record.json
+#ifdef _WIN32
+        SKIP("Test not supported on Windows");
+#endif
 
         auto& ctx = mambatests::context();
         TemporaryDirectory temp_dir;

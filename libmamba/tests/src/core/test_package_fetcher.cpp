@@ -96,7 +96,6 @@ namespace
     TEST_CASE("extract_creates_repodata_record_with_dependencies")
     {
         // Test that PackageFetcher.extract() preserves dependencies in repodata_record.json
-        // This test FAILS when the bug is present, PASSES when fixed
 
         auto& ctx = mambatests::context();
         TemporaryDirectory temp_dir;
@@ -176,9 +175,6 @@ namespace
         nlohmann::json repodata_record;
         repodata_file >> repodata_record;
 
-        // THE TEST: Dependencies should be preserved from index.json, not empty
-        // This will FAIL with the bug (empty arrays preserved)
-        // This will PASS with the fix (dependencies from index.json preserved)
         REQUIRE(repodata_record.contains("depends"));
         REQUIRE(repodata_record["depends"].is_array());
         REQUIRE(repodata_record["depends"].size() == 2);

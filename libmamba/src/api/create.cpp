@@ -11,7 +11,10 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/path_manip.hpp"
 
 namespace mamba
 {
@@ -30,12 +33,97 @@ namespace mamba
         config.load();
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
+        auto& clone_env_name = config.at("clone_env").value<std::string>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
         auto& json_format = config.at("json").get_cli_config<bool>();
         auto& env_vars = config.at("spec_file_env_vars").value<std::map<std::string, std::string>>();
         auto& no_env = config.at("no_env").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
+
+        // Handle clone environment logic
+        std::vector<std::string> clone_specs;
+        if (!clone_env_name.empty())
+        {
+            // Validate that no other specs are provided when cloning
+            if (!create_specs.empty())
+            {
+                const auto message = "Cannot specify packages when cloning an environment. Use --clone only.";
+                LOG_ERROR << message;
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
+
+            auto& file_specs = config.at("file_specs").value<std::vector<std::string>>();
+            if (!file_specs.empty())
+            {
+                const auto message = "Cannot specify environment file when cloning an environment. Use --clone only.";
+                LOG_ERROR << message;
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
+
+            // Determine source environment path
+            fs::u8path source_prefix;
+            if (fs::exists(clone_env_name))
+            {
+                // Direct path provided
+                source_prefix = clone_env_name;
+            }
+            else
+            {
+                // Environment name provided, look for it
+                if (clone_env_name == "base")
+                {
+                    source_prefix = ctx.prefix_params.root_prefix;
+                }
+                else
+                {
+                    // Search in envs directories
+                    bool found = false;
+                    for (const auto& envs_dir : ctx.envs_dirs)
+                    {
+                        auto potential_path = envs_dir / clone_env_name;
+                        if (fs::exists(potential_path) && is_conda_environment(potential_path))
+                        {
+                            source_prefix = potential_path;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        const auto message = "Environment '" + clone_env_name + "' not found.";
+                        LOG_ERROR << message;
+                        throw mamba_error(message, mamba_error_code::incorrect_usage);
+                    }
+                }
+            }
+
+            // Validate source environment exists and is a conda environment
+            if (!fs::exists(source_prefix) || !is_conda_environment(source_prefix))
+            {
+                const auto message = "Source environment '" + source_prefix.string() + "' is not a valid conda environment.";
+                LOG_ERROR << message;
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
+
+            // Get package list from source environment
+            auto maybe_source_prefix_data = PrefixData::create(source_prefix, channel_context);
+            if (!maybe_source_prefix_data)
+            {
+                const auto message = "Could not load prefix data from source environment: " + maybe_source_prefix_data.error().what();
+                LOG_ERROR << message;
+                throw mamba_error(message, mamba_error_code::incorrect_usage);
+            }
+            auto records = maybe_source_prefix_data.value().sorted_records();
+            
+            // Convert records to specs for installation
+            for (const auto& record : records)
+            {
+                clone_specs.push_back(record.name + "=" + record.version + "=" + record.build_string);
+            }
+
+            LOG_INFO << "Cloning environment '" << source_prefix.string() << "' with " << clone_specs.size() << " packages.";
+        }
 
         bool remove_prefix_on_failure = false;
         bool create_env = true;
@@ -82,7 +170,7 @@ namespace mamba
                     throw mamba_error(message, mamba_error_code::incorrect_usage);
                 }
             }
-            if (create_specs.empty())
+            if (create_specs.empty() && clone_specs.empty())
             {
                 detail::create_empty_target(ctx, ctx.prefix_params.target_prefix, env_vars, no_env);
             }
@@ -98,7 +186,7 @@ namespace mamba
         }
         else
         {
-            if (create_specs.empty() && json_format)
+            if (create_specs.empty() && clone_specs.empty() && json_format)
             {
                 // Just print the JSON
                 nlohmann::json output;
@@ -124,14 +212,17 @@ namespace mamba
                 remove_prefix_on_failure
             );
         }
-        else if (!create_specs.empty())
+        else if (!create_specs.empty() || !clone_specs.empty())
         {
+            // Use clone_specs if available, otherwise use create_specs
+            const auto& specs_to_install = !clone_specs.empty() ? clone_specs : create_specs;
+            
             if (use_explicit)
             {
                 install_explicit_specs(
                     ctx,
                     channel_context,
-                    create_specs,
+                    specs_to_install,
                     create_env,
                     remove_prefix_on_failure
                 );
@@ -142,7 +233,7 @@ namespace mamba
                     ctx,
                     channel_context,
                     config,
-                    create_specs,
+                    specs_to_install,
                     create_env,
                     remove_prefix_on_failure
                 );

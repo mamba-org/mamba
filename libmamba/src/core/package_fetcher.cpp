@@ -438,14 +438,13 @@ namespace mamba
 
         // For explicit spec files (URLs), m_package_info has empty depends/constrains arrays
         // that would overwrite the correct values from index.json. Remove these empty fields.
-        auto depends_it = repodata_record.find("depends");
-        auto constrains_it = repodata_record.find("constrains");
-
-        if (depends_it != repodata_record.end() && depends_it->empty())
+        if (auto depends_it = repodata_record.find("depends");
+            depends_it != repodata_record.end() && depends_it->empty())
         {
             repodata_record.erase("depends");
         }
-        if (constrains_it != repodata_record.end() && constrains_it->empty())
+        if (auto constrains_it = repodata_record.find("constrains");
+            constrains_it != repodata_record.end() && constrains_it->empty())
         {
             repodata_record.erase("constrains");
         }

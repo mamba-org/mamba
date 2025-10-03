@@ -110,9 +110,11 @@ namespace
         REQUIRE(pkg_info.dependencies.empty());
         REQUIRE(pkg_info.constrains.empty());
 
+        // Extract base filename without extension for reuse
+        const std::string pkg_basename = pkg_info.filename.substr(0, pkg_info.filename.size() - 6);
+
         // Create a minimal but valid conda package structure
-        auto pkg_extract_dir = temp_dir.path() / "pkgs"
-                               / (pkg_info.filename.substr(0, pkg_info.filename.size() - 6));
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
         auto info_dir = pkg_extract_dir / "info";
         fs::create_directories(info_dir);
 
@@ -125,19 +127,20 @@ namespace
         index_json["constrains"] = nlohmann::json::array();
         index_json["size"] = 123456;
 
-        std::ofstream index_file((info_dir / "index.json").std_path());
-        index_file << index_json.dump(2);
-        index_file.close();
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
 
         // Create minimal required metadata files for a valid conda package
-        std::ofstream paths_file((info_dir / "paths.json").std_path());
-        paths_file << R"({"paths": [], "paths_version": 1})";
-        paths_file.close();
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
 
         // Create a simple tar.bz2 archive that contains our info directory
         // A .conda file is a zip archive, but let's use .tar.bz2 format for simplicity
-        auto tarball_path = temp_dir.path() / "pkgs"
-                            / (pkg_info.filename.substr(0, pkg_info.filename.size() - 6) + ".tar.bz2");
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
 
         // Use system tar to create a valid tar.bz2 archive
         std::string tar_cmd = "cd \"" + pkg_extract_dir.string() + "\" && tar -cjf \""
@@ -148,8 +151,7 @@ namespace
 
         // Update pkg_info to use .tar.bz2 format instead of .conda
         auto modified_pkg_info = pkg_info;
-        modified_pkg_info.filename = pkg_info.filename.substr(0, pkg_info.filename.size() - 6)
-                                     + ".tar.bz2";
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
 
         // Clean up the extracted directory so PackageFetcher can extract fresh
         fs::remove_all(pkg_extract_dir);

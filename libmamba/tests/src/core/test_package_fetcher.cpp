@@ -125,7 +125,7 @@ namespace
         index_json["version"] = pkg_info.version;
         index_json["build"] = pkg_info.build_string;
         index_json["depends"] = nlohmann::json::array({ "python >=3.7" });
-        index_json["constrains"] = nlohmann::json::array();
+        index_json["constrains"] = nlohmann::json::array({ "pytz" });
         index_json["size"] = 123456;
 
         {
@@ -190,6 +190,7 @@ namespace
         // Also verify constrains is handled correctly
         REQUIRE(repodata_record.contains("constrains"));
         REQUIRE(repodata_record["constrains"].is_array());
-        REQUIRE(repodata_record["constrains"].empty());
+        REQUIRE(repodata_record["constrains"].size() == 1);
+        REQUIRE(repodata_record["constrains"][0] == "pytz");
     }
 }

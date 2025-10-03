@@ -6,8 +6,8 @@
 
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
+#include "mamba/core/logging.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/validation/tools.hpp"
@@ -49,7 +49,7 @@ namespace
         REQUIRE(error == 0);
         REQUIRE(pk_hex == hex_str(pk_bytes));
 
-        spdlog::set_level(spdlog::level::debug);
+        logging::set_log_level(log_level::debug);
 
         std::array<std::byte, 5> not_even_key;
         pk_hex = hex_str(not_even_key);
@@ -63,7 +63,7 @@ namespace
         REQUIRE(error == 0);
         REQUIRE_FALSE(pk_hex == hex_str(pk_bytes));
 
-        spdlog::set_level(spdlog::level::info);
+        logging::set_log_level(log_level::info);
     }
 
     TEST_CASE("ed25519_sig_hex_to_bytes")
@@ -80,7 +80,7 @@ namespace
         REQUIRE(error == 0);
         REQUIRE(sig_hex == hex_str(sig_bytes));
 
-        spdlog::set_level(spdlog::level::debug);
+        logging::set_log_level(log_level::debug);
 
         std::array<std::byte, 5> not_even_sig;
         sig_hex = hex_str(not_even_sig);
@@ -94,7 +94,7 @@ namespace
         REQUIRE(error == 0);
         REQUIRE_FALSE(sig_hex == hex_str(sig_bytes));
 
-        spdlog::set_level(spdlog::level::info);
+        logging::set_log_level(log_level::info);
     }
 }
 
@@ -132,20 +132,20 @@ namespace
 
     TEST_CASE_METHOD(VerifyMsg, "wrong_signature")
     {
-        spdlog::set_level(spdlog::level::debug);
+        logging::set_log_level(log_level::debug);
         auto pk_hex = hex_str(pk);
 
         REQUIRE(verify("Some text.", pk_hex, "signature_hex") == 0);
-        spdlog::set_level(spdlog::level::info);
+        logging::set_log_level(log_level::info);
     }
 
     TEST_CASE_METHOD(VerifyMsg, "wrong_public_key")
     {
-        spdlog::set_level(spdlog::level::debug);
+        logging::set_log_level(log_level::debug);
         auto signature_hex = hex_str(signature);
 
         REQUIRE(verify("Some text.", "pk_hex", signature_hex) == 0);
-        spdlog::set_level(spdlog::level::info);
+        logging::set_log_level(log_level::info);
     }
 }
 

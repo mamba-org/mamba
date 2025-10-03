@@ -10,6 +10,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_fetcher.hpp"
+#include "mamba/core/package_handling.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 
@@ -142,11 +143,15 @@ namespace
         // A .conda file is a zip archive, but let's use .tar.bz2 format for simplicity
         auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
 
-        // Use system tar to create a valid tar.bz2 archive
-        std::string tar_cmd = "cd \"" + pkg_extract_dir.string() + "\" && tar -cjf \""
-                              + tarball_path.string() + "\" info/";
-        int result = std::system(tar_cmd.c_str());
-        REQUIRE(result == 0);
+        // Use mamba's create_archive function to create a cross-platform tar.bz2 archive
+        create_archive(
+            pkg_extract_dir,
+            tarball_path,
+            compression_algorithm::bzip2,
+            /* compression_level= */ 1,
+            /* compression_threads= */ 1,
+            /* filter= */ nullptr
+        );
         REQUIRE(fs::exists(tarball_path));
 
         // Update pkg_info to use .tar.bz2 format instead of .conda

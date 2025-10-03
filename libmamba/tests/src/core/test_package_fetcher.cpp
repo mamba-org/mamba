@@ -96,16 +96,14 @@ namespace
     TEST_CASE("extract_creates_repodata_record_with_dependencies")
     {
         // Test that PackageFetcher.extract() preserves dependencies in repodata_record.json
-#ifdef _WIN32
-        SKIP("Test not supported on Windows");
-#endif
 
         auto& ctx = mambatests::context();
         TemporaryDirectory temp_dir;
         MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
 
         // Create PackageInfo from URL (exhibits the problematic empty dependencies)
-        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/zeromq-4.3.5-h59595ed_1.conda";
+        // Using a noarch package to ensure cross-platform compatibility
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/noarch/tzdata-2024a-h0c530f3_0.conda";
         auto pkg_info = specs::PackageInfo::from_url(url).value();
 
         // Verify precondition: PackageInfo from URL has empty dependencies
@@ -123,17 +121,16 @@ namespace
         index_json["name"] = pkg_info.name;
         index_json["version"] = pkg_info.version;
         index_json["build"] = pkg_info.build_string;
-        index_json["depends"] = nlohmann::json::array({ "libgcc-ng >=12",
-                                                        "libsodium >=1.0.18,<1.0.19.0a0" });
+        index_json["depends"] = nlohmann::json::array({ "python >=3.7" });
         index_json["constrains"] = nlohmann::json::array();
         index_json["size"] = 123456;
 
-        std::ofstream index_file((info_dir / "index.json").string());
+        std::ofstream index_file((info_dir / "index.json").std_path());
         index_file << index_json.dump(2);
         index_file.close();
 
         // Create minimal required metadata files for a valid conda package
-        std::ofstream paths_file((info_dir / "paths.json").string());
+        std::ofstream paths_file((info_dir / "paths.json").std_path());
         paths_file << R"({"paths": [], "paths_version": 1})";
         paths_file.close();
 
@@ -143,8 +140,8 @@ namespace
                             / (pkg_info.filename.substr(0, pkg_info.filename.size() - 6) + ".tar.bz2");
 
         // Use system tar to create a valid tar.bz2 archive
-        std::string tar_cmd = "cd " + pkg_extract_dir.string() + " && tar -cjf "
-                              + tarball_path.string() + " info/";
+        std::string tar_cmd = "cd \"" + pkg_extract_dir.string() + "\" && tar -cjf \""
+                              + tarball_path.string() + "\" info/";
         int result = std::system(tar_cmd.c_str());
         REQUIRE(result == 0);
         REQUIRE(fs::exists(tarball_path));
@@ -174,15 +171,14 @@ namespace
         REQUIRE(fs::exists(repodata_record_path));
 
         // Read and parse the created repodata_record.json
-        std::ifstream repodata_file(repodata_record_path.string());
+        std::ifstream repodata_file(repodata_record_path.std_path());
         nlohmann::json repodata_record;
         repodata_file >> repodata_record;
 
         REQUIRE(repodata_record.contains("depends"));
         REQUIRE(repodata_record["depends"].is_array());
-        REQUIRE(repodata_record["depends"].size() == 2);
-        REQUIRE(repodata_record["depends"][0] == "libgcc-ng >=12");
-        REQUIRE(repodata_record["depends"][1] == "libsodium >=1.0.18,<1.0.19.0a0");
+        REQUIRE(repodata_record["depends"].size() == 1);
+        REQUIRE(repodata_record["depends"][0] == "python >=3.7");
 
         // Also verify constrains is handled correctly
         REQUIRE(repodata_record.contains("constrains"));

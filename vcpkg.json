@@ -1,13 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "dependencies": [
-    "zstd",
     "curl",
     "libiconv",
-    {
-      "features": ["iconv", "lzma", "zlib"],
-      "name": "libxml2"
-    },
+    "libxml2",
     {
       "name": "winreg",
       "platform": "windows"

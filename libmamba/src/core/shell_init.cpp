@@ -1275,6 +1275,7 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
+            home = util::zsh_home_dir();
             fs::u8path zshrc_path = home / ".zshrc";
             modify_rc_file(context, zshrc_path, conda_prefix, shell, mamba_exe);
         }
@@ -1349,6 +1350,7 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
+            home = util::zsh_home_dir();
             fs::u8path zshrc_path = home / ".zshrc";
             reset_rc_file(context, zshrc_path, shell, mamba_exe);
         }
@@ -1415,6 +1417,7 @@ namespace mamba
         }
         else if (shell == "zsh")
         {
+            home = util::zsh_home_dir();
             config_path = home / ".zshrc";
         }
         else if (shell == "xonsh")

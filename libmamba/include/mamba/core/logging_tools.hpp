@@ -7,10 +7,10 @@
 #include <atomic>
 #include <concepts>
 #include <deque>
-#include <format>
 #include <iostream>
 #include <optional>
 
+#include <fmt/core.h>  // TODO: replace by `<format>` once available on all ci compilers
 
 #include <mamba/core/logging.hpp>
 #include <mamba/util/synchronized_value.hpp>
@@ -140,7 +140,7 @@ namespace mamba::logging
 
         inline auto as_log(const std::source_location& location) -> std::string
         {
-            return std::format(
+            return fmt::format(
                 "{}:{}:{} {}",
                 location.file_name(),
                 location.line(),
@@ -159,10 +159,10 @@ namespace mamba::logging
             -> OutputStream auto&
         {
             auto location_str = options.with_location
-                                    ? std::format(" ({})", details::as_log(record.location))
+                                    ? fmt::format(" ({})", details::as_log(record.location))
                                     : std::string{};
 
-            out << std::format(
+            out << fmt::format(
                 "\n{} {}{} : {}",
                 name_of(record.level),
                 name_of(record.source),

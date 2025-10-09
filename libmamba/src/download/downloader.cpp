@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <format>
-
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
@@ -315,7 +313,7 @@ namespace mamba::download
                 case CURLINFO_HEADER_OUT:
                 case CURLINFO_HEADER_IN:
                 {
-                    auto message = std::format(
+                    auto message = fmt::format(
                         "{} {}",
                         symbol_for(type),
                         Console::hide_secrets(std::string_view(data, size))
@@ -405,7 +403,7 @@ namespace mamba::download
     {
         p_handle->reset_headers();
 
-        std::string user_agent = std::format("User-Agent: {} {}", params.user_agent, curl_version());
+        std::string user_agent = fmt::format("User-Agent: {} {}", params.user_agent, curl_version());
         p_handle->add_header(user_agent);
 
         // get url host
@@ -424,7 +422,7 @@ namespace mamba::download
             if (const auto& auth = it->second; std::holds_alternative<specs::BearerToken>(auth))
             {
                 p_handle->add_header(
-                    std::format("Authorization: Bearer {}", std::get<specs::BearerToken>(auth).token)
+                    fmt::format("Authorization: Bearer {}", std::get<specs::BearerToken>(auth).token)
                 );
             }
         }
@@ -1175,7 +1173,7 @@ namespace mamba::download
             auto completion_callback = m_completion_map.find(msg.m_handle_id);
             if (completion_callback == m_completion_map.end())
             {
-                LOG_ERROR << std::format(
+                LOG_ERROR << fmt::format(
                     "Received DONE message from unknown target - running transfers left = {}",
                     still_running
                 );

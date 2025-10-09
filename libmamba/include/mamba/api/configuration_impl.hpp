@@ -7,7 +7,6 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "mamba/core/common_types.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/fs/filesystem.hpp"
 

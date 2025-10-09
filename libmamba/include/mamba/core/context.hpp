@@ -305,9 +305,9 @@ namespace mamba
         // This function must be called only for one Context in the lifetime of the program.
         void enable_signal_handling();
 
-        // Enables the provided context to drive the logging system.
+        // Starts using the provided context to drive the logging system.
         // This function must be called only for one Context in the lifetime of the program.
-        void enable_logging(logging::AnyLogHandler log_handler);
+        void start_logging(logging::AnyLogHandler log_handler);
     };
 
 

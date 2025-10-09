@@ -52,8 +52,7 @@ namespace mamba
         }
     }
 
-    void Context::enable_logging(logging::AnyLogHandler log_handler)  // THINK: change name?
-                                                                      // start_logging?
+    void Context::start_logging(logging::AnyLogHandler log_handler)
     {
         if (not logging::get_log_handler())  // don't allow replacing one already set; THINK: OR DO
                                              // WE ALLOW THAT????
@@ -109,7 +108,7 @@ namespace mamba
 
         if (options.enable_logging)
         {
-            enable_logging(std::move(log_handler));
+            start_logging(std::move(log_handler));
         }
     }
 

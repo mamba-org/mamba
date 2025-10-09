@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cassert>
 #include <mutex>
+#include <shared_mutex>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/synchronized_value.hpp"
@@ -17,6 +18,7 @@ extern "C"
 }
 
 #include "mamba/core/execution.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 
 namespace mamba
@@ -31,6 +33,46 @@ namespace mamba
     // construction and destruction order will follow this file's order.
     // Other static objects from other translation units can be destroyed in parallel to the ones
     // here as C++ does not guarantee any order of destruction after `main()`.
+
+    //--- Logging System
+    //------------------------------------------------------------------
+
+    namespace logging::details
+    {
+        // FIXME:
+        // This should really be using `std::shared_mutex` but on some compilers they
+        // dont accept `constinit` here, so until this is fixed we'll lose performance using
+        // `std::mutex` when we mostly are reading data, not modifying,
+        // but at least we maintain correctness and avoid static-init fiasco.
+#if defined(__APPLE__)
+        using params_mutex = std::mutex;
+#else
+        using params_mutex = std::shared_mutex;
+#endif
+        constinit util::synchronized_value<LoggingParams, params_mutex> logging_params;
+
+        // IMPORTANT NOTE:
+        // The handler MUST NOT be protected from concurrent calls at this level
+        // as that would add high performance cost to logging from multiple threads.
+        // Instead, we expect the implementation to handle concurrent calls correctly
+        // in a thread-safe manner which is appropriate for this implementation.
+        //
+        // There are many ways to implement such handlers, including with a mutex,
+        // various mutex types, through a concurrent lock-free queue of logging record feeding
+        // a specific thread responsible for the output and file writing, etc.
+        // There are too many ways that we can't predict and each impl will have it's own
+        // best strategy.
+        //
+        // So instead of protecting at this level, we require the implementation of the handler
+        // to be thread-safe, whatever the details. We can't enforce that property and can only
+        // require it with the documentation which should guide the implementers anyway.
+        constinit AnyLogHandler current_log_handler;
+
+        // MessageLogger
+        constinit std::atomic<bool> message_logger_use_buffer;
+        constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
+
+    }
 
     //--- Dependencies singletons
     //----------------------------------------------------------------------
@@ -100,6 +142,7 @@ namespace mamba
     std::mutex MessageLoggerData::m_mutex;
     bool MessageLoggerData::use_buffer(false);
     std::vector<std::pair<std::string, log_level>> MessageLoggerData::m_buffer({});
+
 
     //--- Concurrency resources / thread-handling
     //------------------------------------------------------------------

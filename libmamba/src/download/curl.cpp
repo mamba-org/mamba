@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <format>
 #include <functional>
 
 #include "mamba/core/logging.hpp"
@@ -68,7 +69,7 @@ namespace mamba::download
             if (proxy)
             {
                 curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
-                LOG_INFO << fmt::format("Using Proxy {}", hide_secrets(*proxy));
+                LOG_INFO << std::format("Using Proxy {}", hide_secrets(*proxy));
             }
 
             if (ssl_verify.size())

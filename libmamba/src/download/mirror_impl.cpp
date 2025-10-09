@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <format>
+
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/util/string.hpp"
@@ -99,7 +101,7 @@ namespace mamba::download
             if (parts.size() > 2)
             {
                 std::string last_part = parts[2].substr(0, parts[2].find_first_of("."));
-                tag = fmt::format("{}-{}", parts[1], last_part);
+                tag = std::format("{}-{}", parts[1], last_part);
             }
             else
             {
@@ -123,8 +125,8 @@ namespace mamba::download
             }
             catch (const nlohmann::detail::parse_error& e)
             {
-                LOG_ERROR << fmt::format("Could not parse JSON\n{}", value);
-                LOG_ERROR << fmt::format("Error message: {}", e.what());
+                LOG_ERROR << std::format("Could not parse JSON\n{}", value);
+                LOG_ERROR << std::format("Error message: {}", e.what());
                 return nl::json::object();
             }
         }
@@ -316,12 +318,12 @@ namespace mamba::download
         if (util::starts_with(mapped_package_name, "_"))
         {
             mapped_package_name.insert(0, std::string("zzz"));
-            mapped_repo = fmt::format("{}/{}", parts[0], mapped_package_name);
+            mapped_repo = std::format("{}/{}", parts[0], mapped_package_name);
         }
 
         if (!m_repo_prefix.empty())
         {
-            return fmt::format("{}/{}", m_repo_prefix, mapped_repo);
+            return std::format("{}/{}", m_repo_prefix, mapped_repo);
         }
         else
         {
@@ -331,7 +333,7 @@ namespace mamba::download
 
     std::string OCIMirror::get_authentication_url(const std::string& repo) const
     {
-        return fmt::format("{}/token?scope=repository:{}:{}", m_url, get_repo(repo), m_scope);
+        return std::format("{}/token?scope=repository:{}:{}", m_url, get_repo(repo), m_scope);
     }
 
     std::string OCIMirror::get_authentication_header(const std::string& token) const
@@ -343,20 +345,20 @@ namespace mamba::download
         }
         else
         {
-            return fmt::format("Authorization: Bearer {}", token);
+            return std::format("Authorization: Bearer {}", token);
         }
     }
 
     std::string OCIMirror::get_manifest_url(const std::string& repo, const std::string& reference) const
     {
-        return fmt::format("{}/v2/{}/manifests/{}", m_url, get_repo(repo), reference);
+        return std::format("{}/v2/{}/manifests/{}", m_url, get_repo(repo), reference);
     }
 
     std::string OCIMirror::get_blob_url(const std::string& repo, const std::string& sha256sum) const
     {
         // Should be this format:
         // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
-        return fmt::format("{}/v2/{}/blobs/sha256:{}", m_url, get_repo(repo), sha256sum);
+        return std::format("{}/v2/{}/blobs/sha256:{}", m_url, get_repo(repo), sha256sum);
     }
 
     auto OCIMirror::get_artifact_data(const std::string& split_path) const -> ArtifactData*

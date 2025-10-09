@@ -78,7 +78,6 @@ namespace mamba::logging
                                 error.what()
                             );
                             std::cerr << message << std::endl;
-                            std::cout << message << std::endl;
                         }
                     );
             });

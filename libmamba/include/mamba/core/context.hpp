@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/common_types.hpp"
 #include "mamba/core/context_params.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"

@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <format>
+
 #include "mamba/core/logging.hpp"
 #include "mamba/util/string.hpp"
 
@@ -76,7 +78,7 @@ namespace mamba::download
             auto ret = ZSTD_decompressStream(p_stream, &output, &input);
             if (ZSTD_isError(ret))
             {
-                LOG_ERROR << fmt::format("ZSTD decompression error: {}", ZSTD_getErrorName(ret));
+                LOG_ERROR << std::format("ZSTD decompression error: {}", ZSTD_getErrorName(ret));
                 return size + 1;
             }
             if (output.pos > 0)
@@ -148,7 +150,7 @@ namespace mamba::download
             int ret = BZ2_bzDecompress(&m_stream);
             if (ret != BZ_OK && ret != BZ_STREAM_END)
             {
-                LOG_ERROR << fmt::format("Bzip2 decompression error: {}", ret);
+                LOG_ERROR << std::format("Bzip2 decompression error: {}", ret);
                 return size + 1;
             }
 
@@ -231,7 +233,7 @@ namespace mamba::download
             auto ret = ZSTD_decompressStream(stream, &output, &input);
             if (ZSTD_isError(ret))
             {
-                LOG_ERROR << fmt::format("ZSTD decompression error: {}", ZSTD_getErrorName(ret));
+                LOG_ERROR << std::format("ZSTD decompression error: {}", ZSTD_getErrorName(ret));
                 return size + 1;
             }
             if (output.pos > 0)
@@ -261,7 +263,7 @@ namespace mamba::download
             int ret = BZ2_bzDecompress(stream);
             if (ret != BZ_OK && ret != BZ_STREAM_END)
             {
-                LOG_ERROR << fmt::format("Bzip2 decompression error: {}", ret);
+                LOG_ERROR << std::format("Bzip2 decompression error: {}", ret);
                 return size + 1;
             }
 

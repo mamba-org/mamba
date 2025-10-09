@@ -4,6 +4,55 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+/** Logging System
+
+    This file exposes the logging API designed to allow users of the libmamba library
+    to decide (in the end-user target/program, ideally) which implementation of a logging
+    system to use by this library when it emits log records.
+    This prevents libmamba from imposing a specific implementation and dependency
+    for logging.
+    It also allows the end-user program to use only one logging library for all it's
+    dependencies that emit log records and have a similar way to handle these records.
+
+    Historically libmamba was using `spdlog` internally and used a lot of it's advanced
+    features. To not break the implementation of libmamba but still enable different
+    logging logging libraries to be used, the log-handler implementations that can be used
+    with libmamba must provide some advanced features so that the behavior of
+    libmamba is kept as expected. Therefore instead of a classing callback to register
+    for handling emitted log records, the log handler must be an object with a required API
+    that will be used on log record emission but also in various other situations.
+
+    To help potential ad-hoc log-handler implementations, we also provides basic implementations
+    of log-handlers and log-handler features (like "backtrace") in `logging_tool.hpp`.
+
+    Overview (where to start looking):
+
+    - `mamba::logging::LogHandler`:
+        The C++ `concept` specifying the interface that a log-handler implementation
+        must provide to be usable by libmamba.
+
+    - `mamba::logging::AnyLogHandler`:
+        A type-erasing type that can store a on object
+        which type satisfies `LogHandler` or a pointer to such type.
+
+    - `mamba::logging::set_log_handler`:
+        The function registering a log handler for usage as soon as the
+        function is returned.
+
+    - `mamba::logging::log`:
+        The function used by libmamba's implementation to log.
+
+    - `mamba::LoggingParams`:
+        Type representing options for the behavior of the logigng system,
+        both on libmamba's side and in the log-handler implementation.
+
+    - `mamba::logging::LogRecord`:
+        Type representing one log record emitted by libmamba or one
+        of it's dependencies (like curl). It provides all the necessary
+        information for the logging implementation to use.
+
+*/
+
 #ifndef MAMBA_CORE_LOGGING_HPP
 #define MAMBA_CORE_LOGGING_HPP
 

@@ -2,8 +2,9 @@
 #ifndef MAMBA_CORE_UTIL_SCOPE_HPP
 #define MAMBA_CORE_UTIL_SCOPE_HPP
 
-#include <format>
 #include <stdexcept>
+
+#include <fmt/core.h>
 
 #include "mamba/core/logging.hpp"
 
@@ -28,7 +29,7 @@ namespace mamba
             }
             catch (const std::exception& ex)
             {
-                LOG_ERROR << std::format("Scope exit error (caught and ignored): {}", ex.what());
+                LOG_ERROR << fmt::format("Scope exit error (caught and ignored): {}", ex.what());
             }
             catch (...)
             {

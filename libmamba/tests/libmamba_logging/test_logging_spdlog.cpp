@@ -8,6 +8,7 @@
 #include <deque>
 
 #include <catch2/catch_all.hpp>
+#include <fmt/core.h>
 
 #include <mamba/core/logging_spdlog.hpp>
 

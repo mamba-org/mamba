@@ -1382,6 +1382,11 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Packages specification"));
 
+        insert(Configurable("clone_env", std::string(""))
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description("Environment name or path to clone from"));
+
         insert(Configurable("others_pkg_mgrs_specs", std::vector<detail::other_pkg_mgr_spec>({}))
                    .group("Basic")
                    .set_single_op_lifetime()

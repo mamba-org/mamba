@@ -60,11 +60,13 @@ namespace
         {
             const auto value = generate_random_alphanumeric_string(i);
             REQUIRE(value.size() == i);
-            REQUIRE(std::all_of(
-                value.cbegin(),
-                value.cend(),
-                [](char c) { return is_digit(c) || is_alpha(c); }
-            ));
+            REQUIRE(
+                std::all_of(
+                    value.cbegin(),
+                    value.cend(),
+                    [](char c) { return is_digit(c) || is_alpha(c); }
+                )
+            );
         }
     }
 }

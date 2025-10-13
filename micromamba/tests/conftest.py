@@ -116,7 +116,8 @@ def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.
 
     The directory is not used automatically when calling this fixture.
     """
-    if (p := request.config.getoption("--mamba-pkgs-dir")) is not None:
+    p = request.config.getoption("--mamba-pkgs-dir")
+    if p is not None:
         p = pathlib.Path(p)
         p.mkdir(parents=True, exist_ok=True)
         return p

@@ -171,11 +171,13 @@ namespace mamba::solver
                     groups.push_back(std::move(current_group));
                 }
             }
-            assert(std::all_of(
-                node_added_to_a_group.begin(),
-                node_added_to_a_group.end(),
-                [](auto x) { return x; }
-            ));
+            assert(
+                std::all_of(
+                    node_added_to_a_group.begin(),
+                    node_added_to_a_group.end(),
+                    [](auto x) { return x; }
+                )
+            );
             return groups;
         }
 
@@ -469,8 +471,9 @@ namespace mamba::solver
 
             {
                 using Node = ProblemsGraph::RootNode;
-                [[maybe_unused]] static constexpr auto type_idx = variant_type_index<ProblemsGraph::node_t, Node>(
-                );
+                [[maybe_unused]] static constexpr auto type_idx = variant_type_index<
+                    ProblemsGraph::node_t,
+                    Node>();
                 assert(old_ids_groups[type_idx].size() == 1);
                 assert(old_ids_groups[type_idx][0].size() == 1);
                 assert(old_ids_groups[type_idx][0][0] == pbs.root_node());
@@ -650,12 +653,14 @@ namespace mamba::solver
             {
                 if (invoke_name(*it) != invoke_name(*first))
                 {
-                    throw std::invalid_argument(util::concat(
-                        "iterator contains different names (",
-                        invoke_name(*first),
-                        ", ",
-                        invoke_name(*it)
-                    ));
+                    throw std::invalid_argument(
+                        util::concat(
+                            "iterator contains different names (",
+                            invoke_name(*first),
+                            ", ",
+                            invoke_name(*it)
+                        )
+                    );
                 }
             }
         }
@@ -1314,12 +1319,14 @@ namespace mamba::solver
                 {
                     const auto style = tn.status ? m_format.available : m_format.unavailable;
                     auto [versions_trunc, size] = node.versions_trunc();
-                    write(fmt::format(
-                        style,
-                        fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
-                        node.name(),
-                        versions_trunc
-                    ));
+                    write(
+                        fmt::format(
+                            style,
+                            fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
+                            node.name(),
+                            versions_trunc
+                        )
+                    );
                 }
             };
             std::visit(do_write, concat_nodes(tn.ids));
@@ -1383,12 +1390,14 @@ namespace mamba::solver
                 }
                 else
                 {
-                    write(fmt::format(
-                        style,
-                        fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
-                        edges.name(),
-                        relevant_vers_builds_trunc
-                    ));
+                    write(
+                        fmt::format(
+                            style,
+                            fmt::runtime(size == 1 ? "{} {}" : "{} [{}]"),
+                            edges.name(),
+                            relevant_vers_builds_trunc
+                        )
+                    );
                 }
             }
         }
@@ -1623,12 +1632,17 @@ namespace mamba::solver
         auto TreeExplainer::concat_nodes(const std::vector<node_id>& ids) -> node_t
         {
             assert(ids.size() > 0);
-            assert(std::all_of(
-                ids.begin(),
-                ids.end(),
-                [&](auto id)
-                { return m_pbs.graph().node(ids.front()).index() == m_pbs.graph().node(id).index(); }
-            ));
+            assert(
+                std::all_of(
+                    ids.begin(),
+                    ids.end(),
+                    [&](auto id)
+                    {
+                        return m_pbs.graph().node(ids.front()).index()
+                               == m_pbs.graph().node(id).index();
+                    }
+                )
+            );
 
             return std::visit(
                 [&](const auto& node) -> node_t

@@ -608,8 +608,9 @@ namespace mamba
         else if (m_stack)
         {
             get_export_unset_vars(envt, env_vars_to_export);
-            envt.export_vars.push_back({ fmt::format("CONDA_PREFIX_{}", old_conda_shlvl),
-                                         old_conda_prefix });
+            envt.export_vars.push_back(
+                { fmt::format("CONDA_PREFIX_{}", old_conda_shlvl), old_conda_prefix }
+            );
             envt.export_vars.push_back({ fmt::format("CONDA_STACKED_{}", new_conda_shlvl), "true" });
         }
         else
@@ -636,8 +637,9 @@ namespace mamba
 
             env_vars_to_export[0] = { "PATH", new_path };
             get_export_unset_vars(envt, env_vars_to_export);
-            envt.export_vars.push_back({ fmt::format("CONDA_PREFIX_{}", old_conda_shlvl),
-                                         old_conda_prefix });
+            envt.export_vars.push_back(
+                { fmt::format("CONDA_PREFIX_{}", old_conda_shlvl), old_conda_prefix }
+            );
         }
 
         if (m_context.change_ps1)

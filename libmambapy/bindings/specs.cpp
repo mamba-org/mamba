@@ -405,13 +405,14 @@ namespace mambapy
         py_resolve_params  //
             .def(
                 py::init(
-                    [](ChannelResolveParams::platform_list platforms,
-                       CondaURL channel_alias,
-                       ChannelResolveParams::channel_map custom_channels,
-                       ChannelResolveParams::multichannel_map custom_multichannels,
-                       AuthenticationDataBase authentication_db,
-                       std::string home_dir,
-                       std::string current_working_dir  //
+                    [](
+                        ChannelResolveParams::platform_list platforms,
+                        CondaURL channel_alias,
+                        ChannelResolveParams::channel_map custom_channels,
+                        ChannelResolveParams::multichannel_map custom_multichannels,
+                        AuthenticationDataBase authentication_db,
+                        std::string home_dir,
+                        std::string current_working_dir  //
                     ) -> ChannelResolveParams
                     {
                         return {
@@ -476,14 +477,15 @@ namespace mambapy
             )
             .def_static(
                 "resolve",
-                [](const UnresolvedChannel& what,
-                   const ChannelResolveParams::platform_list& platforms,
-                   const CondaURL& channel_alias,
-                   const ChannelResolveParams::channel_map& custom_channels,
-                   const ChannelResolveParams::multichannel_map& custom_multichannels,
-                   const AuthenticationDataBase& authentication_db,
-                   std::string_view home_dir,
-                   std::string_view current_working_dir  //
+                [](
+                    const UnresolvedChannel& what,
+                    const ChannelResolveParams::platform_list& platforms,
+                    const CondaURL& channel_alias,
+                    const ChannelResolveParams::channel_map& custom_channels,
+                    const ChannelResolveParams::multichannel_map& custom_multichannels,
+                    const AuthenticationDataBase& authentication_db,
+                    std::string_view home_dir,
+                    std::string_view current_working_dir  //
                 )
                 {
                     return Channel::resolve(
@@ -717,8 +719,7 @@ namespace mambapy
                 py::arg("platform") = decltype(PackageInfo::platform)(),
                 py::arg("filename") = decltype(PackageInfo::filename)(),
                 py::arg("license") = decltype(PackageInfo::license)(),
-                py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(
-                ),
+                py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
                 py::arg("signatures") = decltype(PackageInfo::signatures)(),
@@ -886,17 +887,19 @@ namespace mambapy
                         std::reference_wrapper<const MatchSpec::string_set> track_features;
                     };
 
-                    return ms.contains_except_channel(Pkg{
-                        /* .name= */ name,
-                        /* .version= */ version,
-                        /* .build_string= */ build_string,
-                        /* .build_number= */ build_number,
-                        /* .md5= */ md5,
-                        /* .sha256= */ sha256,
-                        /* .license= */ license,
-                        /* .platform= */ platform,
-                        /* .track_features= */ track_features,
-                    });
+                    return ms.contains_except_channel(
+                        Pkg{
+                            /* .name= */ name,
+                            /* .version= */ version,
+                            /* .build_string= */ build_string,
+                            /* .build_number= */ build_number,
+                            /* .md5= */ md5,
+                            /* .sha256= */ sha256,
+                            /* .license= */ license,
+                            /* .platform= */ platform,
+                            /* .track_features= */ track_features,
+                        }
+                    );
                 },
                 py::arg("name") = "",
                 py::arg("version") = Version(),

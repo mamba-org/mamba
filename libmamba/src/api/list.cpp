@@ -335,10 +335,12 @@ namespace mamba
                 {
                     auto requested_specs = prefix_data.history().get_requested_specs_map();
                     printers::Table t({ "Name", "Version", "Build", "Channel" });
-                    t.set_alignment({ printers::alignment::left,
-                                      printers::alignment::left,
-                                      printers::alignment::left,
-                                      printers::alignment::left });
+                    t.set_alignment(
+                        { printers::alignment::left,
+                          printers::alignment::left,
+                          printers::alignment::left,
+                          printers::alignment::left }
+                    );
                     t.set_padding({ 2, 2, 2, 2 });
 
                     for (auto p : packages)

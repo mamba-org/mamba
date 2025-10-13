@@ -21,17 +21,19 @@ namespace mambapy
         using mapped_type = typename Map::mapped_type;
 
         return py::bind_map<Map>(m, klass)
-            .def(py::init(
-                [](const py::dict& py_db)
-                {
-                    auto db = Map();
-                    for (const auto& [name, auth] : py_db)
+            .def(
+                py::init(
+                    [](const py::dict& py_db)
                     {
-                        db.emplace(py::cast<key_type>(name), py::cast<mapped_type>(auth));
+                        auto db = Map();
+                        for (const auto& [name, auth] : py_db)
+                        {
+                            db.emplace(py::cast<key_type>(name), py::cast<mapped_type>(auth));
+                        }
+                        return db;
                     }
-                    return db;
-                }
-            ))
+                )
+            )
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("at_weaken", py::overload_cast<const std::string&>(&Map::at_weaken, py::const_))

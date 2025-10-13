@@ -139,7 +139,8 @@ def main():
     for idx, line in enumerate(contents):
         if line.startswith("Release"):
             release_re = re.compile(r"Release*:\s+(\d\.\d\.\d[\.\w]*)\s+\(([\w,\s]+)\)\s*")
-            if matches := re.search(release_re, line):
+            matches = re.search(release_re, line)
+            if matches:
                 if release_version is not None:
                     raise ValueError(
                         "multiple release lines (starting with 'Release: ...') found in changelog for last change - consider re-running `update_changelog.py`"
@@ -169,7 +170,8 @@ def main():
                 in_section = True
             sections[-1].text += line
 
-        if m := re.search(brackets_re, line):
+        m = re.search(brackets_re, line)
+        if m:
             if in_section:
                 sections[-1].applies_to = [x.strip() for x in m.groups(1)[0].split(",")]
             else:

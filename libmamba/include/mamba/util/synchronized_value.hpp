@@ -219,14 +219,23 @@ namespace mamba::util
             return *this;
         }
 
-        [[nodiscard]] auto operator*() -> T& requires(not readonly) { return *m_value; }
+        [[nodiscard]] auto operator*() -> T&
+            requires(not readonly)
+        {
+            return *m_value;
+        }
+
         [[nodiscard]] auto operator*() const -> const T&
         {
             return *m_value;
         }
 
-        [[nodiscard]] auto
-        operator->() -> T* requires(not readonly) { return m_value; }
+        [[nodiscard]] auto operator->() -> T*
+            requires(not readonly)
+        {
+            return m_value;
+        }
+
         [[nodiscard]] auto operator->() const -> const T*
         {
             return m_value;
@@ -599,7 +608,9 @@ namespace mamba::util
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     template <std::default_initializable T, Mutex M>
-    synchronized_value<T, M>::synchronized_value() noexcept(std::is_nothrow_default_constructible_v<T>) = default;
+    synchronized_value<T, M>::synchronized_value() noexcept(
+        std::is_nothrow_default_constructible_v<T>
+    ) = default;
 
     template <std::default_initializable T, Mutex M>
     synchronized_value<T, M>::synchronized_value(T value) noexcept
@@ -751,8 +762,8 @@ namespace mamba::util
 
     template <std::default_initializable T, Mutex M>
     auto
-    synchronized_value<T, M>::operator==(const weakly_equality_comparable_with<T> auto& other_value
-    ) const -> bool
+    synchronized_value<T, M>::operator==(const weakly_equality_comparable_with<T> auto& other_value) const
+        -> bool
     {
         auto _ = lock_as_readonly(m_mutex);
         return m_value == other_value;

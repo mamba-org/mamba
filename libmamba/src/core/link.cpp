@@ -1043,8 +1043,9 @@ namespace mamba
             std::vector<fs::u8path> pyc_files = compile_pyc_files(for_compilation);
             for (const fs::u8path& pyc_path : pyc_files)
             {
-                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.generic_string() },
-                                                            { "path_type", "pyc_file" } });
+                out_json["paths_data"]["paths"].push_back(
+                    { { "_path", pyc_path.generic_string() }, { "path_type", "pyc_file" } }
+                );
 
                 out_json["files"].push_back(pyc_path.generic_string());
             }

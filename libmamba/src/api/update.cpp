@@ -93,13 +93,15 @@ namespace mamba
                                 )
                                 == spec_names.end())
                             {
-                                request.jobs.emplace_back(Request::Remove{
-                                    specs::MatchSpec::parse(it.second.name().to_string())
-                                        .or_else([](specs::ParseError&& err)
-                                                 { throw std::move(err); })
-                                        .value(),
-                                    /* .clean_dependencies= */ true,
-                                });
+                                request.jobs.emplace_back(
+                                    Request::Remove{
+                                        specs::MatchSpec::parse(it.second.name().to_string())
+                                            .or_else([](specs::ParseError&& err)
+                                                     { throw std::move(err); })
+                                            .value(),
+                                        /* .clean_dependencies= */ true,
+                                    }
+                                );
                             }
                         }
                     }
@@ -107,22 +109,26 @@ namespace mamba
                     // Install/update everything in specs
                     for (const auto& raw_ms : specs)
                     {
-                        request.jobs.emplace_back(Request::Install{
-                            specs::MatchSpec::parse(raw_ms)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value(),
-                        });
+                        request.jobs.emplace_back(
+                            Request::Install{
+                                specs::MatchSpec::parse(raw_ms)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
+                            }
+                        );
                     }
                 }
                 else
                 {
                     for (const auto& raw_ms : specs)
                     {
-                        request.jobs.emplace_back(Request::Update{
-                            specs::MatchSpec::parse(raw_ms)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value(),
-                        });
+                        request.jobs.emplace_back(
+                            Request::Update{
+                                specs::MatchSpec::parse(raw_ms)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
+                            }
+                        );
                     }
                 }
             }
@@ -222,8 +228,9 @@ namespace mamba
             );
             if (ctx.output_params.json)
             {
-                Console::instance().json_write({ { "success", false },
-                                                 { "solver_problems", unsolvable->problems(db) } });
+                Console::instance().json_write(
+                    { { "success", false }, { "solver_problems", unsolvable->problems(db) } }
+                );
             }
             throw mamba_error(
                 "Could not solve for environment specs",

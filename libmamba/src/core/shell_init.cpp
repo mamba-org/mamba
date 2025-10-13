@@ -36,13 +36,17 @@ namespace mamba
 {
     namespace
     {
-        static const std::regex MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
-                                                          "([\\s\\S]*?)"
-                                                          "# <<< mamba initialize <<<(?:\n|\r\n)?");
+        static const std::regex MAMBA_INITIALIZE_RE_BLOCK(
+            "\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
+            "([\\s\\S]*?)"
+            "# <<< mamba initialize <<<(?:\n|\r\n)?"
+        );
 
-        static const std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
-                                                             "([\\s\\S]*?)"
-                                                             "#endregion(?:\n|\r\n)?");
+        static const std::regex MAMBA_INITIALIZE_PS_RE_BLOCK(
+            "\n?#region mamba initialize(?:\n|\r\n)?"
+            "([\\s\\S]*?)"
+            "#endregion(?:\n|\r\n)?"
+        );
     }
 
     std::string guess_shell()

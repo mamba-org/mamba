@@ -53,8 +53,8 @@ namespace mamba::solver::libsolv
         pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
         ::pool_setdebuglevel(pool().raw(), -1);  // Off
         pool().set_namespace_callback(
-            [&data = (*m_data
-             )](solv::ObjPoolView pool, solv::StringId first, solv::StringId second) -> solv::OffsetId
+            [&data = (*m_data)](solv::ObjPoolView pool, solv::StringId first, solv::StringId second)
+                -> solv::OffsetId
             {
                 auto [dep, flags] = get_abused_namespace_callback_args(pool, first, second);
                 return data.matcher.get_matching_packages(pool, dep, flags);

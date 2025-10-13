@@ -277,8 +277,10 @@ namespace mambapy
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& database, const solver::Request& request, MatchSpecParser ms_parser
-                ) { return self.solve(database, request, ms_parser); },
+                [](Solver& self,
+                   Database& database,
+                   const solver::Request& request,
+                   MatchSpecParser ms_parser) { return self.solve(database, request, ms_parser); },
                 py::arg("database"),
                 py::arg("request"),
                 py::arg("matchspec_parser") = MatchSpecParser::Mixed
@@ -294,8 +296,7 @@ namespace mambapy
                 [](Solver&, py::args, py::kwargs)
                 {
                     // V2 migrator
-                    throw std::runtime_error("Solve status is provided as an outcome to Solver.solve."
-                    );
+                    throw std::runtime_error("Solve status is provided as an outcome to Solver.solve.");
                 }
             )
             .def(

@@ -36,7 +36,8 @@ namespace
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
-        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
+        SECTION(
+            "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
         )
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0";
@@ -54,7 +55,8 @@ namespace
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
-        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
+        SECTION(
+            "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
         )
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0";
@@ -72,7 +74,8 @@ namespace
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
-        SECTION("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
+        SECTION(
+            "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0"
         )
         {
             static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#sha256:7dbaa197d7ba6032caf7ae7f32c1efa07dbaa197d7ba6032caf7ae7f32c1efa0";
@@ -90,7 +93,8 @@ namespace
             REQUIRE(pkg.channel == "https://conda.anaconda.org/conda-forge");
         }
 
-        SECTION("http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81"
+        SECTION(
+            "http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81"
         )
         {
             static constexpr std::string_view url = "http://localhost:32826/t/1a5eb8d110994feaa53d0d9f8bf13bbb/get/proxy-channel/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81";

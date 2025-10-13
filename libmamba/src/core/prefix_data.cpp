@@ -35,8 +35,7 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            return tl::make_unexpected(mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded)
-            );
+            return tl::make_unexpected(mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded));
         }
         catch (...)
         {

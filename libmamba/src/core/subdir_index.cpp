@@ -156,9 +156,11 @@ namespace mamba
         data.m_stored_file_size = j["size"].get<std::size_t>();
 
         using time_type = decltype(data.m_stored_mtime);
-        data.m_stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
-            std::chrono::nanoseconds(j["mtime_ns"].get<std::size_t>())
-        ));
+        data.m_stored_mtime = time_type(
+            std::chrono::duration_cast<time_type::duration>(
+                std::chrono::nanoseconds(j["mtime_ns"].get<std::size_t>())
+            )
+        );
         util::deserialize_maybe_missing(j, "has_zst", data.m_has_zst);
     }
 
@@ -737,14 +739,16 @@ namespace mamba
         if ((!params.offline || caching_is_forbidden()) && params.repodata_check_zst
             && !m_metadata.has_up_to_date_zst())
         {
-            request.push_back(download::Request(
-                name() + " (check zst)",
-                download::MirrorName(channel_id()),
-                repodata_url_path() + ".zst",
-                "",
-                /* lhead_only = */ true,
-                /* lignore_failure = */ true
-            ));
+            request.push_back(
+                download::Request(
+                    name() + " (check zst)",
+                    download::MirrorName(channel_id()),
+                    repodata_url_path() + ".zst",
+                    "",
+                    /* lhead_only = */ true,
+                    /* lignore_failure = */ true
+                )
+            );
 
             request.back().on_success = [this](const download::Success& success)
             {

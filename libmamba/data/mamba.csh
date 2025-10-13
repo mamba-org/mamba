@@ -48,7 +48,7 @@ if ("$__exe_name" == "micromamba") then
 else if ("$__exe_name" == "mamba") then
     alias micromamba __mamba_wrap
 else
-    echo "Error unknow MAMBA_EXE: \"$MAMBA_EXE\", filename must be mamba or micromamba" >&2
+    echo "Error unknown MAMBA_EXE: \"$MAMBA_EXE\", filename must be mamba or micromamba" >&2
 endif
 
 if (! $?CONDA_SHLVL) then

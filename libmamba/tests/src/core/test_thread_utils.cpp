@@ -46,15 +46,17 @@ namespace mamba
 
             for (size_t i = 0; i < 5; ++i)
             {
-                MainExecutor::instance().take_ownership(mamba::thread{
-                    [&res]
-                    {
-                        {
-                            std::unique_lock<std::mutex> lk(res_mutex);
-                            ++res;
-                        }
-                        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                    } }.extract());
+                MainExecutor::instance().take_ownership(
+                    mamba::thread{ [&res]
+                                   {
+                                       {
+                                           std::unique_lock<std::mutex> lk(res_mutex);
+                                           ++res;
+                                       }
+                                       std::this_thread::sleep_for(std::chrono::milliseconds(300));
+                                   } }
+                        .extract()
+                );
             }
             if (interrupt)
             {

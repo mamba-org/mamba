@@ -300,7 +300,8 @@ strict_channel_priority_hook(Configuration& config, bool&)
         if ((channel_priority.cli_configured() || channel_priority.env_var_configured())
             && (channel_priority.cli_value<ChannelPriority>() != ChannelPriority::Strict))
         {
-            throw std::runtime_error("Cannot set both 'strict_channel_priority' and 'channel_priority'."
+            throw std::runtime_error(
+                "Cannot set both 'strict_channel_priority' and 'channel_priority'."
             );
         }
         else

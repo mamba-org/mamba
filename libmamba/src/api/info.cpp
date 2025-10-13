@@ -150,10 +150,12 @@ namespace mamba
 
             if (ctx.command_params.is_mamba_exe && !ctx.command_params.caller_version.empty())
             {
-                items.push_back({
-                    fmt::format("{} version", get_self_exe_path().stem().string()),
-                    ctx.command_params.caller_version,
-                });
+                items.push_back(
+                    {
+                        fmt::format("{} version", get_self_exe_path().stem().string()),
+                        ctx.command_params.caller_version,
+                    }
+                );
             }
 
             items.push_back({ "curl version", curl_version() });
@@ -199,10 +201,12 @@ namespace mamba
             items.push_back({ "env location", location });
 
             // items.insert( { "shell level", { 1 } });
-            items.push_back({
-                "user config files",
-                { util::path_concat(util::user_home_dir(), ".mambarc") },
-            });
+            items.push_back(
+                {
+                    "user config files",
+                    { util::path_concat(util::user_home_dir(), ".mambarc") },
+                }
+            );
 
             std::vector<std::string> sources;
             for (auto s : config.valid_sources())
@@ -214,8 +218,7 @@ namespace mamba
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages(ctx.platform))
             {
-                virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
-                );
+                virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string));
             }
             items.push_back({ "virtual packages", virtual_pkgs });
 

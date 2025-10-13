@@ -137,8 +137,7 @@ namespace solv
     auto ObjSolvableViewConst::build_number() const -> std::size_t
     {
         return to_int_or<std::size_t>(
-            ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_BUILDVERSION)
-            ),
+            ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_BUILDVERSION)),
             0
         );
     }
@@ -176,7 +175,8 @@ namespace solv
 
     auto ObjSolvableViewConst::file_name() const -> std::string_view
     {
-        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIAFILE)
+        return ptr_to_strview(
+            ::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIAFILE)
         );
     }
 
@@ -208,7 +208,8 @@ namespace solv
 
     auto ObjSolvableViewConst::python_site_packages_path() const -> std::string_view
     {
-        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIABASE)
+        return ptr_to_strview(
+            ::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIABASE)
         );
     }
 
@@ -354,8 +355,7 @@ namespace solv
 
     auto ObjSolvableViewConst::channel() const -> std::string_view
     {
-        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_PACKAGER)
-        );
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_PACKAGER));
     }
 
     void ObjSolvableView::set_channel(raw_str_view str) const
@@ -370,8 +370,7 @@ namespace solv
 
     auto ObjSolvableViewConst::platform() const -> std::string_view
     {
-        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIADIR)
-        );
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIADIR));
     }
 
     void ObjSolvableView::set_platform(raw_str_view str) const

@@ -717,12 +717,14 @@ namespace mamba::specs
                 && (str.find(Version::part_delim_special) < str.size() - 1))  // TODO(C++20)
                                                                               // [[unlikely]]
             {
-                return make_unexpected_parse(fmt::format(
-                    "Cannot use both '{}' and '{}' delimiters in {}'.",
-                    Version::part_delim_alt,
-                    Version::part_delim_special,
-                    str
-                ));
+                return make_unexpected_parse(
+                    fmt::format(
+                        "Cannot use both '{}' and '{}' delimiters in {}'.",
+                        Version::part_delim_alt,
+                        Version::part_delim_special,
+                        str
+                    )
+                );
             }
 
             auto allowed_char = [](char c) -> bool

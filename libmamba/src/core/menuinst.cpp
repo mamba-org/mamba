@@ -149,11 +149,9 @@ namespace mamba
                 hres = pPersistFile->Save(filename.wstring().c_str(), true);
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error(util::concat(
-                        "Failed to create shortcut: ",
-                        filename.string(),
-                        std::to_string(hres)
-                    ));
+                    throw std::runtime_error(
+                        util::concat("Failed to create shortcut: ", filename.string(), std::to_string(hres))
+                    );
                 }
             }
             catch (const std::runtime_error& e)
@@ -319,9 +317,9 @@ namespace mamba
                 { cwp_path.string(), target_prefix.string(), env_pyw.string() }
             );
 
-            auto target_dir = fs::u8path(util::get_windows_known_user_folder(
-                                  util::WindowsKnowUserFolder::Programs
-                              ))
+            auto target_dir = fs::u8path(
+                                  util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Programs)
+                              )
                               / menu_name;
 
             if (!fs::exists(target_dir))

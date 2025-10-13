@@ -106,8 +106,10 @@ namespace mamba::util
             const CURLUcode uc = ::curl_url_set(out.m_handle.get(), CURLUPART_URL, url.c_str(), flags);
             if (uc != CURLUE_OK)
             {
-                return tl::make_unexpected(URL::ParseError{
-                    fmt::format(R"(Failed to parse URL "{}": {})", url, ::curl_url_strerror(uc)) });
+                return tl::make_unexpected(
+                    URL::ParseError{
+                        fmt::format(R"(Failed to parse URL "{}": {})", url, ::curl_url_strerror(uc)) }
+                );
             }
             return { std::move(out) };
         }

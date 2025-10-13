@@ -612,8 +612,7 @@ namespace mamba::specs
                                str_no_op.substr(0, str_no_op.size() - glob_suffix_active_len)
                     )
                         .transform([](specs::Version&& ver)
-                                   { return VersionPredicate::make_not_starts_with(std::move(ver)); }
-                        );
+                                   { return VersionPredicate::make_not_starts_with(std::move(ver)); });
                 }
                 else
                 {
@@ -710,11 +709,13 @@ namespace mamba::specs
                 const bool pushed = parser.push_operator(util::BoolOperator::logical_and);
                 if (!pushed)
                 {
-                    return tl::make_unexpected(ParseError(fmt::format(
-                        R"(Found unexpected token "{}" in version spec "{}")",
-                        VersionSpec::and_token,
-                        str
-                    )));
+                    return tl::make_unexpected(ParseError(
+                        fmt::format(
+                            R"(Found unexpected token "{}" in version spec "{}")",
+                            VersionSpec::and_token,
+                            str
+                        )
+                    ));
                 }
                 str = util::lstrip(str.substr(1));
             }
@@ -723,11 +724,13 @@ namespace mamba::specs
                 const bool pushed = parser.push_operator(util::BoolOperator::logical_or);
                 if (!pushed)
                 {
-                    return tl::make_unexpected(ParseError(fmt::format(
-                        R"(Found unexpected token "{}" in version spec "{}")",
-                        VersionSpec::or_token,
-                        str
-                    )));
+                    return tl::make_unexpected(ParseError(
+                        fmt::format(
+                            R"(Found unexpected token "{}" in version spec "{}")",
+                            VersionSpec::or_token,
+                            str
+                        )
+                    ));
                 }
                 str = util::lstrip(str.substr(1));
             }
@@ -736,11 +739,13 @@ namespace mamba::specs
                 const bool pushed = parser.push_left_parenthesis();
                 if (!pushed)
                 {
-                    return tl::make_unexpected(ParseError(fmt::format(
-                        R"(Found unexpected token "{}" in version spec "{}")",
-                        VersionSpec::left_parenthesis_token,
-                        str
-                    )));
+                    return tl::make_unexpected(ParseError(
+                        fmt::format(
+                            R"(Found unexpected token "{}" in version spec "{}")",
+                            VersionSpec::left_parenthesis_token,
+                            str
+                        )
+                    ));
                 }
                 str = util::lstrip(str.substr(1));
             }
@@ -749,11 +754,13 @@ namespace mamba::specs
                 const bool pushed = parser.push_right_parenthesis();
                 if (!pushed)
                 {
-                    return tl::make_unexpected(ParseError(fmt::format(
-                        R"(Found unexpected token "{}" in version spec "{}")",
-                        VersionSpec::right_parenthesis_token,
-                        str
-                    )));
+                    return tl::make_unexpected(ParseError(
+                        fmt::format(
+                            R"(Found unexpected token "{}" in version spec "{}")",
+                            VersionSpec::right_parenthesis_token,
+                            str
+                        )
+                    ));
                 }
                 str = util::lstrip(str.substr(1));
             }
@@ -768,11 +775,13 @@ namespace mamba::specs
                 const bool pushed = parser.push_variable(std::move(pred).value());
                 if (!pushed)
                 {
-                    return tl::make_unexpected(ParseError(fmt::format(
-                        R"(Found unexpected version predicate "{}" in version spec "{}")",
-                        pred.value(),
-                        str
-                    )));
+                    return tl::make_unexpected(ParseError(
+                        fmt::format(
+                            R"(Found unexpected version predicate "{}" in version spec "{}")",
+                            pred.value(),
+                            str
+                        )
+                    ));
                 }
                 str = util::lstrip(rest);
             }

@@ -129,8 +129,7 @@ namespace mamba
 
             // Gather history from current history file.
             History history_instance(mambatests::test_data_dir / "history/parse", channel_context);
-            const std::vector<History::UserRequest> user_requests = history_instance.get_user_requests(
-            );
+            const std::vector<History::UserRequest> user_requests = history_instance.get_user_requests();
             std::size_t target_revision = 1;
 
             auto pkg_diff = PackageDiff::from_revision(user_requests, target_revision);

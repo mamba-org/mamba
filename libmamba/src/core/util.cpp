@@ -637,11 +637,9 @@ namespace mamba
                 while (lexists(trash_file))
                 {
                     trash_file = path;
-                    trash_file.replace_extension(util::concat(
-                        trash_file.extension().string(),
-                        std::to_string(fcounter),
-                        ".mamba_trash"
-                    ));
+                    trash_file.replace_extension(
+                        util::concat(trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash")
+                    );
                     fcounter += 1;
                     if (fcounter > 100)
                     {

@@ -16,7 +16,7 @@
 
     Historically libmamba was using `spdlog` internally and used a lot of it's advanced
     features. To not break the implementation of libmamba but still enable different
-    logging logging libraries to be used, the log-handler implementations that can be used
+    logging libraries to be used, the log-handler implementations that can be used
     with libmamba must provide some advanced features so that the behavior of
     libmamba is kept as expected. Therefore instead of a classing callback to register
     for handling emitted log records, the log handler must be an object with a required API

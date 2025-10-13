@@ -23,11 +23,11 @@ jobs:
       PRE_COMMIT_USE_MICROMAMBA: 1
     steps:
       - uses: actions/checkout@v4
-      - name: Install pre-commit
+      - name: Install pre-commit and identify
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: linters
-          create-args: pre-commit
+          create-args: pre-commit identify
       - name: Add micromamba to GITHUB_PATH
         run: echo "${HOME}/micromamba-bin" >> $GITHUB_PATH
       - name: Run all linters

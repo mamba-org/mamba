@@ -439,14 +439,14 @@ namespace mamba::logging::testing
                 return sources.at(random->roll_dice(0, sources.size() - 1));
             };
 
-            const auto random_bactrace = [&] {
+            const auto random_backtrace = [&] {
                 return random->roll_dice(0,1) ? 0 : random->roll_dice(1, 50);
             };
 
             const auto random_params = [&] {
                 return LoggingParams{
                     .logging_level = random_log_level(),
-                    .log_backtrace = random_bactrace(),
+                    .log_backtrace = random_backtrace(),
                 };
             };
 
@@ -484,7 +484,7 @@ namespace mamba::logging::testing
                 },
 
                 [&]{
-                    enable_backtrace(random_bactrace());
+                    enable_backtrace(random_backtrace());
                 },
 
                 [&]{

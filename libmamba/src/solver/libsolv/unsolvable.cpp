@@ -46,8 +46,8 @@ namespace mamba::solver::libsolv
     {
         auto& pool = Database::Impl::get(database);
         std::vector<std::string> problems;
-        solver().for_each_problem_id([&](solv::ProblemId pb)
-                                     { problems.emplace_back(solver().problem_to_string(pool, pb)); }
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb) { problems.emplace_back(solver().problem_to_string(pool, pb)); }
         );
         return problems;
     }
@@ -327,8 +327,9 @@ namespace mamba::solver::libsolv
                             // There should really just be one constraint
                             assert(pin.constrains.size() == 1);
                             ms = specs::MatchSpec::parse(pin.constrains.front()).value();
-                            ms.set_name(specs::MatchSpec::NameSpec(fmt::format("pin on {}", ms.name())
-                            ));
+                            ms.set_name(
+                                specs::MatchSpec::NameSpec(fmt::format("pin on {}", ms.name()))
+                            );
                         }
                         return solv::LoopControl::Break;
                     }

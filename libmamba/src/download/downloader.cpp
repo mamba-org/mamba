@@ -174,16 +174,18 @@ namespace mamba::download
         on_success_callback success,
         on_failure_callback error
     )
-        : p_impl(std::make_unique<Impl>(
-              handle,
-              request,
-              downloader,
-              params,
-              auth_info,
-              verbose,
-              std::move(success),
-              std::move(error)
-          ))
+        : p_impl(
+              std::make_unique<Impl>(
+                  handle,
+                  request,
+                  downloader,
+                  params,
+                  auth_info,
+                  verbose,
+                  std::move(success),
+                  std::move(error)
+              )
+          )
     {
     }
 

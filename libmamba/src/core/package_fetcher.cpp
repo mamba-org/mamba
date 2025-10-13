@@ -198,21 +198,25 @@ namespace mamba
 
         if (!sha256().empty())
         {
-            res = validate_checksum({
-                /* .expected= */ sha256(),
-                /* .actual= */ validation::sha256sum(m_tarball_path),
-                /* .name= */ "SHA256",
-                /* .error= */ ValidationResult::SHA256_ERROR,
-            });
+            res = validate_checksum(
+                {
+                    /* .expected= */ sha256(),
+                    /* .actual= */ validation::sha256sum(m_tarball_path),
+                    /* .name= */ "SHA256",
+                    /* .error= */ ValidationResult::SHA256_ERROR,
+                }
+            );
         }
         else if (!md5().empty())
         {
-            res = validate_checksum({
-                /* .expected= */ md5(),
-                /* .actual= */ validation::md5sum(m_tarball_path),
-                /* .name= */ "MD5",
-                /* .error= */ ValidationResult::MD5SUM_ERROR,
-            });
+            res = validate_checksum(
+                {
+                    /* .expected= */ md5(),
+                    /* .actual= */ validation::md5sum(m_tarball_path),
+                    /* .name= */ "MD5",
+                    /* .error= */ ValidationResult::MD5SUM_ERROR,
+                }
+            );
         }
 
         auto event = res == ValidationResult::VALID ? PackageExtractEvent::validate_success
@@ -418,8 +422,7 @@ namespace mamba
             LOG_ERROR << "File not valid: " << params.name << " doesn't match expectation "
                       << m_tarball_path << "\nExpected: " << params.expected
                       << "\nActual: " << params.actual << "\n";
-            Console::instance().print(util::concat(filename(), " tarball has incorrect ", params.name)
-            );
+            Console::instance().print(util::concat(filename(), " tarball has incorrect ", params.name));
             // TODO: terminate monitor
         }
         return res;

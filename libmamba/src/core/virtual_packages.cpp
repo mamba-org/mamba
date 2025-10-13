@@ -393,8 +393,7 @@ namespace mamba
                 auto result = overridable_linux_version();
                 if (result)
                 {
-                    res.push_back(make_virtual_package("__linux", platform, std::move(result).value())
-                    );
+                    res.push_back(make_virtual_package("__linux", platform, std::move(result).value()));
                 }
                 else
                 {

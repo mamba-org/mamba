@@ -206,11 +206,13 @@ namespace mamba
             }
 
             int status = 0;
-            std::tie(status, ec) = m_pyc_process->stop({
-                { reproc::stop::wait, reproc::milliseconds(100000) },
-                { reproc::stop::terminate, reproc::milliseconds(5000) },
-                { reproc::stop::kill, reproc::milliseconds(2000) },
-            });
+            std::tie(status, ec) = m_pyc_process->stop(
+                {
+                    { reproc::stop::wait, reproc::milliseconds(100000) },
+                    { reproc::stop::terminate, reproc::milliseconds(5000) },
+                    { reproc::stop::kill, reproc::milliseconds(2000) },
+                }
+            );
             if (ec || status != 0)
             {
                 LOG_INFO << "noarch pyc compilation failed (cross-compiling?).";

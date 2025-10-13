@@ -99,11 +99,13 @@ namespace mamba::util
         );
         if (size <= 0)
         {
-            throw std::runtime_error(fmt::format(
-                R"(Failed to convert UTF-8 string "{}" to UTF-16: {})",
-                utf8_text,
-                std::system_category().message(static_cast<int>(::GetLastError()))
-            ));
+            throw std::runtime_error(
+                fmt::format(
+                    R"(Failed to convert UTF-8 string "{}" to UTF-16: {})",
+                    utf8_text,
+                    std::system_category().message(static_cast<int>(::GetLastError()))
+                )
+            );
         }
 
         auto output = std::wstring(static_cast<std::size_t>(size), char(0));
@@ -140,10 +142,12 @@ namespace mamba::util
         );
         if (size <= 0)
         {
-            throw std::runtime_error(fmt::format(
-                R"(Failed to convert UTF-16 string to UTF-8: {})",
-                std::system_category().message(static_cast<int>(::GetLastError()))
-            ));
+            throw std::runtime_error(
+                fmt::format(
+                    R"(Failed to convert UTF-16 string to UTF-8: {})",
+                    std::system_category().message(static_cast<int>(::GetLastError()))
+                )
+            );
         }
 
         auto output = std::string(static_cast<std::size_t>(size), char(0));
@@ -168,7 +172,8 @@ namespace mamba::util
     {
         [[noreturn]] void throw_not_implemented(std::string_view name)
         {
-            throw std::invalid_argument(fmt::format(R"(Function "{}" only available on Windows)", name)
+            throw std::invalid_argument(
+                fmt::format(R"(Function "{}" only available on Windows)", name)
             );
         }
     }
@@ -195,9 +200,11 @@ namespace mamba::util
         auto comspec = util::get_env("COMSPEC");
         if (!comspec.has_value() || comspec->empty())
         {
-            return tl::make_unexpected(OSError{ fmt::format(
-                "Cannot find command line interpreter, environment variable COMSPEC not defined."
-            ) });
+            return tl::make_unexpected(
+                OSError{ fmt::format(
+                    "Cannot find command line interpreter, environment variable COMSPEC not defined."
+                ) }
+            );
         }
 
         const auto args = std::array<std::string, 3>{ std::move(comspec).value(), "/c", "ver" };
@@ -214,11 +221,13 @@ namespace mamba::util
 
         if (ec)
         {
-            return tl::make_unexpected(OSError{ fmt::format(
-                R"(Could not find Windows version by calling "{}": {})",
-                fmt::join(args, " "),
-                ec.message()
-            ) });
+            return tl::make_unexpected(
+                OSError{ fmt::format(
+                    R"(Could not find Windows version by calling "{}": {})",
+                    fmt::join(args, " "),
+                    ec.message()
+                ) }
+            );
         }
 
         out = util::strip(out);
@@ -238,10 +247,12 @@ namespace mamba::util
             return { util::concat(version_elems[0], ".", version_elems[1], ".", version_elems[2]) };
         }
 
-        return tl::make_unexpected(OSError{ fmt::format(
-            R"(Could not parse Windows version in command "{}" output "{}")",
-            fmt::join(args, " "),
-            out
-        ) });
+        return tl::make_unexpected(
+            OSError{ fmt::format(
+                R"(Could not parse Windows version in command "{}" output "{}")",
+                fmt::join(args, " "),
+                out
+            ) }
+        );
     }
 }

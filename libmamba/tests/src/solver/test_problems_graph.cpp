@@ -757,8 +757,9 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
                         }
                         else
                         {
-                            REQUIRE(std::holds_alternative<CompressedProblemsGraph::PackageListNode>(node
-                            ));
+                            REQUIRE(
+                                std::holds_alternative<CompressedProblemsGraph::PackageListNode>(node)
+                            );
                         }
                         // All nodes reachable from the root
                         REQUIRE(is_reachable(graph_comp, pbs_comp.root_node(), id));

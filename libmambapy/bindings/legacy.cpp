@@ -252,65 +252,73 @@ bind_submodule_impl(pybind11::module_ m)
     };
 
     py::class_<PackageInfoV2Migrator>(m, "PackageInfo")
-        .def(py::init(
-            [](py::args, py::kwargs) -> PackageInfoV2Migrator
-            {
-                throw std::runtime_error(
-                    "libmambapy.PackageInfo has been moved to libmambapy.specs.PackageInfo"
-                );
-            }
-        ));
+        .def(
+            py::init(
+                [](py::args, py::kwargs) -> PackageInfoV2Migrator
+                {
+                    throw std::runtime_error(
+                        "libmambapy.PackageInfo has been moved to libmambapy.specs.PackageInfo"
+                    );
+                }
+            )
+        );
 
     struct MatchSpecV2Migrator
     {
     };
 
     py::class_<MatchSpecV2Migrator>(m, "MatchSpec")
-        .def(py::init(
-            [](py::args, py::kwargs) -> MatchSpecV2Migrator
-            {
-                // V2 migration
-                throw std::runtime_error(
-                    "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
-                );
-            }
-        ));
+        .def(
+            py::init(
+                [](py::args, py::kwargs) -> MatchSpecV2Migrator
+                {
+                    // V2 migration
+                    throw std::runtime_error(
+                        "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
+                    );
+                }
+            )
+        );
 
     struct RepoV2Migrator
     {
     };
 
-    py::class_<RepoV2Migrator>(m, "Repo").def(py::init(
-        [](py::args, py::kwargs) -> RepoV2Migrator
-        {
-            throw std::runtime_error(  //
-                "Use Pool.add_repo_from_repodata_json or Pool.add_repo_from_native_serialization"
-                " instead and cache with Pool.native_serialize_repo."
-                " Also consider load_subdir_in_database for a high_level function to load"
-                " subdir index and manage cache, and load_installed_packages_in_database for"
-                " loading prefix packages."
-                " The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
-            );
-        }
-    ));
+    py::class_<RepoV2Migrator>(m, "Repo").def(
+        py::init(
+            [](py::args, py::kwargs) -> RepoV2Migrator
+            {
+                throw std::runtime_error(  //
+                    "Use Pool.add_repo_from_repodata_json or Pool.add_repo_from_native_serialization"
+                    " instead and cache with Pool.native_serialize_repo."
+                    " Also consider load_subdir_in_database for a high_level function to load"
+                    " subdir index and manage cache, and load_installed_packages_in_database for"
+                    " loading prefix packages."
+                    " The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+                );
+            }
+        )
+    );
 
     struct PoolV2Migrator
     {
     };
 
-    py::class_<PoolV2Migrator>(m, "Pool").def(py::init(
-        [](py::args, py::kwargs) -> PoolV2Migrator
-        {
-            throw std::runtime_error(  //
-                "libmambapy.Pool has been moved to libmambapy.solver.libsolv.Database."
-                " The database contains functions to directly load packages, from a list or a"
-                " repodata.json."
-                " High level functions such as libmambapy.load_subdir_in_database and"
-                " libmambapy.load_installed_packages_in_database are also available to work"
-                " with other Mamba objects and Context parameters."
-            );
-        }
-    ));
+    py::class_<PoolV2Migrator>(m, "Pool").def(
+        py::init(
+            [](py::args, py::kwargs) -> PoolV2Migrator
+            {
+                throw std::runtime_error(  //
+                    "libmambapy.Pool has been moved to libmambapy.solver.libsolv.Database."
+                    " The database contains functions to directly load packages, from a list or a"
+                    " repodata.json."
+                    " High level functions such as libmambapy.load_subdir_in_database and"
+                    " libmambapy.load_installed_packages_in_database are also available to work"
+                    " with other Mamba objects and Context parameters."
+                );
+            }
+        )
+    );
 
     constexpr auto global_solver_flag_v2_migrator = "V2 Migration: Solver flags set in libmambapy.solver.Request.flags.";
     m.attr("MAMBA_NO_DEPS") = global_solver_flag_v2_migrator;
@@ -391,26 +399,32 @@ bind_submodule_impl(pybind11::module_ m)
     };
 
     py::class_<SolverRuleinfoV2Migrator>(m, "SolverRuleinfo")
-        .def(py::init(
-            [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator
-            {
-                throw std::runtime_error("Direct access to libsolv objects is not longer supported.");
-            }
-        ));
+        .def(
+            py::init(
+                [](py::args, py::kwargs) -> SolverRuleinfoV2Migrator
+                {
+                    throw std::runtime_error(
+                        "Direct access to libsolv objects is not longer supported."
+                    );
+                }
+            )
+        );
 
     struct SolverV2Migrator
     {
     };
 
     py::class_<SolverV2Migrator>(m, "Solver")
-        .def(py::init(
-            [](py::args, py::kwargs) -> SolverV2Migrator
-            {
-                throw std::runtime_error(
-                    "libmambapy.Solver has been moved to libmambapy.solver.libsolv.Solver."
-                );
-            }
-        ));
+        .def(
+            py::init(
+                [](py::args, py::kwargs) -> SolverV2Migrator
+                {
+                    throw std::runtime_error(
+                        "libmambapy.Solver has been moved to libmambapy.solver.libsolv.Solver."
+                    );
+                }
+            )
+        );
 
     /******************************************************
      *  Forward bindings to avoid C++ name in Python doc  *
@@ -565,8 +579,9 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<const Context&, solver::libsolv::Database&, const solver::Request&, solver::Solution, MultiPackageCache&>(
-        ))
+        .def(
+            py::init<const Context&, solver::libsolv::Database&, const solver::Request&, solver::Solution, MultiPackageCache&>()
+        )
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
@@ -611,8 +626,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             py::init(
                 [](decltype(SubdirDownloadParams::offline) offline,
-                   decltype(SubdirDownloadParams::repodata_check_zst) repodata_check_zst
-                ) -> SubdirDownloadParams
+                   decltype(SubdirDownloadParams::repodata_check_zst) repodata_check_zst) -> SubdirDownloadParams
                 {
                     return {
                         .offline = std::move(offline),
@@ -635,8 +649,8 @@ bind_submodule_impl(pybind11::module_ m)
                 [](decltype(SubdirMetadata::HttpMetadata::url) url,
                    decltype(SubdirMetadata::HttpMetadata::etag) etag,
                    decltype(SubdirMetadata::HttpMetadata::last_modified) last_modified,
-                   decltype(SubdirMetadata::HttpMetadata::cache_control) cache_control
-                ) -> SubdirMetadata::HttpMetadata
+                   decltype(SubdirMetadata::HttpMetadata::cache_control) cache_control)
+                    -> SubdirMetadata::HttpMetadata
                 {
                     return {
                         .url = std::move(url),
@@ -737,8 +751,9 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<SubdirDataMigrator>(m, "SubdirData")
         .def(
             "create_repo",
-            [](SubdirDataMigrator& self, Context& context, solver::libsolv::Database& database
-            ) -> solver::libsolv::RepoInfo
+            [](SubdirDataMigrator& self,
+               Context& context,
+               solver::libsolv::Database& database) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use libmambapy.load_subdir_in_database instead", "2.0");
                 return extract(load_subdir_in_database(context, database, *self.p_subdir_index));
@@ -798,13 +813,15 @@ bind_submodule_impl(pybind11::module_ m)
 
     // Deprecated, replaced by SubdirIndexLoader in 2.3.0
     py::class_<SubdirIndexEntry>(m, "SubdirIndexEntry")
-        .def(py::init(
-            []()
-            {
-                deprecated("Use SubdirIndexLoader", "2.3.0");
-                return SubdirIndexEntry();
-            }
-        ))
+        .def(
+            py::init(
+                []()
+                {
+                    deprecated("Use SubdirIndexLoader", "2.3.0");
+                    return SubdirIndexEntry();
+                }
+            )
+        )
         .def_property_readonly(
             "subdir",
             [](const SubdirIndexEntry& self) { return SubdirDataMigrator{ self.p_subdirdata }; },
@@ -815,13 +832,15 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readonly("url", &SubdirIndexEntry::m_url);
 
     py::class_<SubdirIndex>(m, "SubdirIndex")
-        .def(py::init(
-            []()
-            {
-                deprecated("Use SubdirIndexLoader", "2.3.0");
-                return SubdirIndex();
-            }
-        ))
+        .def(
+            py::init(
+                []()
+                {
+                    deprecated("Use SubdirIndexLoader", "2.3.0");
+                    return SubdirIndex();
+                }
+            )
+        )
         .def(
             "create",
             [](SubdirIndex& self,
@@ -923,8 +942,8 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<ContextOptions>(m, "ContextOptions")
         .def(
             py::init([](bool logging = mambapy::default_context_options.enable_logging,
-                        bool signal_handling = mambapy::default_context_options.enable_signal_handling
-                     ) { return ContextOptions{ logging, signal_handling }; }),
+                        bool signal_handling = mambapy::default_context_options.enable_signal_handling)
+                     { return ContextOptions{ logging, signal_handling }; }),
             py::arg("enable_logging") = true,
             py::arg("enable_signal_handling") = true
         )
@@ -944,8 +963,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     // The lifetime of the unique Context instance will determine the lifetime of the other
     // singletons.
-    auto context_constructor = [](ContextOptions options = mambapy::default_context_options
-                               ) -> context_ptr
+    auto context_constructor = [](ContextOptions options = mambapy::default_context_options) -> context_ptr
     {
         if (mambapy::current_singletons)
         {
@@ -990,8 +1008,10 @@ bind_submodule_impl(pybind11::module_ m)
             },
             [](const Context&, bool)
             {
-                deprecated("Setting ``Context.experimental_sat_error_message`` has no effect."
-                           " The new error messages are always enabled.");
+                deprecated(
+                    "Setting ``Context.experimental_sat_error_message`` has no effect."
+                    " The new error messages are always enabled."
+                );
             }
         )
         .def_property(
@@ -1115,8 +1135,7 @@ bind_submodule_impl(pybind11::module_ m)
     pyLinkParams
         .def(
             py::init(
-                [](bool allow_softlinks, bool always_copy, bool always_softlink, bool compile_pyc
-                ) -> LinkParams
+                [](bool allow_softlinks, bool always_copy, bool always_softlink, bool compile_pyc) -> LinkParams
                 {
                     return {
                         .allow_softlinks = allow_softlinks,
@@ -1628,20 +1647,24 @@ bind_submodule_impl(pybind11::module_ m)
         validation::RoleBase,
         validation::v0_6::V06RoleBaseExtension,
         std::shared_ptr<validation::v0_6::KeyMgrRole>>(m, "KeyMgr")
-        .def(py::init<
-             const std::string&,
-             const validation::RoleFullKeys&,
-             const std::shared_ptr<validation::SpecBase>>());
+        .def(
+            py::init<
+                const std::string&,
+                const validation::RoleFullKeys&,
+                const std::shared_ptr<validation::SpecBase>>()
+        );
 
     py::class_<
         validation::v0_6::PkgMgrRole,
         validation::RoleBase,
         validation::v0_6::V06RoleBaseExtension,
         std::shared_ptr<validation::v0_6::PkgMgrRole>>(m, "PkgMgr")
-        .def(py::init<
-             const std::string&,
-             const validation::RoleFullKeys&,
-             const std::shared_ptr<validation::SpecBase>>());
+        .def(
+            py::init<
+                const std::string&,
+                const validation::RoleFullKeys&,
+                const std::shared_ptr<validation::SpecBase>>()
+        );
 
     py::class_<
         validation::v0_6::RootImpl,

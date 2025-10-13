@@ -100,12 +100,14 @@ namespace mamba
 
             for (const auto& s : raw_specs)
             {
-                request.jobs.emplace_back(Request::Remove{
-                    specs::MatchSpec::parse(s)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
-                    /* .clean_dependencies= */ prune,
-                });
+                request.jobs.emplace_back(
+                    Request::Remove{
+                        specs::MatchSpec::parse(s)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                        /* .clean_dependencies= */ prune,
+                    }
+                );
             }
 
             return request;
@@ -209,9 +211,10 @@ namespace mamba
                 {
                     if (ctx.output_params.json)
                     {
-                        Console::instance().json_write({ { "success", false },
-                                                         { "solver_problems",
-                                                           unsolvable->problems(database) } });
+                        Console::instance().json_write(
+                            { { "success", false },
+                              { "solver_problems", unsolvable->problems(database) } }
+                        );
                     }
                     throw mamba_error(
                         "Could not solve for environment specs",

@@ -22,7 +22,8 @@ namespace mamba::util
             return false;
         }
         // Posix-like path
-        if (starts_with(input, '~') || starts_with(input, '/') || (input == ".")
+        if (
+            starts_with(input, '~') || starts_with(input, '/') || (input == ".")
             || starts_with(input, "./") || (input == "..") || starts_with(input, "../")
 
         )

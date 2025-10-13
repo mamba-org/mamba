@@ -1031,10 +1031,12 @@ namespace
                 const auto actions = find_actions_with_name(solution, "numpy");
                 REQUIRE(actions.size() == 1);
                 REQUIRE(std::holds_alternative<Solution::Install>(actions.front()));
-                REQUIRE(util::contains(
-                    std::get<Solution::Install>(actions.front()).install.package_url,
-                    "linux-64"
-                ));
+                REQUIRE(
+                    util::contains(
+                        std::get<Solution::Install>(actions.front()).install.package_url,
+                        "linux-64"
+                    )
+                );
             }
         }
     }
@@ -1323,10 +1325,9 @@ namespace
             // To avoid mismatch due to color formatting, we perform the check by splitting the
             // output following the format
             REQUIRE(util::contains(problems_explained, "foo =*,=* pyhd*"));
-            REQUIRE(util::contains(
-                problems_explained,
-                "does not exist (perhaps a typo or a missing channel)."
-            ));
+            REQUIRE(
+                util::contains(problems_explained, "does not exist (perhaps a typo or a missing channel).")
+            );
         }
     }
 }

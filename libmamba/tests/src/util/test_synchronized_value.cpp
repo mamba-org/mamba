@@ -40,34 +40,44 @@ namespace mamba::util
     // Scope locked must be possible to move in different scopes without unlocking-relocking,
     // so it is imperative that they are moveable, but should not be copyable.
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::mutex, true>>);
-    static_assert(std::move_constructible<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
-    static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, true>>);
+    static_assert(
+        std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>
+    );
+    static_assert(
+        std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, true>>
+    );
     static_assert(std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::mutex, false>>);
-    static_assert(std::move_constructible<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
-    static_assert(std::move_constructible<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, false>>);
-    static_assert(std::is_nothrow_move_constructible_v<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::mutex, true>>);
+    static_assert(
+        std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>
+    );
+    static_assert(
+        std::move_constructible<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, false>>
+    );
+    static_assert(
+        std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex, true>>
+    );
     static_assert(std::is_nothrow_move_constructible_v<
                   scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
     static_assert(std::is_nothrow_move_constructible_v<
                   scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, true>>);
-    static_assert(std::is_nothrow_move_constructible_v<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::mutex, false>>);
+    static_assert(
+        std::is_nothrow_move_constructible_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex, false>>
+    );
     static_assert(std::is_nothrow_move_constructible_v<
                   scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
     static_assert(std::is_nothrow_move_constructible_v<
                   scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, false>>);
-    static_assert(std::is_nothrow_move_assignable_v<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::mutex, true>>);
+    static_assert(
+        std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex, true>>
+    );
     static_assert(std::is_nothrow_move_assignable_v<
                   scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, true>>);
-    static_assert(std::is_nothrow_move_assignable_v<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, true>>);
-    static_assert(std::is_nothrow_move_assignable_v<
-                  scoped_locked_ptr<std::unique_ptr<int>, std::mutex, false>>);
+    static_assert(
+        std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::shared_mutex, true>>
+    );
+    static_assert(
+        std::is_nothrow_move_assignable_v<scoped_locked_ptr<std::unique_ptr<int>, std::mutex, false>>
+    );
     static_assert(std::is_nothrow_move_assignable_v<
                   scoped_locked_ptr<std::unique_ptr<int>, std::recursive_mutex, false>>);
     static_assert(std::is_nothrow_move_assignable_v<
@@ -523,39 +533,44 @@ namespace
             if (i % 2)  // intertwine reading and writing tasks
             {
                 // add writing task
-                tasks.push_back(std::async(
-                    std::launch::async,
-                    [&, increment_task]
-                    {
-                        // don't actually run until we get the green light
-                        mambatests::wait_condition([&] { return run_tasks == true; });
-                        increment_task(current_value);
-                    }
-                ));
+                tasks.push_back(
+                    std::async(
+                        std::launch::async,
+                        [&, increment_task]
+                        {
+                            // don't actually run until we get the green light
+                            mambatests::wait_condition([&] { return run_tasks == true; });
+                            increment_task(current_value);
+                        }
+                    )
+                );
             }
             else
             {
                 // add reading task
-                tasks.push_back(std::async(
-                    std::launch::async,
-                    [&]
-                    {
-                        // don't actually run until we get the green light
-                        mambatests::wait_condition([&] { return run_tasks == true; });
-                        const auto& readonly_value = std::as_const(current_value);
-                        static constexpr auto arbitrary_read_count = 100;
-                        long long sum = 0;
-                        for (int c = 0; c < arbitrary_read_count; ++c)
+                tasks.push_back(
+                    std::async(
+                        std::launch::async,
+                        [&]
                         {
-                            sum += readonly_value->x;   // TODO: also try to mix reading and writing
-                                                        // using different kinds of access
-                            std::this_thread::yield();  // for timing randomness and limit
-                                                        // over-exhaustion
+                            // don't actually run until we get the green light
+                            mambatests::wait_condition([&] { return run_tasks == true; });
+                            const auto& readonly_value = std::as_const(current_value);
+                            static constexpr auto arbitrary_read_count = 100;
+                            long long sum = 0;
+                            for (int c = 0; c < arbitrary_read_count; ++c)
+                            {
+                                sum += readonly_value->x;   // TODO: also try to mix reading and
+                                                            // writing using different kinds of
+                                                            // access
+                                std::this_thread::yield();  // for timing randomness and limit
+                                                            // over-exhaustion
+                            }
+                            REQUIRE(sum != 0);  // It is possible but extremely unlikely that all
+                                                // reading tasks will read before any writing tasks.
                         }
-                        REQUIRE(sum != 0);  // It is possible but extremely unlikely that all
-                                            // reading tasks will read before any writing tasks.
-                    }
-                ));
+                    )
+                );
             }
         }
 
@@ -731,24 +746,36 @@ namespace
                 synchronize(a, ca, b, cb, c, cc, d, cd, e, ce, f, cf);
             static_assert(std::same_as<decltype(sa), scoped_locked_ptr<ValueType, std::mutex, false>>);
             static_assert(std::same_as<decltype(sca), scoped_locked_ptr<ValueType, std::mutex, true>>);
-            static_assert(std::same_as<decltype(sb), scoped_locked_ptr<ValueType, std::recursive_mutex, false>>);
-            static_assert(std::same_as<decltype(scb), scoped_locked_ptr<ValueType, std::recursive_mutex, true>>);
-            static_assert(std::same_as<decltype(sc), scoped_locked_ptr<ValueType, std::shared_mutex, false>>);
-            static_assert(std::same_as<decltype(scc), scoped_locked_ptr<ValueType, std::shared_mutex, true>>);
-            static_assert(std::same_as<decltype(sd), scoped_locked_ptr<std::vector<int>, std::mutex, false>>);
-            static_assert(std::same_as<decltype(scd), scoped_locked_ptr<std::vector<int>, std::mutex, true>>);
-            static_assert(std::same_as<
-                          decltype(se),
-                          scoped_locked_ptr<std::vector<int>, std::recursive_mutex, false>>);
-            static_assert(std::same_as<
-                          decltype(sce),
-                          scoped_locked_ptr<std::vector<int>, std::recursive_mutex, true>>);
-            static_assert(std::same_as<
-                          decltype(sf),
-                          scoped_locked_ptr<std::vector<int>, std::shared_mutex, false>>);
-            static_assert(std::same_as<
-                          decltype(scf),
-                          scoped_locked_ptr<std::vector<int>, std::shared_mutex, true>>);
+            static_assert(
+                std::same_as<decltype(sb), scoped_locked_ptr<ValueType, std::recursive_mutex, false>>
+            );
+            static_assert(
+                std::same_as<decltype(scb), scoped_locked_ptr<ValueType, std::recursive_mutex, true>>
+            );
+            static_assert(
+                std::same_as<decltype(sc), scoped_locked_ptr<ValueType, std::shared_mutex, false>>
+            );
+            static_assert(
+                std::same_as<decltype(scc), scoped_locked_ptr<ValueType, std::shared_mutex, true>>
+            );
+            static_assert(
+                std::same_as<decltype(sd), scoped_locked_ptr<std::vector<int>, std::mutex, false>>
+            );
+            static_assert(
+                std::same_as<decltype(scd), scoped_locked_ptr<std::vector<int>, std::mutex, true>>
+            );
+            static_assert(
+                std::same_as<decltype(se), scoped_locked_ptr<std::vector<int>, std::recursive_mutex, false>>
+            );
+            static_assert(
+                std::same_as<decltype(sce), scoped_locked_ptr<std::vector<int>, std::recursive_mutex, true>>
+            );
+            static_assert(
+                std::same_as<decltype(sf), scoped_locked_ptr<std::vector<int>, std::shared_mutex, false>>
+            );
+            static_assert(
+                std::same_as<decltype(scf), scoped_locked_ptr<std::vector<int>, std::shared_mutex, true>>
+            );
 
             values.push_back(sa->x);
             values.push_back(sca->x);

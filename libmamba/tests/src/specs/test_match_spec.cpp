@@ -335,7 +335,8 @@ namespace
             REQUIRE(ms.to_string() == R"(python[build_number="<=3"])");
         }
 
-        SECTION("https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
+        SECTION(
+            "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
         )
         {
             constexpr auto str = std::string_view{
@@ -390,7 +391,8 @@ namespace
             REQUIRE(ms.to_string() == str);
         }
 
-        SECTION("https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+        SECTION(
+            "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
         )
         {
             constexpr auto str = std::string_view{
@@ -484,7 +486,8 @@ namespace
             );
         }
 
-        SECTION(R"(defaults::numpy=1.8=py27_0 [name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
+        SECTION(
+            R"(defaults::numpy=1.8=py27_0 [name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
         )
         {
             auto ms = MatchSpec::parse(
@@ -498,7 +501,8 @@ namespace
             REQUIRE(ms.to_string() == R"(anaconda::numpy=1.8=py27_0)");
         }
 
-        SECTION(R"(defaults::numpy [ name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
+        SECTION(
+            R"(defaults::numpy [ name="pytorch",channel='anaconda',version=">=1.8,<2|1.9", build='3'])"
         )
         {
             auto ms = MatchSpec::parse(
@@ -1034,50 +1038,58 @@ namespace
         {
             const auto ms = "py*>=3.7=bld[build_number='<=2', md5=lemd5, track_features='mkl,openssl']"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.8.0"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 2,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "MIT",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{ "openssl", "mkl" },
-            }));
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.12.0"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{ "openssl", "mkl" },
-            }));
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.3.0"_v,  // Not matching
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{ "openssl", "mkl" },
-            }));
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.12.0"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "wrong",  // Not matching
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{ "openssl", "mkl" },
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.8.0"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 2,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "MIT",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{ "openssl", "mkl" },
+                }
+            ));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.12.0"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{ "openssl", "mkl" },
+                }
+            ));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.3.0"_v,  // Not matching
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{ "openssl", "mkl" },
+                }
+            ));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.12.0"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "wrong",  // Not matching
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{ "openssl", "mkl" },
+                }
+            ));
         }
 
         SECTION("pytorch=2.3.1=py3.10_cuda11.8*")
@@ -1086,287 +1098,329 @@ namespace
 
             const auto ms = "pytorch=2.3.1=py3.10_cuda11.8*"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "pytorch",
-                /* .version= */ "2.3.1"_v,
-                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "pytorch",
+                    /* .version= */ "2.3.1"_v,
+                    /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
 
         SECTION("pytorch~=2.3.1=py3.10_cuda11.8*")
         {
             const auto ms = "pytorch~=2.3.1=py3.10_cuda11.8*"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "pytorch",
-                /* .version= */ "2.3.1"_v,
-                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "pytorch",
+                    /* .version= */ "2.3.1"_v,
+                    /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "pytorch",
-                /* .version= */ "2.3.2"_v,
-                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "pytorch",
+                    /* .version= */ "2.3.2"_v,
+                    /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "pytorch",
-                /* .version= */ "2.4.0"_v,
-                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "pytorch",
+                    /* .version= */ "2.4.0"_v,
+                    /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "pytorch",
-                /* .version= */ "3.0"_v,
-                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "pytorch",
+                    /* .version= */ "3.0"_v,
+                    /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "pytorch",
-                /* .version= */ "2.3.0"_v,
-                /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "pytorch",
+                    /* .version= */ "2.3.0"_v,
+                    /* .build_string= */ "py3.10_cuda11.8_cudnn8.7.0_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
 
         SECTION("numpy~=1.26.0")
         {
             const auto ms = "numpy~=1.26.0"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.26.0"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.26.0"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.26.1"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.26.1"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.27"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.27"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "2.0.0"_v,
-                /* .build_string= */ "py310h1d0b8b9_1",
-                /* .build_number= */ 1,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "2.0.0"_v,
+                    /* .build_string= */ "py310h1d0b8b9_1",
+                    /* .build_number= */ 1,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.25.0"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.25.0"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
 
         SECTION("numpy~=1.26")
         {
             const auto ms = "numpy~=1.26"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.26.0"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.26.0"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.26.1"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.26.1"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "1.27"_v,
-                /* .build_string= */ "py310h1d0b8b9_0",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "1.27"_v,
+                    /* .build_string= */ "py310h1d0b8b9_0",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "numpy",
-                /* .version= */ "2.0.0"_v,
-                /* .build_string= */ "py310h1d0b8b9_1",
-                /* .build_number= */ 1,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "GPL",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "numpy",
+                    /* .version= */ "2.0.0"_v,
+                    /* .build_string= */ "py310h1d0b8b9_1",
+                    /* .build_number= */ 1,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "GPL",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
 
         SECTION("python=3.*")
         {
             const auto ms = "python=3.*"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.12.0"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "some-license",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.12.0"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "some-license",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "2.7.12"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "some-license",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "2.7.12"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "some-license",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
 
         SECTION("python=3.*.1")
         {
             const auto ms = "python=3.*.1"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.12.1"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "some-license",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.12.1"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "some-license",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.12.0"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "some-license",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.12.0"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "some-license",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
 
         SECTION("python=*.13.1")
         {
             const auto ms = "python=*.13.1"_ms;
 
-            REQUIRE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.13.1"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "some-license",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.13.1"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "some-license",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
 
-            REQUIRE_FALSE(ms.contains_except_channel(Pkg{
-                /* .name= */ "python",
-                /* .version= */ "3.12.0"_v,
-                /* .build_string= */ "bld",
-                /* .build_number= */ 0,
-                /* .md5= */ "lemd5",
-                /* .sha256= */ "somesha256",
-                /* .license= */ "some-license",
-                /* .platform= */ "linux-64",
-                /* .track_features =*/{},
-            }));
+            REQUIRE_FALSE(ms.contains_except_channel(
+                Pkg{
+                    /* .name= */ "python",
+                    /* .version= */ "3.12.0"_v,
+                    /* .build_string= */ "bld",
+                    /* .build_number= */ 0,
+                    /* .md5= */ "lemd5",
+                    /* .sha256= */ "somesha256",
+                    /* .license= */ "some-license",
+                    /* .platform= */ "linux-64",
+                    /* .track_features =*/{},
+                }
+            ));
         }
     }
 

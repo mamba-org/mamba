@@ -551,10 +551,9 @@ namespace mamba::validation
             );
         }
         // compatible next
-        files.emplace_back(::mamba::util::join(
-            ".",
-            std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" })
-        ));
+        files.emplace_back(
+            ::mamba::util::join(".", std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" }))
+        );
         // then finally undefined spec
         files.emplace_back(::mamba::util::join(".", std::vector<std::string>({ new_v, "root.json" })));
 

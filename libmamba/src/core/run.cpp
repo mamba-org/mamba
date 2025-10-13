@@ -425,10 +425,12 @@ namespace mamba
                 {
                     if (is_process_name_running(specific_process_name))
                     {
-                        throw std::runtime_error(fmt::format(
-                            "Another process with name '{}' is currently running.",
-                            specific_process_name
-                        ));
+                        throw std::runtime_error(
+                            fmt::format(
+                                "Another process with name '{}' is currently running.",
+                                specific_process_name
+                            )
+                        );
                     }
                     command.insert(exe_name_it, { { "-a" }, specific_process_name });
                     return specific_process_name;

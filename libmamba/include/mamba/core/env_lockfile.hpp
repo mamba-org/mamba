@@ -91,9 +91,11 @@ namespace mamba
         {
         }
 
-        std::vector<specs::PackageInfo>
-        get_packages_for(std::string_view category, std::string_view platform, std::string_view manager)
-            const;
+        std::vector<specs::PackageInfo> get_packages_for(
+            std::string_view category,
+            std::string_view platform,
+            std::string_view manager
+        ) const;
 
         const std::vector<Package>& get_all_packages() const
         {

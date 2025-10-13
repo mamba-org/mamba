@@ -527,8 +527,7 @@ namespace mamba
             nlohmann::json tmp = j.flatten();
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
             {
-                p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index) + it.key()] = it.value(
-                );
+                p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index) + it.key()] = it.value();
             }
             p_data->json_index += 1;
         }

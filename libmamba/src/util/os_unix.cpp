@@ -24,10 +24,12 @@ namespace mamba::util
         const auto ret = ::uname(&uname_result);
         if (ret != 0)
         {
-            return tl::make_unexpected(OSError{ fmt::format(
-                "Error calling uname: {}",
-                std::system_error(errno, std::generic_category()).what()
-            ) });
+            return tl::make_unexpected(
+                OSError{ fmt::format(
+                    "Error calling uname: {}",
+                    std::system_error(errno, std::generic_category()).what()
+                ) }
+            );
         }
 
         static const auto re = std::regex(R"r(([0-9]+\.[0-9]+\.[0-9]+)(?:-.*)?)r");
@@ -37,8 +39,11 @@ namespace mamba::util
             return { { uname_result.sysname, std::move(m)[1].str() } };
         }
 
-        return tl::make_unexpected(OSError{
-            fmt::format(R"(Could not parse Linux version in uname output "{}")", uname_result.release) }
+        return tl::make_unexpected(
+            OSError{ fmt::format(
+                R"(Could not parse Linux version in uname output "{}")",
+                uname_result.release
+            ) }
         );
     }
 

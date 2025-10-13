@@ -293,7 +293,8 @@ namespace mamba::solver::libsolv
             if (auto python_site_packages_path = pkg["python_site_packages_path"];
                 !python_site_packages_path.error())
             {
-                auto buffer = std::string(python_site_packages_path.get_string().value_unsafe()
+                auto buffer = std::string(
+                    python_site_packages_path.get_string().value_unsafe()
 
                 );
                 solv.set_python_site_packages_path(buffer);
@@ -1258,10 +1259,12 @@ namespace mamba::solver::libsolv
                             auto newer = get_newer_pkginfo(id);
                             LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
                                       << newer.str();
-                            out.emplace_back(Solution::Upgrade{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
+                            out.emplace_back(
+                                Solution::Upgrade{
+                                    /* .remove= */ std::move(pkginfo),
+                                    /* .install= */ std::move(newer),
+                                }
+                            );
                             break;
                         }
                         case SOLVER_TRANSACTION_CHANGED:
@@ -1269,10 +1272,12 @@ namespace mamba::solver::libsolv
                             auto newer = get_newer_pkginfo(id);
                             LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
                                       << newer.str();
-                            out.emplace_back(Solution::Change{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
+                            out.emplace_back(
+                                Solution::Change{
+                                    /* .remove= */ std::move(pkginfo),
+                                    /* .install= */ std::move(newer),
+                                }
+                            );
                             break;
                         }
                         case SOLVER_TRANSACTION_REINSTALLED:
@@ -1286,10 +1291,12 @@ namespace mamba::solver::libsolv
                             auto newer = get_newer_pkginfo(id);
                             LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
                                       << newer.str();
-                            out.emplace_back(Solution::Downgrade{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
+                            out.emplace_back(
+                                Solution::Downgrade{
+                                    /* .remove= */ std::move(pkginfo),
+                                    /* .install= */ std::move(newer),
+                                }
+                            );
                             break;
                         }
                         case SOLVER_TRANSACTION_ERASE:
@@ -1483,8 +1490,9 @@ namespace mamba::solver::libsolv
 
                     if (s_in_sol == solution.actions.end())
                     {
-                        solution.actions.emplace_back(Solution::Reinstall{
-                            make_package_info(pool, s) });
+                        solution.actions.emplace_back(
+                            Solution::Reinstall{ make_package_info(pool, s) }
+                        );
                     }
                     else if (auto* omit = std::get_if<Solution::Omit>(&(*s_in_sol)))
                     {
@@ -1508,9 +1516,11 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](specs::Version&& ver)
                         {
-                            ms.set_version(specs::VersionSpec::from_predicate(
-                                specs::VersionPredicate::make_equal_to(std::move(ver))
-                            ));
+                            ms.set_version(
+                                specs::VersionSpec::from_predicate(
+                                    specs::VersionPredicate::make_equal_to(std::move(ver))
+                                )
+                            );
                         }
                     );
             ms.set_build_string(

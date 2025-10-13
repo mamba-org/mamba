@@ -39,19 +39,21 @@ namespace mambapy
             pyenum.value(name, val);
         }
 
-        pyenum.def(pybind11::init(
-            [name_values](std::string_view s)
-            {
-                for (const auto& [name, val] : name_values)
+        pyenum.def(
+            pybind11::init(
+                [name_values](std::string_view s)
                 {
-                    if (name == s)
+                    for (const auto& [name, val] : name_values)
                     {
-                        return val;
+                        if (name == s)
+                        {
+                            return val;
+                        }
                     }
+                    throw pybind11::key_error(fmt::format("No member named {}", s));
                 }
-                throw pybind11::key_error(fmt::format("No member named {}", s));
-            }
-        ));
+            )
+        );
 
         pybind11::implicitly_convertible<pybind11::str, Enum>();
         return std::forward<PyEnum>(pyenum);

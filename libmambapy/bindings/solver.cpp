@@ -288,18 +288,20 @@ namespace mambapy
                     [](Solution::action_list actions) -> Solution { return { std::move(actions) }; }
                 )
             )
-            .def(py::init(
-                [](py::iterable actions) -> Solution
-                {
-                    auto solution = Solution();
-                    solution.actions.reserve(py::len_hint(actions));
-                    for (py::handle act : actions)
+            .def(
+                py::init(
+                    [](py::iterable actions) -> Solution
                     {
-                        solution.actions.push_back(py::cast<Solution::Action>(act));
+                        auto solution = Solution();
+                        solution.actions.reserve(py::len_hint(actions));
+                        for (py::handle act : actions)
+                        {
+                            solution.actions.push_back(py::cast<Solution::Action>(act));
+                        }
+                        return solution;
                     }
-                    return solution;
-                }
-            ))
+                )
+            )
             .def_readwrite("actions", &Solution::actions)
             .def(
                 "packages",
@@ -471,18 +473,24 @@ namespace mambapy
             "RootNode",
             [](py::handle) { return py::type::of<ProblemsGraph::RootNode>(); }
         );
-        bind_NamedList(py::class_<CompressedProblemsGraph::PackageListNode>(
-            py_compressed_problems_graph,
-            "PackageListNode"
-        ));
-        bind_NamedList(py::class_<CompressedProblemsGraph::UnresolvedDependencyListNode>(
-            py_compressed_problems_graph,
-            "UnresolvedDependencyListNode"
-        ));
-        bind_NamedList(py::class_<CompressedProblemsGraph::ConstraintListNode>(
-            py_compressed_problems_graph,
-            "ConstraintListNode"
-        ));
+        bind_NamedList(
+            py::class_<CompressedProblemsGraph::PackageListNode>(
+                py_compressed_problems_graph,
+                "PackageListNode"
+            )
+        );
+        bind_NamedList(
+            py::class_<CompressedProblemsGraph::UnresolvedDependencyListNode>(
+                py_compressed_problems_graph,
+                "UnresolvedDependencyListNode"
+            )
+        );
+        bind_NamedList(
+            py::class_<CompressedProblemsGraph::ConstraintListNode>(
+                py_compressed_problems_graph,
+                "ConstraintListNode"
+            )
+        );
         bind_NamedList(
             py::class_<CompressedProblemsGraph::edge_t>(py_compressed_problems_graph, "DependencyList")
         );

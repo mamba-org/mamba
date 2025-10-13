@@ -24,15 +24,17 @@ namespace mamba
     std::string replace_long_shebang(const std::string& shebang);
     std::string python_shebang(const std::string& python_exe);
 
-    inline const std::regex shebang_regex("^(#!"      // pretty much the whole match string
-                                          "(?:[ ]*)"  // allow spaces between #! and beginning of
-                                                      // the executable path
-                                          "(/(?:\\\\ |[^ \n\r\t])*)"  // the executable is the next
-                                                                      // text block without an
-                                                                      // escaped space or non-space
-                                                                      // whitespace character
-                                          "(.*))$");  // the rest of the line can contain option
-                                                      // flags and end whole_shebang group
+    inline const std::regex shebang_regex(
+        "^(#!"                      // pretty much the whole match string
+        "(?:[ ]*)"                  // allow spaces between #! and beginning of
+                                    // the executable path
+        "(/(?:\\\\ |[^ \n\r\t])*)"  // the executable is the next
+                                    // text block without an
+                                    // escaped space or non-space
+                                    // whitespace character
+        "(.*))$"
+    );  // the rest of the line can contain option
+        // flags and end whole_shebang group
 
     constexpr std::size_t MAX_SHEBANG_LENGTH = util::on_linux ? 127 : 512;
 

@@ -81,11 +81,15 @@ namespace mamba
             }
             else
             {
-                return tl::unexpected(std::runtime_error(fmt::format(
-                    "no {} instruction found for package manager '{}'",
-                    (update == pip::Update::Yes) ? "update" : "install",
-                    name
-                )));
+                return tl::unexpected(
+                    std::runtime_error(
+                        fmt::format(
+                            "no {} instruction found for package manager '{}'",
+                            (update == pip::Update::Yes) ? "update" : "install",
+                            name
+                        )
+                    )
+                );
             }
         }
     }
@@ -196,10 +200,9 @@ namespace mamba
         assert_reproc_success(options, status, ec);
         if (status != 0)
         {
-            throw std::runtime_error(fmt::format(
-                "pip failed to {} packages",
-                (update == pip::Update::Yes) ? "update" : "install"
-            ));
+            throw std::runtime_error(
+                fmt::format("pip failed to {} packages", (update == pip::Update::Yes) ? "update" : "install")
+            );
         }
 
         return command;

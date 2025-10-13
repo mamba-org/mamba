@@ -49,10 +49,12 @@ namespace mamba
             }
             if (package.info.sha256.empty() && package.info.md5.empty())
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
-                    "either package 'package.info.hash.md5' or 'package.info.hash.sha256' must be specified, found none"
-                ));
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        file_parsing_error_code::invalid_data,
+                        "either package 'package.info.hash.md5' or 'package.info.hash.sha256' must be specified, found none"
+                    )
+                );
             }
 
             package.info.package_url = package_node["url"].as<std::string_view>();
@@ -106,10 +108,12 @@ namespace mamba
             }
             if (metadata.platforms.empty())
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
-                    "at least one 'metadata.platform.*' must be specified, found none"
-                ));
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        file_parsing_error_code::invalid_data,
+                        "at least one 'metadata.platform.*' must be specified, found none"
+                    )
+                );
             }
 
             for (const auto& source_node : metadata_node["sources"])
@@ -118,10 +122,12 @@ namespace mamba
             }
             if (metadata.sources.empty())
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
-                    "at least one 'metadata.source.*' must be specified, found none"
-                ));
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        file_parsing_error_code::invalid_data,
+                        "at least one 'metadata.source.*' must be specified, found none"
+                    )
+                );
             }
 
             for (const auto& channel_node : metadata_node["channels"])
@@ -143,10 +149,12 @@ namespace mamba
             }
             if (metadata.content_hash.empty())
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
-                    "at least one 'metadata.content_hash.*' value must be specified, found none"
-                ));
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        file_parsing_error_code::invalid_data,
+                        "at least one 'metadata.content_hash.*' value must be specified, found none"
+                    )
+                );
             }
 
             return metadata;
@@ -197,39 +205,45 @@ namespace mamba
 
                 default:
                 {
-                    return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::unsupported_version,
-                        fmt::format(
-                            "Failed to read environment lockfile at '{}' : unknown version '{}'",
-                            file_path.string(),
-                            lockfile_version
+                    return tl::unexpected(
+                        EnvLockFileError::make_error(
+                            file_parsing_error_code::unsupported_version,
+                            fmt::format(
+                                "Failed to read environment lockfile at '{}' : unknown version '{}'",
+                                file_path.string(),
+                                lockfile_version
+                            )
                         )
-                    ));
+                    );
                 }
             }
         }
         catch (const YAML::Exception& err)
         {
-            return tl::unexpected(EnvLockFileError::make_error(
-                file_parsing_error_code::parsing_failure,
-                fmt::format(
-                    "YAML parsing error while reading environment lockfile located at '{}' : {}",
-                    file_path.string(),
-                    err.what()
-                ),
-                std::type_index{ typeid(err) }
-            ));
+            return tl::unexpected(
+                EnvLockFileError::make_error(
+                    file_parsing_error_code::parsing_failure,
+                    fmt::format(
+                        "YAML parsing error while reading environment lockfile located at '{}' : {}",
+                        file_path.string(),
+                        err.what()
+                    ),
+                    std::type_index{ typeid(err) }
+                )
+            );
         }
         catch (const std::exception& e)
         {
-            return tl::unexpected(EnvLockFileError::make_error(
-                file_parsing_error_code::parsing_failure,
-                fmt::format(
-                    "Error while reading environment lockfile located at '{}': {}",
-                    file_path.string(),
-                    e.what()
+            return tl::unexpected(
+                EnvLockFileError::make_error(
+                    file_parsing_error_code::parsing_failure,
+                    fmt::format(
+                        "Error while reading environment lockfile located at '{}': {}",
+                        file_path.string(),
+                        e.what()
+                    )
                 )
-            ));
+            );
         }
     }
 

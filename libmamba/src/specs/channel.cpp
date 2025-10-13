@@ -563,8 +563,8 @@ namespace mamba::specs
  *  Implementation of std::hash  *
  *********************************/
 
-auto ::std::hash<mamba::specs::Channel>::operator()(const mamba::specs::Channel & chan) const
-    -> std::size_t
+auto ::std::hash<mamba::specs::Channel>::
+operator()(const mamba::specs::Channel& chan) const -> std::size_t
 {
     return mamba::util::hash_combine(
         mamba::util::hash_vals(chan.url(), chan.display_name()),

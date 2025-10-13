@@ -274,6 +274,9 @@ namespace mamba
 
         void set_verbosity(int lvl);
 
+        // TODO: deprecate and replace by `mamba::logging::set_log_level` after adding a
+        // way to be notified of logging parameters changes to keep `output_params` up
+        // to date.
         void set_log_level(log_level level);
 
         /** Setups the required core subsystems for `libmamba`'s high-level operations to work,

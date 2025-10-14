@@ -1,3 +1,22 @@
+## libmambapy 2.3.3.alpha1 (October 14, 2025)
+
+Bug fixes:
+
+- Fix deprecated license key by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4053>
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+- Use fmt::format by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4061>
+- Move to Pybind 3.0 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4059>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
 ## libmambapy 2.3.3.alpha0 (September 04, 2025)
 
 Bug fixes:

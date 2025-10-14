@@ -15,10 +15,10 @@
 #define UMAMBA_VERSION_PATCH 3
 #define UMAMBA_VERSION_IS_PRERELEASE 1
 #if UMAMBA_VERSION_IS_PRERELEASE == 1
-#define UMAMBA_VERSION_PRERELEASE_NAME "alpha0"
+#define UMAMBA_VERSION_PRERELEASE_NAME "alpha1"
 #endif
 
-#define UMAMBA_VERSION_STRING "2.3.3.alpha0"
+#define UMAMBA_VERSION_STRING "2.3.3.alpha1"
 #define UMAMBA_VERSION                                                                             \
     (UMAMBA_VERSION_MAJOR * 10000 + UMAMBA_VERSION_MINOR * 100 + UMAMBA_VERSION_PATCH)
 

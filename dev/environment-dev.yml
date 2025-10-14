@@ -14,7 +14,7 @@ dependencies:
   - make # not always present
   # libmamba dependencies
   - cpp-expected
-  - fmt >=11.1.0
+  - fmt >=12.0.0
   # As of libarchive 3.8, builds of libarchive for different licenses
   # are available. We use the LGPL version here.
   - libarchive>=3.8 lgpl_*
@@ -24,7 +24,7 @@ dependencies:
   - nlohmann_json
   - reproc-cpp >=14.2.4.post0
   - simdjson >=3.3.0
-  - spdlog
+  - spdlog >=1.16.0
   - yaml-cpp >=0.8.0
   - sel(win): winreg
   # libmamba test dependencies

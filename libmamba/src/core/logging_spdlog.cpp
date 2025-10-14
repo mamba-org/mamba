@@ -83,7 +83,8 @@ namespace mamba::logging::spdlogimpl
         assert(pimpl);
         if (sources.empty())
         {
-            throw std::invalid_argument("LogHandler_spdlog must be started with at least one log source"
+            throw std::invalid_argument(
+                "LogHandler_spdlog must be started with at least one log source"
             );
         }
 

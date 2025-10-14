@@ -55,12 +55,14 @@ namespace mamba
         database.set_logger(
             [](solver::libsolv::LogLevel level, std::string_view msg)
             {
-                logging::log({
-                    .message = std::string{ msg },
-                    .level = to_mamba(level),
-                    .source = log_source::libsolv,
-                    // THINK: add a location? this line?
-                });
+                logging::log(
+                    {
+                        .message = std::string{ msg },
+                        .level = to_mamba(level),
+                        .source = log_source::libsolv,
+                        // THINK: add a location? this line?
+                    }
+                );
             }
         );
     }

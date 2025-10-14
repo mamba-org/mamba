@@ -382,9 +382,11 @@ namespace mamba::logging::testing
 
             for (std::size_t i = start_log_idx; i < options.log_count; ++i)
             {
-                log_impl_func({ .message = fmt::format(fmt::runtime(message_format), i),
-                                .level = options.level,
-                                .source = options.log_sources.front() });
+                log_impl_func(
+                    { .message = fmt::format(fmt::runtime(message_format), i),
+                      .level = options.level,
+                      .source = options.log_sources.front() }
+                );
             }
         };
 

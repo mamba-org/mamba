@@ -318,9 +318,11 @@ namespace mamba::download
                         symbol_for(type),
                         Console::hide_secrets(std::string_view(data, size))
                     );
-                    logging::log({ .message = std::move(message),
-                                   .level = log_level::info,
-                                   .source = log_source::libcurl });
+                    logging::log(
+                        { .message = std::move(message),
+                          .level = log_level::info,
+                          .source = log_source::libcurl }
+                    );
                     break;
                 }
                 default:

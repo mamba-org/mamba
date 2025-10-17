@@ -1,3 +1,23 @@
+## libmamba 2.3.3 (October 17, 2025)
+
+Bug fixes:
+
+- fix: pass `$argv` for fish wrapper by @sghng in <https://github.com/mamba-org/mamba/pull/4073>
+- Fix empty depends/constrains when installing explicit spec files by @benmoss in <https://github.com/mamba-org/mamba/pull/4071>
+- fix: proxy both micromamba and mamba with fish function by @sghng in <https://github.com/mamba-org/mamba/pull/4065>
+- Fix nodiscard errors by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4058>
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
 ## libmamba 2.3.3.alpha1 (October 14, 2025)
 
 Bug fixes:

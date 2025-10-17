@@ -1,3 +1,16 @@
+## micromamba 2.3.3 (October 17, 2025)
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- Fixed test_repodata_record_patch by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4067>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+
 ## micromamba 2.3.3.alpha1 (October 14, 2025)
 
 CI fixes and doc:

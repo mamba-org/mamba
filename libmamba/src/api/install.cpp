@@ -572,7 +572,7 @@ namespace mamba
                                                        : solver::libsolv::MatchSpecParser::Libsolv,
                 },
             };
-            add_spdlog_logger_to_database(db);
+            add_logger_to_database(db);
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
             if (!maybe_load)
@@ -772,7 +772,7 @@ namespace mamba
                                                        : solver::libsolv::MatchSpecParser::Libsolv,
                 },
             };
-            add_spdlog_logger_to_database(database);
+            add_logger_to_database(database);
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty
@@ -1240,7 +1240,7 @@ namespace mamba
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
             solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_database(db);
+            add_logger_to_database(db);
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
             if (!maybe_load)

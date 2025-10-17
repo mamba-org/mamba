@@ -15,6 +15,9 @@ set_target_properties(
 
 mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
+# ##################################################################################################
+# libmamba unit tests
+
 set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
@@ -160,8 +163,36 @@ set_target_properties(
         CXX_EXTENSIONS NO
 )
 
+# ##################################################################################################
+# libmamba logging system tests
+
+add_executable(
+    test_libmamba_logging
+    libmamba_logging/test_logging_common.hpp
+    libmamba_logging/test_main_logging.cpp
+    libmamba_logging/test_logging_tools.cpp
+    libmamba_logging/test_logging_anyloghandler.cpp
+    libmamba_logging/test_logging_spdlog.cpp
+)
+
+target_link_libraries(test_libmamba_logging PRIVATE mamba::libmamba Catch2::Catch2WithMain)
+
+target_compile_features(test_libmamba_logging PUBLIC cxx_std_20)
+set_target_properties(
+    test_libmamba_logging
+    PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED YES
+        CXX_EXTENSIONS NO
+)
+
+mamba_target_add_compile_warnings(test_libmamba_logging WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+
+# ##################################################################################################
+
 add_custom_target(
     test
+    COMMAND test_libmamba_logging
     COMMAND test_libmamba
-    DEPENDS test_libmamba
+    DEPENDS test_libmamba_logging test_libmamba
 )

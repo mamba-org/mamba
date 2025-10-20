@@ -3,6 +3,8 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
+#pragma once
+
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -15,7 +17,6 @@
 
 #include <mamba/core/context.hpp>
 #include <mamba/core/execution.hpp>
-#include <mamba/core/logging_spdlog.hpp>
 #include <mamba/core/tasksync.hpp>
 #include <mamba/core/util.hpp>
 

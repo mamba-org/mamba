@@ -10,11 +10,11 @@
 
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
-#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
@@ -2208,12 +2208,12 @@ namespace mamba
 
     void Configuration::load()
     {
-        spdlog::set_level(spdlog::level::n_levels);
-        spdlog::flush_on(spdlog::level::n_levels);
+        logging::set_log_level(log_level::all);
+        logging::set_flush_threshold(log_level::all);
         // Hard-coded value assuming it's enough to store the logs emitted
         // before setting the log level, flushing the backtrace and setting
         // its new capacity
-        spdlog::enable_backtrace(500);
+        logging::enable_backtrace(500);
 
         LOG_DEBUG << "Loading configuration";
 
@@ -2245,17 +2245,17 @@ namespace mamba
 
         m_context.set_log_level(m_context.output_params.logging_level);
 
-        spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
-        spdlog::flush_on(spdlog::level::off);
+        logging::flush_logs();
+        logging::set_flush_threshold(log_level::off);
 
         m_context.dump_backtrace_no_guards();
         if (m_context.output_params.log_backtrace > 0)
         {
-            spdlog::enable_backtrace(m_context.output_params.log_backtrace);
+            logging::enable_backtrace(m_context.output_params.log_backtrace);
         }
         else
         {
-            spdlog::disable_backtrace();
+            logging::disable_backtrace();
         }
     }
 

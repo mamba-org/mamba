@@ -1,4 +1,5 @@
 #include "mamba/core/download_progress_bar.hpp"
+#include "mamba/core/output.hpp"
 
 #include "progress_bar_impl.hpp"
 

@@ -6,8 +6,7 @@
 
 #include <functional>
 
-#include <spdlog/spdlog.h>
-
+#include "mamba/core/logging.hpp"
 #include "mamba/core/util.hpp"      // for hide_secrets
 #include "mamba/fs/filesystem.hpp"  // for fs::exists
 #include "mamba/util/environment.hpp"
@@ -69,9 +68,7 @@ namespace mamba::download
             if (proxy)
             {
                 curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
-                // TODO LOG_INFO was used here instead; to be modified later following the new log
-                // procedure (TBD)
-                spdlog::info("Using Proxy {}", hide_secrets(*proxy));
+                LOG_INFO << fmt::format("Using Proxy {}", hide_secrets(*proxy));
             }
 
             if (ssl_verify.size())

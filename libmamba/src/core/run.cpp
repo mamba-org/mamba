@@ -29,7 +29,6 @@ extern "C"
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
-#include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"

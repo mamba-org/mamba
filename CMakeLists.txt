@@ -14,6 +14,7 @@ project(mamba)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
 option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 option(BUILD_LIBMAMBA "Build libmamba library" OFF)
+option(BUILD_LIBMAMBA_SPDLOG "Build libmamba-spdlog library" OFF)
 option(BUILD_LIBMAMBAPY "Build libmamba Python bindings" OFF)
 option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_MAMBA "Build mamba" OFF)
@@ -74,6 +75,11 @@ endif()
 # libmamba library and tests
 if(BUILD_LIBMAMBA)
     add_subdirectory(libmamba)
+endif()
+
+# libmamba-spdlog library and tests
+if(BUILD_LIBMAMBA_SPDLOG)
+    add_subdirectory(libmamba-spdlog)
 endif()
 
 # Python bindings of libmamba

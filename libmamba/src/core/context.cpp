@@ -12,7 +12,6 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
-#include "mamba/core/logging_spdlog.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -54,17 +53,10 @@ namespace mamba
 
     void Context::start_logging(logging::AnyLogHandler log_handler)
     {
-        if (not logging::get_log_handler())  // don't allow replacing one already set; THINK: OR DO
-                                             // WE ALLOW THAT????
+        // Only change the log-handler if specified, keep the current one otherwise.
+        if (log_handler) 
         {
-            if (log_handler)
-            {
-                logging::set_log_handler(std::move(log_handler), output_params);
-            }
-            else
-            {
-                logging::set_log_handler(logging::spdlogimpl::LogHandler_spdlog{}, output_params);
-            }
+            logging::set_log_handler(std::move(log_handler), output_params);
         }
     }
 

@@ -4,7 +4,7 @@
 
 #include <mamba/core/logging.hpp>
 
-#include "test_logging_common.hpp"
+#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {

@@ -29,7 +29,7 @@ CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
-Testing
+
 # There exist other Makefiles in /docs
 /Makefile
 cmake_install.cmake

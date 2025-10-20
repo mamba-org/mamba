@@ -42,6 +42,7 @@ jobs:
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
             -D MAMBA_WARNING_AS_ERROR=ON \
             -D BUILD_LIBMAMBAPY=OFF \
+            -D BUILD_LIBMAMBA_SPDLOG=ON \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           cmake --build build/ --parallel
       - name: Show build cache statistics
@@ -87,6 +88,11 @@ jobs:
         run: |
           unset CONDARC  # Interferes with tests
           ./build/libmamba/tests/test_libmamba_logging
+      - name: Run libmamba spdlog-based logging tests
+        shell: bash -elo pipefail {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          ./build/libmamba-spdlog/tests/test_libmamba_spdlog
 
   libmambapy_tests_unix:
     name: libmambapy tests

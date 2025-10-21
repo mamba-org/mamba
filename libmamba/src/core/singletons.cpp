@@ -88,17 +88,9 @@ namespace mamba
             CURLsslset sslset_res;
             const curl_ssl_backend** available_backends;
 
-            if (util::on_linux)
+            if (util::on_linux || util::on_mac)
             {
                 sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
-            }
-            else if (util::on_mac)
-            {
-                sslset_res = curl_global_sslset(
-                    CURLSSLBACKEND_SECURETRANSPORT,
-                    nullptr,
-                    &available_backends
-                );
             }
             else if (util::on_win)
             {

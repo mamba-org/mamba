@@ -292,6 +292,15 @@ namespace mamba::util
         throw std::runtime_error("HOME not set.");
     }
 
+    auto zsh_home_dir() -> std::string
+    {
+        if (auto maybe_zdotdir = get_env("ZDOTDIR").value_or(""); !maybe_zdotdir.empty())
+        {
+            return maybe_zdotdir;
+        }
+        return user_home_dir();
+    }
+
     auto user_config_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_CONFIG_HOME").value_or(""); !maybe_dir.empty())

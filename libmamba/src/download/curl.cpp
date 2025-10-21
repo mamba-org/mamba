@@ -281,13 +281,6 @@ namespace mamba::download
             {
                 log = std::make_pair(std::string_view("Using OpenSSL backend"), CurlLogLevel::kInfo);
             }
-            else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
-            {
-                log = std::make_pair(
-                    std::string_view("Using macOS SecureTransport backend"),
-                    CurlLogLevel::kInfo
-                );
-            }
             else if (info->backend == CURLSSLBACKEND_SCHANNEL)
             {
                 log = std::make_pair(

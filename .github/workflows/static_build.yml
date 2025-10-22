@@ -45,6 +45,11 @@ jobs:
         run: |
           cd micromamba-feedstock/
           sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
+      - name: Replaces python 3.9 with 3.12
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          cd micromamba-feedstock/recipe/
+          sed -i 's|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3\.9|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3.13|' meta.yaml
       - name: Checkout mamba branch
         uses: actions/checkout@v4
         with:

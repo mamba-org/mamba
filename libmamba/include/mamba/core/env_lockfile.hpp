@@ -27,34 +27,36 @@ namespace mamba
 
     enum class file_parsing_error_code
     {
-        unknown_failure,      /// Something failed while parsing but we can't identify what.
-        unsupported_version,  /// The version of the file does not matched supported ver.
-        parsing_failure,      /// The content of the file doesnt match the expected format/language
-                              /// structure or constraints.
-        invalid_data,         /// The structure of the data in the file is fine but some fields have
-                              /// invalid values for our purpose.
+        unknown_failure,      ///< Something failed while parsing but we can't identify what.
+        unsupported_version,  ///< The version of the file does not matched supported ver.
+        parsing_failure,  ///< The content of the file doesn't match the expected format/language
+                          ///< structure or constraints.
+        invalid_data,     ///< The structure of the data in the file is fine but some fields have
+                          ///< invalid values for our purpose.
+        not_env_lockfile  ///< The file doesn't seem to be a valid or supported lockfile file
+                          ///< format.
     };
 
-    struct EnvLockFileError
+    struct EnvLockFileError // TODO: inherit from mamba error
     {
         file_parsing_error_code parsing_error_code = file_parsing_error_code::unknown_failure;
-        std::optional<std::type_index> yaml_error_type{};
+        std::optional<std::type_index> error_type{};
 
-        static const EnvLockFileError& get_details(const mamba_error& error)
+        static auto get_details(const mamba_error& error) -> const EnvLockFileError&
         {
             return std::any_cast<const EnvLockFileError&>(error.data());
         }
 
         template <typename StringT>
-        static mamba_error make_error(
+        static auto make_error(
             file_parsing_error_code error_code,
             StringT&& msg,
-            std::optional<std::type_index> yaml_error_type = std::nullopt
-        )
+            std::optional<std::type_index> error_type = std::nullopt
+        ) -> mamba_error
         {
             return mamba_error{ std::forward<StringT>(msg),
                                 mamba_error_code::env_lockfile_parsing_failed,
-                                EnvLockFileError{ error_code, yaml_error_type } };
+                                EnvLockFileError{ error_code, error_type } };
         }
     };
 
@@ -91,18 +93,16 @@ namespace mamba
         {
         }
 
-        std::vector<specs::PackageInfo> get_packages_for(
-            std::string_view category,
-            std::string_view platform,
-            std::string_view manager
-        ) const;
+        auto
+        get_packages_for(std::string_view category, std::string_view platform, std::string_view manager) const
+            -> std::vector<specs::PackageInfo>;
 
-        const std::vector<Package>& get_all_packages() const
+        auto get_all_packages() const -> const std::vector<Package>&
         {
             return m_packages;
         }
 
-        const Meta& get_metadata() const
+        auto get_metadata() const -> const Meta&
         {
             return m_metadata;
         }
@@ -113,14 +113,31 @@ namespace mamba
         std::vector<Package> m_packages;
     };
 
-    /// Read an environment lock YAML file and returns it's structured content or an error if
+    /// Describes a format of environment lockfile file supported by this library.
+    enum class EnvLockfileFormat
+    {
+        undefined,    ///< We don't know the format of the file.
+        conda_yaml,   ///< conda's yaml-based environment lockfile format.
+        mambajs_json  ///< mambajs's json-based environment lockfile format.
+    };
+
+    /// Read an environment lock-file and returns it's structured content or an error if
     /// failed.
-    tl::expected<EnvironmentLockFile, mamba_error>
-    read_environment_lockfile(const mamba::fs::u8path& lockfile_location);
+    ///
+    /// @param lockfile_location The filsystem path to the file to open and read.
+    /// @param file_format The expected file format of the file. If `undefined`, which is the
+    ///        default value, we guess based on the file's extension and content.
+    auto read_environment_lockfile(
+        const fs::u8path& lockfile_location,
+        EnvLockfileFormat file_format = EnvLockfileFormat::undefined
+    ) -> tl::expected<EnvironmentLockFile, mamba_error>;
 
 
     /// Returns `true` if the filename matches names of files which should be interpreted as conda
-    /// environment lockfile. NOTE: this does not check if the file exists.
-    bool is_env_lockfile_name(std::string_view filename);
+    /// or mambajs environment lockfile.
+    /// NOTE: this does not check if the file exists.
+    auto is_env_lockfile_name(std::string_view filename) -> bool;
+
+    auto deduce_env_lockfile_format(const fs::u8path& lockfile_location) -> EnvLockfileFormat;
 }
 #endif

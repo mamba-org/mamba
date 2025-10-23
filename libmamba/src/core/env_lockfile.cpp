@@ -4,257 +4,75 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <yaml-cpp/yaml.h>
-
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
+
+#include "./env_lockfile_impl.hpp"
 
 namespace mamba
 {
-    namespace env_lockfile_v1
+    namespace
     {
-        using Package = EnvironmentLockFile::Package;
-
-        tl::expected<Package, mamba_error> read_package_info(const YAML::Node& package_node)
+        auto
+        read_env_lockfile_impl(const fs::u8path& lockfile_location, EnvLockfileFormat file_format)
+            -> tl::expected<EnvironmentLockFile, mamba_error>
         {
-            Package package{
-                /* .info = */ specs::PackageInfo{ package_node["name"].as<std::string>() },
-                /* .is_optional = */
-                [&]
+            switch (file_format)
+            {
+                case EnvLockfileFormat::conda_yaml:
                 {
-                    if (const auto& optional_node = package_node["optional"])
-                    {
-                        return optional_node.as<bool>();
-                    }
-                    return false;
-                }(),
-                /* .category = */
-                package_node["category"] ? package_node["category"].as<std::string>() : "main",
-                /* .manager = */ package_node["manager"].as<std::string>(),
-                /* .platform = */ package_node["platform"].as<std::string>(),
-            };
-
-            package.info.version = package_node["version"].as<std::string>();
-            const auto& hash_node = package_node["hash"];
-            if (const auto& md5_node = hash_node["md5"])
-            {
-                package.info.md5 = md5_node.as<std::string>();
-            }
-            if (const auto& sha256_node = hash_node["sha256"])
-            {
-                package.info.sha256 = sha256_node.as<std::string>();
-            }
-            if (package.info.sha256.empty() && package.info.md5.empty())
-            {
-                return tl::unexpected(
-                    EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
-                        "either package 'package.info.hash.md5' or 'package.info.hash.sha256' must be specified, found none"
-                    )
-                );
-            }
-
-            package.info.package_url = package_node["url"].as<std::string_view>();
-            {
-                auto maybe_parsed_info = specs::PackageInfo::from_url(package.info.package_url);
-                if (!maybe_parsed_info)
-                {
-                    return make_unexpected(
-                        maybe_parsed_info.error().what(),
-                        mamba_error_code::invalid_spec
-                    );
+                    return read_conda_environment_lockfile(lockfile_location);
                 }
-                package.info.filename = maybe_parsed_info->filename;
-                package.info.channel = maybe_parsed_info->channel;
-                package.info.build_string = maybe_parsed_info->build_string;
-                package.info.platform = maybe_parsed_info->platform;
-            }
-
-            for (const auto& dependency : package_node["dependencies"])
-            {
-                const auto dependency_name = dependency.first.as<std::string>();
-                const auto dependency_constraint = dependency.second.as<std::string>();
-                package.info.dependencies.push_back(
-                    fmt::format("{} {}", dependency_name, dependency_constraint)
-                );
-            }
-
-            if (const auto& constraints_nodes = package_node["constrains"])
-            {
-                for (const auto& dependency : constraints_nodes)
+                case EnvLockfileFormat::mambajs_json:
                 {
-                    const auto constraint_dep_name = dependency.first.as<std::string>();
-                    const auto constraint_expr = dependency.second.as<std::string>();
-                    package.info.constrains.push_back(
-                        fmt::format("{} {}", constraint_dep_name, constraint_expr)
-                    );
+                    return read_mambajs_environment_lockfile(lockfile_location);
                 }
-            }
-
-            return package;
-        }
-
-        tl::expected<EnvironmentLockFile::Meta, mamba_error>
-        read_metadata(const YAML::Node& metadata_node)
-        {
-            EnvironmentLockFile::Meta metadata;
-
-            for (const auto& platform_node : metadata_node["platforms"])
-            {
-                metadata.platforms.push_back(platform_node.as<std::string>());
-            }
-            if (metadata.platforms.empty())
-            {
-                return tl::unexpected(
-                    EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
-                        "at least one 'metadata.platform.*' must be specified, found none"
-                    )
-                );
-            }
-
-            for (const auto& source_node : metadata_node["sources"])
-            {
-                metadata.sources.push_back(source_node.as<std::string>());
-            }
-            if (metadata.sources.empty())
-            {
-                return tl::unexpected(
-                    EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
-                        "at least one 'metadata.source.*' must be specified, found none"
-                    )
-                );
-            }
-
-            for (const auto& channel_node : metadata_node["channels"])
-            {
-                EnvironmentLockFile::Channel channel;
-                channel.url = channel_node["url"].as<std::string>();
-                channel.used_env_vars = channel_node["used_env_vars"].as<std::vector<std::string>>();
-                metadata.channels.push_back(std::move(channel));
-            }
-
-            for (const auto& node_pair : metadata_node["content_hash"])
-            {
-                const auto& platform_node = node_pair.first;
-                const auto& hash_node = node_pair.first;
-                metadata.content_hash.emplace(
-                    platform_node.as<std::string>(),
-                    hash_node.as<std::string>()
-                );
-            }
-            if (metadata.content_hash.empty())
-            {
-                return tl::unexpected(
-                    EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
-                        "at least one 'metadata.content_hash.*' value must be specified, found none"
-                    )
-                );
-            }
-
-            return metadata;
-        }
-
-        tl::expected<EnvironmentLockFile, mamba_error>
-        read_environment_lockfile(const YAML::Node& lockfile_yaml)
-        {
-            const auto& maybe_metadata = read_metadata(lockfile_yaml["metadata"]);
-            if (!maybe_metadata)
-            {
-                return tl::unexpected(maybe_metadata.error());
-            }
-
-            auto metadata = maybe_metadata.value();
-
-            std::vector<Package> packages;
-            for (const auto& package_node : lockfile_yaml["package"])
-            {
-                if (auto maybe_package = read_package_info(package_node))
-                {
-                    packages.push_back(maybe_package.value());
-                }
-                else
-                {
-                    return tl::unexpected(maybe_package.error());
-                }
-            }
-
-            return EnvironmentLockFile{ std::move(metadata), std::move(packages) };
-        }
-    }
-
-    tl::expected<EnvironmentLockFile, mamba_error>
-    read_environment_lockfile(const fs::u8path& lockfile_location)
-    {
-        const auto file_path = fs::absolute(lockfile_location);  // Having the complete path helps
-                                                                 // with logging and error reports.
-        try
-        {
-            // TODO: add fields validation here (using some schema validation tool)
-            const YAML::Node lockfile_content = YAML::LoadFile(file_path.string());
-            const auto lockfile_version = lockfile_content["version"].as<int>();
-            switch (lockfile_version)
-            {
-                case 1:
-                    return env_lockfile_v1::read_environment_lockfile(lockfile_content);
 
                 default:
                 {
-                    return tl::unexpected(
-                        EnvLockFileError::make_error(
-                            file_parsing_error_code::unsupported_version,
-                            fmt::format(
-                                "Failed to read environment lockfile at '{}' : unknown version '{}'",
-                                file_path.string(),
-                                lockfile_version
-                            )
+                    return tl::unexpected(EnvLockFileError::make_error(
+                        file_parsing_error_code::not_env_lockfile,
+                        fmt::format(
+                            "file '{}' does not seem to be an environment lockfile or doesn't have a supported format",
+                            lockfile_location.string()
                         )
-                    );
+                    ));
                 }
             }
         }
-        catch (const YAML::Exception& err)
-        {
-            return tl::unexpected(
-                EnvLockFileError::make_error(
-                    file_parsing_error_code::parsing_failure,
-                    fmt::format(
-                        "YAML parsing error while reading environment lockfile located at '{}' : {}",
-                        file_path.string(),
-                        err.what()
-                    ),
-                    std::type_index{ typeid(err) }
-                )
-            );
-        }
-        catch (const std::exception& e)
-        {
-            return tl::unexpected(
-                EnvLockFileError::make_error(
-                    file_parsing_error_code::parsing_failure,
-                    fmt::format(
-                        "Error while reading environment lockfile located at '{}': {}",
-                        file_path.string(),
-                        e.what()
-                    )
-                )
-            );
-        }
     }
 
-    std::vector<specs::PackageInfo> EnvironmentLockFile::get_packages_for(
+    auto read_environment_lockfile(const fs::u8path& lockfile_location, EnvLockfileFormat file_format)
+        -> tl::expected<EnvironmentLockFile, mamba_error>
+    {
+        const auto file_path = fs::absolute(lockfile_location);  // Having the complete path helps
+                                                                 // with logging and error reports.
+
+        if (file_format == EnvLockfileFormat::undefined)
+        {
+            file_format = deduce_env_lockfile_format(lockfile_location);
+        }
+
+        return read_env_lockfile_impl(file_path, file_format);
+    }
+
+    auto deduce_env_lockfile_format(const mamba::fs::u8path& lockfile_location) -> EnvLockfileFormat
+    {
+        // FIXME: not implemented yet
+        throw EnvLockFileError();
+        return EnvLockfileFormat::undefined;
+    }
+
+    auto EnvironmentLockFile::get_packages_for(
         std::string_view category,
         std::string_view platform,
         std::string_view manager
-    ) const
+    ) const -> std::vector<specs::PackageInfo>
     {
         std::vector<specs::PackageInfo> results;
 
-        // TODO: c++20 - rewrite this with ranges
+        // TODO: c++23 - rewrite this with ranges `filter` and `to<vector>`
         const auto package_predicate = [&](const auto& package)
         {
             return package.platform == platform && package.category == category
@@ -271,8 +89,9 @@ namespace mamba
         return results;
     }
 
-    bool is_env_lockfile_name(std::string_view filename)
+    auto is_env_lockfile_name(std::string_view filename) -> bool
     {
+        // FIXME: support the json cases (do they need the `-lock.json`?)
         return util::ends_with(filename, "-lock.yml") || util::ends_with(filename, "-lock.yaml");
     }
 }

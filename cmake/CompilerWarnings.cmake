@@ -154,6 +154,9 @@ function(mamba_target_add_compile_warnings target)
         set(warnings ${gcc_warnings})
     endif()
 
-    target_compile_options("${target}" PRIVATE ${warnings})
+    get_target_property(type ${target} TYPE)
+    if (NOT ${type} STREQUAL "INTERFACE_LIBRARY")
+        target_compile_options("${target}" PRIVATE ${warnings})
+    endif()
 
 endfunction()

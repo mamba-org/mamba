@@ -47,6 +47,8 @@ class WindowsProfiles:
                 "$PROFILE.CurrentUserAllHosts",
             ]
             res = subprocess.run(args, capture_output=True, check=True)
+            print("res.returncode = ", res.returncode)
+            print("res output = ", res.stdout.decode("utf-8"))
             return res.stdout.decode("utf-8").strip()
         elif shell == "cmd.exe":
             return None
@@ -328,6 +330,7 @@ def test_shell_init(
         prev_text = value[0]
     else:
         path = Path(paths[plat][interpreter]).expanduser()
+        print(path)
         with open(path) as fi:
             x = fi.read()
             assert "mamba" in x

@@ -47,6 +47,8 @@ class WindowsProfiles:
                 "$PROFILE.CurrentUserAllHosts",
             ]
             res = subprocess.run(args, capture_output=True, check=True)
+            print("res.returncode = ", res.returncode)
+            print("res output = ", res.stdout.decode("utf-8"))
             return res.stdout.decode("utf-8").strip()
         elif shell == "cmd.exe":
             return None
@@ -154,6 +156,9 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interactive and interpreter == "bash" and plat == "linux":
         s = ["source ~/.bashrc"] + s
 
+    print("WRITING SCRIPT: ")
+    print("\n".join(s) + "\n")
+
     if interpreter == "cmd.exe":
         mods = ["@chcp 65001>nul"]
         umamba = helpers.get_umamba()
@@ -165,6 +170,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
                 mods.append(x)
         s = mods
     f = write_script(interpreter, s, tmp_path)
+    print("SCRIPT WRITTEN TO: ", f)
 
     if interpreter not in possible_interpreters[running_os]:
         return None, None
@@ -190,6 +196,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
             env=env,
             encoding="utf-8",
         )
+        res.check_returncode()
     except subprocess.CalledProcessError as e:
         stdout = e.stdout.strip()
         stderr = e.stderr.strip()
@@ -328,6 +335,7 @@ def test_shell_init(
         prev_text = value[0]
     else:
         path = Path(paths[plat][interpreter]).expanduser()
+        print("path = ", path)
         with open(path) as fi:
             x = fi.read()
             assert "mamba" in x

@@ -10,9 +10,9 @@
 #include <catch2/catch_all.hpp>
 #include <fmt/core.h>
 
-#include <mamba/core/logging_spdlog.hpp>
+#include <mamba/logging_spdlog.hpp>
 
-#include "test_logging_common.hpp"
+#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {

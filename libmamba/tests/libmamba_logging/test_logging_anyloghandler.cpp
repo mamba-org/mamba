@@ -13,7 +13,7 @@
 #include <mamba/core/logging.hpp>
 #include <mamba/util/synchronized_value.hpp>
 
-#include "test_logging_common.hpp"
+#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {

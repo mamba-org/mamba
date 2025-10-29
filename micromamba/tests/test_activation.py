@@ -35,13 +35,48 @@ suffixes = {
     "nu": ".nu",
 }
 
+powershell_cmd = None
+
+if plat == "win":
+
+    def detect_powershell():
+        try:
+            result = subprocess.run(
+                ["pwsh", "-Command", "$PSVersionTable.PSVersion.Major"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            version = int(result.stdout.strip())
+            if version >= 7:
+                return "pwsh"
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+
+        try:
+            result = subprocess.run(
+                ["powershell", "-Command", "$PSVersionTable.PSVersion.Major"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            version = int(result.stdout.strip())
+            if version >= 5:
+                return "powershell"
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+
+        raise OSError("No compatible PowerShell installation found.")
+
+    powershell_cmd = detect_powershell()
+
 
 class WindowsProfiles:
     def __getitem__(self, shell: str) -> str:
         if shell == "powershell":
             # find powershell profile path dynamically
             args = [
-                "powershell",
+                powershell_cmd,
                 "-NoProfile",
                 "-Command",
                 "$PROFILE.CurrentUserAllHosts",
@@ -172,7 +207,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interpreter == "cmd.exe":
         args = ["cmd.exe", "/Q", "/C", f]
     elif interpreter == "powershell":
-        args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
+        args = [powershell_cmd, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
     elif interpreter == "bash" and plat == "win":
         args = [os.path.join(os.environ["PROGRAMFILES"], "Git", "bin", "bash.exe"), f]
     else:

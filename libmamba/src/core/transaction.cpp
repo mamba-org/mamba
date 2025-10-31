@@ -1150,6 +1150,8 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
+        // TODO: FIXME: inject channel info coming from the lockfile!
+
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};
 

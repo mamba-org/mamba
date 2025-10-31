@@ -59,8 +59,16 @@ namespace mamba
 
     auto deduce_env_lockfile_format(const mamba::fs::u8path& lockfile_location) -> EnvLockfileFormat
     {
-        // FIXME: not implemented yet
-        throw EnvLockFileError();
+        if (lockfile_location.extension() == ".json")
+        {
+            return EnvLockfileFormat::mambajs_json;
+        }
+
+        if (is_env_lockfile_name(lockfile_location.filename().string()))
+        {
+            return EnvLockfileFormat::conda_yaml;
+        }
+
         return EnvLockfileFormat::undefined;
     }
 

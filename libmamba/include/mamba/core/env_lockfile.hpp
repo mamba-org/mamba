@@ -66,7 +66,8 @@ namespace mamba
 
         struct Channel
         {
-            std::string url;
+            std::string name;
+            std::vector<std::string> urls;
             std::vector<std::string> used_env_vars;
         };
 

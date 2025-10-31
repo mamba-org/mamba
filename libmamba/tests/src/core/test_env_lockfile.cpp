@@ -29,9 +29,9 @@ namespace mamba
 
             const auto& error_details = EnvLockFileError::get_details(error);
             REQUIRE(file_parsing_error_code::parsing_failure == error_details.parsing_error_code);
-            REQUIRE(error_details.yaml_error_type);
+            REQUIRE(error_details.error_type);
             const std::type_index bad_file_error_id{ typeid(YAML::BadFile) };
-            REQUIRE(bad_file_error_id == error_details.yaml_error_type.value());
+            REQUIRE(bad_file_error_id == error_details.error_type.value());
 
             // NOTE: one could attempt to check if opening a file which is not an YAML file
             //       would fail. Unfortunately YAML parsers will accept any kind of file,

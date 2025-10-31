@@ -25,7 +25,7 @@ namespace mamba
     class Context;
     class ChannelContext;
 
-    enum class file_parsing_error_code
+    enum class lockfile_parsing_error_code
     {
         unknown_failure,      ///< Something failed while parsing but we can't identify what.
         unsupported_version,  ///< The version of the file does not matched supported ver.
@@ -39,7 +39,7 @@ namespace mamba
 
     struct EnvLockFileError // TODO: inherit from mamba error
     {
-        file_parsing_error_code parsing_error_code = file_parsing_error_code::unknown_failure;
+        lockfile_parsing_error_code parsing_error_code = lockfile_parsing_error_code::unknown_failure;
         std::optional<std::type_index> error_type{};
 
         static auto get_details(const mamba_error& error) -> const EnvLockFileError&
@@ -49,7 +49,7 @@ namespace mamba
 
         template <typename StringT>
         static auto make_error(
-            file_parsing_error_code error_code,
+            lockfile_parsing_error_code error_code,
             StringT&& msg,
             std::optional<std::type_index> error_type = std::nullopt
         ) -> mamba_error
@@ -139,6 +139,12 @@ namespace mamba
     /// NOTE: this does not check if the file exists.
     auto is_env_lockfile_name(std::string_view filename) -> bool;
 
+    /// Returns `true` if the filename matches names of files which should be interpreted as conda
+    /// NOTE: this does not check if the file exists.
+    auto is_conda_env_lockfile_name(std::string_view filename) -> bool;
+
+    /// Deduce the environment lockfile format of a file path based on it's filename.
+    /// TODO: more info?
     auto deduce_env_lockfile_format(const fs::u8path& lockfile_location) -> EnvLockfileFormat;
 }
 #endif

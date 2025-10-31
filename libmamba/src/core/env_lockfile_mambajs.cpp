@@ -66,7 +66,7 @@ namespace mamba
                 if (package.info.sha256.empty() && package.info.md5.empty())
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
+                        lockfile_parsing_error_code::invalid_data,
                         "'package.hash' provided but neither 'package.hash.md5' nor 'package.hash.sha256' was found, at least one of them must be provided"
                     ));
                 }
@@ -92,7 +92,7 @@ namespace mamba
             if (metadata.platforms.front().empty())
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
+                    lockfile_parsing_error_code::invalid_data,
                     "a `platform` must be specified, found empty value"
                 ));
             }
@@ -107,7 +107,7 @@ namespace mamba
                 if (not contains(channel_names, channel_name))
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
+                        lockfile_parsing_error_code::invalid_data,
                         std::format("channel '{}' in 'channelInfo' not found in 'channels' list", channel_name)
                     ));
                 }
@@ -125,7 +125,7 @@ namespace mamba
                 if (not contains(metadata.channels, channel_name, &EnvironmentLockFile::Channel::name))
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::invalid_data,
+                        lockfile_parsing_error_code::invalid_data,
                         std::format(
                             "channel '{}' in 'channels' list not found in 'channelInfo' list",
                             channel_name
@@ -231,7 +231,7 @@ namespace mamba
             if (not maybe_lockfile_content)
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::parsing_failure,
+                    lockfile_parsing_error_code::parsing_failure,
                     fmt::format(
                         "failed to open environment lockfile located at '{}': {}",
                         lockfile_location.string(),
@@ -250,7 +250,7 @@ namespace mamba
             else
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::unsupported_version,
+                    lockfile_parsing_error_code::unsupported_version,
                     fmt::format(
                         "Failed to read environment lockfile at '{}' : unknown version '{}'",
                         lockfile_location.string(),
@@ -262,7 +262,7 @@ namespace mamba
         catch (const json::parse_error& err)
         {
             return tl::unexpected(EnvLockFileError::make_error(
-                file_parsing_error_code::parsing_failure,
+                lockfile_parsing_error_code::parsing_failure,
                 fmt::format(
                     "JSON parsing error while reading environment lockfile located at '{}', byte {} : {}",
                     lockfile_location.string(),
@@ -275,7 +275,7 @@ namespace mamba
         catch (const std::exception& e)
         {
             return tl::unexpected(EnvLockFileError::make_error(
-                file_parsing_error_code::parsing_failure,
+                lockfile_parsing_error_code::parsing_failure,
                 fmt::format(
                     "Error while reading environment lockfile located at '{}': {}",
                     lockfile_location.string(),

@@ -49,7 +49,7 @@ namespace mamba
             if (package.info.sha256.empty() && package.info.md5.empty())
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
+                    lockfile_parsing_error_code::invalid_data,
                     "either package 'package.info.hash.md5' or 'package.info.hash.sha256' must be specified, found none"
                 ));
             }
@@ -106,7 +106,7 @@ namespace mamba
             if (metadata.platforms.empty())
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
+                    lockfile_parsing_error_code::invalid_data,
                     "at least one 'metadata.platform.*' must be specified, found none"
                 ));
             }
@@ -118,7 +118,7 @@ namespace mamba
             if (metadata.sources.empty())
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
+                    lockfile_parsing_error_code::invalid_data,
                     "at least one 'metadata.source.*' must be specified, found none"
                 ));
             }
@@ -144,7 +144,7 @@ namespace mamba
             if (metadata.content_hash.empty())
             {
                 return tl::unexpected(EnvLockFileError::make_error(
-                    file_parsing_error_code::invalid_data,
+                    lockfile_parsing_error_code::invalid_data,
                     "at least one 'metadata.content_hash.*' value must be specified, found none"
                 ));
             }
@@ -197,7 +197,7 @@ namespace mamba
                 default:
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::unsupported_version,
+                        lockfile_parsing_error_code::unsupported_version,
                         fmt::format(
                             "Failed to read environment lockfile at '{}' : unknown version '{}'",
                             lockfile_location.string(),
@@ -210,7 +210,7 @@ namespace mamba
         catch (const YAML::Exception& err)
         {
             return tl::unexpected(EnvLockFileError::make_error(
-                file_parsing_error_code::parsing_failure,
+                lockfile_parsing_error_code::parsing_failure,
                 fmt::format(
                     "YAML parsing error while reading environment lockfile located at '{}' : {}",
                     lockfile_location.string(),
@@ -222,7 +222,7 @@ namespace mamba
         catch (const std::exception& e)
         {
             return tl::unexpected(EnvLockFileError::make_error(
-                file_parsing_error_code::parsing_failure,
+                lockfile_parsing_error_code::parsing_failure,
                 fmt::format(
                     "Error while reading environment lockfile located at '{}': {}",
                     lockfile_location.string(),

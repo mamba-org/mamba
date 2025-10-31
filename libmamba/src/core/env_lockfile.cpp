@@ -32,7 +32,7 @@ namespace mamba
                 default:
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
-                        file_parsing_error_code::not_env_lockfile,
+                        lockfile_parsing_error_code::not_env_lockfile,
                         fmt::format(
                             "file '{}' does not seem to be an environment lockfile or doesn't have a supported format",
                             lockfile_location.string()
@@ -64,7 +64,10 @@ namespace mamba
             return EnvLockfileFormat::mambajs_json;
         }
 
-        if (is_env_lockfile_name(lockfile_location.filename().string()))
+        const bool is_conda_lockfile = is_conda_env_lockfile_name(
+            lockfile_location.filename().string()
+        );
+        if (is_conda_lockfile)
         {
             return EnvLockfileFormat::conda_yaml;
         }
@@ -97,9 +100,13 @@ namespace mamba
         return results;
     }
 
+    auto is_conda_env_lockfile_name(std::string_view filename) -> bool
+    {
+        return filename.ends_with("-lock.yml") || filename.ends_with("-lock.yaml");
+    }
+
     auto is_env_lockfile_name(std::string_view filename) -> bool
     {
-        // FIXME: support the json cases (do they need the `-lock.json`?)
-        return util::ends_with(filename, "-lock.yml") || util::ends_with(filename, "-lock.yaml");
+        return is_conda_env_lockfile_name(filename) or filename.ends_with(".json");
     }
 }

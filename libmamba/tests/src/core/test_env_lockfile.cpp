@@ -42,10 +42,11 @@ namespace mamba
 
         TEST_CASE("env-lockfile absent_file_fails-unknown")
         {
-            test_absent_file_fails(
+            auto result = test_absent_file_fails(
                 "this/file/does/not/exists",
                 lockfile_parsing_error_code::not_env_lockfile
             );
+            REQUIRE_FALSE(result);
         }
 
         TEST_CASE("env-lockfile absent_file_fails-conda")
@@ -54,6 +55,8 @@ namespace mamba
                 "this/file/does/not/exists-lock.yaml",
                 lockfile_parsing_error_code::parsing_failure
             );
+
+            REQUIRE_FALSE(result);
 
             const auto& error_details = EnvLockFileError::get_details(result.error());
             REQUIRE(error_details.error_type);

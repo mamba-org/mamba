@@ -67,7 +67,8 @@ namespace mamba
         const bool is_conda_lockfile = is_conda_env_lockfile_name(
             lockfile_location.filename().string()
         );
-        if (is_conda_lockfile)
+
+        if (is_conda_lockfile == true)
         {
             return EnvLockfileFormat::conda_yaml;
         }
@@ -75,23 +76,13 @@ namespace mamba
         return EnvLockfileFormat::undefined;
     }
 
-    auto EnvironmentLockFile::get_packages_for(
-        std::string_view category,
-        std::string_view platform,
-        std::string_view manager
-    ) const -> std::vector<specs::PackageInfo>
+    auto EnvironmentLockFile::get_packages_for(PackageFilter filter) const -> std::vector<specs::PackageInfo>
     {
         std::vector<specs::PackageInfo> results;
 
-        // TODO: c++23 - rewrite this with ranges `filter` and `to<vector>`
-        const auto package_predicate = [&](const auto& package)
-        {
-            return package.platform == platform && package.category == category
-                   && package.manager == manager;
-        };
         for (const auto& package : m_packages)
         {
-            if (package_predicate(package))
+            if (filter.matches(package))
             {
                 results.push_back(package.info);
             }

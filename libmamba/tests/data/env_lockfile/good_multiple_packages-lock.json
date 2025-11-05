@@ -1,0 +1,387 @@
+{
+  "id": "7700383344624798",
+  "lockVersion": "1.0.0",
+  "platform": "emscripten-wasm32",
+  "specs": [
+    "xeus-python",
+    "pandas",
+    "matplotlib"
+  ],
+  "channels": [
+    "emscripten-forge",
+    "conda-forge"
+  ],
+  "channelInfo": {
+    "emscripten-forge": [
+      {
+        "url": "https://prefix.dev/emscripten-forge-dev",
+        "protocol": "https"
+      },
+      {
+        "url": "https://repo.prefix.dev/emscripten-forge-dev",
+        "protocol": "https"
+      }
+    ],
+    "conda-forge": [
+      {
+        "url": "https://prefix.dev/conda-forge",
+        "protocol": "https"
+      },
+      {
+        "url": "https://repo.prefix.dev/conda-forge",
+        "protocol": "https"
+      }
+    ]
+  },
+  "packages": {
+    "xeus-python-0.17.6-py313h027658c_0.tar.bz2": {
+      "name": "xeus-python",
+      "build": "py313h027658c_0",
+      "version": "0.17.6",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "pandas-2.3.3-np22py313h9d9dc1e_0.tar.bz2": {
+      "name": "pandas",
+      "build": "np22py313h9d9dc1e_0",
+      "version": "2.3.3",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "matplotlib-3.10.6-py313hec26ece_0.tar.bz2": {
+      "name": "matplotlib",
+      "build": "py313hec26ece_0",
+      "version": "3.10.6",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "matplotlib-base-3.10.6-np22py313h4202e73_0.tar.bz2": {
+      "name": "matplotlib-base",
+      "build": "np22py313h4202e73_0",
+      "version": "3.10.6",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "qhull-2020.2-h7223423_0.tar.bz2": {
+      "name": "qhull",
+      "build": "h7223423_0",
+      "version": "2020.2",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "python-3.13.1-h_c8de616_5_cp313.tar.bz2": {
+      "name": "python",
+      "build": "h_c8de616_5_cp313",
+      "version": "3.13.1",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "ipython-9.6.0-py313hd355c7d_0.tar.bz2": {
+      "name": "ipython",
+      "build": "py313hd355c7d_0",
+      "version": "9.6.0",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "xeus-python-shell-0.6.4-pyhff2d567_0.conda": {
+      "name": "xeus-python-shell",
+      "build": "pyhff2d567_0",
+      "version": "0.6.4",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "xeus-python-shell-raw-0.6.4-pyhd8ed1ab_0.conda": {
+      "name": "xeus-python-shell-raw",
+      "build": "pyhd8ed1ab_0",
+      "version": "0.6.4",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pyjs-2.8.0-py313h7595f35_0.tar.bz2": {
+      "name": "pyjs",
+      "build": "py313h7595f35_0",
+      "version": "2.8.0",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "xeus-5.2.4-h2072262_1.tar.bz2": {
+      "name": "xeus",
+      "build": "h2072262_1",
+      "version": "5.2.4",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "emscripten-abi-3.1.73-h267e887_12.tar.bz2": {
+      "name": "emscripten-abi",
+      "build": "h267e887_12",
+      "version": "3.1.73",
+      "subdir": "noarch",
+      "channel": "emscripten-forge"
+    },
+    "python_abi-3.13.1-1_cp313.tar.bz2": {
+      "name": "python_abi",
+      "build": "1_cp313",
+      "version": "3.13.1",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "nlohmann_json-abi-3.12.0-h0f90c79_1.conda": {
+      "name": "nlohmann_json-abi",
+      "build": "h0f90c79_1",
+      "version": "3.12.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "numpy-2.3.3-py313h6394566_0.tar.bz2": {
+      "name": "numpy",
+      "build": "py313h6394566_0",
+      "version": "2.3.3",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "python-dateutil-2.9.0.post0-pyhe01879c_2.conda": {
+      "name": "python-dateutil",
+      "build": "pyhe01879c_2",
+      "version": "2.9.0.post0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pytz-2025.2-pyhd8ed1ab_0.conda": {
+      "name": "pytz",
+      "build": "pyhd8ed1ab_0",
+      "version": "2025.2",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "python-tzdata-2025.2-pyhd8ed1ab_0.conda": {
+      "name": "python-tzdata",
+      "build": "pyhd8ed1ab_0",
+      "version": "2025.2",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "backcall-0.2.0-pyh9f0ad1d_0.tar.bz2": {
+      "name": "backcall",
+      "build": "pyh9f0ad1d_0",
+      "version": "0.2.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "decorator-5.2.1-pyhd8ed1ab_0.conda": {
+      "name": "decorator",
+      "build": "pyhd8ed1ab_0",
+      "version": "5.2.1",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "matplotlib-inline-0.1.7-pyhd8ed1ab_1.conda": {
+      "name": "matplotlib-inline",
+      "build": "pyhd8ed1ab_1",
+      "version": "0.1.7",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pickleshare-0.7.5-pyhd8ed1ab_1004.conda": {
+      "name": "pickleshare",
+      "build": "pyhd8ed1ab_1004",
+      "version": "0.7.5",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "prompt-toolkit-3.0.52-pyha770c72_0.conda": {
+      "name": "prompt-toolkit",
+      "build": "pyha770c72_0",
+      "version": "3.0.52",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pygments-2.19.2-pyhd8ed1ab_0.conda": {
+      "name": "pygments",
+      "build": "pyhd8ed1ab_0",
+      "version": "2.19.2",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "stack_data-0.6.3-pyhd8ed1ab_1.conda": {
+      "name": "stack_data",
+      "build": "pyhd8ed1ab_1",
+      "version": "0.6.3",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "traitlets-5.14.3-pyhd8ed1ab_1.conda": {
+      "name": "traitlets",
+      "build": "pyhd8ed1ab_1",
+      "version": "5.14.3",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pexpect-4.9.0-pyhd8ed1ab_1.conda": {
+      "name": "pexpect",
+      "build": "pyhd8ed1ab_1",
+      "version": "4.9.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "typing_extensions-4.15.0-pyhcf101f3_0.conda": {
+      "name": "typing_extensions",
+      "build": "pyhcf101f3_0",
+      "version": "4.15.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "six-1.17.0-pyhe01879c_1.conda": {
+      "name": "six",
+      "build": "pyhe01879c_1",
+      "version": "1.17.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "contourpy-1.3.3-py313h3a67976_1.tar.bz2": {
+      "name": "contourpy",
+      "build": "py313h3a67976_1",
+      "version": "1.3.3",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "cycler-0.12.1-pyhd8ed1ab_1.conda": {
+      "name": "cycler",
+      "build": "pyhd8ed1ab_1",
+      "version": "0.12.1",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "fonttools-4.39.4-py313h6e18b15_1.tar.bz2": {
+      "name": "fonttools",
+      "build": "py313h6e18b15_1",
+      "version": "4.39.4",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "kiwisolver-1.4.9-py313hcf5ba65_0.tar.bz2": {
+      "name": "kiwisolver",
+      "build": "py313hcf5ba65_0",
+      "version": "1.4.9",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "packaging-25.0-pyh29332c3_1.conda": {
+      "name": "packaging",
+      "build": "pyh29332c3_1",
+      "version": "25.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pillow-11.3.0-py313hc0f4bc9_0.tar.bz2": {
+      "name": "pillow",
+      "build": "py313hc0f4bc9_0",
+      "version": "11.3.0",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    },
+    "pyparsing-3.2.5-pyhcf101f3_0.conda": {
+      "name": "pyparsing",
+      "build": "pyhcf101f3_0",
+      "version": "3.2.5",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "wcwidth-0.2.14-pyhd8ed1ab_0.conda": {
+      "name": "wcwidth",
+      "build": "pyhd8ed1ab_0",
+      "version": "0.2.14",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "asttokens-3.0.0-pyhd8ed1ab_1.conda": {
+      "name": "asttokens",
+      "build": "pyhd8ed1ab_1",
+      "version": "3.0.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "executing-2.2.1-pyhd8ed1ab_0.conda": {
+      "name": "executing",
+      "build": "pyhd8ed1ab_0",
+      "version": "2.2.1",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "pure_eval-0.2.3-pyhd8ed1ab_1.conda": {
+      "name": "pure_eval",
+      "build": "pyhd8ed1ab_1",
+      "version": "0.2.3",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    },
+    "ptyprocess-0.7.0-pyhd8ed1ab_1.conda": {
+      "name": "ptyprocess",
+      "build": "pyhd8ed1ab_1",
+      "version": "0.7.0",
+      "subdir": "noarch",
+      "channel": "conda-forge"
+    }
+  },
+  "pipPackages": {
+    "ipyleaflet-0.20.0-py3-none-any.whl": {
+      "name": "ipyleaflet",
+      "version": "0.20.0",
+      "url": "https://files.pythonhosted.org/packages/49/69/e9858f2c0b99bf9f036348d1c84b8026f438bb6875effe6a9bcd9883dada/ipyleaflet-0.20.0-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "branca-0.8.2-py3-none-any.whl": {
+      "name": "branca",
+      "version": "0.8.2",
+      "url": "https://files.pythonhosted.org/packages/7e/50/fc9680058e63161f2f63165b84c957a0df1415431104c408e8104a3a18ef/branca-0.8.2-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "jinja2-3.1.6-py3-none-any.whl": {
+      "name": "jinja2",
+      "version": "3.1.6",
+      "url": "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "ipywidgets-8.1.7-py3-none-any.whl": {
+      "name": "ipywidgets",
+      "version": "8.1.7",
+      "url": "https://files.pythonhosted.org/packages/58/6a/9166369a2f092bd286d24e6307de555d63616e8ddb373ebad2b5635ca4cd/ipywidgets-8.1.7-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "comm-0.2.3-py3-none-any.whl": {
+      "name": "comm",
+      "version": "0.2.3",
+      "url": "https://files.pythonhosted.org/packages/60/97/891a0971e1e4a8c5d2b20bbe0e524dc04548d2307fee33cdeba148fd4fc7/comm-0.2.3-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "widgetsnbextension-4.0.14-py3-none-any.whl": {
+      "name": "widgetsnbextension",
+      "version": "4.0.14",
+      "url": "https://files.pythonhosted.org/packages/ca/51/5447876806d1088a0f8f71e16542bf350918128d0a69437df26047c8e46f/widgetsnbextension-4.0.14-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "jupyterlab_widgets-3.0.15-py3-none-any.whl": {
+      "name": "jupyterlab_widgets",
+      "version": "3.0.15",
+      "url": "https://files.pythonhosted.org/packages/43/6a/ca128561b22b60bd5a0c4ea26649e68c8556b82bc70a0c396eebc977fe86/jupyterlab_widgets-3.0.15-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "jupyter_leaflet-0.20.0-py3-none-any.whl": {
+      "name": "jupyter-leaflet",
+      "version": "0.20.0",
+      "url": "https://files.pythonhosted.org/packages/16/95/ffe543060eb3b1570d78c3f2c1948c640a6758ff5c6479c27e474819115b/jupyter_leaflet-0.20.0-py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "traittypes-0.2.1-py2.py3-none-any.whl": {
+      "name": "traittypes",
+      "version": "0.2.1",
+      "url": "https://files.pythonhosted.org/packages/9c/d1/8d5bd662703cc1764d986f6908a608777305946fa634d34c470cd4a1e729/traittypes-0.2.1-py2.py3-none-any.whl",
+      "registry": "PyPi"
+    },
+    "xyzservices-2025.4.0-py3-none-any.whl": {
+      "name": "xyzservices",
+      "version": "2025.4.0",
+      "url": "https://files.pythonhosted.org/packages/d6/7d/b77455d7c7c51255b2992b429107fab811b2e36ceaf76da1e55a045dc568/xyzservices-2025.4.0-py3-none-any.whl",
+      "registry": "PyPi"
+    }
+  }
+}

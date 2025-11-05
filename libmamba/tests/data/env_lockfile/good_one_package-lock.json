@@ -1,0 +1,45 @@
+{
+  "lockVersion": "1.0.0",
+  "platform": "emscripten-wasm32",
+  "specs": [
+    "xeus-python",
+    "pandas",
+    "matplotlib"
+  ],
+  "channels": [
+    "emscripten-forge",
+    "conda-forge"
+  ],
+  "channelInfo": {
+    "emscripten-forge": [
+      {
+        "url": "https://prefix.dev/emscripten-forge-dev",
+        "protocol": "https"
+      },
+      {
+        "url": "https://repo.prefix.dev/emscripten-forge-dev",
+        "protocol": "https"
+      }
+    ],
+    "conda-forge": [
+      {
+        "url": "https://prefix.dev/conda-forge",
+        "protocol": "https"
+      },
+      {
+        "url": "https://repo.prefix.dev/conda-forge",
+        "protocol": "https"
+      }
+    ]
+  },
+  "packages": {
+    "_libgcc_mutex-0.1-conda_forge.tar.bz2": {
+      "name": "_libgcc_mutex",
+      "build": "py313h027658c_0",
+      "version": "0.1",
+      "subdir": "emscripten-wasm32",
+      "channel": "emscripten-forge"
+    }
+  },
+  "pipPackages": {}
+}

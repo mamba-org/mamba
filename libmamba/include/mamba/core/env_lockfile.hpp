@@ -94,8 +94,26 @@ namespace mamba
         {
         }
 
-        auto
-        get_packages_for(std::string_view category, std::string_view platform, std::string_view manager) const
+        struct PackageFilter
+        {
+            std::optional<std::string> category;
+            std::optional<std::string> platform;
+            std::optional<std::string> manager;
+
+            auto matches(const Package& package) const -> bool
+            {
+                return (category ? (package.category == *category) : true)
+                    and (platform ? (package.platform == *platform) : true)
+                    and (manager ? (package.manager == *manager) : true);
+            }
+
+            auto operator()(const Package& package) const -> bool
+            {
+                return matches(package);
+            }
+        };
+
+        auto get_packages_for(PackageFilter filter) const
             -> std::vector<specs::PackageInfo>;
 
         auto get_all_packages() const -> const std::vector<Package>&

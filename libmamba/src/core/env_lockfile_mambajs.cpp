@@ -41,26 +41,31 @@ namespace mamba
             const std::string_view manager
         ) -> tl::expected<Package, mamba_error>
         {
+            // Note: pip packages do not provide a platform name
+            // FIXME: magic constants
+            auto platform = manager != "pip" ? package_value["subdir"].get<std::string>()
+                                             : std::string("");
+
             Package package{
                 .info = specs::PackageInfo{ package_value["name"].get<std::string>() },
                 .is_optional = false,
                 .category = "main",
                 .manager = std::string{ manager },
-                .platform = package_value["platform"].get<std::string>(),
+                .platform = platform,
             };
 
             package.info.version = package_value["version"].get<std::string>();
-            const auto& hash_value = package_value["hash"];
-            if (hash_value)
+            if (package_value.contains("hash"))
             {
-                if (const auto& md5_value = hash_value["md5"])
+                const auto& hash_value = package_value["hash"];
+                if (hash_value.contains("md5"))
                 {
-                    package.info.md5 = md5_value.get<std::string>();
+                    package.info.md5 = hash_value["md5"].get<std::string>();
                 }
 
-                if (const auto& sha256_node = hash_value["sha256"])
+                if (hash_value.contains("sha256"))
                 {
-                    package.info.sha256 = sha256_node.get<std::string>();
+                    package.info.sha256 = hash_value["sha256"].get<std::string>();
                 }
 
                 if (package.info.sha256.empty() && package.info.md5.empty())
@@ -74,10 +79,17 @@ namespace mamba
 
 
             package.info.filename = file_name;
-            package.info.channel = package_value["channel"].get<std::string>();
-            package.info.build_string = package_value["build"].get<std::string>();
-            package.info.platform = package_value["subdir"].get<std::string>();
-            // FIXME: package.info.package_url = ???;
+            if (manager == "pip")
+            {
+                package.info.package_url = package_value["url"].get<std::string>();
+            }
+            else
+            {
+                package.info.channel = package_value["channel"].get<std::string>();
+                package.info.platform = platform;
+                package.info.build_string = package_value["build"].get<std::string>();
+                // FIXME: package.info.package_url = ???;
+            }
 
             return package;
         }
@@ -134,12 +146,14 @@ namespace mamba
                 }
             }
 
-            // content hash is not currently part of the spec
-            for (const auto& [key, value] : metadata_value["content_hash"].items())
+            // content hash is not currently part of the spec, but might be soon
+            if (metadata_value.contains("content_hash"))
             {
-                metadata.content_hash.emplace(key, value);
+                for (const auto& [key, value] : metadata_value["content_hash"].items())
+                {
+                    metadata.content_hash.emplace(key, value.get<std::string>());
+                }
             }
-
 
             return metadata;
         }
@@ -157,8 +171,7 @@ namespace mamba
 
             std::vector<Package> packages;
 
-            const auto read_packages =
-                [&](std::string_view manager_name, const json& package_list)
+            const auto read_packages = [&](std::string_view manager_name, const json& package_list)
             {
                 for (const auto& [package_filename, package_value] : package_list.items())
                 {
@@ -176,7 +189,7 @@ namespace mamba
             try
             {
                 read_packages("conda", lockfile_value["packages"]);
-                read_packages("pipPackages", lockfile_value["packages"]);
+                read_packages("pip", lockfile_value["pipPackages"]);
             }
             catch (mamba_error error)
             {
@@ -192,6 +205,11 @@ namespace mamba
     {
         auto read_json_file(const fs::u8path& file_location) -> tl::expected<json, std::string>
         {
+            if (not fs::exists(file_location))
+            {
+                return tl::unexpected(fmt::format("file does exist : {}", file_location.string()));
+            }
+
             // Here we use a technique letting us obtaining a readable system message if any error
             // happens when opening the file.
             // TODO: generalize this technique for other cases where we open files and dont
@@ -267,6 +285,18 @@ namespace mamba
                     "JSON parsing error while reading environment lockfile located at '{}', byte {} : {}",
                     lockfile_location.string(),
                     err.byte,
+                    err.what()
+                ),
+                std::type_index{ typeid(err) }
+            ));
+        }
+        catch (const json::type_error& err)
+        {
+            return tl::unexpected(EnvLockFileError::make_error(
+                lockfile_parsing_error_code::parsing_failure,
+                fmt::format(
+                    "JSON value type doesnt match expected type, while reading environment lockfile located at '{}': {}",
+                    lockfile_location.string(),
                     err.what()
                 ),
                 std::type_index{ typeid(err) }

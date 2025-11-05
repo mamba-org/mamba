@@ -96,7 +96,9 @@ namespace mamba
 
         TEST_CASE("env-lockfile invalid_version_fails-mambajs")
         {
-            test_invalid_version_fails(mambatests::test_data_dir / "env_lockfile/bad_version.json");
+            test_invalid_version_fails(
+                mambatests::test_data_dir / "env_lockfile/bad_version-lock.json"
+            );
         }
 
         auto test_valid_no_package_succeed(const fs::u8path lockfile_path) -> void
@@ -122,7 +124,7 @@ namespace mamba
         TEST_CASE("env-lockfile valid_no_package_succeed-mambajs")
         {
             test_valid_no_package_succeed(
-                mambatests::test_data_dir / "env_lockfile/good_no_package.json"
+                mambatests::test_data_dir / "env_lockfile/good_no_package-lock.json"
             );
         }
 
@@ -145,7 +147,9 @@ namespace mamba
 
         TEST_CASE("env-lockfile invalid_package_fails-mambajs")
         {
-            test_invalid_package_fails(mambatests::test_data_dir / "env_lockfile/bad_package.json");
+            test_invalid_package_fails(
+                mambatests::test_data_dir / "env_lockfile/bad_package-lock.json"
+            );
         }
 
         auto test_valid_one_package_succeed(const fs::u8path lockfile_path) -> void
@@ -171,7 +175,7 @@ namespace mamba
         TEST_CASE("env-lockfile valid_one_package_succeed-mambajs")
         {
             test_valid_one_package_succeed(
-                mambatests::test_data_dir / "env_lockfile/good_one_package.json"
+                mambatests::test_data_dir / "env_lockfile/good_one_package-lock.json"
             );
         }
 
@@ -200,18 +204,12 @@ namespace mamba
             // NOTE: at the moment of writing this test,
             // categories are not yet part of the mambajs env-lockfile specs
             test_valid_one_package_implicit_category(
-                mambatests::test_data_dir / "env_lockfile/good_one_package_missing_category.json"
+                mambatests::test_data_dir / "env_lockfile/good_one_package_missing_category-lock.json"
             );
         }
 
-        TEST_CASE("env-lockfile valid_multiple_packages_succeed")
+        auto test_valid_multiple_packages_succeed(const fs::u8path lockfile_path) -> void
         {
-            // NOTE: at the moment of writing this test,
-            // categories are not yet part of the mambajs env-lockfile specs
-            // so we only have this test for yaml/conda env-lock-files.
-
-            const fs::u8path lockfile_path{ mambatests::test_data_dir
-                                            / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             if (!maybe_lockfile)
             {
@@ -223,33 +221,68 @@ namespace mamba
             REQUIRE(lockfile.get_all_packages().size() > 1);
         }
 
-        auto test_get_specific_packages(const fs::u8path lockfile_path) -> void
+        TEST_CASE("env-lockfile valid_multiple_packages_succeed-conda")
         {
-            const auto lockfile = read_environment_lockfile(lockfile_path).value();
-            REQUIRE(lockfile.get_packages_for("", "", "").empty());
+            test_valid_multiple_packages_succeed(
+                mambatests::test_data_dir / "env_lockfile/good_multiple_packages-lock.yaml"
+            );
+        }
+
+        TEST_CASE("env-lockfile valid_multiple_packages_succeed-mambajs")
+        {
+            test_valid_multiple_packages_succeed(
+                mambatests::test_data_dir / "env_lockfile/good_multiple_packages-lock.json"
+            );
+        }
+
+        struct SpecificPackagesRequest
+        {
+            size_t expected_package_count = 0;
+            EnvironmentLockFile::PackageFilter package_filter;
+        };
+
+        auto test_get_specific_packages(
+            const fs::u8path lockfile_path,
+            size_t expected_total_package_count,
+            std::vector<SpecificPackagesRequest> requests
+        ) -> void
+        {
+            auto maybe_lockfile = read_environment_lockfile(lockfile_path);
+            if (not maybe_lockfile)
             {
-                const auto packages = lockfile.get_packages_for("main", "linux-64", "conda");
-                REQUIRE_FALSE(packages.empty());
-                REQUIRE(packages.size() > 4);
+                INFO(maybe_lockfile.error().what());
+                FAIL();
+                return;
             }
+            const auto lockfile = maybe_lockfile.value();
+            REQUIRE(lockfile.get_packages_for({}).size() == expected_total_package_count);
+            REQUIRE(lockfile.get_packages_for({ "", "", "" }).empty());
+
+            for (const auto& request : requests)
             {
-                const auto packages = lockfile.get_packages_for("main", "linux-64", "pip");
-                REQUIRE_FALSE(packages.empty());
-                REQUIRE(packages.size() == 2);
+                const auto packages = lockfile.get_packages_for(request.package_filter);
+                REQUIRE(packages.size() == request.expected_package_count);
             }
         }
 
         TEST_CASE("env-lockfile get_specific_packages-conda")
         {
             test_get_specific_packages(
-                mambatests::test_data_dir / "env_lockfile/good_multiple_packages-lock.yaml"
+                mambatests::test_data_dir / "env_lockfile/good_multiple_packages-lock.yaml",
+                15,
+                { { 6, { .category = "main", .platform = "linux-64", .manager = "conda" } },
+                  { 2, { .category = "main", .platform = "linux-64", .manager = "pip" } } }
             );
         }
 
         TEST_CASE("env-lockfile get_specific_packages-mambajs")
         {
             test_get_specific_packages(
-                mambatests::test_data_dir / "env_lockfile/good_multiple_packages.json"
+                mambatests::test_data_dir / "env_lockfile/good_multiple_packages-lock.json",
+                51,
+                { { 15, { .category = "main", .platform = "emscripten-wasm32", .manager = "conda" } },
+                  { 26, { .category = "main", .platform = "noarch", .manager = "conda" } },
+                { 10, { .category = "main", .manager = "pip" } } }
             );
         }
 
@@ -407,41 +440,37 @@ namespace mamba
                 == EnvLockfileFormat::conda_yaml
             );
 
-            REQUIRE_FALSE(deduce_env_lockfile_format("something") == EnvLockfileFormat::undefined);
-            REQUIRE_FALSE(deduce_env_lockfile_format("something-lock") == EnvLockfileFormat::undefined);
-            REQUIRE_FALSE(
-                deduce_env_lockfile_format("/some/dir/something") == EnvLockfileFormat::undefined
-            );
-            REQUIRE_FALSE(
+            REQUIRE(deduce_env_lockfile_format("something") == EnvLockfileFormat::undefined);
+            REQUIRE(deduce_env_lockfile_format("something-lock") == EnvLockfileFormat::undefined);
+            REQUIRE(deduce_env_lockfile_format("/some/dir/something") == EnvLockfileFormat::undefined);
+            REQUIRE(
                 deduce_env_lockfile_format("../../some/dir/something") == EnvLockfileFormat::undefined
             );
 
-            REQUIRE_FALSE(deduce_env_lockfile_format("something.yaml") == EnvLockfileFormat::undefined);
-            REQUIRE_FALSE(deduce_env_lockfile_format("something.yml") == EnvLockfileFormat::undefined);
-            REQUIRE_FALSE(
+            REQUIRE(deduce_env_lockfile_format("something.yaml") == EnvLockfileFormat::undefined);
+            REQUIRE(deduce_env_lockfile_format("something.yml") == EnvLockfileFormat::undefined);
+            REQUIRE(
                 deduce_env_lockfile_format("/some/dir/something.yaml") == EnvLockfileFormat::undefined
             );
-            REQUIRE_FALSE(
+            REQUIRE(
                 deduce_env_lockfile_format("/some/dir/something.yml") == EnvLockfileFormat::undefined
             );
-            REQUIRE_FALSE(
+            REQUIRE(
                 deduce_env_lockfile_format("../../some/dir/something.yaml")
                 == EnvLockfileFormat::undefined
             );
-            REQUIRE_FALSE(
+            REQUIRE(
                 deduce_env_lockfile_format("../../some/dir/something.yml") == EnvLockfileFormat::undefined
             );
 
-            REQUIRE_FALSE(
-                deduce_env_lockfile_format("something.json") == EnvLockfileFormat::mambajs_json
-            );
-            REQUIRE_FALSE(
+            REQUIRE(deduce_env_lockfile_format("something.json") == EnvLockfileFormat::mambajs_json);
+            REQUIRE(
                 deduce_env_lockfile_format("truc.something.json") == EnvLockfileFormat::mambajs_json
             );
-            REQUIRE_FALSE(
+            REQUIRE(
                 deduce_env_lockfile_format("../machin/something.json") == EnvLockfileFormat::mambajs_json
             );
-            REQUIRE_FALSE(
+            REQUIRE(
                 deduce_env_lockfile_format("../machin/truc.something.json")
                 == EnvLockfileFormat::mambajs_json
             );

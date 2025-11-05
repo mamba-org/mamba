@@ -71,11 +71,10 @@ namespace mamba
             out.set_name(specs::MatchSpec::NameSpec(pkg.name));
             if (!pkg.version.empty())
             {
-                out.set_version(
-                    specs::VersionSpec::parse(fmt::format("=={}", pkg.version))
-                        .or_else([](specs::ParseError&& error) { throw std::move(error); })
-                        .value()
-                );
+                out.set_version(specs::VersionSpec::parse(fmt::format("=={}", pkg.version))
+                                    .or_else([](specs::ParseError&& error)
+                                             { throw std::move(error); })
+                                    .value());
             }
             if (!pkg.build_string.empty())
             {
@@ -276,11 +275,9 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                {
-                    { "PREFIX", ctx.prefix_params.target_prefix.string() },
-                }
-            );
+            Console::instance().json_write({
+                { "PREFIX", ctx.prefix_params.target_prefix.string() },
+            });
         }
     }
 
@@ -367,14 +364,12 @@ namespace mamba
         {
             Console::instance().json_up();
         }
-        Console::instance().json_write(
-            { { "dry_run", ctx.dry_run }, { "prefix", ctx.prefix_params.target_prefix.string() } }
-        );
+        Console::instance().json_write({ { "dry_run", ctx.dry_run },
+                                         { "prefix", ctx.prefix_params.target_prefix.string() } });
         if (empty())
         {
-            Console::instance().json_write(
-                { { "message", "All requested packages already installed" } }
-            );
+            Console::instance().json_write({ { "message",
+                                               "All requested packages already installed" } });
         }
 
         if (ctx.dry_run)
@@ -391,8 +386,8 @@ namespace mamba
 
         if (ctx.download_only)
         {
-            Console::stream()
-                << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
+            Console::stream(
+            ) << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
             return true;
         }
 
@@ -575,12 +570,10 @@ namespace mamba
                         else
                         {
                             LOG_ERROR << "Could not create a valid RepoChecker.";
-                            throw std::runtime_error(
-                                fmt::format(
-                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
-                                    pkg.name
-                                )
-                            );
+                            throw std::runtime_error(fmt::format(
+                                R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
+                                pkg.name
+                            ));
                         }
                     }
                     LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
@@ -594,8 +587,7 @@ namespace mamba
                     {
                         auto channels = channel_context.make_channel(pkg.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.package_url = channels.front().platform_urls().at(0).str(
-                            Credentials::Show
+                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
                         );
                     }
                     {
@@ -846,8 +838,7 @@ namespace mamba
             {
                 // There was no remove events but we still have remove specs treated:
                 // The packages to remove were not found in the environment.
-                Console::instance().print(
-                    "  Failure: packages to remove not found in the environment:\n"
+                Console::instance().print("  Failure: packages to remove not found in the environment:\n"
                 );
                 for (const auto& entry : m_history_entry.remove)
                 {
@@ -885,13 +876,11 @@ namespace mamba
         }
 
         printers::Table t({ "Package", "Version", "Build", "Channel", "Size" });
-        t.set_alignment(
-            { printers::alignment::left,
-              printers::alignment::right,
-              printers::alignment::left,
-              printers::alignment::left,
-              printers::alignment::right }
-        );
+        t.set_alignment({ printers::alignment::left,
+                          printers::alignment::right,
+                          printers::alignment::left,
+                          printers::alignment::left,
+                          printers::alignment::right });
         t.set_padding({ 2, 2, 2, 2, 5 });
 
         using rows = std::vector<std::vector<printers::FormattedString>>;
@@ -979,13 +968,11 @@ namespace mamba
                 assert(chan_name != "__explicit_specs__");
             }
 
-            r.push_back(
-                { name,
-                  printers::FormattedString(s.version),
-                  printers::FormattedString(s.build_string),
-                  printers::FormattedString(cut_repo_name(chan_name)),
-                  dlsize_s }
-            );
+            r.push_back({ name,
+                          printers::FormattedString(s.version),
+                          printers::FormattedString(s.build_string),
+                          printers::FormattedString(cut_repo_name(chan_name)),
+                          dlsize_s });
         };
 
         auto format_action = [&](const auto& act)
@@ -1108,13 +1095,8 @@ namespace mamba
         t.print(out);
     }
 
-    MTransaction create_explicit_transaction_from_urls(
-        const Context& ctx,
-        solver::libsolv::Database& database,
-        const std::vector<std::string>& urls,
-        MultiPackageCache& package_caches,
-        std::vector<detail::other_pkg_mgr_spec>&
-    )
+    MTransaction
+    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& database, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
         std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
@@ -1158,9 +1140,7 @@ namespace mamba
         for (const auto& category : categories)
         {
             std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
-                category,
-                ctx.platform,
-                "conda"
+                { .category = category, .platform = ctx.platform, .manager = "conda" }
             );
             std::copy(
                 selected_packages.begin(),
@@ -1175,7 +1155,9 @@ namespace mamba
                             << ctx.platform << ").";
             }
 
-            selected_packages = lockfile_data.get_packages_for(category, ctx.platform, "pip");
+            selected_packages = lockfile_data.get_packages_for(
+                { .category = category, .platform = ctx.platform, .manager = "pip" }
+            );
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),

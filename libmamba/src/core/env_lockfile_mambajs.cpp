@@ -121,7 +121,7 @@ namespace mamba
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
                         lockfile_parsing_error_code::invalid_data,
-                        std::format("channel '{}' in 'channelInfo' not found in 'channels' list", channel_name)
+                        fmt::format("channel '{}' in 'channelInfo' not found in 'channels' list", channel_name)
                     ));
                 }
 
@@ -139,7 +139,7 @@ namespace mamba
                 {
                     return tl::unexpected(EnvLockFileError::make_error(
                         lockfile_parsing_error_code::invalid_data,
-                        std::format(
+                        fmt::format(
                             "channel '{}' in 'channels' list not found in 'channelInfo' list",
                             channel_name
                         )

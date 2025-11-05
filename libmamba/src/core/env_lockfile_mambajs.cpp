@@ -192,9 +192,9 @@ namespace mamba
                 read_packages("conda", lockfile_value["packages"]);
                 read_packages("pip", lockfile_value["pipPackages"]);
             }
-            catch (mamba_error error)
+            catch (const mamba_error& error)
             {
-                return tl::unexpected(std::move(error));
+                return tl::unexpected(error);
             }
 
 

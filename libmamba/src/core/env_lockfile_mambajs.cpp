@@ -8,6 +8,7 @@
 #include <fstream>
 #include <ranges>
 
+#include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/env_lockfile.hpp"

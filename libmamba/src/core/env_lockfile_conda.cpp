@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fmt/core.h>
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/env_lockfile.hpp"
@@ -22,7 +23,9 @@ namespace mamba
             Package package{
                 .info = specs::PackageInfo{ package_node["name"].as<std::string>() },
                 // clang-format: off
-                .is_optional = [&] {
+                .is_optional =
+                    [&]
+                {
                     if (const auto& optional_node = package_node["optional"])
                     {
                         return optional_node.as<bool>();

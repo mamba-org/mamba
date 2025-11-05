@@ -282,7 +282,7 @@ namespace mamba
                 51,
                 { { 15, { .category = "main", .platform = "emscripten-wasm32", .manager = "conda" } },
                   { 26, { .category = "main", .platform = "noarch", .manager = "conda" } },
-                { 10, { .category = "main", .manager = "pip" } } }
+                  { 10, { .category = "main", .platform = std::nullopt, .manager = "pip" } } }
             );
         }
 

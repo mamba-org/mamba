@@ -1,11 +1,6 @@
 {
   "lockVersion": "1.0.0",
-  "platform": "win64",
-  "specs": [
-    "xeus-python",
-    "pandas",
-    "matplotlib"
-  ],
+  "platform": "osx-64",
   "channels": [
     "emscripten-forge",
     "conda-forge"
@@ -37,12 +32,8 @@
       "name": "libzlib",
       "build": "h8ffe710_1013",
       "version": "1.2.11",
-      "subdir": "win-64",
-      "channel": "conda-forge",
-      "hash": {
-        "md5": "b28dd2488b4e5f892c67071acc1d0a8c",
-        "sha256": "5b7e002932c0138d78d251caae0c571d13f857ff90e7ce21d58d67073381250e"
-      }
+      "subdir": "osx-64",
+      "channel": "conda-forge"
     }
   },
   "pipPackages": {}

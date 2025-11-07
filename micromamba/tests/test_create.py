@@ -54,7 +54,7 @@ def _base_lockfile_path(lockfile_prefix, lockfile_format):
             case "Windows":
                 return Path(env_lockfile_dir / f'{lockfile_prefix}-win-64.json')
             case "Darwin":
-                return Path(env_lockfile_dir / f'{lockfile_prefix}-macos.json')
+                return Path(env_lockfile_dir / f'{lockfile_prefix}-osx-64.json')
 
     return Path() # FIXME: throw?
 

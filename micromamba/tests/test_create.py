@@ -32,6 +32,17 @@ env_lockfile_dir : Path = __this_dir__ / "env_lockfiles"
 lockfile_format_condalock = "condalock"
 lockfile_format_mambajs = "mambajs"
 
+def lockfile_extension(lockfile_format):
+    if lockfile_format == lockfile_format_condalock:
+        return ".yaml"
+    if lockfile_format_mambajs:
+        return ".json"
+
+    return "" #FIXME: throw?
+
+def lockfile_name(prefix, lockfile_format):
+    return f'{prefix}{lockfile_extension(lockfile_format)}'
+
 def _base_lockfile_path(lockfile_prefix, lockfile_format):
     if lockfile_format == lockfile_format_condalock:
         return Path(env_lockfile_dir / f'{lockfile_prefix}.yaml')
@@ -135,7 +146,8 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
 @pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
 def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    spec_file = tmp_path / "env-lock.yaml"
+
+    spec_file = tmp_path / lockfile_name('env-lock', lockfile_format)
 
     shutil.copyfile(lockfile_path(lockfile_format), spec_file)
 
@@ -154,7 +166,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
 @pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
 def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    spec_file = tmp_path / "pip-env-lock.yaml"
+    spec_file = tmp_path / lockfile_name('pip-env-lock', lockfile_format)
 
     shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
@@ -202,7 +214,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
 @pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
 def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    spec_file = tmp_path / "env-lock.yaml"
+    spec_file = tmp_path / lockfile_name('env-lock', lockfile_format)
 
     shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
@@ -244,8 +256,8 @@ def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path): # TODO: same but 
 @pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
 def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    create_spec_file = tmp_path / "env-create-lock.yaml"
-    install_spec_file = tmp_path / "env-install-lock.yaml"
+    create_spec_file = tmp_path / lockfile_name('env-create-lock', lockfile_format)
+    install_spec_file = tmp_path / lockfile_name('env-install-lock', lockfile_format)
 
     shutil.copyfile(_base_lockfile_path("envlockfile-check-step-1-lock", lockfile_format), create_spec_file)
     shutil.copyfile(_base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file)

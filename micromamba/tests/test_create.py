@@ -27,9 +27,34 @@ env_files = [
     env_file_requires_pip_install_path_with_whitespaces,
 ]
 
-lockfile_path: Path = __this_dir__ / "test-env-lock.yaml"
-pip_lockfile_path: Path = __this_dir__ / "test-env-pip-lock.yaml"
-pip_git_https_lockfile_path: Path = __this_dir__ / "test-env-lock-pip-git-https.yaml"
+env_lockfile_dir : Path = __this_dir__ / "env_lockfiles"
+
+lockfile_format_condalock = "condalock"
+lockfile_format_mambajs = "mambajs"
+
+def _base_lockfile_path(lockfile_prefix, lockfile_format):
+    if lockfile_format == lockfile_format_condalock:
+        return Path(env_lockfile_dir / f'{lockfile_prefix}.yaml')
+
+    if lockfile_format == lockfile_format_mambajs:
+        match platform.system():
+            case "Linux":
+                return Path(env_lockfile_dir / f'{lockfile_prefix}-linux-64.json')
+            case "Windows":
+                return Path(env_lockfile_dir / f'{lockfile_prefix}-win-64.json')
+            case "Darwin":
+                return Path(env_lockfile_dir / f'{lockfile_prefix}-macos.json')
+
+    return Path() # FIXME: throw?
+
+def lockfile_path(lockfile_format):
+    return _base_lockfile_path("test-env-lock", lockfile_format)
+
+def pip_lockfile_path(lockfile_format):
+    return _base_lockfile_path("test-env-pip-lock", lockfile_format)
+
+def pip_git_https_lockfile_path(lockfile_format):
+    return _base_lockfile_path("test-env-lock-pip-git-https", lockfile_format)
 
 
 def check_create_result(res, root_prefix, target_prefix):
@@ -107,11 +132,12 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
     spec_file = tmp_path / "env-lock.yaml"
 
-    shutil.copyfile(lockfile_path, spec_file)
+    shutil.copyfile(lockfile_path(lockfile_format), spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
@@ -125,11 +151,12 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     reason="Test only available on Linux (cf. `test-env-pip-lock.yaml`)",
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
     spec_file = tmp_path / "pip-env-lock.yaml"
 
-    shutil.copyfile(pip_lockfile_path, spec_file)
+    shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
@@ -172,11 +199,12 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     reason="Used lockfile only handles macOS and Linux.",
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
     spec_file = tmp_path / "env-lock.yaml"
 
-    shutil.copyfile(pip_git_https_lockfile_path, spec_file)
+    shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
@@ -199,7 +227,7 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path): # TODO: same but with mambajs lockfile
     env_prefix = tmp_path / "myenv"
     spec_file = (
         "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
@@ -213,13 +241,14 @@ def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
     create_spec_file = tmp_path / "env-create-lock.yaml"
     install_spec_file = tmp_path / "env-install-lock.yaml"
 
-    shutil.copyfile(__this_dir__ / "envlockfile-check-step-1-lock.yaml", create_spec_file)
-    shutil.copyfile(__this_dir__ / "envlockfile-check-step-2-lock.yaml", install_spec_file)
+    shutil.copyfile(_base_lockfile_path("envlockfile-check-step-1-lock", lockfile_format), create_spec_file)
+    shutil.copyfile(_base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
     assert res["success"]

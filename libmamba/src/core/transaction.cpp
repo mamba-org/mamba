@@ -398,14 +398,20 @@ namespace mamba
         // should be normalised when reading the data.
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
-            auto pkg_channel = mamba::specs::Channel::resolve(
+            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
+            const auto pkg_channel = mamba::specs::Channel::resolve(
                                    unresolved_pkg_channel,
                                    channel_context.params()
             )
                                    .value();
-            auto channel_url = pkg_channel[0].platform_url(pkg.platform).str();
+            assert(not pkg_channel.empty());
+            const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
             pkg.channel = channel_url;
+
+            if (pkg.package_url.empty())
+            {
+                pkg.package_url = pkg.url_for_channel_platform(channel_url);
+            }
         };
 
         TransactionRollback rollback;
@@ -584,17 +590,32 @@ namespace mamba
                 {
                     using Credentials = typename specs::CondaURL::Credentials;
                     auto l_pkg = pkg;
+
+                    if (!pkg.package_url.empty())
                     {
                         auto channels = channel_context.make_channel(pkg.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
-                        );
+                        const auto platform_urls = channels.front().platform_urls();
+                        if (!platform_urls.empty())
+                        {
+                            l_pkg.package_url = platform_urls.front().str(Credentials::Show);
+                        }
                     }
+
                     {
                         auto channels = channel_context.make_channel(pkg.channel);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.channel = channels.front().id();
+                        const auto& channel = channels.front();
+
+                        l_pkg.channel = channel.id();
+
+                        if (l_pkg.package_url.empty())
+                        {
+                            l_pkg.package_url = l_pkg.url_for_channel(channel.url().str(Credentials::Show));
+                        }
                     }
+
+
                     fetchers.emplace_back(l_pkg, multi_cache);
                 }
                 else

@@ -575,4 +575,18 @@ namespace mamba::specs
         pkg.dependencies = j.value("depends", std::vector<std::string>());
         pkg.constrains = j.value("constrains", std::vector<std::string>());
     }
+
+    auto PackageInfo::url_for_channel(std::string_view channel_mirror_url) const -> std::string
+    {
+        // TODO: add more input checks
+        // TODO: add checks about members that need to have a valid value
+        return fmt::format("{}/{}/{}", channel_mirror_url, platform, filename);
+    }
+
+    auto PackageInfo::url_for_channel_platform(std::string_view channel_mirror_platform_url) const -> std::string
+    {
+        // TODO: add more input checks
+        // TODO: add checks about members that need to have a valid value
+        return fmt::format("{}/{}", channel_mirror_platform_url, filename);
+    }
 }

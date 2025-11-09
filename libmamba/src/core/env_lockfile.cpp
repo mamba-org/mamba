@@ -76,7 +76,8 @@ namespace mamba
         return EnvLockfileFormat::undefined;
     }
 
-    auto EnvironmentLockFile::get_packages_for(PackageFilter filter) const -> std::vector<specs::PackageInfo>
+    auto EnvironmentLockFile::get_packages_for(PackageFilter filter) const
+        -> std::vector<specs::PackageInfo>
     {
         std::vector<specs::PackageInfo> results;
 

@@ -17,8 +17,5 @@ namespace mamba
     read_mambajs_environment_lockfile(const fs::u8path& lockfile_location);
 
 
-
-
-
 }
 #endif

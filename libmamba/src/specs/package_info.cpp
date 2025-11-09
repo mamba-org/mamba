@@ -583,7 +583,8 @@ namespace mamba::specs
         return fmt::format("{}/{}/{}", channel_mirror_url, platform, filename);
     }
 
-    auto PackageInfo::url_for_channel_platform(std::string_view channel_mirror_platform_url) const -> std::string
+    auto PackageInfo::url_for_channel_platform(std::string_view channel_mirror_platform_url) const
+        -> std::string
     {
         // TODO: add more input checks
         // TODO: add checks about members that need to have a valid value

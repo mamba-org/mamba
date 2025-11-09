@@ -353,8 +353,7 @@ namespace mamba
 
             REQUIRE(is_conda_env_lockfile_name(fs::u8path{ "something-lock.yaml" }.string()));
             REQUIRE(is_conda_env_lockfile_name(fs::u8path{ "something-lock.yml" }.string()));
-            REQUIRE(is_conda_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yaml" }.string())
-            );
+            REQUIRE(is_conda_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yaml" }.string()));
             REQUIRE(is_conda_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yml" }.string()));
             REQUIRE(is_conda_env_lockfile_name(
                 fs::u8path{ "../../some/dir/something-lock.yaml" }.string()
@@ -378,8 +377,9 @@ namespace mamba
             REQUIRE_FALSE(is_conda_env_lockfile_name(fs::u8path{ "something" }.string()));
             REQUIRE_FALSE(is_conda_env_lockfile_name(fs::u8path{ "something-lock" }.string()));
             REQUIRE_FALSE(is_conda_env_lockfile_name(fs::u8path{ "/some/dir/something" }.string()));
-            REQUIRE_FALSE(is_conda_env_lockfile_name(fs::u8path{ "../../some/dir/something" }.string()
-            ));
+            REQUIRE_FALSE(
+                is_conda_env_lockfile_name(fs::u8path{ "../../some/dir/something" }.string())
+            );
 
             REQUIRE_FALSE(is_conda_env_lockfile_name("something.json"));
             REQUIRE_FALSE(is_conda_env_lockfile_name("../something.json"));

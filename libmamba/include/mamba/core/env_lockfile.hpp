@@ -37,7 +37,7 @@ namespace mamba
                           ///< format.
     };
 
-    struct EnvLockFileError // TODO: inherit from mamba error
+    struct EnvLockFileError  // TODO: inherit from mamba error
     {
         lockfile_parsing_error_code parsing_error_code = lockfile_parsing_error_code::unknown_failure;
         std::optional<std::type_index> error_type{};
@@ -103,8 +103,8 @@ namespace mamba
             auto matches(const Package& package) const -> bool
             {
                 return (category ? (package.category == *category) : true)
-                    and (platform ? (package.platform == *platform) : true)
-                    and (manager ? (package.manager == *manager) : true);
+                       and (platform ? (package.platform == *platform) : true)
+                       and (manager ? (package.manager == *manager) : true);
             }
 
             auto operator()(const Package& package) const -> bool
@@ -113,8 +113,7 @@ namespace mamba
             }
         };
 
-        auto get_packages_for(PackageFilter filter) const
-            -> std::vector<specs::PackageInfo>;
+        auto get_packages_for(PackageFilter filter) const -> std::vector<specs::PackageInfo>;
 
         auto get_all_packages() const -> const std::vector<Package>&
         {

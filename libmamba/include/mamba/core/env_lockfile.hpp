@@ -142,7 +142,7 @@ namespace mamba
     /// Read an environment lock-file and returns it's structured content or an error if
     /// failed.
     ///
-    /// @param lockfile_location The filsystem path to the file to open and read.
+    /// @param lockfile_location The filesystem path to the file to open and read.
     /// @param file_format The expected file format of the file. If `undefined`, which is the
     ///        default value, we guess based on the file's extension and content.
     auto read_environment_lockfile(

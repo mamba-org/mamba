@@ -1054,10 +1054,9 @@ namespace mamba
         {
             if (!value)
             {
-                throw std::runtime_error(fmt::format(
-                    "Number of download threads as to be positive (currently set to {})",
-                    value
-                ));
+                throw std::runtime_error(
+                    fmt::format("Number of download threads as to be positive (currently set to {})", value)
+                );
             }
         }
 

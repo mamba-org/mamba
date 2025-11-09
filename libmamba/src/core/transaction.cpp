@@ -398,12 +398,13 @@ namespace mamba
         // should be normalised when reading the data.
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
+            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)
+                                                    .value();
             const auto pkg_channel = mamba::specs::Channel::resolve(
-                                   unresolved_pkg_channel,
-                                   channel_context.params()
+                                         unresolved_pkg_channel,
+                                         channel_context.params()
             )
-                                   .value();
+                                         .value();
             assert(not pkg_channel.empty());
             const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
             pkg.channel = channel_url;
@@ -611,7 +612,9 @@ namespace mamba
 
                         if (l_pkg.package_url.empty())
                         {
-                            l_pkg.package_url = l_pkg.url_for_channel(channel.url().str(Credentials::Show));
+                            l_pkg.package_url = l_pkg.url_for_channel(
+                                channel.url().str(Credentials::Show)
+                            );
                         }
                     }
 

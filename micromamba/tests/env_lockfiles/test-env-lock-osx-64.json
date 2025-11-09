@@ -34,6 +34,13 @@
       "version": "1.2.11",
       "subdir": "osx-64",
       "channel": "conda-forge"
+    },
+    "zlib-1.2.11-h8ffe710_1013.tar.bz2": {
+      "name": "zlib",
+      "build": "h8ffe710_1013",
+      "version": "1.2.11",
+      "subdir": "osx-64",
+      "channel": "conda-forge"
     }
   },
   "pipPackages": {}

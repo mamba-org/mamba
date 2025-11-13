@@ -179,6 +179,9 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
 
+    res = helpers.install("-p", env_prefix, "pip", "--json") # make sure pip is available whatever the lockfile used
+    assert res["success"]
+
     packages = helpers.umamba_list("-p", env_prefix, "--json")
 
     # TODO: add checks for each package for the actual channel we expect it to come from

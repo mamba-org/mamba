@@ -78,22 +78,6 @@ namespace mamba
         return EnvLockfileFormat::undefined;
     }
 
-    auto EnvironmentLockFile::get_packages_for(PackageFilter filter) const
-        -> std::vector<specs::PackageInfo>
-    {
-        std::vector<specs::PackageInfo> results;
-
-        for (const auto& package : m_packages)
-        {
-            if (filter.matches(package))
-            {
-                results.push_back(package.info);
-            }
-        }
-
-        return results;
-    }
-
     auto is_conda_env_lockfile_name(std::string_view filename) -> bool
     {
         return filename.ends_with("-lock.yml") || filename.ends_with("-lock.yaml");

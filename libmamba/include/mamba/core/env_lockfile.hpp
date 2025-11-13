@@ -113,7 +113,28 @@ namespace mamba
             }
         };
 
-        auto get_packages_for(PackageFilter filter) const -> std::vector<specs::PackageInfo>;
+        template<typename F>
+            requires std::is_invocable_r_v<bool, F, const Package&>
+        auto get_packages_for(PackageFilter filter, F predicate) const -> std::vector<specs::PackageInfo>
+        {
+            std::vector<specs::PackageInfo> results;
+
+            for (const auto& package : m_packages)
+            {
+                if (filter.matches(package) and predicate(package))
+                {
+                    results.push_back(package.info);
+                }
+            }
+
+            return results;
+        }
+
+        auto get_packages_for(PackageFilter filter) const -> std::vector<specs::PackageInfo>
+        {
+            return get_packages_for(std::move(filter), [](const auto&){ return true; });
+        }
+        
 
         auto get_all_packages() const -> const std::vector<Package>&
         {

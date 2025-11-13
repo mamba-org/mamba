@@ -176,10 +176,11 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
 
     shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    # make sure pip is available whatever the lockfile used
+    res = helpers.create("-p", env_prefix, "pip", "--json")
     assert res["success"]
 
-    res = helpers.install("-p", env_prefix, "pip", "--json") # make sure pip is available whatever the lockfile used
+    res = helpers.install("-p", env_prefix, "-f", spec_file, "--json") 
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")

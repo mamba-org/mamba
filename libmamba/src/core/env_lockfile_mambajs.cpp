@@ -83,13 +83,15 @@ namespace mamba
             if (manager == "pip")
             {
                 package.info.package_url = package_value["url"].get<std::string>();
+                package.info.channel = package_value["registry"].get<std::string>();
             }
             else
             {
                 package.info.channel = package_value["channel"].get<std::string>();
                 package.info.platform = platform;
                 package.info.build_string = package_value["build"].get<std::string>();
-                // FIXME: package.info.package_url = ???;
+                // package.info.package_url = ???; The actual url will be deduced later with the
+                // chosen channel mirror url
             }
 
             return package;

@@ -28,9 +28,9 @@
     ]
   },
   "packages": {
-    "libzlib-1.2.11-h8ffe710_1013.tar.bz2": {
+    "libzlib-1.2.11-h36c2ea0_1013.tar.bz2": {
       "name": "libzlib",
-      "build": "h8ffe710_1013",
+      "build": "h36c2ea0_1013",
       "version": "1.2.11",
       "subdir": "linux-64",
       "channel": "conda-forge"

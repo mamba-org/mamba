@@ -211,7 +211,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     reason="Used lockfile only handles macOS and Linux.",
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock]) # TODO: Not supported by mambajs at the time of writing this
 def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
     spec_file = tmp_path / lockfile_name('env-lock', lockfile_format)

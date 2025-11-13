@@ -1,10 +1,7 @@
 {
   "lockVersion": "1.0.0",
   "platform": "win-64",
-  "channels": [
-    "emscripten-forge",
-    "conda-forge"
-  ],
+  "channels": ["emscripten-forge", "conda-forge"],
   "channelInfo": {
     "emscripten-forge": [
       {

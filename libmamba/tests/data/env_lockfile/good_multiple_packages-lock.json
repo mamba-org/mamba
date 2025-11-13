@@ -2,15 +2,8 @@
   "id": "7700383344624798",
   "lockVersion": "1.0.0",
   "platform": "emscripten-wasm32",
-  "specs": [
-    "xeus-python",
-    "pandas",
-    "matplotlib"
-  ],
-  "channels": [
-    "emscripten-forge",
-    "conda-forge"
-  ],
+  "specs": ["xeus-python", "pandas", "matplotlib"],
+  "channels": ["emscripten-forge", "conda-forge"],
   "channelInfo": {
     "emscripten-forge": [
       {

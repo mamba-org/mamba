@@ -1273,13 +1273,15 @@ namespace mamba
         insert(Configurable("target_prefix", &m_context.prefix_params.target_prefix)
                    .group("Basic")
                    .set_env_var_names()
-                   .needs({ "root_prefix",
-                            "envs_dirs",
-                            "env_name",
-                            "spec_file_env_name",
-                            "use_target_prefix_fallback",
-                            "use_default_prefix_fallback",
-                            "use_root_prefix_fallback" })
+                   .needs(
+                       { "root_prefix",
+                         "envs_dirs",
+                         "env_name",
+                         "spec_file_env_name",
+                         "use_target_prefix_fallback",
+                         "use_default_prefix_fallback",
+                         "use_root_prefix_fallback" }
+                   )
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
                    .set_post_merge_hook<fs::u8path>(
@@ -1317,8 +1319,8 @@ namespace mamba
                    .needs({ "target_prefix", "rc_files" })
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<int>([this](int& value)
-                                             { detail::target_prefix_checks_hook(m_context, value); }
+                   .set_post_merge_hook<int>(
+                       [this](int& value) { detail::target_prefix_checks_hook(m_context, value); }
                    ));
 
         insert(Configurable("env_name", std::string(""))
@@ -1494,10 +1496,12 @@ namespace mamba
         insert(Configurable("repodata_use_zst", &m_context.repodata_use_zst)
                    .group("Repodata")
                    .set_rc_configurable()
-                   .description("Use zstd encoded repodata when fetching ("
-                                "Note that this doesn't apply when fetching from an OCI registry - "
-                                "using `mirrored_channels` - since compressed repodata is "
-                                "automatically used when present.)\n"));
+                   .description(
+                       "Use zstd encoded repodata when fetching ("
+                       "Note that this doesn't apply when fetching from an OCI registry - "
+                       "using `mirrored_channels` - since compressed repodata is "
+                       "automatically used when present.)\n"
+                   ));
 
 
         insert(Configurable("repodata_has_zst", &m_context.repodata_has_zst)
@@ -1581,7 +1585,8 @@ namespace mamba
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("The factor determines the time HTTP connection should wait for attempt."
+                   .description(
+                       "The factor determines the time HTTP connection should wait for attempt."
                    ));
 
         insert(Configurable("remote_max_retries", &m_context.remote_fetch_params.max_retries)
@@ -1670,8 +1675,10 @@ namespace mamba
 
         insert(Configurable("no_deps", false)
                    .group("Solver")
-                   .description("Do not install dependencies. This WILL lead to broken environments "
-                                "and inconsistent behavior. Use at your own risk")
+                   .description(
+                       "Do not install dependencies. This WILL lead to broken environments "
+                       "and inconsistent behavior. Use at your own risk"
+                   )
                    .set_post_merge_hook<bool>([&](bool& value)
                                               { m_context.solver_flags.keep_dependencies = !value; }));
 
@@ -1685,12 +1692,13 @@ namespace mamba
                    .group("Solver")
                    .description("Force reinstall of package"));
 
-        insert(Configurable("allow_uninstall", &m_context.solver_flags.allow_uninstall)
-                   .group("Solver")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Allow uninstall when installing or updating packages. Default is true."
-                   ));
+        insert(
+            Configurable("allow_uninstall", &m_context.solver_flags.allow_uninstall)
+                .group("Solver")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("Allow uninstall when installing or updating packages. Default is true.")
+        );
 
         insert(Configurable("allow_downgrade", &m_context.solver_flags.allow_downgrade)
                    .group("Solver")
@@ -1851,12 +1859,13 @@ namespace mamba
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
 
-        insert(Configurable("use_uv", &m_context.use_uv)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Whether to use uv for installing pip dependencies. Defaults to false."
-                   ));
+        insert(
+            Configurable("use_uv", &m_context.use_uv)
+                .group("Extract, Link & Install")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("Whether to use uv for installing pip dependencies. Defaults to false.")
+        );
 
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &m_context.always_yes)
@@ -1879,11 +1888,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Only display what would have been done"));
 
-        insert(Configurable("download_only", &m_context.download_only)
-                   .group("Output, Prompt and Flow Control")
-                   .set_env_var_names()
-                   .description("Only download and extract packages, do not link them into environment."
-                   ));
+        insert(
+            Configurable("download_only", &m_context.download_only)
+                .group("Output, Prompt and Flow Control")
+                .set_env_var_names()
+                .description("Only download and extract packages, do not link them into environment.")
+        );
 
         insert(Configurable("log_level", &m_context.output_params.logging_level)
                    .group("Output, Prompt and Flow Control")

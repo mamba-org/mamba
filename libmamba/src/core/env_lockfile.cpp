@@ -31,13 +31,15 @@ namespace mamba
 
                 default:
                 {
-                    return tl::unexpected(EnvLockFileError::make_error(
-                        lockfile_parsing_error_code::not_env_lockfile,
-                        fmt::format(
-                            "file '{}' does not seem to be an environment lockfile or doesn't have a supported format",
-                            lockfile_location.string()
+                    return tl::unexpected(
+                        EnvLockFileError::make_error(
+                            lockfile_parsing_error_code::not_env_lockfile,
+                            fmt::format(
+                                "file '{}' does not seem to be an environment lockfile or doesn't have a supported format",
+                                lockfile_location.string()
+                            )
                         )
-                    ));
+                    );
                 }
             }
         }

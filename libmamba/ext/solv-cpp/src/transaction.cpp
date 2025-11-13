@@ -62,8 +62,7 @@ namespace solv
 
     auto ObjTransaction::from_solver(const ObjPool& pool, const ObjSolver& solver) -> ObjTransaction
     {
-        auto trans = ObjTransaction{ ::solver_create_transaction(const_cast<::Solver*>(solver.raw())
-        ) };
+        auto trans = ObjTransaction{ ::solver_create_transaction(const_cast<::Solver*>(solver.raw())) };
         assert_same_pool(pool, trans);
         return trans;
     }

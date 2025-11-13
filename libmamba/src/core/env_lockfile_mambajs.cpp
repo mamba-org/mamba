@@ -71,10 +71,12 @@ namespace mamba
 
                 if (package.info.sha256.empty() && package.info.md5.empty())
                 {
-                    return tl::unexpected(EnvLockFileError::make_error(
-                        lockfile_parsing_error_code::invalid_data,
-                        "'package.hash' provided but neither 'package.hash.md5' nor 'package.hash.sha256' was found, at least one of them must be provided"
-                    ));
+                    return tl::unexpected(
+                        EnvLockFileError::make_error(
+                            lockfile_parsing_error_code::invalid_data,
+                            "'package.hash' provided but neither 'package.hash.md5' nor 'package.hash.sha256' was found, at least one of them must be provided"
+                        )
+                    );
                 }
             }
 
@@ -106,10 +108,12 @@ namespace mamba
 
             if (metadata.platforms.front().empty())
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    lockfile_parsing_error_code::invalid_data,
-                    "a `platform` must be specified, found empty value"
-                ));
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        lockfile_parsing_error_code::invalid_data,
+                        "a `platform` must be specified, found empty value"
+                    )
+                );
             }
 
             auto channel_names = metadata_value["channels"].get<std::vector<std::string>>();
@@ -121,10 +125,15 @@ namespace mamba
 
                 if (not contains(channel_names, channel_name))
                 {
-                    return tl::unexpected(EnvLockFileError::make_error(
-                        lockfile_parsing_error_code::invalid_data,
-                        fmt::format("channel '{}' in 'channelInfo' not found in 'channels' list", channel_name)
-                    ));
+                    return tl::unexpected(
+                        EnvLockFileError::make_error(
+                            lockfile_parsing_error_code::invalid_data,
+                            fmt::format(
+                                "channel '{}' in 'channelInfo' not found in 'channels' list",
+                                channel_name
+                            )
+                        )
+                    );
                 }
 
                 for (const auto& channel_spec : channel_specs)
@@ -139,13 +148,15 @@ namespace mamba
             {
                 if (not contains(metadata.channels, channel_name, &EnvironmentLockFile::Channel::name))
                 {
-                    return tl::unexpected(EnvLockFileError::make_error(
-                        lockfile_parsing_error_code::invalid_data,
-                        fmt::format(
-                            "channel '{}' in 'channels' list not found in 'channelInfo' list",
-                            channel_name
+                    return tl::unexpected(
+                        EnvLockFileError::make_error(
+                            lockfile_parsing_error_code::invalid_data,
+                            fmt::format(
+                                "channel '{}' in 'channels' list not found in 'channelInfo' list",
+                                channel_name
+                            )
                         )
-                    ));
+                    );
                 }
             }
 
@@ -251,14 +262,16 @@ namespace mamba
             const auto maybe_lockfile_content = read_json_file(lockfile_location);
             if (not maybe_lockfile_content)
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    lockfile_parsing_error_code::parsing_failure,
-                    fmt::format(
-                        "failed to open environment lockfile located at '{}': {}",
-                        lockfile_location.string(),
-                        maybe_lockfile_content.error()
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        lockfile_parsing_error_code::parsing_failure,
+                        fmt::format(
+                            "failed to open environment lockfile located at '{}': {}",
+                            lockfile_location.string(),
+                            maybe_lockfile_content.error()
+                        )
                     )
-                ));
+                );
             }
 
             const auto& lockfile_content = *maybe_lockfile_content;
@@ -270,51 +283,59 @@ namespace mamba
             }
             else
             {
-                return tl::unexpected(EnvLockFileError::make_error(
-                    lockfile_parsing_error_code::unsupported_version,
-                    fmt::format(
-                        "Failed to read environment lockfile at '{}' : unknown version '{}'",
-                        lockfile_location.string(),
-                        lockfile_version
+                return tl::unexpected(
+                    EnvLockFileError::make_error(
+                        lockfile_parsing_error_code::unsupported_version,
+                        fmt::format(
+                            "Failed to read environment lockfile at '{}' : unknown version '{}'",
+                            lockfile_location.string(),
+                            lockfile_version
+                        )
                     )
-                ));
+                );
             }
         }
         catch (const json::parse_error& err)
         {
-            return tl::unexpected(EnvLockFileError::make_error(
-                lockfile_parsing_error_code::parsing_failure,
-                fmt::format(
-                    "JSON parsing error while reading environment lockfile located at '{}', byte {} : {}",
-                    lockfile_location.string(),
-                    err.byte,
-                    err.what()
-                ),
-                std::type_index{ typeid(err) }
-            ));
+            return tl::unexpected(
+                EnvLockFileError::make_error(
+                    lockfile_parsing_error_code::parsing_failure,
+                    fmt::format(
+                        "JSON parsing error while reading environment lockfile located at '{}', byte {} : {}",
+                        lockfile_location.string(),
+                        err.byte,
+                        err.what()
+                    ),
+                    std::type_index{ typeid(err) }
+                )
+            );
         }
         catch (const json::type_error& err)
         {
-            return tl::unexpected(EnvLockFileError::make_error(
-                lockfile_parsing_error_code::parsing_failure,
-                fmt::format(
-                    "JSON value type doesnt match expected type, while reading environment lockfile located at '{}': {}",
-                    lockfile_location.string(),
-                    err.what()
-                ),
-                std::type_index{ typeid(err) }
-            ));
+            return tl::unexpected(
+                EnvLockFileError::make_error(
+                    lockfile_parsing_error_code::parsing_failure,
+                    fmt::format(
+                        "JSON value type doesnt match expected type, while reading environment lockfile located at '{}': {}",
+                        lockfile_location.string(),
+                        err.what()
+                    ),
+                    std::type_index{ typeid(err) }
+                )
+            );
         }
         catch (const std::exception& e)
         {
-            return tl::unexpected(EnvLockFileError::make_error(
-                lockfile_parsing_error_code::parsing_failure,
-                fmt::format(
-                    "Error while reading environment lockfile located at '{}': {}",
-                    lockfile_location.string(),
-                    e.what()
+            return tl::unexpected(
+                EnvLockFileError::make_error(
+                    lockfile_parsing_error_code::parsing_failure,
+                    fmt::format(
+                        "Error while reading environment lockfile located at '{}': {}",
+                        lockfile_location.string(),
+                        e.what()
+                    )
                 )
-            ));
+            );
         }
     }
 

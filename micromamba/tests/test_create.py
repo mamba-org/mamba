@@ -39,7 +39,7 @@ def lockfile_extension(lockfile_format):
     if lockfile_format_mambajs:
         return ".json"
 
-    return ""  # FIXME: throw?
+    raise RuntimeError(f"invalid lockfile format name: {lockfile_format}")
 
 
 def lockfile_name(prefix, lockfile_format):
@@ -47,19 +47,25 @@ def lockfile_name(prefix, lockfile_format):
 
 
 def _base_lockfile_path(lockfile_prefix, lockfile_format):
+    result = Path()
     if lockfile_format == lockfile_format_condalock:
-        return Path(env_lockfile_dir / f"{lockfile_prefix}.yaml")
+        result = Path(env_lockfile_dir / f"{lockfile_prefix}.yaml")
 
     if lockfile_format == lockfile_format_mambajs:
         platform_id = platform.system()
         if platform_id == "Linux":
-            return Path(env_lockfile_dir / f"{lockfile_prefix}-linux-64.json")
+            result = Path(env_lockfile_dir / f"{lockfile_prefix}-linux-64.json")
         elif platform_id == "Windows":
-            return Path(env_lockfile_dir / f"{lockfile_prefix}-win-64.json")
+            result = Path(env_lockfile_dir / f"{lockfile_prefix}-win-64.json")
         elif platform_id == "Darwin":
-            return Path(env_lockfile_dir / f"{lockfile_prefix}-osx-64.json")
+            result = Path(env_lockfile_dir / f"{lockfile_prefix}-osx-64.json")
+        else:
+            raise RuntimeError(f"unsupported platform: {platform_id}")
 
-    return Path()  # FIXME: throw?
+    if not result.exists():
+        raise RuntimeError(f"lockfile not found: {result}")
+
+    return result
 
 
 def lockfile_path(lockfile_format):

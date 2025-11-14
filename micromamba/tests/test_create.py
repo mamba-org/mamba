@@ -153,15 +153,19 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
 def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
 
-    spec_file = tmp_path / lockfile_name("env-lock", lockfile_format)
+    lockfile_to_use = lockfile_name("env-lock", lockfile_format)
+    print("lockfile_to_use = ", lockfile_to_use)
+
+    spec_file = tmp_path / lockfile_to_use
 
     shutil.copyfile(lockfile_path(lockfile_format), spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    print("create result:", res)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    print("packages:", packages)
+    print("packages installed:", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 

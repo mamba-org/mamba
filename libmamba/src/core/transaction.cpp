@@ -1208,11 +1208,12 @@ namespace mamba
                 { .category = category,
                   .platform = ctx.platform,
                   .manager = "pip",
-                // NOTE: sometime python packages can have no platform specified (mambajs lockfile for
-                //       example) in this case we just take the package if not specified, but if
-                //       specified we filter to the current platform.
-                  .allow_no_platform = true
-                });
+                  // NOTE: sometime python packages can have no platform specified (mambajs lockfile
+                  // for
+                  //       example) in this case we just take the package if not specified, but if
+                  //       specified we filter to the current platform.
+                  .allow_no_platform = true }
+            );
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),

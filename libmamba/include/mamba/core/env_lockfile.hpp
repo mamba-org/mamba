@@ -99,12 +99,13 @@ namespace mamba
             std::optional<std::string> category = std::nullopt;
             std::optional<std::string> platform = std::nullopt;
             std::optional<std::string> manager = std::nullopt;
-            bool allow_no_platform = false; // will match empty platform
+            bool allow_no_platform = false;  // will match empty platform
 
             auto matches(const Package& package) const -> bool
             {
-                bool matches_platform = not platform.has_value() or (package.platform == *platform) or (package.platform == "noarch");
-                if(platform.has_value() and not matches_platform and allow_no_platform)
+                bool matches_platform = not platform.has_value() or (package.platform == *platform)
+                                        or (package.platform == "noarch");
+                if (platform.has_value() and not matches_platform and allow_no_platform)
                 {
                     matches_platform = package.platform.empty();
                 }
@@ -120,9 +121,10 @@ namespace mamba
             }
         };
 
-        template<typename F>
+        template <typename F>
             requires std::is_invocable_r_v<bool, F, const Package&>
-        auto get_packages_for(PackageFilter filter, F predicate) const -> std::vector<specs::PackageInfo>
+        auto get_packages_for(PackageFilter filter, F predicate) const
+            -> std::vector<specs::PackageInfo>
         {
             std::vector<specs::PackageInfo> results;
 
@@ -139,9 +141,8 @@ namespace mamba
 
         auto get_packages_for(PackageFilter filter) const -> std::vector<specs::PackageInfo>
         {
-            return get_packages_for(std::move(filter), [](const auto&){ return true; });
+            return get_packages_for(std::move(filter), [](const auto&) { return true; });
         }
-        
 
         auto get_all_packages() const -> const std::vector<Package>&
         {

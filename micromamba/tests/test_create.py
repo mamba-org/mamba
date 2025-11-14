@@ -58,7 +58,13 @@ def _base_lockfile_path(lockfile_prefix, lockfile_format):
         elif platform_id == "Windows":
             result = Path(env_lockfile_dir / f"{lockfile_prefix}-win-64.json")
         elif platform_id == "Darwin":
-            result = Path(env_lockfile_dir / f"{lockfile_prefix}-osx-64.json")
+            platform_arch = platform.machine()
+            if platform_arch == 'AMD64':
+                result = Path(env_lockfile_dir / f"{lockfile_prefix}-osx-64.json")
+            elif platform_arch == 'ARM64':
+                result = Path(env_lockfile_dir / f"{lockfile_prefix}-osx-arm64.json")
+            else:
+                raise RuntimeError(f"unsupported OSX arch: {platform_arch}")
         else:
             raise RuntimeError(f"unsupported platform: {platform_id}")
 

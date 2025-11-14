@@ -1,0 +1,48 @@
+{
+    "lockVersion": "1.0.1",
+    "platform": "osx-arm64",
+    "specs": [
+        "zlib=1.2.11",
+        "libzlib=1.2.11"
+    ],
+    "channels": [
+        "conda-forge"
+    ],
+    "channelInfo": {
+        "conda-forge": [
+            {
+                "url": "https://prefix.dev/conda-forge",
+                "protocol": "https"
+            },
+            {
+                "url": "https://repo.prefix.dev/conda-forge",
+                "protocol": "https"
+            }
+        ]
+    },
+    "packages": {
+        "zlib-1.2.11-h90dfc92_1014.tar.bz2": {
+            "name": "zlib",
+            "build": "h90dfc92_1014",
+            "version": "1.2.11",
+            "subdir": "osx-arm64",
+            "channel": "conda-forge",
+            "hash": {
+                "md5": "348a30b1350c9d91a4dbf05f5e46e0bb",
+                "sha256": "a70c028fd3b9af1d7ea3d7099d810f3d2588096237bb472db331a51a36f931c0"
+            }
+        },
+        "libzlib-1.2.11-h90dfc92_1014.tar.bz2": {
+            "name": "libzlib",
+            "build": "h90dfc92_1014",
+            "version": "1.2.11",
+            "subdir": "osx-arm64",
+            "channel": "conda-forge",
+            "hash": {
+                "md5": "fbe64adc8dbaeeb375d439d15b2bf6b1",
+                "sha256": "2b6c50e4dbac30faa011b50a010eb5f321d5f8c549105d5432d700777aa8b2ca"
+            }
+        }
+    },
+    "pipPackages": {}
+}

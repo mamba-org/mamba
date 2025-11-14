@@ -1,48 +1,43 @@
 {
-    "lockVersion": "1.0.1",
-    "platform": "osx-64",
-    "specs": [
-        "zlib=1.2.11",
-        "libzlib=1.2.11"
-    ],
-    "channels": [
-        "conda-forge"
-    ],
-    "channelInfo": {
-        "conda-forge": [
-            {
-                "url": "https://prefix.dev/conda-forge",
-                "protocol": "https"
-            },
-            {
-                "url": "https://repo.prefix.dev/conda-forge",
-                "protocol": "https"
-            }
-        ]
+  "lockVersion": "1.0.1",
+  "platform": "osx-64",
+  "specs": ["zlib=1.2.11", "libzlib=1.2.11"],
+  "channels": ["conda-forge"],
+  "channelInfo": {
+    "conda-forge": [
+      {
+        "url": "https://prefix.dev/conda-forge",
+        "protocol": "https"
+      },
+      {
+        "url": "https://repo.prefix.dev/conda-forge",
+        "protocol": "https"
+      }
+    ]
+  },
+  "packages": {
+    "zlib-1.2.11-h6c3fc93_1014.tar.bz2": {
+      "name": "zlib",
+      "build": "h6c3fc93_1014",
+      "version": "1.2.11",
+      "subdir": "osx-64",
+      "channel": "conda-forge",
+      "hash": {
+        "md5": "98b82f6a8de694bc6259f2d1a69bc02b",
+        "sha256": "825ad325db6febfcc5ec1051a57a50be5504613c737ef3be8ccf38ec4dd12b70"
+      }
     },
-    "packages": {
-        "zlib-1.2.11-h6c3fc93_1014.tar.bz2": {
-            "name": "zlib",
-            "build": "h6c3fc93_1014",
-            "version": "1.2.11",
-            "subdir": "osx-64",
-            "channel": "conda-forge",
-            "hash": {
-                "md5": "98b82f6a8de694bc6259f2d1a69bc02b",
-                "sha256": "825ad325db6febfcc5ec1051a57a50be5504613c737ef3be8ccf38ec4dd12b70"
-            }
-        },
-        "libzlib-1.2.11-h6c3fc93_1014.tar.bz2": {
-            "name": "libzlib",
-            "build": "h6c3fc93_1014",
-            "version": "1.2.11",
-            "subdir": "osx-64",
-            "channel": "conda-forge",
-            "hash": {
-                "md5": "49f20ed86f7ed34204be74fbb2868c60",
-                "sha256": "7e01a61f197bae37cc4c21f3e4767f9fb3b327a9e100c9b479ec83d8ede4a921"
-            }
-        }
-    },
-    "pipPackages": {}
+    "libzlib-1.2.11-h6c3fc93_1014.tar.bz2": {
+      "name": "libzlib",
+      "build": "h6c3fc93_1014",
+      "version": "1.2.11",
+      "subdir": "osx-64",
+      "channel": "conda-forge",
+      "hash": {
+        "md5": "49f20ed86f7ed34204be74fbb2868c60",
+        "sha256": "7e01a61f197bae37cc4c21f3e4767f9fb3b327a9e100c9b479ec83d8ede4a921"
+      }
+    }
+  },
+  "pipPackages": {}
 }

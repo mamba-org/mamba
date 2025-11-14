@@ -1173,13 +1173,13 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
-        // for (const auto& package : lockfile_data.get_all_packages())
-        // {
-        //     LOG_WARNING << "PARSED PACKAGE: " << package.info.name;
-        //     LOG_WARNING << "  category = " << package.category;
-        //     LOG_WARNING << "  platform = " << package.platform;
-        //     LOG_WARNING << "  manager = " << package.manager;
-        // }
+        for (const auto& package : lockfile_data.get_all_packages())
+        {
+            LOG_DEBUG << "parsed package: " << package.info.name;
+            LOG_DEBUG << "  category = " << package.category;
+            LOG_DEBUG << "  platform = " << package.platform;
+            LOG_DEBUG << "  manager = " << package.manager;
+        }
 
         // TODO: FIXME: inject channel info coming from the lockfile!
 
@@ -1204,15 +1204,15 @@ namespace mamba
                             << ctx.platform << ").";
             }
 
-            // NOTE: sometime python packages can have no platform specified (mambajs lockfile for
-            //       example) in this case we just take the package if not specified, but if
-            //       specified we filter to the current platform.
             selected_packages = lockfile_data.get_packages_for(
                 { .category = category,
-                  .platform = std::nullopt,
-                  .manager = "pip"}, [&](const auto& package)
-                  { return package.platform.empty() or package.platform == ctx.platform; }
-            );
+                  .platform = ctx.platform,
+                  .manager = "pip",
+                // NOTE: sometime python packages can have no platform specified (mambajs lockfile for
+                //       example) in this case we just take the package if not specified, but if
+                //       specified we filter to the current platform.
+                  .allow_no_platform = true
+                });
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
@@ -1238,10 +1238,10 @@ namespace mamba
         }
 
 
-        // for (const auto& package : pip_packages)
-        // {
-        //     LOG_WARNING << "PIP PACKAGE: " << package.name;
-        // }
+        for (const auto& package : pip_packages)
+        {
+            LOG_DEBUG << "pip package to install: " << package.name;
+        }
 
         return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
     }

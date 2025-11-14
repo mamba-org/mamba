@@ -96,15 +96,22 @@ namespace mamba
 
         struct PackageFilter
         {
-            std::optional<std::string> category;
-            std::optional<std::string> platform;
-            std::optional<std::string> manager;
+            std::optional<std::string> category = std::nullopt;
+            std::optional<std::string> platform = std::nullopt;
+            std::optional<std::string> manager = std::nullopt;
+            bool allow_no_platform = false; // will match empty platform
 
             auto matches(const Package& package) const -> bool
             {
-                return (category ? (package.category == *category) : true)
-                       and (platform ? (package.platform == *platform) : true)
-                       and (manager ? (package.manager == *manager) : true);
+                bool matches_platform = not platform.has_value() or (package.platform == *platform) or (package.platform == "noarch");
+                if(platform.has_value() and not matches_platform and allow_no_platform)
+                {
+                    matches_platform = package.platform.empty();
+                }
+
+                return matches_platform
+                       and (not category.has_value() or (package.category == *category))
+                       and (not manager.has_value() or (package.manager == *manager));
             }
 
             auto operator()(const Package& package) const -> bool

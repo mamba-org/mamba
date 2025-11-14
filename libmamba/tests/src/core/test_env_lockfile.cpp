@@ -283,7 +283,7 @@ namespace mamba
             test_get_specific_packages(
                 mambatests::test_data_dir / "env_lockfile/good_multiple_packages-lock.json",
                 51,
-                { { 15, { .category = "main", .platform = "emscripten-wasm32", .manager = "conda" } },
+                { { 41, { .category = "main", .platform = "emscripten-wasm32", .manager = "conda" } },
                   { 26, { .category = "main", .platform = "noarch", .manager = "conda" } },
                   { 10, { .category = "main", .platform = std::nullopt, .manager = "pip" } } }
             );

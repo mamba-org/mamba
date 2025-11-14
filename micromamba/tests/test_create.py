@@ -160,7 +160,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
 
     shutil.copyfile(lockfile_to_use, spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", "--verbose", "debug")
     print("create result:", res)
     assert res["success"]
 

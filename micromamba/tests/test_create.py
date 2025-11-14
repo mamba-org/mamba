@@ -161,6 +161,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
+    print("packages:", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 

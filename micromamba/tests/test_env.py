@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import subprocess
 
 from packaging.version import Version
 from pathlib import Path
@@ -566,3 +567,30 @@ def test_env_export_with_uv_flag(tmp_home, tmp_root_prefix, tmp_path, json_flag)
     # Check that `requests` and `urllib3` (pulled dependency) are exported
     assert "requests==2.32.3" in pip_section_vals
     assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)
+
+
+def test_env_export_with_ca_certificates(tmp_path):
+    # CA certificates in the same environment as `mamba` or `micromamba`
+    # executable installation are used by default.
+    tmp_env_prefix = tmp_path / "env-export-with-ca-certificates"
+
+    helpers.create("-p", tmp_env_prefix, "ca-certificates", no_dry_run=True)
+
+    # Copy the `micromamba` executable in this prefix `bin` subdirectory
+    (tmp_env_prefix / "bin").mkdir(parents=True, exist_ok=True)
+    tmp_env_micromamba = tmp_env_prefix / "bin" / "micromamba"
+    shutil.copy(helpers.get_umamba(), tmp_env_micromamba)
+
+    # Run a command using mamba in verbose mode and check that the ca-certificates file
+    # from the same environment as the executable is used by default.
+    p = subprocess.run(
+        [tmp_env_micromamba, "search", "xtensor", "-v"],
+        capture_output=True,
+        check=False,
+    )
+    stderr = p.stderr.decode()
+    assert (
+        "Checking for CA certificates in the same environment as the executable installation"
+        in stderr
+    )
+    assert "Using CA certificates from the same prefix as the executable installation" in stderr

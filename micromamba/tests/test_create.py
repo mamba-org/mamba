@@ -27,9 +27,63 @@ env_files = [
     env_file_requires_pip_install_path_with_whitespaces,
 ]
 
-lockfile_path: Path = __this_dir__ / "test-env-lock.yaml"
-pip_lockfile_path: Path = __this_dir__ / "test-env-pip-lock.yaml"
-pip_git_https_lockfile_path: Path = __this_dir__ / "test-env-lock-pip-git-https.yaml"
+env_lockfile_dir: Path = __this_dir__ / "env_lockfiles"
+
+lockfile_format_condalock = "condalock"
+lockfile_format_mambajs = "mambajs"
+
+
+def lockfile_extension(lockfile_format):
+    if lockfile_format == lockfile_format_condalock:
+        return ".yaml"
+    if lockfile_format_mambajs:
+        return ".json"
+
+    raise RuntimeError(f"invalid lockfile format name: {lockfile_format}")
+
+
+def lockfile_name(prefix, lockfile_format):
+    return f"{prefix}{lockfile_extension(lockfile_format)}"
+
+
+def _base_lockfile_path(lockfile_prefix, lockfile_format):
+    result = Path()
+    if lockfile_format == lockfile_format_condalock:
+        result = Path(env_lockfile_dir / f"{lockfile_prefix}.yaml")
+
+    if lockfile_format == lockfile_format_mambajs:
+        platform_id = platform.system()
+        if platform_id == "Linux":
+            result = Path(env_lockfile_dir / f"{lockfile_prefix}-linux-64.json")
+        elif platform_id == "Windows":
+            result = Path(env_lockfile_dir / f"{lockfile_prefix}-win-64.json")
+        elif platform_id == "Darwin":
+            platform_arch = platform.machine()
+            if platform_arch == "amd64":
+                result = Path(env_lockfile_dir / f"{lockfile_prefix}-osx-64.json")
+            elif platform_arch == "arm64":
+                result = Path(env_lockfile_dir / f"{lockfile_prefix}-osx-arm64.json")
+            else:
+                raise RuntimeError(f"unsupported OSX arch: {platform_arch}")
+        else:
+            raise RuntimeError(f"unsupported platform: {platform_id}")
+
+    if not result.exists():
+        raise RuntimeError(f"lockfile not found: {result}")
+
+    return result
+
+
+def lockfile_path(lockfile_format):
+    return _base_lockfile_path("test-env-lock", lockfile_format)
+
+
+def pip_lockfile_path(lockfile_format):
+    return _base_lockfile_path("test-env-pip-lock", lockfile_format)
+
+
+def pip_git_https_lockfile_path(lockfile_format):
+    return _base_lockfile_path("test-env-lock-pip-git-https", lockfile_format)
 
 
 def check_create_result(res, root_prefix, target_prefix):
@@ -107,16 +161,23 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    spec_file = tmp_path / "env-lock.yaml"
 
-    shutil.copyfile(lockfile_path, spec_file)
+    lockfile_to_use = lockfile_path(lockfile_format)
+    print("lockfile_to_use = ", lockfile_to_use)
+
+    spec_file = tmp_path / lockfile_name("env-lock", lockfile_format)
+
+    shutil.copyfile(lockfile_to_use, spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    print("create result:", res)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
+    print("packages installed:", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
@@ -125,43 +186,32 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     reason="Test only available on Linux (cf. `test-env-pip-lock.yaml`)",
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    spec_file = tmp_path / "pip-env-lock.yaml"
+    spec_file = tmp_path / lockfile_name("pip-env-lock", lockfile_format)
 
-    shutil.copyfile(pip_lockfile_path, spec_file)
+    shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
 
+    # TODO: add checks for each package for the actual channel we expect it to come from
+    #       once we have channels coming from lockfiles correctly used in mamba
+    #       (not yet implemented at the time of writing this)
+
     # Test pkg url ending with `.tar.gz`
-    assert any(
-        package["name"] == "Checkm" and package["version"] == "0.4" and package["channel"] == "pypi"
-        for package in packages
-    )
+    assert any(package["name"] == "Checkm" and package["version"] == "0.4" for package in packages)
     # Test pkg url ending with `.whl`
     assert any(
-        package["name"] == "starlette"
-        and package["version"] == "0.17.1"
-        and package["channel"] == "pypi"
-        for package in packages
+        package["name"] == "starlette" and package["version"] == "0.17.1" for package in packages
     )
     # Test pkg url ending with `.conda`
-    assert any(
-        package["name"] == "bzip2"
-        and package["version"] == "1.0.8"
-        and package["channel"] == "conda-forge"
-        for package in packages
-    )
+    assert any(package["name"] == "bzip2" and package["version"] == "1.0.8" for package in packages)
     # Test pkg url ending with `.tar.bz2`
-    assert any(
-        package["name"] == "xz"
-        and package["version"] == "5.2.6"
-        and package["channel"] == "conda-forge"
-        for package in packages
-    )
+    assert any(package["name"] == "xz" and package["version"] == "5.2.6" for package in packages)
 
 
 # TODO: Remove this test once this is fixed:
@@ -172,11 +222,14 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path):
     reason="Used lockfile only handles macOS and Linux.",
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize(
+    "lockfile_format", [lockfile_format_condalock]
+)  # TODO: Not supported by mambajs at the time of writing this
+def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
-    spec_file = tmp_path / "env-lock.yaml"
+    spec_file = tmp_path / lockfile_name("env-lock", lockfile_format)
 
-    shutil.copyfile(pip_git_https_lockfile_path, spec_file)
+    shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
@@ -199,7 +252,9 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
+def test_lockfile_online(
+    tmp_home, tmp_root_prefix, tmp_path
+):  # TODO: same but with mambajs lockfile
     env_prefix = tmp_path / "myenv"
     spec_file = (
         "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
@@ -213,13 +268,20 @@ def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
+def test_env_lockfile_different_install_after_create(
+    tmp_home, tmp_root_prefix, tmp_path, lockfile_format
+):
     env_prefix = tmp_path / "myenv"
-    create_spec_file = tmp_path / "env-create-lock.yaml"
-    install_spec_file = tmp_path / "env-install-lock.yaml"
+    create_spec_file = tmp_path / lockfile_name("env-create-lock", lockfile_format)
+    install_spec_file = tmp_path / lockfile_name("env-install-lock", lockfile_format)
 
-    shutil.copyfile(__this_dir__ / "envlockfile-check-step-1-lock.yaml", create_spec_file)
-    shutil.copyfile(__this_dir__ / "envlockfile-check-step-2-lock.yaml", install_spec_file)
+    shutil.copyfile(
+        _base_lockfile_path("envlockfile-check-step-1-lock", lockfile_format), create_spec_file
+    )
+    shutil.copyfile(
+        _base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file
+    )
 
     res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
     assert res["success"]

@@ -222,6 +222,9 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_impl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_conda.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_mambajs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp

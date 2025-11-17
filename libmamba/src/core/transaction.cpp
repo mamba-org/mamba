@@ -403,14 +403,21 @@ namespace mamba
         // should be normalised when reading the data.
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
-            auto pkg_channel = mamba::specs::Channel::resolve(
-                                   unresolved_pkg_channel,
-                                   channel_context.params()
+            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)
+                                                    .value();
+            const auto pkg_channel = mamba::specs::Channel::resolve(
+                                         unresolved_pkg_channel,
+                                         channel_context.params()
             )
-                                   .value();
-            auto channel_url = pkg_channel[0].platform_url(pkg.platform).str();
+                                         .value();
+            assert(not pkg_channel.empty());
+            const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
             pkg.channel = channel_url;
+
+            if (pkg.package_url.empty())
+            {
+                pkg.package_url = pkg.url_for_channel_platform(channel_url);
+            }
         };
 
         TransactionRollback rollback;
@@ -591,18 +598,34 @@ namespace mamba
                 {
                     using Credentials = typename specs::CondaURL::Credentials;
                     auto l_pkg = pkg;
+
+                    if (!pkg.package_url.empty())
                     {
                         auto channels = channel_context.make_channel(pkg.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.package_url = channels.front().platform_urls().at(0).str(
-                            Credentials::Show
-                        );
+                        const auto platform_urls = channels.front().platform_urls();
+                        if (!platform_urls.empty())
+                        {
+                            l_pkg.package_url = platform_urls.front().str(Credentials::Show);
+                        }
                     }
+
                     {
                         auto channels = channel_context.make_channel(pkg.channel);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.channel = channels.front().id();
+                        const auto& channel = channels.front();
+
+                        l_pkg.channel = channel.id();
+
+                        if (l_pkg.package_url.empty())
+                        {
+                            l_pkg.package_url = l_pkg.url_for_channel(
+                                channel.url().str(Credentials::Show)
+                            );
+                        }
                     }
+
+
                     fetchers.emplace_back(l_pkg, multi_cache);
                 }
                 else
@@ -1150,15 +1173,23 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
+        for (const auto& package : lockfile_data.get_all_packages())
+        {
+            LOG_DEBUG << "parsed package: " << package.info.name;
+            LOG_DEBUG << "  category = " << package.category;
+            LOG_DEBUG << "  platform = " << package.platform;
+            LOG_DEBUG << "  manager = " << package.manager;
+        }
+
+        // TODO: FIXME: inject channel info coming from the lockfile!
+
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};
 
         for (const auto& category : categories)
         {
             std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
-                category,
-                ctx.platform,
-                "conda"
+                { .category = category, .platform = ctx.platform, .manager = "conda" }
             );
             std::copy(
                 selected_packages.begin(),
@@ -1173,7 +1204,16 @@ namespace mamba
                             << ctx.platform << ").";
             }
 
-            selected_packages = lockfile_data.get_packages_for(category, ctx.platform, "pip");
+            selected_packages = lockfile_data.get_packages_for(
+                { .category = category,
+                  .platform = ctx.platform,
+                  .manager = "pip",
+                  // NOTE: sometime python packages can have no platform specified (mambajs lockfile
+                  // for
+                  //       example) in this case we just take the package if not specified, but if
+                  //       specified we filter to the current platform.
+                  .allow_no_platform = true }
+            );
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
@@ -1196,6 +1236,12 @@ namespace mamba
             other_specs.push_back(
                 { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }
             );
+        }
+
+
+        for (const auto& package : pip_packages)
+        {
+            LOG_DEBUG << "pip package to install: " << package.name;
         }
 
         return MTransaction{ ctx, database, std::move(conda_packages), package_caches };

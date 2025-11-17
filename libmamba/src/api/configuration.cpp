@@ -1628,7 +1628,18 @@ namespace mamba
                        [&](std::vector<std::string>& value)
                        { return detail::file_specs_hook(*this, value); }
                    )
-                   .description("File (yaml, explicit or plain)"));
+                   .description("File providing package specifications (yaml, explicit or plain, or json)")
+                   // clang-format off
+                   .long_description(unindent(R"(
+                        File providing package specifications, either an
+                        environment file (yaml, explicit or plain) or a
+                        an environment lockfile.
+                        Valid environment lockfile formats: conda-lock file
+                        (see https://github.com/conda/conda-lock , file name must end with '-lock.yaml'
+                         or '-lock.yml') or mambajs's lockfile
+                        (see https://github.com/emscripten-forge/mambajs/blob/main/packages/mambajs-core/schema/ )
+                        )")));
+        // clang-format on
 
         insert(Configurable("no_pin", false)
                    .group("Solver")

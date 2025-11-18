@@ -1,3 +1,19 @@
+## micromamba 2.4.0.rc0 (November 18, 2025)
+
+Enhancements:
+
+- Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Bug fixes:
+
+- fix: Update URL of lock files by @jjerphan in <https://github.com/mamba-org/mamba/pull/4097>
+- Fix Windows tests by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4086>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+
 ## micromamba 2.3.3 (October 17, 2025)
 
 CI fixes and doc:

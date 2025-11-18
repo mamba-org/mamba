@@ -256,9 +256,7 @@ def test_lockfile_online(
     tmp_home, tmp_root_prefix, tmp_path
 ):  # TODO: same but with mambajs lockfile
     env_prefix = tmp_path / "myenv"
-    spec_file = (
-        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test-env-lock.yaml"
-    )
+    spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/env_lockfiles/test-env-lock.yaml"
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]

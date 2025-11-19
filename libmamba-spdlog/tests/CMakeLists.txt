@@ -5,7 +5,7 @@ find_package(Catch2 REQUIRED)
 add_executable( test_libmamba_logging_spdlog test_logging_spdlog.cpp )
 
 target_link_libraries(test_libmamba_logging_spdlog
-    PRIVATE
+    PUBLIC
         mamba::libmamba
         mamba::libmamba-spdlog
         mamba::libtesting_mamba_logging_common

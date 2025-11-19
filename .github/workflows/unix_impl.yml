@@ -42,7 +42,7 @@ jobs:
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
             -D MAMBA_WARNING_AS_ERROR=ON \
             -D BUILD_LIBMAMBAPY=OFF \
-            -D BUILD_LIBMAMBA_SPDLOG=ON \
+            -D BUILD_LIBMAMBA_SPDLOG_TESTS=ON \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           cmake --build build/ --parallel
       - name: Show build cache statistics

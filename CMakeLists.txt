@@ -78,7 +78,7 @@ if(BUILD_LIBMAMBA)
 endif()
 
 # libmamba-spdlog library and tests
-if(BUILD_LIBMAMBA_SPDLOG)
+if(BUILD_LIBMAMBA_SPDLOG OR BUILD_LIBMAMBAPY OR BUILD_MICROMAMBA OR BUILD_MAMBA)
     add_subdirectory(libmamba-spdlog)
 endif()
 

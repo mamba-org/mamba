@@ -54,6 +54,7 @@ jobs:
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
             -D MAMBA_WARNING_AS_ERROR=ON \
+            -D BUILD_LIBMAMBA_SPDLOG=ON \
             -D BUILD_LIBMAMBAPY=ON \
             -D BUILD_MICROMAMBA=ON \
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF \

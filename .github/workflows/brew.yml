@@ -45,7 +45,7 @@ jobs:
 
       - name: Configure to build mamba
         run: >
-          cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_LIBMAMBA_SPDLOG=ON -DBUILD_MAMBA=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
+          cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
           -DLibArchive_ROOT=$(brew --prefix libarchive)
 
       - name: Build mamba

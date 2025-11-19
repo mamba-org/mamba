@@ -69,5 +69,6 @@ set_target_properties(
 # )
 # export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)
 
-
-add_subdirectory(tests/)
+if(BUILD_LIBMAMBA_SPDLOG_TESTS)
+    add_subdirectory(tests/)
+endif()

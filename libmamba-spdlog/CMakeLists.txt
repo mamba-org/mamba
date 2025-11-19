@@ -60,15 +60,6 @@ set_target_properties(
         CXX_EXTENSIONS NO
 )
 
-
-# install(
-#     EXPORT ${PROJECT_NAME}Targets
-#     NAMESPACE mamba::
-#     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
-#     COMPONENT Mamba_Development
-# )
-# export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)
-
 if(BUILD_LIBMAMBA_SPDLOG_TESTS)
     add_subdirectory(tests/)
 endif()

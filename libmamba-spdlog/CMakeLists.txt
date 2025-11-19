@@ -17,6 +17,7 @@ else()
 endif()
 
 find_package(spdlog CONFIG REQUIRED)
+find_package(Threads REQUIRED)
 
 # For some reasons, using target_compile_definitions does not set the definitions properly
 add_compile_definitions(
@@ -33,14 +34,20 @@ add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
 
 target_include_directories(libmamba-spdlog INTERFACE include/)
 
-target_link_libraries(libmamba-spdlog 
-    INTERFACE 
+target_link_libraries(libmamba-spdlog
+    INTERFACE
         ${libmamba_target}
         # Since conda-forge spdlog is built with a bundled version of fmt we use the header
         # only version to avoid chasing after the correct fmt version matching the one used
-        # in the bundle
+        # in the bundle.
         spdlog::spdlog_header_only
+
+        # We need the threading facilities available whatever the user use.
+        # This should have been part of depending on spdlog but for some reason it's
+        # not made available automatically.
+        Threads::Threads
 )
+
 
 mamba_target_add_compile_warnings(libmamba-spdlog WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 

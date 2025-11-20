@@ -1406,7 +1406,7 @@ namespace
             testpkg.version = "1.0.0";
             testpkg.build_string = "h12345_0";
             // Complex condition: python <3.10 - skipped at parse time (step 3)
-            // Will be handled at solver time (step 4 - not yet implemented)
+            // Will be handled at solver time (not yet implemented)
             testpkg.dependencies = { "python", "typing-extensions; if python <3.10" };
 
             [[maybe_unused]] auto repo = db.add_repo_from_packages(
@@ -1426,7 +1426,7 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            // Step 4: typing-extensions should be included because python <3.10 condition is true
+            // typing-extensions should be included because python <3.10 condition is true
             // (python 3.9 is available in the pool and matches the condition)
             const auto typing_actions = find_actions_with_name(solution, "typing-extensions");
             REQUIRE(typing_actions.size() == 1);
@@ -1469,7 +1469,7 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            // Step 4: typing-extensions should NOT be included because python <3.10 condition is
+            // typing-extensions should NOT be included because python <3.10 condition is
             // false (only python 3.11 is available, which doesn't match python <3.10)
             const auto typing_actions = find_actions_with_name(solution, "typing-extensions");
             REQUIRE(typing_actions.empty());
@@ -1513,7 +1513,7 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            // Step 4: Both conditional dependencies should be included (python 3.9 matches <3.10)
+            // Both conditional dependencies should be included (python 3.9 matches <3.10)
             const auto typing_actions = find_actions_with_name(solution, "typing-extensions");
             const auto importlib_actions = find_actions_with_name(solution, "importlib-metadata");
             REQUIRE(typing_actions.size() == 1);
@@ -1560,7 +1560,7 @@ namespace
             REQUIRE(std::holds_alternative<Solution>(outcome.value()));
             const auto& solution = std::get<Solution>(outcome.value());
 
-            // Step 4: somepkg should be included when both conditions are true
+            // somepkg should be included when both conditions are true
             // (python 3.11 >=3.10 and numpy 1.24.0 >=1.20)
             const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
             REQUIRE(somepkg_actions.size() == 1);
@@ -1606,7 +1606,7 @@ namespace
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
                 const auto& solution = std::get<Solution>(outcome.value());
 
-                // Step 4: somepkg should be included (first condition is true: python 3.9 <3.10)
+                // somepkg should be included (first condition is true: python 3.9 <3.10)
                 const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
                 REQUIRE(somepkg_actions.size() == 1);
             }
@@ -1623,7 +1623,7 @@ namespace
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
                 const auto& solution = std::get<Solution>(outcome.value());
 
-                // Step 4: somepkg should be included (second condition is true: python 3.12 >=3.12)
+                // somepkg should be included (second condition is true: python 3.12 >=3.12)
                 const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
                 REQUIRE(somepkg_actions.size() == 1);
             }
@@ -1653,7 +1653,7 @@ namespace
                 REQUIRE(std::holds_alternative<Solution>(outcome.value()));
                 const auto& solution = std::get<Solution>(outcome.value());
 
-                // Step 4: somepkg should NOT be included (both conditions are false: python 3.11
+                // somepkg should NOT be included (both conditions are false: python 3.11
                 // doesn't match <3.10 or >=3.12)
                 const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
                 REQUIRE(somepkg_actions.empty());

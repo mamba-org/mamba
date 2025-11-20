@@ -99,13 +99,11 @@ namespace mamba::solver::libsolv
         solv.set_sha256(pkg.sha256);
         solv.set_python_site_packages_path(pkg.python_site_packages_path);
 
-        // Get platform from solvable (or use empty string if not set)
-        const std::string platform = solv.platform().empty() ? std::string()
-                                                             : std::string(solv.platform());
-
         for (const auto& dep : pkg.dependencies)
         {
             // Parse the dependency - this will extract conditional syntax if present
+            // e.g., "typing-extensions; if python <3.10"
+            // The condition is parsed and stored in the MatchSpec, but not evaluated yet.
             auto maybe_match_spec = specs::MatchSpec::parse(dep);
             if (!maybe_match_spec)
             {
@@ -121,14 +119,24 @@ namespace mamba::solver::libsolv
                 continue;
             }
 
-            // Process conditional dependency
-            process_conditional_matchspec(
-                std::move(maybe_match_spec).value(),
-                platform,
-                pool,
-                parser,
-                [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
-            );
+            auto match_spec = std::move(maybe_match_spec).value();
+
+            // Condition is already parsed as part of MatchSpec if present.
+            // The strip_if function extracts "; if condition" and parse_condition handles it.
+            // For now, add to libsolv without the condition (libsolv doesn't understand
+            // conditions). Condition evaluation will be handled separately.
+            auto condition_backup = match_spec.condition();
+            if (condition_backup != nullptr)
+            {
+                match_spec.set_condition(std::nullopt);
+            }
+
+            // Add with condition information (condition stored in MatchSpec, but not in libsolv
+            // yet)
+            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+            {
+                solv.add_dependency(*maybe_dep_id);
+            }
         }
 
         for (const auto& cons : pkg.constrains)
@@ -149,14 +157,22 @@ namespace mamba::solver::libsolv
                 continue;
             }
 
-            // Process conditional constraint
-            process_conditional_matchspec(
-                std::move(maybe_match_spec).value(),
-                platform,
-                pool,
-                parser,
-                [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
-            );
+            auto match_spec = std::move(maybe_match_spec).value();
+
+            // Remove condition temporarily for libsolv (libsolv doesn't understand conditions).
+            // Condition evaluation will be handled separately.
+            auto condition_backup = match_spec.condition();
+            if (condition_backup != nullptr)
+            {
+                match_spec.set_condition(std::nullopt);
+            }
+
+            // Add with condition information (condition stored in MatchSpec, but not in libsolv
+            // yet)
+            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+            {
+                solv.add_constraint(*maybe_dep_id);
+            }
         }
 
         solv.add_track_features(pkg.track_features);
@@ -263,7 +279,7 @@ namespace mamba::solver::libsolv
      *
      * Currently only handles simple platform checks like __unix, __win, __linux, __osx.
      * Complex conditions (e.g., python >=3.10) are not evaluated here and return false
-     * (they will be handled at solver time in step 4).
+     * (they will be handled at solver time).
      */
     [[nodiscard]] auto evaluate_simple_platform_condition(
         const specs::MatchSpecCondition& condition,
@@ -617,19 +633,23 @@ namespace mamba::solver::libsolv
 
                         auto match_spec = std::move(maybe_match_spec).value();
 
-                        // Get platform from solvable (or use default_subdir)
-                        const std::string platform = solv.platform().empty()
-                                                         ? default_subdir
-                                                         : std::string(solv.platform());
+                        // Condition is already parsed as part of MatchSpec if present.
+                        // The strip_if function extracts "; if condition" and parse_condition
+                        // handles it. For now, add to libsolv without the condition (libsolv
+                        // doesn't understand conditions). Condition evaluation will be handled
+                        // separately.
+                        auto condition_backup = match_spec.condition();
+                        if (condition_backup != nullptr)
+                        {
+                            match_spec.set_condition(std::nullopt);
+                        }
 
-                        // Process conditional dependency
-                        process_conditional_matchspec(
-                            std::move(match_spec),
-                            platform,
-                            pool,
-                            parser,
-                            [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
-                        );
+                        // Add with condition information (condition stored in MatchSpec, but not in
+                        // libsolv yet)
+                        if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+                        {
+                            solv.add_dependency(*maybe_dep_id);
+                        }
                     }
                 }
             }
@@ -642,8 +662,7 @@ namespace mamba::solver::libsolv
                     {
                         const auto cons_str = std::string(elem.get_string().value_unsafe());
 
-                        // Parse the constraint - this will extract conditional syntax if
-                        // present
+                        // Parse the constraint - this will extract conditional syntax if present
                         auto maybe_match_spec = specs::MatchSpec::parse(cons_str);
                         if (!maybe_match_spec)
                         {
@@ -658,19 +677,20 @@ namespace mamba::solver::libsolv
 
                         auto match_spec = std::move(maybe_match_spec).value();
 
-                        // Get platform from solvable (or use default_subdir)
-                        const std::string platform = solv.platform().empty()
-                                                         ? default_subdir
-                                                         : std::string(solv.platform());
+                        // Remove condition temporarily for libsolv (libsolv doesn't understand
+                        // conditions). Condition evaluation will be handled separately.
+                        auto condition_backup = match_spec.condition();
+                        if (condition_backup != nullptr)
+                        {
+                            match_spec.set_condition(std::nullopt);
+                        }
 
-                        // Process conditional constraint
-                        process_conditional_matchspec(
-                            std::move(match_spec),
-                            platform,
-                            pool,
-                            parser,
-                            [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
-                        );
+                        // Add with condition information (condition stored in MatchSpec, but not in
+                        // libsolv yet)
+                        if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+                        {
+                            solv.add_constraint(*maybe_dep_id);
+                        }
                     }
                 }
             }
@@ -838,6 +858,19 @@ namespace mamba::solver::libsolv
         }
     }
 
+    /**
+     * Read repodata.json using libsolv's legacy parser.
+     *
+     * **Limitation**: This parser does not support conditional dependencies (e.g., "dep; if
+     * condition"). When conditional dependencies are present in repodata, they will be treated as
+     * literal package names, which will not match any actual packages, potentially resulting in
+     * missing dependencies or solver failures.
+     *
+     * For conditional dependency support, use the Mamba parser (RepodataParser::Mamba) instead,
+     * which is the default when experimental_repodata_parsing=true.
+     *
+     * This parser also does not support repodata_version 2 (base_url feature from CEP-15).
+     */
     auto libsolv_read_json(
         solv::ObjRepoView repo,
         const fs::u8path& filename,

@@ -933,7 +933,8 @@ namespace mamba
         {
             if (!value)
             {
-                LOG_WARNING << "Parsing with libsolv does not support repodata_version 2";
+                LOG_WARNING
+                    << "Parsing with libsolv does not support repodata_version 2 or conditional dependencies";
             }
         }
 

@@ -361,7 +361,31 @@ namespace mamba::specs
     {
         if (this != &other)
         {
-            *this = MatchSpecCondition(other);  // Use copy constructor
+            value = std::visit(
+                [](const auto& val) -> variant_type
+                {
+                    using T = std::decay_t<decltype(val)>;
+                    if constexpr (std::is_same_v<T, MatchSpecCondition_>)
+                    {
+                        return val;  // Copy the struct directly
+                    }
+                    else if constexpr (std::is_same_v<T, std::unique_ptr<And>>)
+                    {
+                        return std::make_unique<And>(
+                            std::make_unique<MatchSpecCondition>(*val->left),
+                            std::make_unique<MatchSpecCondition>(*val->right)
+                        );
+                    }
+                    else if constexpr (std::is_same_v<T, std::unique_ptr<Or>>)
+                    {
+                        return std::make_unique<Or>(
+                            std::make_unique<MatchSpecCondition>(*val->left),
+                            std::make_unique<MatchSpecCondition>(*val->right)
+                        );
+                    }
+                },
+                other.value
+            );
         }
         return *this;
     }

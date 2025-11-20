@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
@@ -1449,6 +1450,142 @@ namespace
 
         REQUIRE(spec1_hash == spec2_hash);
         REQUIRE(spec1_hash != spec3_hash);
+    }
+
+    TEST_CASE("MatchSpec parse with conditional dependencies", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Simple conditional: typing-extensions; if python <3.10")
+        {
+            auto ms = MatchSpec::parse("typing-extensions; if python <3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "typing-extensions");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+            REQUIRE(ms->to_string().find("typing-extensions") != std::string::npos);
+            REQUIRE(ms->to_string().find("; if") != std::string::npos);
+        }
+
+        SECTION("Conditional with version: importlib_metadata; if python <3.10")
+        {
+            auto ms = MatchSpec::parse("importlib_metadata; if python <3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "importlib_metadata");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+        }
+
+        SECTION("Platform conditional: pywin32; if __win")
+        {
+            auto ms = MatchSpec::parse("pywin32; if __win");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pywin32");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "__win");
+        }
+
+        SECTION("Unix conditional: somepkg; if __unix")
+        {
+            auto ms = MatchSpec::parse("somepkg; if __unix");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "somepkg");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "__unix");
+        }
+
+        SECTION("OR condition: dep; if python <3.8 or pypy")
+        {
+            auto ms = MatchSpec::parse("dep; if python <3.8 or pypy");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "(python<3.8 or pypy)");
+        }
+
+        SECTION("AND condition: dep; if python >=3.10 and __unix")
+        {
+            auto ms = MatchSpec::parse("dep; if python >=3.10 and __unix");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "(python>=3.10 and __unix)");
+        }
+
+        SECTION("Complex condition: dep; if (python >=3.10 or pypy) and __unix")
+        {
+            auto ms = MatchSpec::parse("dep; if (python >=3.10 or pypy) and __unix");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "((python>=3.10 or pypy) and __unix)");
+        }
+
+        SECTION("Conditional with version spec: numpy; if python >=3.9")
+        {
+            auto ms = MatchSpec::parse("numpy; if python >=3.9");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "numpy");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python>=3.9");
+        }
+
+        SECTION("Conditional with whitespace: dep  ;  if  python  <  3.10")
+        {
+            auto ms = MatchSpec::parse("dep  ;  if  python  <  3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+        }
+
+        SECTION("No condition: regular matchspec")
+        {
+            auto ms = MatchSpec::parse("numpy >=1.20");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "numpy");
+            REQUIRE(ms->condition() == nullptr);
+        }
+
+        SECTION("Semicolon without if: should not parse as condition")
+        {
+            // A semicolon that's not followed by "if" should not be treated as a condition
+            // This might be part of the matchspec itself (though unlikely in practice)
+            auto ms = MatchSpec::parse("pkg;notif");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pkg;notif");
+            REQUIRE(ms->condition() == nullptr);
+        }
+
+        SECTION("Round-trip: parse and to_string")
+        {
+            const std::string original = "typing-extensions; if python <3.10";
+            auto ms = MatchSpec::parse(original);
+            REQUIRE(ms.has_value());
+
+            // to_string should include the condition
+            auto serialized = ms->to_string();
+            REQUIRE(serialized.find("typing-extensions") != std::string::npos);
+            REQUIRE(serialized.find("; if") != std::string::npos);
+            REQUIRE(serialized.find("python<3.10") != std::string::npos);
+
+            // Parsing the serialized version should give the same result
+            auto ms2 = MatchSpec::parse(serialized);
+            REQUIRE(ms2.has_value());
+            REQUIRE(ms2->name().to_string() == ms->name().to_string());
+            REQUIRE(ms2->condition() != nullptr);
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms2->condition()->to_string() == ms->condition()->to_string());
+        }
+
+        SECTION("Conditional with version and build: pkg >=1.0=build; if python >=3.10")
+        {
+            auto ms = MatchSpec::parse("pkg >=1.0=build; if python >=3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pkg");
+            REQUIRE(ms->version().to_string() == ">=1.0");
+            REQUIRE(ms->build_string().to_string() == "build");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python>=3.10");
+        }
     }
 
     auto repodata_all_depends(const std::string& path)

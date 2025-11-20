@@ -1074,7 +1074,7 @@ namespace mamba::specs
     {
         if (cond.has_value())
         {
-            m_condition = std::make_shared<MatchSpecCondition>(std::move(cond.value()));
+            m_condition = std::make_shared<MatchSpecCondition>(std::move(*cond));
         }
         else
         {
@@ -1396,7 +1396,8 @@ std::hash<mamba::specs::MatchSpec>::operator()(const mamba::specs::MatchSpec& sp
         spec.build_string(),
         spec.name_space(),
         spec.build_number(),
-        spec.extra_members_hash()
+        spec.extra_members_hash(),
+        spec.condition()  // Include condition in hash
     );
 }
 

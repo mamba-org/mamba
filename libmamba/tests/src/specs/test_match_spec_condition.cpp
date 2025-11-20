@@ -6,8 +6,8 @@
 
 #include <catch2/catch_all.hpp>
 
-#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/specs/package_info.hpp"
 
 using namespace mamba;
@@ -277,4 +277,3 @@ TEST_CASE("MatchSpecCondition contains", "[mamba::specs][mamba::specs::MatchSpec
         REQUIRE_FALSE(cond.contains(python310));
     }
 }
-

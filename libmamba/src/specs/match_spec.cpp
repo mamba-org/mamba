@@ -1223,6 +1223,25 @@ namespace mamba::specs
         return std::hash<ExtraMembers>{}(m_extra.value_or(ExtraMembers()));
     }
 
+    auto MatchSpec::operator==(const MatchSpec& other) const -> bool
+    {
+        // Compare all members, including condition (compare values, not pointers)
+        const auto* this_cond = m_condition.get();
+        const auto* other_cond = other.m_condition.get();
+        const bool cond_equal = (this_cond == nullptr && other_cond == nullptr)
+                                || (this_cond != nullptr && other_cond != nullptr
+                                    && *this_cond == *other_cond);
+
+        return m_channel == other.m_channel && m_version == other.m_version && m_name == other.m_name
+               && m_build_string == other.m_build_string && m_name_space == other.m_name_space
+               && m_build_number == other.m_build_number && m_extra == other.m_extra && cond_equal;
+    }
+
+    auto MatchSpec::operator!=(const MatchSpec& other) const -> bool
+    {
+        return !(*this == other);
+    }
+
     namespace match_spec_literals
     {
         auto operator""_ms(const char* str, std::size_t len) -> MatchSpec
@@ -1389,6 +1408,9 @@ auto
 std::hash<mamba::specs::MatchSpec>::operator()(const mamba::specs::MatchSpec& spec) const
     -> std::size_t
 {
+    const auto* cond = spec.condition();
+    const auto cond_hash = cond ? std::hash<mamba::specs::MatchSpecCondition>{}(*cond)
+                                : std::size_t(0);
     return mamba::util::hash_vals(
         spec.channel(),
         spec.version(),
@@ -1397,7 +1419,7 @@ std::hash<mamba::specs::MatchSpec>::operator()(const mamba::specs::MatchSpec& sp
         spec.name_space(),
         spec.build_number(),
         spec.extra_members_hash(),
-        spec.condition()  // Include condition in hash
+        cond_hash
     );
 }
 

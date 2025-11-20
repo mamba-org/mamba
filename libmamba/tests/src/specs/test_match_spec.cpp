@@ -1452,6 +1452,97 @@ namespace
         REQUIRE(spec1_hash != spec3_hash);
     }
 
+    TEST_CASE("MatchSpec hash with conditional dependencies", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Same conditional dependencies hash to same value")
+        {
+            // Parse the same conditional dependency twice
+            auto ms1 = MatchSpec::parse("typing-extensions; if python <3.10").value();
+            auto ms2 = MatchSpec::parse("typing-extensions; if python <3.10").value();
+
+            // They should be equal
+            REQUIRE(ms1 == ms2);
+
+            // They should hash to the same value
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 == hash2);
+        }
+
+        SECTION("Different conditional dependencies hash to different values")
+        {
+            auto ms1 = MatchSpec::parse("typing-extensions; if python <3.10").value();
+            auto ms2 = MatchSpec::parse("typing-extensions; if python <3.11").value();
+
+            // They should not be equal
+            REQUIRE(ms1 != ms2);
+
+            // They should hash to different values
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 != hash2);
+        }
+
+        SECTION("MatchSpec with condition vs without condition hash differently")
+        {
+            auto ms_with_cond = MatchSpec::parse("typing-extensions; if python <3.10").value();
+            auto ms_without_cond = MatchSpec::parse("typing-extensions").value();
+
+            // They should not be equal
+            REQUIRE(ms_with_cond != ms_without_cond);
+
+            // They should hash to different values
+            auto hash_with_cond = std::hash<MatchSpec>{}(ms_with_cond);
+            auto hash_without_cond = std::hash<MatchSpec>{}(ms_without_cond);
+            REQUIRE(hash_with_cond != hash_without_cond);
+        }
+
+        SECTION("Complex conditions hash correctly")
+        {
+            auto ms1 = MatchSpec::parse("dep; if python >=3.10 and numpy").value();
+            auto ms2 = MatchSpec::parse("dep; if python >=3.10 and numpy").value();
+            auto ms3 = MatchSpec::parse("dep; if python >=3.10 or numpy").value();
+
+            // Same conditions should hash to same value
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 == hash2);
+
+            // Different conditions should hash to different values
+            auto hash3 = std::hash<MatchSpec>{}(ms3);
+            REQUIRE(hash1 != hash3);
+        }
+
+        SECTION("Hash consistency: same MatchSpec hashed multiple times")
+        {
+            auto ms = MatchSpec::parse("typing-extensions; if python <3.10").value();
+
+            // Hash multiple times - should be consistent
+            auto hash1 = std::hash<MatchSpec>{}(ms);
+            auto hash2 = std::hash<MatchSpec>{}(ms);
+            auto hash3 = std::hash<MatchSpec>{}(ms);
+
+            REQUIRE(hash1 == hash2);
+            REQUIRE(hash2 == hash3);
+        }
+
+        SECTION("Hash works with nested conditions")
+        {
+            auto ms1 = MatchSpec::parse("dep; if (python >=3.10 or pypy) and numpy").value();
+            auto ms2 = MatchSpec::parse("dep; if (python >=3.10 or pypy) and numpy").value();
+            auto ms3 = MatchSpec::parse("dep; if (python >=3.10 or pypy)").value();
+
+            // Same nested conditions should hash to same value
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 == hash2);
+
+            // Different nested conditions should hash to different values
+            auto hash3 = std::hash<MatchSpec>{}(ms3);
+            REQUIRE(hash1 != hash3);
+        }
+    }
+
     TEST_CASE("MatchSpec parse with conditional dependencies", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("Simple conditional: typing-extensions; if python <3.10")

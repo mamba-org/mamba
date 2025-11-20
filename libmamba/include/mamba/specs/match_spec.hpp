@@ -160,9 +160,9 @@ namespace mamba::specs
          * @warning Some complex matchspec could compare to false but actually represent the same
          * set of packages. This strong equality is hard to detect.
          */
-        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool = default;
+        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool;
 
-        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool = default;
+        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool;
 
         auto extra_members_hash() const -> std::size_t;
 

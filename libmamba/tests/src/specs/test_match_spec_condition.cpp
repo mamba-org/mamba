@@ -291,3 +291,103 @@ TEST_CASE("MatchSpecCondition contains", "[mamba::specs][mamba::specs::MatchSpec
         REQUIRE_FALSE(cond.contains(python310));
     }
 }
+
+TEST_CASE("MatchSpecCondition hash", "[mamba::specs][mamba::specs::MatchSpecCondition]")
+{
+    SECTION("Same conditions hash to same value")
+    {
+        auto cond1 = MatchSpecCondition::parse("python >=3.10").value();
+        auto cond2 = MatchSpecCondition::parse("python >=3.10").value();
+
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond1);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond2);
+        REQUIRE(hash1 == hash2);
+    }
+
+    SECTION("Different conditions hash to different values")
+    {
+        auto cond1 = MatchSpecCondition::parse("python >=3.10").value();
+        auto cond2 = MatchSpecCondition::parse("python <3.10").value();
+
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond1);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond2);
+        REQUIRE(hash1 != hash2);
+    }
+
+    SECTION("OR conditions hash correctly")
+    {
+        auto cond1 = MatchSpecCondition::parse("python >=3.10 or pypy").value();
+        auto cond2 = MatchSpecCondition::parse("python >=3.10 or pypy").value();
+        auto cond3 = MatchSpecCondition::parse("python >=3.10 and pypy").value();
+
+        // Same OR conditions should hash to same value
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond1);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond2);
+        REQUIRE(hash1 == hash2);
+
+        // Different logical operators should hash to different values
+        auto hash3 = std::hash<MatchSpecCondition>{}(cond3);
+        REQUIRE(hash1 != hash3);
+    }
+
+    SECTION("AND conditions hash correctly")
+    {
+        auto cond1 = MatchSpecCondition::parse("python >=3.10 and numpy").value();
+        auto cond2 = MatchSpecCondition::parse("python >=3.10 and numpy").value();
+        auto cond3 = MatchSpecCondition::parse("python >=3.10 or numpy").value();
+
+        // Same AND conditions should hash to same value
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond1);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond2);
+        REQUIRE(hash1 == hash2);
+
+        // Different logical operators should hash to different values
+        auto hash3 = std::hash<MatchSpecCondition>{}(cond3);
+        REQUIRE(hash1 != hash3);
+    }
+
+    SECTION("Nested conditions hash correctly")
+    {
+        auto cond1 = MatchSpecCondition::parse("(python >=3.10 or pypy) and numpy").value();
+        auto cond2 = MatchSpecCondition::parse("(python >=3.10 or pypy) and numpy").value();
+        auto cond3 = MatchSpecCondition::parse("(python >=3.10 or pypy)").value();
+
+        // Same nested conditions should hash to same value
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond1);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond2);
+        REQUIRE(hash1 == hash2);
+
+        // Different nested structures should hash to different values
+        auto hash3 = std::hash<MatchSpecCondition>{}(cond3);
+        REQUIRE(hash1 != hash3);
+    }
+
+    SECTION("Hash consistency: same condition hashed multiple times")
+    {
+        auto cond = MatchSpecCondition::parse("python >=3.10").value();
+
+        // Hash multiple times - should be consistent
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond);
+        auto hash3 = std::hash<MatchSpecCondition>{}(cond);
+
+        REQUIRE(hash1 == hash2);
+        REQUIRE(hash2 == hash3);
+    }
+
+    SECTION("Platform conditions hash correctly")
+    {
+        auto cond1 = MatchSpecCondition::parse("__unix").value();
+        auto cond2 = MatchSpecCondition::parse("__unix").value();
+        auto cond3 = MatchSpecCondition::parse("__win").value();
+
+        // Same platform conditions should hash to same value
+        auto hash1 = std::hash<MatchSpecCondition>{}(cond1);
+        auto hash2 = std::hash<MatchSpecCondition>{}(cond2);
+        REQUIRE(hash1 == hash2);
+
+        // Different platform conditions should hash to different values
+        auto hash3 = std::hash<MatchSpecCondition>{}(cond3);
+        REQUIRE(hash1 != hash3);
+    }
+}

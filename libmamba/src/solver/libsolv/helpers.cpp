@@ -99,11 +99,14 @@ namespace mamba::solver::libsolv
         solv.set_sha256(pkg.sha256);
         solv.set_python_site_packages_path(pkg.python_site_packages_path);
 
+        // Get platform from solvable (or use empty string if not set)
+        const std::string platform = solv.platform().empty() ? std::string()
+                                                             : std::string(solv.platform());
+
         for (const auto& dep : pkg.dependencies)
         {
             // Parse the dependency - this will extract conditional syntax if present
             // e.g., "typing-extensions; if python <3.10"
-            // The condition is parsed and stored in the MatchSpec, but not evaluated yet.
             auto maybe_match_spec = specs::MatchSpec::parse(dep);
             if (!maybe_match_spec)
             {
@@ -119,24 +122,14 @@ namespace mamba::solver::libsolv
                 continue;
             }
 
-            auto match_spec = std::move(maybe_match_spec).value();
-
-            // Condition is already parsed as part of MatchSpec if present.
-            // The strip_if function extracts "; if condition" and parse_condition handles it.
-            // For now, add to libsolv without the condition (libsolv doesn't understand
-            // conditions). Condition evaluation will be handled separately.
-            auto condition_backup = match_spec.condition();
-            if (condition_backup != nullptr)
-            {
-                match_spec.set_condition(std::nullopt);
-            }
-
-            // Add with condition information (condition stored in MatchSpec, but not in libsolv
-            // yet)
-            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-            {
-                solv.add_dependency(*maybe_dep_id);
-            }
+            // Process conditional dependency: evaluate condition and add if satisfied
+            process_conditional_matchspec(
+                std::move(maybe_match_spec).value(),
+                platform,
+                pool,
+                parser,
+                [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
+            );
         }
 
         for (const auto& cons : pkg.constrains)
@@ -157,22 +150,14 @@ namespace mamba::solver::libsolv
                 continue;
             }
 
-            auto match_spec = std::move(maybe_match_spec).value();
-
-            // Remove condition temporarily for libsolv (libsolv doesn't understand conditions).
-            // Condition evaluation will be handled separately.
-            auto condition_backup = match_spec.condition();
-            if (condition_backup != nullptr)
-            {
-                match_spec.set_condition(std::nullopt);
-            }
-
-            // Add with condition information (condition stored in MatchSpec, but not in libsolv
-            // yet)
-            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-            {
-                solv.add_constraint(*maybe_dep_id);
-            }
+            // Process conditional constraint: evaluate condition and add if satisfied
+            process_conditional_matchspec(
+                std::move(maybe_match_spec).value(),
+                platform,
+                pool,
+                parser,
+                [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
+            );
         }
 
         solv.add_track_features(pkg.track_features);
@@ -633,23 +618,19 @@ namespace mamba::solver::libsolv
 
                         auto match_spec = std::move(maybe_match_spec).value();
 
-                        // Condition is already parsed as part of MatchSpec if present.
-                        // The strip_if function extracts "; if condition" and parse_condition
-                        // handles it. For now, add to libsolv without the condition (libsolv
-                        // doesn't understand conditions). Condition evaluation will be handled
-                        // separately.
-                        auto condition_backup = match_spec.condition();
-                        if (condition_backup != nullptr)
-                        {
-                            match_spec.set_condition(std::nullopt);
-                        }
+                        // Get platform from solvable (or use default_subdir)
+                        const std::string platform = solv.platform().empty()
+                                                         ? default_subdir
+                                                         : std::string(solv.platform());
 
-                        // Add with condition information (condition stored in MatchSpec, but not in
-                        // libsolv yet)
-                        if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-                        {
-                            solv.add_dependency(*maybe_dep_id);
-                        }
+                        // Process conditional dependency: evaluate condition and add if satisfied
+                        process_conditional_matchspec(
+                            std::move(match_spec),
+                            platform,
+                            pool,
+                            parser,
+                            [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
+                        );
                     }
                 }
             }
@@ -677,20 +658,19 @@ namespace mamba::solver::libsolv
 
                         auto match_spec = std::move(maybe_match_spec).value();
 
-                        // Remove condition temporarily for libsolv (libsolv doesn't understand
-                        // conditions). Condition evaluation will be handled separately.
-                        auto condition_backup = match_spec.condition();
-                        if (condition_backup != nullptr)
-                        {
-                            match_spec.set_condition(std::nullopt);
-                        }
+                        // Get platform from solvable (or use default_subdir)
+                        const std::string platform = solv.platform().empty()
+                                                         ? default_subdir
+                                                         : std::string(solv.platform());
 
-                        // Add with condition information (condition stored in MatchSpec, but not in
-                        // libsolv yet)
-                        if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-                        {
-                            solv.add_constraint(*maybe_dep_id);
-                        }
+                        // Process conditional constraint: evaluate condition and add if satisfied
+                        process_conditional_matchspec(
+                            std::move(match_spec),
+                            platform,
+                            pool,
+                            parser,
+                            [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
+                        );
                     }
                 }
             }

@@ -430,35 +430,34 @@ namespace mamba::solver::libsolv
             return false;
         }
 
-        // First, try evaluating simple platform conditions (fast path)
+        // Check if condition is satisfied
+        bool condition_satisfied = false;
         if (evaluate_simple_platform_condition(*condition, platform))
         {
-            // Condition satisfied - add without condition
-            match_spec.set_condition(std::nullopt);
-            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-            {
-                add_func(*maybe_dep_id);
-                return true;
-            }
+            // Fast path: simple platform condition satisfied
+            condition_satisfied = true;
         }
-        else
+        else if (evaluate_condition_against_pool(*condition, pool))
         {
-            // Complex condition - evaluate against all packages in the pool
-            // If any package matches the condition, add the dependency
+            // Complex condition satisfied by at least one package in pool
             // This is a heuristic: if there's a package available that matches,
             // we include the dependency. The solver will handle conflicts if needed.
-            if (evaluate_condition_against_pool(*condition, pool))
-            {
-                // Condition satisfied by at least one package in pool - add without condition
-                match_spec.set_condition(std::nullopt);
-                if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-                {
-                    add_func(*maybe_dep_id);
-                    return true;
-                }
-            }
+            condition_satisfied = true;
         }
-        // Condition not satisfied - skip
+
+        if (!condition_satisfied)
+        {
+            // Condition not satisfied - skip
+            return false;
+        }
+
+        // Condition satisfied - add without condition
+        match_spec.set_condition(std::nullopt);
+        if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+        {
+            add_func(*maybe_dep_id);
+            return true;
+        }
         return false;
     }
 
@@ -594,6 +593,11 @@ namespace mamba::solver::libsolv
                 solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
 
+            // Get platform from solvable (or use default_subdir) - used for both dependencies and
+            // constraints
+            const std::string platform = solv.platform().empty() ? default_subdir
+                                                                 : std::string(solv.platform());
+
             if (auto depends = pkg["depends"].get_array(); !depends.error())
             {
                 for (auto elem : depends)
@@ -602,8 +606,7 @@ namespace mamba::solver::libsolv
                     {
                         const auto dep_str = std::string(elem.get_string().value_unsafe());
 
-                        // Parse the dependency - this will extract conditional syntax if
-                        // present
+                        // Parse the dependency - this will extract conditional syntax if present
                         auto maybe_match_spec = specs::MatchSpec::parse(dep_str);
                         if (!maybe_match_spec)
                         {
@@ -616,16 +619,9 @@ namespace mamba::solver::libsolv
                             continue;
                         }
 
-                        auto match_spec = std::move(maybe_match_spec).value();
-
-                        // Get platform from solvable (or use default_subdir)
-                        const std::string platform = solv.platform().empty()
-                                                         ? default_subdir
-                                                         : std::string(solv.platform());
-
                         // Process conditional dependency: evaluate condition and add if satisfied
                         process_conditional_matchspec(
-                            std::move(match_spec),
+                            std::move(maybe_match_spec).value(),
                             platform,
                             pool,
                             parser,
@@ -656,16 +652,9 @@ namespace mamba::solver::libsolv
                             continue;
                         }
 
-                        auto match_spec = std::move(maybe_match_spec).value();
-
-                        // Get platform from solvable (or use default_subdir)
-                        const std::string platform = solv.platform().empty()
-                                                         ? default_subdir
-                                                         : std::string(solv.platform());
-
                         // Process conditional constraint: evaluate condition and add if satisfied
                         process_conditional_matchspec(
-                            std::move(match_spec),
+                            std::move(maybe_match_spec).value(),
                             platform,
                             pool,
                             parser,

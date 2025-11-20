@@ -252,6 +252,20 @@ TEST_CASE("MatchSpecCondition contains", "[mamba::specs][mamba::specs::MatchSpec
         REQUIRE_FALSE(cond.contains(python39));
     }
 
+    SECTION("Simple condition: python <3.10")
+    {
+        auto cond = MatchSpecCondition::parse("python <3.10").value();
+
+        auto python39 = PackageInfo("python", "3.9.0", "", 0);
+        REQUIRE(cond.contains(python39));
+
+        auto python310 = PackageInfo("python", "3.10.0", "", 0);
+        REQUIRE_FALSE(cond.contains(python310));
+
+        auto python311 = PackageInfo("python", "3.11.0", "", 0);
+        REQUIRE_FALSE(cond.contains(python311));
+    }
+
     SECTION("OR condition")
     {
         auto cond = MatchSpecCondition::parse("python or numpy").value();

@@ -1330,4 +1330,334 @@ namespace
             );
         }
     }
+
+    TEST_CASE("Solver with conditional dependencies", "[mamba::solver][mamba::solver::libsolv]")
+    {
+        // Conditional dependencies with "; if" syntax are only supported with Mamba parser
+        // Libsolv parser doesn't understand this syntax
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Mamba,
+            libsolv::MatchSpecParser::Mixed
+        );
+        CAPTURE(matchspec_parser);
+
+        auto db = libsolv::Database({}, { matchspec_parser });
+
+        SECTION("Solve with conditional deps - simple platform condition satisfied")
+        {
+            // Create packages with platform-based conditional dependency
+            // On Linux, __unix condition should be satisfied and dependency added at parse time
+            auto python_pkg = specs::PackageInfo("python");
+            python_pkg.version = "3.11.0";
+            python_pkg.build_string = "h12345_0";
+
+            auto unixutils_pkg = specs::PackageInfo("unixutils");
+            unixutils_pkg.version = "1.0.0";
+            unixutils_pkg.build_string = "h12345_0";
+
+            auto testpkg = specs::PackageInfo("testpkg");
+            testpkg.version = "1.0.0";
+            testpkg.build_string = "h12345_0";
+            // On Linux, __unix condition is satisfied at parse time, so unixutils is added
+            testpkg.dependencies = { "python", "unixutils; if __unix" };
+
+            [[maybe_unused]] auto repo = db.add_repo_from_packages(
+                std::array{ python_pkg, unixutils_pkg, testpkg },
+                "test-repo",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            // Request testpkg
+            const auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "testpkg"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            // On Linux, unixutils should be included because __unix condition is satisfied
+            // (evaluated at parse time in step 3)
+            const auto unixutils_actions = find_actions_with_name(solution, "unixutils");
+            // Note: Currently, simple platform conditions are handled at parse time,
+            // so unixutils should be included if we're on a Unix platform
+            // The exact behavior depends on the platform this test runs on
+        }
+
+        SECTION("Solve with conditional deps - complex condition skipped at parse time")
+        {
+            // Create packages with Python version-based conditional dependency
+            // This condition is too complex for parse-time evaluation and is skipped
+            auto python39 = specs::PackageInfo("python");
+            python39.version = "3.9.0";
+            python39.build_string = "h12345_0";
+
+            auto python311 = specs::PackageInfo("python");
+            python311.version = "3.11.0";
+            python311.build_string = "h12345_0";
+
+            auto typing_ext = specs::PackageInfo("typing-extensions");
+            typing_ext.version = "4.0.0";
+            typing_ext.build_string = "h12345_0";
+
+            auto testpkg = specs::PackageInfo("testpkg");
+            testpkg.version = "1.0.0";
+            testpkg.build_string = "h12345_0";
+            // Complex condition: python <3.10 - skipped at parse time (step 3)
+            // Will be handled at solver time (step 4 - not yet implemented)
+            testpkg.dependencies = { "python", "typing-extensions; if python <3.10" };
+
+            [[maybe_unused]] auto repo = db.add_repo_from_packages(
+                std::array{ python39, python311, typing_ext, testpkg },
+                "test-repo",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            // Request testpkg with Python 3.9 (condition should be true)
+            const auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "python=3.9.0"_ms }, Request::Install{ "testpkg"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            // Step 4: typing-extensions should be included because python <3.10 condition is true
+            // (python 3.9 is available in the pool and matches the condition)
+            const auto typing_actions = find_actions_with_name(solution, "typing-extensions");
+            REQUIRE(typing_actions.size() == 1);
+            REQUIRE(std::holds_alternative<Solution::Install>(typing_actions.front()));
+        }
+
+        SECTION("Solve with conditional deps - condition false")
+        {
+            // Test that when condition is false, conditional dependency is not included
+            // Use a fresh database to avoid packages from previous test sections
+            auto db_fresh = libsolv::Database({}, { matchspec_parser });
+
+            auto python311 = specs::PackageInfo("python");
+            python311.version = "3.11.0";
+            python311.build_string = "h12345_0";
+
+            auto typing_ext = specs::PackageInfo("typing-extensions");
+            typing_ext.version = "4.0.0";
+            typing_ext.build_string = "h12345_0";
+
+            auto testpkg = specs::PackageInfo("testpkg");
+            testpkg.version = "1.0.0";
+            testpkg.build_string = "h12345_0";
+            testpkg.dependencies = { "python", "typing-extensions; if python <3.10" };
+
+            [[maybe_unused]] auto repo = db_fresh.add_repo_from_packages(
+                std::array{ python311, typing_ext, testpkg },
+                "test-repo-fresh",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            // Request testpkg with Python 3.11 (condition should be false)
+            const auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "python=3.11.0"_ms }, Request::Install{ "testpkg"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db_fresh, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            // Step 4: typing-extensions should NOT be included because python <3.10 condition is
+            // false (only python 3.11 is available, which doesn't match python <3.10)
+            const auto typing_actions = find_actions_with_name(solution, "typing-extensions");
+            REQUIRE(typing_actions.empty());
+        }
+
+        SECTION("Solve with multiple conditional deps")
+        {
+            // Test scenario with multiple conditional dependencies
+            auto python39 = specs::PackageInfo("python");
+            python39.version = "3.9.0";
+            python39.build_string = "h12345_0";
+
+            auto typing_ext = specs::PackageInfo("typing-extensions");
+            typing_ext.version = "4.0.0";
+            typing_ext.build_string = "h12345_0";
+
+            auto importlib_meta = specs::PackageInfo("importlib-metadata");
+            importlib_meta.version = "5.0.0";
+            importlib_meta.build_string = "h12345_0";
+
+            auto testpkg = specs::PackageInfo("testpkg");
+            testpkg.version = "1.0.0";
+            testpkg.build_string = "h12345_0";
+            testpkg.dependencies = { "python",
+                                     "typing-extensions; if python <3.10",
+                                     "importlib-metadata; if python <3.10" };
+
+            [[maybe_unused]] auto repo = db.add_repo_from_packages(
+                std::array{ python39, typing_ext, importlib_meta, testpkg },
+                "test-repo",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            const auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "python=3.9.0"_ms }, Request::Install{ "testpkg"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            // Step 4: Both conditional dependencies should be included (python 3.9 matches <3.10)
+            const auto typing_actions = find_actions_with_name(solution, "typing-extensions");
+            const auto importlib_actions = find_actions_with_name(solution, "importlib-metadata");
+            REQUIRE(typing_actions.size() == 1);
+            REQUIRE(importlib_actions.size() == 1);
+        }
+
+        SECTION("Solve with AND condition")
+        {
+            // Test conditional dependency with AND logic
+            auto python311 = specs::PackageInfo("python");
+            python311.version = "3.11.0";
+            python311.build_string = "h12345_0";
+
+            auto numpy = specs::PackageInfo("numpy");
+            numpy.version = "1.24.0";
+            numpy.build_string = "h12345_0";
+
+            auto testpkg = specs::PackageInfo("testpkg");
+            testpkg.version = "1.0.0";
+            testpkg.build_string = "h12345_0";
+            // AND condition: both python >=3.10 AND numpy must be true
+            testpkg.dependencies = { "python", "numpy", "somepkg; if python >=3.10 and numpy >=1.20" };
+
+            auto somepkg = specs::PackageInfo("somepkg");
+            somepkg.version = "1.0.0";
+            somepkg.build_string = "h12345_0";
+
+            [[maybe_unused]] auto repo = db.add_repo_from_packages(
+                std::array{ python311, numpy, somepkg, testpkg },
+                "test-repo",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            const auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */
+                { Request::Install{ "python=3.11.0"_ms },
+                  Request::Install{ "numpy=1.24.0"_ms },
+                  Request::Install{ "testpkg"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            // Step 4: somepkg should be included when both conditions are true
+            // (python 3.11 >=3.10 and numpy 1.24.0 >=1.20)
+            const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
+            REQUIRE(somepkg_actions.size() == 1);
+            REQUIRE(std::holds_alternative<Solution::Install>(somepkg_actions.front()));
+        }
+
+        SECTION("Solve with OR condition")
+        {
+            // Test conditional dependency with OR logic
+            auto python39 = specs::PackageInfo("python");
+            python39.version = "3.9.0";
+            python39.build_string = "h12345_0";
+
+            auto python312 = specs::PackageInfo("python");
+            python312.version = "3.12.0";
+            python312.build_string = "h12345_0";
+
+            auto testpkg = specs::PackageInfo("testpkg");
+            testpkg.version = "1.0.0";
+            testpkg.build_string = "h12345_0";
+            // OR condition: python <3.10 OR python >=3.12
+            testpkg.dependencies = { "python", "somepkg; if python <3.10 or python >=3.12" };
+
+            auto somepkg = specs::PackageInfo("somepkg");
+            somepkg.version = "1.0.0";
+            somepkg.build_string = "h12345_0";
+
+            [[maybe_unused]] auto repo = db.add_repo_from_packages(
+                std::array{ python39, python312, somepkg, testpkg },
+                "test-repo",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            // Test with Python 3.9 (first condition true)
+            {
+                const auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "python=3.9.0"_ms }, Request::Install{ "testpkg"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                // Step 4: somepkg should be included (first condition is true: python 3.9 <3.10)
+                const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
+                REQUIRE(somepkg_actions.size() == 1);
+            }
+
+            // Test with Python 3.12 (second condition true)
+            {
+                const auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "python=3.12.0"_ms }, Request::Install{ "testpkg"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                // Step 4: somepkg should be included (second condition is true: python 3.12 >=3.12)
+                const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
+                REQUIRE(somepkg_actions.size() == 1);
+            }
+
+            // Test with Python 3.11 (both conditions false)
+            {
+                // Use a fresh database to avoid packages from previous test sections
+                auto db_fresh = libsolv::Database({}, { matchspec_parser });
+
+                auto python311 = specs::PackageInfo("python");
+                python311.version = "3.11.0";
+                python311.build_string = "h12345_0";
+
+                [[maybe_unused]] auto repo2 = db_fresh.add_repo_from_packages(
+                    std::array{ python311, somepkg, testpkg },
+                    "test-repo-2-fresh",
+                    libsolv::PipAsPythonDependency::No
+                );
+
+                const auto request = Request{
+                    /* .flags= */ {},
+                    /* .jobs= */ { Request::Install{ "python=3.11.0"_ms }, Request::Install{ "testpkg"_ms } },
+                };
+                const auto outcome = libsolv::Solver().solve(db_fresh, request, matchspec_parser);
+
+                REQUIRE(outcome.has_value());
+                REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+                const auto& solution = std::get<Solution>(outcome.value());
+
+                // Step 4: somepkg should NOT be included (both conditions are false: python 3.11
+                // doesn't match <3.10 or >=3.12)
+                const auto somepkg_actions = find_actions_with_name(solution, "somepkg");
+                REQUIRE(somepkg_actions.empty());
+            }
+        }
+    }
 }

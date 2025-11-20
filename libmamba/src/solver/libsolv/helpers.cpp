@@ -45,6 +45,25 @@ namespace mamba::solver::libsolv
     // to seconds.
     inline constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
 
+    // Forward declarations for conditional dependency processing
+    [[nodiscard]] auto evaluate_simple_platform_condition(
+        const specs::MatchSpecCondition& condition,
+        const std::string& platform
+    ) -> bool;
+
+    [[nodiscard]] auto
+    evaluate_condition_against_pool(const specs::MatchSpecCondition& condition, solv::ObjPool& pool)
+        -> bool;
+
+    template <typename AddFunc>
+    [[nodiscard]] auto process_conditional_matchspec(
+        specs::MatchSpec match_spec,
+        const std::string& platform,
+        solv::ObjPool& pool,
+        MatchSpecParser parser,
+        AddFunc&& add_func
+    ) -> bool;
+
     void set_solvable(
         solv::ObjPool& pool,
         solv::ObjSolvableView solv,
@@ -80,24 +99,64 @@ namespace mamba::solver::libsolv
         solv.set_sha256(pkg.sha256);
         solv.set_python_site_packages_path(pkg.python_site_packages_path);
 
+        // Get platform from solvable (or use empty string if not set)
+        const std::string platform = solv.platform().empty() ? std::string()
+                                                             : std::string(solv.platform());
+
         for (const auto& dep : pkg.dependencies)
         {
-            const solv::DependencyId dep_id =  //
-                pool_add_matchspec(pool, dep.c_str(), parser)
-                    .or_else([](mamba_error&& err) { throw std::move(err); })
-                    .value();
-            assert(dep_id);
-            solv.add_dependency(dep_id);
+            // Parse the dependency - this will extract conditional syntax if present
+            auto maybe_match_spec = specs::MatchSpec::parse(dep);
+            if (!maybe_match_spec)
+            {
+                // If parsing fails, try adding as-is (for backwards compatibility)
+                const solv::DependencyId dep_id =  //
+                    pool_add_matchspec(pool, dep.c_str(), parser)
+                        .or_else([](mamba_error&& err) { throw std::move(err); })
+                        .value();
+                if (dep_id)
+                {
+                    solv.add_dependency(dep_id);
+                }
+                continue;
+            }
+
+            // Process conditional dependency
+            process_conditional_matchspec(
+                std::move(maybe_match_spec).value(),
+                platform,
+                pool,
+                parser,
+                [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
+            );
         }
 
         for (const auto& cons : pkg.constrains)
         {
-            const solv::DependencyId dep_id =  //
-                pool_add_matchspec(pool, cons.c_str(), parser)
-                    .or_else([](mamba_error&& err) { throw std::move(err); })
-                    .value();
-            assert(dep_id);
-            solv.add_constraint(dep_id);
+            // Parse the constraint - this will extract conditional syntax if present
+            auto maybe_match_spec = specs::MatchSpec::parse(cons);
+            if (!maybe_match_spec)
+            {
+                // If parsing fails, try adding as-is (for backwards compatibility)
+                const solv::DependencyId dep_id =  //
+                    pool_add_matchspec(pool, cons.c_str(), parser)
+                        .or_else([](mamba_error&& err) { throw std::move(err); })
+                        .value();
+                if (dep_id)
+                {
+                    solv.add_constraint(dep_id);
+                }
+                continue;
+            }
+
+            // Process conditional constraint
+            process_conditional_matchspec(
+                std::move(maybe_match_spec).value(),
+                platform,
+                pool,
+                parser,
+                [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
+            );
         }
 
         solv.add_track_features(pkg.track_features);
@@ -196,97 +255,200 @@ namespace mamba::solver::libsolv
 
             return all_signatures;
         }
+    }
 
-        /**
-         * Evaluate a simple platform condition against the given platform/subdir.
-         * Returns true if the condition is satisfied, false otherwise.
-         *
-         * Currently only handles simple platform checks like __unix, __win, __linux, __osx.
-         * Complex conditions (e.g., python >=3.10) are not evaluated here and return false
-         * (they will be handled at solver time in step 4).
-         */
-        [[nodiscard]] auto evaluate_simple_platform_condition(
-            const specs::MatchSpecCondition& condition,
-            const std::string& platform
-        ) -> bool
+    /**
+     * Evaluate a simple platform condition against the given platform/subdir.
+     * Returns true if the condition is satisfied, false otherwise.
+     *
+     * Currently only handles simple platform checks like __unix, __win, __linux, __osx.
+     * Complex conditions (e.g., python >=3.10) are not evaluated here and return false
+     * (they will be handled at solver time in step 4).
+     */
+    [[nodiscard]] auto evaluate_simple_platform_condition(
+        const specs::MatchSpecCondition& condition,
+        const std::string& platform
+    ) -> bool
+    {
+        // Extract platform OS from subdir (e.g., "linux-64" -> "linux")
+        const auto platform_parts = util::split(platform, "-", 1);
+        if (platform_parts.empty())
         {
-            // Extract platform OS from subdir (e.g., "linux-64" -> "linux")
-            const auto platform_parts = util::split(platform, "-", 1);
-            if (platform_parts.empty())
-            {
-                return false;
-            }
-            const std::string os = platform_parts[0];
+            return false;
+        }
+        const std::string os = platform_parts[0];
 
-            // Check if condition is a simple MatchSpecCondition_ (not AND/OR)
-            if (!std::holds_alternative<specs::MatchSpecCondition::MatchSpecCondition_>(condition.value))
-            {
-                return false;
-            }
-
-            const auto& cond_spec = std::get<specs::MatchSpecCondition::MatchSpecCondition_>(
-                                        condition.value
-            )
-                                        .spec;
-
-            // Check if it's a simple name match (e.g., __unix, __win)
-            if (!cond_spec.name().is_exact())
-            {
-                return false;
-            }
-
-            const auto name = cond_spec.name().to_string();
-
-            // Platform virtual packages
-            if (name == "__unix")
-            {
-                return os == "linux" || os == "osx";
-            }
-            if (name == "__win")
-            {
-                return os == "win";
-            }
-            if (name == "__linux")
-            {
-                return os == "linux";
-            }
-            if (name == "__osx")
-            {
-                return os == "osx";
-            }
-
+        // Check if condition is a simple MatchSpecCondition_ (not AND/OR)
+        if (!std::holds_alternative<specs::MatchSpecCondition::MatchSpecCondition_>(condition.value))
+        {
             return false;
         }
 
-        /**
-         * Process a conditional MatchSpec: evaluate condition and add to solvable if satisfied.
-         * Returns true if the dependency/constraint was added, false if skipped.
-         */
-        template <typename AddFunc>
-        [[nodiscard]] auto process_conditional_matchspec(
-            specs::MatchSpec match_spec,
-            const std::string& platform,
-            solv::ObjPool& pool,
-            MatchSpecParser parser,
-            AddFunc&& add_func
-        ) -> bool
-        {
-            const auto* condition = match_spec.condition();
-            if (condition == nullptr)
-            {
-                // No condition - add as normal
-                if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
-                {
-                    add_func(*maybe_dep_id);
-                    return true;
-                }
-                return false;
-            }
+        const auto& cond_spec = std::get<specs::MatchSpecCondition::MatchSpecCondition_>(condition.value)
+                                    .spec;
 
-            // Evaluate simple platform conditions
-            if (evaluate_simple_platform_condition(*condition, platform))
+        // Check if it's a simple name match (e.g., __unix, __win)
+        if (!cond_spec.name().is_exact())
+        {
+            return false;
+        }
+
+        const auto name = cond_spec.name().to_string();
+
+        // Platform virtual packages
+        if (name == "__unix")
+        {
+            return os == "linux" || os == "osx";
+        }
+        if (name == "__win")
+        {
+            return os == "win";
+        }
+        if (name == "__linux")
+        {
+            return os == "linux";
+        }
+        if (name == "__osx")
+        {
+            return os == "osx";
+        }
+
+        return false;
+    }
+
+    /**
+     * Evaluate a condition against all available packages in the pool.
+     * Returns true if any package in the pool matches the condition.
+     *
+     * Note: This checks all packages in the pool, not just those that will be installed.
+     * This is a heuristic - if there's any package available that matches the condition,
+     * we include the dependency. The solver will handle conflicts if needed.
+     *
+     * For OR conditions, we check if any package matches the left OR any package matches the
+     * right. For AND conditions, we check if any package matches both the left AND the right.
+     */
+    [[nodiscard]] auto
+    evaluate_condition_against_pool(const specs::MatchSpecCondition& condition, solv::ObjPool& pool)
+        -> bool
+    {
+        return std::visit(
+            [&](const auto& cond) -> bool
             {
-                // Condition satisfied - add without condition
+                using T = std::decay_t<decltype(cond)>;
+                if constexpr (std::is_same_v<T, specs::MatchSpecCondition::MatchSpecCondition_>)
+                {
+                    // Simple condition - check if any package matches the MatchSpec
+                    const auto& cond_spec = cond.spec;
+                    bool found_match = false;
+
+                    // Optimize for exact package names
+                    if (cond_spec.name().is_exact())
+                    {
+                        const auto target_name = cond_spec.name().to_string();
+                        pool.for_each_solvable(
+                            [&](solv::ObjSolvableViewConst s)
+                            {
+                                if (found_match)
+                                {
+                                    return;  // Early exit
+                                }
+                                // Only check packages with matching name
+                                if (std::string_view(s.name()) != std::string_view(target_name))
+                                {
+                                    return;
+                                }
+                                auto pkg_info = make_package_info(pool, s);
+                                // Check if package matches the MatchSpec (not the full
+                                // condition)
+                                if (cond_spec.contains_except_channel(pkg_info))
+                                {
+                                    found_match = true;
+                                }
+                            }
+                        );
+                        return found_match;
+                    }
+
+                    // For glob names, check all packages
+                    pool.for_each_solvable(
+                        [&](solv::ObjSolvableViewConst s)
+                        {
+                            if (found_match)
+                            {
+                                return;
+                            }
+                            auto pkg_info = make_package_info(pool, s);
+                            // Check if package matches the MatchSpec (not the full condition)
+                            if (cond_spec.contains_except_channel(pkg_info))
+                            {
+                                found_match = true;
+                            }
+                        }
+                    );
+                    return found_match;
+                }
+                else if constexpr (std::is_same_v<T, std::unique_ptr<specs::MatchSpecCondition::And>>)
+                {
+                    // AND condition: both left AND right must be satisfied
+                    return evaluate_condition_against_pool(*cond->left, pool)
+                           && evaluate_condition_against_pool(*cond->right, pool);
+                }
+                else if constexpr (std::is_same_v<T, std::unique_ptr<specs::MatchSpecCondition::Or>>)
+                {
+                    // OR condition: left OR right must be satisfied
+                    return evaluate_condition_against_pool(*cond->left, pool)
+                           || evaluate_condition_against_pool(*cond->right, pool);
+                }
+            },
+            condition.value
+        );
+    }
+
+    /**
+     * Process a conditional MatchSpec: evaluate condition and add to solvable if satisfied.
+     * Returns true if the dependency/constraint was added, false if skipped.
+     */
+    template <typename AddFunc>
+    [[nodiscard]] auto process_conditional_matchspec(
+        specs::MatchSpec match_spec,
+        const std::string& platform,
+        solv::ObjPool& pool,
+        MatchSpecParser parser,
+        AddFunc&& add_func
+    ) -> bool
+    {
+        const auto* condition = match_spec.condition();
+        if (condition == nullptr)
+        {
+            // No condition - add as normal
+            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+            {
+                add_func(*maybe_dep_id);
+                return true;
+            }
+            return false;
+        }
+
+        // First, try evaluating simple platform conditions (fast path)
+        if (evaluate_simple_platform_condition(*condition, platform))
+        {
+            // Condition satisfied - add without condition
+            match_spec.set_condition(std::nullopt);
+            if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+            {
+                add_func(*maybe_dep_id);
+                return true;
+            }
+        }
+        else
+        {
+            // Complex condition - evaluate against all packages in the pool
+            // If any package matches the condition, add the dependency
+            // This is a heuristic: if there's a package available that matches,
+            // we include the dependency. The solver will handle conflicts if needed.
+            if (evaluate_condition_against_pool(*condition, pool))
+            {
+                // Condition satisfied by at least one package in pool - add without condition
                 match_spec.set_condition(std::nullopt);
                 if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
                 {
@@ -294,9 +456,9 @@ namespace mamba::solver::libsolv
                     return true;
                 }
             }
-            // Condition not satisfied or too complex - skip (will be handled at solver time)
-            return false;
         }
+        // Condition not satisfied - skip
+        return false;
     }
 
     namespace
@@ -423,8 +585,8 @@ namespace mamba::solver::libsolv
             }
 
             // TODO conda timestamp are not Unix timestamp.
-            // Libsolv normalize them this way, we need to do the same here otherwise the current
-            // package may get arbitrary priority.
+            // Libsolv normalize them this way, we need to do the same here otherwise the
+            // current package may get arbitrary priority.
             if (auto timestamp = pkg["timestamp"]; !timestamp.error())
             {
                 const auto time = timestamp.get_uint64().value_unsafe();
@@ -439,7 +601,8 @@ namespace mamba::solver::libsolv
                     {
                         const auto dep_str = std::string(elem.get_string().value_unsafe());
 
-                        // Parse the dependency - this will extract conditional syntax if present
+                        // Parse the dependency - this will extract conditional syntax if
+                        // present
                         auto maybe_match_spec = specs::MatchSpec::parse(dep_str);
                         if (!maybe_match_spec)
                         {
@@ -479,7 +642,8 @@ namespace mamba::solver::libsolv
                     {
                         const auto cons_str = std::string(elem.get_string().value_unsafe());
 
-                        // Parse the constraint - this will extract conditional syntax if present
+                        // Parse the constraint - this will extract conditional syntax if
+                        // present
                         auto maybe_match_spec = specs::MatchSpec::parse(cons_str);
                         if (!maybe_match_spec)
                         {
@@ -535,8 +699,8 @@ namespace mamba::solver::libsolv
                 }
             }
 
-            // Setting signatures in solvable if they are available and `verify-artifacts` flag is
-            // enabled
+            // Setting signatures in solvable if they are available and `verify-artifacts` flag
+            // is enabled
             set_solv_signatures(solv, filename, signatures);
 
             solv.add_self_provide();
@@ -741,15 +905,15 @@ namespace mamba::solver::libsolv
                  << " using mamba";
 
         // BEWARE:
-        // We use below `simdjson`'s "on-demand" parser, which does not tolerate reading the same
-        // value more than once. This means we need to make sure that the objects and their fields
-        // are read and/or concretized only once and if we need to use them more than once we need
-        // to persist them in local memory. This is why the code below tries hard to pre-read the
-        // data needed in several parts of the computing in a way that prevents jumping up and down
-        // the hierarchy of json objects. When this rule is not followed, the parsing might end
-        // earlier than expected or might skip data that are read when they shouldn't be, leading to
-        // *runtime issues* that might not be visible at first. Because of these reasons, be careful
-        // when modifying the following parsing code.
+        // We use below `simdjson`'s "on-demand" parser, which does not tolerate reading the
+        // same value more than once. This means we need to make sure that the objects and their
+        // fields are read and/or concretized only once and if we need to use them more than
+        // once we need to persist them in local memory. This is why the code below tries hard
+        // to pre-read the data needed in several parts of the computing in a way that prevents
+        // jumping up and down the hierarchy of json objects. When this rule is not followed,
+        // the parsing might end earlier than expected or might skip data that are read when
+        // they shouldn't be, leading to *runtime issues* that might not be visible at first.
+        // Because of these reasons, be careful when modifying the following parsing code.
 
         auto parser = simdjson::ondemand::parser();
         const auto lock = LockFile(filename);
@@ -1196,22 +1360,23 @@ namespace mamba::solver::libsolv
         // Locking on a spec applies the lock to all packages matching the spec.
         // In mamba, we do not want to lock the package because we want to allow other variants
         // (matching the same spec) to unlock more solutions.
-        // For instance we may pin ``libfmt=8.*`` but allow it to be swapped with a version built
-        // by a more recent compiler.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swapped with a version
+        // built by a more recent compiler.
         //
-        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
-        // matching the pin.
-        // That played poorly with ``all_problems_structured`` because we could not interpret
-        // the ids that were returned (since they were not associated with a single reldep).
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages
+        // not matching the pin. That played poorly with ``all_problems_structured`` because we
+        // could not interpret the ids that were returned (since they were not associated with a
+        // single reldep).
         //
         // Another wrong idea is to add the pin as an install job.
         // This is not what is expected of pins, as they must not be installed if they were not
         // in the environment.
-        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        // They can be configure in ``.condarc`` for generally specifying what versions are
+        // wanted.
         //
-        // The idea behind the current version is to add the pin/spec as a constraint that must be
-        // fullfield only if the package is installed.
-        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // The idea behind the current version is to add the pin/spec as a constraint that must
+        // be fullfield only if the package is installed. This is not supported on solver jobs
+        // but it is on ``Solvable`` with
         // ``disttype == DISTYPE_CONDA``.
         // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
         // as one of its constrains.
@@ -1237,8 +1402,8 @@ namespace mamba::solver::libsolv
             // If the installed repo does not exists, we can safely create it because this is
             // called right before the solve function.
             // If it gets modified latter on the pin should not interfere with user packages.
-            // If it gets overridden this it is not a problem for the solve because pins are added
-            // on each solve.
+            // If it gets overridden this it is not a problem for the solve because pins are
+            // added on each solve.
             auto [id, repo] = pool.add_repo("installed");
             pool.set_installed_repo(id);
             return repo;
@@ -1264,8 +1429,8 @@ namespace mamba::solver::libsolv
                     cons_solv.add_self_provide();
 
                     // Even if we lock it, libsolv may still try to remove it with
-                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
-                    // it out in the transaction
+                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to
+                    // filter it out in the transaction
                     cons_solv.set_type(solv::SolvableType::Pin);
 
                     // Necessary for attributes to be properly stored
@@ -1351,10 +1516,9 @@ namespace mamba::solver::libsolv
 
                     // In libsolv, system dependencies are provided as a special dependency,
                     // while in Conda it is implemented as a virtual package.
-                    // Maybe there is a way to tell libsolv to never try to install or remove these
-                    // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
-                    // In the meantime (and probably later for safety) we filter all virtual
-                    // packages out.
+                    // Maybe there is a way to tell libsolv to never try to install or remove
+                    // these solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?). In the meantime
+                    // (and probably later for safety) we filter all virtual packages out.
                     if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
                     {
                         return;
@@ -1772,11 +1936,11 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](auto id)
                         {
-                            // In libsolv update specs apply to installed packages, not available
-                            // ones, as opposed to mamba.
-                            // With ``numpy=0.5`` installed, update ``numpy>=1.0`` means update
-                            // numpy if a ``numpy>=1.0`` is installed, which would be false.
-                            // In Mamba, it means update any installed numpy to a new
+                            // In libsolv update specs apply to installed packages, not
+                            // available ones, as opposed to mamba. With ``numpy=0.5``
+                            // installed, update ``numpy>=1.0`` means update numpy if a
+                            // ``numpy>=1.0`` is installed, which would be false. In Mamba, it
+                            // means update any installed numpy to a new
                             // ``numpy>=1.0``, leading to an update.
                             // This is especially tricky with channel-specific MatchSpec.
 
@@ -1790,9 +1954,9 @@ namespace mamba::solver::libsolv
                             // Otherwise, we try our ad-hoc solution
                             else if (has_installed_package(pool, job.spec.name()))
                             {
-                                // We still need to issue an update command to libsolv, otherwise
-                                // the package won't be changed, but we apply it only to the
-                                // package name, not the full spec.
+                                // We still need to issue an update command to libsolv,
+                                // otherwise the package won't be changed, but we apply it only
+                                // to the package name, not the full spec.
                                 if (job.spec.name().is_exact())
                                 {
                                     auto name_id = pool.add_string(job.spec.name().to_string());

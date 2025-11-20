@@ -5,9 +5,12 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 
 #include <catch2/catch_all.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -529,6 +532,205 @@ namespace
                     }
                 }
             );
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies")
+        {
+            // Create a temporary repodata JSON file with conditional dependencies
+            auto temp_dir = std::filesystem::temp_directory_path() / "mamba_test_conditional_deps";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            // Create repodata JSON with conditional dependencies
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "linux-64";
+            repodata_json["repodata_version"] = 1;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "numpy",                               // Regular dependency
+                    "pywin32; if __win",                   // Should be skipped on linux-64
+                    "unixutils; if __unix",                // Should be added on linux-64
+                    "typing-extensions; if python <3.10",  // Complex condition - skipped at parse
+                                                           // time
+                }
+            );
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["constrains"] = nlohmann::json::array(
+                {
+                    "someconstraint; if __unix",  // Should be added on linux-64
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/linux-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            // Check that the package was parsed correctly
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        // Should have numpy (regular) and unixutils (__unix condition satisfied)
+                        // Should NOT have pywin32 (__win condition not satisfied)
+                        // Should NOT have typing-extensions (complex condition skipped)
+                        REQUIRE(p.dependencies.size() == 2);
+
+                        // Parse dependencies as MatchSpecs to check names (they may be in "name *"
+                        // format)
+                        std::vector<std::string> dep_names;
+                        for (const auto& dep_str : p.dependencies)
+                        {
+                            auto ms = specs::MatchSpec::parse(dep_str);
+                            if (ms.has_value())
+                            {
+                                dep_names.push_back(ms->name().to_string());
+                            }
+                        }
+
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "numpy") != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "unixutils")
+                            != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "pywin32") == dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "typing-extensions")
+                            == dep_names.end()
+                        );
+
+                        // Constraint with __unix should be added
+                        REQUIRE(p.constrains.size() == 1);
+                        std::vector<std::string> cons_names;
+                        for (const auto& cons_str : p.constrains)
+                        {
+                            auto ms = specs::MatchSpec::parse(cons_str);
+                            if (ms.has_value())
+                            {
+                                cons_names.push_back(ms->name().to_string());
+                            }
+                        }
+                        REQUIRE(
+                            std::find(cons_names.begin(), cons_names.end(), "someconstraint")
+                            != cons_names.end()
+                        );
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies on Windows platform")
+        {
+            // Create a temporary repodata JSON file with conditional dependencies for Windows
+            auto temp_dir = std::filesystem::temp_directory_path()
+                            / "mamba_test_conditional_deps_win";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            // Create repodata JSON with conditional dependencies for Windows
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "win-64";
+            repodata_json["repodata_version"] = 1;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "win-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "numpy",                 // Regular dependency
+                    "pywin32; if __win",     // Should be added on win-64
+                    "unixutils; if __unix",  // Should be skipped on win-64
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/win-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            // Check that the package was parsed correctly
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        // Should have numpy (regular) and pywin32 (__win condition satisfied)
+                        // Should NOT have unixutils (__unix condition not satisfied)
+                        REQUIRE(p.dependencies.size() == 2);
+
+                        // Parse dependencies as MatchSpecs to check names (they may be in "name *"
+                        // format)
+                        std::vector<std::string> dep_names;
+                        for (const auto& dep_str : p.dependencies)
+                        {
+                            auto ms = specs::MatchSpec::parse(dep_str);
+                            if (ms.has_value())
+                            {
+                                dep_names.push_back(ms->name().to_string());
+                            }
+                        }
+
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "numpy") != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "pywin32") != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "unixutils")
+                            == dep_names.end()
+                        );
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
         }
     }
 }

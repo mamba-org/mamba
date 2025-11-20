@@ -25,6 +25,7 @@
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/util/cfile.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
@@ -196,6 +197,110 @@ namespace mamba::solver::libsolv
             return all_signatures;
         }
 
+        /**
+         * Evaluate a simple platform condition against the given platform/subdir.
+         * Returns true if the condition is satisfied, false otherwise.
+         *
+         * Currently only handles simple platform checks like __unix, __win, __linux, __osx.
+         * Complex conditions (e.g., python >=3.10) are not evaluated here and return false
+         * (they will be handled at solver time in step 4).
+         */
+        [[nodiscard]] auto evaluate_simple_platform_condition(
+            const specs::MatchSpecCondition& condition,
+            const std::string& platform
+        ) -> bool
+        {
+            // Extract platform OS from subdir (e.g., "linux-64" -> "linux")
+            const auto platform_parts = util::split(platform, "-", 1);
+            if (platform_parts.empty())
+            {
+                return false;
+            }
+            const std::string os = platform_parts[0];
+
+            // Check if condition is a simple MatchSpecCondition_ (not AND/OR)
+            if (!std::holds_alternative<specs::MatchSpecCondition::MatchSpecCondition_>(condition.value))
+            {
+                return false;
+            }
+
+            const auto& cond_spec = std::get<specs::MatchSpecCondition::MatchSpecCondition_>(
+                                        condition.value
+            )
+                                        .spec;
+
+            // Check if it's a simple name match (e.g., __unix, __win)
+            if (!cond_spec.name().is_exact())
+            {
+                return false;
+            }
+
+            const auto name = cond_spec.name().to_string();
+
+            // Platform virtual packages
+            if (name == "__unix")
+            {
+                return os == "linux" || os == "osx";
+            }
+            if (name == "__win")
+            {
+                return os == "win";
+            }
+            if (name == "__linux")
+            {
+                return os == "linux";
+            }
+            if (name == "__osx")
+            {
+                return os == "osx";
+            }
+
+            return false;
+        }
+
+        /**
+         * Process a conditional MatchSpec: evaluate condition and add to solvable if satisfied.
+         * Returns true if the dependency/constraint was added, false if skipped.
+         */
+        template <typename AddFunc>
+        [[nodiscard]] auto process_conditional_matchspec(
+            specs::MatchSpec match_spec,
+            const std::string& platform,
+            solv::ObjPool& pool,
+            MatchSpecParser parser,
+            AddFunc&& add_func
+        ) -> bool
+        {
+            const auto* condition = match_spec.condition();
+            if (condition == nullptr)
+            {
+                // No condition - add as normal
+                if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+                {
+                    add_func(*maybe_dep_id);
+                    return true;
+                }
+                return false;
+            }
+
+            // Evaluate simple platform conditions
+            if (evaluate_simple_platform_condition(*condition, platform))
+            {
+                // Condition satisfied - add without condition
+                match_spec.set_condition(std::nullopt);
+                if (const auto maybe_dep_id = pool_add_matchspec(pool, match_spec, parser))
+                {
+                    add_func(*maybe_dep_id);
+                    return true;
+                }
+            }
+            // Condition not satisfied or too complex - skip (will be handled at solver time)
+            return false;
+        }
+    }
+
+    namespace
+    {
         template <class JSONObject>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
@@ -332,21 +437,36 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        const auto ms = std::string(elem.get_string().value_unsafe());
-                        const auto maybe_dep_id = pool_add_matchspec(pool, ms.c_str(), parser);
-                        if (maybe_dep_id)
-                        {
-                            solv.add_dependency(*maybe_dep_id);
-                        }
-                        else
+                        const auto dep_str = std::string(elem.get_string().value_unsafe());
+
+                        // Parse the dependency - this will extract conditional syntax if present
+                        auto maybe_match_spec = specs::MatchSpec::parse(dep_str);
+                        if (!maybe_match_spec)
                         {
                             fmt::print(
                                 LOG_WARNING,
                                 R"(Found invalid MatchSpec "{}" in "{}")",
-                                ms,
+                                dep_str,
                                 filename
                             );
+                            continue;
                         }
+
+                        auto match_spec = std::move(maybe_match_spec).value();
+
+                        // Get platform from solvable (or use default_subdir)
+                        const std::string platform = solv.platform().empty()
+                                                         ? default_subdir
+                                                         : std::string(solv.platform());
+
+                        // Process conditional dependency
+                        process_conditional_matchspec(
+                            std::move(match_spec),
+                            platform,
+                            pool,
+                            parser,
+                            [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
+                        );
                     }
                 }
             }
@@ -357,21 +477,36 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        const auto ms = std::string(elem.get_string().value_unsafe());
-                        const auto maybe_dep_id = pool_add_matchspec(pool, ms.c_str(), parser);
-                        if (maybe_dep_id)
-                        {
-                            solv.add_constraint(*maybe_dep_id);
-                        }
-                        else
+                        const auto cons_str = std::string(elem.get_string().value_unsafe());
+
+                        // Parse the constraint - this will extract conditional syntax if present
+                        auto maybe_match_spec = specs::MatchSpec::parse(cons_str);
+                        if (!maybe_match_spec)
                         {
                             fmt::print(
                                 LOG_WARNING,
                                 R"(Found invalid MatchSpec "{}" in "{}")",
-                                ms,
+                                cons_str,
                                 filename
                             );
+                            continue;
                         }
+
+                        auto match_spec = std::move(maybe_match_spec).value();
+
+                        // Get platform from solvable (or use default_subdir)
+                        const std::string platform = solv.platform().empty()
+                                                         ? default_subdir
+                                                         : std::string(solv.platform());
+
+                        // Process conditional constraint
+                        process_conditional_matchspec(
+                            std::move(match_spec),
+                            platform,
+                            pool,
+                            parser,
+                            [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
+                        );
                     }
                 }
             }

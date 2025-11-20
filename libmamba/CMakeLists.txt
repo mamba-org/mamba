@@ -178,6 +178,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/glob_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/match_spec_condition.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/regex_spec.cpp
@@ -338,6 +339,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec_condition.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/regex_spec.hpp

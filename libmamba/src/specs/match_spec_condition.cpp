@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/specs/match_spec_condition.hpp"
-
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -14,6 +12,7 @@
 #include <fmt/format.h>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
@@ -37,7 +36,8 @@ namespace mamba::specs
          * Check if the string starts with a word (case-insensitive).
          * Returns the length of the matched word if found, or 0 if not found.
          */
-        [[nodiscard]] auto find_word_at_start(std::string_view str, std::string_view word) -> std::size_t
+        [[nodiscard]] auto find_word_at_start(std::string_view str, std::string_view word)
+            -> std::size_t
         {
             if (str.size() < word.size())
             {
@@ -204,7 +204,11 @@ namespace mamba::specs
             if (!matchspec.has_value())
             {
                 return make_unexpected_parse(
-                    fmt::format("Failed to parse matchspec '{}': {}", matchspec_str, matchspec.error().what())
+                    fmt::format(
+                        "Failed to parse matchspec '{}': {}",
+                        matchspec_str,
+                        matchspec.error().what()
+                    )
                 );
             }
 
@@ -322,7 +326,48 @@ namespace mamba::specs
     {
     }
 
-    auto MatchSpecCondition::parse(std::string_view condition_str) -> expected_parse_t<MatchSpecCondition>
+    MatchSpecCondition::MatchSpecCondition(const MatchSpecCondition& other)
+        : value(
+              std::visit(
+                  [](const auto& val) -> variant_type
+                  {
+                      using T = std::decay_t<decltype(val)>;
+                      if constexpr (std::is_same_v<T, MatchSpecCondition_>)
+                      {
+                          return val;  // Copy the struct directly
+                      }
+                      else if constexpr (std::is_same_v<T, std::unique_ptr<And>>)
+                      {
+                          return std::make_unique<And>(
+                              std::make_unique<MatchSpecCondition>(*val->left),
+                              std::make_unique<MatchSpecCondition>(*val->right)
+                          );
+                      }
+                      else if constexpr (std::is_same_v<T, std::unique_ptr<Or>>)
+                      {
+                          return std::make_unique<Or>(
+                              std::make_unique<MatchSpecCondition>(*val->left),
+                              std::make_unique<MatchSpecCondition>(*val->right)
+                          );
+                      }
+                  },
+                  other.value
+              )
+          )
+    {
+    }
+
+    MatchSpecCondition& MatchSpecCondition::operator=(const MatchSpecCondition& other)
+    {
+        if (this != &other)
+        {
+            *this = MatchSpecCondition(other);  // Use copy constructor
+        }
+        return *this;
+    }
+
+    auto MatchSpecCondition::parse(std::string_view condition_str)
+        -> expected_parse_t<MatchSpecCondition>
     {
         auto trimmed = util::strip(condition_str);
         if (trimmed.empty())
@@ -453,21 +498,23 @@ namespace mamba::specs
 }
 
 // Hash implementations (must be in std namespace)
-auto std::hash<mamba::specs::MatchSpecCondition>::operator()(
-    const mamba::specs::MatchSpecCondition& cond
-) const -> std::size_t
+auto
+std::hash<mamba::specs::MatchSpecCondition>::operator()(const mamba::specs::MatchSpecCondition& cond) const
+    -> std::size_t
 {
     return std::hash<std::string>{}(cond.to_string());
 }
 
-auto std::hash<mamba::specs::MatchSpecCondition::MatchSpecCondition_>::operator()(
+auto
+std::hash<mamba::specs::MatchSpecCondition::MatchSpecCondition_>::operator()(
     const mamba::specs::MatchSpecCondition::MatchSpecCondition_& cond
 ) const -> std::size_t
 {
     return std::hash<mamba::specs::MatchSpec>{}(cond.spec);
 }
 
-auto std::hash<mamba::specs::MatchSpecCondition::And>::operator()(
+auto
+std::hash<mamba::specs::MatchSpecCondition::And>::operator()(
     const mamba::specs::MatchSpecCondition::And& cond
 ) const -> std::size_t
 {
@@ -476,7 +523,8 @@ auto std::hash<mamba::specs::MatchSpecCondition::And>::operator()(
     return h1 ^ (h2 << 1);
 }
 
-auto std::hash<mamba::specs::MatchSpecCondition::Or>::operator()(
+auto
+std::hash<mamba::specs::MatchSpecCondition::Or>::operator()(
     const mamba::specs::MatchSpecCondition::Or& cond
 ) const -> std::size_t
 {
@@ -484,4 +532,3 @@ auto std::hash<mamba::specs::MatchSpecCondition::Or>::operator()(
     auto h2 = std::hash<mamba::specs::MatchSpecCondition>{}(*cond.right);
     return h1 ^ (h2 << 1);
 }
-

@@ -12,6 +12,7 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/parsers.hpp"
 #include "mamba/util/string.hpp"
@@ -187,6 +188,72 @@ namespace mamba::specs
                 }
 
             );
+        }
+
+        /**
+         * Strip conditional dependency syntax from a matchspec string.
+         * Extracts "; if condition" pattern and returns (matchspec_part, condition_part).
+         * Handles flexible whitespace: "dep; if condition", "dep;if condition", etc.
+         *
+         * Note: This should only be called on the final matchspec string, not on URLs
+         * or strings that might contain semicolons as part of the spec itself.
+         */
+        auto strip_if(std::string_view input) -> std::pair<std::string_view, std::string_view>
+        {
+            if (input.empty())
+            {
+                return { input, {} };
+            }
+
+            // Find "; if" pattern (case-insensitive for "if")
+            // Use rfind to find the last semicolon, as conditions should be at the end
+            auto pos = input.rfind(';');
+            if (pos == std::string_view::npos || pos == input.size() - 1)
+            {
+                return { input, {} };
+            }
+
+            // Check if followed by "if" (case-insensitive, with optional whitespace)
+            auto after_semicolon = input.substr(pos + 1);
+            auto after_semicolon_stripped = util::lstrip(after_semicolon);
+
+            // Case-insensitive check for "if"
+            if (after_semicolon_stripped.size() < 2)
+            {
+                return { input, {} };
+            }
+
+            auto if_str = after_semicolon_stripped.substr(0, 2);
+            if (std::tolower(static_cast<unsigned char>(if_str[0])) != 'i'
+                || std::tolower(static_cast<unsigned char>(if_str[1])) != 'f')
+            {
+                return { input, {} };
+            }
+
+            // Check word boundary after "if"
+            if (after_semicolon_stripped.size() > 2)
+            {
+                auto after_if = after_semicolon_stripped[2];
+                if (std::isalnum(static_cast<unsigned char>(after_if)) || after_if == '_')
+                {
+                    return { input, {} };  // Not a word boundary, not "if"
+                }
+            }
+
+            // Extract matchspec part (before ";")
+            auto matchspec_part = util::rstrip(input.substr(0, pos));
+
+            // Extract condition part (after "; if")
+            // Calculate offset: semicolon + 1 (for ';') + whitespace skipped + 2 (for "if")
+            auto whitespace_skipped = after_semicolon.size() - after_semicolon_stripped.size();
+            auto condition_start = pos + 1 + whitespace_skipped + 2;
+            if (condition_start >= input.size())
+            {
+                return { input, {} };  // Invalid, no condition after "if"
+            }
+            auto condition_part = util::strip(input.substr(condition_start));
+
+            return { matchspec_part, condition_part };
         }
 
         auto is_true_string(std::string_view str) -> bool
@@ -518,7 +585,10 @@ namespace mamba::specs
         // Remove trailing whitespaces
         str = util::rstrip(str);
 
-        std::string raw_match_spec_str = std::string(str);
+        // Strip conditional dependency syntax (e.g., "; if python <3.10")
+        auto [matchspec_str, condition_str] = strip_if(str);
+
+        std::string raw_match_spec_str = std::string(matchspec_str);
         raw_match_spec_str = util::strip(raw_match_spec_str);
 
         // Those are temporary adaptations to handle some instances of `MatchSpec` which is not
@@ -667,6 +737,23 @@ namespace mamba::specs
                 return make_unexpected_parse(std::move(maybe_build_string).error());
             }
             out.m_build_string = std::move(maybe_build_string).value();
+        }
+
+        // Parse condition if present
+        if (!condition_str.empty())
+        {
+            auto maybe_condition = MatchSpecCondition::parse(condition_str);
+            if (!maybe_condition)
+            {
+                return make_unexpected_parse(
+                    fmt::format(
+                        "Failed to parse condition '{}': {}",
+                        condition_str,
+                        maybe_condition.error().what()
+                    )
+                );
+            }
+            out.m_condition = std::make_shared<MatchSpecCondition>(std::move(maybe_condition.value()));
         }
 
         return out;
@@ -978,6 +1065,23 @@ namespace mamba::specs
         }
     }
 
+    auto MatchSpec::condition() const -> const MatchSpecCondition*
+    {
+        return m_condition.get();
+    }
+
+    void MatchSpec::set_condition(std::optional<MatchSpecCondition> cond)
+    {
+        if (cond.has_value())
+        {
+            m_condition = std::make_shared<MatchSpecCondition>(std::move(cond.value()));
+        }
+        else
+        {
+            m_condition.reset();
+        }
+    }
+
     auto MatchSpec::conda_build_form() const -> std::string
     {
         const bool has_version = !m_version.is_explicitly_free();
@@ -1271,6 +1375,12 @@ fmt::formatter<::mamba::specs::MatchSpec>::format(
         out = fmt::format_to(out, "optional");
     }
     ensure_bracket_close();
+
+    // Append condition if present (e.g., "; if python <3.10")
+    if (const auto* cond = spec.condition(); cond != nullptr)
+    {
+        out = fmt::format_to(out, "; if {}", cond->to_string());
+    }
 
     return out;
 }

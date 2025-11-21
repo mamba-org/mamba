@@ -1,3 +1,22 @@
+## 2025.11.21
+
+Release: 2.4.0 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [micromamba, libmamba] Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- [all] Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Bug fixes:
+
+- [micromamba] fix: Update URL of lock files by @jjerphan in <https://github.com/mamba-org/mamba/pull/4097>
+- [micromamba] Fix Windows tests by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4086>
+
+Maintenance:
+
+- [all] build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+- [libmamba] Removed deprecated libcurl backend by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4083>
+
 ## 2025.11.18
 
 Release: 2.4.0.rc0 (libmamba, mamba, micromamba, libmambapy)

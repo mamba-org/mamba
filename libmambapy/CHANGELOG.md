@@ -1,3 +1,13 @@
+## libmambapy 2.4.0 (November 21, 2025)
+
+Enhancements:
+
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+
 ## libmambapy 2.4.0.rc0 (November 18, 2025)
 
 Enhancements:

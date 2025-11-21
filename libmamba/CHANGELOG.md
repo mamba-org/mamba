@@ -1,3 +1,15 @@
+## libmamba 2.4.0 (November 21, 2025)
+
+Enhancements:
+
+- Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+- Removed deprecated libcurl backend by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4083>
+
 ## libmamba 2.4.0.rc0 (November 18, 2025)
 
 Enhancements:

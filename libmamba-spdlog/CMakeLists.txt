@@ -62,8 +62,8 @@ set_target_properties(
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/mylibConfigVersion.cmake"
-    VERSION 0.1
+    "${PROJECT_BINARY_DIR}/libmamba-spdlogVersion.cmake"
+    VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
 
@@ -81,4 +81,3 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 if(BUILD_LIBMAMBA_SPDLOG_TESTS)
     add_subdirectory(tests/)
 endif()
-

@@ -54,7 +54,7 @@ namespace mamba
     void Context::start_logging(logging::AnyLogHandler log_handler)
     {
         // Only change the log-handler if specified, keep the current one otherwise.
-        if (log_handler) 
+        if (log_handler)
         {
             logging::set_log_handler(std::move(log_handler), output_params);
         }

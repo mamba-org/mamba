@@ -25,14 +25,14 @@ add_compile_definitions(
 )
 
 add_library(libmamba-spdlog INTERFACE)
-target_sources(libmamba-spdlog
-    INTERFACE
-        include/mamba/spdlog/logging_spdlog.hpp
-        include/mamba/spdlog/logging_spdlog_impl.hpp
-)
+# target_sources(libmamba-spdlog
+#     INTERFACE
+#         include/mamba/spdlog/logging_spdlog.hpp
+#         include/mamba/spdlog/logging_spdlog_impl.hpp
+# )
 add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
 
-target_include_directories(libmamba-spdlog INTERFACE include/)
+target_include_directories(libmamba-spdlog INTERFACE $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(libmamba-spdlog
     INTERFACE
@@ -62,7 +62,7 @@ set_target_properties(
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/libmamba-spdlogVersion.cmake"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"
     VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
@@ -75,18 +75,19 @@ install(TARGETS libmamba-spdlog
     BUNDLE DESTINATION bin COMPONENT Runtime
 )
 configure_package_config_file(
-    "${PROJECT_SOURCE_DIR}/cmake/libmamba-spdlogConfig.cmake.in"
-    "${PROJECT_BINARY_DIR}/libmamba-spdlogConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/libmamba-spdlog
+    "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 install(EXPORT libmamba-spdlog DESTINATION lib/cmake/libmamba-spdlog)
-install(FILES "${PROJECT_BINARY_DIR}/libmamba-spdlogVersion.cmake"
-              "${PROJECT_BINARY_DIR}/libmamba-spdlogConfig.cmake"
-        DESTINATION lib/cmake/libmamba-spdlog)
+install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"
+              "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
 if(BUILD_LIBMAMBA_SPDLOG_TESTS)
     add_subdirectory(tests/)
 endif()
+

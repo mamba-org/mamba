@@ -60,23 +60,21 @@ set_target_properties(
         CXX_EXTENSIONS NO
 )
 
-# include(CMakePackageConfigHelpers)
-# write_basic_package_version_file(
-#     "${PROJECT_BINARY_DIR}/libmamba-spdlogVersion.cmake"
-#     VERSION 1.0
-#     COMPATIBILITY AnyNewerVersion
-# )
-#
-# install(TARGETS libmamba-spdlog
-#     EXPORT libmamba-spdlog
-#     LIBRARY DESTINATION lib COMPONENT Runtime
-#     ARCHIVE DESTINATION lib COMPONENT Development
-#     RUNTIME DESTINATION bin COMPONENT Runtime
-#     PUBLIC_HEADER DESTINATION include COMPONENT Development
-#     BUNDLE DESTINATION bin COMPONENT Runtime
-# )
-#
-# install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/libmamba-spdlogVersion.cmake"
+    VERSION 1.0
+    COMPATIBILITY AnyNewerVersion
+)
+install(TARGETS libmamba-spdlog
+    EXPORT libmamba-spdlog
+    LIBRARY DESTINATION lib COMPONENT Runtime
+    ARCHIVE DESTINATION lib COMPONENT Development
+    RUNTIME DESTINATION bin COMPONENT Runtime
+    PUBLIC_HEADER DESTINATION include COMPONENT Development
+    BUNDLE DESTINATION bin COMPONENT Runtime
+)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
 if(BUILD_LIBMAMBA_SPDLOG_TESTS)
     add_subdirectory(tests/)

@@ -74,6 +74,17 @@ install(TARGETS libmamba-spdlog
     PUBLIC_HEADER DESTINATION include COMPONENT Development
     BUNDLE DESTINATION bin COMPONENT Runtime
 )
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/libmamba-spdlogConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/libmamba-spdlogConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/libmamba-spdlog
+)
+
+install(EXPORT libmamba-spdlog DESTINATION lib/cmake/libmamba-spdlog)
+install(FILES "${PROJECT_BINARY_DIR}/libmamba-spdlogVersion.cmake"
+              "${PROJECT_BINARY_DIR}/libmamba-spdlogConfig.cmake"
+        DESTINATION lib/cmake/libmamba-spdlog)
+
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
 if(BUILD_LIBMAMBA_SPDLOG_TESTS)

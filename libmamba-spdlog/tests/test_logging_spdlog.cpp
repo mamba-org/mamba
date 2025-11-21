@@ -10,7 +10,7 @@
 #include <catch2/catch_all.hpp>
 #include <fmt/core.h>
 
-#include <mamba/logging_spdlog.hpp>
+#include <mamba/spdlog/logging_spdlog.hpp>
 
 #include <mamba/testing/test_logging_common.hpp>
 

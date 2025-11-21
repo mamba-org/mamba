@@ -33,6 +33,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/problems_graph.hpp"
+#include "mamba/spdlog/logging_spdlog.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 
@@ -74,7 +75,7 @@ namespace mambapy
     public:
 
         explicit Singletons(mamba::ContextOptions options)
-            : m_context(std::move(options))
+            : m_context(std::move(options), mamba::logging::spdlogimpl::LogHandler_spdlog{})
         {
         }
 

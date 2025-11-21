@@ -12,12 +12,7 @@
 
 #include <mamba/core/logging_tools.hpp>
 
-#include "test_logging_common.hpp"
-
-// TODO:
-// - specific tests for LogHandler_History
-// - specific tests for LogHandler_StdOut
-
+#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {

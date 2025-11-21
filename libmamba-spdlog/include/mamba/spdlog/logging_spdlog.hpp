@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_LOGGING_SPDLOG_HPP
-#define MAMBA_CORE_LOGGING_SPDLOG_HPP
+#ifndef MAMBA_LOGGING_SPDLOG_HPP
+#define MAMBA_LOGGING_SPDLOG_HPP
 
 #include <memory>
 #include <vector>
@@ -111,5 +111,7 @@ namespace mamba::logging::spdlogimpl
     static_assert(logging::LogHandler<LogHandler_spdlog>);
 
 }
+
+#include "./logging_spdlog_impl.hpp"
 
 #endif

@@ -46,7 +46,7 @@ jobs:
             -D BUILD_LIBMAMBA_SPDLOG_TESTS=ON ^
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake --build build/ --parallel
+          cmake --build build/ --parallel --verbose
           if %errorlevel% neq 0 exit /b %errorlevel%
       - name: Show build cache statistics
         run: sccache --show-stats

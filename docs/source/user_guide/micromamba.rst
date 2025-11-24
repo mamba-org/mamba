@@ -75,10 +75,10 @@ These subcommands generate shell-specific activation code that can be used in sc
 
     # Generate activation code for bash
     micromamba shell activate -p /path/to/env -s bash
-    
+
     # Generate deactivation code
     micromamba shell deactivate -s bash
-    
+
     # Use in a script
     eval "$(micromamba shell activate -p /path/to/env -s bash)"
 
@@ -88,7 +88,7 @@ Supported Shells
 The shell command supports the following shells:
 
 * ``bash`` - Bash shell
-* ``zsh`` - Z shell  
+* ``zsh`` - Z shell
 * ``fish`` - Fish shell
 * ``powershell`` - PowerShell
 * ``cmd.exe`` - Windows Command Prompt

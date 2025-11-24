@@ -402,7 +402,10 @@ set_shell_command(CLI::App* shell_subcmd, Configuration& config)
     );
     set_shell_reinit_command(reinit_subsubcmd, config);
 
-    auto* hook_subsubcmd = shell_subcmd->add_subcommand("hook", "Output shell hook scripts for environment activation");
+    auto* hook_subsubcmd = shell_subcmd->add_subcommand(
+        "hook",
+        "Output shell hook scripts for environment activation"
+    );
     set_shell_hook_command(hook_subsubcmd, config);
 
     auto* acti_subsubcmd = shell_subcmd->add_subcommand(

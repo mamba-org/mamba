@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <deque>
 
+#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 #include <fmt/core.h>
 

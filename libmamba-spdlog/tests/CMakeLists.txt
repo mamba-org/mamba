@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 find_package(Catch2 REQUIRED)
+find_package(Threads REQUIRED)
 
 add_executable( test_libmamba_logging_spdlog test_logging_spdlog.cpp )
 
@@ -10,6 +11,7 @@ target_link_libraries(test_libmamba_logging_spdlog
         mamba::libmamba-spdlog
         mamba::libtesting_mamba_logging_common
         Catch2::Catch2WithMain
+        Threads::Threads
 )
 
 target_compile_features(test_libmamba_logging_spdlog PUBLIC cxx_std_20)

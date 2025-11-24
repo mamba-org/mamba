@@ -85,6 +85,7 @@ configure_package_config_file(
 )
 
 install(EXPORT ${PROJECT_NAME}Targets
+    NAMESPACE mamba::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"

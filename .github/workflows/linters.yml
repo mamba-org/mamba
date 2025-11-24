@@ -22,7 +22,7 @@ jobs:
     env:
       PRE_COMMIT_USE_MICROMAMBA: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install pre-commit and identify
         uses: mamba-org/setup-micromamba@v2
         with:

@@ -123,7 +123,7 @@ namespace mamba::solver::libsolv
             }
 
             // Process conditional dependency: evaluate condition and add if satisfied
-            process_conditional_matchspec(
+            [[maybe_unused]] const bool dep_added = process_conditional_matchspec(
                 std::move(maybe_match_spec).value(),
                 platform,
                 pool,
@@ -151,7 +151,7 @@ namespace mamba::solver::libsolv
             }
 
             // Process conditional constraint: evaluate condition and add if satisfied
-            process_conditional_matchspec(
+            [[maybe_unused]] const bool cons_added = process_conditional_matchspec(
                 std::move(maybe_match_spec).value(),
                 platform,
                 pool,
@@ -620,7 +620,7 @@ namespace mamba::solver::libsolv
                         }
 
                         // Process conditional dependency: evaluate condition and add if satisfied
-                        process_conditional_matchspec(
+                        [[maybe_unused]] const bool dep_added = process_conditional_matchspec(
                             std::move(maybe_match_spec).value(),
                             platform,
                             pool,
@@ -653,7 +653,7 @@ namespace mamba::solver::libsolv
                         }
 
                         // Process conditional constraint: evaluate condition and add if satisfied
-                        process_conditional_matchspec(
+                        [[maybe_unused]] const bool cons_added = process_conditional_matchspec(
                             std::move(maybe_match_spec).value(),
                             platform,
                             pool,

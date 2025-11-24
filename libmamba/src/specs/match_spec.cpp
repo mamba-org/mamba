@@ -1225,14 +1225,10 @@ namespace mamba::specs
 
     auto MatchSpec::operator==(const MatchSpec& other) const -> bool
     {
-        const bool cond_equal = [&]()
-        {
-            if (m_condition && other.m_condition)
-            {
-                return *m_condition == *other.m_condition;
-            }
-            return !m_condition && !other.m_condition;
-        }();
+        // Compare condition: both null or both non-null with equal values
+        const bool cond_equal = (!m_condition && !other.m_condition)
+                                || (m_condition && other.m_condition
+                                    && *m_condition == *other.m_condition);
 
         return m_channel == other.m_channel && m_version == other.m_version && m_name == other.m_name
                && m_build_string == other.m_build_string && m_name_space == other.m_name_space

@@ -41,6 +41,7 @@ target_include_directories(libmamba-spdlog INTERFACE
 target_link_libraries(libmamba-spdlog
     INTERFACE
         ${libmamba_target}
+
         # Since conda-forge spdlog is built with a bundled version of fmt we use the header
         # only version to avoid chasing after the correct fmt version matching the one used
         # in the bundle.

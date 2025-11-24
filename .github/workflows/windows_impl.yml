@@ -90,16 +90,17 @@ jobs:
         run: |
           unset CONDARC  # Interferes with tests
           cd ./build/libmamba && ./tests/test_libmamba_logging
+      - name: Run libmamba spdlog-based logging tests
+        shell: bash -elo pipefail {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          cd ./build/libmamba-spdlog && micromamba info && ./tests/test_libmamba_logging_spdlog
       - name: Run libmamba tests
         shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
           cd ./build/libmamba && ./tests/test_libmamba
-      - name: Run libmamba spdlog-based logging tests
-        shell: bash -elo pipefail {0}
-        run: |
-          unset CONDARC  # Interferes with tests
-          cd ./build/libmamba-spdlog && ./tests/test_libmamba_logging_spdlog
+
 
   libmambapy_tests_win:
     name: libmambapy tests

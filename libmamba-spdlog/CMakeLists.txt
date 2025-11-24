@@ -32,7 +32,11 @@ add_library(libmamba-spdlog INTERFACE)
 # )
 add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
 
-target_include_directories(libmamba-spdlog INTERFACE $<INSTALL_INTERFACE:include>)
+target_include_directories(libmamba-spdlog INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
 
 target_link_libraries(libmamba-spdlog
     INTERFACE

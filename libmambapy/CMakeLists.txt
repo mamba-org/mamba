@@ -11,6 +11,9 @@ project(libmambapy)
 
 if(NOT TARGET mamba::libmamba)
     find_package(libmamba CONFIG REQUIRED)
+    set(libmamba_target mamba::libmamba-dyn)
+else()
+    set(libmamba_target mamba::libmamba)
 endif()
 
 if(NOT TARGET mamba::libmamba-spdlog)
@@ -49,7 +52,7 @@ target_include_directories(bindings PRIVATE bindings)
 
 mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_link_libraries(bindings PRIVATE pybind11::pybind11 mamba::libmamba mamba::libmamba-spdlog)
+target_link_libraries(bindings PRIVATE pybind11::pybind11 ${libmamba_target} mamba::libmamba-spdlog)
 target_compile_features(bindings PUBLIC cxx_std_20)
 set_target_properties(
     bindings

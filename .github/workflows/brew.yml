@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: homebrew/brew:latest
+      options: --user root
 
     steps:
       # v1 required due to permissions error

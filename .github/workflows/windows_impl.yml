@@ -46,7 +46,7 @@ jobs:
             -D BUILD_LIBMAMBA_SPDLOG_TESTS=ON ^
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake --build build/ --parallel --verbose
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
       - name: Show build cache statistics
         run: sccache --show-stats
@@ -89,12 +89,12 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
-          cd ./build/libmamba&& ldd ./tests/test_libmamba_logging && ./tests/test_libmamba_logging
+          cd ./build/libmamba&& ./tests/test_libmamba_logging
       - name: Run libmamba spdlog-based logging tests
         shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
-          cd ./build/libmamba && ldd ../libmamba-spdlog/tests/test_libmamba_logging_spdlog && ../libmamba-spdlog/tests/test_libmamba_logging_spdlog
+          cd ./build/libmamba && ../libmamba-spdlog/tests/test_libmamba_logging_spdlog
       - name: Run libmamba tests
         shell: bash -elo pipefail {0}
         run: |

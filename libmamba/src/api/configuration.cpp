@@ -6,16 +6,15 @@
 
 #include <algorithm>
 #include <iostream>
-#include <regex>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
-#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
@@ -746,11 +745,17 @@ namespace mamba
             // and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
             const fs::u8path default_root_prefix_v2 = fs::u8path(util::user_data_dir()) / "mamba";
 
-            validate_existing_root_prefix(default_root_prefix_v1)
-                .or_else([&default_root_prefix_v2](const auto& /* error */)
-                         { return validate_root_prefix(default_root_prefix_v2); })
-                .transform([&](fs::u8path&& p) { root_prefix = std::move(p); })
-                .or_else([](mamba_error&& error) { throw std::move(error); });
+            auto result = validate_existing_root_prefix(default_root_prefix_v1)
+                              .or_else([&default_root_prefix_v2](const auto& /* error */)
+                                       { return validate_root_prefix(default_root_prefix_v2); });
+            if (result)
+            {
+                root_prefix = std::move(result).value();
+            }
+            else
+            {
+                throw std::move(result).value();
+            }
 
             LOG_TRACE << "Using default root prefix for micromamba: " << root_prefix;
 #endif
@@ -1049,10 +1054,9 @@ namespace mamba
         {
             if (!value)
             {
-                throw std::runtime_error(fmt::format(
-                    "Number of download threads as to be positive (currently set to {})",
-                    value
-                ));
+                throw std::runtime_error(
+                    fmt::format("Number of download threads as to be positive (currently set to {})", value)
+                );
             }
         }
 
@@ -1269,13 +1273,15 @@ namespace mamba
         insert(Configurable("target_prefix", &m_context.prefix_params.target_prefix)
                    .group("Basic")
                    .set_env_var_names()
-                   .needs({ "root_prefix",
-                            "envs_dirs",
-                            "env_name",
-                            "spec_file_env_name",
-                            "use_target_prefix_fallback",
-                            "use_default_prefix_fallback",
-                            "use_root_prefix_fallback" })
+                   .needs(
+                       { "root_prefix",
+                         "envs_dirs",
+                         "env_name",
+                         "spec_file_env_name",
+                         "use_target_prefix_fallback",
+                         "use_default_prefix_fallback",
+                         "use_root_prefix_fallback" }
+                   )
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
                    .set_post_merge_hook<fs::u8path>(
@@ -1313,8 +1319,8 @@ namespace mamba
                    .needs({ "target_prefix", "rc_files" })
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<int>([this](int& value)
-                                             { detail::target_prefix_checks_hook(m_context, value); }
+                   .set_post_merge_hook<int>(
+                       [this](int& value) { detail::target_prefix_checks_hook(m_context, value); }
                    ));
 
         insert(Configurable("env_name", std::string(""))
@@ -1490,10 +1496,12 @@ namespace mamba
         insert(Configurable("repodata_use_zst", &m_context.repodata_use_zst)
                    .group("Repodata")
                    .set_rc_configurable()
-                   .description("Use zstd encoded repodata when fetching ("
-                                "Note that this doesn't apply when fetching from an OCI registry - "
-                                "using `mirrored_channels` - since compressed repodata is "
-                                "automatically used when present.)\n"));
+                   .description(
+                       "Use zstd encoded repodata when fetching ("
+                       "Note that this doesn't apply when fetching from an OCI registry - "
+                       "using `mirrored_channels` - since compressed repodata is "
+                       "automatically used when present.)\n"
+                   ));
 
 
         insert(Configurable("repodata_has_zst", &m_context.repodata_has_zst)
@@ -1577,7 +1585,8 @@ namespace mamba
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("The factor determines the time HTTP connection should wait for attempt."
+                   .description(
+                       "The factor determines the time HTTP connection should wait for attempt."
                    ));
 
         insert(Configurable("remote_max_retries", &m_context.remote_fetch_params.max_retries)
@@ -1619,7 +1628,18 @@ namespace mamba
                        [&](std::vector<std::string>& value)
                        { return detail::file_specs_hook(*this, value); }
                    )
-                   .description("File (yaml, explicit or plain)"));
+                   .description("File providing package specifications (yaml, explicit or plain, or json)")
+                   // clang-format off
+                   .long_description(unindent(R"(
+                        File providing package specifications, either an
+                        environment file (yaml, explicit or plain) or a
+                        an environment lockfile.
+                        Valid environment lockfile formats: conda-lock file
+                        (see https://github.com/conda/conda-lock , file name must end with '-lock.yaml'
+                         or '-lock.yml') or mambajs's lockfile
+                        (see https://github.com/emscripten-forge/mambajs/blob/main/packages/mambajs-core/schema/ )
+                        )")));
+        // clang-format on
 
         insert(Configurable("no_pin", false)
                    .group("Solver")
@@ -1655,8 +1675,10 @@ namespace mamba
 
         insert(Configurable("no_deps", false)
                    .group("Solver")
-                   .description("Do not install dependencies. This WILL lead to broken environments "
-                                "and inconsistent behavior. Use at your own risk")
+                   .description(
+                       "Do not install dependencies. This WILL lead to broken environments "
+                       "and inconsistent behavior. Use at your own risk"
+                   )
                    .set_post_merge_hook<bool>([&](bool& value)
                                               { m_context.solver_flags.keep_dependencies = !value; }));
 
@@ -1670,12 +1692,13 @@ namespace mamba
                    .group("Solver")
                    .description("Force reinstall of package"));
 
-        insert(Configurable("allow_uninstall", &m_context.solver_flags.allow_uninstall)
-                   .group("Solver")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Allow uninstall when installing or updating packages. Default is true."
-                   ));
+        insert(
+            Configurable("allow_uninstall", &m_context.solver_flags.allow_uninstall)
+                .group("Solver")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("Allow uninstall when installing or updating packages. Default is true.")
+        );
 
         insert(Configurable("allow_downgrade", &m_context.solver_flags.allow_downgrade)
                    .group("Solver")
@@ -1836,12 +1859,13 @@ namespace mamba
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
 
-        insert(Configurable("use_uv", &m_context.use_uv)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description("Whether to use uv for installing pip dependencies. Defaults to false."
-                   ));
+        insert(
+            Configurable("use_uv", &m_context.use_uv)
+                .group("Extract, Link & Install")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("Whether to use uv for installing pip dependencies. Defaults to false.")
+        );
 
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &m_context.always_yes)
@@ -1864,11 +1888,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Only display what would have been done"));
 
-        insert(Configurable("download_only", &m_context.download_only)
-                   .group("Output, Prompt and Flow Control")
-                   .set_env_var_names()
-                   .description("Only download and extract packages, do not link them into environment."
-                   ));
+        insert(
+            Configurable("download_only", &m_context.download_only)
+                .group("Output, Prompt and Flow Control")
+                .set_env_var_names()
+                .description("Only download and extract packages, do not link them into environment.")
+        );
 
         insert(Configurable("log_level", &m_context.output_params.logging_level)
                    .group("Output, Prompt and Flow Control")
@@ -2194,12 +2219,12 @@ namespace mamba
 
     void Configuration::load()
     {
-        spdlog::set_level(spdlog::level::n_levels);
-        spdlog::flush_on(spdlog::level::n_levels);
+        logging::set_log_level(log_level::all);
+        logging::set_flush_threshold(log_level::all);
         // Hard-coded value assuming it's enough to store the logs emitted
         // before setting the log level, flushing the backtrace and setting
         // its new capacity
-        spdlog::enable_backtrace(500);
+        logging::enable_backtrace(500);
 
         LOG_DEBUG << "Loading configuration";
 
@@ -2231,17 +2256,17 @@ namespace mamba
 
         m_context.set_log_level(m_context.output_params.logging_level);
 
-        spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
-        spdlog::flush_on(spdlog::level::off);
+        logging::flush_logs();
+        logging::set_flush_threshold(log_level::off);
 
         m_context.dump_backtrace_no_guards();
         if (m_context.output_params.log_backtrace > 0)
         {
-            spdlog::enable_backtrace(m_context.output_params.log_backtrace);
+            logging::enable_backtrace(m_context.output_params.log_backtrace);
         }
         else
         {
-            spdlog::disable_backtrace();
+            logging::disable_backtrace();
         }
     }
 

@@ -10,7 +10,6 @@
 #include <solv/evr.h>
 #include <solv/selection.h>
 #include <solv/solver.h>
-#include <spdlog/spdlog.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -28,26 +27,42 @@
 
 namespace mamba
 {
-    void add_spdlog_logger_to_database(solver::libsolv::Database& database)
+    namespace
+    {
+
+        constexpr auto to_mamba(solver::libsolv::LogLevel level) -> log_level
+        {
+            switch (level)
+            {
+                case (solver::libsolv::LogLevel::Fatal):
+                    return log_level::critical;
+                case (solver::libsolv::LogLevel::Error):
+                    return log_level::err;
+                case (solver::libsolv::LogLevel::Warning):
+                    return log_level::warn;
+                case (solver::libsolv::LogLevel::Debug):
+                    return log_level::debug;
+            }
+
+            // TODO(c++23): std::unreachable()
+            assert(false);
+            return log_level::off;
+        }
+    }
+
+    void add_logger_to_database(solver::libsolv::Database& database)
     {
         database.set_logger(
-            [logger = spdlog::get("libsolv")](solver::libsolv::LogLevel level, std::string_view msg)
+            [](solver::libsolv::LogLevel level, std::string_view msg)
             {
-                switch (level)
-                {
-                    case (solver::libsolv::LogLevel::Fatal):
-                        logger->critical(msg);
-                        break;
-                    case (solver::libsolv::LogLevel::Error):
-                        logger->error(msg);
-                        break;
-                    case (solver::libsolv::LogLevel::Warning):
-                        logger->warn(msg);
-                        break;
-                    case (solver::libsolv::LogLevel::Debug):
-                        logger->debug(msg);
-                        break;
-                }
+                logging::log(
+                    {
+                        .message = std::string{ msg },
+                        .level = to_mamba(level),
+                        .source = log_source::libsolv,
+                        // THINK: add a location? this line?
+                    }
+                );
             }
         );
     }
@@ -105,7 +120,8 @@ namespace mamba
                         add_pip,
                         ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
                                              : PackageTypes::CondaOrElseTarBz2,
-                        static_cast<solver::libsolv::VerifyPackages>(ctx.validation_params.verify_artifacts
+                        static_cast<solver::libsolv::VerifyPackages>(
+                            ctx.validation_params.verify_artifacts
                         ),
                         json_parser
                     );
@@ -116,22 +132,18 @@ namespace mamba
                 {
                     if (!util::on_win)
                     {
-                        database
-                            .native_serialize_repo(
-                                repo,
-                                subdir.writable_libsolv_cache_path(),
-                                expected_cache_origin
-                            )
-                            .or_else(
-                                [&](const auto& err)
-                                {
-                                    LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                                << subdir.writable_libsolv_cache_path()
-                                                << R"(" for repo ")" << subdir.name() << ": "
-                                                << err.what();
-                                    ;
-                                }
-                            );
+                        auto result = database.native_serialize_repo(
+                            repo,
+                            subdir.writable_libsolv_cache_path(),
+                            expected_cache_origin
+                        );
+                        if (!result)
+                        {
+                            LOG_WARNING << R"(Fail to write native serialization to file ")"
+                                        << subdir.writable_libsolv_cache_path() << R"(" for repo ")"
+                                        << subdir.name() << ": " << std::move(result).error().what();
+                            ;
+                        }
                     }
                     return std::move(repo);
                 }

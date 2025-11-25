@@ -724,7 +724,9 @@ namespace mamba::fs
         mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
+    static_assert(
+        std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>
+    );
 
     inline directory_iterator begin(directory_iterator iter) noexcept
     {
@@ -805,7 +807,9 @@ namespace mamba::fs
         mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
+    static_assert(
+        std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>
+    );
 
     inline recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept
     {
@@ -1311,7 +1315,8 @@ struct std::hash<::mamba::fs::u8path>
 {
     std::size_t operator()(const ::mamba::fs::u8path& path) const noexcept
     {
-        return std::filesystem::hash_value(path.std_path()
+        return std::filesystem::hash_value(
+            path.std_path()
         );  // TODO: once we stop using gcc < 12 we can properly use
             // std::hash<std::filesystem::path>{}(path.std_path());
     }

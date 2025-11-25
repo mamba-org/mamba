@@ -172,11 +172,13 @@ namespace
 
         SECTION("XDG environment variables")
         {
-            update_env_map({
-                { "XDG_CONFIG_HOME", "xconfig" },
-                { "XDG_DATA_HOME", "xdata" },
-                { "XDG_CACHE_HOME", "xcache" },
-            });
+            update_env_map(
+                {
+                    { "XDG_CONFIG_HOME", "xconfig" },
+                    { "XDG_DATA_HOME", "xdata" },
+                    { "XDG_CACHE_HOME", "xcache" },
+                }
+            );
             REQUIRE(user_config_dir() == "xconfig");
             REQUIRE(user_data_dir() == "xdata");
             REQUIRE(user_cache_dir() == "xcache");

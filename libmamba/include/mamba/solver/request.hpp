@@ -105,9 +105,13 @@ namespace mamba::solver
                         else
                         {
                             func(itm);
+                            return util::LoopControl::Continue;
                         }
                     }
-                    return util::LoopControl::Continue;
+                    else
+                    {
+                        return util::LoopControl::Continue;
+                    }
                 },
                 unknown_job
             );

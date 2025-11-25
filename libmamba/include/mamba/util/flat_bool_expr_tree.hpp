@@ -368,8 +368,9 @@ namespace mamba::util
     }
 
     template <typename V, typename O, typename C>
-    auto InfixParser<V, O, C>::stack_top_is_op_with_greater_precedence_than(const operator_type& op
-    ) const -> bool
+    auto
+    InfixParser<V, O, C>::stack_top_is_op_with_greater_precedence_than(const operator_type& op) const
+        -> bool
     {
         if (stack_empty())
         {

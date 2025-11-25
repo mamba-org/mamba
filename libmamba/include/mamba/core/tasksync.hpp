@@ -33,7 +33,7 @@ namespace mamba
 
         WARNING: When used as a member of a type to synchronized tasks of the `this` instance, it is
         best to set the TaskSynchronizer as the last member so that it is the first one to be
-       destroyed; alternatively, `.join_tasks()` can be called manually in the destructor too.
+        destroyed; alternatively, `.join_tasks()` can be called manually in the destructor too.
 
         Example:
 
@@ -42,7 +42,7 @@ namespace mamba
             public:
 
                 // Whatever "scheduler" or "other_sys" is....
-                MonSystem(Scheduler scheduler, OtherSystem other_sys) : scheduler(sccheduler)
+                MonSystem(Scheduler scheduler, OtherSystem other_sys) : scheduler(scheduler)
                 {
                     // This callback will do nothing if this object is destroyed.
                     other_sys.on_something(synchronized.synchronized([this]{ ok(); }));
@@ -97,7 +97,7 @@ namespace mamba
             The wrapper guarantees that if the resulting callable is invoked:
                 - if the joining function of this synchronizer have been called, skip execution;
                 - if the joining function of this synchronizer is called while the callback is
-           invoked, it will block until the end of the body of the original callable;
+            invoked, it will block until the end of the body of the original callable;
                 - if no joining function have been called yet, notify the synchronizer that the
                     execution begins, then execute the body;
 
@@ -131,11 +131,11 @@ namespace mamba
         }
 
         /** Notify all synchronized tasks and blocks until all already started synchronized tasks
-           are done.
+            are done.
 
             This is a joining function: once it is called, no synchronized task body will be
-           executed again. Synchronized tasks which body is being executed will notify this
-           synchronizer once done.
+            executed again. Synchronized tasks which body is being executed will notify this
+            synchronizer once done.
 
             Only returns once all the executing tasks have finished finishes.
 
@@ -148,7 +148,7 @@ namespace mamba
         }
 
         /** Join synchronized tasks and reset this object's state to be reusable like if it was just
-           constructed.
+            constructed.
 
             Similar to calling join_tasks() but is_joined() will return false after calling this.
 

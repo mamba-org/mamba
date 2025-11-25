@@ -225,6 +225,14 @@ def test_init(tmp_home, tmp_root_prefix, shell_type, prefix_selector, multiple_t
         assert (tmp_root_prefix / "condabin").is_dir()
 
 
+def test_shell_init_with_env_var(tmp_home, tmp_root_prefix):
+    skip_if_shell_incompat("bash")
+    umamba_cmd = helpers.get_umamba()
+    res = helpers.umamba_run("sh", "-c", f"export SHELL=/bin/bash; {umamba_cmd} shell init")
+    assert res
+    assert (tmp_root_prefix / "etc" / "profile.d").is_dir()
+
+
 def test_dash(tmp_home, tmp_root_prefix):
     skip_if_shell_incompat("dash")
     umamba = helpers.get_umamba()

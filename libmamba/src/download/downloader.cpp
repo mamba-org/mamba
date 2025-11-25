@@ -174,16 +174,18 @@ namespace mamba::download
         on_success_callback success,
         on_failure_callback error
     )
-        : p_impl(std::make_unique<Impl>(
-              handle,
-              request,
-              downloader,
-              params,
-              auth_info,
-              verbose,
-              std::move(success),
-              std::move(error)
-          ))
+        : p_impl(
+              std::make_unique<Impl>(
+                  handle,
+                  request,
+                  downloader,
+                  params,
+                  auth_info,
+                  verbose,
+                  std::move(success),
+                  std::move(error)
+              )
+          )
     {
     }
 
@@ -288,24 +290,41 @@ namespace mamba::download
     namespace
     {
         int
-        curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void* userptr)
+        curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void*)
         {
-            auto* logger = reinterpret_cast<spdlog::logger*>(userptr);
-            std::string log;
+            static constexpr auto symbol_for = [](curl_infotype type_)
+            {
+                switch (type_)
+                {
+                    case CURLINFO_TEXT:
+                        return "*";
+                    case CURLINFO_HEADER_OUT:
+                        return ">";
+                    case CURLINFO_HEADER_IN:
+                        return "<";
+                    default:
+                        return "";
+                };
+            };
+
             switch (type)
             {
                 case CURLINFO_TEXT:
-                    log = Console::hide_secrets(std::string_view(data, size));
-                    logger->info(fmt::format("* {}", log));
-                    break;
                 case CURLINFO_HEADER_OUT:
-                    log = Console::hide_secrets(std::string_view(data, size));
-                    logger->info(fmt::format("> {}", log));
-                    break;
                 case CURLINFO_HEADER_IN:
-                    log = Console::hide_secrets(std::string_view(data, size));
-                    logger->info(fmt::format("< {}", log));
+                {
+                    auto message = fmt::format(
+                        "{} {}",
+                        symbol_for(type),
+                        Console::hide_secrets(std::string_view(data, size))
+                    );
+                    logging::log(
+                        { .message = std::move(message),
+                          .level = log_level::info,
+                          .source = log_source::libcurl }
+                    );
                     break;
+                }
                 default:
                     // WARNING Using `hide_secrets` here will give a seg fault on linux,
                     // and other errors on other platforms
@@ -376,10 +395,7 @@ namespace mamba::download
         p_handle->set_opt(CURLOPT_VERBOSE, verbose);
 
         configure_handle_headers(params, auth_info);
-
-        auto logger = spdlog::get("libcurl");
         p_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
-        p_handle->set_opt(CURLOPT_DEBUGDATA, logger.get());
     }
 
     void DownloadAttempt::Impl::configure_handle_headers(
@@ -661,7 +677,8 @@ namespace mamba::download
     {
         if (m_request.value().on_failure.has_value())
         {
-            safe_invoke(m_request.value().on_failure.value(), res);
+            // We dont want to propagate errors coming from user's callbacks
+            [[maybe_unused]] auto result = safe_invoke(m_request.value().on_failure.value(), res);
         }
     }
 
@@ -900,7 +917,8 @@ namespace mamba::download
         {
             if (p_initial_request->on_failure.has_value())
             {
-                safe_invoke(p_initial_request->on_failure.value(), res);
+                // We dont want to propagate errors coming from user's callbacks
+                [[maybe_unused]] auto result = safe_invoke(p_initial_request->on_failure.value(), res);
             }
         }
     }
@@ -1157,7 +1175,7 @@ namespace mamba::download
             auto completion_callback = m_completion_map.find(msg.m_handle_id);
             if (completion_callback == m_completion_map.end())
             {
-                spdlog::error(
+                LOG_ERROR << fmt::format(
                     "Received DONE message from unknown target - running transfers left = {}",
                     still_running
                 );
@@ -1196,7 +1214,8 @@ namespace mamba::download
     {
         if (m_options.on_unexpected_termination.has_value())
         {
-            safe_invoke(m_options.on_unexpected_termination.value());
+            // We dont want to propagate errors coming from user's callbacks
+            [[maybe_unused]] auto result = safe_invoke(m_options.on_unexpected_termination.value());
         }
     }
 

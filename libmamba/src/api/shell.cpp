@@ -11,6 +11,7 @@
 #include "mamba/api/shell.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -97,11 +98,12 @@ namespace mamba
         // TODO do we need to do something with `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
         {
-            Console::instance().json_write({ { "success", true },
-                                             { "operation", "shell_hook" },
-                                             { "context", { { "shell_type", shell_type } } },
-                                             { "actions",
-                                               { { "print", { activator->hook(shell_type) } } } } });
+            Console::instance().json_write(
+                { { "success", true },
+                  { "operation", "shell_hook" },
+                  { "context", { { "shell_type", shell_type } } },
+                  { "actions", { { "print", { activator->hook(shell_type) } } } } }
+            );
         }
         else
         {

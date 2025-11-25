@@ -186,7 +186,7 @@ namespace mamba
 
     inline void counting_semaphore::lock()
     {
-        std::unique_lock<std::mutex> lock(m_access_mutex);
+        std::unique_lock lock{ m_access_mutex };
         m_cv.wait(lock, [&]() { return m_value > 0; });
         --m_value;
     }
@@ -194,7 +194,7 @@ namespace mamba
     inline void counting_semaphore::unlock()
     {
         {
-            std::lock_guard<std::mutex> lock(m_access_mutex);
+            std::unique_lock lock{ m_access_mutex };
             if (++m_value <= 0)
             {
                 return;

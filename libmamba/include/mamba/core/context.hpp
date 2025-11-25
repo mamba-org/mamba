@@ -12,11 +12,10 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/common_types.hpp"
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
-#include "mamba/core/tasksync.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -77,16 +76,11 @@ namespace mamba
 
         static void use_default_signal_handler(bool val);
 
-        struct OutputParams
+        struct OutputParams : LoggingParams
         {
-            int verbosity{ 0 };
-            log_level logging_level{ log_level::warn };
-
             bool json{ false };
             bool quiet{ false };
-
-            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
-            std::size_t log_backtrace{ 0 };
+            int verbosity{ 0 };
         };
 
         struct GraphicsParams
@@ -156,24 +150,24 @@ namespace mamba
         LinkParams link_params;
 
         download::RemoteFetchParams remote_fetch_params = {
-            /* .ssl_verify */ { "" },
-            /* .ssl_no_revoke */ false,
-            /* .curl_initialized */ false,
-            /* .user_agent */ { "mamba/" LIBMAMBA_VERSION_STRING },
-            /* .connect_timeout_secs */ 10.,
-            /* .retry_timeout */ 2,
-            /* .retry_backoff */ 3,
-            /* .max_retries */ 3,
-            /* .proxy_servers */ {},
+            .ssl_verify = { "" },
+            .ssl_no_revoke = false,
+            .curl_initialized = false,
+            .user_agent = { "mamba/" LIBMAMBA_VERSION_STRING },
+            .connect_timeout_secs = 10.,
+            .retry_timeout = 2,
+            .retry_backoff = 3,
+            .max_retries = 3,
+            .proxy_servers = {},
         };
 
         download::Options download_options() const
         {
             return {
-                /* .download_threads */ this->threads_params.download_threads,
-                /* .fail_fast */ false,
-                /* .sort */ true,
-                /* .verbose */ this->output_params.verbosity >= 2,
+                .download_threads = this->threads_params.download_threads,
+                .fail_fast = false,
+                .sort = true,
+                .verbose = this->output_params.verbosity >= 2,
             };
         }
 
@@ -195,31 +189,33 @@ namespace mamba
             };
 
             return {
-                /* .local_repodata_ttl */ get_local_repodata_ttl(),
-                /* .offline */ this->offline,
-                /* .force_use_zst */ false  // Must override based on ChannelContext
+                .local_repodata_ttl_s = get_local_repodata_ttl(),
+                .offline = this->offline,
+                .repodata_force_use_zst = false  // Must override based on ChannelContext
             };
         }
 
         SubdirDownloadParams subdir_download_params() const
         {
             return {
-                /* .offline */ this->offline,
-                /* .repodata_check_zst */ this->repodata_use_zst,
+                .offline = this->offline,
+                .repodata_check_zst = this->repodata_use_zst,
             };
         }
 
         TransactionParams transaction_params() const
         {
-            return { /* .is_mamba_exe */ command_params.is_mamba_exe,
-                     /* .json_output */ output_params.json,
-                     /* .verbosity */ output_params.verbosity,
-                     /* .shortcut */ shortcuts,
-                     /* .envs_dirs */ envs_dirs,
-                     /* .platform */ platform,
-                     /* .prefix_params */ prefix_params,
-                     /* .link_params */ link_params,
-                     /* .threads_params */ threads_params };
+            return {
+                .is_mamba_exe = command_params.is_mamba_exe,
+                .json_output = output_params.json,
+                .verbosity = output_params.verbosity,
+                .shortcuts = shortcuts,
+                .envs_dirs = envs_dirs,
+                .platform = platform,
+                .prefix_params = prefix_params,
+                .link_params = link_params,
+                .threads_params = threads_params,
+            };
         }
 
         std::size_t lock_timeout = 0;
@@ -277,9 +273,25 @@ namespace mamba
         void dump_backtrace_no_guards();
 
         void set_verbosity(int lvl);
+
+        // TODO: deprecate and replace by `mamba::logging::set_log_level` after adding a
+        // way to be notified of logging parameters changes to keep `output_params` up
+        // to date.
         void set_log_level(log_level level);
 
-        Context(const ContextOptions& options = {});
+        /** Setups the required core subsystems for `libmamba`'s high-level operations to work,
+            following the provided options.
+
+            @param options General options, see @ContextOptions
+
+            @param log_handler Log handler implementation to use once the logging system starts.
+                   Ignored if `options.enable_logging == false`.
+                   If `options.enable_logging == true and log_handler.has_value() == false`,
+                   which is the default if this parameter is not specified,
+                   then a default implementation-defined log handler implementation will be used.
+        */
+        Context(const ContextOptions& options = {}, logging::AnyLogHandler log_handler = {});
+
         ~Context();
 
     private:
@@ -291,22 +303,14 @@ namespace mamba
         specs::AuthenticationDataBase m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
-        class ScopedLogger;
-        std::vector<ScopedLogger> loggers;
-
-        std::shared_ptr<Logger> main_logger();
-        void add_logger(std::shared_ptr<Logger>);
-
-        TaskSynchronizer tasksync;
-
 
         // Enables the provided context setup signal handling.
         // This function must be called only for one Context in the lifetime of the program.
         void enable_signal_handling();
 
-        // Enables the provided context to drive the logging system.
+        // Starts using the provided context to drive the logging system.
         // This function must be called only for one Context in the lifetime of the program.
-        void enable_logging();
+        void start_logging(logging::AnyLogHandler log_handler);
     };
 
 

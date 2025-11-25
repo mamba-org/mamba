@@ -450,10 +450,10 @@
       "url": "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda",
       "version": "6.4"
     },
-    "numpy-1.26.4-py312heda63a1_0.conda": {
-      "build": "py312heda63a1_0",
+    "numpy-1.26.4-py312head63a1_0.conda": {
+      "build": "py312head63a1_0",
       "build_number": 0,
-      "build_string": "py312heda63a1_0",
+      "build_string": "py312head63a1_0",
       "constrains": ["numpy-base <0a0"],
       "depends": [
         "libgcc-ng >=12",
@@ -464,7 +464,7 @@
         "python_abi 3.12.* *_cp312",
         "python >=3.12,<3.13.0a0"
       ],
-      "fn": "numpy-1.26.4-py312heda63a1_0.conda",
+      "fn": "numpy-1.26.4-py312head63a1_0.conda",
       "license": "BSD-3-Clause",
       "md5": "d8285bea2a350f63fab23bf460221f3f",
       "name": "numpy",

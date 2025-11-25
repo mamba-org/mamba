@@ -222,6 +222,9 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_impl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_conda.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_mambajs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
@@ -229,6 +232,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/logging.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/logging_spdlog.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -316,6 +321,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/synchronized_value.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
@@ -365,7 +371,6 @@ set(
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/common_types.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context_params.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
@@ -376,6 +381,9 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging_spdlog.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging_tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
@@ -562,6 +570,15 @@ macro(libmamba_create_target target_name linkage output_name)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
+            # TODO AND CONTEXT: We found a link error in libarchive which lacked a link to XmlLite
+            # which is provided by Windows. libarchive has cmake scripts doing the necessary work to
+            # link that library but for some reason we couldnt identify it is not linking in this
+            # specific case (it was before but the version changed apparently). As a workaround we
+            # manually link with that required library but a better solution would be to find why
+            # libarchive doesnt do it itself.
+            set(SYSTEM_PROVIDED_LIBRARIES XmlLite.lib) # required by libarchive
+            set(ENABLE_WIN32_XMLLITE ON)
+
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)
             find_package(CURL CONFIG REQUIRED)
@@ -581,6 +598,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${target_name}
                 PUBLIC
                     ${CRYPTO_LIBRARIES}
+                    ${SYSTEM_PROVIDED_LIBRARIES}
                     ${LibArchive_LIBRARY}
                     ${LIBXML2_LIBRARY}
                     ${ICONV_LIBRARY}
@@ -771,8 +789,7 @@ configure_package_config_file(
 # Configure 'mambaConfig.cmake' for an install tree
 set(MAMBA_CONFIG_CODE "")
 configure_package_config_file(
-    ${PROJECT_NAME}Config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+    ${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     INSTALL_DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
 
@@ -782,7 +799,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
@@ -793,3 +810,4 @@ install(
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
     COMPONENT Mamba_Development
 )
+export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)

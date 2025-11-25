@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <ranges>

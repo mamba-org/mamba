@@ -263,8 +263,7 @@ namespace mamba
         virtual ~MultiBarManager() = default;
 
         ProgressProxy
-        add_progress_bar(const std::string& name, ProgressBarOptions options, size_t expected_total)
-            override;
+        add_progress_bar(const std::string& name, ProgressBarOptions options, size_t expected_total) override;
 
         std::size_t print(
             std::ostream& os,

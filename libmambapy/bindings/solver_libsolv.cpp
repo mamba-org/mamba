@@ -29,46 +29,60 @@ namespace mambapy
         using namespace mamba;
         using namespace mamba::solver::libsolv;
 
-        py::enum_<RepodataParser>(m, "RepodataParser")
-            .value("Mamba", RepodataParser::Mamba)
-            .value("Libsolv", RepodataParser::Libsolv)
-            .def(py::init(&enum_from_str<RepodataParser>));
-        py::implicitly_convertible<py::str, RepodataParser>();
+        make_str_enum(
+            py::enum_<RepodataParser>(m, "RepodataParser"),
+            std::array{
+                std::pair{ "Mamba", RepodataParser::Mamba },
+                std::pair{ "Libsolv", RepodataParser::Libsolv },
+            }
+        );
 
-        py::enum_<MatchSpecParser>(m, "MatchSpecParser")
-            .value("Mixed", MatchSpecParser::Mixed)
-            .value("Mamba", MatchSpecParser::Mamba)
-            .value("Libsolv", MatchSpecParser::Libsolv)
-            .def(py::init(&enum_from_str<MatchSpecParser>));
-        py::implicitly_convertible<py::str, MatchSpecParser>();
+        make_str_enum(
+            py::enum_<MatchSpecParser>(m, "MatchSpecParser"),
+            std::array{
+                std::pair{ "Mixed", MatchSpecParser::Mixed },
+                std::pair{ "Mamba", MatchSpecParser::Mamba },
+                std::pair{ "Libsolv", MatchSpecParser::Libsolv },
+            }
+        );
 
-        py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
-            .value("No", PipAsPythonDependency::No)
-            .value("Yes", PipAsPythonDependency::Yes)
-            .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
+        make_str_enum(
+            py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency"),
+            std::array{
+                std::pair{ "No", PipAsPythonDependency::No },
+                std::pair{ "Yes", PipAsPythonDependency::Yes },
+            }
+        );
         py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
 
-        py::enum_<PackageTypes>(m, "PackageTypes")
-            .value("CondaOnly", PackageTypes::CondaOnly)
-            .value("TarBz2Only", PackageTypes::TarBz2Only)
-            .value("CondaAndTarBz2", PackageTypes::CondaAndTarBz2)
-            .value("CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2)
-            .def(py::init(&enum_from_str<PackageTypes>));
-        py::implicitly_convertible<py::str, PackageTypes>();
+        make_str_enum(
+            py::enum_<PackageTypes>(m, "PackageTypes"),
+            std::array{
+                std::pair{ "CondaOnly", PackageTypes::CondaOnly },
+                std::pair{ "TarBz2Only", PackageTypes::TarBz2Only },
+                std::pair{ "CondaAndTarBz2", PackageTypes::CondaAndTarBz2 },
+                std::pair{ "CondaOrElseTarBz2", PackageTypes::CondaOrElseTarBz2 },
+            }
+        );
 
-        py::enum_<VerifyPackages>(m, "VerifyPackages")
-            .value("No", VerifyPackages::No)
-            .value("Yes", VerifyPackages::Yes)
-            .def(py::init([](bool val) { return static_cast<VerifyPackages>(val); }));
+        make_str_enum(
+            py::enum_<VerifyPackages>(m, "VerifyPackages"),
+            std::array{
+                std::pair{ "No", VerifyPackages::No },
+                std::pair{ "Yes", VerifyPackages::Yes },
+            }
+        );
         py::implicitly_convertible<py::bool_, VerifyPackages>();
 
-        py::enum_<LogLevel>(m, "LogLevel")
-            .value("Debug", LogLevel::Debug)
-            .value("Warning", LogLevel::Warning)
-            .value("Error", LogLevel::Error)
-            .value("Fatal", LogLevel::Fatal)
-            .def(py::init(&enum_from_str<LogLevel>));
-        py::implicitly_convertible<py::bool_, LogLevel>();
+        make_str_enum(
+            py::enum_<LogLevel>(m, "LogLevel"),
+            std::array{
+                std::pair{ "Debug", LogLevel::Debug },
+                std::pair{ "Warning", LogLevel::Warning },
+                std::pair{ "Error", LogLevel::Error },
+                std::pair{ "Fatal", LogLevel::Fatal },
+            }
+        );
 
         py::class_<Priorities>(m, "Priorities")
             .def(
@@ -263,8 +277,10 @@ namespace mambapy
             .def(py::init())
             .def(
                 "solve",
-                [](Solver& self, Database& database, const solver::Request& request, MatchSpecParser ms_parser
-                ) { return self.solve(database, request, ms_parser); },
+                [](Solver& self,
+                   Database& database,
+                   const solver::Request& request,
+                   MatchSpecParser ms_parser) { return self.solve(database, request, ms_parser); },
                 py::arg("database"),
                 py::arg("request"),
                 py::arg("matchspec_parser") = MatchSpecParser::Mixed
@@ -280,8 +296,7 @@ namespace mambapy
                 [](Solver&, py::args, py::kwargs)
                 {
                     // V2 migrator
-                    throw std::runtime_error("Solve status is provided as an outcome to Solver.solve."
-                    );
+                    throw std::runtime_error("Solve status is provided as an outcome to Solver.solve.");
                 }
             )
             .def(

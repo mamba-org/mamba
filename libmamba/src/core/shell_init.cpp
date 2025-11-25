@@ -15,11 +15,16 @@
 #include <fmt/ostream.h>
 #include <fmt/xchar.h>
 #include <reproc++/run.hpp>
-#ifdef _WIN32
-#include <WinReg.hpp>
 
-#include "mamba/util/os_win.hpp"
+// clang-format off
+#ifdef _WIN32
+#   include <WinReg.hpp>
+
+#   include "mamba/util/os_win.hpp"
+#else
+#   include <unistd.h>
 #endif
+// clang-format on
 
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
@@ -36,13 +41,17 @@ namespace mamba
 {
     namespace
     {
-        static const std::regex MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
-                                                          "([\\s\\S]*?)"
-                                                          "# <<< mamba initialize <<<(?:\n|\r\n)?");
+        static const std::regex MAMBA_INITIALIZE_RE_BLOCK(
+            "\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
+            "([\\s\\S]*?)"
+            "# <<< mamba initialize <<<(?:\n|\r\n)?"
+        );
 
-        static const std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
-                                                             "([\\s\\S]*?)"
-                                                             "#endregion(?:\n|\r\n)?");
+        static const std::regex MAMBA_INITIALIZE_PS_RE_BLOCK(
+            "\n?#region mamba initialize(?:\n|\r\n)?"
+            "([\\s\\S]*?)"
+            "#endregion(?:\n|\r\n)?"
+        );
     }
 
     std::string guess_shell()
@@ -97,6 +106,14 @@ namespace mamba
         {
             return "fish";
         }
+
+        // Get `SHELL` environment variable if set
+        // Standard values are assumed to be `/bin/{shell_type}` or `/usr/bin/{shell_type}`
+        if (util::get_env("SHELL").has_value())
+        {
+            return util::split(util::get_env("SHELL").value(), "/").back();
+        }
+
         return "";
     }
 

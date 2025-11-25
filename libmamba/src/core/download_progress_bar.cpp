@@ -1,4 +1,5 @@
 #include "mamba/core/download_progress_bar.hpp"
+#include "mamba/core/output.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -97,10 +98,12 @@ namespace mamba
         {
             return [](ProgressBarRepr& r)
             {
-                r.current.set_value(fmt::format(
-                    "{:>7}",
-                    to_human_readable_filesize(static_cast<double>(r.progress_bar().current()), 1)
-                ));
+                r.current.set_value(
+                    fmt::format(
+                        "{:>7}",
+                        to_human_readable_filesize(static_cast<double>(r.progress_bar().current()), 1)
+                    )
+                );
 
                 std::string total_str;
                 if (!r.progress_bar().total()
@@ -118,10 +121,12 @@ namespace mamba
                 r.total.set_value(fmt::format("{:>7}", total_str));
 
                 auto speed = r.progress_bar().speed();
-                r.speed.set_value(fmt::format(
-                    "@ {:>7}/s",
-                    speed ? to_human_readable_filesize(static_cast<double>(speed), 1) : "??.?MB"
-                ));
+                r.speed.set_value(
+                    fmt::format(
+                        "@ {:>7}/s",
+                        speed ? to_human_readable_filesize(static_cast<double>(speed), 1) : "??.?MB"
+                    )
+                );
 
                 r.separator.set_value("/");
             };
@@ -262,8 +267,7 @@ namespace mamba
     )
     {
         assert(extract_tasks.size() >= dl_requests.size());
-        auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
-        );
+        auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated);
         m_extract_bar.reserve(extract_tasks.size());
         m_throttle_time.resize(dl_requests.size(), std::chrono::steady_clock::now());
         m_download_bar.reserve(dl_requests.size());

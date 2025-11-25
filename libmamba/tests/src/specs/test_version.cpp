@@ -470,11 +470,13 @@ namespace
             REQUIRE(Version::parse(raw) == expected);
         }
 
-        REQUIRE(std::is_sorted(
-            sorted_version.cbegin(),
-            sorted_version.cend(),
-            [](const auto& a, const auto& b) { return a.second < b.second; }
-        ));
+        REQUIRE(
+            std::is_sorted(
+                sorted_version.cbegin(),
+                sorted_version.cend(),
+                [](const auto& a, const auto& b) { return a.second < b.second; }
+            )
+        );
 
         // Default constructed
         REQUIRE(Version::parse("0.0").value() == Version());

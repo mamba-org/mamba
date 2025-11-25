@@ -9,7 +9,6 @@
 
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -17,6 +16,7 @@
 #include <fmt/core.h>
 
 #include "mamba/download/request.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 namespace mamba::download
 {
@@ -66,6 +66,16 @@ namespace mamba::download
         MirrorRequest& operator=(MirrorRequest&&) = default;
     };
 
+    struct MirrorStats  // Moved out of Mirror internals because of compilers not agreeing:
+                        // https://godbolt.org/z/GcjWhrb9W
+    {
+        std::optional<std::size_t> allowed_connections = std::nullopt;
+        std::size_t max_tried_connections = 0;
+        std::size_t running_transfers = 0;
+        std::size_t successful_transfers = 0;
+        std::size_t failed_transfers = 0;
+    };
+
     // A Mirror represents a location from where an asset can be downloaded.
     // It handles the generation of required requests to get the asset, and
     // provides some statistics about its usage.
@@ -109,16 +119,13 @@ namespace mamba::download
         MirrorID m_id;
         size_t m_max_retries;
 
-        // TODO: use synchronized value
-        std::mutex m_stats_mutex;
-        std::optional<std::size_t> m_allowed_connections = std::nullopt;
-        std::size_t m_max_tried_connections = 0;
-        std::size_t m_running_transfers = 0;
-        std::size_t m_successful_transfers = 0;
-        std::size_t m_failed_transfers = 0;
+        static_assert(std::default_initializable<MirrorStats>);
+
+        util::synchronized_value<MirrorStats> m_stats;
     };
 
     std::unique_ptr<Mirror> make_mirror(std::string url);
+
 }
 
 #endif

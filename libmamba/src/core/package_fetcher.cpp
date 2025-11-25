@@ -198,21 +198,25 @@ namespace mamba
 
         if (!sha256().empty())
         {
-            res = validate_checksum({
-                /* .expected= */ sha256(),
-                /* .actual= */ validation::sha256sum(m_tarball_path),
-                /* .name= */ "SHA256",
-                /* .error= */ ValidationResult::SHA256_ERROR,
-            });
+            res = validate_checksum(
+                {
+                    /* .expected= */ sha256(),
+                    /* .actual= */ validation::sha256sum(m_tarball_path),
+                    /* .name= */ "SHA256",
+                    /* .error= */ ValidationResult::SHA256_ERROR,
+                }
+            );
         }
         else if (!md5().empty())
         {
-            res = validate_checksum({
-                /* .expected= */ md5(),
-                /* .actual= */ validation::md5sum(m_tarball_path),
-                /* .name= */ "MD5",
-                /* .error= */ ValidationResult::MD5SUM_ERROR,
-            });
+            res = validate_checksum(
+                {
+                    /* .expected= */ md5(),
+                    /* .actual= */ validation::md5sum(m_tarball_path),
+                    /* .name= */ "MD5",
+                    /* .error= */ ValidationResult::MD5SUM_ERROR,
+                }
+            );
         }
 
         auto event = res == ValidationResult::VALID ? PackageExtractEvent::validate_success
@@ -418,8 +422,7 @@ namespace mamba
             LOG_ERROR << "File not valid: " << params.name << " doesn't match expectation "
                       << m_tarball_path << "\nExpected: " << params.expected
                       << "\nActual: " << params.actual << "\n";
-            Console::instance().print(util::concat(filename(), " tarball has incorrect ", params.name)
-            );
+            Console::instance().print(util::concat(filename(), " tarball has incorrect ", params.name));
             // TODO: terminate monitor
         }
         return res;
@@ -435,6 +438,19 @@ namespace mamba
         index_file >> index;
 
         nlohmann::json repodata_record = m_package_info;
+
+        // For explicit spec files (URLs), m_package_info has empty depends/constrains arrays
+        // that would overwrite the correct values from index.json. Remove these empty fields.
+        if (auto depends_it = repodata_record.find("depends");
+            depends_it != repodata_record.end() && depends_it->empty())
+        {
+            repodata_record.erase("depends");
+        }
+        if (auto constrains_it = repodata_record.find("constrains");
+            constrains_it != repodata_record.end() && constrains_it->empty())
+        {
+            repodata_record.erase("constrains");
+        }
 
         // To take correction of packages metadata (e.g. made using repodata patches) into account,
         // we insert the index into the repodata record to only add new fields from the index
@@ -458,7 +474,7 @@ namespace mamba
     void PackageFetcher::update_urls_txt() const
     {
         // TODO: check if this lock is really required
-        std::lock_guard<std::mutex> lock(urls_txt_mutex);
+        std::unique_lock lock{ urls_txt_mutex };
         const auto urls_file_path = m_cache_path / "urls.txt";
         std::ofstream urls_txt(urls_file_path.std_path(), std::ios::app);
         urls_txt << url() << std::endl;
@@ -468,7 +484,8 @@ namespace mamba
     {
         if (cb)
         {
-            safe_invoke(*cb, event);
+            // We dont want to propagate errors coming from user's callbacks
+            [[maybe_unused]] auto result = safe_invoke(*cb, event);
         }
     }
 

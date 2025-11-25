@@ -34,10 +34,12 @@ namespace mamba::util
 
         if (ec)
         {
-            return tl::make_unexpected(OSError{ fmt::format(
-                R"(Could not find macOS version by calling "sw_vers -productVersion": {})",
-                ec.message()
-            ) });
+            return tl::make_unexpected(
+                OSError{ fmt::format(
+                    R"(Could not find macOS version by calling "sw_vers -productVersion": {})",
+                    ec.message()
+                ) }
+            );
         }
 
         return { std::string(util::strip(out)) };

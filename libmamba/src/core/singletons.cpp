@@ -7,8 +7,10 @@
 #include <atomic>
 #include <cassert>
 #include <mutex>
+#include <shared_mutex>
 
 #include "mamba/util/build.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 extern "C"
 {
@@ -16,6 +18,7 @@ extern "C"
 }
 
 #include "mamba/core/execution.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 
 namespace mamba
@@ -31,6 +34,46 @@ namespace mamba
     // Other static objects from other translation units can be destroyed in parallel to the ones
     // here as C++ does not guarantee any order of destruction after `main()`.
 
+    //--- Logging System
+    //------------------------------------------------------------------
+
+    namespace logging::details
+    {
+        // FIXME:
+        // This should really be using `std::shared_mutex` but on some compilers they
+        // dont accept `constinit` here, so until this is fixed we'll lose performance using
+        // `std::mutex` when we mostly are reading data, not modifying,
+        // but at least we maintain correctness and avoid static-init fiasco.
+#if defined(__APPLE__)
+        using params_mutex = std::mutex;
+#else
+        using params_mutex = std::shared_mutex;
+#endif
+        constinit util::synchronized_value<LoggingParams, params_mutex> logging_params;
+
+        // IMPORTANT NOTE:
+        // The handler MUST NOT be protected from concurrent calls at this level
+        // as that would add high performance cost to logging from multiple threads.
+        // Instead, we expect the implementation to handle concurrent calls correctly
+        // in a thread-safe manner which is appropriate for this implementation.
+        //
+        // There are many ways to implement such handlers, including with a mutex,
+        // various mutex types, through a concurrent lock-free queue of logging record feeding
+        // a specific thread responsible for the output and file writing, etc.
+        // There are too many ways that we can't predict and each impl will have it's own
+        // best strategy.
+        //
+        // So instead of protecting at this level, we require the implementation of the handler
+        // to be thread-safe, whatever the details. We can't enforce that property and can only
+        // require it with the documentation which should guide the implementers anyway.
+        constinit AnyLogHandler current_log_handler;
+
+        // MessageLogger
+        constinit std::atomic<bool> message_logger_use_buffer;
+        constinit util::synchronized_value<MessageLoggerBuffer> message_logger_buffer;
+
+    }
+
     //--- Dependencies singletons
     //----------------------------------------------------------------------
 
@@ -45,17 +88,9 @@ namespace mamba
             CURLsslset sslset_res;
             const curl_ssl_backend** available_backends;
 
-            if (util::on_linux)
+            if (util::on_linux || util::on_mac)
             {
                 sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
-            }
-            else if (util::on_mac)
-            {
-                sslset_res = curl_global_sslset(
-                    CURLSSLBACKEND_SECURETRANSPORT,
-                    nullptr,
-                    &available_backends
-                );
             }
             else if (util::on_win)
             {
@@ -100,24 +135,24 @@ namespace mamba
     bool MessageLoggerData::use_buffer(false);
     std::vector<std::pair<std::string, log_level>> MessageLoggerData::m_buffer({});
 
+
     //--- Concurrency resources / thread-handling
     //------------------------------------------------------------------
 
     static std::atomic<MainExecutor*> main_executor{ nullptr };
 
-    static std::unique_ptr<MainExecutor> default_executor;
-    static std::mutex default_executor_mutex;  // TODO: replace by synchronized_value once available
+    static util::synchronized_value<std::unique_ptr<MainExecutor>> default_executor;
 
     MainExecutor& MainExecutor::instance()
     {
         if (!main_executor)
         {
             // When no MainExecutor was created before we create a static one.
-            std::scoped_lock lock{ default_executor_mutex };
+            auto synched_default_executor = default_executor.synchronize();
             if (!main_executor)  // double check necessary to avoid data race
             {
-                default_executor = std::make_unique<MainExecutor>();
-                assert(main_executor == default_executor.get());
+                *synched_default_executor = std::make_unique<MainExecutor>();
+                assert(main_executor == synched_default_executor->get());
             }
         }
 
@@ -126,8 +161,7 @@ namespace mamba
 
     void MainExecutor::stop_default()
     {
-        std::scoped_lock lock{ default_executor_mutex };
-        default_executor.reset();
+        default_executor->reset();
     }
 
     MainExecutor::MainExecutor()

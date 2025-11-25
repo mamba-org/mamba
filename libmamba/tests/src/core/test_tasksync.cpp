@@ -13,30 +13,12 @@
 
 #include "mamba/core/tasksync.hpp"
 
+#include "mambatests_utils.hpp"
+
 namespace mamba
 {
     // WARNING: this file will be moved to xtl as soon as possible, do not rely on it's existence
     // here!
-
-    namespace
-    {
-        void fail_now()
-        {
-            throw "this code should never be executed";
-        }
-    }
-
-    namespace
-    {
-        template <typename Predicate>
-        void wait_condition(Predicate&& predicate)
-        {
-            while (!std::invoke(std::forward<Predicate>(predicate)))
-            {
-                std::this_thread::yield();
-            }
-        }
-    }
 
     namespace
     {
@@ -78,14 +60,14 @@ namespace mamba
             task_sync.join_tasks();  // nothing happen if we call it twice
             REQUIRE(task_sync.is_joined());
 
-            auto no_op = task_sync.synchronized([] { fail_now(); });
+            auto no_op = task_sync.synchronized([] { mambatests::fail_now(); });
             no_op();
         }
 
         TEST_CASE("unexecuted_synched_task_never_blocks_join")
         {
             TaskSynchronizer task_sync;
-            auto synched_task = task_sync.synchronized([] { fail_now(); });
+            auto synched_task = task_sync.synchronized([] { mambatests::fail_now(); });
             task_sync.join_tasks();
             synched_task();  // noop
         }
@@ -141,13 +123,13 @@ namespace mamba
                     {
                         sequence.push_back('A');
                         task_started = true;
-                        wait_condition([&] { return task_continue.load(); });
+                        mambatests::wait_condition([&] { return task_continue.load(); });
                         sequence.push_back('F');
                     }
                 )
             );
 
-            wait_condition([&] { return task_started.load(); });
+            mambatests::wait_condition([&] { return task_started.load(); });
             REQUIRE(sequence == "A");
 
             auto ft_unlocker = std::async(
@@ -157,7 +139,7 @@ namespace mamba
                     {
                         sequence.push_back('B');
                         unlocker_ready = true;
-                        wait_condition([&] { return unlocker_start.load(); });
+                        mambatests::wait_condition([&] { return unlocker_start.load(); });
                         sequence.push_back('D');
                         std::this_thread::sleep_for(unlock_duration);  // Make sure the time is long
                                                                        // enough for joining to
@@ -168,7 +150,7 @@ namespace mamba
                 )
             );
 
-            wait_condition([&] { return unlocker_ready.load(); });
+            mambatests::wait_condition([&] { return unlocker_ready.load(); });
             REQUIRE(sequence == "AB");
 
             sequence.push_back('C');

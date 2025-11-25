@@ -417,6 +417,10 @@ namespace mamba::specs
         {
             return invoke_field_string(*this, &PackageInfo::license);
         }
+        if (field_name == "python_site_packages_path")
+        {
+            return invoke_field_string(*this, &PackageInfo::python_site_packages_path);
+        }
         if (field_name == "size")
         {
             return invoke_field_string(*this, &PackageInfo::size);
@@ -451,6 +455,7 @@ namespace mamba::specs
                 p.dependencies,
                 p.constrains,
                 p.signatures,
+                p.python_site_packages_path,
                 p.defaulted_keys
             );
         }
@@ -497,6 +502,10 @@ namespace mamba::specs
         {
             j["signatures"] = pkg.signatures;
         }
+        if (!pkg.python_site_packages_path.empty())
+        {
+            j["python_site_packages_path"] = pkg.python_site_packages_path;
+        }
         if (pkg.dependencies.empty())
         {
             j["depends"] = nlohmann::json::array();
@@ -539,6 +548,7 @@ namespace mamba::specs
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
         pkg.signatures = j.value("signatures", "");
+        pkg.python_site_packages_path = j.value("python_site_packages_path", "");
         if (auto it = j.find("track_features"); it != j.end())
         {
             if (it->is_string() && !it->get<std::string_view>().empty())
@@ -564,5 +574,20 @@ namespace mamba::specs
 
         pkg.dependencies = j.value("depends", std::vector<std::string>());
         pkg.constrains = j.value("constrains", std::vector<std::string>());
+    }
+
+    auto PackageInfo::url_for_channel(std::string_view channel_mirror_url) const -> std::string
+    {
+        // TODO: add more input checks
+        // TODO: add checks about members that need to have a valid value
+        return fmt::format("{}/{}/{}", channel_mirror_url, platform, filename);
+    }
+
+    auto PackageInfo::url_for_channel_platform(std::string_view channel_mirror_platform_url) const
+        -> std::string
+    {
+        // TODO: add more input checks
+        // TODO: add checks about members that need to have a valid value
+        return fmt::format("{}/{}", channel_mirror_platform_url, filename);
     }
 }

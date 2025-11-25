@@ -73,7 +73,7 @@ namespace
     template <typename From, typename To>
     void check_exact_num_cast_overflow()
     {
-        static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
+        auto from_lowest = std::numeric_limits<From>::lowest();
         REQUIRE_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
     }
 

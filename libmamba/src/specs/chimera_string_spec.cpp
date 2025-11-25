@@ -134,8 +134,8 @@ fmt::formatter<mamba::specs::ChimeraStringSpec>::format(
 }
 
 auto
-std::hash<mamba::specs::ChimeraStringSpec>::operator()(const mamba::specs::ChimeraStringSpec& spec
-) const -> std::size_t
+std::hash<mamba::specs::ChimeraStringSpec>::operator()(const mamba::specs::ChimeraStringSpec& spec) const
+    -> std::size_t
 {
     return mamba::util::hash_vals(spec.to_string());
 }

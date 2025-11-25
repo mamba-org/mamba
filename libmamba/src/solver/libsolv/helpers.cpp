@@ -77,6 +77,7 @@ namespace mamba::solver::libsolv
         );
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
+        solv.set_python_site_packages_path(pkg.python_site_packages_path);
 
         for (const auto& dep : pkg.dependencies)
         {
@@ -122,6 +123,7 @@ namespace mamba::solver::libsolv
         out.timestamp = s.timestamp();
         out.md5 = s.md5();
         out.sha256 = s.sha256();
+        out.python_site_packages_path = s.python_site_packages_path();
         out.signatures = s.signatures();
 
         const auto dep_to_str = [&pool](solv::DependencyId id)
@@ -286,6 +288,16 @@ namespace mamba::solver::libsolv
             if (auto sha256 = pkg["sha256"]; !sha256.error())
             {
                 solv.set_sha256(std::string(sha256.get_string().value_unsafe()));
+            }
+
+            if (auto python_site_packages_path = pkg["python_site_packages_path"];
+                !python_site_packages_path.error())
+            {
+                auto buffer = std::string(
+                    python_site_packages_path.get_string().value_unsafe()
+
+                );
+                solv.set_python_site_packages_path(buffer);
             }
 
             if (auto elem = pkg["noarch"]; !elem.error())
@@ -562,9 +574,13 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.legacy_read_conda_repodata(file_ptr.raw(), flags);
-                    file_ptr.try_close().or_else([&](const auto& err) {  //
-                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
-                    });
+                    auto closed = file_ptr.try_close().transform_error(  //
+                        [](std::error_code&& ec) { return ec.message(); }
+                    );
+                    if (!closed.has_value())
+                    {
+                        return closed;
+                    }
                     return out;
                 }
             )
@@ -788,9 +804,13 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.read(file_ptr.raw());
-                    file_ptr.try_close().or_else([&](const auto& err) {  //
-                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
-                    });
+                    auto closed = file_ptr.try_close().transform_error(  //
+                        [](std::error_code&& ec) { return ec.message(); }
+                    );
+                    if (!closed.has_value())
+                    {
+                        return closed;
+                    }
                     return out;
                 }
             )
@@ -877,9 +897,13 @@ namespace mamba::solver::libsolv
                 [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
                 {
                     auto out = repo.write(file_ptr.raw());
-                    file_ptr.try_close().or_else([&](const auto& err) {  //
-                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
-                    });
+                    auto closed = file_ptr.try_close().transform_error(  //
+                        [](std::error_code&& ec) { return ec.message(); }
+                    );
+                    if (!closed.has_value())
+                    {
+                        return closed;
+                    }
                     return out;
                 }
             )
@@ -1235,10 +1259,12 @@ namespace mamba::solver::libsolv
                             auto newer = get_newer_pkginfo(id);
                             LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
                                       << newer.str();
-                            out.emplace_back(Solution::Upgrade{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
+                            out.emplace_back(
+                                Solution::Upgrade{
+                                    /* .remove= */ std::move(pkginfo),
+                                    /* .install= */ std::move(newer),
+                                }
+                            );
                             break;
                         }
                         case SOLVER_TRANSACTION_CHANGED:
@@ -1246,10 +1272,12 @@ namespace mamba::solver::libsolv
                             auto newer = get_newer_pkginfo(id);
                             LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
                                       << newer.str();
-                            out.emplace_back(Solution::Change{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
+                            out.emplace_back(
+                                Solution::Change{
+                                    /* .remove= */ std::move(pkginfo),
+                                    /* .install= */ std::move(newer),
+                                }
+                            );
                             break;
                         }
                         case SOLVER_TRANSACTION_REINSTALLED:
@@ -1263,10 +1291,12 @@ namespace mamba::solver::libsolv
                             auto newer = get_newer_pkginfo(id);
                             LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
                                       << newer.str();
-                            out.emplace_back(Solution::Downgrade{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
+                            out.emplace_back(
+                                Solution::Downgrade{
+                                    /* .remove= */ std::move(pkginfo),
+                                    /* .install= */ std::move(newer),
+                                }
+                            );
                             break;
                         }
                         case SOLVER_TRANSACTION_ERASE:
@@ -1389,17 +1419,18 @@ namespace mamba::solver::libsolv
 
     auto solution_needs_python_relink(const solv::ObjPool& pool, const Solution& solution) -> bool
     {
-        if (auto installed = installed_python(pool))
+        const auto installed = installed_python(pool);
+        const auto newer = find_new_python_in_solution(solution);
+        if (!installed.has_value() || !newer.has_value())
         {
-            if (auto newer = find_new_python_in_solution(solution))
-            {
-                auto installed_ver = specs::Version::parse(installed->version());
-                auto newer_ver = specs::Version::parse(newer->get().version);
-                return !installed_ver.has_value() || !newer_ver.has_value()
-                       || !python_binary_compatible(installed_ver.value(), newer_ver.value());
-            }
+            return false;
         }
-        return false;
+        const auto installed_ver = specs::Version::parse(installed->version());
+        const auto newer_ver = specs::Version::parse(newer->get().version);
+        return !installed_ver.has_value() || !newer_ver.has_value()
+               || !python_binary_compatible(installed_ver.value(), newer_ver.value())
+               // Site package can be overridden by https://conda.org/learn/ceps/cep-0017
+               || (installed->python_site_packages_path() != newer->get().python_site_packages_path);
     }
 
     namespace
@@ -1459,8 +1490,9 @@ namespace mamba::solver::libsolv
 
                     if (s_in_sol == solution.actions.end())
                     {
-                        solution.actions.emplace_back(Solution::Reinstall{
-                            make_package_info(pool, s) });
+                        solution.actions.emplace_back(
+                            Solution::Reinstall{ make_package_info(pool, s) }
+                        );
                     }
                     else if (auto* omit = std::get_if<Solution::Omit>(&(*s_in_sol)))
                     {
@@ -1479,15 +1511,18 @@ namespace mamba::solver::libsolv
             auto ms = specs::MatchSpec();
             ms.set_name(specs::MatchSpec::NameSpec(std::string(s.name())));
             // Ignoring version error, the point is to find a close match
-            specs::Version::parse(s.version())
-                .transform(
-                    [&](specs::Version&& ver)
-                    {
-                        ms.set_version(specs::VersionSpec::from_predicate(
-                            specs::VersionPredicate::make_equal_to(std::move(ver))
-                        ));
-                    }
-                );
+            [[maybe_unused]] auto unused =  //
+                specs::Version::parse(s.version())
+                    .transform(
+                        [&](specs::Version&& ver)
+                        {
+                            ms.set_version(
+                                specs::VersionSpec::from_predicate(
+                                    specs::VersionPredicate::make_equal_to(std::move(ver))
+                                )
+                            );
+                        }
+                    );
             ms.set_build_string(
                 specs::MatchSpec::BuildStringSpec(specs::GlobSpec(std::string(s.build_string())))
             );
@@ -1647,17 +1682,17 @@ namespace mamba::solver::libsolv
                 );
                 return {};
             }
-            if constexpr (std::is_same_v<Job, Request::Freeze>)
+            else if constexpr (std::is_same_v<Job, Request::Freeze>)
             {
                 return pool_add_matchspec(pool, job.spec, parser)
                     .transform([&](auto id) { raw_jobs.push_back(SOLVER_LOCK, id); });
             }
-            if constexpr (std::is_same_v<Job, Request::Keep>)
+            else if constexpr (std::is_same_v<Job, Request::Keep>)
             {
                 return pool_add_matchspec(pool, job.spec, parser)
                     .transform([&](auto id) { raw_jobs.push_back(SOLVER_USERINSTALLED, id); });
             }
-            if constexpr (std::is_same_v<Job, Request::Pin>)
+            else if constexpr (std::is_same_v<Job, Request::Pin>)
             {
                 // WARNING pins are not working with namespace dependencies so far
                 return pool_add_pin(pool, job.spec, MatchSpecParser::Libsolv)
@@ -1674,8 +1709,11 @@ namespace mamba::solver::libsolv
                         }
                     );
             }
-            assert(false);
-            return {};
+            else
+            {
+                assert(false);  // TODO c++23: replace by `std::unreachable();`
+                return {};
+            }
         }
     }
 
@@ -1698,7 +1736,10 @@ namespace mamba::solver::libsolv
                     {
                         return add_job(job, solv_jobs, pool, force_reinstall, parser);
                     }
-                    return {};
+                    else
+                    {
+                        return {};
+                    }
                 },
                 unknown_job
             );
@@ -1719,7 +1760,10 @@ namespace mamba::solver::libsolv
                     {
                         return add_job(job, solv_jobs, pool, force_reinstall, parser);
                     }
-                    return {};
+                    else
+                    {
+                        return {};
+                    }
                 },
                 unknown_job
             );

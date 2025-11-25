@@ -665,6 +665,89 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
 
+def test_install_python_site_packages_path(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    helpers.create("-n", env_name, "python=3.13", "python-freethreading")
+    helpers.install("-n", env_name, "imagesize")
+
+    if helpers.platform.system() == "Windows":
+        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13t")
+    else:
+        # check that the noarch: python package installs into the python_site_packages_path directory
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        # and not into the "standard" site-packages directory
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
+
+
+def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix):
+    """
+    Check the consistent update of the `python_site_packages_path` when
+    switching from python 3.13 to python 3.13t.
+    """
+    is_windows = helpers.platform.system() == "Windows"
+    env_name = "test_python_site_packages_path_with_python_version"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    # A arch and noarch: python package
+    res_install = helpers.create("-n", env_name, "--json", "python=3.13", "numpy", "boltons")
+
+    assert res_install["success"]
+    if is_windows:
+        # On Windows, the `python_site_packages_path`` is the same regardless of the python_version
+        # and of the freethreading builds.
+        python_site_packages_path_313 = env_prefix / "lib" / "site-packages"
+        python_site_packages_path_313t = python_site_packages_path_313
+    else:
+        python_site_packages_path_313 = env_prefix / "lib" / "python3.13" / "site-packages"
+        python_site_packages_path_313t = env_prefix / "lib" / "python3.13t" / "site-packages"
+    assert os.path.isdir(python_site_packages_path_313)
+    assert os.path.isdir(python_site_packages_path_313 / "numpy")
+    assert os.path.isdir(python_site_packages_path_313 / "boltons")
+    if not is_windows:
+        assert not os.path.isdir(python_site_packages_path_313t)
+
+    res_update = helpers.install("-n", env_name, "--json", "python=3.13", "python-freethreading")
+
+    # Check that the builds of numpy and boltons are being updated with python, python_abi and python-freethreading
+    assert res_update["success"]
+
+    # Get all package names from LINK actions
+    linked_packages = [action["name"] for action in res_update["actions"]["LINK"]]
+
+    # Check that all expected packages are present (order doesn't matter)
+    expected_packages = ["python-freethreading", "python", "python_abi", "numpy"]
+    if not is_windows:
+        expected_packages.append("boltons")
+    for package in expected_packages:
+        assert package in linked_packages, f"Expected package '{package}' not found in LINK actions"
+    assert os.path.isdir(python_site_packages_path_313t)
+    assert os.path.isdir(python_site_packages_path_313t / "numpy")
+    assert os.path.isdir(python_site_packages_path_313t / "boltons")
+    if not is_windows:
+        assert not os.path.isdir(python_site_packages_path_313 / "numpy")
+        assert not os.path.isdir(python_site_packages_path_313 / "boltons")
+
+    # Uninstall python
+    res_uninstall = helpers.remove("-n", env_name, "--json", "python")
+
+    assert res_uninstall["success"]
+    # Get all package names from the UNLINK actions
+    unlinked_packages = [action["name"] for action in res_uninstall["actions"]["UNLINK"]]
+    # Check that all expected packages are present (order doesn't matter)
+    expected_packages = ["python-freethreading", "python", "python_abi", "numpy", "boltons"]
+    for package in expected_packages:
+        assert package in unlinked_packages, (
+            f"Expected package '{package}' not found in UNLINK actions"
+        )
+    assert not os.path.isdir(python_site_packages_path_313 / "numpy")
+    assert not os.path.isdir(python_site_packages_path_313 / "boltons")
+    assert not os.path.isdir(python_site_packages_path_313t / "numpy")
+    assert not os.path.isdir(python_site_packages_path_313t / "boltons")
+
+
 @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
 def test_install_check_logs(tmp_home, tmp_root_prefix, output_flag):
     env_name = "env-install-check-logs"

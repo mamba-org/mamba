@@ -77,8 +77,10 @@ namespace mamba
             const auto found_it = values.find(expr);
             if (found_it == values.end())
             {
-                throw std::runtime_error("Couldn't parse selector. Value not in [unix, linux, "
-                                         "osx, win] or additional whitespaces found.");
+                throw std::runtime_error(
+                    "Couldn't parse selector. Value not in [unix, linux, "
+                    "osx, win] or additional whitespaces found."
+                );
             }
 
             return found_it->second;
@@ -210,11 +212,13 @@ namespace mamba
                             {
                                 yaml_parent_path = fs::absolute(yaml_file).parent_path().string();
                             }
-                            result.others_pkg_mgrs_specs.push_back({
-                                use_uv ? "uv" : "pip",
-                                map_el.second.as<std::vector<std::string>>(),
-                                yaml_parent_path,
-                            });
+                            result.others_pkg_mgrs_specs.push_back(
+                                {
+                                    use_uv ? "uv" : "pip",
+                                    map_el.second.as<std::vector<std::string>>(),
+                                    yaml_parent_path,
+                                }
+                            );
                             has_pip_deps = true;
                         }
                     }
@@ -390,21 +394,25 @@ namespace mamba
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             for (const auto& [name, pkg] : prefix_pkgs)
             {
-                request.jobs.emplace_back(Request::Freeze{
-                    specs::MatchSpec::parse(name)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
-                });
+                request.jobs.emplace_back(
+                    Request::Freeze{
+                        specs::MatchSpec::parse(name)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
             }
         }
 
         for (const auto& s : specs)
         {
-            request.jobs.emplace_back(Request::Install{
-                specs::MatchSpec::parse(s)
-                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                    .value(),
-            });
+            request.jobs.emplace_back(
+                Request::Install{
+                    specs::MatchSpec::parse(s)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value(),
+                }
+            );
         }
         return request;
     }
@@ -427,19 +435,23 @@ namespace mamba
         {
             for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
             {
-                request.jobs.emplace_back(Request::Pin{
-                    specs::MatchSpec::parse(pin)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
-                });
+                request.jobs.emplace_back(
+                    Request::Pin{
+                        specs::MatchSpec::parse(pin)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
             }
             for (const auto& pin : ctx.pinned_packages)
             {
-                request.jobs.emplace_back(Request::Pin{
-                    specs::MatchSpec::parse(pin)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
-                });
+                request.jobs.emplace_back(
+                    Request::Pin{
+                        specs::MatchSpec::parse(pin)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
             }
         }
 
@@ -448,11 +460,13 @@ namespace mamba
             auto py_pin = python_pin(prefix_data, specs);
             if (!py_pin.empty())
             {
-                request.jobs.emplace_back(Request::Pin{
-                    specs::MatchSpec::parse(py_pin)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
-                });
+                request.jobs.emplace_back(
+                    Request::Pin{
+                        specs::MatchSpec::parse(py_pin)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
             }
         }
     }
@@ -537,10 +551,9 @@ namespace mamba
             }
             if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
             {
-                throw std::runtime_error(fmt::format(
-                    "Prefix does not exist at: {}",
-                    ctx.prefix_params.target_prefix.string()
-                ));
+                throw std::runtime_error(
+                    fmt::format("Prefix does not exist at: {}", ctx.prefix_params.target_prefix.string())
+                );
             }
 
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
@@ -559,7 +572,7 @@ namespace mamba
                                                        : solver::libsolv::MatchSpecParser::Libsolv,
                 },
             };
-            add_spdlog_logger_to_database(db);
+            add_logger_to_database(db);
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
             if (!maybe_load)
@@ -623,8 +636,7 @@ namespace mamba
                 }
                 if (freeze_installed)
                 {
-                    Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n"
-                    );
+                    Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
                 }
 
                 if (ctx.output_params.json)
@@ -694,7 +706,14 @@ namespace mamba
                     for (auto other_spec : config.at("others_pkg_mgrs_specs")
                                                .value<std::vector<detail::other_pkg_mgr_spec>>())
                     {
-                        install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
+                        auto result = install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
+                        if (!result)
+                        {
+                            static_assert(
+                                std::is_base_of_v<std::exception, decltype(result)::error_type>
+                            );
+                            throw std::move(result).error();
+                        }
                     }
                 }
             }
@@ -753,7 +772,7 @@ namespace mamba
                                                        : solver::libsolv::MatchSpecParser::Libsolv,
                 },
             };
-            add_spdlog_logger_to_database(database);
+            add_logger_to_database(database);
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty
@@ -808,7 +827,12 @@ namespace mamba
 
                 for (auto other_spec : others)
                 {
-                    install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
+                    auto result = install_for_other_pkgmgr(ctx, other_spec, pip::Update::No);
+                    if (!result.has_value())
+                    {
+                        static_assert(std::is_base_of_v<std::exception, decltype(result)::error_type>);
+                        throw std::move(result).error();
+                    }
                 }
             }
             else
@@ -905,10 +929,13 @@ namespace mamba
 
             populate_state_file(prefix, env_vars, no_env);
 
-            Console::instance().print(util::join(
-                "",
-                std::vector<std::string>({ "Empty environment created at prefix: ", prefix.string() })
-            ));
+            Console::instance().print(
+                util::join(
+                    "",
+                    std::vector<std::string>({ "Empty environment created at prefix: ",
+                                               prefix.string() })
+                )
+            );
             Console::instance().json_write({ { "success", true } });
         }
 
@@ -1213,7 +1240,7 @@ namespace mamba
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
             solver::libsolv::Database db{ channel_context.params() };
-            add_spdlog_logger_to_database(db);
+            add_logger_to_database(db);
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
             if (!maybe_load)

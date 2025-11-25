@@ -47,6 +47,7 @@ namespace mamba::specs
         std::string license = {};
         std::string md5 = {};
         std::string sha256 = {};
+        std::string python_site_packages_path = {};
         std::string signatures = {};
         std::vector<std::string> track_features = {};
         std::vector<std::string> dependencies = {};
@@ -65,6 +66,9 @@ namespace mamba::specs
         PackageType package_type = PackageType::Unknown;
 
         [[nodiscard]] static auto from_url(std::string_view url) -> expected_parse_t<PackageInfo>;
+        [[nodiscard]] auto url_for_channel(std::string_view channel_mirror_url) const -> std::string;
+        [[nodiscard]] auto
+        url_for_channel_platform(std::string_view channel_mirror_platform_url) const -> std::string;
 
         PackageInfo() = default;
         explicit PackageInfo(std::string name);

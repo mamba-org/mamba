@@ -303,12 +303,14 @@ namespace mamba::specs
                 .transform_error(
                     [&](ParseError&& err)
                     {
-                        return ParseError(fmt::format(
-                            R"(Error setting attribute "{}" to value "{}": {})",
-                            attr,
-                            val,
-                            err.what()
-                        ));
+                        return ParseError(
+                            fmt::format(
+                                R"(Error setting attribute "{}" to value "{}": {})",
+                                attr,
+                                val,
+                                err.what()
+                            )
+                        );
                     }
                 );
         }
@@ -327,11 +329,13 @@ namespace mamba::specs
                                 || util::starts_with(op_val, '>') //
                                 || util::starts_with(op_val, '<'))
                 {
-                    return make_unexpected_parse(fmt::format(
-                        R"(Implicit format "{}" is not allowed, use "version='{}'" instead.)",
-                        key_val,
-                        op_val
-                    ));
+                    return make_unexpected_parse(
+                        fmt::format(
+                            R"(Implicit format "{}" is not allowed, use "version='{}'" instead.)",
+                            key_val,
+                            op_val
+                        )
+                    );
                 }
             }
 
@@ -456,8 +460,17 @@ namespace mamba::specs
             }
 
             pos = str.find_last_of('=');
-            const char d = str[pos - 1];
+            if (pos == str.npos)
+            {
+                // That means that there is no operator, and version and build are separated with
+                // space(s)
+                pos = str.find_last_of(' ');
+                return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
+            }
 
+            assert(pos != str.npos);
+            assert(pos < str.size());
+            const char d = str[pos - 1];
             if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
             {
                 // Find the position of the first non-space character after operator
@@ -473,14 +486,6 @@ namespace mamba::specs
                 }
                 // Otherwise no build is present after the version
                 return { str, {} };
-            }
-
-            if (pos == str.npos)
-            {
-                // That means that there is no operator, and version and build are separated with
-                // space(s)
-                pos = str.find_last_of(' ');
-                return { util::strip(str.substr(0, pos)), str.substr(pos + 1) };
             }
 
             // '=' is found but not combined with `d` above
@@ -696,11 +701,13 @@ namespace mamba::specs
         assert(base.has_value());
         location = base.value_or("");
         location += val;
-        set_channel({ UnresolvedChannel(
-            std::move(location),
-            m_channel->clear_platform_filters(),
-            m_channel->type()
-        ) });
+        set_channel(
+            { UnresolvedChannel(
+                std::move(location),
+                m_channel->clear_platform_filters(),
+                m_channel->type()
+            ) }
+        );
     }
 
     auto MatchSpec::channel() const -> const std::optional<UnresolvedChannel>&
@@ -1020,10 +1027,20 @@ namespace mamba::specs
 
     auto MatchSpec::is_simple() const -> bool
     {
+        const bool is_simple_version
+            = (  //
+                (
+                    // Cases likes ``>3,<4`` can be managed by libsolv
+                    ((version().expression_size() == 3) && (version().is_classic_operator_expression()))
+                    // And simple ones
+                    || (version().expression_size() <= 1)
+                )
+                // Complex globs do not include free ranges and starts with
+                && !version().has_glob()
+            );
         // Based on what libsolv and conda_build_form can handle.
         // Glob in names and build_string are fine
-        return (version().expression_size() <= 3)      //  includes op so e.g. ``>3,<4``
-               && !version().has_glob()                //
+        return is_simple_version                       //
                && build_number().is_explicitly_free()  //
                && build_string().is_glob()             //
                && !channel().has_value()               //
@@ -1073,17 +1090,19 @@ namespace mamba::specs
         {
             return false;
         }
-        return contains_except_channel(Pkg{
-            /* .name= */ pkg.name,
-            /* .version= */ std::move(maybe_ver).value(),
-            /* .build_string= */ pkg.build_string,
-            /* .build_number= */ pkg.build_number,
-            /* .md5= */ pkg.md5,
-            /* .sha256= */ pkg.sha256,
-            /* .license= */ pkg.license,
-            /* .platform= */ pkg.platform,
-            /* .track_features= */ string_set(pkg.track_features.cbegin(), pkg.track_features.cend()),
-        });
+        return contains_except_channel(
+            Pkg{
+                /* .name= */ pkg.name,
+                /* .version= */ std::move(maybe_ver).value(),
+                /* .build_string= */ pkg.build_string,
+                /* .build_number= */ pkg.build_number,
+                /* .md5= */ pkg.md5,
+                /* .sha256= */ pkg.sha256,
+                /* .license= */ pkg.license,
+                /* .platform= */ pkg.platform,
+                /* .track_features= */ string_set(pkg.track_features.cbegin(), pkg.track_features.cend()),
+            }
+        );
     }
 
     auto MatchSpec::extra() -> ExtraMembers&

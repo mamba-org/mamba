@@ -93,13 +93,15 @@ namespace mamba
                                 )
                                 == spec_names.end())
                             {
-                                request.jobs.emplace_back(Request::Remove{
-                                    specs::MatchSpec::parse(it.second.name().to_string())
-                                        .or_else([](specs::ParseError&& err)
-                                                 { throw std::move(err); })
-                                        .value(),
-                                    /* .clean_dependencies= */ true,
-                                });
+                                request.jobs.emplace_back(
+                                    Request::Remove{
+                                        specs::MatchSpec::parse(it.second.name().to_string())
+                                            .or_else([](specs::ParseError&& err)
+                                                     { throw std::move(err); })
+                                            .value(),
+                                        /* .clean_dependencies= */ true,
+                                    }
+                                );
                             }
                         }
                     }
@@ -107,22 +109,26 @@ namespace mamba
                     // Install/update everything in specs
                     for (const auto& raw_ms : specs)
                     {
-                        request.jobs.emplace_back(Request::Install{
-                            specs::MatchSpec::parse(raw_ms)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value(),
-                        });
+                        request.jobs.emplace_back(
+                            Request::Install{
+                                specs::MatchSpec::parse(raw_ms)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
+                            }
+                        );
                     }
                 }
                 else
                 {
                     for (const auto& raw_ms : specs)
                     {
-                        request.jobs.emplace_back(Request::Update{
-                            specs::MatchSpec::parse(raw_ms)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value(),
-                        });
+                        request.jobs.emplace_back(
+                            Request::Update{
+                                specs::MatchSpec::parse(raw_ms)
+                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                    .value(),
+                            }
+                        );
                     }
                 }
             }
@@ -163,7 +169,7 @@ namespace mamba
                                                    : solver::libsolv::MatchSpecParser::Libsolv,
             },
         };
-        add_spdlog_logger_to_database(db);
+        add_logger_to_database(db);
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
@@ -222,8 +228,9 @@ namespace mamba
             );
             if (ctx.output_params.json)
             {
-                Console::instance().json_write({ { "success", false },
-                                                 { "solver_problems", unsolvable->problems(db) } });
+                Console::instance().json_write(
+                    { { "success", false }, { "solver_problems", unsolvable->problems(db) } }
+                );
             }
             throw mamba_error(
                 "Could not solve for environment specs",
@@ -259,7 +266,12 @@ namespace mamba
         for (auto other_spec :
              config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
         {
-            install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
+            auto result = install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
+            if (!result.has_value())
+            {
+                static_assert(std::is_base_of_v<std::exception, decltype(result)::error_type>);
+                throw std::move(result).error();
+            }
         }
     }
 }

@@ -18,20 +18,20 @@
 
 namespace mamba::validation
 {
-    auto sha256sum(const fs::u8path& path) -> std::string_view
+    auto sha256sum(const fs::u8path& path) -> std::string
     {
-        std::ifstream infile = mamba::open_ifstream(path);
         thread_local auto hasher = util::Sha256Hasher();
-        thread_local auto hash = hasher.file_hex(infile);
-        return { hash.data(), hash.size() };
+
+        std::ifstream infile = mamba::open_ifstream(path);
+        return hasher.file_hex_str(infile);
     }
 
-    auto md5sum(const fs::u8path& path) -> std::string_view
+    auto md5sum(const fs::u8path& path) -> std::string
     {
-        std::ifstream infile = mamba::open_ifstream(path);
         thread_local auto hasher = util::Md5Hasher();
-        thread_local auto hash = hasher.file_hex(infile);
-        return { hash.data(), hash.size() };
+
+        std::ifstream infile = mamba::open_ifstream(path);
+        return hasher.file_hex_str(infile);
     }
 
     auto file_size(const fs::u8path& path, std::uintmax_t validation) -> bool

@@ -83,9 +83,11 @@ namespace mamba
             REQUIRE(path::is_writable(test_dir_path));
 
             REQUIRE(path::is_writable(test_dir_path / "non-existing-writable-test-delete-me.txt"));
-            REQUIRE(path::is_writable(
-                util::expand_home("~/.libmamba-non-existing-writable-test-delete-me.txt")
-            ));
+            REQUIRE(
+                path::is_writable(
+                    util::expand_home("~/.libmamba-non-existing-writable-test-delete-me.txt")
+                )
+            );
 
             REQUIRE(path::is_writable(test_dir_path / "non-existing-subfolder"));
             REQUIRE_FALSE(fs::exists(test_dir_path / "non-existing-subfolder"));

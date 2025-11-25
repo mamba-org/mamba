@@ -1,3 +1,99 @@
+## libmambapy 2.4.0 (November 21, 2025)
+
+Enhancements:
+
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+
+## libmambapy 2.4.0.rc0 (November 18, 2025)
+
+Enhancements:
+
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+
+## libmambapy 2.3.3 (October 17, 2025)
+
+Bug fixes:
+
+- Fix deprecated license key by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4053>
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+- Use fmt::format by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4061>
+- Move to Pybind 3.0 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4059>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
+## libmambapy 2.3.3.alpha1 (October 14, 2025)
+
+Bug fixes:
+
+- Fix deprecated license key by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4053>
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+- Use fmt::format by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4061>
+- Move to Pybind 3.0 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4059>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
+## libmambapy 2.3.3.alpha0 (September 04, 2025)
+
+Bug fixes:
+
+- Fix deprecated license key by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4053>
+
+Maintenance:
+
+- Use fmt::format by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4061>
+- Move to Pybind 3.0 by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4059>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
+## libmambapy 2.3.2 (August 26, 2025)
+
+Enhancements:
+
+- feat: Support for optional `python_site_packages_path` in repodata by @jjhelmus in <https://github.com/mamba-org/mamba/pull/3579>
+
+Bug fixes:
+
+- fix: Workaround `mamba-org/mamba#4043` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4044>
+
+## libmambapy 2.3.1 (July 28, 2025)
+
+Enhancements:
+
+- Add missing bindings and other improvements by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3990>
+
+CI fixes and doc:
+
+- [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
+Maintenance:
+
+- maint: handle `fmt>=11.2` by @Klaim in <https://github.com/mamba-org/mamba/pull/4001>
+- Handle removed `is_rgb` from `fmt 11.2.0` by @Hind-M in <https://github.com/mamba-org/mamba/pull/3998>
+
 ## libmambapy 2.3.0 (June 16, 2025)
 
 Enhancements:

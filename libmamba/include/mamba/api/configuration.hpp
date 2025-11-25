@@ -454,8 +454,11 @@ namespace mamba
 
         void clear_rc_sources();
 
-        void
-        add_to_loading_sequence(std::vector<std::string>& seq, const std::string& name, std::vector<std::string>&);
+        void add_to_loading_sequence(
+            std::vector<std::string>& seq,
+            const std::string& name,
+            std::vector<std::string>&
+        );
 
         static YAML::Node load_rc_file(const fs::u8path& file);
 

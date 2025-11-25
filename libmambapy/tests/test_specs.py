@@ -812,6 +812,8 @@ def test_PackageInfo():
     assert pkg.filename == "foo-4.0-mybld.conda"
     pkg.license = "MIT"
     assert pkg.license == "MIT"
+    pkg.python_site_packages_path = "lib/python3.99t/site-packages"
+    assert pkg.python_site_packages_path == "lib/python3.99t/site-packages"
     pkg.size = 3200
     assert pkg.size == 3200
     pkg.timestamp = 4532
@@ -932,6 +934,8 @@ def test_MatchSpec():
     assert ms.is_file()
     assert str(ms.name) == "pkg"
     assert ms.filename == "pkg-2-bld.conda"
+    assert ms == ms
+    assert ms != MatchSpec.parse("foo")
 
     # Errors
     with pytest.raises(libmambapy.specs.ParseError):

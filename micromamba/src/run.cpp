@@ -70,12 +70,14 @@ set_ps_command(CLI::App* subcom, Context& context)
                 prefix = env_name(context.envs_dirs, context.prefix_params.root_prefix, prefix);
             }
 
-            table.add_row({
-                el["pid"].get<std::string>(),
-                el["name"].get<std::string>(),
-                prefix,
-                fmt::format("{}", fmt::join(el["command"].get<std::vector<std::string>>(), " ")),
-            });
+            table.add_row(
+                {
+                    el["pid"].get<std::string>(),
+                    el["name"].get<std::string>(),
+                    prefix,
+                    fmt::format("{}", fmt::join(el["command"].get<std::vector<std::string>>(), " ")),
+                }
+            );
         }
 
         table.print(std::cout);

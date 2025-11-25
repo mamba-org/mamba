@@ -82,12 +82,14 @@ namespace mamba::util
         const auto res = ::_wputenv_s(unicode_key.c_str(), unicode_value.c_str());
         if (res != 0)
         {
-            throw std::runtime_error(fmt::format(
-                R"(Could not set environment variable "{}" to "{}" : {})",
-                key,
-                value,
-                ::GetLastError()
-            ));
+            throw std::runtime_error(
+                fmt::format(
+                    R"(Could not set environment variable "{}" to "{}" : {})",
+                    key,
+                    value,
+                    ::GetLastError()
+                )
+            );
         }
     }
 
@@ -195,7 +197,7 @@ namespace mamba::util
         return util::get_windows_known_user_folder(WindowsKnowUserFolder::LocalAppData);
     }
 
-    auto which_system(std::string_view exe) -> fs::u8path
+    auto which_system(std::string_view /*exe*/) -> fs::u8path
     {
         return "";
     }

@@ -101,7 +101,7 @@ namespace solv
         {
             return tl::unexpected(std::string(str));
         }
-        return tl::unexpected("Unknow error");
+        return tl::unexpected("Unknown error");
     }
 
     /***********************************
@@ -135,7 +135,7 @@ namespace solv
         {
             return tl::unexpected(std::string(str));
         }
-        return tl::unexpected("Unknow error");
+        return tl::unexpected("Unknown error");
     }
 
     auto ObjRepoView::legacy_read_conda_repodata(std::FILE* repodata_file, int flags) const
@@ -150,7 +150,7 @@ namespace solv
         {
             return tl::unexpected(std::string(str));
         }
-        return tl::unexpected("Unknow error");
+        return tl::unexpected("Unknown error");
     }
 
     auto ObjRepoView::add_solvable() const -> std::pair<SolvableId, ObjSolvableView>

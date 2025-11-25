@@ -340,10 +340,8 @@ namespace mamba
                     {
                         if (!repodata_record["url"].get<std::string>().empty())
                         {
-                            if (!compare_cleaned_url(
-                                    repodata_record["url"].get<std::string>(),
-                                    s.package_url
-                                ))
+                            const auto pkg_url = repodata_record["url"].get<std::string>();
+                            if (!compare_cleaned_url(pkg_url, s.package_url))
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid url";
@@ -352,7 +350,8 @@ namespace mamba
                         }
                         else
                         {
-                            if (repodata_record["channel"].get<std::string>() != s.channel)
+                            const auto pkg_channel = repodata_record["channel"].get<std::string>();
+                            if (pkg_channel != s.channel)
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid channel";

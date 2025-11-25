@@ -405,8 +405,10 @@ namespace solv
 
         // Set the callback
         m_user_namespace_callback->callback = [wrapper = m_user_namespace_callback.get(),
-                                               callback = std::move(callback
-                                               )](ObjPoolView pool, StringId name, StringId ver
+                                               callback = std::move(callback)](
+                                                  ObjPoolView pool,
+                                                  StringId name,
+                                                  StringId ver
                                               ) mutable noexcept -> OffsetId
         {
             auto error = std::exception_ptr(nullptr);
@@ -423,8 +425,10 @@ namespace solv
         };
 
         // Wrap the user callback in the libsolv function type that must cast the callback ptr
-        auto libsolv_callback = +[](::Pool* pool, void* user_data, StringId name, StringId ver
-                                 ) noexcept -> OffsetId
+        auto libsolv_callback = +[](::Pool* pool,
+                                    void* user_data,
+                                    StringId name,
+                                    StringId ver) noexcept -> OffsetId
         {
             auto* user_namespace_callback = reinterpret_cast<NamespaceCallbackWrapper*>(user_data);
             return user_namespace_callback->callback(ObjPoolView(pool), name, ver);  // noexcept

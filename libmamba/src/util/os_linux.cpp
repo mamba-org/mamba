@@ -20,9 +20,11 @@ namespace mamba::util
             {
                 if (name_version.first != "Linux")
                 {
-                    return tl::make_unexpected(OSError{
-                        fmt::format(R"(OS "{}" is not Linux)", name_version.first),
-                    });
+                    return tl::make_unexpected(
+                        OSError{
+                            fmt::format(R"(OS "{}" is not Linux)", name_version.first),
+                        }
+                    );
                 }
                 return { std::forward<decltype(name_version)>(name_version).second };
             }

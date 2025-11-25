@@ -4,9 +4,9 @@
 
 #include <stdexcept>
 
-#include "mamba/core/output.hpp"
+#include <fmt/core.h>
 
-#include "spdlog/spdlog.h"
+#include "mamba/core/logging.hpp"
 
 namespace mamba
 {

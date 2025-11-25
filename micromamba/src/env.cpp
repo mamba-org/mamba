@@ -334,10 +334,12 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 // Unregister environment
                 env_manager.unregister_env(mamba::util::expand_home(prefix.string()));
 
-                mamba::Console::instance().print(mamba::util::join(
-                    "",
-                    std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
-                ));
+                mamba::Console::instance().print(
+                    mamba::util::join(
+                        "",
+                        std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
+                    )
+                );
                 mamba::Console::instance().json_write({ { "success", true } });
             }
             else

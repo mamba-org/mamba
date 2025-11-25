@@ -1729,7 +1729,8 @@ namespace mamba
         std::string prefix = name;
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        m_progress_bars.push_back(std::make_unique<DefaultProgressBar>(prefix, expected_total, options)
+        m_progress_bars.push_back(
+            std::make_unique<DefaultProgressBar>(prefix, expected_total, options)
         );
         return ProgressProxy(m_progress_bars[m_progress_bars.size() - 1].get());
     }
@@ -1877,13 +1878,15 @@ namespace mamba
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_aggregated_bars.count(label) == 0)
         {
-            m_aggregated_bars.insert({ label,
-                                       std::make_unique<DefaultProgressBar>(
-                                           label,
-                                           std::numeric_limits<std::size_t>::max(),
-                                           progress_bar.options(),
-                                           100
-                                       ) });
+            m_aggregated_bars.insert(
+                { label,
+                  std::make_unique<DefaultProgressBar>(
+                      label,
+                      std::numeric_limits<std::size_t>::max(),
+                      progress_bar.options(),
+                      100
+                  ) }
+            );
         }
     }
 

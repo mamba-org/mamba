@@ -35,8 +35,13 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v4
 
+      # Note: cmake already installed from a local Github tap
+      # Attempting to install it from homebrew/core creates a conflict without more handling
       - name: Install host and build dependencies
-        run: brew install fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd cmake cli11 nlohmann-json spdlog tl-expected pkgconfig python
+        run: >
+          brew install --overwrite
+          fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd
+          cli11 nlohmann-json spdlog tl-expected pkgconfig python
 
       - name: Configure to build mamba
         run: >

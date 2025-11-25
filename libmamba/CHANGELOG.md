@@ -1,3 +1,118 @@
+## libmamba 2.4.0 (November 21, 2025)
+
+Enhancements:
+
+- Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+- Removed deprecated libcurl backend by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4083>
+
+## libmamba 2.4.0.rc0 (November 18, 2025)
+
+Enhancements:
+
+- Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+- Removed deprecated libcurl backend by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4083>
+
+## libmamba 2.3.3 (October 17, 2025)
+
+Bug fixes:
+
+- fix: pass `$argv` for fish wrapper by @sghng in <https://github.com/mamba-org/mamba/pull/4073>
+- Fix empty depends/constrains when installing explicit spec files by @benmoss in <https://github.com/mamba-org/mamba/pull/4071>
+- fix: proxy both micromamba and mamba with fish function by @sghng in <https://github.com/mamba-org/mamba/pull/4065>
+- Fix nodiscard errors by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4058>
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
+## libmamba 2.3.3.alpha1 (October 14, 2025)
+
+Bug fixes:
+
+- fix: pass `$argv` for fish wrapper by @sghng in <https://github.com/mamba-org/mamba/pull/4073>
+- Fix empty depends/constrains when installing explicit spec files by @benmoss in <https://github.com/mamba-org/mamba/pull/4071>
+- fix: proxy both micromamba and mamba with fish function by @sghng in <https://github.com/mamba-org/mamba/pull/4065>
+- Fix nodiscard errors by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4058>
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
+## libmamba 2.3.3.alpha0 (September 04, 2025)
+
+Bug fixes:
+
+- Fix nodiscard errors by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4058>
+
+Maintenance:
+
+- libmambapy: Switch build backend to `scikit-build-core` by @LecrisUT in <https://github.com/mamba-org/mamba/pull/3802>
+
+## libmamba 2.3.2 (August 26, 2025)
+
+Enhancements:
+
+- feat: Support for optional `python_site_packages_path` in repodata by @jjhelmus in <https://github.com/mamba-org/mamba/pull/3579>
+
+Bug fixes:
+
+- Fix libsolv MatchSpec parsing by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4046>
+- fix: Workaround `mamba-org/mamba#4043` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4044>
+- Fix string lookup in MatchSpec parsing by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4040>
+- Fix wrong sticky package hash by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/4039>
+
+Maintenance:
+
+- `synchronized_value` move and copy implementation by @Klaim in <https://github.com/mamba-org/mamba/pull/4042>
+
+## libmamba 2.3.1 (July 28, 2025)
+
+Enhancements:
+
+- Add missing bindings and other improvements by @AntoinePrv in <https://github.com/mamba-org/mamba/pull/3990>
+
+Bug fixes:
+
+- Consider `SHELL` env var by @Hind-M in <https://github.com/mamba-org/mamba/pull/3997>
+
+CI fixes and doc:
+
+- [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
+Maintenance:
+
+- fix CI issues related to moving dependencies by @Klaim in <https://github.com/mamba-org/mamba/pull/4023>
+- maint: use `synchronized_value` where we use a mutex to protect data by @Klaim in <https://github.com/mamba-org/mamba/pull/3992>
+- Replace macros used in tests for compatibility with coverage report by @jjerphan in <https://github.com/mamba-org/mamba/pull/3995>
+- maint: fixes warnings by @Klaim in <https://github.com/mamba-org/mamba/pull/3993>
+- `synchronized_value` by @Klaim in <https://github.com/mamba-org/mamba/pull/3984>
+- maintenance: fixed msvc warnings about unreachable code by @Klaim in <https://github.com/mamba-org/mamba/pull/3991>
+
 ## libmamba 2.3.0 (June 16, 2025)
 
 Enhancements:

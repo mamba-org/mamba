@@ -45,6 +45,17 @@ jobs:
         run: |
           cd micromamba-feedstock/
           sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
+      - name: Replaces python 3.9 with 3.13
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          cd micromamba-feedstock/recipe/
+          sed -i 's|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3\.9|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3.13|' meta.yaml
+      - name: Uses libcurl 8.14
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          cd micromamba-feedstock/recipe/
+          sed -i 's|    - libcurl >=8\.4\.0[[:space:]]*# \[unix\]|    - libcurl >=8.4,<8.15    #[unix]|' meta.yaml
+          sed -i 's|    - libcurl-static >=8\.4\.0[[:space:]]*# \[unix\]|    - libcurl-static >=8.4,<8.15    #[unix]|' meta.yaml
       - name: Checkout mamba branch
         uses: actions/checkout@v4
         with:
@@ -115,14 +126,14 @@ jobs:
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
       - name: Upload conda build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           retention-days: 7
       - name: Upload micromamba
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
@@ -199,13 +210,13 @@ jobs:
           ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix  --log-level 1
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: micromamba-build-failed-win-64
           path: ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz
           retention-days: 7
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: micromamba-win-64
           path: ${{ github.workspace }}/build/micromamba/micromamba.exe

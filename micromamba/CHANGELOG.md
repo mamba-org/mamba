@@ -1,3 +1,84 @@
+## micromamba 2.4.0 (November 21, 2025)
+
+Enhancements:
+
+- Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Bug fixes:
+
+- fix: Update URL of lock files by @jjerphan in <https://github.com/mamba-org/mamba/pull/4097>
+- Fix Windows tests by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4086>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+
+## micromamba 2.4.0.rc0 (November 18, 2025)
+
+Enhancements:
+
+- Support for `mambajs`'s environment lockfile format by @Klaim in <https://github.com/mamba-org/mamba/pull/4085>
+- Logging impl separation by @Klaim in <https://github.com/mamba-org/mamba/pull/4016>
+
+Bug fixes:
+
+- fix: Update URL of lock files by @jjerphan in <https://github.com/mamba-org/mamba/pull/4097>
+- Fix Windows tests by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4086>
+
+Maintenance:
+
+- build(deps): bump actions/upload-artifact from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4088>
+
+## micromamba 2.3.3 (October 17, 2025)
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- Fixed test_repodata_record_patch by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4067>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+
+## micromamba 2.3.3.alpha1 (October 14, 2025)
+
+CI fixes and doc:
+
+- Added lower bounds on spdlog and fmt by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4080>
+- Static Windows build fix by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4074>
+
+Maintenance:
+
+- maint: Auto-update `pre-commit` setup by @jjerphan in <https://github.com/mamba-org/mamba/pull/4079>
+- Fixed test_repodata_record_patch by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4067>
+- build(deps): bump actions/github-script from 7 to 8 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4063>
+
+## micromamba 2.3.3.alpha0 (September 04, 2025)
+
+## micromamba 2.3.2 (August 26, 2025)
+
+Enhancements:
+
+- feat: Support for optional `python_site_packages_path` in repodata by @jjhelmus in <https://github.com/mamba-org/mamba/pull/3579>
+
+Bug fixes:
+
+- fix: Workaround `mamba-org/mamba#4043` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4044>
+
+## micromamba 2.3.1 (July 28, 2025)
+
+Bug fixes:
+
+- Consider `SHELL` env var by @Hind-M in <https://github.com/mamba-org/mamba/pull/3997>
+
+CI fixes and doc:
+
+- [skip ci] Fix typo by @davidbrochart in <https://github.com/mamba-org/mamba/pull/4000>
+- ci: use VS2022 instead of VS2019 by @Klaim in <https://github.com/mamba-org/mamba/pull/3986>
+
 ## micromamba 2.3.0 (June 16, 2025)
 
 Enhancements:

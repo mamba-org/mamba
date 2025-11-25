@@ -27,17 +27,15 @@
 #include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util_os.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
-#include "mamba/util/environment.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
-#include "./link.hpp"
-#include "./transaction_context.hpp"
 #include "solver/helpers.hpp"
 
+#include "link.hpp"
 #include "progress_bar_impl.hpp"
+#include "transaction_context.hpp"
 
 namespace mamba
 {
@@ -73,10 +71,11 @@ namespace mamba
             out.set_name(specs::MatchSpec::NameSpec(pkg.name));
             if (!pkg.version.empty())
             {
-                out.set_version(specs::VersionSpec::parse(fmt::format("=={}", pkg.version))
-                                    .or_else([](specs::ParseError&& error)
-                                             { throw std::move(error); })
-                                    .value());
+                out.set_version(
+                    specs::VersionSpec::parse(fmt::format("=={}", pkg.version))
+                        .or_else([](specs::ParseError&& error) { throw std::move(error); })
+                        .value()
+                );
             }
             if (!pkg.build_string.empty())
             {
@@ -110,9 +109,10 @@ namespace mamba
             return out;
         }
 
-        auto
-        find_python_version(const solver::Solution& solution, const solver::libsolv::Database& database)
-            -> std::pair<std::string, std::string>
+        auto find_python_versions_and_site_packages(
+            const solver::Solution& solution,
+            const solver::libsolv::Database& database
+        ) -> std::pair<std::pair<std::string, std::string>, std::string>
         {
             // We need to find the python version that will be there after this
             // Transaction is finished in order to compile the noarch packages correctly,
@@ -120,9 +120,11 @@ namespace mamba
             // We need to look into installed packages in case we are not installing a new python
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
+            std::string python_site_packages_path = {};
             std::string installed_py_ver = {};
             if (auto pkg = installed_python(database))
             {
+                python_site_packages_path = pkg->python_site_packages_path;
                 installed_py_ver = pkg->version;
                 LOG_INFO << "Found python in installed packages " << installed_py_ver;
             }
@@ -131,9 +133,13 @@ namespace mamba
             if (auto py = solver::find_new_python_in_solution(solution))
             {
                 new_py_ver = py->get().version;
+                python_site_packages_path = py->get().python_site_packages_path;
             }
 
-            return { std::move(new_py_ver), std::move(installed_py_ver) };
+            return {
+                { std::move(new_py_ver), std::move(installed_py_ver) },
+                std::move(python_site_packages_path),
+            };
         }
     }
 
@@ -213,7 +219,10 @@ namespace mamba
             Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
         }
 
-        m_py_versions = find_python_version(m_solution, database);
+        std::tie(
+            m_py_versions,
+            m_python_site_packages_path
+        ) = find_python_versions_and_site_packages(m_solution, database);
     }
 
     MTransaction::MTransaction(
@@ -258,15 +267,20 @@ namespace mamba
             [&](const auto& item) { m_requested_specs.push_back(item.spec); }
         );
 
-        m_py_versions = find_python_version(m_solution, database);
+        std::tie(
+            m_py_versions,
+            m_python_site_packages_path
+        ) = find_python_versions_and_site_packages(m_solution, database);
 
         // if no action required, don't even start logging them
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({
-                { "PREFIX", ctx.prefix_params.target_prefix.string() },
-            });
+            Console::instance().json_write(
+                {
+                    { "PREFIX", ctx.prefix_params.target_prefix.string() },
+                }
+            );
         }
     }
 
@@ -303,7 +317,10 @@ namespace mamba
             [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
         );
 
-        m_py_versions = find_python_version(m_solution, database);
+        std::tie(
+            m_py_versions,
+            m_python_site_packages_path
+        ) = find_python_versions_and_site_packages(m_solution, database);
     }
 
     class TransactionRollback
@@ -350,12 +367,14 @@ namespace mamba
         {
             Console::instance().json_up();
         }
-        Console::instance().json_write({ { "dry_run", ctx.dry_run },
-                                         { "prefix", ctx.prefix_params.target_prefix.string() } });
+        Console::instance().json_write(
+            { { "dry_run", ctx.dry_run }, { "prefix", ctx.prefix_params.target_prefix.string() } }
+        );
         if (empty())
         {
-            Console::instance().json_write({ { "message",
-                                               "All requested packages already installed" } });
+            Console::instance().json_write(
+                { { "message", "All requested packages already installed" } }
+            );
         }
 
         if (ctx.dry_run)
@@ -372,8 +391,8 @@ namespace mamba
 
         if (ctx.download_only)
         {
-            Console::stream(
-            ) << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
+            Console::stream()
+                << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
             return true;
         }
 
@@ -384,18 +403,30 @@ namespace mamba
         // should be normalised when reading the data.
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel).value();
-            auto pkg_channel = mamba::specs::Channel::resolve(
-                                   unresolved_pkg_channel,
-                                   channel_context.params()
+            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)
+                                                    .value();
+            const auto pkg_channel = mamba::specs::Channel::resolve(
+                                         unresolved_pkg_channel,
+                                         channel_context.params()
             )
-                                   .value();
-            auto channel_url = pkg_channel[0].platform_url(pkg.platform).str();
+                                         .value();
+            assert(not pkg_channel.empty());
+            const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
             pkg.channel = channel_url;
+
+            if (pkg.package_url.empty())
+            {
+                pkg.package_url = pkg.url_for_channel_platform(channel_url);
+            }
         };
 
         TransactionRollback rollback;
-        TransactionContext transaction_context(ctx.transaction_params(), m_py_versions, m_requested_specs);
+        TransactionContext transaction_context(
+            ctx.transaction_params(),
+            m_py_versions,
+            m_python_site_packages_path,
+            m_requested_specs
+        );
 
         for (const specs::PackageInfo& pkg : m_solution.packages_to_remove())
         {
@@ -551,10 +582,12 @@ namespace mamba
                         else
                         {
                             LOG_ERROR << "Could not create a valid RepoChecker.";
-                            throw std::runtime_error(fmt::format(
-                                R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
-                                pkg.name
-                            ));
+                            throw std::runtime_error(
+                                fmt::format(
+                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
+                                    pkg.name
+                                )
+                            );
                         }
                     }
                     LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
@@ -565,17 +598,34 @@ namespace mamba
                 {
                     using Credentials = typename specs::CondaURL::Credentials;
                     auto l_pkg = pkg;
+
+                    if (!pkg.package_url.empty())
                     {
                         auto channels = channel_context.make_channel(pkg.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
-                        );
+                        const auto platform_urls = channels.front().platform_urls();
+                        if (!platform_urls.empty())
+                        {
+                            l_pkg.package_url = platform_urls.front().str(Credentials::Show);
+                        }
                     }
+
                     {
                         auto channels = channel_context.make_channel(pkg.channel);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.channel = channels.front().id();
+                        const auto& channel = channels.front();
+
+                        l_pkg.channel = channel.id();
+
+                        if (l_pkg.package_url.empty())
+                        {
+                            l_pkg.package_url = l_pkg.url_for_channel(
+                                channel.url().str(Credentials::Show)
+                            );
+                        }
                     }
+
+
                     fetchers.emplace_back(l_pkg, multi_cache);
                 }
                 else
@@ -819,7 +869,8 @@ namespace mamba
             {
                 // There was no remove events but we still have remove specs treated:
                 // The packages to remove were not found in the environment.
-                Console::instance().print("  Failure: packages to remove not found in the environment:\n"
+                Console::instance().print(
+                    "  Failure: packages to remove not found in the environment:\n"
                 );
                 for (const auto& entry : m_history_entry.remove)
                 {
@@ -857,11 +908,13 @@ namespace mamba
         }
 
         printers::Table t({ "Package", "Version", "Build", "Channel", "Size" });
-        t.set_alignment({ printers::alignment::left,
-                          printers::alignment::right,
-                          printers::alignment::left,
-                          printers::alignment::left,
-                          printers::alignment::right });
+        t.set_alignment(
+            { printers::alignment::left,
+              printers::alignment::right,
+              printers::alignment::left,
+              printers::alignment::left,
+              printers::alignment::right }
+        );
         t.set_padding({ 2, 2, 2, 2, 5 });
 
         using rows = std::vector<std::vector<printers::FormattedString>>;
@@ -949,11 +1002,13 @@ namespace mamba
                 assert(chan_name != "__explicit_specs__");
             }
 
-            r.push_back({ name,
-                          printers::FormattedString(s.version),
-                          printers::FormattedString(s.build_string),
-                          printers::FormattedString(cut_repo_name(chan_name)),
-                          dlsize_s });
+            r.push_back(
+                { name,
+                  printers::FormattedString(s.version),
+                  printers::FormattedString(s.build_string),
+                  printers::FormattedString(cut_repo_name(chan_name)),
+                  dlsize_s }
+            );
         };
 
         auto format_action = [&](const auto& act)
@@ -1076,8 +1131,13 @@ namespace mamba
         t.print(out);
     }
 
-    MTransaction
-    create_explicit_transaction_from_urls(const Context& ctx, solver::libsolv::Database& database, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
+    MTransaction create_explicit_transaction_from_urls(
+        const Context& ctx,
+        solver::libsolv::Database& database,
+        const std::vector<std::string>& urls,
+        MultiPackageCache& package_caches,
+        std::vector<detail::other_pkg_mgr_spec>&
+    )
     {
         std::vector<specs::PackageInfo> specs_to_install = {};
         specs_to_install.reserve(urls.size());
@@ -1113,15 +1173,23 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
+        for (const auto& package : lockfile_data.get_all_packages())
+        {
+            LOG_DEBUG << "parsed package: " << package.info.name;
+            LOG_DEBUG << "  category = " << package.category;
+            LOG_DEBUG << "  platform = " << package.platform;
+            LOG_DEBUG << "  manager = " << package.manager;
+        }
+
+        // TODO: FIXME: inject channel info coming from the lockfile!
+
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};
 
         for (const auto& category : categories)
         {
             std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
-                category,
-                ctx.platform,
-                "conda"
+                { .category = category, .platform = ctx.platform, .manager = "conda" }
             );
             std::copy(
                 selected_packages.begin(),
@@ -1136,7 +1204,16 @@ namespace mamba
                             << ctx.platform << ").";
             }
 
-            selected_packages = lockfile_data.get_packages_for(category, ctx.platform, "pip");
+            selected_packages = lockfile_data.get_packages_for(
+                { .category = category,
+                  .platform = ctx.platform,
+                  .manager = "pip",
+                  // NOTE: sometime python packages can have no platform specified (mambajs lockfile
+                  // for
+                  //       example) in this case we just take the package if not specified, but if
+                  //       specified we filter to the current platform.
+                  .allow_no_platform = true }
+            );
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
@@ -1159,6 +1236,12 @@ namespace mamba
             other_specs.push_back(
                 { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }
             );
+        }
+
+
+        for (const auto& package : pip_packages)
+        {
+            LOG_DEBUG << "pip package to install: " << package.name;
         }
 
         return MTransaction{ ctx, database, std::move(conda_packages), package_caches };

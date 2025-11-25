@@ -29,7 +29,6 @@ extern "C"
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
-#include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
@@ -197,7 +196,7 @@ namespace mamba
         const Context& context,
         const std::string& name,
         const std::vector<std::string>& command,
-        LockFile proc_dir_lock
+        LockFile proc_dir_lock [[maybe_unused]]
     )
         : location{ proc_dir() / fmt::format("{}.json", getpid()) }
     {
@@ -302,9 +301,9 @@ namespace mamba
         const std::string& cwd,
         int stream_options,
         bool clean_env,
-        bool detach,
+        bool detach [[maybe_unused]],
         const std::vector<std::string>& env_vars,
-        const std::string& specific_process_name
+        const std::string& specific_process_name [[maybe_unused]]
     )
     {
         if (!fs::exists(prefix))
@@ -425,10 +424,12 @@ namespace mamba
                 {
                     if (is_process_name_running(specific_process_name))
                     {
-                        throw std::runtime_error(fmt::format(
-                            "Another process with name '{}' is currently running.",
-                            specific_process_name
-                        ));
+                        throw std::runtime_error(
+                            fmt::format(
+                                "Another process with name '{}' is currently running.",
+                                specific_process_name
+                            )
+                        );
                     }
                     command.insert(exe_name_it, { { "-a" }, specific_process_name });
                     return specific_process_name;

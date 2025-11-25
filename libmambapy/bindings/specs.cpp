@@ -63,47 +63,53 @@ namespace mambapy
             [](const mamba::fs::u8path& p) { return strip_archive_extension(p); }
         );
 
-        py::enum_<KnownPlatform>(m, "KnownPlatform")
-            .value("noarch", KnownPlatform::noarch)
-            .value("linux_32", KnownPlatform::linux_32)
-            .value("linux_64", KnownPlatform::linux_64)
-            .value("linux_armv6l", KnownPlatform::linux_armv6l)
-            .value("linux_armv7l", KnownPlatform::linux_armv7l)
-            .value("linux_aarch64", KnownPlatform::linux_aarch64)
-            .value("linux_ppc64le", KnownPlatform::linux_ppc64le)
-            .value("linux_ppc64", KnownPlatform::linux_ppc64)
-            .value("linux_s390x", KnownPlatform::linux_s390x)
-            .value("linux_riscv32", KnownPlatform::linux_riscv32)
-            .value("linux_riscv64", KnownPlatform::linux_riscv64)
-            .value("osx_64", KnownPlatform::osx_64)
-            .value("osx_arm64", KnownPlatform::osx_arm64)
-            .value("win_32", KnownPlatform::win_32)
-            .value("win_64", KnownPlatform::win_64)
-            .value("win_arm64", KnownPlatform::win_arm64)
-            .value("zos_z", KnownPlatform::zos_z)
-            .def(py::init(&enum_from_str<KnownPlatform>))
+        make_str_enum(
+            py::enum_<KnownPlatform>(m, "KnownPlatform"),
+            std::array{
+                std::pair{ "noarch", KnownPlatform::noarch },
+                std::pair{ "linux_32", KnownPlatform::linux_32 },
+                std::pair{ "linux_64", KnownPlatform::linux_64 },
+                std::pair{ "linux_armv6l", KnownPlatform::linux_armv6l },
+                std::pair{ "linux_armv7l", KnownPlatform::linux_armv7l },
+                std::pair{ "linux_aarch64", KnownPlatform::linux_aarch64 },
+                std::pair{ "linux_ppc64le", KnownPlatform::linux_ppc64le },
+                std::pair{ "linux_ppc64", KnownPlatform::linux_ppc64 },
+                std::pair{ "linux_s390x", KnownPlatform::linux_s390x },
+                std::pair{ "linux_riscv32", KnownPlatform::linux_riscv32 },
+                std::pair{ "linux_riscv64", KnownPlatform::linux_riscv64 },
+                std::pair{ "osx_64", KnownPlatform::osx_64 },
+                std::pair{ "osx_arm64", KnownPlatform::osx_arm64 },
+                std::pair{ "win_32", KnownPlatform::win_32 },
+                std::pair{ "win_64", KnownPlatform::win_64 },
+                std::pair{ "win_arm64", KnownPlatform::win_arm64 },
+                std::pair{ "zos_z", KnownPlatform::zos_z },
+            }
+        )
             .def_static("parse", &platform_parse)
             .def_static("count", &known_platforms_count)
             .def_static("build_platform", &build_platform);
-        py::implicitly_convertible<py::str, KnownPlatform>();
 
-        py::enum_<NoArchType>(m, "NoArchType")
-            .value("No", NoArchType::No)
-            .value("Generic", NoArchType::Generic)
-            .value("Python", NoArchType::Python)
-            .def(py::init(&enum_from_str<NoArchType>))
+        make_str_enum(
+            py::enum_<NoArchType>(m, "NoArchType"),
+            std::array{
+                std::pair{ "No", NoArchType::No },
+                std::pair{ "Generic", NoArchType::Generic },
+                std::pair{ "Python", NoArchType::Python },
+            }
+        )
             .def_static("parse", &noarch_parse)
             .def_static("count", &known_noarch_count);
-        py::implicitly_convertible<py::str, NoArchType>();
 
         auto py_conda_url = py::class_<CondaURL>(m, "CondaURL");
 
-        py::enum_<CondaURL::Credentials>(py_conda_url, "Credentials")
-            .value("Hide", CondaURL::Credentials::Hide)
-            .value("Show", CondaURL::Credentials::Show)
-            .value("Remove", CondaURL::Credentials::Remove)
-            .def(py::init(&enum_from_str<CondaURL::Credentials>));
-        py::implicitly_convertible<py::str, CondaURL::Credentials>();
+        make_str_enum(
+            py::enum_<CondaURL::Credentials>(py_conda_url, "Credentials"),
+            std::array{
+                std::pair{ "Hide", CondaURL::Credentials::Hide },
+                std::pair{ "Show", CondaURL::Credentials::Show },
+                std::pair{ "Remove", CondaURL::Credentials::Remove },
+            }
+        );
 
         py_conda_url  //
             .def_static("parse", &CondaURL::parse)
@@ -315,15 +321,17 @@ namespace mambapy
 
         auto py_unresolved_channel = py::class_<UnresolvedChannel>(m, "UnresolvedChannel");
 
-        py::enum_<UnresolvedChannel::Type>(py_unresolved_channel, "Type")
-            .value("URL", UnresolvedChannel::Type::URL)
-            .value("PackageURL", UnresolvedChannel::Type::PackageURL)
-            .value("Path", UnresolvedChannel::Type::Path)
-            .value("PackagePath", UnresolvedChannel::Type::PackagePath)
-            .value("Name", UnresolvedChannel::Type::Name)
-            .value("Unknown", UnresolvedChannel::Type::Unknown)
-            .def(py::init(&enum_from_str<UnresolvedChannel::Type>));
-        py::implicitly_convertible<py::str, UnresolvedChannel::Type>();
+        make_str_enum(
+            py::enum_<UnresolvedChannel::Type>(py_unresolved_channel, "Type"),
+            std::array{
+                std::pair{ "URL", UnresolvedChannel::Type::URL },
+                std::pair{ "PackageURL", UnresolvedChannel::Type::PackageURL },
+                std::pair{ "Path", UnresolvedChannel::Type::Path },
+                std::pair{ "PackagePath", UnresolvedChannel::Type::PackagePath },
+                std::pair{ "Name", UnresolvedChannel::Type::Name },
+                std::pair{ "Unknown", UnresolvedChannel::Type::Unknown },
+            }
+        );
 
         py_unresolved_channel  //
             .def_static("parse", UnresolvedChannel::parse)
@@ -397,13 +405,14 @@ namespace mambapy
         py_resolve_params  //
             .def(
                 py::init(
-                    [](ChannelResolveParams::platform_list platforms,
-                       CondaURL channel_alias,
-                       ChannelResolveParams::channel_map custom_channels,
-                       ChannelResolveParams::multichannel_map custom_multichannels,
-                       AuthenticationDataBase authentication_db,
-                       std::string home_dir,
-                       std::string current_working_dir  //
+                    [](
+                        ChannelResolveParams::platform_list platforms,
+                        CondaURL channel_alias,
+                        ChannelResolveParams::channel_map custom_channels,
+                        ChannelResolveParams::multichannel_map custom_multichannels,
+                        AuthenticationDataBase authentication_db,
+                        std::string home_dir,
+                        std::string current_working_dir  //
                     ) -> ChannelResolveParams
                     {
                         return {
@@ -436,12 +445,14 @@ namespace mambapy
             .def("__copy__", &copy<BasicHTTPAuthentication>)
             .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"));
 
-        py::enum_<Channel::Match>(py_channel, "Match")
-            .value("No", Channel::Match::No)
-            .value("InOtherPlatform", Channel::Match::InOtherPlatform)
-            .value("Full", Channel::Match::Full)
-            .def(py::init(&enum_from_str<Channel::Match>));
-        py::implicitly_convertible<py::str, Channel::Match>();
+        make_str_enum(
+            py::enum_<Channel::Match>(py_channel, "Match"),
+            std::array{
+                std::pair{ "No", Channel::Match::No },
+                std::pair{ "InOtherPlatform", Channel::Match::InOtherPlatform },
+                std::pair{ "Full", Channel::Match::Full },
+            }
+        );
 
         py_channel  //
             .def_property_readonly_static(
@@ -466,14 +477,15 @@ namespace mambapy
             )
             .def_static(
                 "resolve",
-                [](const UnresolvedChannel& what,
-                   const ChannelResolveParams::platform_list& platforms,
-                   const CondaURL& channel_alias,
-                   const ChannelResolveParams::channel_map& custom_channels,
-                   const ChannelResolveParams::multichannel_map& custom_multichannels,
-                   const AuthenticationDataBase& authentication_db,
-                   std::string_view home_dir,
-                   std::string_view current_working_dir  //
+                [](
+                    const UnresolvedChannel& what,
+                    const ChannelResolveParams::platform_list& platforms,
+                    const CondaURL& channel_alias,
+                    const ChannelResolveParams::channel_map& custom_channels,
+                    const ChannelResolveParams::multichannel_map& custom_multichannels,
+                    const AuthenticationDataBase& authentication_db,
+                    std::string_view home_dir,
+                    std::string_view current_working_dir  //
                 )
                 {
                     return Channel::resolve(
@@ -501,8 +513,10 @@ namespace mambapy
             )
             .def("is_package", &Channel::is_package)
             .def_property("url", &Channel::url, &Channel::set_url)
+            .def_property_readonly("mirror_urls", &Channel::mirror_urls)
             .def_property("platforms", &Channel::platforms, &Channel::set_platforms)
             .def_property("display_name", &Channel::display_name, &Channel::set_display_name)
+            .def_property_readonly("id", &Channel::id)
             .def("platform_url", &Channel::platform_url)
             .def("platform_urls", &Channel::platform_urls)
             .def("url_equivalent_with", &Channel::url_equivalent_with)
@@ -660,6 +674,7 @@ namespace mambapy
                        decltype(PackageInfo::platform) platform,
                        decltype(PackageInfo::filename) filename,
                        decltype(PackageInfo::license) license,
+                       decltype(PackageInfo::python_site_packages_path) python_site_packages_path,
                        decltype(PackageInfo::md5) md5,
                        decltype(PackageInfo::sha256) sha256,
                        decltype(PackageInfo::signatures) signatures,
@@ -681,6 +696,7 @@ namespace mambapy
                         pkg.platform = std::move(platform);
                         pkg.filename = std::move(filename);
                         pkg.license = std::move(license);
+                        pkg.python_site_packages_path = std::move(python_site_packages_path);
                         pkg.md5 = std::move(md5);
                         pkg.sha256 = std::move(sha256);
                         pkg.signatures = std::move(signatures);
@@ -703,6 +719,7 @@ namespace mambapy
                 py::arg("platform") = decltype(PackageInfo::platform)(),
                 py::arg("filename") = decltype(PackageInfo::filename)(),
                 py::arg("license") = decltype(PackageInfo::license)(),
+                py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
                 py::arg("signatures") = decltype(PackageInfo::signatures)(),
@@ -738,6 +755,7 @@ namespace mambapy
                 { throw std::runtime_error("'fn' has been renamed 'filename'"); }
             )
             .def_readwrite("license", &PackageInfo::license)
+            .def_readwrite("python_site_packages_path", &PackageInfo::python_site_packages_path)
             .def_readwrite("size", &PackageInfo::size)
             .def_readwrite("timestamp", &PackageInfo::timestamp)
             .def_readwrite("md5", &PackageInfo::md5)
@@ -869,17 +887,19 @@ namespace mambapy
                         std::reference_wrapper<const MatchSpec::string_set> track_features;
                     };
 
-                    return ms.contains_except_channel(Pkg{
-                        /* .name= */ name,
-                        /* .version= */ version,
-                        /* .build_string= */ build_string,
-                        /* .build_number= */ build_number,
-                        /* .md5= */ md5,
-                        /* .sha256= */ sha256,
-                        /* .license= */ license,
-                        /* .platform= */ platform,
-                        /* .track_features= */ track_features,
-                    });
+                    return ms.contains_except_channel(
+                        Pkg{
+                            /* .name= */ name,
+                            /* .version= */ version,
+                            /* .build_string= */ build_string,
+                            /* .build_number= */ build_number,
+                            /* .md5= */ md5,
+                            /* .sha256= */ sha256,
+                            /* .license= */ license,
+                            /* .platform= */ platform,
+                            /* .track_features= */ track_features,
+                        }
+                    );
                 },
                 py::arg("name") = "",
                 py::arg("version") = Version(),
@@ -895,6 +915,8 @@ namespace mambapy
             .def("is_simple", &MatchSpec::is_simple)
             .def("is_only_package_name", &MatchSpec::is_only_package_name)
             .def("conda_build_form", &MatchSpec::conda_build_form)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
             .def("__str__", &MatchSpec::to_string)
             .def("__copy__", &copy<MatchSpec>)
             .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));

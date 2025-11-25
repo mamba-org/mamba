@@ -11,7 +11,6 @@
 #include <fmt/core.h>
 
 #include <mamba/core/logging_tools.hpp>
-
 #include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging

@@ -20,39 +20,30 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 
 # For some reasons, using target_compile_definitions does not set the definitions properly
-add_compile_definitions(
-    SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}"
-)
+add_compile_definitions(SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
 
 add_library(libmamba-spdlog INTERFACE)
-# target_sources(libmamba-spdlog
-#     INTERFACE
-#         include/mamba/spdlog/logging_spdlog.hpp
-#         include/mamba/spdlog/logging_spdlog_impl.hpp
-# )
+# target_sources(libmamba-spdlog INTERFACE include/mamba/spdlog/logging_spdlog.hpp
+# include/mamba/spdlog/logging_spdlog_impl.hpp )
 add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
 
-target_include_directories(libmamba-spdlog INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+target_include_directories(
+    libmamba-spdlog
+    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
 )
 
-
-target_link_libraries(libmamba-spdlog
+target_link_libraries(
+    libmamba-spdlog
     INTERFACE
         ${libmamba_target}
-
-        # Since conda-forge spdlog is built with a bundled version of fmt we use the header
-        # only version to avoid chasing after the correct fmt version matching the one used
-        # in the bundle.
+        # Since conda-forge spdlog is built with a bundled version of fmt we use the header only
+        # version to avoid chasing after the correct fmt version matching the one used in the
+        # bundle.
         spdlog::spdlog_header_only
-
-        # We need the threading facilities available whatever the user use.
-        # This should have been part of depending on spdlog but for some reason it's
-        # not made available automatically.
+        # We need the threading facilities available whatever the user use. This should have been
+        # part of depending on spdlog but for some reason it's not made available automatically.
         Threads::Threads
 )
-
 
 mamba_target_add_compile_warnings(libmamba-spdlog WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
@@ -71,7 +62,8 @@ write_basic_package_version_file(
     VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
-install(TARGETS libmamba-spdlog
+install(
+    TARGETS libmamba-spdlog
     EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION lib COMPONENT Runtime
     ARCHIVE DESTINATION lib COMPONENT Development
@@ -85,17 +77,20 @@ configure_package_config_file(
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
-install(EXPORT ${PROJECT_NAME}Targets
+install(
+    EXPORT ${PROJECT_NAME}Targets
     NAMESPACE mamba::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
 
-install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"
-              "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+install(
+    FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"
+          "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
 if(BUILD_LIBMAMBA_SPDLOG_TESTS)
     add_subdirectory(tests/)
 endif()
-

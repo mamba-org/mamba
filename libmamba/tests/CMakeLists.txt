@@ -167,11 +167,11 @@ set_target_properties(
 # libmamba logging system tests
 
 add_library(libtesting_mamba_logging_common INTERFACE)
-target_sources(libtesting_mamba_logging_common
-    INTERFACE
-        libmamba_logging/include/mamba/testing/test_logging_common.hpp
+target_sources(
+    libtesting_mamba_logging_common
+    INTERFACE libmamba_logging/include/mamba/testing/test_logging_common.hpp
 )
-target_include_directories(libtesting_mamba_logging_common INTERFACE libmamba_logging/include/ )
+target_include_directories(libtesting_mamba_logging_common INTERFACE libmamba_logging/include/)
 
 add_library(mamba::libtesting_mamba_logging_common ALIAS libtesting_mamba_logging_common)
 
@@ -182,7 +182,8 @@ add_executable(
     libmamba_logging/test_logging_anyloghandler.cpp
 )
 
-target_link_libraries(test_libmamba_logging
+target_link_libraries(
+    test_libmamba_logging
     PRIVATE
         mamba::libmamba
         Catch2::Catch2WithMain

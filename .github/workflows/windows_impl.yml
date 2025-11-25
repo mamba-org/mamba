@@ -101,7 +101,6 @@ jobs:
           unset CONDARC  # Interferes with tests
           cd ./build/libmamba && ./tests/test_libmamba
 
-
   libmambapy_tests_win:
     name: libmambapy tests
     needs: ["build_shared_win"]

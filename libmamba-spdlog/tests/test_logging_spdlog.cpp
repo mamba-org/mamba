@@ -12,7 +12,6 @@
 #include <fmt/core.h>
 
 #include <mamba/spdlog/logging_spdlog.hpp>
-
 #include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging

@@ -155,7 +155,7 @@ function(mamba_target_add_compile_warnings target)
     endif()
 
     get_target_property(type ${target} TYPE)
-    if (NOT ${type} STREQUAL "INTERFACE_LIBRARY")
+    if(NOT ${type} STREQUAL "INTERFACE_LIBRARY")
         target_compile_options("${target}" PRIVATE ${warnings})
     endif()
 

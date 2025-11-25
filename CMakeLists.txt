@@ -80,8 +80,6 @@ if(BUILD_LIBMAMBA)
     add_subdirectory(libmamba-spdlog)
 endif()
 
-
-
 # Python bindings of libmamba
 if(BUILD_LIBMAMBAPY)
     add_subdirectory(libmambapy)

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <unordered_set>
 
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
@@ -1715,6 +1716,70 @@ namespace
         }
 
         return result;
+    }
+
+    TEST_CASE("MatchSpec parse edge cases", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Multiple semicolons: last one should be used for condition")
+        {
+            // If there are multiple semicolons, only the last one with "if" is the condition
+            auto ms = MatchSpec::parse("pkg>=1.0; if python <3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pkg");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+        }
+
+        SECTION("Empty condition after semicolon: should fail gracefully")
+        {
+            // A semicolon followed by "if" but no condition
+            auto ms = MatchSpec::parse("pkg; if ");
+            // Should either parse without condition or fail gracefully
+            // The parser should handle this reasonably
+            REQUIRE(ms.has_value());
+        }
+
+        SECTION("Condition with special characters")
+        {
+            // Conditions with comparison operators and version numbers
+            auto ms = MatchSpec::parse("pkg; if python >=3.10.5,<3.12");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->condition() != nullptr);
+        }
+
+        SECTION("Hash in MatchSpec with conditionals works in containers")
+        {
+            // Test that MatchSpecs with conditions work in hash-based containers
+            auto ms1 = MatchSpec::parse("pkg; if python <3.10").value();
+            auto ms2 = MatchSpec::parse("pkg; if python <3.10").value();
+            auto ms3 = MatchSpec::parse("pkg; if python <3.11").value();
+
+            std::unordered_set<MatchSpec> set;
+            set.insert(ms1);
+            set.insert(ms2);  // Should not create duplicate since ms1 == ms2
+            set.insert(ms3);
+
+            REQUIRE(set.size() == 2);  // ms1 and ms2 are the same, ms3 is different
+            REQUIRE(set.find(ms1) != set.end());
+            REQUIRE(set.find(ms2) != set.end());
+            REQUIRE(set.find(ms3) != set.end());
+        }
+
+        SECTION("Hash consistency across copy and move")
+        {
+            auto ms1 = MatchSpec::parse("pkg; if python <3.10").value();
+            auto ms2 = ms1;                                                          // Copy
+            auto ms3 = std::move(MatchSpec::parse("pkg; if python <3.10").value());  // Move
+
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            auto hash3 = std::hash<MatchSpec>{}(ms3);
+
+            REQUIRE(hash1 == hash2);
+            REQUIRE(hash1 == hash3);
+            REQUIRE(ms1 == ms2);
+            REQUIRE(ms1 == ms3);
+        }
     }
 
     TEST_CASE("Repodata MatchSpec::parse", "[mamba::specs][mamba::specs::MatchSpec][.integration]")

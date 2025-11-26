@@ -1377,6 +1377,11 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Environment variables specified in a YAML spec file"));
 
+        insert(Configurable("clone", std::string(""))
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description("Name or path of the existing environment to clone"));
+
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")
                    .needs({ "file_specs" })  // explicit file specs overwrite current specs

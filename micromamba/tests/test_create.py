@@ -15,6 +15,41 @@ from memory_profiler import memory_usage
 
 __this_dir__ = Path(__file__).parent.resolve()
 
+
+def assert_explicit_envs_identical(src_explicit, clone_explicit):
+    """
+    Compare two explicit environment exports, ignoring hash differences in URLs.
+
+    This function normalizes the explicit export by removing hashes from URLs
+    (everything after the last '#' in package URLs) before comparison.
+    """
+    import re
+
+    def normalize_explicit_lines(explicit_str):
+        """Normalize explicit export lines by removing hashes from URLs."""
+        lines = [line.strip() for line in explicit_str.splitlines() if line.strip()]
+        normalized = []
+        for line in lines:
+            # Skip comment lines and headers
+            if line.startswith("#") or line == "@EXPLICIT":
+                normalized.append(line)
+            else:
+                # Remove hash from URL (everything after the last #)
+                # Pattern: URL#hash -> URL#
+                normalized_line = re.sub(r"(#[^#]*)$", "#", line)
+                normalized.append(normalized_line)
+        return normalized
+
+    src_lines = normalize_explicit_lines(src_explicit)
+    clone_lines = normalize_explicit_lines(clone_explicit)
+
+    assert src_lines == clone_lines, (
+        f"Explicit environment specifications differ.\n"
+        f"Source lines: {len(src_lines)}, Clone lines: {len(clone_lines)}\n"
+        f"First difference at index {next((i for i, (s, c) in enumerate(zip(src_lines, clone_lines)) if s != c), None)}"
+    )
+
+
 env_file_requires_pip_install_path = __this_dir__ / "env-requires-pip-install.yaml"
 
 
@@ -286,6 +321,599 @@ def test_env_lockfile_different_install_after_create(
 
     # Must not crash
     helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_by_name(tmp_home, tmp_root_prefix, tmp_path):
+    src_env = "clone-source"
+    clone_env = "clone-target"
+
+    # Create source environment with a couple of packages
+    helpers.create("-n", src_env, "xtensor", "xsimd", "--json", no_dry_run=True)
+
+    # Clone by environment name
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Compare explicit exported environment specifications
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_by_prefix_path(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "clone-src-prefix"
+    helpers.create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+
+    src_prefix = tmp_root_prefix / "envs" / env_name
+    clone_prefix = tmp_path / "cloned-env"
+
+    res = helpers.create("--clone", src_prefix, "-p", clone_prefix, "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Compare explicit exported environment specifications
+    src_explicit = helpers.run_env("export", "-p", src_prefix, "--explicit")
+    clone_explicit = helpers.run_env("export", "-p", clone_prefix, "--explicit")
+
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "clone-conflict-specs"
+    helpers.create("-n", "src-env-for-conflict", "xtensor", "--json", no_dry_run=True)
+
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create(
+            "--clone",
+            "src-env-for-conflict",
+            "-n",
+            env_name,
+            "xsimd",
+            "--json",
+            no_dry_run=True,
+        )
+    stderr = info.value.stderr.decode()
+    assert "Cannot use --clone together with package specs." in stderr
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_conflicts_with_file(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "clone-conflict-file"
+    helpers.create("-n", "src-env-for-file", "xtensor", "--json", no_dry_run=True)
+
+    spec_file = tmp_path / "env.txt"
+    spec_file.write_text("xsimd\n")
+
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create(
+            "--clone",
+            "src-env-for-file",
+            "-n",
+            env_name,
+            "-f",
+            spec_file,
+            "--json",
+            no_dry_run=True,
+        )
+    stderr = info.value.stderr.decode()
+
+    assert "Cannot use --clone together with package specs." in stderr
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "clone-non-existing"
+
+    # Non-existing named environment
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create(
+            "--clone", "this-env-does-not-exist", "-n", env_name, "--json", no_dry_run=True
+        )
+    stderr = info.value.stderr.decode()
+    assert "Could not find environment to clone: this-env-does-not-exist" in stderr
+
+    # Non-existing prefix path
+    non_existing_prefix = tmp_path / "does-not-exist"
+    with pytest.raises(subprocess.CalledProcessError) as info2:
+        helpers.create("--clone", non_existing_prefix, "-n", env_name, "--json", no_dry_run=True)
+    stderr2 = info2.value.stderr.decode()
+    assert f"Source prefix '{non_existing_prefix}" in stderr2
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_dry_run(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning with --dry-run flag."""
+    src_env = "clone-src-dry"
+    clone_env = "clone-target-dry"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--dry-run", "--json")
+    assert res["success"]
+    assert res["dry_run"] is True
+
+    # Environment should not exist in dry-run mode
+    clone_prefix = tmp_root_prefix / "envs" / clone_env
+    if helpers.dry_run_tests == helpers.DryRun.OFF:
+        assert not clone_prefix.exists()
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("quiet_flag", ["", "--quiet", "-q"])
+def test_clone_with_quiet(tmp_home, tmp_root_prefix, tmp_path, quiet_flag):
+    """Test cloning with quiet flags."""
+    src_env = "clone-src-quiet"
+    clone_env = "clone-target-quiet"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if quiet_flag:
+        cmd.append(quiet_flag)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("verbose_flag", ["", "-v", "-vv", "-vvv"])
+def test_clone_with_verbose(tmp_home, tmp_root_prefix, tmp_path, verbose_flag):
+    """Test cloning with verbose flags."""
+    src_env = "clone-src-verbose"
+    clone_env = "clone-target-verbose"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if verbose_flag:
+        cmd.append(verbose_flag)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("copy_flag", ["", "--always-copy", "--copy"])
+def test_clone_with_copy(tmp_home, tmp_root_prefix, tmp_path, copy_flag):
+    """Test cloning with copy flags."""
+    src_env = "clone-src-copy"
+    clone_env = "clone-target-copy"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if copy_flag:
+        cmd.append(copy_flag)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Softlinking are not supported on Windows",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_always_softlink(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning with --always-softlink flag."""
+    src_env = "clone-src-softlink"
+    clone_env = "clone-target-softlink"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    res = helpers.create(
+        "--clone", src_env, "-n", clone_env, "--always-softlink", "--json", no_dry_run=True
+    )
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("no_pin_flag", ["", "--no-pin"])
+def test_clone_with_no_pin(tmp_home, tmp_root_prefix, tmp_path, no_pin_flag):
+    """Test cloning with --no-pin flag."""
+    src_env = "clone-src-no-pin"
+    clone_env = "clone-target-no-pin"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if no_pin_flag:
+        cmd.append(no_pin_flag)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("no_py_pin_flag", ["", "--no-py-pin"])
+def test_clone_with_no_py_pin(tmp_home, tmp_root_prefix, tmp_path, no_py_pin_flag):
+    """Test cloning with --no-py-pin flag."""
+    src_env = "clone-src-no-py-pin"
+    clone_env = "clone-target-no-py-pin"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if no_py_pin_flag:
+        cmd.append(no_py_pin_flag)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("shortcuts_flag", ["", "--shortcuts", "--no-shortcuts"])
+def test_clone_with_shortcuts(tmp_home, tmp_root_prefix, tmp_path, shortcuts_flag):
+    """Test cloning with shortcuts flags."""
+    src_env = "clone-src-shortcuts"
+    clone_env = "clone-target-shortcuts"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if shortcuts_flag:
+        cmd.append(shortcuts_flag)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("safety_checks", ["", "enabled", "warn", "disabled"])
+def test_clone_with_safety_checks(tmp_home, tmp_root_prefix, tmp_path, safety_checks):
+    """Test cloning with --safety-checks flag."""
+    src_env = "clone-src-safety"
+    clone_env = "clone-target-safety"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if safety_checks:
+        cmd.extend(["--safety-checks", safety_checks])
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_relocate_prefix(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning with --relocate-prefix flag."""
+    src_env = "clone-src-relocate"
+    clone_env = "clone-target-relocate"
+
+    helpers.create("-n", src_env, "python=3.11", "--json", no_dry_run=True)
+
+    relocate_prefix = tmp_path / "relocate-prefix"
+    relocate_prefix.mkdir(parents=True, exist_ok=True)
+
+    res = helpers.create(
+        "--clone",
+        src_env,
+        "-n",
+        clone_env,
+        "--relocate-prefix",
+        relocate_prefix,
+        "--json",
+        no_dry_run=True,
+    )
+    assert res["success"]
+
+    # Verify environments have same packages
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+    # On non-Windows, verify relocation was applied
+    if platform.system() != "Windows":
+        clone_prefix = tmp_root_prefix / "envs" / clone_env
+        if (clone_prefix / "bin" / "2to3").exists():
+            with open(clone_prefix / "bin" / "2to3") as f:
+                firstline = f.readline()
+                assert firstline == f"#!{relocate_prefix}/bin/python3.11\n"
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_no_env(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning with --no-env flag."""
+    src_env = "clone-src-no-env"
+    clone_env = "clone-target-no-env"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--no-env", "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("channel_flag", ["", "-c", "conda-forge", "--channel", "bioconda"])
+def test_clone_with_channel(tmp_home, tmp_root_prefix, tmp_path, channel_flag):
+    """Test cloning with channel flags (should not affect cloning)."""
+    src_env = "clone-src-channel"
+    clone_env = "clone-target-channel"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if channel_flag:
+        if channel_flag in ("-c", "--channel"):
+            cmd.extend([channel_flag, "conda-forge"])
+        else:
+            cmd.extend(["-c", channel_flag])
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical (channels shouldn't affect cloning)
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_override_channels(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning with --override-channels flag (should not affect cloning)."""
+    src_env = "clone-src-override"
+    clone_env = "clone-target-override"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    res = helpers.create(
+        "--clone",
+        src_env,
+        "-n",
+        clone_env,
+        "--override-channels",
+        "--json",
+        no_dry_run=True,
+    )
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize(
+    "channel_priority", ["", "--strict-channel-priority", "--no-channel-priority"]
+)
+def test_clone_with_channel_priority(tmp_home, tmp_root_prefix, tmp_path, channel_priority):
+    """Test cloning with channel priority flags (should not affect cloning)."""
+    src_env = "clone-src-priority"
+    clone_env = "clone-target-priority"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    cmd = ["--clone", src_env, "-n", clone_env, "--json"]
+    if channel_priority:
+        cmd.append(channel_priority)
+
+    res = helpers.create(*cmd, no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_target_as_prefix_vs_name(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning to both named environment and explicit prefix."""
+    src_env = "clone-src-target"
+    clone_env_name = "clone-target-name"
+    clone_env_prefix = tmp_path / "clone-target-prefix"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    # Clone to named environment
+    res1 = helpers.create("--clone", src_env, "-n", clone_env_name, "--json", no_dry_run=True)
+    assert res1["success"]
+
+    # Clone to explicit prefix
+    res2 = helpers.create("--clone", src_env, "-p", clone_env_prefix, "--json", no_dry_run=True)
+    assert res2["success"]
+
+    # Both should be identical to source
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    name_explicit = helpers.run_env("export", "-n", clone_env_name, "--explicit")
+    prefix_explicit = helpers.run_env("export", "-p", clone_env_prefix, "--explicit")
+
+    assert_explicit_envs_identical(src_explicit, name_explicit)
+    assert_explicit_envs_identical(src_explicit, prefix_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_multiple_flags(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning with multiple flags combined."""
+    src_env = "clone-src-multi"
+    clone_env = "clone-target-multi"
+
+    helpers.create("-n", src_env, "xtensor", "--json", no_dry_run=True)
+
+    res = helpers.create(
+        "--clone",
+        src_env,
+        "-n",
+        clone_env,
+        "--json",
+        "--quiet",
+        "--no-pin",
+        "--no-py-pin",
+        "--shortcuts",
+        no_dry_run=True,
+    )
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_empty_environment(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning an empty environment."""
+    src_env = "clone-src-empty"
+    clone_env = "clone-target-empty"
+
+    # Create empty source environment
+    helpers.create("-n", src_env, "--json", no_dry_run=True)
+
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Both should be empty
+    src_pkgs = helpers.umamba_list("-n", src_env, "--json")
+    clone_pkgs = helpers.umamba_list("-n", clone_env, "--json")
+
+    # Filter out virtual packages if any
+    src_conda_pkgs = [p for p in src_pkgs if not p.get("channel", "").startswith("__")]
+    clone_conda_pkgs = [p for p in clone_pkgs if not p.get("channel", "").startswith("__")]
+
+    assert len(src_conda_pkgs) == 0
+    assert len(clone_conda_pkgs) == 0
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_environment_with_many_packages(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning an environment with many packages."""
+    src_env = "clone-src-many"
+    clone_env = "clone-target-many"
+
+    # Create source environment with multiple packages
+    helpers.create(
+        "-n", src_env, "xtensor", "xsimd", "python=3.11", "numpy", "--json", no_dry_run=True
+    )
+
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Verify environments are identical
+    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
+    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    assert_explicit_envs_identical(src_explicit, clone_explicit)
 
 
 # Only run this test on Linux, as it is the only platform where xeus-cling

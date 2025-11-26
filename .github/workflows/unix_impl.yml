@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v2
         with:
@@ -63,7 +63,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Restore workspace
         uses: ./.github/actions/workspace
         with:
@@ -94,7 +94,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Restore workspace
         uses: ./.github/actions/workspace
         with:
@@ -128,7 +128,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Restore workspace
         uses: ./.github/actions/workspace
         with:
@@ -187,7 +187,7 @@ jobs:
     if: startsWith(inputs.os, 'ubuntu')
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Restore workspace
         uses: ./.github/actions/workspace
         with:

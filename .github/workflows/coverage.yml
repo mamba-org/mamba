@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v2
         with:

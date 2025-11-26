@@ -36,7 +36,7 @@ jobs:
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout micromamba-feedstock
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
@@ -57,7 +57,7 @@ jobs:
           sed -i 's|    - libcurl >=8\.4\.0[[:space:]]*# \[unix\]|    - libcurl >=8.4,<8.15    #[unix]|' meta.yaml
           sed -i 's|    - libcurl-static >=8\.4\.0[[:space:]]*# \[unix\]|    - libcurl-static >=8.4,<8.15    #[unix]|' meta.yaml
       - name: Checkout mamba branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: mamba
       - name: Clear mamba git directory and link source
@@ -141,7 +141,7 @@ jobs:
     name: "win-64"
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Cache vcpkg packages
         uses: actions/cache@v4
         with:

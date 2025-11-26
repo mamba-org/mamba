@@ -9,11 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: homebrew/brew:latest
+      options: --user 0
 
     steps:
       # v1 required due to permissions error
       - name: Checkout mamba repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v6
 
       - name: Correct the creation permissions
         run: sudo chown -R linuxbrew .
@@ -33,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout mamba repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Note: cmake already installed from a local Github tap
       # Attempting to install it from homebrew/core creates a conflict without more handling

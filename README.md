@@ -174,8 +174,8 @@ Only `mamba` and `micromamba` 2.0 and later are supported and are actively devel
 
 The `1.x` branch is only maintained for addressing security issues such as CVEs.
 
-For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby)
-or on the [Conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
+For questions, you can also join us on the [QuantStack Zulip](https://quantstack.zulipchat.com/)
+or on the [Conda Zulip](https://conda.zulipchat.com/#narrow/channel/457607-general) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
 ## License
 

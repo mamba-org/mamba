@@ -139,6 +139,26 @@ namespace solv
         return id;
     }
 
+    auto ObjPoolView::rel_and(DependencyId lhs, DependencyId rhs) -> DependencyId
+    {
+        // REL_AND (16) creates a dependency satisfied when both lhs AND rhs are satisfied
+        return add_dependency(lhs, REL_AND, rhs);
+    }
+
+    auto ObjPoolView::rel_or(DependencyId lhs, DependencyId rhs) -> DependencyId
+    {
+        // REL_OR (17) creates a dependency satisfied when either lhs OR rhs is satisfied
+        return add_dependency(lhs, REL_OR, rhs);
+    }
+
+    auto ObjPoolView::rel_cond(DependencyId dependency, DependencyId condition) -> DependencyId
+    {
+        // REL_COND (22) creates a conditional dependency:
+        // "dependency" is required only if "condition" is satisfied
+        // This is the core mechanism for "dep; if condition" syntax
+        return add_dependency(dependency, REL_COND, condition);
+    }
+
     auto ObjPoolView::add_legacy_conda_dependency(raw_str_view dep) -> DependencyId
     {
         return ::pool_conda_matchspec(raw(), dep);

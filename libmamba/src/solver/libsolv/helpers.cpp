@@ -55,10 +55,15 @@ namespace mamba::solver::libsolv
     evaluate_condition_against_pool(const specs::MatchSpecCondition& condition, solv::ObjPool& pool)
         -> bool;
 
+    [[nodiscard]] auto condition_to_dependency_id(
+        const specs::MatchSpecCondition& condition,
+        solv::ObjPool& pool,
+        MatchSpecParser parser
+    ) -> std::optional<solv::DependencyId>;
+
     template <typename AddFunc>
-    [[nodiscard]] auto process_conditional_matchspec(
+    [[nodiscard]] auto add_dependency_with_condition(
         specs::MatchSpec match_spec,
-        const std::string& platform,
         solv::ObjPool& pool,
         MatchSpecParser parser,
         AddFunc&& add_func
@@ -122,10 +127,9 @@ namespace mamba::solver::libsolv
                 continue;
             }
 
-            // Process conditional dependency: evaluate condition and add if satisfied
-            [[maybe_unused]] const bool dep_added = process_conditional_matchspec(
+            // Process conditional dependency using libsolv's native REL_COND support
+            [[maybe_unused]] const bool dep_added = add_dependency_with_condition(
                 std::move(maybe_match_spec).value(),
-                platform,
                 pool,
                 parser,
                 [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
@@ -150,10 +154,9 @@ namespace mamba::solver::libsolv
                 continue;
             }
 
-            // Process conditional constraint: evaluate condition and add if satisfied
-            [[maybe_unused]] const bool cons_added = process_conditional_matchspec(
+            // Process conditional constraint using libsolv's native REL_COND support
+            [[maybe_unused]] const bool cons_added = add_dependency_with_condition(
                 std::move(maybe_match_spec).value(),
-                platform,
                 pool,
                 parser,
                 [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
@@ -406,11 +409,127 @@ namespace mamba::solver::libsolv
     }
 
     /**
-     * Process a conditional MatchSpec: evaluate condition and add to solvable if satisfied.
-     * Returns true if the dependency/constraint was added, false if skipped.
+     * Convert a MatchSpecCondition to a libsolv dependency ID.
+     *
+     * This recursively handles AND/OR conditions and converts each MatchSpec
+     * into a libsolv dependency ID that can be used in conditional dependencies.
+     *
+     * Based on Rattler's parse_condition function.
+     */
+    [[nodiscard]] auto condition_to_dependency_id(
+        const specs::MatchSpecCondition& condition,
+        solv::ObjPool& pool,
+        MatchSpecParser parser
+    ) -> std::optional<solv::DependencyId>
+    {
+        return std::visit(
+            [&](auto&& cond) -> std::optional<solv::DependencyId>
+            {
+                using T = std::decay_t<decltype(cond)>;
+
+                if constexpr (std::is_same_v<T, specs::MatchSpecCondition::MatchSpecCondition_>)
+                {
+                    // Base case: convert the MatchSpec to a dependency ID
+                    auto maybe_dep = pool_add_matchspec(pool, cond.spec, parser);
+                    if (maybe_dep)
+                    {
+                        return *maybe_dep;
+                    }
+                    return std::nullopt;
+                }
+                else if constexpr (std::is_same_v<T, std::unique_ptr<specs::MatchSpecCondition::And>>)
+                {
+                    // Recursive case: AND condition
+                    auto left_id = condition_to_dependency_id(*cond->left, pool, parser);
+                    auto right_id = condition_to_dependency_id(*cond->right, pool, parser);
+
+                    if (left_id && right_id)
+                    {
+                        return pool.rel_and(*left_id, *right_id);
+                    }
+                    return std::nullopt;
+                }
+                else if constexpr (std::is_same_v<T, std::unique_ptr<specs::MatchSpecCondition::Or>>)
+                {
+                    // Recursive case: OR condition
+                    auto left_id = condition_to_dependency_id(*cond->left, pool, parser);
+                    auto right_id = condition_to_dependency_id(*cond->right, pool, parser);
+
+                    if (left_id && right_id)
+                    {
+                        return pool.rel_or(*left_id, *right_id);
+                    }
+                    return std::nullopt;
+                }
+            },
+            condition.value
+        );
+    }
+
+    /**
+     * Add a dependency with proper conditional handling using libsolv's native REL_COND.
+     *
+     * If the MatchSpec has a condition, this creates a libsolv conditional dependency
+     * using REL_COND. Otherwise, adds it as a normal dependency.
+     *
      */
     template <typename AddFunc>
-    [[nodiscard]] auto process_conditional_matchspec(
+    [[nodiscard]] auto add_dependency_with_condition(
+        specs::MatchSpec match_spec,
+        solv::ObjPool& pool,
+        MatchSpecParser parser,
+        AddFunc&& add_func
+    ) -> bool
+    {
+        const auto* condition = match_spec.condition();
+
+        // Get the base dependency ID (without the condition)
+        // We need to parse the matchspec without the condition
+        auto base_spec = match_spec;
+        base_spec.set_condition(std::nullopt);
+
+        auto dep_id = pool_add_matchspec(pool, base_spec, parser);
+        if (!dep_id)
+        {
+            return false;
+        }
+
+        if (condition == nullptr)
+        {
+            // No condition - add as normal dependency
+            add_func(*dep_id);
+            return true;
+        }
+
+        // Parse the condition into a libsolv dependency ID
+        auto condition_id = condition_to_dependency_id(*condition, pool, parser);
+        if (!condition_id)
+        {
+            LOG_WARNING << "Failed to parse condition for " << match_spec.to_string()
+                        << ", adding without condition as fallback";
+            // Fallback: add without condition
+            add_func(*dep_id);
+            return true;
+        }
+
+        // Create conditional dependency: dep; if condition
+        // libsolv will evaluate this at solve time
+        auto conditional_dep_id = pool.rel_cond(*dep_id, *condition_id);
+        add_func(conditional_dep_id);
+
+        return true;
+    }
+
+    /**
+     * Process a conditional MatchSpec: evaluate condition and add to solvable if satisfied.
+     * Returns true if the dependency/constraint was added, false if skipped.
+     *
+     * DEPRECATED: This parse-time evaluation approach is being replaced with libsolv's
+     * native REL_COND support for proper solve-time evaluation.
+     * Kept temporarily for backward compatibility and comparison.
+     */
+    template <typename AddFunc>
+    [[nodiscard]] auto process_conditional_matchspec_old(
         specs::MatchSpec match_spec,
         const std::string& platform,
         solv::ObjPool& pool,
@@ -619,10 +738,9 @@ namespace mamba::solver::libsolv
                             continue;
                         }
 
-                        // Process conditional dependency: evaluate condition and add if satisfied
-                        [[maybe_unused]] const bool dep_added = process_conditional_matchspec(
+                        // Process conditional dependency using libsolv's native REL_COND support
+                        [[maybe_unused]] const bool dep_added = add_dependency_with_condition(
                             std::move(maybe_match_spec).value(),
-                            platform,
                             pool,
                             parser,
                             [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
@@ -652,10 +770,9 @@ namespace mamba::solver::libsolv
                             continue;
                         }
 
-                        // Process conditional constraint: evaluate condition and add if satisfied
-                        [[maybe_unused]] const bool cons_added = process_conditional_matchspec(
+                        // Process conditional constraint using libsolv's native REL_COND support
+                        [[maybe_unused]] const bool cons_added = add_dependency_with_condition(
                             std::move(maybe_match_spec).value(),
-                            platform,
                             pool,
                             parser,
                             [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }

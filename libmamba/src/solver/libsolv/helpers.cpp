@@ -327,12 +327,9 @@ namespace mamba::solver::libsolv
     {
         const auto* condition = match_spec.condition();
 
-        // Get the base dependency ID (without the condition)
-        // We need to parse the matchspec without the condition
-        auto base_spec = match_spec;
-        base_spec.set_condition(std::nullopt);
-
-        auto dep_id = pool_add_matchspec(pool, base_spec, parser);
+        // Parse the base matchspec (without condition) into a dependency ID
+        match_spec.set_condition(std::nullopt);
+        auto dep_id = pool_add_matchspec(pool, match_spec, parser);
         if (!dep_id)
         {
             return false;
@@ -351,13 +348,11 @@ namespace mamba::solver::libsolv
         {
             LOG_WARNING << "Failed to parse condition for " << match_spec.to_string()
                         << ", adding without condition as fallback";
-            // Fallback: add without condition
             add_func(*dep_id);
             return true;
         }
 
-        // Create conditional dependency: dep; if condition
-        // libsolv will evaluate this at solve time
+        // Create conditional dependency using libsolv REL_COND (evaluated at solve time)
         auto conditional_dep_id = pool.rel_cond(*dep_id, *condition_id);
         add_func(conditional_dep_id);
 

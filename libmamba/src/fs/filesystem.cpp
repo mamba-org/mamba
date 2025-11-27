@@ -83,9 +83,8 @@ namespace mamba::fs
 #endif
     }
 
-
-    bool has_permissions(const u8path& path, fs::perms const& perm) {
-
+    bool has_permissions(const u8path& path, const fs::perms& perm)
+    {
         // Get path permissions
         auto p = std::filesystem::status(path).permissions();
 

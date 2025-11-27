@@ -54,10 +54,12 @@ namespace mamba
 
     inline void make_executable(const fs::u8path& p)
     {
-        const auto permissions = fs::perms::owner_all | fs::perms::group_all |
-          fs::perms::others_read | fs::perms::others_exec;
-        if (! fs::has_permissions(p, permissions))
-          fs::permissions(p, permissions);
+        const auto permissions = fs::perms::owner_all | fs::perms::group_all
+                                 | fs::perms::others_read | fs::perms::others_exec;
+        if (!fs::has_permissions(p, permissions))
+        {
+            fs::permissions(p, permissions);
+        }
     }
 
     // @return `true` if `TemporaryFile` will not delete files once destroy.

@@ -7,7 +7,11 @@
 #ifndef MAMBA_API_ENV_HPP
 #define MAMBA_API_ENV_HPP
 
+#include <map>
+#include <string>
+
 #include "mamba/api/configuration.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {
@@ -16,6 +20,12 @@ namespace mamba
     class Context;
 
     void print_envs(Configuration& config);
+
+    // Environment variable management
+    std::map<std::string, std::string> get_env_vars(const fs::u8path& prefix);
+    void set_env_var(const fs::u8path& prefix, const std::string& key, const std::string& value);
+    void unset_env_var(const fs::u8path& prefix, const std::string& key);
+    void list_env_vars(const fs::u8path& prefix);
 
     namespace detail
     {

@@ -951,21 +951,40 @@ namespace mamba
                 {
                     fs::u8path env_vars_file_path = prefix / "conda-meta" / "state";
 
-                    if (!fs::exists(env_vars_file_path))
+                    // Read existing state file to preserve other fields
+                    nlohmann::json j;
+                    if (fs::exists(env_vars_file_path))
                     {
-                        path::touch(env_vars_file_path, true);
+                        auto fin = open_ifstream(env_vars_file_path);
+                        try
+                        {
+                            fin >> j;
+                        }
+                        catch (nlohmann::json::exception&)
+                        {
+                            // If parsing fails, start with empty JSON
+                            j = nlohmann::json::object();
+                        }
                     }
-                    std::ofstream out = open_ofstream(env_vars_file_path, std::ios::app);
+
+                    // Merge new env_vars with existing ones
+                    if (!j.contains("env_vars") || !j["env_vars"].is_object())
+                    {
+                        j["env_vars"] = nlohmann::json::object();
+                    }
+                    for (const auto& [key, value] : env_vars)
+                    {
+                        j["env_vars"][util::to_upper(key)] = value;
+                    }
+
+                    // Write back
+                    fs::create_directories(env_vars_file_path.parent_path());
+                    std::ofstream out = open_ofstream(env_vars_file_path);
                     if (out.fail())
                     {
                         throw std::runtime_error("Couldn't open file: " + env_vars_file_path.string());
                     }
-                    else
-                    {
-                        nlohmann::json j;
-                        j["env_vars"] = env_vars;
-                        out << j.dump();
-                    }
+                    out << j.dump(4);
                 }
                 else
                 {

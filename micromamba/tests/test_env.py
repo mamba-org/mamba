@@ -527,11 +527,10 @@ def test_env_export_with_pip(tmp_path, json_flag):
     assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)
 
 
-env_yaml_content_env_export_with_uv = """
+env_yaml_content_env_export_with_uv_flag = """
 channels:
 - conda-forge
 dependencies:
-- uv
 - python
 - pip:
   - requests==2.32.3
@@ -540,15 +539,15 @@ dependencies:
 
 @pytest.mark.parametrize("json_flag", [None, "--json"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_env_export_with_uv_simple(tmp_home, tmp_root_prefix, tmp_path, json_flag):
-    """Test that environment export with uv works correctly."""
-    env_name = "env_export_with_uv_simple"
+def test_env_export_with_uv_flag(tmp_home, tmp_root_prefix, tmp_path, json_flag):
+    """Test that environment export with --use-uv flag works correctly."""
+    env_name = "env_export_with_uv_flag"
 
-    env_file_yml = tmp_path / "test_env_yaml_content_to_install_requests_with_uv.yaml"
-    env_file_yml.write_text(env_yaml_content_env_export_with_uv)
+    env_file_yml = tmp_path / "test_env_yaml_content_to_install_requests_with_uv_flag.yaml"
+    env_file_yml.write_text(env_yaml_content_env_export_with_uv_flag)
 
     flags = list(filter(None, [json_flag]))
-    helpers.create("-n", env_name, "-f", env_file_yml, no_dry_run=True)
+    helpers.create("-n", env_name, "-f", env_file_yml, "--use-uv", no_dry_run=True)
 
     output = helpers.run_env("export", "-n", env_name, *flags)
 

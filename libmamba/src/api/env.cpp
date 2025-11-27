@@ -150,15 +150,6 @@ namespace mamba
         }
     }
 
-    std::map<std::string, std::string> get_env_vars(const fs::u8path& prefix)
-    {
-        fs::u8path state_file = get_state_file_path(prefix);
-        auto ordered_env_vars = read_env_vars_from_state(state_file);
-        // Convert to std::map for API compatibility (but preserve order when writing/reading)
-        std::map<std::string, std::string> env_vars(ordered_env_vars.begin(), ordered_env_vars.end());
-        return env_vars;
-    }
-
     void set_env_var(const fs::u8path& prefix, const std::string& key, const std::string& value)
     {
         fs::u8path state_file = get_state_file_path(prefix);

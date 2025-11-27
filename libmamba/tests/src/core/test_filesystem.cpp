@@ -293,91 +293,6 @@ namespace mamba
         }
     }
 
-    namespace {
-        TEST_CASE("has_permissions()")
-        {
-            // Create temp folder
-            const auto tmp_dir = fs::temp_directory_path()
-                / "mamba-fs-has_permissions";
-            fs::create_directories(tmp_dir);
-
-            // Create file
-            const auto some_file = tmp_dir / "some_file";
-            {
-                std::ofstream ofs{ some_file.std_path(),
-                                   std::ofstream::binary
-                                       | std::ofstream::trunc };
-                ofs << "ABC" << std::endl;
-            }
-
-            // Set permissions
-            const auto perms = fs::perms::owner_read | fs::perms::owner_write
-                | fs::perms::group_read;
-            fs::permissions(some_file, perms, fs::perm_options::replace);
-
-            // Check permissions
-            REQUIRE(fs::has_permissions(some_file, perms));
-            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_read));
-            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_write));
-            REQUIRE(fs::has_permissions(some_file, fs::perms::group_read));
-            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_read
-                                        | fs::perms::owner_write));
-            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_read
-                                        | fs::perms::group_read));
-            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_write
-                                        | fs::perms::group_read));
-            REQUIRE_FALSE(fs::has_permissions(some_file,
-                                              fs::perms::owner_exec));
-            REQUIRE_FALSE(fs::has_permissions(some_file,
-                                              fs::perms::group_write));
-            REQUIRE_FALSE(fs::has_permissions(some_file,
-                                              fs::perms::group_exec));
-            REQUIRE_FALSE(fs::has_permissions(some_file,
-                                              fs::perms::others_read));
-            REQUIRE_FALSE(fs::has_permissions(some_file,
-                                              fs::perms::others_write));
-            REQUIRE_FALSE(fs::has_permissions(some_file,
-                                              fs::perms::others_exec));
-            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::owner_read
-                                        | fs::perms::owner_exec));
-
-            fs::remove_all(tmp_dir);
-        }
-
-        // 2025-11-27 make_executable() bug
-        TEST_CASE("Bug: failure when calling make_executable()"
-                  " on already executable file inside non-writable folder.")
-        {
-            // Create temp folder
-            const auto tmp_dir = fs::temp_directory_path()
-                / "mamba-fs-make_executable-2025-11-27-bug";
-            mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });
-            const auto folder = tmp_dir / "some_folder";
-            fs::create_directories(folder);
-
-            // Create file
-            const auto some_file = tmp_dir / "some_file";
-            {
-                std::ofstream ofs{ some_file.std_path(),
-                                   std::ofstream::binary
-                                       | std::ofstream::trunc };
-                ofs << "ABC" << std::endl;
-            }
-
-            // Make executable
-            make_executable(some_file);
-
-            // Remove write permissions on folder
-            const auto perms = fs::perms::owner_read
-                | fs::perms::group_read | fs::perms::others_read;
-            fs::permissions(folder, perms, fs::perm_options::replace);
-
-            // Make executable (again!)
-            // This should not fail
-            make_executable(some_file);
-        }
-    }
-
     namespace
     {
         TEST_CASE("remove_readonly_file")
@@ -535,6 +450,119 @@ namespace mamba
             }
         }
 
+    }
+
+    namespace
+    {
+        TEST_CASE("has_permissions()")
+        {
+            // Create temp folder
+            const auto tmp_dir = fs::temp_directory_path() / "mamba-fs-has_permissions";
+            mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });
+            fs::create_directories(tmp_dir);
+
+            // Create file
+            const auto some_file = tmp_dir / "some_file";
+            {
+                std::ofstream ofs{ some_file.std_path(),
+                                   std::ofstream::binary | std::ofstream::trunc };
+                ofs << "ABC" << std::endl;
+            }
+
+            // Set permissions
+            const auto perms = fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read;
+            fs::permissions(some_file, perms, fs::perm_options::replace);
+
+            // Check permissions
+            REQUIRE(fs::has_permissions(some_file, perms));
+            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_read));
+            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_write));
+            REQUIRE(fs::has_permissions(some_file, fs::perms::group_read));
+            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_read | fs::perms::owner_write));
+            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_read | fs::perms::group_read));
+            REQUIRE(fs::has_permissions(some_file, fs::perms::owner_write | fs::perms::group_read));
+            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::owner_exec));
+            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::group_write));
+            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::group_exec));
+            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::others_read));
+            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::others_write));
+            REQUIRE_FALSE(fs::has_permissions(some_file, fs::perms::others_exec));
+            REQUIRE_FALSE(
+                fs::has_permissions(some_file, fs::perms::owner_read | fs::perms::owner_exec)
+            );
+        }
+
+        // 2025-11-27 make_executable() bug
+        TEST_CASE(
+            "Bug: failure when calling make_executable()"
+            " on already executable file inside non-writable folder."
+        )
+        {
+            // Create temp folder
+            const auto tmp_dir = fs::temp_directory_path()
+                                 / "mamba-fs-make_executable-2025-11-27-bug";
+            mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });
+            const auto folder = tmp_dir / "some_folder";
+            fs::create_directories(folder);
+
+            // Create file
+            const auto some_file = tmp_dir / "some_file";
+            {
+                std::ofstream ofs{ some_file.std_path(),
+                                   std::ofstream::binary | std::ofstream::trunc };
+                ofs << "ABC" << std::endl;
+            }
+
+            // Make executable
+            make_executable(some_file);
+
+            // Remove write permissions on parent folder
+            const auto perms = fs::perms::owner_read | fs::perms::owner_exec | fs::perms::group_read
+                               | fs::perms::group_exec | fs::perms::others_read
+                               | fs::perms::others_exec;
+            fs::permissions(folder, perms, fs::perm_options::replace);
+
+            // Make executable (again!)
+            // This should not fail
+            make_executable(some_file);
+
+            // Reset writing permission
+            const auto write_perms = fs::perms::owner_all;
+            fs::permissions(folder, write_perms, fs::perm_options::replace);
+        }
+
+        // 2025-11-27 create_cache_dir() bug
+        TEST_CASE(
+            "Bug: failure when calling create_cache_dir()"
+            " on already existing cache directory inside"
+            " non-writable folder."
+        )
+        {
+            // Create temp folder
+            const auto tmp_dir = fs::temp_directory_path()
+                                 / "mamba-fs-create_cache_dir-2025-11-27-bug";
+            mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });
+            const auto folder = tmp_dir / "some_folder";
+            fs::create_directories(folder);
+
+            // Create cache folder
+            auto cache_dir = folder / "cache_dir";
+            create_cache_dir(cache_dir);
+
+            // Remove write permissions on parent folder
+            const auto perms = fs::perms::owner_read | fs::perms::owner_exec | fs::perms::group_read
+                               | fs::perms::group_exec | fs::perms::others_read
+                               | fs::perms::others_exec;
+            fs::permissions(folder, perms, fs::perm_options::replace);
+
+            // Create cache folder (again!)
+            // This should not fail
+            create_cache_dir(cache_dir);
+
+            // Reset writing permission
+            const auto write_perms = fs::perms::owner_all;
+            fs::permissions(folder, write_perms, fs::perm_options::replace);
+        }
     }
 
 }

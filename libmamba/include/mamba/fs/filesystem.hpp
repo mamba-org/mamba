@@ -1140,7 +1140,7 @@ namespace mamba::fs
     }
 
     // Check if we have modification rights on a path
-    bool has_permissions(const u8path&, fs::perms const&);
+    bool has_permissions(const u8path&, const fs::perms&);
 
     // void permissions(const path& p, perms prms, perm_options opts = perm_options::replace);
     // void permissions(const path& p, perms prms, error_code& ec) noexcept;

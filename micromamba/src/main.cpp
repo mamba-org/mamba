@@ -23,6 +23,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/spdlog/logging_spdlog.hpp"
 #include "mamba/version.hpp"
 
 #include "umamba.hpp"
@@ -35,9 +36,10 @@ main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ {
-        .enable_logging = true,
-        .enable_signal_handling = true,
-    } };
+                            .enable_logging = true,
+                            .enable_signal_handling = true,
+                        },
+                        mamba::logging::spdlogimpl::LogHandler_spdlog{} };
     mamba::Console console{ ctx };
     mamba::Configuration config{ ctx };
 

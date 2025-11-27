@@ -525,3 +525,44 @@ def test_env_export_with_pip(tmp_path, json_flag):
     # Check that `requests` and `urllib3` (pulled dependency) are exported
     assert "requests==2.32.3" in pip_section_vals
     assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)
+
+
+env_yaml_content_env_export_with_uv_flag = """
+channels:
+- conda-forge
+dependencies:
+- python
+- pip:
+  - requests==2.32.3
+"""
+
+
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_env_export_with_uv_flag(tmp_home, tmp_root_prefix, tmp_path, json_flag):
+    """Test that environment export with --use-uv flag works correctly."""
+    env_name = "env_export_with_uv_flag"
+
+    env_file_yml = tmp_path / "test_env_yaml_content_to_install_requests_with_uv_flag.yaml"
+    env_file_yml.write_text(env_yaml_content_env_export_with_uv_flag)
+
+    flags = list(filter(None, [json_flag]))
+    helpers.create("-n", env_name, "-f", env_file_yml, "--use-uv", no_dry_run=True)
+
+    output = helpers.run_env("export", "-n", env_name, *flags)
+
+    # JSON is already parsed
+    ret = output if json_flag else yaml.safe_load(output)
+
+    assert ret["name"] == env_name
+    assert env_name in ret["prefix"]
+    assert set(ret["channels"]) == {"conda-forge"}
+
+    pip_section = next(
+        dep for dep in ret["dependencies"] if isinstance(dep, dict) and ["pip"] == [*dep]
+    )
+    pip_section_vals = pip_section["pip"]
+
+    # Check that `requests` and `urllib3` (pulled dependency) are exported
+    assert "requests==2.32.3" in pip_section_vals
+    assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)

@@ -16,5 +16,14 @@ set_create_command(CLI::App* subcom, Configuration& config)
 {
     init_install_options(subcom, config);
 
+    auto& clone = config.at("clone");
+    subcom
+        ->add_option(
+            "--clone",
+            clone.get_cli_config<std::string>(),
+            "Create new environment as clone of an existing one"
+        )
+        ->option_text("ENV");
+
     subcom->callback([&] { return mamba::create(config); });
 }

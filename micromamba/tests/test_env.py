@@ -667,3 +667,347 @@ def test_env_export_with_ca_certificates(tmp_path):
         "Using CA certificates from `conda-forge::ca-certificates` installed in the same prefix"
         in stderr
     )
+
+
+def test_env_config_vars_list_empty(tmp_home, tmp_root_prefix):
+    """Test listing environment variables when none are set."""
+    env_name = "env-vars-list-empty"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    output = helpers.run_env("config", "vars", "list", "-n", env_name)
+    assert "No environment variables set" in output
+
+
+def test_env_config_vars_list_json(tmp_home, tmp_root_prefix):
+    """Test listing environment variables in JSON format."""
+    env_name = "env-vars-list-json"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert output["env_vars"] == {}
+
+
+def test_env_config_vars_list_format(tmp_home, tmp_root_prefix):
+    """Test that list output matches conda format: 'KEY = VALUE' and preserves insertion order."""
+    env_name = "env-vars-list-format"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set environment variables in specific order
+    helpers.run_env("config", "vars", "set", "-n", env_name, "A=B", "C=D", "MY_VAR=my_value")
+
+    # List and verify format matches conda: "KEY = VALUE"
+    output = helpers.run_env("config", "vars", "list", "-n", env_name)
+    lines = [line.strip() for line in output.strip().splitlines() if line.strip()]
+
+    # Should have 3 lines in format "KEY = VALUE"
+    assert len(lines) == 3
+
+    # Verify format: each line should match "KEY = VALUE" pattern
+    expected_lines = {"A = B", "C = D", "MY_VAR = my_value"}
+    assert set(lines) == expected_lines
+
+    # Verify order matches insertion order (not alphabetical)
+    # Order should be A, C, MY_VAR (as they were set)
+    assert lines[0] == "A = B"
+    assert lines[1] == "C = D"
+    assert lines[2] == "MY_VAR = my_value"
+
+
+def test_env_config_vars_list_preserves_insertion_order(tmp_home, tmp_root_prefix):
+    """Test that list preserves insertion order, not alphabetical order."""
+    env_name = "env-vars-order"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set variables in NON-alphabetical order: Z, A, M
+    # Alphabetically would be: A, M, Z
+    # But insertion order should be preserved: Z, A, M
+    helpers.run_env("config", "vars", "set", "-n", env_name, "Z=z_value", "A=a_value", "M=m_value")
+
+    # Verify order matches insertion order (Z, A, M), NOT alphabetical (A, M, Z)
+    output = helpers.run_env("config", "vars", "list", "-n", env_name)
+    lines = [line.strip() for line in output.strip().splitlines() if line.strip()]
+    assert lines == ["Z = z_value", "A = a_value", "M = m_value"]
+
+    # Verify it's NOT alphabetical
+    assert lines != sorted(lines), "Variables should be in insertion order, not alphabetical"
+
+    # Test with a different permutation of the same variables
+    # Remove all and set in different order: M, Z, A
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "Z", "A", "M")
+    helpers.run_env("config", "vars", "set", "-n", env_name, "M=m_value", "Z=z_value", "A=a_value")
+
+    # Verify order changed to match new insertion order (M, Z, A)
+    output = helpers.run_env("config", "vars", "list", "-n", env_name)
+    lines = [line.strip() for line in output.strip().splitlines() if line.strip()]
+    assert lines == ["M = m_value", "Z = z_value", "A = a_value"]
+
+    # Verify it's different from previous order
+    assert lines != ["Z = z_value", "A = a_value", "M = m_value"], (
+        "Order should change with different insertion order"
+    )
+
+    # Test adding a new variable (should appear at the end)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "I=i_value")
+
+    # Verify new variable appears at end, preserving previous order
+    output = helpers.run_env("config", "vars", "list", "-n", env_name)
+    lines = [line.strip() for line in output.strip().splitlines() if line.strip()]
+    assert lines == ["M = m_value", "Z = z_value", "A = a_value", "I = i_value"]
+
+
+def test_env_config_vars_set_and_list(tmp_home, tmp_root_prefix):
+    """Test setting and listing environment variables."""
+    env_name = "env-vars-set-list"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set environment variables
+    helpers.run_env(
+        "config", "vars", "set", "-n", env_name, "MY_VAR=my_value", "OTHER_VAR=other_value"
+    )
+
+    # List and verify JSON format
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert output["env_vars"]["MY_VAR"] == "my_value"
+    assert output["env_vars"]["OTHER_VAR"] == "other_value"
+
+    # List and verify text format matches conda: "KEY = VALUE"
+    text_output = helpers.run_env("config", "vars", "list", "-n", env_name)
+    lines = [line.strip() for line in text_output.strip().splitlines() if line.strip()]
+    assert len(lines) == 2
+    assert "MY_VAR = my_value" in lines
+    assert "OTHER_VAR = other_value" in lines
+
+
+def test_env_config_vars_set_case_insensitive(tmp_home, tmp_root_prefix):
+    """Test that environment variable keys are case-insensitive (stored uppercase)."""
+    env_name = "env-vars-case"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set with lowercase
+    helpers.run_env("config", "vars", "set", "-n", env_name, "my_var=value1")
+
+    # Set with uppercase (should overwrite)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "MY_VAR=value2")
+
+    # List and verify only one entry exists (uppercase)
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert output["env_vars"]["MY_VAR"] == "value2"
+    assert "my_var" not in output["env_vars"]
+
+
+def test_env_config_vars_unset(tmp_home, tmp_root_prefix):
+    """Test unsetting environment variables."""
+    env_name = "env-vars-unset"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set environment variables
+    helpers.run_env("config", "vars", "set", "-n", env_name, "VAR1=value1", "VAR2=value2")
+
+    # Unset one
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "VAR1")
+
+    # List and verify
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert "VAR1" not in output["env_vars"]
+    assert output["env_vars"]["VAR2"] == "value2"
+
+
+def test_env_config_vars_unset_case_insensitive(tmp_home, tmp_root_prefix):
+    """Test that unset is case-insensitive."""
+    env_name = "env-vars-unset-case"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set with uppercase
+    helpers.run_env("config", "vars", "set", "-n", env_name, "MY_VAR=value")
+
+    # Unset with lowercase
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "my_var")
+
+    # List and verify it's gone
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert "MY_VAR" not in output["env_vars"]
+
+
+def test_env_config_vars_set_multiple(tmp_home, tmp_root_prefix):
+    """Test setting multiple environment variables at once."""
+    env_name = "env-vars-multiple"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set multiple variables
+    helpers.run_env(
+        "config",
+        "vars",
+        "set",
+        "-n",
+        env_name,
+        "VAR1=value1",
+        "VAR2=value2",
+        "VAR3=value3",
+    )
+
+    # List and verify all are set
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert len(output["env_vars"]) == 3
+    assert output["env_vars"]["VAR1"] == "value1"
+    assert output["env_vars"]["VAR2"] == "value2"
+    assert output["env_vars"]["VAR3"] == "value3"
+
+
+def test_env_config_vars_set_with_equals_in_value(tmp_home, tmp_root_prefix):
+    """Test setting environment variable with equals sign in value."""
+    env_name = "env-vars-equals"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    # Set variable with equals in value (only first = is the separator)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "PATH=/usr/bin:/usr/local/bin")
+
+    # List and verify
+    output = helpers.run_env("config", "vars", "list", "-n", env_name, "--json")
+    assert "env_vars" in output
+    assert output["env_vars"]["PATH"] == "/usr/bin:/usr/local/bin"
+
+
+def test_env_config_vars_state_file_updates(tmp_home, tmp_root_prefix):
+    """Test that the state file is correctly updated for addition, update, and deletion."""
+    import json
+
+    env_name = "env-vars-state-file"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    env_prefix = tmp_root_prefix / "envs" / env_name
+    state_file_path = env_prefix / "conda-meta" / "state"
+
+    # Initially, state file should not exist or be empty
+    if state_file_path.exists():
+        with open(state_file_path) as f:
+            state_content = f.read().strip()
+            if state_content:
+                state = json.loads(state_content)
+                assert "env_vars" not in state or state["env_vars"] == {}
+    else:
+        # State file doesn't exist yet, which is fine
+        pass
+
+    # Step 1: Add first variable (A=B)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "A=B")
+
+    # Verify state file after addition
+    assert state_file_path.exists()
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {"A": "B"}
+
+    # Step 2: Add second variable (C=D)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "C=D")
+
+    # Verify state file after second addition
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {"A": "B", "C": "D"}
+
+    # Step 3: Update existing variable (A=E)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "A=E")
+
+    # Verify state file after update
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {"A": "E", "C": "D"}
+
+    # Step 4: Add third variable (F=G)
+    helpers.run_env("config", "vars", "set", "-n", env_name, "F=G")
+
+    # Verify state file after third addition
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {"A": "E", "C": "D", "F": "G"}
+
+    # Step 5: Delete variable C
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "C")
+
+    # Verify state file after deletion
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {"A": "E", "F": "G"}
+
+    # Step 6: Delete variable A
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "A")
+
+    # Verify state file after second deletion
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {"F": "G"}
+
+    # Step 7: Delete last variable F
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "F")
+
+    # Verify state file after final deletion - should have empty env_vars
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "env_vars" in state
+    assert state["env_vars"] == {}
+
+
+def test_env_config_vars_state_file_preserves_other_fields(tmp_home, tmp_root_prefix):
+    """Test that updating env vars preserves other fields in the state file."""
+    import json
+
+    env_name = "env-vars-preserve"
+    helpers.create("-n", env_name, "--json", no_dry_run=True)
+
+    env_prefix = tmp_root_prefix / "envs" / env_name
+    state_file_path = env_prefix / "conda-meta" / "state"
+
+    # Create state file with other fields
+    initial_state = {"some_other_field": "some_value", "another_field": 123, "env_vars": {}}
+    state_file_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(state_file_path, "w") as f:
+        json.dump(initial_state, f)
+
+    # Set an environment variable
+    helpers.run_env("config", "vars", "set", "-n", env_name, "TEST_VAR=test_value")
+
+    # Verify that other fields are preserved
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "some_other_field" in state
+    assert state["some_other_field"] == "some_value"
+    assert "another_field" in state
+    assert state["another_field"] == 123
+    assert "env_vars" in state
+    assert state["env_vars"] == {"TEST_VAR": "test_value"}
+
+    # Update the variable
+    helpers.run_env("config", "vars", "set", "-n", env_name, "TEST_VAR=updated_value")
+
+    # Verify other fields are still preserved
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "some_other_field" in state
+    assert state["some_other_field"] == "some_value"
+    assert "another_field" in state
+    assert state["another_field"] == 123
+    assert state["env_vars"] == {"TEST_VAR": "updated_value"}
+
+    # Unset the variable
+    helpers.run_env("config", "vars", "unset", "-n", env_name, "TEST_VAR")
+
+    # Verify other fields are still preserved
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    assert "some_other_field" in state
+    assert state["some_other_field"] == "some_value"
+    assert "another_field" in state
+    assert state["another_field"] == 123
+    assert state["env_vars"] == {}

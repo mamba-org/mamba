@@ -24,11 +24,12 @@ include/mamba/core/version.hpp
 CMakeUserPresets.json
 **/cmake-build-debug/
 
-# CMake files that should not exists because they should be generated under a build folder
-CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles
-CMakeScripts
+# CMake files that should not exists in the root dir because they should be generated under a build folder
+/CMakeLists.txt.user
+/CMakeCache.txt
+/CMakeFiles
+/CMakeScripts
+/Testing
 
 # There exist other Makefiles in /docs
 /Makefile

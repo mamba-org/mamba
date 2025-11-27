@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import platform
 
 from packaging.version import Version
 from pathlib import Path
@@ -576,15 +577,27 @@ def test_env_export_with_ca_certificates(tmp_path):
 
     helpers.create("-p", tmp_env_prefix, "ca-certificates", no_dry_run=True)
 
-    # Copy the `micromamba` executable in this prefix `bin` subdirectory
-    (tmp_env_prefix / "bin").mkdir(parents=True, exist_ok=True)
-    tmp_env_micromamba = tmp_env_prefix / "bin" / "micromamba"
-    shutil.copy(helpers.get_umamba(), tmp_env_micromamba)
+    # Copy the `mamba` or `micromamba` executable in this prefix `bin` subdirectory
+    built_executable = helpers.get_umamba()
+    executable_basename = os.path.basename(built_executable)
+
+    if platform.system() == "Windows":
+        tmp_env_bin_dir = tmp_env_prefix / "Library" / "bin"
+        tmp_env_executable = tmp_env_bin_dir / executable_basename
+        (tmp_env_bin_dir).mkdir(parents=True, exist_ok=True)
+        # Copy all the `Library/bin/` subdirectory to have the executable in
+        # the environment and the DLLs in the environment.
+        shutil.copytree(Path(built_executable).parent, tmp_env_bin_dir, dirs_exist_ok=True)
+    else:
+        tmp_env_bin_dir = tmp_env_prefix / "bin"
+        tmp_env_executable = tmp_env_bin_dir / executable_basename
+        (tmp_env_bin_dir).mkdir(parents=True, exist_ok=True)
+        shutil.copy(built_executable, tmp_env_executable)
 
     # Run a command using mamba in verbose mode and check that the ca-certificates file
     # from the same environment as the executable is used by default.
     p = subprocess.run(
-        [tmp_env_micromamba, "search", "xtensor", "-v"],
+        [tmp_env_executable, "search", "xtensor", "-v"],
         capture_output=True,
         check=False,
     )

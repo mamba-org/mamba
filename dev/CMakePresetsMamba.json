@@ -5,6 +5,7 @@
         "BUILD_LIBMAMBA": "ON",
         "BUILD_LIBMAMBAPY": "ON",
         "BUILD_LIBMAMBA_TESTS": "ON",
+        "BUILD_LIBMAMBA_SPDLOG": "ON",
         "BUILD_LIBMAMBA_SPDLOG_TESTS": "ON",
         "BUILD_MAMBA_PACKAGE": "ON"
       },

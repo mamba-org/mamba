@@ -184,6 +184,7 @@ jobs:
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
+            -D BUILD_LIBMAMBA_SPDLOG=ON ^
             -D BUILD_STATIC=ON ^
             -D BUILD_MICROMAMBA=ON
           if %errorlevel% neq 0 exit /b %errorlevel%

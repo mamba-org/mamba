@@ -22,7 +22,7 @@ jobs:
         run: brew install fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd cmake cli11 nlohmann-json spdlog tl-expected curl pkgconfig python bzip2 krb5 zlib
 
       - name: Configure to build mamba
-        run: cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
+        run: cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_LIBMAMBA_SPDLOG=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
 
       - name: Build mamba
         run: cmake --build build -j4
@@ -45,7 +45,7 @@ jobs:
 
       - name: Configure to build mamba
         run: >
-          cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
+          cmake -S. -Bbuild -DBUILD_LIBMAMBA=ON -DBUILD_MAMBA=ON -DBUILD_LIBMAMBA_SPDLOG=ON -DBUILD_SHARED=ON -DBUILD_STATIC=OFF
           -DLibArchive_ROOT=$(brew --prefix libarchive)
 
       - name: Build mamba

@@ -222,6 +222,7 @@ Use CMake from this environment to drive the build:
        -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
        -D CMAKE_BUILD_TYPE="Release" \
        -D BUILD_LIBMAMBA=ON \
+       -D BUILD_LIBMAMBA_SPDLOG=ON \
        -D BUILD_STATIC=ON \
        -D BUILD_MICROMAMBA=ON
    cmake --build build/ --parallel

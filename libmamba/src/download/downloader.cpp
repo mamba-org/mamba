@@ -8,6 +8,7 @@
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/util/build.hpp"
@@ -84,19 +85,56 @@ namespace mamba::download
                 // from `conda-forge::ca-certificates` and the system CA certificates.
                 else if (remote_fetch_params.ssl_verify == "<system>")
                 {
-                    // Use the CA certificates from `conda-forge::ca-certificates` installed in the
-                    // root prefix or the system CA certificates if the certificate is not present.
-                    fs::u8path root_prefix = detail::get_root_prefix();
-                    fs::u8path env_prefix_conda_cert = root_prefix / "ssl" / "cacert.pem";
+                    // See the location of the CA certificates as distributed by
+                    // `conda-forge::ca-certificates`:
+                    // https://github.com/conda-forge/ca-certificates-feedstock/blob/main/recipe/meta.yaml#L25-L29
+                    const fs::u8path prefix_relative_conda_cert_path = (util::on_win ? fs::u8path("Library") / "ssl" / "cacert.pem" : fs::u8path("ssl") / "cert.pem");
 
-                    LOG_INFO << "Checking for CA certificates at the root prefix: "
+                    const fs::u8path executable_path = get_self_exe_path();
+
+                    // Find the environment prefix using the path of the `mamba` or `micromamba`
+                    // executable (we cannot assume the existence of an environment variable or
+                    // etc.).
+                    //
+                    // `mamba` or `micromamba` is installed at:
+                    //
+                    //    - `${PREFIX}/bin/{mamba,micromamba}` on Unix
+                    //    - `${PREFIX}/Library/bin/{mamba,micromamba}.exe` on Windows
+                    //
+                    const fs::u8path env_prefix
+                        = (util::on_win ? executable_path.parent_path().parent_path().parent_path()
+                                        : executable_path.parent_path().parent_path());
+
+                    const fs::u8path env_prefix_conda_cert = env_prefix
+                                                             / prefix_relative_conda_cert_path;
+
+                    LOG_INFO << "Checking for CA certificates in the same prefix as the executable installation: "
                              << env_prefix_conda_cert;
 
                     if (fs::exists(env_prefix_conda_cert))
                     {
-                        LOG_INFO << "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix "
-                                 << "(i.e " << env_prefix_conda_cert << ")";
+                        LOG_INFO << "Using CA certificates from `conda-forge::ca-certificates` installed in the same prefix "
+                                 << "as the executable installation (i.e " << env_prefix_conda_cert
+                                 << ")";
                         remote_fetch_params.ssl_verify = env_prefix_conda_cert;
+                        remote_fetch_params.curl_initialized = true;
+                        return;
+                    }
+
+                    // Try to use the CA certificates from `conda-forge::ca-certificates` installed
+                    // in the root prefix.
+                    const fs::u8path root_prefix = detail::get_root_prefix();
+                    const fs::u8path root_prefix_conda_cert = root_prefix
+                                                              / prefix_relative_conda_cert_path;
+
+                    LOG_INFO << "Checking for CA certificates at the root prefix: "
+                             << root_prefix_conda_cert;
+
+                    if (fs::exists(root_prefix_conda_cert))
+                    {
+                        LOG_INFO << "Using CA certificates from `conda-forge::ca-certificates` installed in the root prefix "
+                                 << "(i.e " << root_prefix_conda_cert << ")";
+                        remote_fetch_params.ssl_verify = root_prefix_conda_cert;
                         remote_fetch_params.curl_initialized = true;
                         return;
                     }

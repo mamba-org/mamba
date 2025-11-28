@@ -291,6 +291,7 @@ namespace mamba
         PRINT_CTX(out, remote_fetch_params.max_retries);
         PRINT_CTX(out, remote_fetch_params.connect_timeout_secs);
         PRINT_CTX(out, add_pip_as_python_dependency);
+        PRINT_CTX(out, prefix_data_interoperability);
         PRINT_CTX(out, override_channels_enabled);
         PRINT_CTX(out, use_only_tar_bz2);
         PRINT_CTX(out, auto_activate_base);

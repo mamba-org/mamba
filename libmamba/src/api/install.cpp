@@ -377,9 +377,12 @@ namespace mamba
         }
     }
 
-    auto
-    create_install_request(PrefixData& prefix_data, std::vector<std::string> specs, bool freeze_installed)
-        -> solver::Request
+    auto create_install_request(
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool freeze_installed,
+        bool prefix_data_interoperability
+    ) -> solver::Request
     {
         using Request = solver::Request;
 
@@ -404,15 +407,55 @@ namespace mamba
             }
         }
 
-        for (const auto& s : specs)
+        // When prefix_data_interoperability is enabled, use Update requests instead of Install
+        // for packages that conflict with pip packages. This tells the solver to replace the
+        // pip package with the conda version.
+        if (prefix_data_interoperability)
         {
-            request.jobs.emplace_back(
-                Request::Install{
-                    specs::MatchSpec::parse(s)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
+            const auto& pip_pkgs = prefix_data.pip_records();
+            for (const auto& s : specs)
+            {
+                auto spec = specs::MatchSpec::parse(s)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
+
+                // Check if there's a pip package with the same name
+                if (spec.name().is_exact())
+                {
+                    const auto spec_name_str = spec.name().to_string();
+                    if (pip_pkgs.find(spec_name_str) != pip_pkgs.end())
+                    {
+                        // Use Update instead of Install to replace the pip package
+                        request.jobs.emplace_back(
+                            Request::Update{
+                                std::move(spec),
+                                /* .clean_dependencies= */ false,
+                            }
+                        );
+                        continue;
+                    }
                 }
-            );
+                // No pip package conflict, use normal Install
+                request.jobs.emplace_back(
+                    Request::Install{
+                        std::move(spec),
+                    }
+                );
+            }
+        }
+        else
+        {
+            // Interoperability disabled, use normal Install requests
+            for (const auto& s : specs)
+            {
+                request.jobs.emplace_back(
+                    Request::Install{
+                        specs::MatchSpec::parse(s)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
+            }
         }
         return request;
     }
@@ -590,7 +633,12 @@ namespace mamba
             load_installed_packages_in_database(ctx, db, prefix_data);
 
 
-            auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
+            auto request = create_install_request(
+                prefix_data,
+                raw_specs,
+                freeze_installed,
+                ctx.prefix_data_interoperability
+            );
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;
 

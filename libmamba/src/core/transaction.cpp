@@ -16,6 +16,7 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <reproc++/run.hpp>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -27,8 +28,12 @@
 #include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
 #include "solver/helpers.hpp"
@@ -434,11 +439,77 @@ namespace mamba
             {
                 break;
             }
-            Console::stream() << "Unlinking " << pkg.str();
-            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
-            UnlinkPackage up(pkg, cache_path, &transaction_context);
-            up.execute();
-            rollback.record(up);
+
+            // Check if this is a pip package (channel == "pypi")
+            // If prefix_data_interoperability is enabled, we need to uninstall pip packages
+            // using pip uninstall instead of the normal unlink process
+            if (ctx.prefix_data_interoperability && pkg.channel == "pypi")
+            {
+                Console::stream() << "Uninstalling pip package " << pkg.name;
+
+                // Run pip uninstall for this package
+                const auto get_python_path = [&]
+                {
+                    return util::which_in("python", util::get_path_dirs(ctx.prefix_params.target_prefix))
+                        .string();
+                };
+
+                const auto args = std::array<std::string, 5>{ get_python_path(),
+                                                              "-m",
+                                                              "pip",
+                                                              "uninstall",
+                                                              "-y" };
+                std::vector<std::string> full_args(args.begin(), args.end());
+                full_args.push_back(pkg.name);
+
+                const std::vector<std::pair<std::string, std::string>> env{
+                    { "PYTHONIOENCODING", "utf-8" },
+                    { "NO_COLOR", "1" },
+                    { "PIP_NO_COLOR", "1" },
+                };
+                reproc::options run_options;
+                run_options.env.extra = reproc::env{ env };
+                const auto working_dir = ctx.prefix_params.target_prefix.string();
+                run_options.working_directory = working_dir.c_str();
+
+                std::string out, err;
+                const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
+                util::unset_env("FORCE_COLOR");
+                on_scope_exit _{
+                    [&]
+                    {
+                        if (maybe_previous_force_color)
+                        {
+                            util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
+                        }
+                    }
+                };
+
+                auto [status, ec] = reproc::run(
+                    full_args,
+                    run_options,
+                    reproc::sink::string(out),
+                    reproc::sink::string(err)
+                );
+
+                if (ec)
+                {
+                    LOG_WARNING << "Failed to uninstall pip package " << pkg.name << ": " << err;
+                    // Continue anyway - the package might already be removed or not exist
+                }
+                else
+                {
+                    LOG_DEBUG << "Successfully uninstalled pip package " << pkg.name;
+                }
+            }
+            else
+            {
+                Console::stream() << "Unlinking " << pkg.str();
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
+                UnlinkPackage up(pkg, cache_path, &transaction_context);
+                up.execute();
+                rollback.record(up);
+            }
             m_history_entry.unlink_dists.push_back(pkg.long_str());
         }
 

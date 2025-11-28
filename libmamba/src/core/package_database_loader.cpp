@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -158,6 +159,33 @@ namespace mamba
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();
+
+        // When prefix_data_interoperability is enabled, include pip packages in the solver database
+        // so they can be removed when replaced by conda packages. The solver will handle conflicts
+        // and remove pip packages when conda packages with the same name are installed.
+        if (ctx.prefix_data_interoperability)
+        {
+            for (const auto& [name, pip_pkg] : prefix.pip_records())
+            {
+                // Check if there's already a conda package with the same name
+                auto conda_pkg_it = std::find_if(
+                    pkgs.begin(),
+                    pkgs.end(),
+                    [&name](const auto& pkg) { return pkg.name == name; }
+                );
+
+                if (conda_pkg_it == pkgs.end())
+                {
+                    // No conda package with this name, add the pip package so it can be
+                    // tracked and removed if a conda package with the same name is installed
+                    pkgs.push_back(pip_pkg);
+                }
+                // If a conda package already exists, we don't add the pip package.
+                // This represents a conflict state that shouldn't normally exist, but if it does,
+                // the existing conda package takes precedence.
+            }
+        }
+
         // TODO(C++20): We only need a range that concatenate both
         for (auto&& pkg : get_virtual_packages(ctx.platform))
         {

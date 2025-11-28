@@ -232,3 +232,129 @@ The executable can be striped to remove its size:
 .. code:: bash
 
    strip "build/micromamba/micromamba"
+
+.. _umamba-uninstall:
+
+Uninstalling Micromamba
+************************
+
+To completely remove ``micromamba`` from your system, follow these steps:
+
+.. note::
+
+   Before uninstalling, you can check your specific installation paths by running:
+
+   .. code-block:: bash
+
+      micromamba info
+
+   This will show you important information such as:
+   - ``envs directories``: where your environments are stored
+   - ``package cache``: where downloaded packages are cached
+   - ``user config files``: location of your ``.mambarc`` file
+   - ``populated config files``: location of your ``.condarc`` file
+   - ``root prefix``: the base directory for micromamba (usually shown as the first envs directory's parent)
+
+   Use these paths to adapt the commands below to your specific installation.
+
+1. Remove shell initialization
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   If you initialized your shell with ``micromamba shell init``, you need to remove the initialization code from your shell configuration files.
+   Run the following command for each shell you initialized:
+
+   .. code-block:: bash
+
+      micromamba shell deinit -s bash    # for bash
+      micromamba shell deinit -s zsh     # for zsh
+      micromamba shell deinit -s fish    # for fish
+      micromamba shell deinit -s xonsh   # for xonsh
+      micromamba shell deinit -s csh     # for csh/tcsh
+      micromamba shell deinit -s nu      # for nushell
+
+   On Windows PowerShell:
+
+   .. code-block:: powershell
+
+      micromamba shell deinit -s powershell
+
+   This will remove the mamba initialization block from your shell configuration files (``.bashrc``, ``.zshrc``, ``config.fish``, etc.).
+
+2. Remove the micromamba executable
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   The location of the ``micromamba`` executable depends on your installation method:
+
+   **Automatic installation script:**
+   The executable is typically installed to ``~/.local/bin/micromamba`` (Linux/macOS) or ``%LOCALAPPDATA%\micromamba\micromamba.exe`` (Windows).
+
+   **Homebrew (macOS):**
+   .. code-block:: bash
+
+      brew uninstall micromamba
+
+   **Manual installation:**
+   Remove the directory where you extracted or installed the ``micromamba`` executable.
+
+3. Remove the root prefix directory and package cache
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   ``micromamba`` stores all environments, packages, and cache in specific directories.
+   Check ``micromamba info`` to find the exact locations for your installation:
+   - The root prefix is typically the parent directory of the first ``envs directories`` path shown
+   - The package cache location is shown under ``package cache``
+
+   By default, the root prefix is ``~/micromamba`` (Linux/macOS) or ``%USERPROFILE%\micromamba`` (Windows).
+   If you specified a custom location with ``-r`` during initialization, use that location instead.
+
+   .. code-block:: bash
+
+      # Linux/macOS - remove the default root prefix
+      rm -rf ~/micromamba
+
+      # Or if you used a custom location (check with 'micromamba info'):
+      rm -rf /path/to/your/custom/root/prefix
+
+      # Also remove the package cache if it's in a separate location
+      # (check the 'package cache' path from 'micromamba info')
+      rm -rf ~/.cache/conda/pkgs  # or your specific cache location
+
+   On Windows PowerShell:
+
+   .. code-block:: powershell
+
+      Remove-Item -Recurse -Force $env:USERPROFILE\micromamba
+      # Also remove package cache if separate (check 'micromamba info' for exact path)
+
+   .. warning::
+
+      This will delete all environments, installed packages, and cached data. Make sure you have backed up any important environments or data before removing this directory.
+
+4. Remove configuration files (optional)
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   Check ``micromamba info`` for the exact paths to your configuration files:
+   - ``user config files`` shows the location of ``.mambarc``
+   - ``populated config files`` shows the location of ``.condarc``
+
+   If you want to remove these configuration files:
+
+   .. code-block:: bash
+
+      # Use the paths from 'micromamba info', or default locations:
+      rm ~/.mambarc        # if it exists
+      rm ~/.condarc        # if it exists and was only used for micromamba
+
+   On Windows:
+
+   .. code-block:: powershell
+
+      # Use the paths from 'micromamba info', or default locations:
+      Remove-Item $env:USERPROFILE\.mambarc -ErrorAction SilentlyContinue
+      Remove-Item $env:USERPROFILE\.condarc -ErrorAction SilentlyContinue
+
+   .. note::
+
+      If you also use ``conda`` or ``mamba`` (from Miniforge), be careful not to delete shared configuration files that are still needed.
+
+After completing these steps, ``micromamba`` will be completely removed from your system.

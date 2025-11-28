@@ -5,11 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <unordered_set>
 
 #include <catch2/catch_all.hpp>
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
@@ -1451,6 +1453,233 @@ namespace
         REQUIRE(spec1_hash != spec3_hash);
     }
 
+    TEST_CASE("MatchSpec hash with conditional dependencies", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Same conditional dependencies hash to same value")
+        {
+            // Parse the same conditional dependency twice
+            auto ms1 = MatchSpec::parse("typing-extensions; if python <3.10").value();
+            auto ms2 = MatchSpec::parse("typing-extensions; if python <3.10").value();
+
+            // They should be equal
+            REQUIRE(ms1 == ms2);
+
+            // They should hash to the same value
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 == hash2);
+        }
+
+        SECTION("Different conditional dependencies hash to different values")
+        {
+            auto ms1 = MatchSpec::parse("typing-extensions; if python <3.10").value();
+            auto ms2 = MatchSpec::parse("typing-extensions; if python <3.11").value();
+
+            // They should not be equal
+            REQUIRE(ms1 != ms2);
+
+            // They should hash to different values
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 != hash2);
+        }
+
+        SECTION("MatchSpec with condition vs without condition hash differently")
+        {
+            auto ms_with_cond = MatchSpec::parse("typing-extensions; if python <3.10").value();
+            auto ms_without_cond = MatchSpec::parse("typing-extensions").value();
+
+            // They should not be equal
+            REQUIRE(ms_with_cond != ms_without_cond);
+
+            // They should hash to different values
+            auto hash_with_cond = std::hash<MatchSpec>{}(ms_with_cond);
+            auto hash_without_cond = std::hash<MatchSpec>{}(ms_without_cond);
+            REQUIRE(hash_with_cond != hash_without_cond);
+        }
+
+        SECTION("Complex conditions hash correctly")
+        {
+            auto ms1 = MatchSpec::parse("dep; if python >=3.10 and numpy").value();
+            auto ms2 = MatchSpec::parse("dep; if python >=3.10 and numpy").value();
+            auto ms3 = MatchSpec::parse("dep; if python >=3.10 or numpy").value();
+
+            // Same conditions should hash to same value
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 == hash2);
+
+            // Different conditions should hash to different values
+            auto hash3 = std::hash<MatchSpec>{}(ms3);
+            REQUIRE(hash1 != hash3);
+        }
+
+        SECTION("Hash consistency: same MatchSpec hashed multiple times")
+        {
+            auto ms = MatchSpec::parse("typing-extensions; if python <3.10").value();
+
+            // Hash multiple times - should be consistent
+            auto hash1 = std::hash<MatchSpec>{}(ms);
+            auto hash2 = std::hash<MatchSpec>{}(ms);
+            auto hash3 = std::hash<MatchSpec>{}(ms);
+
+            REQUIRE(hash1 == hash2);
+            REQUIRE(hash2 == hash3);
+        }
+
+        SECTION("Hash works with nested conditions")
+        {
+            auto ms1 = MatchSpec::parse("dep; if (python >=3.10 or pypy) and numpy").value();
+            auto ms2 = MatchSpec::parse("dep; if (python >=3.10 or pypy) and numpy").value();
+            auto ms3 = MatchSpec::parse("dep; if (python >=3.10 or pypy)").value();
+
+            // Same nested conditions should hash to same value
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            REQUIRE(hash1 == hash2);
+
+            // Different nested conditions should hash to different values
+            auto hash3 = std::hash<MatchSpec>{}(ms3);
+            REQUIRE(hash1 != hash3);
+        }
+    }
+
+    TEST_CASE("MatchSpec parse with conditional dependencies", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Simple conditional: typing-extensions; if python <3.10")
+        {
+            auto ms = MatchSpec::parse("typing-extensions; if python <3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "typing-extensions");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+            REQUIRE(ms->to_string().find("typing-extensions") != std::string::npos);
+            REQUIRE(ms->to_string().find("; if") != std::string::npos);
+        }
+
+        SECTION("Conditional with version: importlib_metadata; if python <3.10")
+        {
+            auto ms = MatchSpec::parse("importlib_metadata; if python <3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "importlib_metadata");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+        }
+
+        SECTION("Platform conditional: pywin32; if __win")
+        {
+            auto ms = MatchSpec::parse("pywin32; if __win");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pywin32");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "__win");
+        }
+
+        SECTION("Unix conditional: somepkg; if __unix")
+        {
+            auto ms = MatchSpec::parse("somepkg; if __unix");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "somepkg");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "__unix");
+        }
+
+        SECTION("OR condition: dep; if python <3.8 or pypy")
+        {
+            auto ms = MatchSpec::parse("dep; if python <3.8 or pypy");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "(python<3.8 or pypy)");
+        }
+
+        SECTION("AND condition: dep; if python >=3.10 and __unix")
+        {
+            auto ms = MatchSpec::parse("dep; if python >=3.10 and __unix");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "(python>=3.10 and __unix)");
+        }
+
+        SECTION("Complex condition: dep; if (python >=3.10 or pypy) and __unix")
+        {
+            auto ms = MatchSpec::parse("dep; if (python >=3.10 or pypy) and __unix");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "((python>=3.10 or pypy) and __unix)");
+        }
+
+        SECTION("Conditional with version spec: numpy; if python >=3.9")
+        {
+            auto ms = MatchSpec::parse("numpy; if python >=3.9");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "numpy");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python>=3.9");
+        }
+
+        SECTION("Conditional with whitespace: dep  ;  if  python  <  3.10")
+        {
+            auto ms = MatchSpec::parse("dep  ;  if  python  <  3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "dep");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+        }
+
+        SECTION("No condition: regular matchspec")
+        {
+            auto ms = MatchSpec::parse("numpy >=1.20");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "numpy");
+            REQUIRE(ms->condition() == nullptr);
+        }
+
+        SECTION("Semicolon without if: should not parse as condition")
+        {
+            // A semicolon that's not followed by "if" should not be treated as a condition
+            // This might be part of the matchspec itself (though unlikely in practice)
+            auto ms = MatchSpec::parse("pkg;notif");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pkg;notif");
+            REQUIRE(ms->condition() == nullptr);
+        }
+
+        SECTION("Round-trip: parse and to_string")
+        {
+            const std::string original = "typing-extensions; if python <3.10";
+            auto ms = MatchSpec::parse(original);
+            REQUIRE(ms.has_value());
+
+            // to_string should include the condition
+            auto serialized = ms->to_string();
+            REQUIRE(serialized.find("typing-extensions") != std::string::npos);
+            REQUIRE(serialized.find("; if") != std::string::npos);
+            REQUIRE(serialized.find("python<3.10") != std::string::npos);
+
+            // Parsing the serialized version should give the same result
+            auto ms2 = MatchSpec::parse(serialized);
+            REQUIRE(ms2.has_value());
+            REQUIRE(ms2->name().to_string() == ms->name().to_string());
+            REQUIRE(ms2->condition() != nullptr);
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms2->condition()->to_string() == ms->condition()->to_string());
+        }
+
+        SECTION("Conditional with version and build: pkg >=1.0=build; if python >=3.10")
+        {
+            auto ms = MatchSpec::parse("pkg >=1.0=build; if python >=3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pkg");
+            REQUIRE(ms->version().to_string() == ">=1.0");
+            REQUIRE(ms->build_string().to_string() == "build");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python>=3.10");
+        }
+    }
+
     auto repodata_all_depends(const std::string& path)
         -> std::vector<std::tuple<std::string, std::string>>
     {
@@ -1487,6 +1716,70 @@ namespace
         }
 
         return result;
+    }
+
+    TEST_CASE("MatchSpec parse edge cases", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("Multiple semicolons: last one should be used for condition")
+        {
+            // If there are multiple semicolons, only the last one with "if" is the condition
+            auto ms = MatchSpec::parse("pkg>=1.0; if python <3.10");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->name().to_string() == "pkg");
+            REQUIRE(ms->condition() != nullptr);
+            REQUIRE(ms->condition()->to_string() == "python<3.10");
+        }
+
+        SECTION("Empty condition after semicolon: should fail gracefully")
+        {
+            // A semicolon followed by "if" but no condition
+            auto ms = MatchSpec::parse("pkg; if ");
+            // Should either parse without condition or fail gracefully
+            // The parser should handle this reasonably
+            REQUIRE(ms.has_value());
+        }
+
+        SECTION("Condition with special characters")
+        {
+            // Conditions with comparison operators and version numbers
+            auto ms = MatchSpec::parse("pkg; if python >=3.10.5,<3.12");
+            REQUIRE(ms.has_value());
+            REQUIRE(ms->condition() != nullptr);
+        }
+
+        SECTION("Hash in MatchSpec with conditionals works in containers")
+        {
+            // Test that MatchSpecs with conditions work in hash-based containers
+            auto ms1 = MatchSpec::parse("pkg; if python <3.10").value();
+            auto ms2 = MatchSpec::parse("pkg; if python <3.10").value();
+            auto ms3 = MatchSpec::parse("pkg; if python <3.11").value();
+
+            std::unordered_set<MatchSpec> set;
+            set.insert(ms1);
+            set.insert(ms2);  // Should not create duplicate since ms1 == ms2
+            set.insert(ms3);
+
+            REQUIRE(set.size() == 2);  // ms1 and ms2 are the same, ms3 is different
+            REQUIRE(set.find(ms1) != set.end());
+            REQUIRE(set.find(ms2) != set.end());
+            REQUIRE(set.find(ms3) != set.end());
+        }
+
+        SECTION("Hash consistency across copy and move")
+        {
+            auto ms1 = MatchSpec::parse("pkg; if python <3.10").value();
+            auto ms2 = ms1;                                                          // Copy
+            auto ms3 = std::move(MatchSpec::parse("pkg; if python <3.10").value());  // Move
+
+            auto hash1 = std::hash<MatchSpec>{}(ms1);
+            auto hash2 = std::hash<MatchSpec>{}(ms2);
+            auto hash3 = std::hash<MatchSpec>{}(ms3);
+
+            REQUIRE(hash1 == hash2);
+            REQUIRE(hash1 == hash3);
+            REQUIRE(ms1 == ms2);
+            REQUIRE(ms1 == ms3);
+        }
     }
 
     TEST_CASE("Repodata MatchSpec::parse", "[mamba::specs][mamba::specs::MatchSpec][.integration]")

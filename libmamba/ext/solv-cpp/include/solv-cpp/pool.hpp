@@ -103,9 +103,37 @@ namespace solv
          * A dependency represents a set of packages.
          * The flag can be used to create complex dependencies. In that case, for instance with
          * the "or" operator, the name and version ids are (ab)used with other dependency ids.
-         * Handling of complex dependencies in libsolv is quite complex and not used in mamba.
          */
         auto add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId;
+
+        /**
+         * Create a REL_AND relation between two dependency IDs.
+         *
+         * This creates a complex dependency that is satisfied when both dependencies are satisfied.
+         * Used for conditional dependencies like "dep; if cond1 and cond2".
+         */
+        auto rel_and(DependencyId lhs, DependencyId rhs) -> DependencyId;
+
+        /**
+         * Create a REL_OR relation between two dependency IDs.
+         *
+         * This creates a complex dependency that is satisfied when either dependency is satisfied.
+         * Used for conditional dependencies like "dep; if cond1 or cond2".
+         */
+        auto rel_or(DependencyId lhs, DependencyId rhs) -> DependencyId;
+
+        /**
+         * Create a REL_COND (conditional dependency) relation.
+         *
+         * This creates a conditional dependency where @p dependency is only required if
+         * @p condition is satisfied. This is the core mechanism for supporting conditional
+         * dependencies like "numpy; if python >=3.9".
+         *
+         * @param dependency The dependency to be conditionally required
+         * @param condition The condition that must be satisfied for the dependency to be required
+         * @return A dependency ID representing the conditional dependency
+         */
+        auto rel_cond(DependencyId dependency, DependencyId condition) -> DependencyId;
 
         /**
          * Parse a conda dependency from string and add it to the pool.
@@ -349,6 +377,9 @@ namespace solv
         using ObjPoolView::get_string;
         using ObjPoolView::find_dependency;
         using ObjPoolView::add_dependency;
+        using ObjPoolView::rel_and;
+        using ObjPoolView::rel_or;
+        using ObjPoolView::rel_cond;
         using ObjPoolView::add_legacy_conda_dependency;
         using ObjPoolView::get_dependency_name;
         using ObjPoolView::get_dependency_version;

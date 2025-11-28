@@ -62,6 +62,64 @@ def test_register_new_env(tmp_home, tmp_root_prefix):
     assert str(env_3_fp) in env_json["envs"]
 
 
+def test_env_list_multiple_envs_dirs(tmp_home, tmp_root_prefix, tmp_path):
+    """Test that 'mamba env list' shows names for environments in all envs_dirs directories.
+
+    This is a regression test for issue #4045 where only environments in the first
+    envs_dirs directory would have their names displayed.
+    """
+    # Create two separate envs_dirs directories
+    envs_dir1 = tmp_path / "envs1"
+    envs_dir2 = tmp_path / "envs2"
+    envs_dir1.mkdir()
+    envs_dir2.mkdir()
+
+    # Create environments in both directories
+    env1_name = "env1"
+    env2_name = "env2"
+    env1_path = envs_dir1 / env1_name
+    env2_path = envs_dir2 / env2_name
+
+    helpers.create("-p", env1_path, "--offline", "--no-rc", no_dry_run=True)
+    helpers.create("-p", env2_path, "--offline", "--no-rc", no_dry_run=True)
+
+    # Configure envs_dirs in .condarc with both directories
+    with open(tmp_home / ".condarc", "w+") as f:
+        f.write(f"envs_dirs:\n  - {envs_dir1}\n  - {envs_dir2}\n")
+
+    # Run env list and check output
+    res = helpers.run_env("list", "--rc-file", tmp_home / ".condarc")
+
+    # Both environments should have their names displayed, not just paths
+    assert env1_name in res
+    assert env2_name in res
+    assert str(env1_path) in res
+    assert str(env2_path) in res
+
+    # Parse the output to verify names are in the Name column
+    lines = res.splitlines()
+    name_col_idx = None
+    for i, line in enumerate(lines):
+        if "Name" in line and "Path" in line:
+            # Find the column positions
+            name_col_idx = line.find("Name")
+            break
+
+    if name_col_idx is not None:
+        # Check that both env names appear in the Name column
+        found_env1_name = False
+        found_env2_name = False
+        for line in lines:
+            if line.strip().startswith(env1_name):
+                # The line should start with the env name (in Name column)
+                found_env1_name = True
+            if line.strip().startswith(env2_name):
+                found_env2_name = True
+
+        assert found_env1_name, f"Environment {env1_name} name not found in Name column"
+        assert found_env2_name, f"Environment {env2_name} name not found in Name column"
+
+
 @pytest.fixture(scope="module")
 def empty_env():
     env_name = "env-empty"

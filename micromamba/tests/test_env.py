@@ -595,7 +595,7 @@ def test_env_export_with_ca_certificates(tmp_path):
         shutil.copy(built_executable, tmp_env_executable)
 
     # Run a command using mamba in verbose mode and check that the ca-certificates file
-    # from the same environment as the executable is used by default.
+    # from the same prefix as the executable is used by default.
     p = subprocess.run(
         [tmp_env_executable, "search", "xtensor", "-v"],
         capture_output=True,
@@ -603,7 +603,9 @@ def test_env_export_with_ca_certificates(tmp_path):
     )
     stderr = p.stderr.decode()
     assert (
-        "Checking for CA certificates in the same environment as the executable installation"
+        "Checking for CA certificates in the same prefix as the executable installation" in stderr
+    )
+    assert (
+        "Using CA certificates from `conda-forge::ca-certificates` installed in the same prefix"
         in stderr
     )
-    assert "Using CA certificates from the same prefix as the executable installation" in stderr

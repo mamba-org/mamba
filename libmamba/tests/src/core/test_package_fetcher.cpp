@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <stdexcept>
 
 #include <catch2/catch_all.hpp>
 
@@ -461,5 +462,70 @@ namespace
         // should trust ALL fields including intentionally empty arrays
         REQUIRE(repodata_record.contains("constrains"));
         CHECK(repodata_record["constrains"].empty());
+    }
+
+    /**
+     * Test that extraction fails hard when _initialized sentinel is missing
+     *
+     * PURPOSE: Verify that write_repodata_record() throws std::logic_error when
+     * PackageInfo.defaulted_keys does not contain "_initialized".
+     *
+     * MOTIVATION: The _initialized sentinel proves the PackageInfo was properly
+     * constructed. If missing, it indicates a bug in a code path that creates
+     * PackageInfo objects. Failing hard ensures such bugs are caught immediately.
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("PackageFetcher::write_repodata_record fails without _initialized")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        // Create PackageInfo WITHOUT _initialized sentinel - this simulates a bug
+        specs::PackageInfo pkg_info;
+        pkg_info.name = "missing-init-pkg";
+        pkg_info.version = "1.0";
+        pkg_info.build_string = "h0_0";
+        pkg_info.filename = "missing-init-pkg-1.0-h0_0.tar.bz2";
+        // Deliberately NOT setting _initialized in defaulted_keys
+        pkg_info.defaulted_keys = { "license", "timestamp" };  // Missing "_initialized"!
+
+        const std::string pkg_basename = "missing-init-pkg-1.0-h0_0";
+
+        // Create minimal package structure
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        nlohmann::json index_json;
+        index_json["name"] = "missing-init-pkg";
+        index_json["version"] = "1.0";
+        index_json["build"] = "h0_0";
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        fs::remove_all(pkg_extract_dir);
+
+        PackageFetcher pkg_fetcher{ pkg_info, package_caches };
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        // Extraction should throw std::logic_error due to missing _initialized
+        REQUIRE_THROWS_AS(pkg_fetcher.extract(options), std::logic_error);
     }
 }

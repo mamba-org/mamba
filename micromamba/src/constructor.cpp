@@ -222,6 +222,33 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
                 repodata_record["size"] = fs::file_size(entry);
             }
 
+            // Ensure depends and constrains are always present as arrays.
+            // Matches conda behavior where these fields are always present.
+            // Some packages (like nlohmann_json-abi) don't have depends in index.json.
+            // See GitHub issue #4095.
+            if (!repodata_record.contains("depends"))
+            {
+                repodata_record["depends"] = nlohmann::json::array();
+            }
+            if (!repodata_record.contains("constrains"))
+            {
+                repodata_record["constrains"] = nlohmann::json::array();
+            }
+
+            // Conditionally include track_features only when non-empty.
+            // Matches conda behavior to reduce JSON noise.
+            // See GitHub issue #4095.
+            if (repodata_record.contains("track_features"))
+            {
+                const auto& tf = repodata_record["track_features"];
+                bool is_empty = tf.is_null() || (tf.is_string() && tf.get<std::string>().empty())
+                                || (tf.is_array() && tf.empty());
+                if (is_empty)
+                {
+                    repodata_record.erase("track_features");
+                }
+            }
+
             LOG_TRACE << "Writing " << repodata_record_path;
             std::ofstream repodata_record_of{ repodata_record_path.std_path() };
             repodata_record_of << repodata_record.dump(4);

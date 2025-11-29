@@ -146,6 +146,18 @@ namespace mamba::solver::libsolv
             std::transform(feats.begin(), feats.end(), std::back_inserter(out.track_features), id_to_str);
         }
 
+        // Set "_initialized" sentinel to indicate this PackageInfo was properly constructed.
+        // Solver-derived packages have authoritative metadata from channel repodata (potentially
+        // patched). We set only _initialized (no stub field names) to signal "trust all fields".
+        // This preserves channel patches with intentionally empty arrays.
+        //
+        // The asymmetry with from_url() is intentional:
+        // - from_url(): {"_initialized", "license", ...} = listed fields are stubs to erase
+        // - make_package_info(): {"_initialized"} = trust ALL fields, erase nothing
+        //
+        // See issue #4095.
+        out.defaulted_keys = { "_initialized" };
+
         return out;
     }
 

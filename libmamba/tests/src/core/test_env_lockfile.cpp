@@ -289,6 +289,56 @@ namespace mamba
             );
         }
 
+        /**
+         * Test that lockfile-parsed PackageInfo has _initialized in defaulted_keys
+         *
+         * PURPOSE: Verify that PackageInfo objects created from lockfile parsing have
+         * the "_initialized" sentinel in defaulted_keys, enabling fail-hard verification
+         * in write_repodata_record().
+         *
+         * MOTIVATION: Issue #4095 - the lockfile parsing code creates PackageInfo objects
+         * that need the "_initialized" sentinel for proper write_repodata_record() behavior.
+         * Without this, lockfile installs fail with "PackageInfo missing _initialized sentinel".
+         *
+         * Related: https://github.com/mamba-org/mamba/issues/4095
+         */
+        auto test_lockfile_packages_have_initialized_in_defaulted_keys(const fs::u8path lockfile_path)
+            -> void
+        {
+            // Helper to check if a value is in a vector
+            auto contains = [](const std::vector<std::string>& v, const std::string& val) -> bool
+            { return std::find(v.begin(), v.end(), val) != v.end(); };
+
+            const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
+            REQUIRE(maybe_lockfile);
+
+            const auto lockfile = maybe_lockfile.value();
+            const auto packages = lockfile.get_all_packages();
+            REQUIRE_FALSE(packages.empty());
+
+            // Each package should have _initialized in defaulted_keys
+            // This is required for write_repodata_record() fail-hard verification
+            for (const auto& pkg : packages)
+            {
+                INFO("Package: " << pkg.info.name);
+                REQUIRE(contains(pkg.info.defaulted_keys, "_initialized"));
+            }
+        }
+
+        TEST_CASE("env-lockfile lockfile_packages_have_initialized_in_defaulted_keys-conda")
+        {
+            test_lockfile_packages_have_initialized_in_defaulted_keys(
+                mambatests::test_data_dir / "env_lockfile/good_one_package-lock.yaml"
+            );
+        }
+
+        TEST_CASE("env-lockfile lockfile_packages_have_initialized_in_defaulted_keys-mambajs")
+        {
+            test_lockfile_packages_have_initialized_in_defaulted_keys(
+                mambatests::test_data_dir / "env_lockfile/good_one_package-lock.json"
+            );
+        }
+
         TEST_CASE("env-lockfile create_transaction_with_categories")
         {
             // NOTE: at the moment of writing this test,

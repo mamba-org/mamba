@@ -146,6 +146,11 @@ namespace mamba::solver::libsolv
             std::transform(feats.begin(), feats.end(), std::back_inserter(out.track_features), id_to_str);
         }
 
+        // Temporary: hardcode _initialized for solver-derived packages.
+        // Refined in a later commit to preserve round-trip defaulted_keys
+        // via solvable storage.
+        out.defaulted_keys = { "_initialized" };
+
         return out;
     }
 

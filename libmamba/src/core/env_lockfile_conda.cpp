@@ -73,6 +73,10 @@ namespace mamba
                 package.info.channel = maybe_parsed_info->channel;
                 package.info.build_string = maybe_parsed_info->build_string;
                 package.info.platform = maybe_parsed_info->platform;
+                // Copy defaulted_keys for fail-hard verification in write_repodata_record().
+                // The "_initialized" sentinel proves this PackageInfo was properly constructed.
+                // See issue #4095.
+                package.info.defaulted_keys = maybe_parsed_info->defaulted_keys;
             }
 
             for (const auto& dependency : package_node["dependencies"])

@@ -528,4 +528,118 @@ namespace
         // Extraction should throw std::logic_error due to missing _initialized
         REQUIRE_THROWS_AS(pkg_fetcher.extract(options), std::logic_error);
     }
+
+    /**
+     * Test that corrupted caches from since v2.1.1 (#3901), partially mitigated in v2.3.3 (#4071)
+     * are detected and healed
+     *
+     * PURPOSE: Verify that EXISTING corrupted repodata_record.json files (from
+     * buggy versions since v2.1.1 (#3901), partially mitigated in v2.3.3 (#4071)) are detected via
+     * the corruption signature (timestamp=0 AND license=""), invalidated, and automatically
+     * re-extracted.
+     *
+     * MOTIVATION: Issue #4095 - caches corrupted by previous versions persist
+     * even after upgrading. The healing mechanism detects and fixes them.
+     *
+     * HEALING FLOW:
+     * 1. has_valid_extracted_dir() reads existing repodata_record.json
+     * 2. Detects corruption signature: timestamp=0 AND license=""
+     * 3. Returns valid=false → triggers re-extraction
+     * 4. write_repodata_record() writes correct values using defaulted_keys
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("PackageFetcher heals existing corrupted cache")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/healing-test-1.0-h123456_0.tar.bz2";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        const std::string pkg_basename = "healing-test-1.0-h123456_0";
+
+        // Step 1: Create a package with CORRECT index.json
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        // index.json with CORRECT values that should be used after healing
+        nlohmann::json correct_index;
+        correct_index["name"] = "healing-test";
+        correct_index["version"] = "1.0";
+        correct_index["build"] = "h123456_0";
+        correct_index["build_number"] = 42;
+        correct_index["license"] = "MIT";
+        correct_index["timestamp"] = 1234567890;
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << correct_index.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        // Step 2: Create tar.bz2 archive WITHOUT repodata_record.json (clean package)
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        // Step 3: Now add CORRUPTED repodata_record.json to cache (simulating since v2.1.1 (#3901),
+        // partially mitigated in v2.3.3 (#4071) bug)
+        nlohmann::json corrupted_repodata;
+        corrupted_repodata["name"] = "healing-test";
+        corrupted_repodata["version"] = "1.0";
+        corrupted_repodata["build"] = "h123456_0";
+        corrupted_repodata["timestamp"] = 0;     // CORRUPTED (stub value)
+        corrupted_repodata["license"] = "";      // CORRUPTED (stub value)
+        corrupted_repodata["build_number"] = 0;  // CORRUPTED (stub value)
+        corrupted_repodata["fn"] = pkg_basename + ".tar.bz2";
+        corrupted_repodata["url"] = url;
+        corrupted_repodata["depends"] = nlohmann::json::array();
+        corrupted_repodata["constrains"] = nlohmann::json::array();
+
+        {
+            std::ofstream repodata_file((info_dir / "repodata_record.json").std_path());
+            repodata_file << corrupted_repodata.dump(2);
+        }
+
+        // Step 4: Update pkg_info to use .tar.bz2 format
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+
+        // Step 5: Create PackageFetcher - it should detect corruption and require re-extraction
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        // Verify healing: corrupted cache should be detected and invalidated.
+        // The corruption signature (timestamp=0 AND license="") triggers
+        // has_valid_extracted_dir() to return false, causing re-extraction.
+        // Issue #4095: This heals caches corrupted by since v2.1.1 (#3901), partially mitigated in
+        // v2.3.3 (#4071).
+        REQUIRE(pkg_fetcher.needs_extract());
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        bool extract_success = pkg_fetcher.extract(options);
+        REQUIRE(extract_success);
+
+        // Step 6: Verify that repodata_record.json is now HEALED
+        auto repodata_record_path = pkg_extract_dir / "info" / "repodata_record.json";
+        REQUIRE(fs::exists(repodata_record_path));
+
+        std::ifstream repodata_file(repodata_record_path.std_path());
+        nlohmann::json healed_repodata;
+        repodata_file >> healed_repodata;
+
+        // After healing: correct values from index.json should be present
+        CHECK(healed_repodata["license"] == "MIT");
+        CHECK(healed_repodata["timestamp"] == 1234567890);
+        CHECK(healed_repodata["build_number"] == 42);
+    }
 }

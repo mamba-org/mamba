@@ -516,6 +516,52 @@ namespace mamba
             repodata_record["size"] = fs::file_size(m_tarball_path);
         }
 
+        // Ensure depends and constrains are always present as arrays.
+        // Matches conda behavior where these fields are always present.
+        // Some packages (like nlohmann_json-abi) don't have depends in index.json.
+        // See GitHub issue #4095.
+        if (!repodata_record.contains("depends"))
+        {
+            repodata_record["depends"] = nlohmann::json::array();
+        }
+        if (!repodata_record.contains("constrains"))
+        {
+            repodata_record["constrains"] = nlohmann::json::array();
+        }
+
+        // Conditionally include track_features only when non-empty.
+        // Matches conda behavior to reduce JSON noise.
+        // See GitHub issue #4095.
+        if (repodata_record.contains("track_features"))
+        {
+            const auto& tf = repodata_record["track_features"];
+            bool is_empty = tf.is_null() || (tf.is_string() && tf.get<std::string>().empty())
+                            || (tf.is_array() && tf.empty());
+            if (is_empty)
+            {
+                repodata_record.erase("track_features");
+            }
+        }
+
+        // Ensure both md5 and sha256 checksums are always present.
+        // Compute from tarball if not available from PackageInfo or index.json.
+        // Use is_string() check to handle null or non-string values safely.
+        // See GitHub issue #4095.
+        auto needs_md5 = !repodata_record.contains("md5") || !repodata_record["md5"].is_string()
+                         || repodata_record["md5"].get<std::string>().empty();
+        if (needs_md5)
+        {
+            repodata_record["md5"] = validation::md5sum(m_tarball_path);
+        }
+
+        auto needs_sha256 = !repodata_record.contains("sha256")
+                            || !repodata_record["sha256"].is_string()
+                            || repodata_record["sha256"].get<std::string>().empty();
+        if (needs_sha256)
+        {
+            repodata_record["sha256"] = validation::sha256sum(m_tarball_path);
+        }
+
         std::ofstream repodata_record_file(repodata_record_path.std_path());
         repodata_record_file << repodata_record.dump(4);
     }

@@ -14,6 +14,7 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/validation/tools.hpp"
 
 #include "mambatests.hpp"
 
@@ -641,5 +642,444 @@ namespace
         CHECK(healed_repodata["license"] == "MIT");
         CHECK(healed_repodata["timestamp"] == 1234567890);
         CHECK(healed_repodata["build_number"] == 42);
+    }
+
+    /**
+     * Test that depends and constrains are always present as arrays
+     *
+     * PURPOSE: Verify that repodata_record.json always includes "depends" and
+     * "constrains" fields as arrays, even when they're missing from index.json.
+     *
+     * MOTIVATION: Matches conda behavior where these fields are always present.
+     * Some packages (like nlohmann_json-abi) don't have depends in index.json.
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("PackageFetcher::write_repodata_record ensures depends/constrains present")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/nodeps-1.0-h0_0.conda";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        const std::string pkg_basename = "nodeps-1.0-h0_0";
+
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        // Create index.json WITHOUT depends or constrains (like nlohmann_json-abi)
+        nlohmann::json index_json;
+        index_json["name"] = "nodeps";
+        index_json["version"] = "1.0";
+        index_json["build"] = "h0_0";
+        // NO depends or constrains keys
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+
+        fs::remove_all(pkg_extract_dir);
+
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        bool extract_success = pkg_fetcher.extract(options);
+        REQUIRE(extract_success);
+
+        auto repodata_record_path = pkg_extract_dir / "info" / "repodata_record.json";
+        REQUIRE(fs::exists(repodata_record_path));
+
+        std::ifstream repodata_file(repodata_record_path.std_path());
+        nlohmann::json repodata_record;
+        repodata_file >> repodata_record;
+
+        // depends and constrains should always be present as empty arrays
+        REQUIRE(repodata_record.contains("depends"));
+        CHECK(repodata_record["depends"].is_array());
+        CHECK(repodata_record["depends"].empty());
+
+        REQUIRE(repodata_record.contains("constrains"));
+        CHECK(repodata_record["constrains"].is_array());
+        CHECK(repodata_record["constrains"].empty());
+    }
+
+    /**
+     * Test that track_features is omitted when empty
+     *
+     * PURPOSE: Verify that track_features is only included in repodata_record.json
+     * when it has non-empty value. Matches conda behavior.
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("PackageFetcher::write_repodata_record omits empty track_features")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/notf-1.0-h0_0.conda";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        const std::string pkg_basename = "notf-1.0-h0_0";
+
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        // Create index.json without track_features
+        nlohmann::json index_json;
+        index_json["name"] = "notf";
+        index_json["version"] = "1.0";
+        index_json["build"] = "h0_0";
+        // NO track_features key
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+
+        fs::remove_all(pkg_extract_dir);
+
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        bool extract_success = pkg_fetcher.extract(options);
+        REQUIRE(extract_success);
+
+        auto repodata_record_path = pkg_extract_dir / "info" / "repodata_record.json";
+        REQUIRE(fs::exists(repodata_record_path));
+
+        std::ifstream repodata_file(repodata_record_path.std_path());
+        nlohmann::json repodata_record;
+        repodata_file >> repodata_record;
+
+        // track_features should be omitted when empty
+        CHECK_FALSE(repodata_record.contains("track_features"));
+    }
+
+    /**
+     * Test that both checksums are always present
+     *
+     * PURPOSE: Verify that both md5 and sha256 checksums are always present in
+     * repodata_record.json, computed from tarball if not available.
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("PackageFetcher::write_repodata_record ensures both checksums")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/nosum-1.0-h0_0.conda";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        const std::string pkg_basename = "nosum-1.0-h0_0";
+
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        // Create index.json without checksums (which is normal)
+        nlohmann::json index_json;
+        index_json["name"] = "nosum";
+        index_json["version"] = "1.0";
+        index_json["build"] = "h0_0";
+        // NO md5 or sha256
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+        // Note: pkg_info has empty md5 and sha256 (not from URL hash)
+
+        fs::remove_all(pkg_extract_dir);
+
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        bool extract_success = pkg_fetcher.extract(options);
+        REQUIRE(extract_success);
+
+        auto repodata_record_path = pkg_extract_dir / "info" / "repodata_record.json";
+        REQUIRE(fs::exists(repodata_record_path));
+
+        std::ifstream repodata_file(repodata_record_path.std_path());
+        nlohmann::json repodata_record;
+        repodata_file >> repodata_record;
+
+        // Both checksums should be present (computed from tarball)
+        REQUIRE(repodata_record.contains("md5"));
+        CHECK_FALSE(repodata_record["md5"].get<std::string>().empty());
+
+        REQUIRE(repodata_record.contains("sha256"));
+        CHECK_FALSE(repodata_record["sha256"].get<std::string>().empty());
+    }
+
+    /**
+     * Test that noarch and python_site_packages_path are backfilled from index.json
+     *
+     * PURPOSE: Verify fields that to_json() conditionally writes are correctly
+     * filled from index.json via insert().
+     *
+     * These fields are NOT in defaulted_keys because to_json() omits them when
+     * unset, allowing insert() to add them naturally from index.json.
+     */
+    TEST_CASE("PackageFetcher::write_repodata_record backfills noarch")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/noarch/noarchpkg-1.0-pyhd8ed1ab_0.conda";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        const std::string pkg_basename = "noarchpkg-1.0-pyhd8ed1ab_0";
+
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        // Create index.json with noarch field
+        nlohmann::json index_json;
+        index_json["name"] = "noarchpkg";
+        index_json["version"] = "1.0";
+        index_json["build"] = "pyhd8ed1ab_0";
+        index_json["noarch"] = "python";
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+
+        fs::remove_all(pkg_extract_dir);
+
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        bool extract_success = pkg_fetcher.extract(options);
+        REQUIRE(extract_success);
+
+        auto repodata_record_path = pkg_extract_dir / "info" / "repodata_record.json";
+        REQUIRE(fs::exists(repodata_record_path));
+
+        std::ifstream repodata_file(repodata_record_path.std_path());
+        nlohmann::json repodata_record;
+        repodata_file >> repodata_record;
+
+        // noarch should be backfilled from index.json
+        REQUIRE(repodata_record.contains("noarch"));
+        CHECK(repodata_record["noarch"] == "python");
+    }
+
+    /**
+     * Test that size is filled from tarball when zero
+     *
+     * PURPOSE: Verify existing size handling behavior continues to work.
+     */
+    TEST_CASE("PackageFetcher::write_repodata_record fills size from tarball")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/sizepkg-1.0-h0_0.conda";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        // Verify precondition: size is 0 from URL parsing
+        REQUIRE(pkg_info.size == 0);
+
+        const std::string pkg_basename = "sizepkg-1.0-h0_0";
+
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        nlohmann::json index_json;
+        index_json["name"] = "sizepkg";
+        index_json["version"] = "1.0";
+        index_json["build"] = "h0_0";
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        auto tarball_size = fs::file_size(tarball_path);
+        REQUIRE(tarball_size > 0);
+
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+
+        fs::remove_all(pkg_extract_dir);
+
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        ExtractOptions options;
+        options.sparse = false;
+        options.subproc_mode = extract_subproc_mode::mamba_package;
+
+        bool extract_success = pkg_fetcher.extract(options);
+        REQUIRE(extract_success);
+
+        auto repodata_record_path = pkg_extract_dir / "info" / "repodata_record.json";
+        std::ifstream repodata_file(repodata_record_path.std_path());
+        nlohmann::json repodata_record;
+        repodata_file >> repodata_record;
+
+        // Size should be filled from tarball
+        REQUIRE(repodata_record.contains("size"));
+        CHECK(repodata_record["size"] == tarball_size);
+    }
+
+    /**
+     * Test no false positive healing
+     *
+     * PURPOSE: Verify packages with timestamp=0 but valid metadata are NOT healed.
+     * A package with timestamp=0 but license="MIT" should NOT be re-extracted.
+     */
+    TEST_CASE("PackageFetcher no false positive cache healing")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        MultiPackageCache package_caches{ { temp_dir.path() / "pkgs" }, ctx.validation_params };
+
+        static constexpr std::string_view url = "https://conda.anaconda.org/conda-forge/linux-64/nofp-1.0-h0_0.tar.bz2";
+        auto pkg_info = specs::PackageInfo::from_url(url).value();
+
+        const std::string pkg_basename = "nofp-1.0-h0_0";
+
+        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto info_dir = pkg_extract_dir / "info";
+        fs::create_directories(info_dir);
+
+        nlohmann::json index_json;
+        index_json["name"] = "nofp";
+        index_json["version"] = "1.0";
+        index_json["build"] = "h0_0";
+
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << index_json.dump(2);
+        }
+
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+
+        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        create_archive(pkg_extract_dir, tarball_path, compression_algorithm::bzip2, 1, 1, nullptr);
+        REQUIRE(fs::exists(tarball_path));
+
+        // Compute checksums for the tarball so validation passes
+        auto md5_hash = validation::md5sum(tarball_path);
+        auto sha256_hash = validation::sha256sum(tarball_path);
+        auto tarball_size = fs::file_size(tarball_path);
+
+        // Create a repodata_record.json with timestamp=0 BUT license="MIT"
+        // This should NOT trigger healing because license is not empty
+        nlohmann::json special_repodata;
+        special_repodata["name"] = "nofp";
+        special_repodata["version"] = "1.0";
+        special_repodata["build"] = "h0_0";
+        special_repodata["timestamp"] = 0;     // Could trigger healing...
+        special_repodata["license"] = "MIT";   // ...but this prevents it
+        special_repodata["build_number"] = 5;  // Non-stub value
+        special_repodata["fn"] = pkg_basename + ".tar.bz2";
+        special_repodata["depends"] = nlohmann::json::array({ "python" });
+        special_repodata["constrains"] = nlohmann::json::array();
+        special_repodata["md5"] = md5_hash;
+        special_repodata["sha256"] = sha256_hash;
+        special_repodata["size"] = tarball_size;
+        special_repodata["url"] = std::string(url);
+        special_repodata["channel"] = "https://conda.anaconda.org/conda-forge";
+        special_repodata["subdir"] = "linux-64";
+
+        {
+            std::ofstream repodata_file((info_dir / "repodata_record.json").std_path());
+            repodata_file << special_repodata.dump(2);
+        }
+
+        auto modified_pkg_info = pkg_info;
+        modified_pkg_info.filename = pkg_basename + ".tar.bz2";
+
+        PackageFetcher pkg_fetcher{ modified_pkg_info, package_caches };
+
+        // Should NOT need extraction (not corrupted despite timestamp=0)
+        CHECK_FALSE(pkg_fetcher.needs_extract());
     }
 }

@@ -518,4 +518,61 @@ namespace solv
         // (Ab)using meaningless key
         ::solvable_set_num(raw(), SOLVABLE_INSTALLSTATUS, static_cast<Num>(val));
     }
+
+    auto ObjSolvableViewConst::defaulted_keys() const -> std::vector<std::string>
+    {
+        // Retrieve the comma-separated string from SOLVABLE_KEYWORDS
+        // (repurposed for conda-specific metadata since it's not used in the conda ecosystem)
+        const char* str = ::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_KEYWORDS);
+        if (str == nullptr || str[0] == '\0')
+        {
+            return {};
+        }
+
+        // Parse comma-separated values into vector
+        std::vector<std::string> result;
+        std::string current;
+        for (const char* p = str; *p != '\0'; ++p)
+        {
+            if (*p == ',')
+            {
+                if (!current.empty())
+                {
+                    result.push_back(std::move(current));
+                    current.clear();
+                }
+            }
+            else
+            {
+                current += *p;
+            }
+        }
+        if (!current.empty())
+        {
+            result.push_back(std::move(current));
+        }
+        return result;
+    }
+
+    void ObjSolvableView::set_defaulted_keys(const std::vector<std::string>& keys) const
+    {
+        if (keys.empty())
+        {
+            // Store empty string for empty list (libsolv's unset behavior is unreliable)
+            ::solvable_set_str(raw(), SOLVABLE_KEYWORDS, "");
+            return;
+        }
+
+        // Serialize as comma-separated string
+        std::string serialized;
+        for (std::size_t i = 0; i < keys.size(); ++i)
+        {
+            if (i > 0)
+            {
+                serialized += ',';
+            }
+            serialized += keys[i];
+        }
+        ::solvable_set_str(raw(), SOLVABLE_KEYWORDS, serialized.c_str());
+    }
 }

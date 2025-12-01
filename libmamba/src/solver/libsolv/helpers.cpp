@@ -101,6 +101,11 @@ namespace mamba::solver::libsolv
 
         solv.add_track_features(pkg.track_features);
 
+        // Store defaulted_keys so it survives the round-trip through libsolv.
+        // This is critical for issue #4095 where URL-derived packages lose their
+        // defaulted_keys when going through the solver.
+        solv.set_defaulted_keys(pkg.defaulted_keys);
+
         solv.add_self_provide();
     }
 
@@ -146,10 +151,27 @@ namespace mamba::solver::libsolv
             std::transform(feats.begin(), feats.end(), std::back_inserter(out.track_features), id_to_str);
         }
 
-        // Temporary: hardcode _initialized for solver-derived packages.
-        // Refined in a later commit to preserve round-trip defaulted_keys
-        // via solvable storage.
-        out.defaulted_keys = { "_initialized" };
+        // Read defaulted_keys from the solvable to preserve it through the round-trip.
+        // This is critical for issue #4095 where URL-derived packages lose their
+        // defaulted_keys when going through the solver.
+        //
+        // Semantics of defaulted_keys:
+        // - Empty: INVALID (PackageInfo not properly initialized)
+        // - ["_initialized"]: Properly initialized, trust all fields
+        // - ["_initialized", "field1", ...]: Properly initialized, these fields have stub values
+        //
+        // All solvable creation paths should set defaulted_keys:
+        // - set_solvable(PackageInfo): copies from pkg.defaulted_keys
+        // - set_solvable(JSON): sets ["_initialized"] (channel repodata is authoritative)
+        //
+        // Fallback for backward compatibility with old .solv cache files that don't have
+        // defaulted_keys stored: use ["_initialized"] since old caches came from channel
+        // repodata which has authoritative metadata.
+        out.defaulted_keys = s.defaulted_keys();
+        if (out.defaulted_keys.empty())
+        {
+            out.defaulted_keys = { "_initialized" };
+        }
 
         return out;
     }
@@ -408,6 +430,13 @@ namespace mamba::solver::libsolv
             // Setting signatures in solvable if they are available and `verify-artifacts` flag is
             // enabled
             set_solv_signatures(solv, filename, signatures);
+
+            // Set defaulted_keys to indicate this PackageInfo was properly initialized.
+            // Channel repodata has authoritative metadata for all fields, so only the
+            // "_initialized" sentinel is needed (no stub fields to replace).
+            // This is required for write_repodata_record() to work correctly.
+            // See GitHub issue #4095.
+            solv.set_defaulted_keys({ "_initialized" });
 
             solv.add_self_provide();
             return true;

@@ -8,9 +8,11 @@
 #define MAMBA_SPECS_MATCH_SPEC
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -26,11 +28,19 @@
 
 namespace mamba::specs
 {
+    class MatchSpecCondition;
     class PackageInfo;
 
     class MatchSpec
     {
     public:
+
+        MatchSpec() = default;
+        MatchSpec(const MatchSpec&) = default;
+        MatchSpec(MatchSpec&&) = default;
+        MatchSpec& operator=(const MatchSpec&) = default;
+        MatchSpec& operator=(MatchSpec&&) = default;
+        ~MatchSpec() = default;
 
         using NameSpec = GlobSpec;
         using BuildStringSpec = ChimeraStringSpec;
@@ -104,6 +114,9 @@ namespace mamba::specs
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
+        [[nodiscard]] auto condition() const -> const MatchSpecCondition*;
+        void set_condition(std::optional<MatchSpecCondition> cond);
+
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto to_string() const -> std::string;
 
@@ -147,9 +160,9 @@ namespace mamba::specs
          * @warning Some complex matchspec could compare to false but actually represent the same
          * set of packages. This strong equality is hard to detect.
          */
-        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool = default;
+        [[nodiscard]] auto operator==(const MatchSpec& other) const -> bool;
 
-        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool = default;
+        [[nodiscard]] auto operator!=(const MatchSpec& other) const -> bool;
 
         auto extra_members_hash() const -> std::size_t;
 
@@ -199,6 +212,7 @@ namespace mamba::specs
         std::string m_name_space;
         BuildNumberSpec m_build_number;
         util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
+        std::shared_ptr<MatchSpecCondition> m_condition = {};
 
         auto extra() -> ExtraMembers&;
 

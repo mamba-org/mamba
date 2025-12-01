@@ -726,7 +726,13 @@ namespace mambapy
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
                 py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
-                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys)(),
+                // Default to ["_initialized"] for backward compatibility.
+                // Before issue #4095 fix, make_package_info() always set ["_initialized"],
+                // so all PackageInfo from the solver had it. Users creating PackageInfo
+                // manually should get the same default behavior: "trust all fields".
+                // Users who want index.json to fill in gaps should explicitly set
+                // defaulted_keys to include the stub field names.
+                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys){ "_initialized" },
                 py::arg("noarch") = decltype(PackageInfo::noarch)(),
                 py::arg("size") = decltype(PackageInfo::size)(),
                 py::arg("timestamp") = decltype(PackageInfo::timestamp)()

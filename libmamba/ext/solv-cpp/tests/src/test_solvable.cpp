@@ -283,5 +283,77 @@ namespace
                 REQUIRE(solv.track_features().empty());
             }
         }
+
+        /**
+         * Tests for defaulted_keys storage in libsolv solvable
+         *
+         * PURPOSE: Verify that defaulted_keys can be stored in and retrieved from
+         * a libsolv solvable. This is required for preserving defaulted_keys through
+         * the solver round-trip.
+         *
+         * MOTIVATION: Issue #4095 - URL-derived packages lose their defaulted_keys
+         * when going through the solver because libsolv doesn't natively store this
+         * field. The fix uses SOLVABLE_KEYWORDS to store a serialized representation.
+         *
+         * Related: https://github.com/mamba-org/mamba/issues/4095
+         */
+        SECTION("Set and get defaulted_keys")
+        {
+            SECTION("Store and retrieve defaulted_keys")
+            {
+                // PURPOSE: Verify basic storage and retrieval of defaulted_keys
+                std::vector<std::string> keys = { "_initialized", "license", "timestamp" };
+                solv.set_defaulted_keys(keys);
+
+                // Before internalize, the value should not be readable
+                // (libsolv requires internalize to commit string data)
+                repo.internalize();
+
+                auto retrieved = solv.defaulted_keys();
+                REQUIRE(retrieved.size() == 3);
+                REQUIRE(retrieved[0] == "_initialized");
+                REQUIRE(retrieved[1] == "license");
+                REQUIRE(retrieved[2] == "timestamp");
+            }
+
+            SECTION("Empty defaulted_keys")
+            {
+                // PURPOSE: Verify that empty defaulted_keys is preserved
+                std::vector<std::string> empty_keys = {};
+                solv.set_defaulted_keys(empty_keys);
+                repo.internalize();
+
+                auto retrieved = solv.defaulted_keys();
+                REQUIRE(retrieved.empty());
+            }
+
+            SECTION("Override defaulted_keys")
+            {
+                // PURPOSE: Verify that defaulted_keys can be overwritten
+                solv.set_defaulted_keys({ "_initialized", "old_field" });
+                repo.internalize();
+
+                solv.set_defaulted_keys({ "_initialized", "new_field1", "new_field2" });
+                repo.internalize();
+
+                auto retrieved = solv.defaulted_keys();
+                REQUIRE(retrieved.size() == 3);
+                REQUIRE(retrieved[0] == "_initialized");
+                REQUIRE(retrieved[1] == "new_field1");
+                REQUIRE(retrieved[2] == "new_field2");
+            }
+
+            SECTION("Single element defaulted_keys")
+            {
+                // PURPOSE: Verify that a single-element list works correctly
+                // This is the common case for channel-derived packages
+                solv.set_defaulted_keys({ "_initialized" });
+                repo.internalize();
+
+                auto retrieved = solv.defaulted_keys();
+                REQUIRE(retrieved.size() == 1);
+                REQUIRE(retrieved[0] == "_initialized");
+            }
+        }
     }
 }

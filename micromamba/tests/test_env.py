@@ -1,6 +1,8 @@
 import os
 import re
 import shutil
+import subprocess
+import platform
 
 from packaging.version import Version
 from pathlib import Path
@@ -624,3 +626,44 @@ def test_env_export_with_uv_flag(tmp_home, tmp_root_prefix, tmp_path, json_flag)
     # Check that `requests` and `urllib3` (pulled dependency) are exported
     assert "requests==2.32.3" in pip_section_vals
     assert any(pkg.startswith("urllib3==") for pkg in pip_section_vals)
+
+
+def test_env_export_with_ca_certificates(tmp_path):
+    # CA certificates in the same environment as `mamba` or `micromamba`
+    # executable installation are used by default.
+    tmp_env_prefix = tmp_path / "env-export-with-ca-certificates"
+
+    helpers.create("-p", tmp_env_prefix, "ca-certificates", no_dry_run=True)
+
+    # Copy the `mamba` or `micromamba` executable in this prefix `bin` subdirectory
+    built_executable = helpers.get_umamba()
+    executable_basename = os.path.basename(built_executable)
+
+    if platform.system() == "Windows":
+        tmp_env_bin_dir = tmp_env_prefix / "Library" / "bin"
+        tmp_env_executable = tmp_env_bin_dir / executable_basename
+        (tmp_env_bin_dir).mkdir(parents=True, exist_ok=True)
+        # Copy all the `Library/bin/` subdirectory to have the executable in
+        # the environment and the DLLs in the environment.
+        shutil.copytree(Path(built_executable).parent, tmp_env_bin_dir, dirs_exist_ok=True)
+    else:
+        tmp_env_bin_dir = tmp_env_prefix / "bin"
+        tmp_env_executable = tmp_env_bin_dir / executable_basename
+        (tmp_env_bin_dir).mkdir(parents=True, exist_ok=True)
+        shutil.copy(built_executable, tmp_env_executable)
+
+    # Run a command using mamba in verbose mode and check that the ca-certificates file
+    # from the same prefix as the executable is used by default.
+    p = subprocess.run(
+        [tmp_env_executable, "search", "xtensor", "-v"],
+        capture_output=True,
+        check=False,
+    )
+    stderr = p.stderr.decode()
+    assert (
+        "Checking for CA certificates in the same prefix as the executable installation" in stderr
+    )
+    assert (
+        "Using CA certificates from `conda-forge::ca-certificates` installed in the same prefix"
+        in stderr
+    )

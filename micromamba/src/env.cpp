@@ -384,4 +384,83 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
             update(config, update_params);
         }
     );
+
+    // env config subcommand
+    auto* config_subcom = com->add_subcommand("config", "Configure environment");
+    init_general_options(config_subcom, config);
+    init_prefix_options(config_subcom, config);
+
+    // env config vars subcommand
+    auto* vars_subcom = config_subcom->add_subcommand("vars", "Manage environment variables");
+
+    // env config vars list subcommand
+    auto* vars_list_subcom = vars_subcom->add_subcommand("list", "List environment variables");
+    init_general_options(vars_list_subcom, config);
+    init_prefix_options(vars_list_subcom, config);
+    vars_list_subcom->callback(
+        [&config]
+        {
+            config.load();
+            const auto& target_prefix = config.context().prefix_params.target_prefix;
+            mamba::list_env_vars(target_prefix);
+        }
+    );
+
+    // env config vars set subcommand
+    auto* vars_set_subcom = vars_subcom->add_subcommand("set", "Set environment variable");
+    init_general_options(vars_set_subcom, config);
+    init_prefix_options(vars_set_subcom, config);
+    static std::vector<std::string> vars_to_set;
+    vars_set_subcom
+        ->add_option("vars", vars_to_set, "Environment variables to set (format: KEY=VALUE)")
+        ->required();
+    vars_set_subcom->callback(
+        [&config]
+        {
+            config.load();
+            const auto& target_prefix = config.context().prefix_params.target_prefix;
+            for (const auto& var_spec : vars_to_set)
+            {
+                auto eq_pos = var_spec.find('=');
+                if (eq_pos == std::string::npos)
+                {
+                    throw std::runtime_error(
+                        "Invalid format for environment variable. Expected KEY=VALUE, got: " + var_spec
+                    );
+                }
+                std::string key = var_spec.substr(0, eq_pos);
+                std::string value = var_spec.substr(eq_pos + 1);
+                mamba::set_env_var(target_prefix, key, value);
+                mamba::Console::instance().print("Set environment variable: " + key + "=" + value);
+            }
+            mamba::Console::instance().print(
+                "To make your changes take effect please reactivate your environment"
+            );
+            vars_to_set.clear();
+        }
+    );
+
+    // env config vars unset subcommand
+    auto* vars_unset_subcom = vars_subcom->add_subcommand("unset", "Unset environment variable");
+    init_general_options(vars_unset_subcom, config);
+    init_prefix_options(vars_unset_subcom, config);
+    static std::vector<std::string> vars_to_unset;
+    vars_unset_subcom->add_option("KEY", vars_to_unset, "Environment variable names to unset")
+        ->required();
+    vars_unset_subcom->callback(
+        [&config]
+        {
+            config.load();
+            const auto& target_prefix = config.context().prefix_params.target_prefix;
+            for (const auto& key : vars_to_unset)
+            {
+                mamba::unset_env_var(target_prefix, key);
+                mamba::Console::instance().print("Unset environment variable: " + key);
+            }
+            mamba::Console::instance().print(
+                "To make your changes take effect please reactivate your environment"
+            );
+            vars_to_unset.clear();
+        }
+    );
 }

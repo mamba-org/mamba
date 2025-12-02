@@ -949,7 +949,7 @@ namespace mamba
             {
                 if (!no_env)
                 {
-                    fs::u8path env_vars_file_path = prefix / "conda-meta" / "state";
+                    const fs::u8path env_vars_file_path = prefix / "conda-meta" / "state";
 
                     // Read existing state file to preserve other fields
                     nlohmann::json j;

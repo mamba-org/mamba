@@ -401,8 +401,8 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
         [&config]
         {
             config.load();
-            const auto& ctx = config.context();
-            mamba::list_env_vars(ctx.prefix_params.target_prefix);
+            const auto& target_prefix = config.context().prefix_params.target_prefix;
+            mamba::list_env_vars(target_prefix);
         }
     );
 
@@ -418,7 +418,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
         [&config]
         {
             config.load();
-            const auto& ctx = config.context();
+            const auto& target_prefix = config.context().prefix_params.target_prefix;
             for (const auto& var_spec : vars_to_set)
             {
                 auto eq_pos = var_spec.find('=');
@@ -430,7 +430,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 }
                 std::string key = var_spec.substr(0, eq_pos);
                 std::string value = var_spec.substr(eq_pos + 1);
-                mamba::set_env_var(ctx.prefix_params.target_prefix, key, value);
+                mamba::set_env_var(target_prefix, key, value);
                 mamba::Console::instance().print("Set environment variable: " + key + "=" + value);
             }
             mamba::Console::instance().print(
@@ -451,10 +451,10 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
         [&config]
         {
             config.load();
-            const auto& ctx = config.context();
+            const auto& target_prefix = config.context().prefix_params.target_prefix;
             for (const auto& key : vars_to_unset)
             {
-                mamba::unset_env_var(ctx.prefix_params.target_prefix, key);
+                mamba::unset_env_var(target_prefix, key);
                 mamba::Console::instance().print("Unset environment variable: " + key);
             }
             mamba::Console::instance().print(

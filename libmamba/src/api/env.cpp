@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
-#include <map>
 
 #include <nlohmann/json.hpp>
 
@@ -152,7 +151,7 @@ namespace mamba
 
     void set_env_var(const fs::u8path& prefix, const std::string& key, const std::string& value)
     {
-        fs::u8path state_file = get_state_file_path(prefix);
+        const fs::u8path state_file = get_state_file_path(prefix);
         auto env_vars = read_env_vars_from_state(state_file);
         std::string upper_key = util::to_upper(key);
         // Update or insert: if key exists, update in place; if not, add at end
@@ -162,7 +161,7 @@ namespace mamba
 
     void unset_env_var(const fs::u8path& prefix, const std::string& key)
     {
-        fs::u8path state_file = get_state_file_path(prefix);
+        const fs::u8path state_file = get_state_file_path(prefix);
         auto env_vars = read_env_vars_from_state(state_file);
         std::string upper_key = util::to_upper(key);
         if (env_vars.find(upper_key) != env_vars.end())
@@ -175,7 +174,7 @@ namespace mamba
     void list_env_vars(const fs::u8path& prefix)
     {
         // Read directly from state file to preserve insertion order
-        fs::u8path state_file = get_state_file_path(prefix);
+        const fs::u8path state_file = get_state_file_path(prefix);
         auto env_vars = read_env_vars_from_state(state_file);
         auto& console = Console::instance();
 

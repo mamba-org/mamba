@@ -622,3 +622,20 @@ class PackageChecker:
         # A name that matches what `get_concrete_pkg` would return: `package_name-X.Y.Z-build_number``
         manifest_info = self.get_manifest_info()
         return f"{manifest_info['name']}-{manifest_info['version']}-{manifest_info['build_string']}"
+
+
+def assert_state_file(state_file_path: Path, expected_state: dict):
+    """Assert that the state file contains the expected fields.
+
+    Args:
+        state_file_path: Path to the state file (conda-meta/state)
+        expected_state: Dictionary of expected fields, including 'env_vars' and any other fields
+    """
+    assert state_file_path.exists(), f"State file does not exist: {state_file_path}"
+    with open(state_file_path) as f:
+        state = json.loads(f.read())
+    for field_name, expected_value in expected_state.items():
+        assert field_name in state, f"Field '{field_name}' not found in state file"
+        assert state[field_name] == expected_value, (
+            f"Expected {field_name} to be {expected_value}, but got {state[field_name]}"
+        )

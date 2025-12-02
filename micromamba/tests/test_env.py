@@ -898,65 +898,43 @@ def test_env_config_vars_state_file_updates(tmp_home, tmp_root_prefix):
     helpers.run_env("config", "vars", "set", "-n", env_name, "A=B")
 
     # Verify state file after addition
-    assert state_file_path.exists()
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {"A": "B"}
+    helpers.assert_state_file(state_file_path, {"env_vars": {"A": "B"}})
 
     # Step 2: Add second variable (C=D)
     helpers.run_env("config", "vars", "set", "-n", env_name, "C=D")
 
     # Verify state file after second addition
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {"A": "B", "C": "D"}
+    helpers.assert_state_file(state_file_path, {"env_vars": {"A": "B", "C": "D"}})
 
     # Step 3: Update existing variable (A=E)
     helpers.run_env("config", "vars", "set", "-n", env_name, "A=E")
 
     # Verify state file after update
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {"A": "E", "C": "D"}
+    helpers.assert_state_file(state_file_path, {"env_vars": {"A": "E", "C": "D"}})
 
     # Step 4: Add third variable (F=G)
     helpers.run_env("config", "vars", "set", "-n", env_name, "F=G")
 
     # Verify state file after third addition
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {"A": "E", "C": "D", "F": "G"}
+    helpers.assert_state_file(state_file_path, {"env_vars": {"A": "E", "C": "D", "F": "G"}})
 
     # Step 5: Delete variable C
     helpers.run_env("config", "vars", "unset", "-n", env_name, "C")
 
     # Verify state file after deletion
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {"A": "E", "F": "G"}
+    helpers.assert_state_file(state_file_path, {"env_vars": {"A": "E", "F": "G"}})
 
     # Step 6: Delete variable A
     helpers.run_env("config", "vars", "unset", "-n", env_name, "A")
 
     # Verify state file after second deletion
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {"F": "G"}
+    helpers.assert_state_file(state_file_path, {"env_vars": {"F": "G"}})
 
     # Step 7: Delete last variable F
     helpers.run_env("config", "vars", "unset", "-n", env_name, "F")
 
     # Verify state file after final deletion - should have empty env_vars
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "env_vars" in state
-    assert state["env_vars"] == {}
+    helpers.assert_state_file(state_file_path, {"env_vars": {}})
 
 
 def test_env_config_vars_state_file_preserves_other_fields(tmp_home, tmp_root_prefix):
@@ -979,35 +957,37 @@ def test_env_config_vars_state_file_preserves_other_fields(tmp_home, tmp_root_pr
     helpers.run_env("config", "vars", "set", "-n", env_name, "TEST_VAR=test_value")
 
     # Verify that other fields are preserved
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "some_other_field" in state
-    assert state["some_other_field"] == "some_value"
-    assert "another_field" in state
-    assert state["another_field"] == 123
-    assert "env_vars" in state
-    assert state["env_vars"] == {"TEST_VAR": "test_value"}
+    helpers.assert_state_file(
+        state_file_path,
+        {
+            "env_vars": {"TEST_VAR": "test_value"},
+            "some_other_field": "some_value",
+            "another_field": 123,
+        },
+    )
 
     # Update the variable
     helpers.run_env("config", "vars", "set", "-n", env_name, "TEST_VAR=updated_value")
 
     # Verify other fields are still preserved
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "some_other_field" in state
-    assert state["some_other_field"] == "some_value"
-    assert "another_field" in state
-    assert state["another_field"] == 123
-    assert state["env_vars"] == {"TEST_VAR": "updated_value"}
+    helpers.assert_state_file(
+        state_file_path,
+        {
+            "env_vars": {"TEST_VAR": "updated_value"},
+            "some_other_field": "some_value",
+            "another_field": 123,
+        },
+    )
 
     # Unset the variable
     helpers.run_env("config", "vars", "unset", "-n", env_name, "TEST_VAR")
 
     # Verify other fields are still preserved
-    with open(state_file_path) as f:
-        state = json.loads(f.read())
-    assert "some_other_field" in state
-    assert state["some_other_field"] == "some_value"
-    assert "another_field" in state
-    assert state["another_field"] == 123
-    assert state["env_vars"] == {}
+    helpers.assert_state_file(
+        state_file_path,
+        {
+            "env_vars": {},
+            "some_other_field": "some_value",
+            "another_field": 123,
+        },
+    )

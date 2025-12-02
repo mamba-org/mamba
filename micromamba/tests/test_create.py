@@ -1140,13 +1140,15 @@ def test_spec_file_env_vars(tmp_home, tmp_root_prefix, tmp_path, env_vars, no_en
     if env_vars and not no_env:
         assert state_file_path.exists()
 
-        with open(state_file_path) as f:
-            state_data = json.load(f)
-        assert "env_vars" in state_data
-        assert state_data["env_vars"] == {
-            "MY_ENV_VAR": "My Value",
-            "MY_OTHER_ENV_VAR": "Another Value",
-        }
+        helpers.assert_state_file(
+            state_file_path,
+            {
+                "env_vars": {
+                    "MY_ENV_VAR": "My Value",
+                    "MY_OTHER_ENV_VAR": "Another Value",
+                }
+            },
+        )
     else:
         assert not state_file_path.exists()
 

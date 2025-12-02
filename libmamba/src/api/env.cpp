@@ -23,19 +23,19 @@ namespace mamba
     {
         std::string get_env_name(const Context& ctx, const mamba::fs::u8path& px)
         {
-            auto& ed = ctx.envs_dirs[0];
             if (px == ctx.prefix_params.root_prefix)
             {
                 return "base";
             }
-            else if (util::starts_with(px.string(), ed.string()))
+            // Check all envs_dirs to find which one contains this environment
+            for (const auto& ed : ctx.envs_dirs)
             {
-                return mamba::fs::relative(px, ed).string();
+                if (util::starts_with(px.string(), ed.string()))
+                {
+                    return mamba::fs::relative(px, ed).string();
+                }
             }
-            else
-            {
-                return "";
-            }
+            return "";
         }
 
         void print_envs_impl(const Configuration& config)

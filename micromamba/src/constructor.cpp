@@ -150,6 +150,49 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
             if (!repodata_record.is_null())
             {
+                // Handle URL-derived packages using defaulted_keys mechanism.
+                //
+                // NOTE: Unlike write_repodata_record() in package_fetcher.cpp, we do NOT
+                // fail-hard when _initialized is missing. This is INTENTIONAL asymmetry:
+                //
+                // - package_fetcher.cpp: PackageInfo always comes from from_url() or
+                //   make_package_info(), both of which set _initialized. Missing sentinel
+                //   indicates a bug.
+                //
+                // - constructor.cpp: PackageInfo may come from cached repodata files
+                //   (via from_json()), which don't have _initialized. This is correct -
+                //   cached repodata should be trusted (it may contain channel patches).
+                //
+                // When _initialized IS present: URL-derived package, erase stub fields
+                // When _initialized is ABSENT: cached repodata, trust all fields
+                //
+                // The healing mechanism in has_valid_extracted_dir() handles corrupted
+                // caches from v2.1.1-v2.4.0 by detecting the corruption signature and
+                // triggering re-extraction.
+                //
+                // See GitHub issue #4095.
+                auto contains_initialized = [&]()
+                {
+                    return std::find(
+                               pkg_info.defaulted_keys.begin(),
+                               pkg_info.defaulted_keys.end(),
+                               "_initialized"
+                           )
+                           != pkg_info.defaulted_keys.end();
+                };
+
+                if (contains_initialized())
+                {
+                    // URL-derived package: erase stub fields before merging with index.json
+                    for (const auto& key : pkg_info.defaulted_keys)
+                    {
+                        if (key != "_initialized")
+                        {
+                            repodata_record.erase(key);
+                        }
+                    }
+                }
+
                 // update values from index if there are any that are not part of the
                 // repodata_record.json yet
                 repodata_record.insert(index.cbegin(), index.cend());
@@ -177,6 +220,33 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
             {
                 repodata_record["size"] = fs::file_size(entry);
+            }
+
+            // Ensure depends and constrains are always present as arrays.
+            // Matches conda behavior where these fields are always present.
+            // Some packages (like nlohmann_json-abi) don't have depends in index.json.
+            // See GitHub issue #4095.
+            if (!repodata_record.contains("depends"))
+            {
+                repodata_record["depends"] = nlohmann::json::array();
+            }
+            if (!repodata_record.contains("constrains"))
+            {
+                repodata_record["constrains"] = nlohmann::json::array();
+            }
+
+            // Conditionally include track_features only when non-empty.
+            // Matches conda behavior to reduce JSON noise.
+            // See GitHub issue #4095.
+            if (repodata_record.contains("track_features"))
+            {
+                const auto& tf = repodata_record["track_features"];
+                bool is_empty = tf.is_null() || (tf.is_string() && tf.get<std::string>().empty())
+                                || (tf.is_array() && tf.empty());
+                if (is_empty)
+                {
+                    repodata_record.erase("track_features");
+                }
             }
 
             LOG_TRACE << "Writing " << repodata_record_path;

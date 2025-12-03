@@ -3,6 +3,9 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
+#ifndef MAMBA_LOGGING_SPDLOG_IMPL_HPP
+#define MAMBA_LOGGING_SPDLOG_IMPL_HPP
+
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -15,7 +18,6 @@
 
 #include <mamba/core/context.hpp>
 #include <mamba/core/execution.hpp>
-#include <mamba/core/logging_spdlog.hpp>
 #include <mamba/core/tasksync.hpp>
 #include <mamba/core/util.hpp>
 
@@ -256,3 +258,5 @@ namespace mamba::logging::spdlogimpl
     }
 
 }
+
+#endif

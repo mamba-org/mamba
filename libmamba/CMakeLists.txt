@@ -233,7 +233,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/logging.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/logging_spdlog.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -382,7 +381,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging_spdlog.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/logging_tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
@@ -431,7 +429,6 @@ set(
 # ================
 
 find_package(fmt CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
 find_package(tl-expected CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
@@ -472,11 +469,6 @@ macro(libmamba_create_target target_name linkage output_name)
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
 
-    # For some reasons, using target_compile_definitions does not set the definitions properly
-    add_compile_definitions(
-        SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}"
-    )
-
     if(${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
 
@@ -486,7 +478,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC fmt::fmt-header-only spdlog::spdlog_header_only yaml-cpp::yaml-cpp
+            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp
             PRIVATE
                 reproc
                 reproc++
@@ -629,15 +621,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC
-                ${LIBSOLV_LIBRARIES}
-                ${LIBSOLVEXT_LIBRARIES}
-                yaml-cpp::yaml-cpp
-                fmt::fmt
-                # Since conda-forge spdlog is built with a bundled version of fmt we use the header
-                # only version to avoid chasing after the correct fmt version matching the one used
-                # in the bundle
-                spdlog::spdlog_header_only
+            PUBLIC ${LIBSOLV_LIBRARIES} ${LIBSOLVEXT_LIBRARIES} yaml-cpp::yaml-cpp fmt::fmt
             PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}

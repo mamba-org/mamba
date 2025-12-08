@@ -128,8 +128,14 @@ namespace mamba
                 specs = { "numpy" };
                 pins = python_pin(prefix_data, specs);
                 REQUIRE(pins.size() == 2);
-                REQUIRE(pins[0] == "python 3.14.*");
-                REQUIRE(pins[1] == "python_abi 3.14.*_cp314t");
+                // Parse expected pins to get canonical format for comparison
+                auto expected_py_pin = specs::MatchSpec::parse("python 3.14.*").value();
+                auto expected_python_abi_pin = specs::MatchSpec::parse(
+                                                   "python_abi[version=\"=3.14\",build=\"*_cp314t\"]"
+                )
+                                                   .value();
+                REQUIRE(pins[0] == expected_py_pin.conda_build_form());
+                REQUIRE(pins[1] == expected_python_abi_pin.to_string());
 
                 // When installing python explicitly, should not pin
                 specs = { "python" };

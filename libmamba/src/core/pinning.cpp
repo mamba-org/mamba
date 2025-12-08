@@ -39,7 +39,12 @@ namespace mamba
         }
 
         std::vector<std::string> elems = util::split(py_version, ".");
-        std::string py_pin = util::concat("python ", elems[0], ".", elems[1], ".*");
+        std::string py_pin_str = util::concat("python ", elems[0], ".", elems[1], ".*");
+        // Parse and use MatchSpec's string representation to ensure correct format
+        auto py_pin_ms = specs::MatchSpec::parse(py_pin_str)
+                             .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                             .value();
+        std::string py_pin = py_pin_ms.conda_build_form();
         LOG_DEBUG << "Pinning Python to '" << py_pin << "'";
         pins.push_back(py_pin);
 
@@ -57,15 +62,37 @@ namespace mamba
                 if (underscore_pos != std::string::npos)
                 {
                     std::string abi_pattern = build_string.substr(underscore_pos);
-                    // Pin format: python_abi <version>.*<abi_tag>
+                    // Pin format: python_abi[version="=3.13",build="*_cp313t"]
                     // This preserves the ABI tag (e.g., _cp314t for free-threaded) while allowing
-                    // any build number
-                    std::string python_abi_pin = util::concat(
-                        "python_abi ",
+                    // any build number. Use attribute format to avoid ambiguity.
+                    std::vector<std::string> version_elems = util::split(
                         python_abi_iter->second.version,
-                        ".*",
-                        abi_pattern
+                        "."
                     );
+                    std::string version_pin;
+                    if (version_elems.size() >= 2)
+                    {
+                        version_pin = util::concat("=", version_elems[0], ".", version_elems[1]);
+                    }
+                    else
+                    {
+                        // Fallback if version format is unexpected
+                        version_pin = util::concat("=", python_abi_iter->second.version);
+                    }
+                    std::string build_pin = util::concat("*", abi_pattern);
+                    std::string python_abi_pin_str = util::concat(
+                        "python_abi[version=\"",
+                        version_pin,
+                        "\",build=\"",
+                        build_pin,
+                        "\"]"
+                    );
+                    // Parse and use MatchSpec's string representation to ensure correct format
+                    auto python_abi_pin_ms = specs::MatchSpec::parse(python_abi_pin_str)
+                                                 .or_else([](specs::ParseError&& err)
+                                                          { throw std::move(err); })
+                                                 .value();
+                    std::string python_abi_pin = python_abi_pin_ms.to_string();
                     LOG_DEBUG << "Pinning python_abi to '" << python_abi_pin << "' (free-threaded)";
                     pins.push_back(python_abi_pin);
                 }

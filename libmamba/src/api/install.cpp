@@ -457,16 +457,19 @@ namespace mamba
 
         if (!no_py_pin)
         {
-            auto py_pin = python_pin(prefix_data, specs);
-            if (!py_pin.empty())
+            auto py_pins = python_pin(prefix_data, specs);
+            for (const auto& py_pin : py_pins)
             {
-                request.jobs.emplace_back(
-                    Request::Pin{
-                        specs::MatchSpec::parse(py_pin)
-                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                            .value(),
-                    }
-                );
+                if (!py_pin.empty())
+                {
+                    request.jobs.emplace_back(
+                        Request::Pin{
+                            specs::MatchSpec::parse(py_pin)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value(),
+                        }
+                    );
+                }
             }
         }
     }

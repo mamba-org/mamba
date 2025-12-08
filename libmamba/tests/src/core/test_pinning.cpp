@@ -22,7 +22,7 @@ namespace mamba
             TEST_CASE("python_pin")
             {
                 std::vector<std::string> specs;
-                std::string pin;
+                std::vector<std::string> pins;
 
                 auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
                 auto sprefix_data = PrefixData::create("", channel_context);
@@ -35,64 +35,106 @@ namespace mamba
                 REQUIRE(prefix_data.records().size() == 0);
 
                 specs = { "python" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python-test" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python=3" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python==3.8" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python==3.8.3" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "numpy" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs::PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
                 prefix_data.add_packages({ pkg_info });
                 REQUIRE(prefix_data.records().size() == 1);
 
                 specs = { "python" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "numpy" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "python 3.7.*");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.size() == 1);
+                REQUIRE(pins[0] == "python 3.7.*");
 
                 specs = { "python-test" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "python 3.7.*");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.size() == 1);
+                REQUIRE(pins[0] == "python 3.7.*");
 
                 specs = { "python==3" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python=3.*" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python=3.8" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "python=3.8.3" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
 
                 specs = { "numpy", "python" };
-                pin = python_pin(prefix_data, specs);
-                REQUIRE(pin == "");
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
+            }
+
+            TEST_CASE("python_pin_with_freethreading")
+            {
+                std::vector<std::string> specs;
+                std::vector<std::string> pins;
+
+                auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
+                auto sprefix_data = PrefixData::create("", channel_context);
+                if (!sprefix_data)
+                {
+                    throw std::runtime_error("could not load prefix data");
+                }
+                PrefixData& prefix_data = sprefix_data.value();
+
+                // Add python 3.14
+                specs::PackageInfo python_pkg("python", "3.14.0", "abcde", 0);
+                prefix_data.add_packages({ python_pkg });
+
+                // Add python-freethreading
+                specs::PackageInfo freethreading_pkg("python-freethreading", "3.14.0", "abcde", 0);
+                prefix_data.add_packages({ freethreading_pkg });
+
+                // Add python_abi with free-threaded build string
+                specs::PackageInfo python_abi_pkg("python_abi", "3.14", "8_cp314t", 0);
+                prefix_data.add_packages({ python_abi_pkg });
+
+                REQUIRE(prefix_data.records().size() == 3);
+
+                // When installing a package (not python), should pin both python and python_abi
+                specs = { "numpy" };
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.size() == 2);
+                REQUIRE(pins[0] == "python 3.14.*");
+                REQUIRE(pins[1] == "python_abi 3.14.*_cp314t");
+
+                // When installing python explicitly, should not pin
+                specs = { "python" };
+                pins = python_pin(prefix_data, specs);
+                REQUIRE(pins.empty());
             }
 
             TEST_CASE("file_pins")

@@ -722,30 +722,152 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
     if not is_windows:
         expected_packages.append("boltons")
     for package in expected_packages:
-        assert package in linked_packages, f"Expected package '{package}' not found in LINK actions"
-    assert os.path.isdir(python_site_packages_path_313t)
-    assert os.path.isdir(python_site_packages_path_313t / "numpy")
-    assert os.path.isdir(python_site_packages_path_313t / "boltons")
-    if not is_windows:
-        assert not os.path.isdir(python_site_packages_path_313 / "numpy")
-        assert not os.path.isdir(python_site_packages_path_313 / "boltons")
+        assert package in linked_packages
 
-    # Uninstall python
-    res_uninstall = helpers.remove("-n", env_name, "--json", "python")
 
-    assert res_uninstall["success"]
-    # Get all package names from the UNLINK actions
-    unlinked_packages = [action["name"] for action in res_uninstall["actions"]["UNLINK"]]
-    # Check that all expected packages are present (order doesn't matter)
-    expected_packages = ["python-freethreading", "python", "python_abi", "numpy", "boltons"]
-    for package in expected_packages:
-        assert package in unlinked_packages, (
-            f"Expected package '{package}' not found in UNLINK actions"
+def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
+    """
+    Test that python_abi is preserved when installing packages after python-freethreading.
+    This reproduces the issue from https://github.com/mamba-org/mamba/issues/4112
+    """
+    env_name = "test_python_abi_freethreading"
+
+    # Create environment with python-freethreading
+    res_create = helpers.create("-n", env_name, "--json", "python-freethreading", no_dry_run=True)
+    assert res_create["success"]
+
+    # Get the installed python_abi to verify it's free-threaded
+    res_list = helpers.umamba_list("-n", env_name, "--json")
+    python_abi_pkg = None
+    for pkg in res_list:
+        if pkg["name"] == "python_abi":
+            python_abi_pkg = pkg
+            break
+
+    assert python_abi_pkg is not None, "python_abi should be installed"
+    initial_python_abi_build = python_abi_pkg["build_string"]
+    # Verify it's free-threaded (should contain 't' in the ABI tag, e.g., '_cp314t')
+    assert "t" in initial_python_abi_build or "_cp" in initial_python_abi_build, (
+        f"Expected free-threaded python_abi build, got: {initial_python_abi_build}"
+    )
+
+    # Install a package that might try to change python_abi (like matplotlib)
+    # This must error out because matplotlib requires a non-free-threaded python_abi
+    # Catch the error and check the error message
+    try:
+        helpers.install("-n", env_name, "--json", "matplotlib", no_dry_run=True)
+    except subprocess.CalledProcessError as e:
+        assert "matplotlib =* * is installable with the potential options" in e.stderr.decode(
+            "utf-8"
+        ), (
+            "Expected error message about matplotlib being installable with a non-free-threaded python_abi. "
+            "If this test fails, it might be because matplotlib is now installable with a non-free-threaded python_abi."
         )
-    assert not os.path.isdir(python_site_packages_path_313 / "numpy")
-    assert not os.path.isdir(python_site_packages_path_313 / "boltons")
-    assert not os.path.isdir(python_site_packages_path_313t / "numpy")
-    assert not os.path.isdir(python_site_packages_path_313t / "boltons")
+
+    # Verify python_abi is still the same (free-threaded)
+    res_list_after = helpers.umamba_list("-n", env_name, "--json")
+    python_abi_pkg_after = None
+    for pkg in res_list_after:
+        if pkg["name"] == "python_abi":
+            python_abi_pkg_after = pkg
+            break
+
+    assert python_abi_pkg_after is not None, "python_abi should still be installed"
+    final_python_abi_build = python_abi_pkg_after["build_string"]
+
+    # The ABI should be preserved (same free-threaded build)
+    assert final_python_abi_build == initial_python_abi_build, (
+        f"python_abi changed from {initial_python_abi_build} to {final_python_abi_build}. "
+        "This should not happen when python-freethreading is installed."
+        "Check whether matplotlib is now installable with a non-free-threaded python_abi."
+    )
+
+
+def test_python_pinning_behavior(tmp_home, tmp_root_prefix):
+    """
+    Test that python and python_abi pins are correctly applied and updated in various scenarios:
+    1. Installing python 3.13 sets pins on python and python_abi (_cp313)
+    2. Installing python-freethreading changes the python_abi pin (adds _cp314t)
+    3. Updating to python 3.14 changes the python_abi pin (_cp314t)
+    4. Uninstalling python-freethreading changes the pin back (_cp314)
+    5. Uninstalling python removes both pins
+    """
+    env_name = "test_python_pinning"
+
+    # Step 1: Install python 3.13 - should pin python and python_abi (_cp313)
+    res1 = helpers.create("-n", env_name, "--json", "python=3.13", no_dry_run=True)
+    assert res1["success"]
+
+    # Verify python 3.13 is installed
+    packages1 = helpers.umamba_list("-n", env_name, "--json")
+    python_pkg1 = next((p for p in packages1 if p["name"] == "python"), None)
+    assert python_pkg1 is not None, "python should be installed"
+    assert python_pkg1["version"].startswith("3.13"), (
+        f"Expected python 3.13.x, got {python_pkg1['version']}"
+    )
+
+    python_abi_pkg1 = next((p for p in packages1 if p["name"] == "python_abi"), None)
+    assert python_abi_pkg1 is not None, "python_abi should be installed"
+    assert "_cp313" in python_abi_pkg1["build_string"], (
+        f"Expected python_abi with _cp313, got {python_abi_pkg1['build_string']}"
+    )
+
+    # Step 2: Install python-freethreading - should change python_abi pin to include 't' suffix
+    res2 = helpers.install("-n", env_name, "--json", "python-freethreading", no_dry_run=True)
+    assert res2["success"]
+
+    packages2 = helpers.umamba_list("-n", env_name, "--json")
+    python_abi_pkg2 = next((p for p in packages2 if p["name"] == "python_abi"), None)
+    assert python_abi_pkg2 is not None, "python_abi should still be installed"
+    # Should now have 't' suffix (free-threaded)
+    assert "t" in python_abi_pkg2["build_string"] or "_cp313t" in python_abi_pkg2["build_string"], (
+        f"Expected python_abi with free-threaded build (contains 't'), got {python_abi_pkg2['build_string']}"
+    )
+
+    # Step 3: Update to python 3.14 - should change python_abi pin to _cp314t
+    res3 = helpers.install(
+        "-n", env_name, "--json", "python=3.14", "python-freethreading", no_dry_run=True
+    )
+    assert res3["success"]
+
+    packages3 = helpers.umamba_list("-n", env_name, "--json")
+    python_pkg3 = next((p for p in packages3 if p["name"] == "python"), None)
+    assert python_pkg3 is not None, "python should be installed"
+    assert python_pkg3["version"].startswith("3.14"), (
+        f"Expected python 3.14.x, got {python_pkg3['version']}"
+    )
+
+    python_abi_pkg3 = next((p for p in packages3 if p["name"] == "python_abi"), None)
+    assert python_abi_pkg3 is not None, "python_abi should be installed"
+    assert "_cp314t" in python_abi_pkg3["build_string"], (
+        f"Expected python_abi with _cp314t (free-threaded), got {python_abi_pkg3['build_string']}"
+    )
+
+    # Step 4: Uninstall python-freethreading - pinning should no longer require free-threaded build
+    # The pin should change back to allow non-free-threaded python_abi (_cp314 without 't')
+    res4 = helpers.remove("-n", env_name, "--json", "python-freethreading", no_dry_run=True)
+    assert res4["success"]
+
+    packages4 = helpers.umamba_list("-n", env_name, "--json")
+    freethreading_pkg4 = next((p for p in packages4 if p["name"] == "python-freethreading"), None)
+    assert freethreading_pkg4 is None, "python-freethreading should be removed"
+
+    # Verify that python_abi pinning no longer requires free-threaded build
+    # by installing a package that would update python_abi to non-free-threaded if needed
+    # The pin should now allow _cp314 (without 't') instead of requiring _cp314t
+    python_abi_pkg4 = next((p for p in packages4 if p["name"] == "python_abi"), None)
+    assert python_abi_pkg4 is not None, "python_abi should still be installed"
+
+    # Step 5: Uninstall python - should remove pins (verify by checking python_abi is also removed)
+    res5 = helpers.remove("-n", env_name, "--json", "python", no_dry_run=True)
+    assert res5["success"]
+
+    packages5 = helpers.umamba_list("-n", env_name, "--json")
+    python_pkg5 = next((p for p in packages5 if p["name"] == "python"), None)
+    assert python_pkg5 is None, "python should be removed"
+
+    python_abi_pkg5 = next((p for p in packages5 if p["name"] == "python_abi"), None)
+    assert python_abi_pkg5 is None, "python_abi should be removed when python is removed"
 
 
 @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])

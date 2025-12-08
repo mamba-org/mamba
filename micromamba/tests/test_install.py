@@ -746,8 +746,8 @@ def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
 
     assert python_abi_pkg is not None, "python_abi should be installed"
     initial_python_abi_build = python_abi_pkg["build_string"]
-    # Verify it's free-threaded (should contain 't' in the ABI tag, e.g., '_cp314t')
-    assert "t" in initial_python_abi_build or "_cp" in initial_python_abi_build, (
+    # Verify it's free-threaded (should end with 't' in the ABI tag, e.g., '_cp314t')
+    assert re.search(r"_cp\d+t$", initial_python_abi_build), (
         f"Expected free-threaded python_abi build, got: {initial_python_abi_build}"
     )
 
@@ -779,7 +779,7 @@ def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
     assert final_python_abi_build == initial_python_abi_build, (
         f"python_abi changed from {initial_python_abi_build} to {final_python_abi_build}. "
         "This should not happen when python-freethreading is installed."
-        "Check whether matplotlib is now installable with a non-free-threaded python_abi."
+        " Check whether matplotlib is now installable with a non-free-threaded python_abi."
     )
 
 
@@ -820,8 +820,8 @@ def test_python_pinning_behavior(tmp_home, tmp_root_prefix):
     python_abi_pkg2 = next((p for p in packages2 if p["name"] == "python_abi"), None)
     assert python_abi_pkg2 is not None, "python_abi should still be installed"
     # Should now have 't' suffix (free-threaded)
-    assert "t" in python_abi_pkg2["build_string"] or "_cp313t" in python_abi_pkg2["build_string"], (
-        f"Expected python_abi with free-threaded build (contains 't'), got {python_abi_pkg2['build_string']}"
+    assert "_cp313t" in python_abi_pkg2["build_string"], (
+        f"Expected python_abi with free-threaded build (_cp313t), got {python_abi_pkg2['build_string']}"
     )
 
     # Step 3: Update to python 3.14 - should change python_abi pin to _cp314t

@@ -22,39 +22,63 @@ find_package(Threads REQUIRED)
 # For some reasons, using target_compile_definitions does not set the definitions properly
 add_compile_definitions(SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
 
-add_library(libmamba-spdlog INTERFACE)
-# target_sources(libmamba-spdlog INTERFACE include/mamba/spdlog/logging_spdlog.hpp
-# include/mamba/spdlog/logging_spdlog_impl.hpp )
-add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
-
-target_include_directories(
-    libmamba-spdlog
-    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
+# Common include directories and link libraries setup
+set(
+    common_include_dirs
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
+)
+set(
+    common_link_libs
+    ${libmamba_target}
+    # Since conda-forge spdlog is built with a bundled version of fmt we use the header only version
+    # to avoid chasing after the correct fmt version matching the one used in the bundle.
+    spdlog::spdlog_header_only
+    # We need the threading facilities available whatever the user use. This should have been part
+    # of depending on spdlog but for some reason it's not made available automatically.
+    Threads::Threads
 )
 
-target_link_libraries(
-    libmamba-spdlog
-    INTERFACE
-        ${libmamba_target}
-        # Since conda-forge spdlog is built with a bundled version of fmt we use the header only
-        # version to avoid chasing after the correct fmt version matching the one used in the
-        # bundle.
-        spdlog::spdlog_header_only
-        # We need the threading facilities available whatever the user use. This should have been
-        # part of depending on spdlog but for some reason it's not made available automatically.
-        Threads::Threads
-)
+# Shared library variant
+if(BUILD_SHARED)
+    message(STATUS "Adding shared libmamba-spdlog target")
+    add_library(libmamba-spdlog-dyn SHARED src/libmamba_spdlog.cpp)
+    add_library(mamba::libmamba-spdlog-dyn ALIAS libmamba-spdlog-dyn)
+    add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog-dyn)
 
-mamba_target_add_compile_warnings(libmamba-spdlog WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+    target_include_directories(libmamba-spdlog-dyn PUBLIC ${common_include_dirs})
+    target_link_libraries(libmamba-spdlog-dyn PUBLIC ${common_link_libs})
 
-target_compile_features(libmamba-spdlog INTERFACE cxx_std_20)
-set_target_properties(
-    libmamba-spdlog
-    PROPERTIES
-        CXX_STANDARD 20
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-)
+    mamba_target_add_compile_warnings(
+        libmamba-spdlog-dyn WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
+    )
+
+    target_compile_features(libmamba-spdlog-dyn PUBLIC cxx_std_20)
+    set_target_properties(
+        libmamba-spdlog-dyn
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
+else()
+    # Interface library when not building shared
+    add_library(libmamba-spdlog INTERFACE)
+    add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
+
+    target_include_directories(libmamba-spdlog INTERFACE ${common_include_dirs})
+    target_link_libraries(libmamba-spdlog INTERFACE ${common_link_libs})
+
+    mamba_target_add_compile_warnings(libmamba-spdlog WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+
+    target_compile_features(libmamba-spdlog INTERFACE cxx_std_20)
+    set_target_properties(
+        libmamba-spdlog
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
@@ -62,8 +86,14 @@ write_basic_package_version_file(
     VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
+if(BUILD_SHARED)
+    set(libmamba_spdlog_target libmamba-spdlog-dyn)
+else()
+    set(libmamba_spdlog_target libmamba-spdlog)
+endif()
+
 install(
-    TARGETS libmamba-spdlog
+    TARGETS ${libmamba_spdlog_target}
     EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION lib COMPONENT Runtime
     ARCHIVE DESTINATION lib COMPONENT Development

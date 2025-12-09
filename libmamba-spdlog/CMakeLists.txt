@@ -9,11 +9,8 @@ include("../cmake/CompilerWarnings.cmake")
 
 project(libmamba-spdlog)
 
-if(NOT TARGET mamba::libmamba)
-    find_package(libmamba CONFIG REQUIRED)
-    set(libmamba_target mamba::libmamba-dyn)
-else()
-    set(libmamba_target mamba::libmamba)
+if (NOT TARGET mamba::libmamba-dyn AND NOT TARGET mamba::libmamba-static)
+    find_package(libmamba)
 endif()
 
 find_package(spdlog CONFIG REQUIRED)
@@ -22,39 +19,65 @@ find_package(Threads REQUIRED)
 # For some reasons, using target_compile_definitions does not set the definitions properly
 add_compile_definitions(SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
 
-add_library(libmamba-spdlog INTERFACE)
-# target_sources(libmamba-spdlog INTERFACE include/mamba/spdlog/logging_spdlog.hpp
-# include/mamba/spdlog/logging_spdlog_impl.hpp )
-add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog)
+macro(libmamba_spdlog_create_target target_name linkage libmamba_target)
+    string(TOUPPER "${linkage}" linkage_upper)
+    if(NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
+        message(FATAL_ERROR "Invalid library linkage: ${linkage}")
+    endif()
 
-target_include_directories(
-    libmamba-spdlog
-    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
-)
+    add_library(${target_name} INTERFACE)
+    target_include_directories(
+        ${target_name}
+        INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
+    )
 
-target_link_libraries(
-    libmamba-spdlog
-    INTERFACE
-        ${libmamba_target}
-        # Since conda-forge spdlog is built with a bundled version of fmt we use the header only
-        # version to avoid chasing after the correct fmt version matching the one used in the
-        # bundle.
-        spdlog::spdlog_header_only
-        # We need the threading facilities available whatever the user use. This should have been
-        # part of depending on spdlog but for some reason it's not made available automatically.
-        Threads::Threads
-)
+    target_link_libraries(
+        ${target_name}
+        INTERFACE
+            ${libmamba_target}
+            # Since conda-forge spdlog is built with a bundled version of fmt we use the header only
+            # version to avoid chasing after the correct fmt version matching the one used in the
+            # bundle.
+            spdlog::spdlog_header_only
+            # We need the threading facilities available whatever the user use. This should have been
+            # part of depending on spdlog but for some reason it's not made available automatically.
+            Threads::Threads
+    )
 
-mamba_target_add_compile_warnings(libmamba-spdlog WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+    mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_compile_features(libmamba-spdlog INTERFACE cxx_std_20)
-set_target_properties(
-    libmamba-spdlog
-    PROPERTIES
-        CXX_STANDARD 20
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-)
+    target_compile_features(${target_name} INTERFACE cxx_std_20)
+    set_target_properties(
+        ${target_name}
+        PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED YES
+            CXX_EXTENSIONS NO
+    )
+
+    list(APPEND libmamba_spdlog_targets ${target_name})
+    add_library(mamba::${target_name} ALIAS ${target_name})
+endmacro()
+
+set(libmamba_spdlog_targets "")
+
+if (BUILD_SHARED)
+    message(STATUS "Adding target libmamba-spdlog with shared libmamba")
+    libmamba_spdlog_create_target(libmamba-spdlog-dyn SHARED libmamba-dyn)
+endif()
+
+if (BUILD_STATIC)
+    message(STATUS "Adding target libmamba-spdlog with static libmamba")
+    libmamba_spdlog_create_target(libmamba-spdlog-static STATIC libmamba-static)
+endif()
+
+if (BUILD_SHARED)
+    add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog-dyn)
+elseif(BUILD_STATIC)
+    add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog-static)
+else()
+    message(FATAL_ERROR "Select at least a build variant for libmamba")
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
@@ -63,7 +86,7 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 install(
-    TARGETS libmamba-spdlog
+    TARGETS ${libmamba_spdlog_targets}
     EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION lib COMPONENT Runtime
     ARCHIVE DESTINATION lib COMPONENT Development

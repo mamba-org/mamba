@@ -52,7 +52,9 @@ target_include_directories(bindings PRIVATE bindings)
 
 mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_link_libraries(bindings PRIVATE pybind11::pybind11 ${libmamba_target} mamba::libmamba-spdlog-dyn)
+target_link_libraries(
+    bindings PRIVATE pybind11::pybind11 ${libmamba_target} mamba::libmamba-spdlog-dyn
+)
 target_compile_features(bindings PUBLIC cxx_std_20)
 set_target_properties(
     bindings

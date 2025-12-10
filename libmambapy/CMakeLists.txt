@@ -16,7 +16,7 @@ else()
     set(libmamba_target mamba::libmamba)
 endif()
 
-if(NOT TARGET mamba::libmamba-spdlog-dyn)
+if(NOT TARGET mamba::libmamba-dyn-spdlog)
     find_package(libmamba-spdlog CONFIG REQUIRED)
 endif()
 

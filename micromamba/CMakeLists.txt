@@ -84,7 +84,7 @@ macro(mambaexe_create_target target_name linkage output_name)
             find_package(libmamba REQUIRED)
         endif()
         target_link_libraries(
-            ${target_name} PRIVATE mamba::libmamba-static mamba::libmamba-spdlog-static
+            ${target_name} PRIVATE mamba::libmamba-static mamba::libmamba-static-spdlog
         )
         if(APPLE)
             target_link_options(${target_name} PRIVATE -nostdlib++)
@@ -95,7 +95,7 @@ macro(mambaexe_create_target target_name linkage output_name)
         if(NOT (TARGET mamba::libmamba-dyn))
             find_package(libmamba REQUIRED)
         endif()
-        target_link_libraries(${target_name} PRIVATE mamba::libmamba-dyn mamba::libmamba-spdlog-dyn)
+        target_link_libraries(${target_name} PRIVATE mamba::libmamba-dyn mamba::libmamba-dyn-spdlog)
     endif()
 
     list(APPEND mambaexe_targets ${target_name})

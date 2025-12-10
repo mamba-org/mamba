@@ -288,7 +288,9 @@ namespace mamba
                    Ignored if `options.enable_logging == false`.
                    If `options.enable_logging == true and log_handler.has_value() == false`,
                    which is the default if this parameter is not specified,
-                   then a default implementation-defined log handler implementation will be used.
+                   then the log handler will not be changed; the current one, if it exists, stays.
+                   If there is a current log-handler and your intent is to remove it, consider using
+                   `mamba::logging::stop_logging()` instead.
         */
         Context(const ContextOptions& options = {}, logging::AnyLogHandler log_handler = {});
 

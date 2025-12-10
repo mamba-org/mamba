@@ -14,7 +14,6 @@ if(NOT TARGET mamba::libmamba-dyn AND NOT TARGET mamba::libmamba-static)
 endif()
 
 find_package(spdlog CONFIG REQUIRED)
-find_package(Threads REQUIRED)
 
 # For some reasons, using target_compile_definitions does not set the definitions properly
 add_compile_definitions(SPDLOG_FMT_EXTERNAL "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
@@ -40,10 +39,6 @@ macro(libmamba_spdlog_create_target target_name linkage libmamba_target)
             # version to avoid chasing after the correct fmt version matching the one used in the
             # bundle.
             spdlog::spdlog_header_only
-            # We need the threading facilities available whatever the user use. This should have
-            # been part of depending on spdlog but for some reason it's not made available
-            # automatically.
-            Threads::Threads
     )
 
     mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})

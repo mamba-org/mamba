@@ -9,7 +9,7 @@ include("../cmake/CompilerWarnings.cmake")
 
 project(libmamba-spdlog)
 
-if (NOT TARGET mamba::libmamba-dyn AND NOT TARGET mamba::libmamba-static)
+if(NOT TARGET mamba::libmamba-dyn AND NOT TARGET mamba::libmamba-static)
     find_package(libmamba)
 endif()
 
@@ -28,7 +28,8 @@ macro(libmamba_spdlog_create_target target_name linkage libmamba_target)
     add_library(${target_name} INTERFACE)
     target_include_directories(
         ${target_name}
-        INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
+        INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                  $<INSTALL_INTERFACE:include>
     )
 
     target_link_libraries(
@@ -39,8 +40,9 @@ macro(libmamba_spdlog_create_target target_name linkage libmamba_target)
             # version to avoid chasing after the correct fmt version matching the one used in the
             # bundle.
             spdlog::spdlog_header_only
-            # We need the threading facilities available whatever the user use. This should have been
-            # part of depending on spdlog but for some reason it's not made available automatically.
+            # We need the threading facilities available whatever the user use. This should have
+            # been part of depending on spdlog but for some reason it's not made available
+            # automatically.
             Threads::Threads
     )
 
@@ -61,17 +63,17 @@ endmacro()
 
 set(libmamba_spdlog_targets "")
 
-if (BUILD_SHARED)
+if(BUILD_SHARED)
     message(STATUS "Adding target libmamba-spdlog with shared libmamba")
     libmamba_spdlog_create_target(libmamba-spdlog-dyn SHARED libmamba-dyn)
 endif()
 
-if (BUILD_STATIC)
+if(BUILD_STATIC)
     message(STATUS "Adding target libmamba-spdlog with static libmamba")
     libmamba_spdlog_create_target(libmamba-spdlog-static STATIC libmamba-static)
 endif()
 
-if (BUILD_SHARED)
+if(BUILD_SHARED)
     add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog-dyn)
 elseif(BUILD_STATIC)
     add_library(mamba::libmamba-spdlog ALIAS libmamba-spdlog-static)

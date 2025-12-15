@@ -325,8 +325,10 @@ namespace mamba
                 util::set_env("SOME_OTHER_PRIVATE_KEY", "kqf458r1h127de9");
                 load_file_specs_config(file_specs);
                 const auto src = util::shrink_home(tempfile_ptr->path().string());
+                // Use dump with names parameter to only show channels (other config values
+                // may be set from user's actual config files)
                 REQUIRE(
-                    config.dump()
+                    config.dump(MAMBA_SHOW_CONFIG_VALUES, { "channels" })
                     == "channels:\n  - https://private.cloud/t/hdfd5256h6degd5/get/channel\n  - https://private.cloud/t/kqf458r1h127de9/get/channel\n  - https://private.cloud/t/SOME_TOKEN/get/channel\n  - conda-forge"
                 );
             }

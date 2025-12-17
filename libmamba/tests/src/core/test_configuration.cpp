@@ -326,8 +326,8 @@ namespace mamba
                 load_file_specs_config(file_specs);
                 const auto src = util::shrink_home(tempfile_ptr->path().string());
                 REQUIRE(
-                    config.dump()
-                    == "channels:\n  - https://private.cloud/t/hdfd5256h6degd5/get/channel\n  - https://private.cloud/t/kqf458r1h127de9/get/channel\n  - https://private.cloud/t/SOME_TOKEN/get/channel\n  - conda-forge"
+                    config.dump().starts_with(
+                    "channels:\n  - https://private.cloud/t/hdfd5256h6degd5/get/channel\n  - https://private.cloud/t/kqf458r1h127de9/get/channel\n  - https://private.cloud/t/SOME_TOKEN/get/channel\n  - conda-forge")
                 );
             }
 

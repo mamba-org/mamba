@@ -11,6 +11,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <ranges>
 
 #include <tl/expected.hpp>
 
@@ -293,6 +294,13 @@ namespace mamba::util
     /** A functional equivalent to ``URL::append_path``. */
     auto operator/(URL const& url, std::string_view subpath) -> URL;
     auto operator/(URL&& url, std::string_view subpath) -> URL;
+
+    template<std::ranges::input_range StringRange> 
+    auto as_urls(StringRange&& values)
+    {
+        return std::views::transform(std::forward<StringRange>(values), [](const auto& url){ return *URL::parse(url); });
+    }
+
 }
 
 template <>

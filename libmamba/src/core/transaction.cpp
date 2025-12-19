@@ -1353,6 +1353,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_lockfile(
         const Context& ctx,
+        ChannelContext& channel_context,
         solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
@@ -1377,7 +1378,14 @@ namespace mamba
             LOG_DEBUG << "  manager = " << package.manager;
         }
 
-        // TODO: FIXME: inject channel info coming from the lockfile!
+        if(lockfile_data.get_metadata().enable_channels)
+        {
+            // create or add mirrors to additional channels 
+            for(const EnvironmentLockFile::Channel& channel_info : lockfile_data.get_metadata().channels)
+            {
+                auto channels [[maybe_unused]] = channel_context.make_channel(channel_info.name, channel_info.urls);
+            }
+        }
 
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};

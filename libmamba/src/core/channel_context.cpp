@@ -279,6 +279,14 @@ namespace mamba
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
+            for(auto& channel : it->second)
+            {
+                // TODO C++23: replace all this by  std::vector(from_range_t, ...)
+                auto urls_view = specs::as_conda_urls(mirrors);
+                std::vector<specs::CondaURL> urls(urls_view.begin(), urls_view.end());
+                
+                channel.add_mirror_urls(urls);
+            }
             return it->second;
         }
 

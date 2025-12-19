@@ -951,6 +951,7 @@ namespace mamba
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,
+                    channel_context,
                     db,
                     file,
                     categories,

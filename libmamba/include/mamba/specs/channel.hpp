@@ -74,6 +74,9 @@ namespace mamba::specs
         auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
 
+        // Adds mirror urls if not already recorded.
+        void add_mirror_urls(const std::vector<CondaURL>& additional_mirrors);
+
         enum struct Match
         {
             No,

@@ -80,11 +80,11 @@ namespace mamba::specs
         auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
 
-        // Adds mirror urls if not already recorded, by default added in the front of the mirrors
+        // Adds mirror urls if not already recorded, by default added at the end of the mirrors
         // list.
         void add_mirror_urls(
             const std::vector<CondaURL>& additional_mirrors,
-            UrlPriorty priority = UrlPriorty::high
+            UrlPriorty priority = UrlPriorty::low
         );
 
         enum struct Match

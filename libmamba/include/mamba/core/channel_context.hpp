@@ -56,7 +56,7 @@ namespace mamba
         [[nodiscard]] auto make_channel(
             std::string_view name,
             const std::vector<std::string>& mirrors,
-            specs::Channel::UrlPriorty new_mirrors_priority = specs::Channel::UrlPriorty::high
+            specs::Channel::UrlPriorty new_mirrors_priority = specs::Channel::UrlPriorty::low
         )
             -> const channel_list&;
 

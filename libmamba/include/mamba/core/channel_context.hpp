@@ -53,8 +53,11 @@ namespace mamba
 
         [[nodiscard]] auto make_channel(specs::UnresolvedChannel uc) -> const channel_list&;
         [[nodiscard]] auto make_channel(std::string_view name) -> const channel_list&;
-        [[nodiscard]] auto
-        make_channel(std::string_view name, const std::vector<std::string>& mirrors)
+        [[nodiscard]] auto make_channel(
+            std::string_view name,
+            const std::vector<std::string>& mirrors,
+            specs::Channel::UrlPriorty new_mirrors_priority = specs::Channel::UrlPriorty::high
+        )
             -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;

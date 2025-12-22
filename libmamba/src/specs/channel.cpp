@@ -18,7 +18,8 @@
 
 namespace mamba::specs
 {
-    namespace {
+    namespace
+    {
 
         void prepare_mirrors(std::vector<CondaURL>& mirror_urls)
         {
@@ -66,23 +67,40 @@ namespace mamba::specs
         prepare_mirrors(m_mirror_urls);
     }
 
-
     auto Channel::is_package() const -> bool
     {
         return (m_mirror_urls.size() == 1u) && !url().package().empty();
     }
 
-    void Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors)
+    void
+    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriorty priority)
     {
-        // keep the mirrors list withouth duplicates
-        auto new_urls = std::views::filter(additional_mirrors, [this](const auto& url){ return not stdext::contains(m_mirror_urls, url); });
-        for(const auto& new_url : new_urls) // TODO C++23: replace by std::vector::append_range
-        {
-            m_mirror_urls.push_back(new_url);
-        }
-        prepare_mirrors(m_mirror_urls);
-    }
+        auto all_urls = m_mirror_urls;
 
+        // keep the mirrors list without duplicates
+        auto new_urls = std::views::filter(
+            additional_mirrors,
+            [&](const auto& url) { return not stdext::contains(all_urls, url); }
+        );
+
+        const auto insertion_point = [&]
+        {
+            switch (priority)
+            {
+                default:
+                case UrlPriorty::high:
+                    return all_urls.begin();
+                case UrlPriorty::low:
+                    return all_urls.end();
+            }
+        }();
+
+        // TODO C++23: replace by std::vector::append_range
+        all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
+
+        prepare_mirrors(all_urls);
+        m_mirror_urls = all_urls;
+    }
 
     auto Channel::mirror_urls() const -> const std::vector<CondaURL>&
     {

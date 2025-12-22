@@ -245,11 +245,17 @@ namespace mamba
             EnvironmentLockFile::PackageFilter package_filter;
         };
 
+        struct ChannelInfo
+        {
+            std::string name = {};
+            std::vector<std::string> urls = {};
+        };
+
         auto test_get_specific_packages(
             const fs::u8path lockfile_path,
             size_t expected_total_package_count,
             std::vector<SpecificPackagesRequest> requests,
-            std::vector<mamba::EnvironmentLockFile::Channel> expected_channels = {}
+            std::vector<ChannelInfo> expected_channels = {}
         ) -> void
         {
             auto maybe_lockfile = read_environment_lockfile(lockfile_path);

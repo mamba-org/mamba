@@ -215,6 +215,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     print("packages installed:", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
+    print("DEBUG: ", packages)
 
 @pytest.mark.skipif(
     platform.system() != "Linux",
@@ -247,6 +248,8 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     assert any(package["name"] == "bzip2" and package["version"] == "1.0.8" for package in packages)
     # Test pkg url ending with `.tar.bz2`
     assert any(package["name"] == "xz" and package["version"] == "5.2.6" for package in packages)
+
+    print("DEBUG: ", packages)
 
 
 # TODO: Remove this test once this is fixed:

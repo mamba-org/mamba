@@ -216,6 +216,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
     print("DEBUG: ", packages)
+    assert False
 
 @pytest.mark.skipif(
     platform.system() != "Linux",
@@ -250,6 +251,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     assert any(package["name"] == "xz" and package["version"] == "5.2.6" for package in packages)
 
     print("DEBUG: ", packages)
+    assert False
 
 
 # TODO: Remove this test once this is fixed:

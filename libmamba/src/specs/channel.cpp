@@ -99,7 +99,7 @@ namespace mamba::specs
         all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
 
         prepare_mirrors(all_urls);
-        m_mirror_urls = all_urls;
+        m_mirror_urls = std::move(all_urls);
     }
 
     auto Channel::mirror_urls() const -> const std::vector<CondaURL>&

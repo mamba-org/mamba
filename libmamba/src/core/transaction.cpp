@@ -1378,12 +1378,18 @@ namespace mamba
             LOG_DEBUG << "  manager = " << package.manager;
         }
 
-        if(lockfile_data.get_metadata().enable_channels)
+        if (lockfile_data.get_metadata().enable_channels)
         {
-            // create or add mirrors to additional channels 
-            for(const EnvironmentLockFile::Channel& channel_info : lockfile_data.get_metadata().channels)
+            // create or add mirrors to additional channels
+            for (const EnvironmentLockFile::Channel& channel_info :
+                 lockfile_data.get_metadata().channels)
             {
-                auto channels [[maybe_unused]] = channel_context.make_channel(channel_info.name, channel_info.urls);
+                auto channels [[maybe_unused]] = channel_context.make_channel(
+                    channel_info.name,
+                    channel_info.urls,
+                    specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
+                                                      // of the mirrors list
+                );
             }
         }
 

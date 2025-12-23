@@ -80,7 +80,7 @@ namespace mamba::specs
         // keep the mirrors list without duplicates
         auto new_urls = std::views::filter(
             additional_mirrors,
-            [&](const auto& url) { return not stdext::contains(all_urls, url); }
+            [&](const auto& url) { return not stdext::contains(m_mirror_urls, url); }
         );
 
         const auto insertion_point = [&]

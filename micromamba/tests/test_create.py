@@ -250,9 +250,6 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     # Test pkg url ending with `.tar.bz2`
     assert any(package["name"] == "xz" and package["version"] == "5.2.6" for package in packages)
 
-    print("DEBUG: ", packages)
-    assert lockfile_format != lockfile_format_mambajs
-
 
 # TODO: Remove this test once this is fixed:
 # https://github.com/dateutil/dateutil/issues/1419

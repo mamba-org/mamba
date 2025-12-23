@@ -112,18 +112,16 @@ namespace mamba::specs
         // prepare_mirrors(all_urls);
         // m_mirror_urls = std::move(all_urls);
         
-        std::cout << "ADDING MIRRORS TO " << this->id() << std::endl;
         auto all_mirrors = additional_mirrors;
         for (const auto& url : m_mirror_urls)
         {
-            std::cout << "  + " << url.str() << std::endl;
             all_mirrors.push_back(url);
         }
 
-        std::cout << "ALL MIRRORS FOR " << this->id() << std::endl;
+        std::cout << "\nALL MIRRORS FOR " << this->id() << std::endl;
         for (const auto& url : all_mirrors)
         {
-            std::cout << "  + " << url.str() << std::endl;
+            std::cout << "  " << url.str() << std::endl;
         }
 
         prepare_mirrors(all_mirrors);

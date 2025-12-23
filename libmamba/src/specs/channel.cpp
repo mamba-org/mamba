@@ -4,11 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <cassert>
 #include <stdexcept>
 
+#include <iostream>
+
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/util/algorithm.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/tuple_hash.hpp"
@@ -16,6 +20,21 @@
 
 namespace mamba::specs
 {
+    namespace
+    {
+
+        void prepare_mirrors(std::vector<CondaURL>& mirror_urls)
+        {
+            for (auto& url : mirror_urls)
+            {
+                auto p = url.clear_path();
+                p = util::rstrip(p, '/');
+                url.set_path(std::move(p), CondaURL::Encode::no);
+            }
+        }
+
+    }
+
     /*********************************
      *  NameWeakener Implementation  *
      *********************************/
@@ -47,17 +66,66 @@ namespace mamba::specs
         , m_id(util::rstrip(m_display_name, '/'))
         , m_platforms(std::move(platforms))
     {
-        for (auto& url : m_mirror_urls)
-        {
-            auto p = url.clear_path();
-            p = util::rstrip(p, '/');
-            url.set_path(std::move(p), CondaURL::Encode::no);
-        }
+        prepare_mirrors(m_mirror_urls);
     }
 
     auto Channel::is_package() const -> bool
     {
         return (m_mirror_urls.size() == 1u) && !url().package().empty();
+    }
+
+    void
+    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriorty /*priority*/)
+    {
+        //auto all_urls = m_mirror_urls;
+
+        // keep the mirrors list without duplicates
+        //auto new_urls_view = std::views::filter(
+        //    additional_mirrors,
+        //    [&](const auto& url) { return not stdext::contains(all_urls, url); }
+        //);
+        //// TODO C++23 range `to<std::vector>`
+        //std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
+
+        //auto insertion_point = [&]
+        //{
+        //    switch (priority)
+        //    {
+        //        case UrlPriorty::high:
+        //            return all_urls.begin();
+
+        //        default:
+        //        case UrlPriorty::low:
+        //            return all_urls.end();
+        //    }
+        //}();
+
+        //all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
+
+        // WORKS BUT DOESNT MAKE THE RIGHT CHANNEL WORK WITH MANBAJS ENV LOCKFILES
+        /*for (const auto& url : additional_mirrors)
+        {
+            all_urls.push_back(url);
+        }*/
+
+        
+        // prepare_mirrors(all_urls);
+        // m_mirror_urls = std::move(all_urls);
+        
+        auto all_mirrors = additional_mirrors;
+        for (const auto& url : m_mirror_urls)
+        {
+            all_mirrors.push_back(url);
+        }
+
+        std::cout << "\nALL MIRRORS FOR " << this->id() << std::endl;
+        for (const auto& url : all_mirrors)
+        {
+            std::cout << "  " << url.str() << std::endl;
+        }
+
+        prepare_mirrors(all_mirrors);
+        m_mirror_urls = std::move(all_mirrors);
     }
 
     auto Channel::mirror_urls() const -> const std::vector<CondaURL>&

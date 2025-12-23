@@ -32,6 +32,12 @@ namespace mamba::specs
         using platform_list = util::flat_set<std::string>;
         using channel_list = std::vector<Channel>;
 
+        enum class UrlPriorty
+        {
+            high,  ///< associated urls will be placed in the front the list of urls
+            low    ///< associated urls will be placed in the back the list of urls
+        };
+
         [[nodiscard]] static auto resolve(  //
             UnresolvedChannel uc,
             const ChannelResolveParams& params
@@ -73,6 +79,13 @@ namespace mamba::specs
         [[nodiscard]] auto display_name() const -> const std::string&;
         auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
+
+        // Adds mirror urls if not already recorded, by default added at the end of the mirrors
+        // list.
+        void add_mirror_urls(
+            const std::vector<CondaURL>& additional_mirrors,
+            UrlPriorty priority = UrlPriorty::low
+        );
 
         enum struct Match
         {

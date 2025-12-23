@@ -78,30 +78,27 @@ namespace mamba::specs
         auto all_urls = m_mirror_urls;
 
         // keep the mirrors list without duplicates
-        auto new_urls = std::views::filter(
+        auto new_urls_view = std::views::filter(
             additional_mirrors,
-            [&](const auto& url) { return not stdext::contains(m_mirror_urls, url); }
+            [&](const auto& url) { return not stdext::contains(all_urls, url); }
         );
+        // TODO C++23 range `to<std::vector>`
+        std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
 
-        switch (priority)
+        auto insertion_point = [&]
         {
-            default:
-            case UrlPriorty::high:
+            switch (priority)
             {
-                // TODO C++23 consider using append_range
-                std::vector urls(new_urls.begin(), new_urls.end());  // TODO C++23 range to<vector>
-                urls.insert(urls.end(), all_urls.begin(), all_urls.end());
-                all_urls = std::move(urls);
+                case UrlPriorty::high:
+                    return all_urls.begin();
+
+                default:
+                case UrlPriorty::low:
+                    return all_urls.end();
             }
-            case UrlPriorty::low:
-            {
-                // keep the one by one loop to keep vectors valid
-                for (const auto& url : new_urls)
-                {
-                    all_urls.push_back(url);
-                }
-            }
-        }
+        }();
+
+        all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
 
         prepare_mirrors(all_urls);
         m_mirror_urls = std::move(all_urls);

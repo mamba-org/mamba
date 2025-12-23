@@ -295,6 +295,7 @@ namespace mamba
             return it->second;
         }
 
+        // TODO C++23: replace by append_range
         std::vector<specs::CondaURL> mirror_urls;
         mirror_urls.reserve(mirrors.size());
         for (const auto& mirror : mirrors)

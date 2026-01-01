@@ -55,6 +55,7 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
       mamba info
 
    This will show you important information such as:
+
    - ``envs directories``: where your environments are stored
    - ``package cache``: where downloaded packages are cached
    - ``user config files``: location of your ``.mambarc`` file
@@ -91,10 +92,12 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
 
    The Miniforge installation directory contains ``mamba``, ``conda``, and all installed packages and environments.
    Check ``mamba info`` to find the exact location:
+
    - The base environment path shows the Miniforge installation directory (it's the parent of the base env)
    - The package cache location is shown under ``package cache``
 
    Default locations depend on your operating system:
+
    - **Linux/macOS:** Usually ``~/miniforge3`` or ``~/mambaforge``
    - **Windows:** Usually ``C:\Users\<username>\miniforge3`` or ``C:\Users\<username>\mambaforge``
 
@@ -129,6 +132,7 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    Check ``mamba info`` for the exact paths to your configuration files:
+
    - ``user config files`` shows the location of ``.mambarc``
    - ``populated config files`` shows the location of ``.condarc``
 

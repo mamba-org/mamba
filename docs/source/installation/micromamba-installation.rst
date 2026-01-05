@@ -222,6 +222,7 @@ Use CMake from this environment to drive the build:
        -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
        -D CMAKE_BUILD_TYPE="Release" \
        -D BUILD_LIBMAMBA=ON \
+       -D BUILD_LIBMAMBA_SPDLOG=ON \
        -D BUILD_STATIC=ON \
        -D BUILD_MICROMAMBA=ON
    cmake --build build/ --parallel
@@ -249,6 +250,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
       micromamba info
 
    This will show you important information such as:
+
    - ``envs directories``: where your environments are stored
    - ``package cache``: where downloaded packages are cached
    - ``user config files``: location of your ``.mambarc`` file
@@ -301,6 +303,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
 
    ``micromamba`` stores all environments, packages, and cache in specific directories.
    Check ``micromamba info`` to find the exact locations for your installation:
+
    - The root prefix is typically the parent directory of the first ``envs directories`` path shown
    - The package cache location is shown under ``package cache``
 
@@ -334,6 +337,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    Check ``micromamba info`` for the exact paths to your configuration files:
+
    - ``user config files`` shows the location of ``.mambarc``
    - ``populated config files`` shows the location of ``.condarc``
 

@@ -126,14 +126,14 @@ jobs:
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
       - name: Upload conda build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           retention-days: 7
       - name: Upload micromamba
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
@@ -143,7 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Cache vcpkg packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
           # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg
@@ -184,6 +184,7 @@ jobs:
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
+            -D BUILD_LIBMAMBA_SPDLOG=ON ^
             -D BUILD_STATIC=ON ^
             -D BUILD_MICROMAMBA=ON
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -210,13 +211,13 @@ jobs:
           ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix  --log-level 1
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: micromamba-build-failed-win-64
           path: ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz
           retention-days: 7
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: micromamba-win-64
           path: ${{ github.workspace }}/build/micromamba/micromamba.exe

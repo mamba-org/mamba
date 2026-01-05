@@ -7,12 +7,12 @@
 #include <algorithm>
 #include <deque>
 
+#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 #include <fmt/core.h>
 
-#include <mamba/core/logging_spdlog.hpp>
-
-#include "test_logging_common.hpp"
+#include <mamba/spdlog/logging_spdlog.hpp>
+#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {

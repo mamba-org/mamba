@@ -16,6 +16,10 @@ else()
     set(libmamba_target mamba::libmamba)
 endif()
 
+if(NOT TARGET mamba::libmamba-dyn-spdlog)
+    find_package(libmamba-spdlog CONFIG REQUIRED)
+endif()
+
 find_package(Python COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
 
@@ -48,7 +52,9 @@ target_include_directories(bindings PRIVATE bindings)
 
 mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_link_libraries(bindings PRIVATE pybind11::pybind11 ${libmamba_target})
+target_link_libraries(
+    bindings PRIVATE pybind11::pybind11 ${libmamba_target} mamba::libmamba-dyn-spdlog
+)
 target_compile_features(bindings PUBLIC cxx_std_20)
 set_target_properties(
     bindings

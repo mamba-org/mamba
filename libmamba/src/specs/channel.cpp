@@ -6,10 +6,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <stdexcept>
 
-#include <iostream>
-
+#include "mamba/core/logging.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/util/algorithm.hpp"
@@ -77,22 +77,22 @@ namespace mamba::specs
     void
     Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriorty /*priority*/)
     {
-        //auto all_urls = m_mirror_urls;
+        // auto all_urls = m_mirror_urls;
 
         // keep the mirrors list without duplicates
-        //auto new_urls_view = std::views::filter(
+        // auto new_urls_view = std::views::filter(
         //    additional_mirrors,
         //    [&](const auto& url) { return not stdext::contains(all_urls, url); }
         //);
         //// TODO C++23 range `to<std::vector>`
-        //std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
+        // std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
 
-        //auto insertion_point = [&]
+        // auto insertion_point = [&]
         //{
-        //    switch (priority)
-        //    {
-        //        case UrlPriorty::high:
-        //            return all_urls.begin();
+        //     switch (priority)
+        //     {
+        //         case UrlPriorty::high:
+        //             return all_urls.begin();
 
         //        default:
         //        case UrlPriorty::low:
@@ -100,7 +100,7 @@ namespace mamba::specs
         //    }
         //}();
 
-        //all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
+        // all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
 
         // WORKS BUT DOESNT MAKE THE RIGHT CHANNEL WORK WITH MANBAJS ENV LOCKFILES
         /*for (const auto& url : additional_mirrors)
@@ -108,20 +108,20 @@ namespace mamba::specs
             all_urls.push_back(url);
         }*/
 
-        
+
         // prepare_mirrors(all_urls);
         // m_mirror_urls = std::move(all_urls);
-        
+
         auto all_mirrors = additional_mirrors;
         for (const auto& url : m_mirror_urls)
         {
             all_mirrors.push_back(url);
         }
 
-        std::cout << "\nALL MIRRORS FOR " << this->id() << std::endl;
+        LOG_DEBUG << "\nALL MIRRORS FOR " << this->id();
         for (const auto& url : all_mirrors)
         {
-            std::cout << "  " << url.str() << std::endl;
+            LOG_DEBUG << "  " << url.str();
         }
 
         prepare_mirrors(all_mirrors);

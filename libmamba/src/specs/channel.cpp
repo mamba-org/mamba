@@ -75,57 +75,47 @@ namespace mamba::specs
     }
 
     void
-    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriorty /*priority*/)
+    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriorty priority)
     {
-        // auto all_urls = m_mirror_urls;
+        auto all_urls = m_mirror_urls;
 
         // keep the mirrors list without duplicates
-        // auto new_urls_view = std::views::filter(
-        //    additional_mirrors,
-        //    [&](const auto& url) { return not stdext::contains(all_urls, url); }
-        //);
-        //// TODO C++23 range `to<std::vector>`
-        // std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
+        auto new_urls_view = std::views::filter(
+            additional_mirrors,
+            [&](const auto& url) { return not stdext::contains(all_urls, url); }
+        );
+        // TODO C++23 range `to<std::vector>`
+        std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
 
-        // auto insertion_point = [&]
-        //{
-        //     switch (priority)
-        //     {
-        //         case UrlPriorty::high:
-        //             return all_urls.begin();
+        auto insertion_point = [&]
+        {
+            switch (priority)
+            {
+                case UrlPriorty::high:
+                    return all_urls.begin();
 
-        //        default:
-        //        case UrlPriorty::low:
-        //            return all_urls.end();
-        //    }
-        //}();
+                default:
+                case UrlPriorty::low:
+                    return all_urls.end();
+            }
+        }();
 
-        // all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
+        all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
 
         // WORKS BUT DOESNT MAKE THE RIGHT CHANNEL WORK WITH MANBAJS ENV LOCKFILES
-        /*for (const auto& url : additional_mirrors)
+        for (const auto& url : additional_mirrors)
         {
             all_urls.push_back(url);
-        }*/
-
-
-        // prepare_mirrors(all_urls);
-        // m_mirror_urls = std::move(all_urls);
-
-        auto all_mirrors = additional_mirrors;
-        for (const auto& url : m_mirror_urls)
-        {
-            all_mirrors.push_back(url);
         }
 
+        prepare_mirrors(all_urls);
+        m_mirror_urls = std::move(all_urls);
+
         LOG_DEBUG << "\nALL MIRRORS FOR " << this->id();
-        for (const auto& url : all_mirrors)
+        for (const auto& url : m_mirror_urls)
         {
             LOG_DEBUG << "  " << url.str();
         }
-
-        prepare_mirrors(all_mirrors);
-        m_mirror_urls = std::move(all_mirrors);
     }
 
     auto Channel::mirror_urls() const -> const std::vector<CondaURL>&

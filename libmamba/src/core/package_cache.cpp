@@ -570,8 +570,12 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find tarball cache for '" << s.filename << "'";
-            throw std::runtime_error("Package cache error.");
+            const auto message = fmt::format(
+                "Package cache error: Cannot find tarball cache for '{}'",
+                s.filename
+            );
+            LOG_ERROR << message;
+            throw std::runtime_error(message);
         }
     }
 
@@ -602,8 +606,12 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.filename << "'";
-            throw std::runtime_error("Package cache error.");
+            const auto message = fmt::format(
+                "Package cache error: Cannot find a valid extracted directory cache for '{}'",
+                s.filename
+            );
+            LOG_ERROR << message;
+            throw std::runtime_error(message);
         }
     }
 

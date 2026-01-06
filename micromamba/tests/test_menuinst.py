@@ -59,9 +59,9 @@ class TestMenuinst:
         not sys.platform.startswith("win"),
         reason="skipping windows-only tests",
     )
-    def test_shortcut_weird_env(self):
+    def test_shortcut_weird_env(self, monkeypatch):
         # note Umlauts do not work yet
-        os.environ["MAMBA_ROOT_PREFIX"] = str(Path("./compl i c ted").absolute())
+        monkeypatch.setenv("MAMBA_ROOT_PREFIX", str(Path("./compl i c ted").absolute()))
         root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
 
         env_name = random_string()
@@ -97,7 +97,6 @@ class TestMenuinst:
         assert not os.path.exists(lnk)
 
         shutil.rmtree(root_prefix)
-        os.environ["MAMBA_ROOT_PREFIX"] = self.root_prefix
 
     # Testing a package (spyder) using menuinst v2 schema
     @pytest.mark.skipif(

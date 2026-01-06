@@ -22,6 +22,7 @@ set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     include/mambatests_utils.hpp
+    include/test_shard_utils.hpp
     src/test_main.cpp
     # Catch utils
     src/catch-utils/conda_url.hpp
@@ -75,6 +76,7 @@ set(
     # Solver libsolv implementation tests
     src/solver/libsolv/test_database.cpp
     src/solver/libsolv/test_solver.cpp
+    src/api/test_channel_loader_shards.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
@@ -102,6 +104,12 @@ set(
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
+    src/core/test_shard_index.cpp
+    src/core/test_shard_loader.cpp
+    src/core/test_shard_traversal.cpp
+    src/core/test_shard_types.cpp
+    src/core/test_sharded_repodata_integration.cpp
+    src/core/test_shard_utils.cpp
     src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp

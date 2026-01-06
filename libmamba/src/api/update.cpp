@@ -26,6 +26,30 @@ namespace mamba
     {
         using command_args = std::vector<std::string>;
 
+        /**
+         * Extract package names from spec strings.
+         *
+         * Parses each spec string and extracts the package name, skipping invalid specs.
+         */
+        auto extract_package_names_from_specs(const std::vector<std::string>& raw_specs)
+            -> std::vector<std::string>
+        {
+            std::vector<std::string> names;
+            for (const auto& spec : raw_specs)
+            {
+                auto parsed = specs::MatchSpec::parse(spec);
+                if (parsed.has_value())
+                {
+                    const auto& name_spec = parsed->name();
+                    if (name_spec.is_exact())
+                    {
+                        names.push_back(name_spec.to_string());
+                    }
+                }
+            }
+            return names;
+        }
+
         auto create_update_request(
             PrefixData& prefix_data,
             std::vector<std::string> specs,
@@ -173,7 +197,9 @@ namespace mamba
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
+        // Extract package names from update specs for sharded repodata traversal
+        std::vector<std::string> root_packages = extract_package_names_from_specs(raw_update_specs);
+        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches, root_packages);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());

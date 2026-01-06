@@ -95,7 +95,7 @@ aliases['micromamba'] = _micromamba_main
 
 @contextual_command_completer
 def _micromamba_proc_completer(ctx):
-    if not ctx.args:
+    if not ctx.args or ctx.args[0].value != 'micromamba':
         return
 
     return (

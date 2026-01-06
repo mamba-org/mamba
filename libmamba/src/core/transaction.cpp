@@ -1387,8 +1387,9 @@ namespace mamba
                 auto channels [[maybe_unused]] = channel_context.make_channel(
                     channel_info.name,
                     channel_info.urls,
-                    specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
-                                                      // of the mirrors list
+                    //specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
+                    //                                  // of the mirrors list
+                    specs::Channel::UrlPriorty::low
                 );
             }
         }

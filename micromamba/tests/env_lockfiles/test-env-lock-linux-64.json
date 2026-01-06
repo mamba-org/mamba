@@ -15,7 +15,11 @@
     ],
     "conda-forge": [
       {
-        "url": "https://prefix.dev/channels/conda-forge",
+        "url": "https://prefix.dev/conda-forge",
+        "protocol": "https"
+      },
+      {
+        "url": "https://repo.prefix.dev/conda-forge",
         "protocol": "https"
       }
     ]

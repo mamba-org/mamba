@@ -5,9 +5,12 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 
 #include <catch2/catch_all.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -529,6 +532,542 @@ namespace
                     }
                 }
             );
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies")
+        {
+            // Create a temporary repodata JSON file with conditional dependencies
+            auto temp_dir = std::filesystem::temp_directory_path() / "mamba_test_conditional_deps";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            // Create repodata JSON with conditional dependencies
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "linux-64";
+            repodata_json["repodata_version"] = 1;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "numpy",                               // Regular dependency
+                    "pywin32; if __win",                   // Should be skipped on linux-64
+                    "unixutils; if __unix",                // Should be added on linux-64
+                    "typing-extensions; if python <3.10",  // Complex condition - skipped at parse
+                                                           // time
+                }
+            );
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["constrains"] = nlohmann::json::array(
+                {
+                    "someconstraint; if __unix",  // Should be added on linux-64
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/linux-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            // Check that the package was parsed correctly
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        // Should have numpy (regular) and unixutils (__unix condition satisfied)
+                        // Should NOT have pywin32 (__win condition not satisfied)
+                        // Should NOT have typing-extensions (complex condition skipped)
+                        REQUIRE(p.dependencies.size() == 2);
+
+                        // Parse dependencies as MatchSpecs to check names (they may be in "name *"
+                        // format)
+                        std::vector<std::string> dep_names;
+                        for (const auto& dep_str : p.dependencies)
+                        {
+                            auto ms = specs::MatchSpec::parse(dep_str);
+                            if (ms.has_value())
+                            {
+                                dep_names.push_back(ms->name().to_string());
+                            }
+                        }
+
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "numpy") != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "unixutils")
+                            != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "pywin32") == dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "typing-extensions")
+                            == dep_names.end()
+                        );
+
+                        // Constraint with __unix should be added
+                        REQUIRE(p.constrains.size() == 1);
+                        std::vector<std::string> cons_names;
+                        for (const auto& cons_str : p.constrains)
+                        {
+                            auto ms = specs::MatchSpec::parse(cons_str);
+                            if (ms.has_value())
+                            {
+                                cons_names.push_back(ms->name().to_string());
+                            }
+                        }
+                        REQUIRE(
+                            std::find(cons_names.begin(), cons_names.end(), "someconstraint")
+                            != cons_names.end()
+                        );
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies on Windows platform")
+        {
+            // Create a temporary repodata JSON file with conditional dependencies for Windows
+            auto temp_dir = std::filesystem::temp_directory_path()
+                            / "mamba_test_conditional_deps_win";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            // Create repodata JSON with conditional dependencies for Windows
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "win-64";
+            repodata_json["repodata_version"] = 1;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "win-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "numpy",                 // Regular dependency
+                    "pywin32; if __win",     // Should be added on win-64
+                    "unixutils; if __unix",  // Should be skipped on win-64
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/win-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            // Check that the package was parsed correctly
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        // Should have numpy (regular) and pywin32 (__win condition satisfied)
+                        // Should NOT have unixutils (__unix condition not satisfied)
+                        REQUIRE(p.dependencies.size() == 2);
+
+                        // Parse dependencies as MatchSpecs to check names (they may be in "name *"
+                        // format)
+                        std::vector<std::string> dep_names;
+                        for (const auto& dep_str : p.dependencies)
+                        {
+                            auto ms = specs::MatchSpec::parse(dep_str);
+                            if (ms.has_value())
+                            {
+                                dep_names.push_back(ms->name().to_string());
+                            }
+                        }
+
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "numpy") != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "pywin32") != dep_names.end()
+                        );
+                        REQUIRE(
+                            std::find(dep_names.begin(), dep_names.end(), "unixutils")
+                            == dep_names.end()
+                        );
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies - complex condition evaluation")
+        {
+            // Test that complex conditions (e.g., python <3.10) are evaluated against packages in
+            // the pool This is step 5: condition evaluation against pool
+
+            auto temp_dir = std::filesystem::temp_directory_path()
+                            / "mamba_test_conditional_deps_complex";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            // Create repodata JSON with a package that has a conditional dependency
+            // The condition references python, which will be in the pool
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "linux-64";
+            repodata_json["repodata_version"] = 1;
+
+            // Add python 3.9 package to the repo (this will be in the pool)
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["name"] = "python";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["version"] = "3.9.0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add typing-extensions package
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["name"] = "typing-extensions";
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["version"] = "4.0.0";
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add testpkg with conditional dependency on python <3.10
+            // Since python 3.9 is in the pool and matches <3.10, typing-extensions should be added
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "typing-extensions; if python <3.10",  // Should be added because python 3.9 is
+                                                           // in pool
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/linux-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 3);  // python, typing-extensions, testpkg
+
+            // Check that testpkg has typing-extensions as a dependency
+            // (condition was evaluated and satisfied because python 3.9 is in the pool)
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        REQUIRE(p.dependencies.size() == 1);
+
+                        // Parse dependency to check name
+                        auto ms = specs::MatchSpec::parse(p.dependencies[0]);
+                        REQUIRE(ms.has_value());
+                        REQUIRE(ms->name().to_string() == "typing-extensions");
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies - condition not satisfied")
+        {
+            // Test that conditional dependencies are NOT added when condition is not satisfied
+            // This is step 5: condition evaluation against pool
+
+            auto temp_dir = std::filesystem::temp_directory_path()
+                            / "mamba_test_conditional_deps_not_satisfied";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            // Create repodata JSON with a package that has a conditional dependency
+            // The condition references python >=3.10, but we only have python 3.9 in the pool
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "linux-64";
+            repodata_json["repodata_version"] = 1;
+
+            // Add python 3.9 package to the repo (this will be in the pool)
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["name"] = "python";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["version"] = "3.9.0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add typing-extensions package
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["name"] = "typing-extensions";
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["version"] = "4.0.0";
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["typing-extensions-4.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add testpkg with conditional dependency on python >=3.10
+            // Since python 3.9 is in the pool and does NOT match >=3.10, typing-extensions should
+            // NOT be added
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "typing-extensions; if python >=3.10",  // Should NOT be added because
+                                                            // python 3.9 doesn't match >=3.10
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/linux-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 3);  // python, typing-extensions, testpkg
+
+            // Check that testpkg does NOT have typing-extensions as a dependency
+            // (condition was evaluated and NOT satisfied because python 3.9 doesn't match >=3.10)
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        REQUIRE(p.dependencies.empty());  // No dependencies because condition was
+                                                          // not satisfied
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies - AND condition")
+        {
+            // Test that AND conditions are evaluated correctly
+            // This is step 5: condition evaluation against pool with AND logic
+
+            auto temp_dir = std::filesystem::temp_directory_path()
+                            / "mamba_test_conditional_deps_and";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "linux-64";
+            repodata_json["repodata_version"] = 1;
+
+            // Add python 3.9
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["name"] = "python";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["version"] = "3.9.0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add numpy 2.0
+            repodata_json["packages"]["numpy-2.0.0-h12345_0.tar.bz2"]["name"] = "numpy";
+            repodata_json["packages"]["numpy-2.0.0-h12345_0.tar.bz2"]["version"] = "2.0.0";
+            repodata_json["packages"]["numpy-2.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["numpy-2.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["numpy-2.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add somepkg
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["name"] = "somepkg";
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add testpkg with AND condition: python <3.10 and numpy >=2.0
+            // Both conditions should be satisfied (python 3.9 <3.10 AND numpy 2.0 >=2.0)
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "somepkg; if python <3.10 and numpy >=2.0",  // Should be added because both
+                                                                 // conditions are satisfied
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/linux-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 4);  // python, numpy, somepkg, testpkg
+
+            // Check that testpkg has somepkg as a dependency (AND condition satisfied)
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        REQUIRE(p.dependencies.size() == 1);
+                        auto ms = specs::MatchSpec::parse(p.dependencies[0]);
+                        REQUIRE(ms.has_value());
+                        REQUIRE(ms->name().to_string() == "somepkg");
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
+        }
+
+        SECTION("Add repo from repodata with conditional dependencies - OR condition")
+        {
+            // Test that OR conditions are evaluated correctly
+            // This is step 5: condition evaluation against pool with OR logic
+
+            auto temp_dir = std::filesystem::temp_directory_path() / "mamba_test_conditional_deps_or";
+            std::filesystem::create_directories(temp_dir);
+            auto repodata_file = temp_dir / "repodata.json";
+
+            nlohmann::json repodata_json;
+            repodata_json["info"]["subdir"] = "linux-64";
+            repodata_json["repodata_version"] = 1;
+
+            // Add python 3.9 (matches <3.10 but not >=3.12)
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["name"] = "python";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["version"] = "3.9.0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["python-3.9.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add somepkg
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["name"] = "somepkg";
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["somepkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+
+            // Add testpkg with OR condition: python <3.10 or python >=3.12
+            // First condition is satisfied (python 3.9 <3.10), so somepkg should be added
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["name"] = "testpkg";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["version"] = "1.0.0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build"] = "h12345_0";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["build_number"] = 0;
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["subdir"] = "linux-64";
+            repodata_json["packages"]["testpkg-1.0.0-h12345_0.tar.bz2"]["depends"] = nlohmann::json::array(
+                {
+                    "somepkg; if python <3.10 or python >=3.12",  // Should be added because first
+                                                                  // condition is satisfied
+                }
+            );
+
+            // Write to file
+            {
+                std::ofstream file(repodata_file);
+                file << repodata_json.dump();
+            }
+
+            // Parse with Mamba parser
+            auto repo1 = db.add_repo_from_repodata_json(
+                repodata_file,
+                "https://conda.anaconda.org/test/linux-64",
+                "test",
+                libsolv::PipAsPythonDependency::No,
+                libsolv::PackageTypes::CondaOrElseTarBz2,
+                libsolv::VerifyPackages::No,
+                libsolv::RepodataParser::Mamba
+            );
+
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 3);  // python, somepkg, testpkg
+
+            // Check that testpkg has somepkg as a dependency (OR condition satisfied)
+            db.for_each_package_in_repo(
+                repo1.value(),
+                [&](const auto& p)
+                {
+                    if (p.name == "testpkg")
+                    {
+                        REQUIRE(p.dependencies.size() == 1);
+                        auto ms = specs::MatchSpec::parse(p.dependencies[0]);
+                        REQUIRE(ms.has_value());
+                        REQUIRE(ms->name().to_string() == "somepkg");
+                    }
+                }
+            );
+
+            // Cleanup
+            std::filesystem::remove_all(temp_dir);
         }
     }
 }

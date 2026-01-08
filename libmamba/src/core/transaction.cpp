@@ -500,6 +500,12 @@ namespace mamba
             }
         };
 
+        
+        if (ctx.output_params.json)
+        {
+            log_json();
+        }
+
         TransactionRollback rollback;
         TransactionContext transaction_context(
             ctx.transaction_params(),

@@ -860,7 +860,6 @@ namespace mamba
                 lock_pkgs.push_back(LockFile(c));
             }
 
-
             if (transaction.prompt(ctx, channel_context))
             {
                 if (create_env && !ctx.dry_run)
@@ -869,11 +868,6 @@ namespace mamba
                 }
 
                 transaction.execute(ctx, channel_context, prefix_data);
-
-                if (ctx.output_params.json)
-                {
-                    transaction.log_json();
-                }
 
                 // Print activation message only if the environment is freshly created
                 if (create_env && !ctx.dry_run)

@@ -531,4 +531,147 @@ namespace
             );
         }
     }
+
+    /**
+     * Tests for defaulted_keys preservation through Database round-trip
+     *
+     * PURPOSE: Verify that PackageInfo.defaulted_keys survives the round-trip through
+     * the libsolv database (add_repo_from_packages -> for_each_package_in_repo).
+     *
+     * MOTIVATION: Issue #4095 - URL-derived packages lose their defaulted_keys when
+     * going through the solver because set_solvable() and make_package_info() didn't
+     * preserve this field. This test ensures the fix works correctly.
+     *
+     * SEMANTICS of defaulted_keys:
+     * - Empty: INVALID (missing "_initialized" sentinel)
+     * - ["_initialized"]: Properly initialized, trust all fields
+     * - ["_initialized", "field1", ...]: Properly initialized, these fields have stub values
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("Database preserves defaulted_keys")
+    {
+        auto db = libsolv::Database({}, { libsolv::MatchSpecParser::Mamba });
+
+        SECTION("defaulted_keys survives round-trip through database")
+        {
+            // PURPOSE: Verify that a full defaulted_keys list (like from from_url())
+            // is preserved when a package goes through the database.
+            auto pkg = specs::PackageInfo();
+            pkg.name = "url-derived-pkg";
+            pkg.version = "1.0";
+            pkg.build_string = "h123_0";
+            pkg.channel = "conda-forge";
+            // URL-derived packages have a full list of stub fields
+            pkg.defaulted_keys = { "_initialized", "build_number",   "license", "timestamp", "md5",
+                                   "sha256",       "track_features", "depends", "constrains" };
+
+            auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
+
+            std::size_t count = 0;
+            db.for_each_package_in_repo(
+                repo,
+                [&](const auto& p)
+                {
+                    count++;
+                    REQUIRE(p.name == "url-derived-pkg");
+                    // This is the critical assertion - defaulted_keys must be preserved
+                    REQUIRE(p.defaulted_keys == pkg.defaulted_keys);
+                }
+            );
+            REQUIRE(count == 1);
+        }
+
+        SECTION("empty defaulted_keys becomes _initialized (backward compat fallback)")
+        {
+            // PURPOSE: Verify backward compatibility with old code/cache that has
+            // empty defaulted_keys. The fallback should convert empty to ["_initialized"].
+            auto pkg = specs::PackageInfo();
+            pkg.name = "legacy-pkg";
+            pkg.version = "2.0";
+            pkg.build_string = "h456_0";
+            pkg.channel = "conda-forge";
+            pkg.defaulted_keys = {};  // Empty = invalid, should be converted
+
+            auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
+
+            db.for_each_package_in_repo(
+                repo,
+                [&](const auto& p)
+                {
+                    REQUIRE(p.name == "legacy-pkg");
+                    // Fallback converts empty to ["_initialized"]
+                    REQUIRE(p.defaulted_keys.size() == 1);
+                    REQUIRE(p.defaulted_keys[0] == "_initialized");
+                }
+            );
+        }
+
+        SECTION("_initialized only is preserved (channel-derived)")
+        {
+            // PURPOSE: Verify that packages with only _initialized (like channel
+            // repodata packages) preserve this exact state.
+            auto pkg = specs::PackageInfo();
+            pkg.name = "channel-pkg";
+            pkg.version = "3.0";
+            pkg.build_string = "0";
+            pkg.channel = "conda-forge";
+            // Channel-derived packages have only _initialized (trust all fields)
+            pkg.defaulted_keys = { "_initialized" };
+
+            auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
+
+            db.for_each_package_in_repo(
+                repo,
+                [&](const auto& p)
+                {
+                    REQUIRE(p.name == "channel-pkg");
+                    REQUIRE(p.defaulted_keys.size() == 1);
+                    REQUIRE(p.defaulted_keys[0] == "_initialized");
+                }
+            );
+        }
+    }
+
+    /**
+     * Tests for channel-derived packages from repodata JSON
+     *
+     * PURPOSE: Verify that packages loaded from channel repodata JSON have
+     * ["_initialized"] set, indicating they have authoritative metadata.
+     *
+     * MOTIVATION: Issue #4095 - Channel repodata packages must have the
+     * "_initialized" sentinel so write_repodata_record() knows they're valid.
+     * Without this, all channel installs would fail with "missing _initialized".
+     *
+     * Related: https://github.com/mamba-org/mamba/issues/4095
+     */
+    TEST_CASE("Channel-derived packages from repodata have _initialized")
+    {
+        auto db = libsolv::Database({}, { libsolv::MatchSpecParser::Mamba });
+
+        const auto repodata = mambatests::test_data_dir / "repodata/conda-forge-numpy-linux-64.json";
+        auto repo = db.add_repo_from_repodata_json(
+            repodata,
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "conda-forge",
+            libsolv::PipAsPythonDependency::No
+        );
+        REQUIRE(repo.has_value());
+        REQUIRE(repo->package_count() > 0);
+
+        // Channel repodata packages should have ["_initialized"] because all their
+        // metadata is authoritative (no stub values). This is critical for
+        // write_repodata_record() to work correctly. See GitHub issue #4095.
+        std::size_t count = 0;
+        db.for_each_package_in_repo(
+            repo.value(),
+            [&](const auto& pkg)
+            {
+                count++;
+                REQUIRE(pkg.defaulted_keys.size() == 1);
+                REQUIRE(pkg.defaulted_keys[0] == "_initialized");
+            }
+        );
+        REQUIRE(count == repo->package_count());
+    }
 }

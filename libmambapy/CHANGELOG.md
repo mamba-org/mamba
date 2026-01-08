@@ -1,3 +1,23 @@
+## libmambapy 2.5.0 (January 08, 2026)
+
+Enhancements:
+
+- Remove `spdlog` from `libmamba`, provide `libmamba-spdlog` library by @Klaim in <https://github.com/mamba-org/mamba/pull/4082>
+
+CI fixes and doc:
+
+- Fix formatting of unordered lists in the docs by @pozdneev in <https://github.com/mamba-org/mamba/pull/4128>
+- docs: Uninstallation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4108>
+- Update README to remove QuantStack Zulip link by @jezdez in <https://github.com/mamba-org/mamba/pull/4105>
+- Change chat links to QuantStack and Conda Zulip by @jezdez in <https://github.com/mamba-org/mamba/pull/4103>
+
+Maintenance:
+
+- build(deps): bump actions/cache from 4 to 5 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4122>
+- build(deps): bump actions/upload-artifact from 5 to 6 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4121>
+- build(deps): bump actions/cache from 4 to 5 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4120>
+- build(deps): bump actions/checkout from 1 to 6 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4100>
+
 ## libmambapy 2.5.0.rc0 (January 07, 2026)
 
 Enhancements:

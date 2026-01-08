@@ -139,7 +139,7 @@ jobs:
           path: ${{ github.workspace }}/artifacts/micromamba
   micromamba-static-win:
     name: "win-64"
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
       - name: Cache vcpkg packages

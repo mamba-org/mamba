@@ -165,6 +165,50 @@ jobs:
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
           # Only rerun flaky tests on the `main` branch
+          # Note: test_create.py and test_install.py are excluded here and run in a separate job
+          # (mamba_integration_tests_test_create_install_win) to allow parallel execution and speed up CI,
+          # as these test files account for a significant portion of test runtime
           python -m pytest micromamba/tests/ `
+            --ignore=micromamba/tests/test_create.py `
+            --ignore=micromamba/tests/test_install.py `
+            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} `
+            ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
+
+  # Separate job for test_create.py and test_install.py to enable parallel execution with other tests.
+  # These test files account for a significant portion of the time spent running integration tests,
+  # so running them in parallel with the rest of the tests significantly speeds up CI.
+  mamba_integration_tests_test_create_install_win:
+    name: mamba integration tests (test_create.py, test_install.py)
+    needs: ["build_shared_win"]
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v6
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+          init-shell: bash cmd.exe powershell
+      - name: Install mamba
+        shell: bash -elo pipefail {0}
+        run: |
+          cmake --install build/ --prefix local/
+      - name: mamba python based tests with pwsh (test_create.py, test_install.py)
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING='UTF-8'
+          $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
+          $env:MAMBA_TEST_SHELL_TYPE='powershell'
+          Remove-Item -Path "env:CONDARC"
+          # Only rerun flaky tests on the `main` branch
+          python -m pytest micromamba/tests/test_create.py micromamba/tests/test_install.py `
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} `
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

@@ -860,10 +860,6 @@ namespace mamba
                 lock_pkgs.push_back(LockFile(c));
             }
 
-            if (ctx.output_params.json)
-            {
-                transaction.log_json();
-            }
 
             if (transaction.prompt(ctx, channel_context))
             {
@@ -873,6 +869,11 @@ namespace mamba
                 }
 
                 transaction.execute(ctx, channel_context, prefix_data);
+
+                if (ctx.output_params.json)
+                {
+                    transaction.log_json();
+                }
 
                 // Print activation message only if the environment is freshly created
                 if (create_env && !ctx.dry_run)
@@ -892,6 +893,11 @@ namespace mamba
             }
             else
             {
+                if (ctx.output_params.json)
+                {
+                    transaction.log_json();
+                }
+
                 // Aborting new env creation
                 // but the directory was already created because of `store_platform_config` call
                 // => Remove the created directory

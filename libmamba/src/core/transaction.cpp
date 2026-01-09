@@ -1388,20 +1388,20 @@ namespace mamba
             LOG_DEBUG << "  manager = " << package.manager;
         }
 
-        if (lockfile_data.get_metadata().enable_channels)
-        {
-            // create or add mirrors to additional channels
-            for (const EnvironmentLockFile::Channel& channel_info :
-                 lockfile_data.get_metadata().channels)
-            {
-                auto channels [[maybe_unused]] = channel_context.make_channel(
-                    channel_info.name,
-                    channel_info.urls,
-                    specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
-                                                      // of the mirrors list
-                );
-            }
-        }
+        //if (lockfile_data.get_metadata().enable_channels)
+        //{
+        //    // create or add mirrors to additional channels
+        //    for (const EnvironmentLockFile::Channel& channel_info :
+        //         lockfile_data.get_metadata().channels)
+        //    {
+        //        auto channels [[maybe_unused]] = channel_context.make_channel(
+        //            channel_info.name,
+        //            channel_info.urls,
+        //            specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
+        //                                              // of the mirrors list
+        //        );
+        //    }
+        //}
 
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};

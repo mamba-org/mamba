@@ -886,7 +886,13 @@ namespace mamba::solver::libsolv
         repo.set_etag(metadata.etag);
         repo.set_mod(metadata.mod);
         repo.set_tool_version(MAMBA_SOLV_VERSION);
-        repo.internalize();
+        // CRITICAL FIX: Do NOT call internalize() here. The repo is already internalized:
+        // - For repos created via add_repo_from_packages: internalize() is called in
+        //   add_repo_from_packages_impl_post (line 274)
+        // - For repos loaded from JSON: internalize() is called in add_repo_from_repodata_json
+        //   (line 215) before write_solv is invoked
+        // Calling internalize() twice on the same repo causes double free corruption.
+        // repo.internalize();  // REMOVED to prevent double free corruption
 
         fs::create_directories(filename.parent_path());
         const auto lock = LockFile(fs::exists(filename) ? filename : filename.parent_path());

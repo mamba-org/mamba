@@ -236,6 +236,8 @@ namespace mamba
             }
 
             // Add packages directly to database
+            // Note: add_repo_from_packages always succeeds (returns RepoInfo, not expected_t)
+            // Once we call this, the repo is added and we MUST NOT fall back to avoid double-add
             const auto add_pip = static_cast<solver::libsolv::PipAsPythonDependency>(
                 ctx.add_pip_as_python_dependency
             );
@@ -243,6 +245,8 @@ namespace mamba
             auto repo_info = database.add_repo_from_packages(package_infos, subdir.channel_id(), add_pip);
 
             // Write solv file if not on Windows
+            // If this fails, we still return success since the repo is already added
+            // Failure to write solv file should not cause fallback (which would double-add)
             if (!util::on_win)
             {
                 const auto url_parts = util::rsplit(subdir.metadata().url(), "/", 1);
@@ -509,6 +513,7 @@ namespace mamba
             // Filter subdirs that need index downloads (repodata.json)
             // Skip index downloads for subdirs with shards available when repodata_use_shards is
             // true
+            // However, always download repodata.json for noarch subdirs to ensure fallback works
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& subdir : subdirs)
             {
@@ -519,9 +524,19 @@ namespace mamba
                     if (subdir.metadata().has_up_to_date_shards())
                     {
                         // Skip downloading repodata.json if shards are available
-                        needs_index = false;
-                        LOG_DEBUG << "Skipping repodata.json download for " << subdir.name()
-                                  << " (using sharded repodata)";
+                        // BUT: Always download for noarch subdirs to ensure fallback works
+                        // (noarch packages are often needed even when not explicitly requested)
+                        if (!subdir.is_noarch())
+                        {
+                            needs_index = false;
+                            LOG_DEBUG << "Skipping repodata.json download for " << subdir.name()
+                                      << " (using sharded repodata)";
+                        }
+                        else
+                        {
+                            LOG_DEBUG << "Downloading repodata.json for noarch subdir "
+                                      << subdir.name() << " (needed for fallback)";
+                        }
                     }
                 }
                 if (needs_index)
@@ -622,12 +637,24 @@ namespace mamba
                     result = load_subdir_with_shards(ctx, database, subdir, root_packages);
 
                     // If sharded loading fails, fall back to traditional repodata
+                    // For noarch subdirs, we always have repodata.json downloaded for fallback
                     if (!result.has_value())
                     {
                         LOG_WARNING
                             << "Sharded repodata loading failed for " << subdir.name()
                             << ", falling back to traditional repodata: " << result.error().what();
-                        result = load_subdir_in_database(ctx, database, subdir);
+                        // Ensure we have valid cache for fallback (should always be true for
+                        // noarch, but check anyway)
+                        if (subdir.valid_cache_found())
+                        {
+                            result = load_subdir_in_database(ctx, database, subdir);
+                        }
+                        else
+                        {
+                            LOG_ERROR << "Cannot fall back to traditional repodata for "
+                                      << subdir.name() << " - no cache found";
+                            // Continue to error handling below
+                        }
                     }
                 }
                 else

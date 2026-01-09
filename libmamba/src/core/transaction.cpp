@@ -379,6 +379,10 @@ namespace mamba
 
         if (ctx.dry_run)
         {
+            if (ctx.output_params.json)
+            {
+                log_json();
+            }
             Console::stream() << "Dry run. Not executing the transaction.";
             return true;
         }

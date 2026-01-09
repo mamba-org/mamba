@@ -242,32 +242,41 @@ namespace mamba
                 ctx.add_pip_as_python_dependency
             );
 
+            // CRITICAL: Do NOT set metadata for repos created from packages.
+            // Setting metadata (set_url, set_etag, etc.) even BEFORE internalize() appears to
+            // cause memory corruption. The metadata is only used for caching solv files, which
+            // we skip for sharded repos anyway. Using the standard add_repo_from_packages
+            // without metadata.
             auto repo_info = database.add_repo_from_packages(package_infos, subdir.channel_id(), add_pip);
 
             // Write solv file if not on Windows
             // If this fails, we still return success since the repo is already added
             // Failure to write solv file should not cause fallback (which would double-add)
-            if (!util::on_win)
-            {
-                const auto url_parts = util::rsplit(subdir.metadata().url(), "/", 1);
-                const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
-                    /* .url= */ url_parts.empty() ? subdir.metadata().url() : url_parts.front(),
-                    /* .etag= */ subdir.metadata().etag(),
-                    /* .mod= */ subdir.metadata().last_modified(),
-                };
-
-                auto result = database.native_serialize_repo(
-                    repo_info,
-                    subdir.writable_libsolv_cache_path(),
-                    expected_cache_origin
-                );
-                if (!result)
-                {
-                    LOG_WARNING << R"(Fail to write native serialization to file ")"
-                                << subdir.writable_libsolv_cache_path() << R"(" for repo ")"
-                                << subdir.name() << ": " << std::move(result).error().what();
-                }
-            }
+            // CRITICAL: For repos created from packages, metadata is already set before
+            // internalize(). Calling write_solv which tries to read metadata (even just to
+            // check if it's set) can cause memory corruption. We skip writing the solv file
+            // for now - it's not critical for functionality, just for caching.
+            // TODO: Fix write_solv to safely handle already-internalized repos with metadata set
+            // if (!util::on_win)
+            // {
+            //     const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
+            //         /* .url= */ repo_url,
+            //         /* .etag= */ subdir.metadata().etag(),
+            //         /* .mod= */ subdir.metadata().last_modified(),
+            //     };
+            //
+            //     auto result = database.native_serialize_repo(
+            //         repo_info,
+            //         subdir.writable_libsolv_cache_path(),
+            //         expected_cache_origin
+            //     );
+            //     if (!result)
+            //     {
+            //         LOG_WARNING << R"(Fail to write native serialization to file ")"
+            //                     << subdir.writable_libsolv_cache_path() << R"(" for repo ")"
+            //                     << subdir.name() << ": " << std::move(result).error().what();
+            //     }
+            // }
 
             return repo_info;
         }

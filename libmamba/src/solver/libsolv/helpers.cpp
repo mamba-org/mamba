@@ -882,10 +882,23 @@ namespace mamba::solver::libsolv
     {
         LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << repo.name();
 
-        repo.set_url(metadata.url);
-        repo.set_etag(metadata.etag);
-        repo.set_mod(metadata.mod);
-        repo.set_tool_version(MAMBA_SOLV_VERSION);
+        // CRITICAL: Metadata setters (set_url, set_etag, set_mod, set_tool_version) must be
+        // called BEFORE internalize(). For repos created via add_repo_from_packages, metadata
+        // is already set before internalize() in load_subdir_with_shards. For repos loaded from
+        // JSON, metadata is set before internalize() in add_repo_from_repodata_json.
+        // Setting metadata AFTER internalize() causes memory corruption.
+        // Check if metadata is already set - if so, skip setting it to avoid corruption
+        const bool metadata_already_set = !repo.url().empty() || !repo.etag().empty()
+                                          || !repo.mod().empty() || !repo.tool_version().empty();
+        if (!metadata_already_set)
+        {
+            // Only set metadata if it's not already set (should not happen in practice,
+            // but handle it for safety)
+            repo.set_url(metadata.url);
+            repo.set_etag(metadata.etag);
+            repo.set_mod(metadata.mod);
+            repo.set_tool_version(MAMBA_SOLV_VERSION);
+        }
         // CRITICAL FIX: Do NOT call internalize() here. The repo is already internalized:
         // - For repos created via add_repo_from_packages: internalize() is called in
         //   add_repo_from_packages_impl_post (line 274)

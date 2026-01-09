@@ -488,6 +488,94 @@ namespace mamba
             m_requested_specs
         );
 
+        // Helper function to uninstall a pip package
+        const auto uninstall_pip_package = [&](const std::string& name)
+        {
+            const auto get_python_path = [&]
+            {
+                return util::which_in("python", util::get_path_dirs(ctx.prefix_params.target_prefix))
+                    .string();
+            };
+
+            const auto args = std::array<std::string, 5>{ get_python_path(),
+                                                          "-m",
+                                                          "pip",
+                                                          "uninstall",
+                                                          "-y" };
+            std::vector<std::string> full_args(args.begin(), args.end());
+            full_args.push_back(name);
+
+            const std::vector<std::pair<std::string, std::string>> env{
+                { "PYTHONIOENCODING", "utf-8" },
+                { "NO_COLOR", "1" },
+                { "PIP_NO_COLOR", "1" },
+            };
+            reproc::options run_options;
+            run_options.env.extra = reproc::env{ env };
+            const auto working_dir = ctx.prefix_params.target_prefix.string();
+            run_options.working_directory = working_dir.c_str();
+
+            std::string out, err;
+            const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
+            util::unset_env("FORCE_COLOR");
+            on_scope_exit _{ [&]
+                             {
+                                 if (maybe_previous_force_color)
+                                 {
+                                     util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
+                                 }
+                             } };
+
+            auto [status, ec] = reproc::run(
+                full_args,
+                run_options,
+                reproc::sink::string(out),
+                reproc::sink::string(err)
+            );
+
+            if (ec)
+            {
+                LOG_WARNING << "Failed to uninstall pip package " << name << ": " << err;
+                // Continue anyway - the package might already be removed or not exist
+            }
+            else
+            {
+                LOG_DEBUG << "Successfully uninstalled pip package " << name;
+            }
+        };
+
+        // Uninstall all pip packages that conflict with packages being installed BEFORE installing
+        // This ensures pip packages are removed before conda packages are installed, avoiding
+        // duplicate uninstall attempts and warnings
+        if (ctx.prefix_data_interoperability)
+        {
+            const auto& pip_records = prefix.pip_records();
+            std::set<std::string> pip_packages_to_uninstall;
+
+            // Collect all pip packages that need to be uninstalled:
+            // 1. Pip packages marked for removal by the solver
+            // 2. Pip packages that conflict with packages being installed or requested
+            for (const auto& [name, pip_pkg] : pip_records)
+            {
+                bool in_removal = pip_package_names.contains(name);
+                bool in_install = packages_to_install_names.contains(name);
+                bool in_requested = requested_package_names.contains(name);
+                bool conflicts = in_removal || in_install || in_requested;
+
+                if (conflicts)
+                {
+                    pip_packages_to_uninstall.insert(name);
+                }
+            }
+
+            // Uninstall all conflicting pip packages before any conda operations
+            for (const auto& name : pip_packages_to_uninstall)
+            {
+                Console::stream() << "Uninstalling pip package " << name;
+                uninstall_pip_package(name);
+            }
+        }
+
         for (const specs::PackageInfo& pkg : m_solution.packages_to_remove())
         {
             if (is_sig_interrupted())
@@ -495,186 +583,27 @@ namespace mamba
                 break;
             }
 
-            // Check if this is a pip package (channel == "pypi" before normalization)
-            // If prefix_data_interoperability is enabled, we need to uninstall pip packages
-            // using pip uninstall instead of the normal unlink process
-            // Also check if this package name is in our pip_package_names set (which includes
-            // pip packages detected before normalization and pip packages that conflict with
-            // requested packages)
-            // If prefix_data_interoperability is disabled, we should skip pip packages entirely
-            // (they shouldn't be in the solver, but if they are, we don't want to remove them)
+            // Check if this is a pip package
+            // Pip packages are already uninstalled before this loop, so we skip them here
             bool is_pip_package
                 = (pip_package_names.contains(pkg.name) || prefix.pip_records().contains(pkg.name)
                    || pkg.channel.find("pypi") != std::string::npos);
 
-            if (is_pip_package && ctx.prefix_data_interoperability)
+            if (is_pip_package)
             {
-                Console::stream() << "Uninstalling pip package " << pkg.name;
-
-                // Run pip uninstall for this package
-                const auto get_python_path = [&]
-                {
-                    return util::which_in("python", util::get_path_dirs(ctx.prefix_params.target_prefix))
-                        .string();
-                };
-
-                const auto args = std::array<std::string, 5>{ get_python_path(),
-                                                              "-m",
-                                                              "pip",
-                                                              "uninstall",
-                                                              "-y" };
-                std::vector<std::string> full_args(args.begin(), args.end());
-                full_args.push_back(pkg.name);
-
-                const std::vector<std::pair<std::string, std::string>> env{
-                    { "PYTHONIOENCODING", "utf-8" },
-                    { "NO_COLOR", "1" },
-                    { "PIP_NO_COLOR", "1" },
-                };
-                reproc::options run_options;
-                run_options.env.extra = reproc::env{ env };
-                const auto working_dir = ctx.prefix_params.target_prefix.string();
-                run_options.working_directory = working_dir.c_str();
-
-                std::string out, err;
-                const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-                util::unset_env("FORCE_COLOR");
-                on_scope_exit _{
-                    [&]
-                    {
-                        if (maybe_previous_force_color)
-                        {
-                            util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                        }
-                    }
-                };
-
-                auto [status, ec] = reproc::run(
-                    full_args,
-                    run_options,
-                    reproc::sink::string(out),
-                    reproc::sink::string(err)
-                );
-
-                if (ec)
-                {
-                    LOG_WARNING << "Failed to uninstall pip package " << pkg.name << ": " << err;
-                    // Continue anyway - the package might already be removed or not exist
-                }
-                else
-                {
-                    LOG_DEBUG << "Successfully uninstalled pip package " << pkg.name;
-                }
+                // Pip packages are already uninstalled before this loop
+                // Just record it in history and continue
             }
-            else if (!is_pip_package)
+            else
             {
-                // Only unlink non-pip packages, or pip packages when interoperability is disabled
-                // (pip packages when disabled shouldn't be removed)
+                // Only unlink non-pip packages
                 Console::stream() << "Unlinking " << pkg.str();
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
                 UnlinkPackage up(pkg, cache_path, &transaction_context);
                 up.execute();
                 rollback.record(up);
             }
-            else
-            {
-                // Pip package but interoperability is disabled - skip removal
-            }
             m_history_entry.unlink_dists.push_back(pkg.long_str());
-        }
-
-        // Remove pip packages that conflict with packages being installed
-        // (even if they weren't marked for removal by the solver)
-        if (ctx.prefix_data_interoperability)
-        {
-            // Collect names of packages already processed for removal via pip uninstall
-            std::set<std::string> already_uninstalled_via_pip;
-            for (const specs::PackageInfo& removed_pkg : m_solution.packages_to_remove())
-            {
-                if (ctx.prefix_data_interoperability
-                    && (pip_package_names.contains(removed_pkg.name)
-                        || prefix.pip_records().contains(removed_pkg.name)))
-                {
-                    already_uninstalled_via_pip.insert(removed_pkg.name);
-                }
-            }
-
-            const auto& pip_records = prefix.pip_records();
-
-            for (const auto& [name, pip_pkg] : pip_records)
-            {
-                // Note: We don't skip packages that were already uninstalled in the first loop
-                // because pip_records() is cached and may still contain packages that were
-                // successfully uninstalled. The second loop will check if they still conflict
-                // and handle them if needed (though they should already be gone).
-
-                // Check if this pip package conflicts with a conda package being installed or
-                // requested We always remove pip packages that conflict, even if they weren't
-                // marked for removal by the solver
-                bool in_install = packages_to_install_names.contains(name);
-                bool in_requested = requested_package_names.contains(name);
-                bool conflicts = in_install || in_requested;
-
-                if (conflicts)
-                {
-                    // Remove this pip package before installing the conda version
-                    Console::stream() << "Uninstalling pip package " << name
-                                      << " (conflicts with conda package being installed)";
-
-                    const auto get_python_path = [&]
-                    {
-                        return util::which_in(
-                                   "python",
-                                   util::get_path_dirs(ctx.prefix_params.target_prefix)
-                        )
-                            .string();
-                    };
-
-                    const auto args = std::array<std::string, 5>{ get_python_path(),
-                                                                  "-m",
-                                                                  "pip",
-                                                                  "uninstall",
-                                                                  "-y" };
-                    std::vector<std::string> full_args(args.begin(), args.end());
-                    full_args.push_back(name);
-
-                    const std::vector<std::pair<std::string, std::string>> env{
-                        { "PYTHONIOENCODING", "utf-8" },
-                        { "NO_COLOR", "1" },
-                        { "PIP_NO_COLOR", "1" },
-                    };
-                    reproc::options run_options;
-                    run_options.env.extra = reproc::env{ env };
-                    const auto working_dir = ctx.prefix_params.target_prefix.string();
-                    run_options.working_directory = working_dir.c_str();
-
-                    std::string out, err;
-                    const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-                    util::unset_env("FORCE_COLOR");
-                    on_scope_exit _{
-                        [&]
-                        {
-                            if (maybe_previous_force_color)
-                            {
-                                util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                            }
-                        }
-                    };
-
-                    auto [status, ec] = reproc::run(
-                        full_args,
-                        run_options,
-                        reproc::sink::string(out),
-                        reproc::sink::string(err)
-                    );
-
-                    if (ec)
-                    {
-                        // Continue anyway - the package might already be removed or not exist
-                        // This is expected if the package was already uninstalled in the first loop
-                    }
-                }
-            }
         }
 
         for (const specs::PackageInfo& pkg : m_solution.packages_to_install())
@@ -721,136 +650,6 @@ namespace mamba
         }
         LOG_INFO << "Waiting for pyc compilation to finish";
         transaction_context.wait_for_pyc_compilation();
-
-        // Remove pip packages that conflict with packages being installed
-        // (even if they weren't marked for removal by the solver)
-        // This needs to happen AFTER installing conda packages, because conda-installed
-        // packages might be detected as pip packages by pip list
-        if (ctx.prefix_data_interoperability)
-        {
-            // Reload pip_records after installing conda packages to see what's actually there
-            // Note: We can't easily reload PrefixData, but we can check pip list directly
-            // For now, we'll use the cached pip_records but verify packages are actually pip
-            // packages
-            const auto& pip_records = prefix.pip_records();
-
-            // After installing conda packages, check which conda packages are actually installed
-            // by looking at the solution's packages_to_install()
-            std::set<std::string> actually_installed_names;
-            for (const specs::PackageInfo& pkg : m_solution.packages_to_install())
-            {
-                actually_installed_names.insert(pkg.name);
-            }
-
-            // Check which packages are installed via conda (not pip) after installation
-            // Note: conda_records is cached and may not reflect post-install state immediately,
-            // but it will be updated after packages are linked. We need to check if packages
-            // are actually installed via conda by checking the solution's packages_to_install()
-            // which includes all packages that were installed, including dependencies.
-            const auto& conda_records = prefix.records();
-
-            // Build a set of all conda package names that are installed (from solution + records)
-            // This includes packages that were just installed and packages that were already there
-            std::set<std::string> all_conda_packages;
-            for (const auto& name : actually_installed_names)
-            {
-                all_conda_packages.insert(name);
-            }
-            for (const auto& [name, pkg] : conda_records)
-            {
-                all_conda_packages.insert(name);
-            }
-
-            for (const auto& [name, pip_pkg] : pip_records)
-            {
-                // Check if this pip package conflicts with a conda package that was installed
-                // Use all_conda_packages which includes all packages that are installed via conda,
-                // including dependencies and packages that were already installed
-                bool in_install = packages_to_install_names.contains(name);
-                bool in_actually_installed = actually_installed_names.contains(name);
-                bool in_conda_records = conda_records.contains(name);
-                bool in_all_conda = all_conda_packages.contains(name);
-                bool in_requested = requested_package_names.contains(name);
-
-                // Special case: if a requested package is being installed and this pip package
-                // exists, and the pip package is not in conda_records, it might be a dependency of
-                // the requested package. Remove it to ensure the conda version is used. This
-                // handles cases like flask -> click where click is already installed via pip and
-                // satisfies the dependency, but we want to replace it with the conda version. Note:
-                // This only applies when interoperability is enabled (checked by the outer if)
-                bool might_be_dependency = !requested_package_names.empty() && !in_conda_records
-                                           && !in_all_conda;
-
-                // Remove pip packages that conflict with conda packages
-                // This includes packages that were just installed, packages that are in
-                // conda_records, packages that are dependencies of requested packages, or packages
-                // that might be dependencies of requested packages Note: This entire block is only
-                // executed when ctx.prefix_data_interoperability is true
-                bool conflicts = in_install || in_actually_installed || in_all_conda || in_requested
-                                 || might_be_dependency;
-
-                if (conflicts)
-                {
-                    // Remove this pip package after installing the conda version
-                    // This handles the case where conda-installed packages are detected as pip
-                    // packages
-                    Console::stream() << "Uninstalling pip package " << name
-                                      << " (conflicts with conda package that was installed)";
-
-                    const auto get_python_path = [&]
-                    {
-                        return util::which_in(
-                                   "python",
-                                   util::get_path_dirs(ctx.prefix_params.target_prefix)
-                        )
-                            .string();
-                    };
-
-                    const auto args = std::array<std::string, 5>{ get_python_path(),
-                                                                  "-m",
-                                                                  "pip",
-                                                                  "uninstall",
-                                                                  "-y" };
-                    std::vector<std::string> full_args(args.begin(), args.end());
-                    full_args.push_back(name);
-
-                    const std::vector<std::pair<std::string, std::string>> env{
-                        { "PYTHONIOENCODING", "utf-8" },
-                        { "NO_COLOR", "1" },
-                        { "PIP_NO_COLOR", "1" },
-                    };
-                    reproc::options run_options;
-                    run_options.env.extra = reproc::env{ env };
-                    const auto working_dir = ctx.prefix_params.target_prefix.string();
-                    run_options.working_directory = working_dir.c_str();
-
-                    std::string out, err;
-                    const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-                    util::unset_env("FORCE_COLOR");
-                    on_scope_exit _{
-                        [&]
-                        {
-                            if (maybe_previous_force_color)
-                            {
-                                util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                            }
-                        }
-                    };
-
-                    auto [status, ec] = reproc::run(
-                        full_args,
-                        run_options,
-                        reproc::sink::string(out),
-                        reproc::sink::string(err)
-                    );
-
-                    if (ec)
-                    {
-                        // Continue anyway - the package might already be removed or not exist
-                    }
-                }
-            }
-        }
 
         Console::stream() << "\nTransaction finished\n";
 

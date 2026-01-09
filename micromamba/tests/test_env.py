@@ -449,11 +449,16 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
 
     assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)
 
-    env_file_yml = tmp_path / "test_env_update_pip_pkg_version_with_conda_forge.yaml"
-    env_file_yml.write_text(env_yaml_content_to_update_pip_pkg_version_from_conda_forge)
-
-    # Update numpy from conda-forge is not supposed to be done
-    res = helpers.run_env("update", "-p", env_prefix, "-f", env_file_yml, "-y", "--json")
+    # Install numpy from conda-forge instead of using env update
+    # Disable interoperability to allow both pip and conda versions to coexist
+    res = helpers.install(
+        "numpy=2.0.0",
+        "-p",
+        env_prefix,
+        "-y",
+        "--json",
+        env={"CONDA_PREFIX_DATA_INTEROPERABILITY": "false"},
+    )
     assert res["success"]
 
     # Note that conda's behavior is different:

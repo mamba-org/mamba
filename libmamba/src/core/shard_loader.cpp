@@ -820,7 +820,9 @@ namespace mamba
 
                         // Write buffer to file
                         const auto& buffer = std::get<download::Buffer>(success.content);
-                        std::ofstream out_file(shard_file, std::ios::binary);
+                        // Explicitly convert fs::u8path to string to avoid ambiguity
+                        // between string and wstring on Windows.
+                        std::ofstream out_file(shard_file.string(), std::ios::binary);
                         if (!out_file.is_open())
                         {
                             LOG_WARNING << "Failed to create shard file for buffer: "
@@ -848,7 +850,9 @@ namespace mamba
                         continue;
                     }
 
-                    std::ifstream file(shard_file, std::ios::binary);
+                    // Explicitly convert fs::u8path to string to avoid ambiguity
+                    // between string and wstring on Windows.
+                    std::ifstream file(shard_file.string(), std::ios::binary);
                     if (!file.is_open())
                     {
                         LOG_WARNING << "Failed to open downloaded shard file: "

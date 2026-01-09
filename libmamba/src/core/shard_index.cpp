@@ -114,7 +114,9 @@ namespace mamba
         }
 
         // Read compressed data
-        std::ifstream file(file_path, std::ios::binary);
+        // Explicitly convert fs::u8path to string to avoid ambiguity
+        // between string and wstring on Windows.
+        std::ifstream file(file_path.string(), std::ios::binary);
         if (!file.is_open())
         {
             return make_unexpected("Failed to open shard index file", mamba_error_code::cache_not_loaded);

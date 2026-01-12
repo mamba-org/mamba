@@ -17,6 +17,7 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
+#include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
@@ -1166,7 +1167,7 @@ namespace mamba
     }
 
     MTransaction create_explicit_transaction_from_lockfile(
-        const Context& ctx,
+        Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,
@@ -1204,7 +1205,13 @@ namespace mamba
                     specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
                                                       // of the mirrors list
                 );
+                // TODO c++23:  use .append
+                auto& context_mirrors = ctx.mirrored_channels[channel_info.name];
+                context_mirrors
+                    .insert(context_mirrors.begin(), channel_info.urls.begin(), channel_info.urls.end());
             }
+
+            init_channels(ctx, channel_context); // makes sure the new mirrors are taken into account
         }
 
         std::vector<specs::PackageInfo> conda_packages = {};

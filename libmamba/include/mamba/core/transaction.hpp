@@ -106,7 +106,7 @@ namespace mamba
     );
 
     MTransaction create_explicit_transaction_from_lockfile(
-        const Context& ctx,
+        Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,

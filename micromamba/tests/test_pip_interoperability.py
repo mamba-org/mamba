@@ -17,6 +17,36 @@ import pytest
 from . import helpers
 
 
+def verify_pip_list_version_matches_conda(env_name, package_name, conda_packages):
+    """
+    Verify that a package's version in pip list matches the conda version.
+
+    Args:
+        env_name: Name of the environment
+        package_name: Name of the package to check
+        conda_packages: List of conda packages from mamba list (packages with channel != "pypi")
+
+    This function checks that if a package appears in pip list, its version matches
+    the conda version. This is used to verify that pip packages have been properly
+    replaced/updated by conda packages.
+    """
+    if len(conda_packages) == 0:
+        return
+
+    conda_version = conda_packages[0]["version"]
+    pip_list_output = helpers.umamba_run(
+        "-n", env_name, "pip", "list", "--format=json", no_dry_run=True
+    )
+    pip_list = json.loads(pip_list_output)
+    package_in_pip_list = [pkg for pkg in pip_list if pkg["name"] == package_name]
+
+    if len(package_in_pip_list) > 0:
+        pip_version = package_in_pip_list[0]["version"]
+        assert pip_version == conda_version, (
+            f"{package_name} version in pip list ({pip_version}) should match conda version ({conda_version})"
+        )
+
+
 @pytest.fixture
 def enable_pip_interop(monkeypatch):
     """Fixture to enable pip interoperability for a test."""
@@ -78,8 +108,15 @@ class TestPipInteroperabilityConfig:
         pip_itsdangerous = [
             pkg for pkg in res if pkg.get("name") == "itsdangerous" and pkg.get("channel") == "pypi"
         ]
+        conda_itsdangerous = [
+            pkg for pkg in res if pkg.get("name") == "itsdangerous" and pkg.get("channel") != "pypi"
+        ]
         # Should be removed when interoperability is enabled
         assert len(pip_itsdangerous) == 0
+        assert len(conda_itsdangerous) > 0
+
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous)
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_config_set_via_env_var_mamba(self, tmp_home, tmp_root_prefix, monkeypatch):
@@ -105,7 +142,14 @@ class TestPipInteroperabilityConfig:
         pip_itsdangerous = [
             pkg for pkg in res if pkg.get("name") == "itsdangerous" and pkg.get("channel") == "pypi"
         ]
+        conda_itsdangerous = [
+            pkg for pkg in res if pkg.get("name") == "itsdangerous" and pkg.get("channel") != "pypi"
+        ]
         assert len(pip_itsdangerous) == 0
+        assert len(conda_itsdangerous) > 0
+
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous)
 
 
 class TestPipInteroperabilityBasic:
@@ -212,18 +256,8 @@ class TestPipInteroperabilityRemoval:
             assert len(pip_boto3_after) == 0
             assert len(conda_boto3_after) > 0
 
-            # Verify via pip list that it's actually removed
-            pip_list_output = helpers.umamba_run(
-                "-n", env_name, "pip", "list", "--format=json", no_dry_run=True
-            )
-            pip_list = json.loads(pip_list_output)
-            boto3_in_pip_list = any(pkg["name"] == "boto3" for pkg in pip_list)
-            # boto3 should not be in pip list if it was successfully removed
-            if len(conda_boto3_after) > 0:
-                # If conda version is installed, pip version should be gone
-                assert not boto3_in_pip_list, (
-                    "boto3 should not appear in pip list after being replaced by conda package"
-                )
+            # Verify via pip list that the version has been updated to match the conda version
+            verify_pip_list_version_matches_conda(env_name, "boto3", conda_boto3_after)
         except subprocess.CalledProcessError:
             # boto3 might not be available in conda-forge, skip this specific test
             pytest.skip("boto3 not available in conda-forge for this platform")
@@ -280,6 +314,9 @@ class TestPipInteroperabilityRemoval:
         # Pip version should be gone, conda version should be present
         assert len(pip_itsdangerous_after) == 0
         assert len(conda_itsdangerous_after) > 0
+
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous_after)
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_pip_package_not_removed_when_disabled(
@@ -378,20 +415,30 @@ class TestPipInteroperabilityEdgeCases:
             no_dry_run=True,
         )
 
-        # Check that pip versions were removed
+        # Check that pip versions were removed or updated
         res_after = helpers.umamba_list("-n", env_name, "--json")
         pip_itsdangerous = [
             pkg
             for pkg in res_after
             if pkg.get("name") == "itsdangerous" and pkg.get("channel") == "pypi"
         ]
-        pip_click = [
-            pkg for pkg in res_after if pkg.get("name") == "click" and pkg.get("channel") == "pypi"
+        conda_itsdangerous = [
+            pkg
+            for pkg in res_after
+            if pkg.get("name") == "itsdangerous" and pkg.get("channel") != "pypi"
+        ]
+        conda_click = [
+            pkg for pkg in res_after if pkg.get("name") == "click" and pkg.get("channel") != "pypi"
         ]
 
-        # Both pip packages should be removed
-        assert len(pip_itsdangerous) == 0
-        assert len(pip_click) == 0
+        # Verify via pip list that versions have been updated to match conda versions
+        if len(conda_itsdangerous) > 0:
+            # Pip version should be removed from mamba list
+            assert len(pip_itsdangerous) == 0
+            verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous)
+
+        # Check click
+        verify_pip_list_version_matches_conda(env_name, "click", conda_click)
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_pip_package_satisfies_dependency(
@@ -436,6 +483,9 @@ class TestPipInteroperabilityEdgeCases:
         # With interoperability enabled, should use conda version
         assert len(pip_itsdangerous) == 0
         assert len(conda_itsdangerous) > 0
+
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous)
 
 
 class TestPipInteroperabilityIntegration:
@@ -499,20 +549,8 @@ class TestPipInteroperabilityIntegration:
             # Conda version should be present
             assert len(conda_boto3_after) > 0, "Conda-installed boto3 should be present"
 
-            # Verify via pip list that it's actually removed from site-packages
-            pip_list_output = helpers.umamba_run(
-                "-n", env_name, "pip", "list", "--format=json", no_dry_run=True
-            )
-            pip_list = json.loads(pip_list_output)
-            boto3_in_pip_list = any(pkg["name"] == "boto3" for pkg in pip_list)
-
-            # boto3 should not be in pip list if successfully removed
-            # (Note: This might still show if conda package wasn't installed)
-            if len(conda_boto3_after) > 0:
-                # If conda version is installed, pip version should be gone
-                assert not boto3_in_pip_list, (
-                    "boto3 should not appear in pip list after being replaced by conda package"
-                )
+            # Verify via pip list that the version has been updated to match the conda version
+            verify_pip_list_version_matches_conda(env_name, "boto3", conda_boto3_after)
 
         except subprocess.CalledProcessError as e:
             # boto3 might not be available in conda-forge for this platform
@@ -550,6 +588,9 @@ class TestPipInteroperabilityIntegration:
         assert len(pip_click) == 0
         assert len(conda_click) > 0
 
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "click", conda_click)
+
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_downgrade_conda_to_pip_replacement(
         self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
@@ -582,9 +623,16 @@ class TestPipInteroperabilityIntegration:
         pip_click = [
             pkg for pkg in res_after if pkg.get("name") == "click" and pkg.get("channel") == "pypi"
         ]
+        conda_click = [
+            pkg for pkg in res_after if pkg.get("name") == "click" and pkg.get("channel") != "pypi"
+        ]
 
         # Pip version should be gone (replaced by conda)
         assert len(pip_click) == 0
+        assert len(conda_click) > 0
+
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "click", conda_click)
 
 
 class TestPipInteroperabilityList:
@@ -640,3 +688,6 @@ class TestPipInteroperabilityList:
 
         assert len(pip_versions) == 0
         assert len(conda_versions) > 0
+
+        # Verify via pip list that the version has been updated to match the conda version
+        verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_versions)

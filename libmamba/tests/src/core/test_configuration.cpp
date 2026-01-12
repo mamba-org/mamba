@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+
 #include <catch2/catch_all.hpp>
 
 #include "mamba/api/configuration.hpp"
@@ -591,10 +593,15 @@ namespace mamba
                 config.load();
 
                 // `envs_dirs` should be set to `root_prefix / envs`
+                // Additional directories may be discovered from environment variables or config
+                // files
                 const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
 
-                REQUIRE(envs_dirs.size() == 1);
-                REQUIRE(envs_dirs[0] == get_root_prefix_envs_dir());
+                REQUIRE(envs_dirs.size() >= 1);
+                REQUIRE(
+                    std::find(envs_dirs.begin(), envs_dirs.end(), get_root_prefix_envs_dir())
+                    != envs_dirs.end()
+                );
             }
 
             TEST_CASE_METHOD(Configuration, "envs_dirs_with_additional_rc")

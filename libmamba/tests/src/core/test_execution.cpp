@@ -63,17 +63,20 @@ namespace mamba
 
         TEST_CASE("manual_executor_construction_destruction")
         {
+            MainExecutor::stop_default();
             MainExecutor executor;
         }
 
         TEST_CASE("two_main_executors_fails")
         {
+            MainExecutor::stop_default();
             MainExecutor executor;
             REQUIRE_THROWS_AS(MainExecutor{}, MainExecutorError);
         }
 
         TEST_CASE("tasks_complete_before_destruction_ends")
         {
+            MainExecutor::stop_default();
             constexpr std::size_t arbitrary_task_count = 2048;
             constexpr std::size_t arbitrary_tasks_per_generator = 24;
             std::atomic<int> counter{ 0 };
@@ -91,6 +94,7 @@ namespace mamba
 
         TEST_CASE("closed_prevents_more_scheduling_and_joins")
         {
+            MainExecutor::stop_default();
             constexpr std::size_t arbitrary_task_count = 2048;
             constexpr std::size_t arbitrary_tasks_per_generator = 36;
             std::atomic<int> counter{ 0 };

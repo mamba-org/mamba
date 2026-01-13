@@ -29,6 +29,18 @@ jobs:
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
+      - name: Disk Space Before Clean Up
+        run: |
+          df -h
+      - name: Free Disk Space (Base Runner)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+          docker-images: false
+      - name: Disk Space After Clean Up
+        run: |
+          df -h
       - name: Checkout mamba repository
         uses: actions/checkout@v6
       - name: Create build environment

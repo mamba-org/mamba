@@ -320,7 +320,10 @@ namespace mamba
             LOG_WARNING << "Could not create proc dir: " << proc_dir() << " (" << ec.message() << ")";
         }
 
-        LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
+        if (logging::get_log_level() < log_level::info)
+        {
+            LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
+        }
         fmt::print(LOG_DEBUG, "Remaining args to run as command: {}", fmt::join(command, " "));
 
         // replace the wrapping bash with new process entirely

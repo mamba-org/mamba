@@ -46,15 +46,20 @@ namespace mamba
             const std::vector<std::string>& root_packages = {}
         ) -> expected_t<solver::libsolv::RepoInfo>
         {
+            LOG_DEBUG << "Loading subdir with shards: " << subdir.name() << " for root packages: ["
+                      << util::join(", ", root_packages) << "]";
+
             // Check if shards are available
             if (!subdir.metadata().has_up_to_date_shards())
             {
+                LOG_DEBUG << "Shards not available for " << subdir.name();
                 return make_unexpected(
                     "Shards not available for " + subdir.name(),
                     mamba_error_code::repodata_not_loaded
                 );
             }
 
+            LOG_DEBUG << "Shards are available for " << subdir.name() << ", fetching shard index";
             // Fetch shard index
             auto shard_index_result = ShardIndexLoader::fetch_shards_index(
                 subdir,
@@ -78,11 +83,15 @@ namespace mamba
             auto shard_index_opt = shard_index_result.value();
             if (!shard_index_opt.has_value())
             {
+                LOG_DEBUG << "Shard index not available for " << subdir.name();
                 return make_unexpected(
                     "Shard index not available",
                     mamba_error_code::repodata_not_loaded
                 );
             }
+
+            LOG_DEBUG << "Successfully fetched shard index for " << subdir.name() << " with "
+                      << shard_index_opt->shards.size() << " package shards";
 
             // Create Shards object
             auto shards = std::make_shared<Shards>(
@@ -94,19 +103,47 @@ namespace mamba
                 ctx.remote_fetch_params
             );
 
+            LOG_DEBUG << "Created Shards object for " << subdir.name()
+                      << ", starting dependency traversal";
             // Create RepodataSubset and traverse dependencies
             RepodataSubset subset({ shards });
 
-            // If root_packages is empty, use all packages from the shard index
-            std::vector<std::string> packages_to_traverse = root_packages;
-            if (packages_to_traverse.empty())
+            // Filter root_packages to only include packages that exist in this subdir's shard index
+            std::vector<std::string> packages_to_traverse;
+            if (root_packages.empty())
             {
                 // Fetch all packages from the shard index
                 packages_to_traverse = shards->package_names();
                 LOG_DEBUG << "No root packages specified, fetching all "
                           << packages_to_traverse.size() << " packages from shard index";
             }
+            else
+            {
+                // Filter root_packages to only those that exist in this subdir
+                for (const auto& pkg : root_packages)
+                {
+                    if (shards->contains(pkg))
+                    {
+                        packages_to_traverse.push_back(pkg);
+                    }
+                }
+                if (packages_to_traverse.empty())
+                {
+                    LOG_DEBUG << "None of the root packages [" << util::join(", ", root_packages)
+                              << "] exist in " << subdir.name()
+                              << " shard index, skipping traversal";
+                    return make_unexpected(
+                        "No root packages found in shard index for " + subdir.name(),
+                        mamba_error_code::repodata_not_loaded
+                    );
+                }
+                LOG_DEBUG << "Filtered root packages for " << subdir.name() << ": ["
+                          << util::join(", ", root_packages) << "] -> ["
+                          << util::join(", ", packages_to_traverse) << "]";
+            }
 
+            LOG_DEBUG << "Starting dependency traversal for " << packages_to_traverse.size()
+                      << " root package(s): [" << util::join(", ", packages_to_traverse) << "]";
             auto traversal_result = subset.reachable(packages_to_traverse, "pipelined");
             if (!traversal_result.has_value())
             {
@@ -117,6 +154,8 @@ namespace mamba
                     mamba_error_code::repodata_not_loaded
                 );
             }
+
+            LOG_DEBUG << "Dependency traversal completed for " << subdir.name();
 
             // Collect all PackageInfo objects from visited shards
             std::vector<specs::PackageInfo> package_infos;
@@ -138,9 +177,13 @@ namespace mamba
                 visited_packages_set.end()
             );
 
+            LOG_DEBUG << "Converting " << visited_packages.size()
+                      << " visited package shard(s) to PackageInfo";
             // Load shards for all visited packages and convert to PackageInfo
             for (const auto& package_name : visited_packages)
             {
+                LOG_DEBUG << "Fetching shard for visited package '" << package_name
+                          << "' to convert to PackageInfo";
                 // Fetch the shard for this package
                 auto shard_result = shards->fetch_shard(package_name);
                 if (!shard_result.has_value())
@@ -227,8 +270,12 @@ namespace mamba
                 }
             }
 
+            LOG_DEBUG << "Collected " << package_infos.size()
+                      << " PackageInfo object(s) from shards for " << subdir.name();
             if (package_infos.empty())
             {
+                LOG_DEBUG << "No packages found in shards for " << subdir.name()
+                          << " after traversal and conversion";
                 return make_unexpected(
                     "No packages found in shards",
                     mamba_error_code::repodata_not_loaded
@@ -521,8 +568,7 @@ namespace mamba
 
             // Filter subdirs that need index downloads (repodata.json)
             // Skip index downloads for subdirs with shards available when repodata_use_shards is
-            // true
-            // However, always download repodata.json for noarch subdirs to ensure fallback works
+            // true and root_packages is not empty
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& subdir : subdirs)
             {
@@ -533,19 +579,9 @@ namespace mamba
                     if (subdir.metadata().has_up_to_date_shards())
                     {
                         // Skip downloading repodata.json if shards are available
-                        // BUT: Always download for noarch subdirs to ensure fallback works
-                        // (noarch packages are often needed even when not explicitly requested)
-                        if (!subdir.is_noarch())
-                        {
-                            needs_index = false;
-                            LOG_DEBUG << "Skipping repodata.json download for " << subdir.name()
-                                      << " (using sharded repodata)";
-                        }
-                        else
-                        {
-                            LOG_DEBUG << "Downloading repodata.json for noarch subdir "
-                                      << subdir.name() << " (needed for fallback)";
-                        }
+                        needs_index = false;
+                        LOG_DEBUG << "Skipping repodata.json download for " << subdir.name()
+                                  << " (using sharded repodata)";
                     }
                 }
                 if (needs_index)
@@ -622,7 +658,14 @@ namespace mamba
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 auto& subdir = subdirs[i];
-                if (!subdir.valid_cache_found())
+
+                // Check if we can use shards (even if traditional cache is invalid)
+                bool can_use_shards = ctx.repodata_use_shards
+                                      && subdir.metadata().has_up_to_date_shards()
+                                      && !root_packages.empty();
+
+                // If cache is invalid and we can't use shards, skip this subdir
+                if (!subdir.valid_cache_found() && !can_use_shards)
                 {
                     if (!ctx.offline && subdir.is_noarch())
                     {
@@ -640,36 +683,48 @@ namespace mamba
                     mamba_error_code::repodata_not_loaded
                 );
 
-                if (ctx.repodata_use_shards && subdir.metadata().has_up_to_date_shards()
-                    && !root_packages.empty())
+                if (can_use_shards)
                 {
                     result = load_subdir_with_shards(ctx, database, subdir, root_packages);
 
-                    // If sharded loading fails, fall back to traditional repodata
-                    // For noarch subdirs, we always have repodata.json downloaded for fallback
+                    // If sharded loading fails, skip this subdir entirely (no fallback to
+                    // traditional repodata)
                     if (!result.has_value())
                     {
-                        LOG_WARNING
-                            << "Sharded repodata loading failed for " << subdir.name()
-                            << ", falling back to traditional repodata: " << result.error().what();
-                        // Ensure we have valid cache for fallback (should always be true for
-                        // noarch, but check anyway)
-                        if (subdir.valid_cache_found())
+                        std::string error_msg = result.error().what();
+                        bool is_no_root_packages_error = error_msg.find(
+                                                             "No root packages found in shard index"
+                                                         )
+                                                         != std::string::npos;
+
+                        if (is_no_root_packages_error)
                         {
-                            result = load_subdir_in_database(ctx, database, subdir);
+                            LOG_DEBUG
+                                << "Skipping " << subdir.name()
+                                << " (none of the root packages exist in this subdir's shards)";
                         }
                         else
                         {
-                            LOG_ERROR << "Cannot fall back to traditional repodata for "
-                                      << subdir.name() << " - no cache found";
-                            // Continue to error handling below
+                            LOG_WARNING << "Sharded repodata loading failed for " << subdir.name()
+                                        << ": " << error_msg << " (skipping subdir, no fallback)";
                         }
+                        // Skip this subdir - don't load it at all
+                        continue;
                     }
                 }
                 else
                 {
-                    // Use traditional repodata.json
-                    result = load_subdir_in_database(ctx, database, subdir);
+                    // Use traditional repodata.json (only if cache is valid)
+                    if (subdir.valid_cache_found())
+                    {
+                        result = load_subdir_in_database(ctx, database, subdir);
+                    }
+                    else
+                    {
+                        LOG_ERROR << "Cannot load subdir " << subdir.name()
+                                  << " - no cache found and shards not available";
+                        // Continue to error handling below
+                    }
                 }
 
                 if (result)

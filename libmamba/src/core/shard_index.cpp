@@ -180,9 +180,9 @@ namespace mamba
         ZSTD_freeDCtx(dctx);
 
         // Parse msgpack
+        msgpack_unpacked unpacked = {};
         try
         {
-            msgpack_unpacked unpacked;
             size_t offset = 0;
             msgpack_unpack_return ret = msgpack_unpack_next(
                 &unpacked,
@@ -193,6 +193,11 @@ namespace mamba
 
             if (ret != MSGPACK_UNPACK_SUCCESS && ret != MSGPACK_UNPACK_EXTRA_BYTES)
             {
+                if (unpacked.zone != nullptr)
+                {
+                    msgpack_zone_destroy(unpacked.zone);
+                    unpacked.zone = nullptr;
+                }
                 throw std::runtime_error("Failed to unpack msgpack data");
             }
 
@@ -399,11 +404,21 @@ namespace mamba
                 }
             }
 
-            msgpack_zone_destroy(unpacked.zone);
+            if (unpacked.zone != nullptr)
+            {
+                msgpack_zone_destroy(unpacked.zone);
+                unpacked.zone = nullptr;
+            }
             return index;
         }
         catch (const std::exception& e)
         {
+            // Ensure zone is cleaned up even if exception occurs
+            if (unpacked.zone != nullptr)
+            {
+                msgpack_zone_destroy(unpacked.zone);
+                unpacked.zone = nullptr;
+            }
             return make_unexpected(
                 "Failed to parse msgpack: " + std::string(e.what()),
                 mamba_error_code::unknown

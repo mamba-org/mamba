@@ -23,6 +23,7 @@
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -78,6 +79,8 @@ namespace mamba
                     if (!name.empty())
                     {
                         unique_names.insert(name);
+                        LOG_DEBUG << "Extracted dependency package name '" << name
+                                  << "' from spec: " << dep_spec;
                     }
                 }
                 else
@@ -90,12 +93,30 @@ namespace mamba
 
         for (const auto& [filename, record] : shard.packages)
         {
+            if (!record.depends.empty())
+            {
+                LOG_DEBUG << "Extracting dependencies from package '" << record.name << "' in shard";
+            }
             process_deps(record.depends);
         }
 
         for (const auto& [filename, record] : shard.conda_packages)
         {
+            if (!record.depends.empty())
+            {
+                LOG_DEBUG << "Extracting dependencies from conda package '" << record.name
+                          << "' in shard";
+            }
             process_deps(record.depends);
+        }
+
+        if (!unique_names.empty())
+        {
+            std::vector<std::string> result(unique_names.begin(), unique_names.end());
+            LOG_DEBUG << "Extracted " << result.size()
+                      << " unique dependency package(s) from shard: [" << util::join(", ", result)
+                      << "]";
+            return result;
         }
 
         return std::vector<std::string>(unique_names.begin(), unique_names.end());
@@ -149,19 +170,33 @@ namespace mamba
         // Fetch the shard if not already loaded
         if (!shardlike->shard_loaded(node.package))
         {
+            LOG_DEBUG << "Fetching shard for dependency package '" << node.package
+                      << "' from channel " << node.channel;
             auto fetch_result = shardlike->fetch_shard(node.package);
             if (!fetch_result.has_value())
             {
                 LOG_WARNING << "Failed to fetch shard for package " << node.package;
                 return result;
             }
+            LOG_DEBUG << "Successfully fetched shard for dependency package '" << node.package << "'";
+        }
+        else
+        {
+            LOG_DEBUG << "Shard for dependency package '" << node.package << "' already loaded";
         }
 
         // Get the shard and extract dependencies
         ShardDict shard = shardlike->visit_package(node.package);
+        LOG_DEBUG << "Extracting dependencies from shard for package '" << node.package << "'";
         std::vector<std::string> mentioned_packages = extract_dependencies(shard);
 
         // Create nodes for dependencies
+        if (!mentioned_packages.empty())
+        {
+            LOG_DEBUG << "Found " << mentioned_packages.size()
+                      << " dependency package(s) from package '" << node.package << "': ["
+                      << util::join(", ", mentioned_packages) << "]";
+        }
         for (const auto& package_name : mentioned_packages)
         {
             if (discovered.find(package_name) != discovered.end())
@@ -178,6 +213,9 @@ namespace mamba
                     NodeId node_id{ package_name, sl->url(), sl->shard_url(package_name) };
                     if (m_nodes.find(node_id) == m_nodes.end())
                     {
+                        LOG_DEBUG << "Creating node for dependency package '" << package_name
+                                  << "' from package '" << node.package
+                                  << "' (distance: " << (node.distance + 1) << ")";
                         Node new_node;
                         new_node.distance = node.distance + 1;
                         new_node.package = package_name;
@@ -343,6 +381,9 @@ namespace mamba
                 {
                     packages_to_fetch.push_back(node_id.package);
                 }
+                LOG_DEBUG << "Fetching " << packages_to_fetch.size()
+                          << " shard(s) for dependency packages: ["
+                          << util::join(", ", packages_to_fetch) << "]";
 
                 // Batch fetch from cache and network
                 // TODO: Implement batch_retrieve_from_cache and batch_retrieve_from_network
@@ -351,10 +392,20 @@ namespace mamba
                     auto it = shardlikes_by_url.find(node_id.channel);
                     if (it != shardlikes_by_url.end())
                     {
+                        LOG_DEBUG << "Fetching shard for dependency package '" << node_id.package
+                                  << "' discovered during traversal";
                         auto fetch_result = it->second->fetch_shard(node_id.package);
                         if (fetch_result.has_value())
                         {
+                            LOG_DEBUG
+                                << "Successfully fetched and visiting shard for dependency package '"
+                                << node_id.package << "'";
                             it->second->visit_shard(node_id.package, fetch_result.value());
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Failed to fetch shard for dependency package '"
+                                        << node_id.package << "'";
                         }
                     }
                 }
@@ -483,6 +534,9 @@ namespace mamba
                         continue;
                     }
 
+                    LOG_DEBUG << "Batch fetching " << packages.size()
+                              << " shard(s) for dependency packages from channel " << channel_url
+                              << ": [" << util::join(", ", packages) << "]";
                     auto fetch_result = it->second->fetch_shards(packages);
                     if (!fetch_result.has_value())
                     {
@@ -593,6 +647,7 @@ namespace mamba
                 if (node_it != m_nodes.end())
                 {
                     auto& node = node_it->second;
+                    node.visited = true;  // Mark node as visited
                     auto shardlike = shardlikes_by_url[node_id.channel];
                     shardlike->visit_shard(node_id.package, shard);
 
@@ -610,6 +665,21 @@ namespace mamba
             // Request network fetch for nodes we need
             if (!need.empty())
             {
+                std::vector<std::string> need_packages;
+                for (const auto& node_id : need)
+                {
+                    need_packages.push_back(node_id.package);
+                }
+                if (!need_packages.empty())
+                {
+                    std::vector<std::string> need_packages_vec(
+                        need_packages.begin(),
+                        need_packages.end()
+                    );
+                    LOG_DEBUG << "Requesting network fetch for " << need.size()
+                              << " dependency shard(s): [" << util::join(", ", need_packages_vec)
+                              << "]";
+                }
                 in_flight.insert(need.begin(), need.end());
                 // Remove from pending since we're requesting them
                 for (const auto& node_id : need)
@@ -643,14 +713,27 @@ namespace mamba
                     }
 
                     auto& node = node_it->second;
+                    node.visited = true;  // Mark node as visited
                     auto shardlike = shardlikes_by_url[node_id.channel];
+                    LOG_DEBUG << "Visiting shard for dependency package '" << node_id.package
+                              << "' from channel " << node_id.channel;
                     shardlike->visit_shard(node_id.package, shard);
 
                     // Discover new dependencies
+                    LOG_DEBUG << "Extracting dependencies from shard for package '"
+                              << node_id.package << "'";
                     auto mentioned = shard_mentioned_packages(shard);
+                    if (!mentioned.empty())
+                    {
+                        LOG_DEBUG << "Discovered " << mentioned.size()
+                                  << " new dependency package(s) from package '" << node_id.package
+                                  << "': [" << util::join(", ", mentioned) << "]";
+                    }
                     auto new_pending = visit_node(node, mentioned);
                     for (const auto& new_node_id : new_pending)
                     {
+                        LOG_DEBUG << "Adding dependency package '" << new_node_id.package
+                                  << "' to pending queue";
                         pending.insert(new_node_id);
                     }
                 }

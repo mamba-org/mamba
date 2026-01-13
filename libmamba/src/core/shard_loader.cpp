@@ -235,6 +235,11 @@ namespace mamba
                         else if (val_obj.type == MSGPACK_OBJECT_ARRAY)
                         {
                             record.depends = msgpack_object_to_string_array(val_obj);
+                            if (!record.depends.empty())
+                            {
+                                LOG_DEBUG << "Parsed dependencies for package '" << record.name
+                                          << "': [" << util::join(", ", record.depends) << "]";
+                            }
                         }
                         else
                         {
@@ -512,6 +517,8 @@ namespace mamba
 
     void Shards::visit_shard(const std::string& package, const ShardDict& shard)
     {
+        LOG_DEBUG << "Visiting shard for package '" << package << "': " << shard.packages.size()
+                  << " .tar.bz2 packages, " << shard.conda_packages.size() << " .conda packages";
         m_visited[package] = shard;
     }
 
@@ -521,6 +528,28 @@ namespace mamba
         const ShardDict& shard
     )
     {
+        LOG_DEBUG << "Processing fetched shard for package '" << package
+                  << "': " << shard.packages.size() << " .tar.bz2 packages, "
+                  << shard.conda_packages.size() << " .conda packages";
+
+        // Log dependencies found in the shard
+        for (const auto& [filename, record] : shard.packages)
+        {
+            if (!record.depends.empty())
+            {
+                LOG_DEBUG << "Package '" << record.name << "' from shard '" << package
+                          << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+            }
+        }
+        for (const auto& [filename, record] : shard.conda_packages)
+        {
+            if (!record.depends.empty())
+            {
+                LOG_DEBUG << "Conda package '" << record.name << "' from shard '" << package
+                          << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+            }
+        }
+
         m_visited[package] = shard;
     }
 
@@ -554,10 +583,13 @@ namespace mamba
         {
             if (auto it = m_visited.find(package); it != m_visited.end())
             {
+                LOG_DEBUG << "Shard for package '" << package
+                          << "' already in memory, skipping download";
                 results[package] = it->second;
             }
             else
             {
+                LOG_DEBUG << "Shard for package '" << package << "' needs to be downloaded";
                 packages_to_fetch.push_back(package);
             }
         }
@@ -575,6 +607,7 @@ namespace mamba
             try
             {
                 std::string url = shard_url(package);
+                LOG_DEBUG << "Building shard URL for package '" << package << "': " << url;
                 urls.push_back(url);
                 url_to_package[url] = package;
             }
@@ -723,6 +756,8 @@ namespace mamba
             // Download cache misses
             if (!requests.empty())
             {
+                LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
+                          << util::join(", ", packages_to_fetch) << "]";
                 download::Options download_options;
                 download_options.download_threads = 10;  // TODO: use context.repodata_threads
 
@@ -744,11 +779,14 @@ namespace mamba
 
                     if (!download_results[i].has_value())
                     {
-                        LOG_WARNING << "Failed to download shard " << url;
+                        LOG_WARNING << "Failed to download shard " << url << " for package '"
+                                    << package << "'";
                         continue;
                     }
 
                     const auto& success = download_results[i].value();
+                    LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
+                              << url << " (" << success.transfer.downloaded_size << " bytes)";
 
                     // Always use artifact path - the file is downloaded to the artifact path
                     // specified in the request
@@ -866,7 +904,12 @@ namespace mamba
                     );
                     file.close();
 
+                    LOG_DEBUG << "Reading shard file for package '" << package
+                              << "': " << shard_file.string() << " (" << compressed_data.size()
+                              << " bytes compressed)";
+
                     // Decompress zstd
+                    LOG_DEBUG << "Decompressing shard for package '" << package << "' using zstd";
                     ZSTD_DCtx* dctx = ZSTD_createDCtx();
                     if (dctx == nullptr)
                     {
@@ -907,12 +950,17 @@ namespace mamba
 
                     ZSTD_freeDCtx(dctx);
 
+                    LOG_DEBUG << "Decompressed shard for package '" << package
+                              << "': " << compressed_data.size() << " bytes -> "
+                              << full_decompressed.size() << " bytes";
+
                     // Parse msgpack - handle "packages.conda" key name from Python format
                     // We can't use MSGPACK_DEFINE directly because Python uses "packages.conda"
                     // which is not a valid C++ identifier
+                    LOG_DEBUG << "Parsing msgpack data for package '" << package << "' shard";
+                    msgpack_unpacked unpacked = {};
                     try
                     {
-                        msgpack_unpacked unpacked;
                         size_t offset = 0;
                         msgpack_unpack_return ret = msgpack_unpack_next(
                             &unpacked,
@@ -923,6 +971,11 @@ namespace mamba
 
                         if (ret != MSGPACK_UNPACK_SUCCESS && ret != MSGPACK_UNPACK_EXTRA_BYTES)
                         {
+                            if (unpacked.zone != nullptr)
+                            {
+                                msgpack_zone_destroy(unpacked.zone);
+                                unpacked.zone = nullptr;
+                            }
                             throw std::runtime_error("Failed to unpack msgpack data");
                         }
 
@@ -964,6 +1017,10 @@ namespace mamba
                                                     ShardPackageRecord record = parse_shard_package_record(
                                                         val_obj.via.map.ptr[k].val
                                                     );
+                                                    LOG_DEBUG
+                                                        << "Parsed package record from shard for package '"
+                                                        << package << "': " << record.name << "="
+                                                        << record.version << "-" << record.build;
                                                     shard.packages[pkg_filename] = record;
                                                 }
                                                 catch (const std::exception& e)
@@ -991,6 +1048,10 @@ namespace mamba
                                                     ShardPackageRecord record = parse_shard_package_record(
                                                         val_obj.via.map.ptr[k].val
                                                     );
+                                                    LOG_DEBUG
+                                                        << "Parsed conda package record from shard for package '"
+                                                        << package << "': " << record.name << "="
+                                                        << record.version << "-" << record.build;
                                                     shard.conda_packages[pkg_filename] = record;
                                                 }
                                                 catch (const std::exception& e)
@@ -1011,13 +1072,27 @@ namespace mamba
                             }
                         }
 
-                        msgpack_zone_destroy(unpacked.zone);
+                        if (unpacked.zone != nullptr)
+                        {
+                            msgpack_zone_destroy(unpacked.zone);
+                            unpacked.zone = nullptr;
+                        }
+
+                        LOG_DEBUG << "Successfully parsed shard for package '" << package
+                                  << "': " << shard.packages.size() << " .tar.bz2 packages, "
+                                  << shard.conda_packages.size() << " .conda packages";
 
                         results[package] = shard;
                         process_fetched_shard(url, package, shard);
                     }
                     catch (const std::exception& e)
                     {
+                        // Ensure zone is cleaned up even if exception occurs
+                        if (unpacked.zone != nullptr)
+                        {
+                            msgpack_zone_destroy(unpacked.zone);
+                            unpacked.zone = nullptr;
+                        }
                         LOG_WARNING << "Failed to parse msgpack for shard " << url << ": "
                                     << e.what();
                     }

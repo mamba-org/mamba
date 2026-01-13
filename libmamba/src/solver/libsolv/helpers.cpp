@@ -25,6 +25,7 @@
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/match_spec_condition.hpp"
 #include "mamba/util/cfile.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
@@ -43,6 +44,21 @@ namespace mamba::solver::libsolv
     // Beyond this value, the timestamp would be in milliseconds and therefore should be converted
     // to seconds.
     inline constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
+
+    // Forward declarations for conditional dependency processing
+    [[nodiscard]] auto condition_to_dependency_id(
+        const specs::MatchSpecCondition& condition,
+        solv::ObjPool& pool,
+        MatchSpecParser parser
+    ) -> std::optional<solv::DependencyId>;
+
+    template <typename AddFunc>
+    [[nodiscard]] auto add_dependency_with_condition(
+        specs::MatchSpec match_spec,
+        solv::ObjPool& pool,
+        MatchSpecParser parser,
+        AddFunc&& add_func
+    ) -> bool;
 
     void set_solvable(
         solv::ObjPool& pool,
@@ -79,24 +95,63 @@ namespace mamba::solver::libsolv
         solv.set_sha256(pkg.sha256);
         solv.set_python_site_packages_path(pkg.python_site_packages_path);
 
+        // Get platform from solvable (or use empty string if not set)
+        const std::string platform = solv.platform().empty() ? std::string()
+                                                             : std::string(solv.platform());
+
         for (const auto& dep : pkg.dependencies)
         {
-            const solv::DependencyId dep_id =  //
-                pool_add_matchspec(pool, dep.c_str(), parser)
-                    .or_else([](mamba_error&& err) { throw std::move(err); })
-                    .value();
-            assert(dep_id);
-            solv.add_dependency(dep_id);
+            // Parse the dependency - this will extract conditional syntax if present
+            // e.g., "typing-extensions; if python <3.10"
+            auto maybe_match_spec = specs::MatchSpec::parse(dep);
+            if (!maybe_match_spec)
+            {
+                // If parsing fails, try adding as-is (for backwards compatibility)
+                const solv::DependencyId dep_id =  //
+                    pool_add_matchspec(pool, dep.c_str(), parser)
+                        .or_else([](mamba_error&& err) { throw std::move(err); })
+                        .value();
+                if (dep_id)
+                {
+                    solv.add_dependency(dep_id);
+                }
+                continue;
+            }
+
+            // Process conditional dependency using libsolv's native REL_COND support
+            [[maybe_unused]] const bool dep_added = add_dependency_with_condition(
+                std::move(maybe_match_spec).value(),
+                pool,
+                parser,
+                [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
+            );
         }
 
         for (const auto& cons : pkg.constrains)
         {
-            const solv::DependencyId dep_id =  //
-                pool_add_matchspec(pool, cons.c_str(), parser)
-                    .or_else([](mamba_error&& err) { throw std::move(err); })
-                    .value();
-            assert(dep_id);
-            solv.add_constraint(dep_id);
+            // Parse the constraint - this will extract conditional syntax if present
+            auto maybe_match_spec = specs::MatchSpec::parse(cons);
+            if (!maybe_match_spec)
+            {
+                // If parsing fails, try adding as-is (for backwards compatibility)
+                const solv::DependencyId dep_id =  //
+                    pool_add_matchspec(pool, cons.c_str(), parser)
+                        .or_else([](mamba_error&& err) { throw std::move(err); })
+                        .value();
+                if (dep_id)
+                {
+                    solv.add_constraint(dep_id);
+                }
+                continue;
+            }
+
+            // Process conditional constraint using libsolv's native REL_COND support
+            [[maybe_unused]] const bool cons_added = add_dependency_with_condition(
+                std::move(maybe_match_spec).value(),
+                pool,
+                parser,
+                [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
+            );
         }
 
         solv.add_track_features(pkg.track_features);
@@ -195,7 +250,117 @@ namespace mamba::solver::libsolv
 
             return all_signatures;
         }
+    }
 
+    /**
+     * Convert a MatchSpecCondition to a libsolv dependency ID.
+     *
+     * This recursively handles AND/OR conditions and converts each MatchSpec
+     * into a libsolv dependency ID that can be used in conditional dependencies.
+     *
+     * Based on Rattler's parse_condition function.
+     */
+    [[nodiscard]] auto condition_to_dependency_id(
+        const specs::MatchSpecCondition& condition,
+        solv::ObjPool& pool,
+        MatchSpecParser parser
+    ) -> std::optional<solv::DependencyId>
+    {
+        return std::visit(
+            [&](auto&& cond) -> std::optional<solv::DependencyId>
+            {
+                using T = std::decay_t<decltype(cond)>;
+
+                if constexpr (std::is_same_v<T, specs::MatchSpecCondition::MatchSpecCondition_>)
+                {
+                    // Base case: convert the MatchSpec to a dependency ID
+                    auto maybe_dep = pool_add_matchspec(pool, cond.spec, parser);
+                    if (maybe_dep)
+                    {
+                        return *maybe_dep;
+                    }
+                    return std::nullopt;
+                }
+                else if constexpr (std::is_same_v<T, std::unique_ptr<specs::MatchSpecCondition::And>>)
+                {
+                    // Recursive case: AND condition
+                    auto left_id = condition_to_dependency_id(*cond->left, pool, parser);
+                    auto right_id = condition_to_dependency_id(*cond->right, pool, parser);
+
+                    if (left_id && right_id)
+                    {
+                        return pool.rel_and(*left_id, *right_id);
+                    }
+                    return std::nullopt;
+                }
+                else if constexpr (std::is_same_v<T, std::unique_ptr<specs::MatchSpecCondition::Or>>)
+                {
+                    // Recursive case: OR condition
+                    auto left_id = condition_to_dependency_id(*cond->left, pool, parser);
+                    auto right_id = condition_to_dependency_id(*cond->right, pool, parser);
+
+                    if (left_id && right_id)
+                    {
+                        return pool.rel_or(*left_id, *right_id);
+                    }
+                    return std::nullopt;
+                }
+            },
+            condition.value
+        );
+    }
+
+    /**
+     * Add a dependency with proper conditional handling using libsolv's native REL_COND.
+     *
+     * If the MatchSpec has a condition, this creates a libsolv conditional dependency
+     * using REL_COND. Otherwise, adds it as a normal dependency.
+     *
+     */
+    template <typename AddFunc>
+    [[nodiscard]] auto add_dependency_with_condition(
+        specs::MatchSpec match_spec,
+        solv::ObjPool& pool,
+        MatchSpecParser parser,
+        AddFunc&& add_func
+    ) -> bool
+    {
+        const auto* condition = match_spec.condition();
+
+        // Parse the base matchspec (without condition) into a dependency ID
+        match_spec.set_condition(std::nullopt);
+        auto dep_id = pool_add_matchspec(pool, match_spec, parser);
+        if (!dep_id)
+        {
+            return false;
+        }
+
+        if (condition == nullptr)
+        {
+            // No condition - add as normal dependency
+            add_func(*dep_id);
+            return true;
+        }
+
+        // Parse the condition into a libsolv dependency ID
+        auto condition_id = condition_to_dependency_id(*condition, pool, parser);
+        if (!condition_id)
+        {
+            LOG_WARNING << "Failed to parse condition for " << match_spec.to_string()
+                        << ", adding without condition as fallback";
+            add_func(*dep_id);
+            return true;
+        }
+
+        // Create conditional dependency using libsolv REL_COND (evaluated at solve time)
+        auto conditional_dep_id = pool.rel_cond(*dep_id, *condition_id);
+        add_func(conditional_dep_id);
+
+        return true;
+    }
+
+    namespace
+    {
         template <class JSONObject>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
@@ -318,13 +483,18 @@ namespace mamba::solver::libsolv
             }
 
             // TODO conda timestamp are not Unix timestamp.
-            // Libsolv normalize them this way, we need to do the same here otherwise the current
-            // package may get arbitrary priority.
+            // Libsolv normalize them this way, we need to do the same here otherwise the
+            // current package may get arbitrary priority.
             if (auto timestamp = pkg["timestamp"]; !timestamp.error())
             {
                 const auto time = timestamp.get_uint64().value_unsafe();
                 solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
             }
+
+            // Get platform from solvable (or use default_subdir) - used for both dependencies and
+            // constraints
+            const std::string platform = solv.platform().empty() ? default_subdir
+                                                                 : std::string(solv.platform());
 
             if (auto depends = pkg["depends"].get_array(); !depends.error())
             {
@@ -332,21 +502,28 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        const auto ms = std::string(elem.get_string().value_unsafe());
-                        const auto maybe_dep_id = pool_add_matchspec(pool, ms.c_str(), parser);
-                        if (maybe_dep_id)
-                        {
-                            solv.add_dependency(*maybe_dep_id);
-                        }
-                        else
+                        const auto dep_str = std::string(elem.get_string().value_unsafe());
+
+                        // Parse the dependency - this will extract conditional syntax if present
+                        auto maybe_match_spec = specs::MatchSpec::parse(dep_str);
+                        if (!maybe_match_spec)
                         {
                             fmt::print(
                                 LOG_WARNING,
                                 R"(Found invalid MatchSpec "{}" in "{}")",
-                                ms,
+                                dep_str,
                                 filename
                             );
+                            continue;
                         }
+
+                        // Process conditional dependency using libsolv's native REL_COND support
+                        [[maybe_unused]] const bool dep_added = add_dependency_with_condition(
+                            std::move(maybe_match_spec).value(),
+                            pool,
+                            parser,
+                            [&](solv::DependencyId dep_id) { solv.add_dependency(dep_id); }
+                        );
                     }
                 }
             }
@@ -357,21 +534,28 @@ namespace mamba::solver::libsolv
                 {
                     if (!elem.error() && elem.is_string())
                     {
-                        const auto ms = std::string(elem.get_string().value_unsafe());
-                        const auto maybe_dep_id = pool_add_matchspec(pool, ms.c_str(), parser);
-                        if (maybe_dep_id)
-                        {
-                            solv.add_constraint(*maybe_dep_id);
-                        }
-                        else
+                        const auto cons_str = std::string(elem.get_string().value_unsafe());
+
+                        // Parse the constraint - this will extract conditional syntax if present
+                        auto maybe_match_spec = specs::MatchSpec::parse(cons_str);
+                        if (!maybe_match_spec)
                         {
                             fmt::print(
                                 LOG_WARNING,
                                 R"(Found invalid MatchSpec "{}" in "{}")",
-                                ms,
+                                cons_str,
                                 filename
                             );
+                            continue;
                         }
+
+                        // Process conditional constraint using libsolv's native REL_COND support
+                        [[maybe_unused]] const bool cons_added = add_dependency_with_condition(
+                            std::move(maybe_match_spec).value(),
+                            pool,
+                            parser,
+                            [&](solv::DependencyId dep_id) { solv.add_constraint(dep_id); }
+                        );
                     }
                 }
             }
@@ -400,8 +584,8 @@ namespace mamba::solver::libsolv
                 }
             }
 
-            // Setting signatures in solvable if they are available and `verify-artifacts` flag is
-            // enabled
+            // Setting signatures in solvable if they are available and `verify-artifacts` flag
+            // is enabled
             set_solv_signatures(solv, filename, signatures);
 
             solv.add_self_provide();
@@ -539,6 +723,19 @@ namespace mamba::solver::libsolv
         }
     }
 
+    /**
+     * Read repodata.json using libsolv's legacy parser.
+     *
+     * **Limitation**: This parser does not support conditional dependencies (e.g., "dep; if
+     * condition"). When conditional dependencies are present in repodata, they will be treated as
+     * literal package names, which will not match any actual packages, potentially resulting in
+     * missing dependencies or solver failures.
+     *
+     * For conditional dependency support, use the Mamba parser (RepodataParser::Mamba) instead,
+     * which is the default when experimental_repodata_parsing=true.
+     *
+     * This parser also does not support repodata_version 2 (base_url feature from CEP-15).
+     */
     auto libsolv_read_json(
         solv::ObjRepoView repo,
         const fs::u8path& filename,
@@ -606,15 +803,15 @@ namespace mamba::solver::libsolv
                  << " using mamba";
 
         // BEWARE:
-        // We use below `simdjson`'s "on-demand" parser, which does not tolerate reading the same
-        // value more than once. This means we need to make sure that the objects and their fields
-        // are read and/or concretized only once and if we need to use them more than once we need
-        // to persist them in local memory. This is why the code below tries hard to pre-read the
-        // data needed in several parts of the computing in a way that prevents jumping up and down
-        // the hierarchy of json objects. When this rule is not followed, the parsing might end
-        // earlier than expected or might skip data that are read when they shouldn't be, leading to
-        // *runtime issues* that might not be visible at first. Because of these reasons, be careful
-        // when modifying the following parsing code.
+        // We use below `simdjson`'s "on-demand" parser, which does not tolerate reading the
+        // same value more than once. This means we need to make sure that the objects and their
+        // fields are read and/or concretized only once and if we need to use them more than
+        // once we need to persist them in local memory. This is why the code below tries hard
+        // to pre-read the data needed in several parts of the computing in a way that prevents
+        // jumping up and down the hierarchy of json objects. When this rule is not followed,
+        // the parsing might end earlier than expected or might skip data that are read when
+        // they shouldn't be, leading to *runtime issues* that might not be visible at first.
+        // Because of these reasons, be careful when modifying the following parsing code.
 
         auto parser = simdjson::ondemand::parser();
         const auto lock = LockFile(filename);
@@ -1061,22 +1258,23 @@ namespace mamba::solver::libsolv
         // Locking on a spec applies the lock to all packages matching the spec.
         // In mamba, we do not want to lock the package because we want to allow other variants
         // (matching the same spec) to unlock more solutions.
-        // For instance we may pin ``libfmt=8.*`` but allow it to be swapped with a version built
-        // by a more recent compiler.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swapped with a version
+        // built by a more recent compiler.
         //
-        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
-        // matching the pin.
-        // That played poorly with ``all_problems_structured`` because we could not interpret
-        // the ids that were returned (since they were not associated with a single reldep).
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages
+        // not matching the pin. That played poorly with ``all_problems_structured`` because we
+        // could not interpret the ids that were returned (since they were not associated with a
+        // single reldep).
         //
         // Another wrong idea is to add the pin as an install job.
         // This is not what is expected of pins, as they must not be installed if they were not
         // in the environment.
-        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        // They can be configure in ``.condarc`` for generally specifying what versions are
+        // wanted.
         //
-        // The idea behind the current version is to add the pin/spec as a constraint that must be
-        // fullfield only if the package is installed.
-        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // The idea behind the current version is to add the pin/spec as a constraint that must
+        // be fullfield only if the package is installed. This is not supported on solver jobs
+        // but it is on ``Solvable`` with
         // ``disttype == DISTYPE_CONDA``.
         // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
         // as one of its constrains.
@@ -1102,8 +1300,8 @@ namespace mamba::solver::libsolv
             // If the installed repo does not exists, we can safely create it because this is
             // called right before the solve function.
             // If it gets modified latter on the pin should not interfere with user packages.
-            // If it gets overridden this it is not a problem for the solve because pins are added
-            // on each solve.
+            // If it gets overridden this it is not a problem for the solve because pins are
+            // added on each solve.
             auto [id, repo] = pool.add_repo("installed");
             pool.set_installed_repo(id);
             return repo;
@@ -1129,8 +1327,8 @@ namespace mamba::solver::libsolv
                     cons_solv.add_self_provide();
 
                     // Even if we lock it, libsolv may still try to remove it with
-                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
-                    // it out in the transaction
+                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to
+                    // filter it out in the transaction
                     cons_solv.set_type(solv::SolvableType::Pin);
 
                     // Necessary for attributes to be properly stored
@@ -1216,10 +1414,9 @@ namespace mamba::solver::libsolv
 
                     // In libsolv, system dependencies are provided as a special dependency,
                     // while in Conda it is implemented as a virtual package.
-                    // Maybe there is a way to tell libsolv to never try to install or remove these
-                    // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
-                    // In the meantime (and probably later for safety) we filter all virtual
-                    // packages out.
+                    // Maybe there is a way to tell libsolv to never try to install or remove
+                    // these solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?). In the meantime
+                    // (and probably later for safety) we filter all virtual packages out.
                     if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
                     {
                         return;
@@ -1637,11 +1834,11 @@ namespace mamba::solver::libsolv
                     .transform(
                         [&](auto id)
                         {
-                            // In libsolv update specs apply to installed packages, not available
-                            // ones, as opposed to mamba.
-                            // With ``numpy=0.5`` installed, update ``numpy>=1.0`` means update
-                            // numpy if a ``numpy>=1.0`` is installed, which would be false.
-                            // In Mamba, it means update any installed numpy to a new
+                            // In libsolv update specs apply to installed packages, not
+                            // available ones, as opposed to mamba. With ``numpy=0.5``
+                            // installed, update ``numpy>=1.0`` means update numpy if a
+                            // ``numpy>=1.0`` is installed, which would be false. In Mamba, it
+                            // means update any installed numpy to a new
                             // ``numpy>=1.0``, leading to an update.
                             // This is especially tricky with channel-specific MatchSpec.
 
@@ -1655,9 +1852,9 @@ namespace mamba::solver::libsolv
                             // Otherwise, we try our ad-hoc solution
                             else if (has_installed_package(pool, job.spec.name()))
                             {
-                                // We still need to issue an update command to libsolv, otherwise
-                                // the package won't be changed, but we apply it only to the
-                                // package name, not the full spec.
+                                // We still need to issue an update command to libsolv,
+                                // otherwise the package won't be changed, but we apply it only
+                                // to the package name, not the full spec.
                                 if (job.spec.name().is_exact())
                                 {
                                     auto name_id = pool.add_string(job.spec.name().to_string());

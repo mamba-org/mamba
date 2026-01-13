@@ -51,6 +51,13 @@ namespace mamba
             const download::RemoteFetchParams& remote_fetch_params
         ) -> expected_t<std::optional<ShardsIndexDict>>;
 
+        /**
+         * Parse downloaded shard index file.
+         *
+         * This method is public to allow testing of the parsing logic.
+         */
+        static auto parse_shard_index(const fs::u8path& file_path) -> expected_t<ShardsIndexDict>;
+
     private:
 
         /**
@@ -61,11 +68,6 @@ namespace mamba
             const SubdirDownloadParams& params,
             const fs::u8path& cache_dir
         ) -> std::optional<download::Request>;
-
-        /**
-         * Parse downloaded shard index file.
-         */
-        static auto parse_shard_index(const fs::u8path& file_path) -> expected_t<ShardsIndexDict>;
 
         /**
          * Get cache path for shard index.

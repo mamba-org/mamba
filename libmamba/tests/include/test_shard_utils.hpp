@@ -8,6 +8,8 @@
 #define TEST_SHARD_UTILS_HPP
 
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -85,6 +87,74 @@ namespace mambatests
          * @return Large data vector
          */
         auto create_large_data(std::size_t size_mb) -> std::vector<std::uint8_t>;
+
+        /**
+         * Create a minimal valid shard index msgpack.
+         *
+         * @param base_url Base URL for packages
+         * @param shards_base_url Base URL for shards
+         * @param subdir Subdirectory (platform)
+         * @param version Version number
+         * @param shards Map of package names to hash bytes
+         * @return Serialized msgpack data
+         */
+        auto create_shard_index_msgpack(
+            const std::string& base_url,
+            const std::string& shards_base_url,
+            const std::string& subdir,
+            std::size_t version,
+            const std::map<std::string, std::vector<std::uint8_t>>& shards
+        ) -> std::vector<std::uint8_t>;
+
+        /**
+         * Create a shard index msgpack with "version" field name.
+         */
+        auto create_shard_index_msgpack_with_version(
+            const std::string& base_url,
+            const std::string& shards_base_url,
+            const std::string& subdir,
+            std::size_t version,
+            const std::map<std::string, std::vector<std::uint8_t>>& shards
+        ) -> std::vector<std::uint8_t>;
+
+        /**
+         * Create a shard index msgpack with "repodata_version" field name.
+         */
+        auto create_shard_index_msgpack_with_repodata_version(
+            const std::string& base_url,
+            const std::string& shards_base_url,
+            const std::string& subdir,
+            std::size_t version,
+            const std::map<std::string, std::vector<std::uint8_t>>& shards
+        ) -> std::vector<std::uint8_t>;
+
+        /**
+         * Create a shard package record msgpack.
+         *
+         * @param name Package name
+         * @param version Package version
+         * @param build Build string
+         * @param build_number Build number
+         * @param sha256 SHA256 hash (optional, can be string or bytes)
+         * @param md5 MD5 hash (optional, can be string or bytes)
+         * @param depends Dependencies
+         * @param constrains Constraints
+         * @param noarch Noarch type
+         * @return Serialized msgpack data
+         */
+        auto create_shard_package_record_msgpack(
+            const std::string& name,
+            const std::string& version,
+            const std::string& build,
+            std::size_t build_number = 0,
+            const std::optional<std::string>& sha256 = std::nullopt,
+            const std::optional<std::string>& md5 = std::nullopt,
+            const std::vector<std::string>& depends = {},
+            const std::vector<std::string>& constrains = {},
+            const std::optional<std::string>& noarch = std::nullopt,
+            bool sha256_as_bytes = false,
+            bool md5_as_bytes = false
+        ) -> std::vector<std::uint8_t>;
     }
 }
 

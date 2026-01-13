@@ -20,6 +20,30 @@ jobs:
     name: Build binaries
     runs-on: ${{ inputs.os }}
     steps:
+      - name: Disk Space Before Clean Up
+        if: startsWith(inputs.os, 'ubuntu')
+        run: |
+          df -h
+      - name: Free Disk Space (Base Runner)
+        if: startsWith(inputs.os, 'ubuntu')
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+          docker-images: false
+      - name: Free Disk Space (Container)
+        if: startsWith(inputs.os, 'ubuntu')
+        run: |
+          rm -rf /mnt/usr/local/lib/android
+          rm -rf /mnt/usr/share/dotnet
+          rm -rf /mnt/usr/local/share/boost
+          rm -rf /mnt/opt/ghc
+          rm -rf /mnt/opt/hostedtoolcache/CodeQL
+          rm -rf /mnt/usr/local/lib/node_modules
+      - name: Disk Space After Clean Up
+        if: startsWith(inputs.os, 'ubuntu')
+        run: |
+          df -h
       - name: Checkout mamba repository
         uses: actions/checkout@v6
       - name: Create build environment

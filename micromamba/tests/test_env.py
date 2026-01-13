@@ -450,7 +450,7 @@ def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     assert any(pkg["name"] == "numpy" and pkg["version"] == "1.26.4" for pkg in pip_packages_list)
 
     # Install numpy from conda-forge instead of using env update
-    # Disable interoperability to allow both pip and conda versions to coexist
+    # Disable prefix interoperability to allow both pip and conda versions to coexist
     res = helpers.install(
         "numpy=2.0.0",
         "-p",

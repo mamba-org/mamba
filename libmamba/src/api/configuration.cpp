@@ -1674,9 +1674,10 @@ namespace mamba
                    .set_env_var_names(
                        { "CONDA_PREFIX_DATA_INTEROPERABILITY", "MAMBA_PREFIX_DATA_INTEROPERABILITY" }
                    )
-                   .description("Enable pip interoperability")
+                   .description("Enable prefix interoperability")
                    .long_description(
-                       "Enable interoperability between conda and pip. When enabled, conda can use "
+                       "Enable interoperability between conda packages and pip packages.\n"
+                       "When enabled, mamba will use pip-installed packages to satisfy dependencies,"
                        "pip-installed packages to satisfy dependencies, and will remove pip-installed "
                        "packages when replacing them with conda packages."
                    ));

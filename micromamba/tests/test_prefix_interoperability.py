@@ -1,5 +1,5 @@
 """
-Comprehensive test suite for pip interoperability feature.
+Comprehensive test suite for prefix interoperability feature.
 
 This test suite verifies that mamba correctly handles pip-installed packages
 when prefix_data_interoperability is enabled, including:
@@ -48,23 +48,23 @@ def verify_pip_list_version_matches_conda(env_name, package_name, conda_packages
 
 
 @pytest.fixture
-def enable_pip_interop(monkeypatch):
-    """Fixture to enable pip interoperability for a test."""
+def enable_prefix_interop(monkeypatch):
+    """Fixture to enable prefix interoperability for a test."""
     monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     yield
     monkeypatch.delenv("CONDA_PREFIX_DATA_INTEROPERABILITY", raising=False)
 
 
 @pytest.fixture
-def disable_pip_interop(monkeypatch):
-    """Fixture to explicitly disable pip interoperability for a test."""
+def disable_prefix_interop(monkeypatch):
+    """Fixture to explicitly disable prefix interoperability for a test."""
     monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "false")
     yield
     monkeypatch.delenv("CONDA_PREFIX_DATA_INTEROPERABILITY", raising=False)
 
 
-class TestPipInteroperabilityConfig:
-    """Test configuration of pip interoperability feature."""
+class TestPrefixInteroperabilityConfig:
+    """Test configuration of prefix interoperability feature."""
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_config_default_value(self, tmp_home, tmp_root_prefix):
@@ -76,7 +76,7 @@ class TestPipInteroperabilityConfig:
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
         helpers.umamba_run("-n", env_name, "pip", "install", "itsdangerous==2.1.2")
 
-        # Without interoperability enabled, pip package should remain after installing flask
+        # Without prefix interoperability enabled, pip package should remain after installing flask
         # (This is tested in test_pip_package_not_removed_when_disabled)
         # Here we just verify the environment is set up correctly
         res = helpers.umamba_list("-n", env_name, "--json")
@@ -93,7 +93,7 @@ class TestPipInteroperabilityConfig:
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
         helpers.umamba_run("-n", env_name, "pip", "install", "itsdangerous==2.1.2")
 
-        # Install flask - should remove pip itsdangerous if interoperability is enabled
+        # Install flask - should remove pip itsdangerous if prefix interoperability is enabled
         helpers.install(
             "-n",
             env_name,
@@ -152,14 +152,14 @@ class TestPipInteroperabilityConfig:
         verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous)
 
 
-class TestPipInteroperabilityBasic:
-    """Test basic pip interoperability functionality."""
+class TestPrefixInteroperabilityBasic:
+    """Test basic prefix interoperability functionality."""
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_pip_package_detected_when_enabled(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
-        """Test that pip packages are detected when interoperability is enabled."""
+        """Test that pip packages are detected when prefix interoperability is enabled."""
         env_name = "test-pip-detection"
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
 
@@ -179,7 +179,7 @@ class TestPipInteroperabilityBasic:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_pip_package_not_in_solver_when_disabled(
-        self, tmp_home, tmp_root_prefix, tmp_path, disable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, disable_prefix_interop
     ):
         """Test that pip packages are not considered by solver when disabled."""
         env_name = "test-pip-not-in-solver"
@@ -202,12 +202,12 @@ class TestPipInteroperabilityBasic:
         assert isinstance(itsdangerous_installed, bool)
 
 
-class TestPipInteroperabilityRemoval:
+class TestPrefixInteroperabilityRemoval:
     """Test that pip packages are removed when conda packages are installed."""
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_conda_removes_pip_package_same_name(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """
         Test the main use case: installing a conda package removes pip-installed version.
@@ -264,7 +264,7 @@ class TestPipInteroperabilityRemoval:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_conda_removes_pip_package_dependency(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """
         Test that pip-installed dependencies are removed when conda package is installed.
@@ -320,9 +320,9 @@ class TestPipInteroperabilityRemoval:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_pip_package_not_removed_when_disabled(
-        self, tmp_home, tmp_root_prefix, tmp_path, disable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, disable_prefix_interop
     ):
-        """Test that pip packages are NOT removed when interoperability is disabled."""
+        """Test that pip packages are NOT removed when prefix interoperability is disabled."""
         env_name = "test-pip-not-removed-disabled"
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
 
@@ -348,16 +348,16 @@ class TestPipInteroperabilityRemoval:
             if pkg.get("name") == "itsdangerous" and pkg.get("channel") == "pypi"
         ]
 
-        # When interoperability is disabled, pip packages should remain
+        # When prefix interoperability is disabled, pip packages should remain
         assert len(pip_itsdangerous_after) == 1
 
 
-class TestPipInteroperabilityEdgeCases:
+class TestPrefixInteroperabilityEdgeCases:
     """Test edge cases and complex scenarios."""
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_conda_package_takes_precedence_over_pip(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """Test that existing conda packages take precedence over pip packages."""
         env_name = "test-conda-precedence"
@@ -388,7 +388,7 @@ class TestPipInteroperabilityEdgeCases:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_multiple_pip_packages_removed(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """Test that multiple pip packages can be removed in one transaction."""
         env_name = "test-multiple-pip-removal"
@@ -442,7 +442,7 @@ class TestPipInteroperabilityEdgeCases:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_pip_package_satisfies_dependency(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """
         Test that pip-installed packages can satisfy conda dependencies.
@@ -451,7 +451,7 @@ class TestPipInteroperabilityEdgeCases:
         - Install itsdangerous via pip
         - Install flask via conda
         - Flask's dependency on itsdangerous should be satisfied by pip version
-        - But with interoperability enabled, pip version should be replaced
+        - But with prefix interoperability enabled, pip version should be replaced
         """
         env_name = "test-pip-satisfies-dependency"
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
@@ -488,19 +488,19 @@ class TestPipInteroperabilityEdgeCases:
         verify_pip_list_version_matches_conda(env_name, "itsdangerous", conda_itsdangerous)
 
 
-class TestPipInteroperabilityIntegration:
+class TestPrefixInteroperabilityIntegration:
     """Integration tests for real-world scenarios."""
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_github_issue_342_scenario(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """
         Reproduce the exact scenario from GitHub issue #342.
 
         Steps:
         1. Install boto3==1.14.4 through pip
-        2. Set pip interoperability to True (via env var)
+        2. Set prefix interoperability to True (via env var)
         3. Downgrade boto3 through mamba to 1.13.21 version
         4. Verify pip version is removed and conda version is installed
         """
@@ -557,7 +557,7 @@ class TestPipInteroperabilityIntegration:
             pytest.skip(f"boto3 not available in conda-forge: {e}")
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-    def test_upgrade_pip_to_conda(self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop):
+    def test_upgrade_pip_to_conda(self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop):
         """Test upgrading a pip-installed package to conda version."""
         env_name = "test-upgrade-pip-to-conda"
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
@@ -593,7 +593,7 @@ class TestPipInteroperabilityIntegration:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_downgrade_conda_to_pip_replacement(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """
         Test that installing a conda package replaces a newer pip package.
@@ -635,14 +635,14 @@ class TestPipInteroperabilityIntegration:
         verify_pip_list_version_matches_conda(env_name, "click", conda_click)
 
 
-class TestPipInteroperabilityList:
-    """Test that list command correctly shows pip packages when interoperability is enabled."""
+class TestPrefixInteroperabilityList:
+    """Test that list command correctly shows pip packages when prefix interoperability is enabled."""
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_list_shows_pip_packages_when_enabled(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
-        """Test that mamba list shows pip packages when interoperability is enabled."""
+        """Test that mamba list shows pip packages when prefix interoperability is enabled."""
         env_name = "test-list-pip-packages"
         helpers.create("-n", env_name, "python=3.10", "pip", "--json", no_dry_run=True)
 
@@ -658,7 +658,7 @@ class TestPipInteroperabilityList:
 
     @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
     def test_list_shows_conda_after_replacement(
-        self, tmp_home, tmp_root_prefix, tmp_path, enable_pip_interop
+        self, tmp_home, tmp_root_prefix, tmp_path, enable_prefix_interop
     ):
         """Test that list shows conda package after pip package is replaced."""
         env_name = "test-list-after-replacement"

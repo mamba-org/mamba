@@ -20,7 +20,7 @@
 
 using namespace mamba;
 
-TEST_CASE("Configuration: prefix_data_interoperability", "[core][pip-interop]")
+TEST_CASE("Configuration: prefix_data_interoperability", "[core][prefix-interop]")
 {
     auto& ctx = mambatests::context();
     mamba::Configuration config{ ctx };
@@ -69,7 +69,7 @@ TEST_CASE("Configuration: prefix_data_interoperability", "[core][pip-interop]")
     }
 }
 
-TEST_CASE("PrefixData: pip packages loading", "[core][pip-interop]")
+TEST_CASE("PrefixData: pip packages loading", "[core][prefix-interop]")
 {
     auto tmp_dir = TemporaryDirectory();
     auto prefix_path = tmp_dir.path() / "prefix";
@@ -134,7 +134,7 @@ TEST_CASE("PrefixData: pip packages loading", "[core][pip-interop]")
     }
 }
 
-TEST_CASE("Package database loader: pip packages in solver", "[core][pip-interop]")
+TEST_CASE("Package database loader: pip packages in solver", "[core][prefix-interop]")
 {
     auto tmp_dir = TemporaryDirectory();
     auto prefix_path = tmp_dir.path() / "prefix";
@@ -182,7 +182,7 @@ TEST_CASE("Package database loader: pip packages in solver", "[core][pip-interop
     pip_pkg.platform = "linux-64";
     prefix_data.add_pip_packages({ pip_pkg });
 
-    SECTION("Pip packages are NOT included when interoperability is disabled")
+    SECTION("Pip packages are NOT included when prefix interoperability is disabled")
     {
         ctx.prefix_data_interoperability = false;
 
@@ -203,7 +203,7 @@ TEST_CASE("Package database loader: pip packages in solver", "[core][pip-interop
         REQUIRE_FALSE(found_pip_pkg);
     }
 
-    SECTION("Pip packages ARE included when interoperability is enabled")
+    SECTION("Pip packages ARE included when prefix interoperability is enabled")
     {
         ctx.prefix_data_interoperability = true;
 
@@ -265,7 +265,7 @@ TEST_CASE("Package database loader: pip packages in solver", "[core][pip-interop
         REQUIRE(boto3_count == 1);
     }
 
-    SECTION("Multiple pip packages are included when interoperability is enabled")
+    SECTION("Multiple pip packages are included when prefix interoperability is enabled")
     {
         ctx.prefix_data_interoperability = true;
 
@@ -316,7 +316,7 @@ TEST_CASE("Package database loader: pip packages in solver", "[core][pip-interop
     }
 }
 
-TEST_CASE("Transaction: pip package removal", "[core][pip-interop]")
+TEST_CASE("Transaction: pip package removal", "[core][prefix-interop]")
 {
     auto tmp_dir = TemporaryDirectory();
     auto prefix_path = tmp_dir.path() / "prefix";
@@ -343,7 +343,7 @@ TEST_CASE("Transaction: pip package removal", "[core][pip-interop]")
     }
 }
 
-TEST_CASE("Integration: pip interoperability workflow", "[core][pip-interop]")
+TEST_CASE("Integration: prefix interoperability workflow", "[core][prefix-interop]")
 {
     auto tmp_dir = TemporaryDirectory();
     auto prefix_path = tmp_dir.path() / "prefix";

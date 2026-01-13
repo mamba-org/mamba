@@ -163,6 +163,7 @@ namespace mamba
         // When prefix_data_interoperability is enabled, include pip packages in the solver database
         // so they can be removed when replaced by conda packages. The solver will handle conflicts
         // and remove pip packages when conda packages with the same name are installed.
+        // This is part of the prefix interoperability feature.
         if (ctx.prefix_data_interoperability)
         {
             for (const auto& [name, pip_pkg] : prefix.pip_records())

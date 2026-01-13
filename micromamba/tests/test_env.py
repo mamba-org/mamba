@@ -432,6 +432,10 @@ dependencies:
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Test causes crash on Windows (exit code 3221225781 / STATUS_ACCESS_VIOLATION)",
+)
 def test_env_update_pypi_with_conda_forge(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "env-update-pypi-with-conda-forge"
 

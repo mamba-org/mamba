@@ -644,9 +644,30 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
-#endif
+            // Try to compute SHA256 of existing file, but if it fails (e.g., file is locked
+            // or from a pip package), fall back to removing it like on other platforms
+            try
+            {
+                return std::make_tuple(
+                    std::string(validation::sha256sum(dst)),
+                    rel_dst.generic_string()
+                );
+            }
+            catch (const std::exception& e)
+            {
+                LOG_DEBUG << "Could not compute SHA256 of existing file " << dst
+                          << ", will remove it: " << e.what();
+                fs::remove(dst);
+            }
+            catch (...)
+            {
+                LOG_DEBUG << "Could not compute SHA256 of existing file " << dst
+                          << ", will remove it (unknown error)";
+                fs::remove(dst);
+            }
+#else
             fs::remove(dst);
+#endif
         }
         if (ec)
         {

@@ -124,6 +124,32 @@ namespace mamba
             }
         }
 
+        TEST_CASE("read_history_url_entry_sets_defaulted_keys")
+        {
+            // Issue #4095: PackageInfo created from history must have defaulted_keys set
+            // to indicate which fields should be backfilled from index.json (from tarball).
+            // This is critical for explicit installs restored from history.
+
+            std::string s = "conda-forge::pkg-1.0-bld_0";
+            specs::PackageInfo pkg = mamba::read_history_url_entry(s);
+
+            REQUIRE_FALSE(pkg.defaulted_keys.empty());
+            REQUIRE(pkg.defaulted_keys[0] == "_initialized");
+
+            // Check that stub fields are marked for backfilling
+            auto contains = [](const std::vector<std::string>& v, const std::string& val)
+            { return std::find(v.begin(), v.end(), val) != v.end(); };
+
+            REQUIRE(contains(pkg.defaulted_keys, "depends"));
+            REQUIRE(contains(pkg.defaulted_keys, "license"));
+            REQUIRE(contains(pkg.defaulted_keys, "timestamp"));
+            REQUIRE(contains(pkg.defaulted_keys, "subdir"));
+            REQUIRE(contains(pkg.defaulted_keys, "md5"));
+            REQUIRE(contains(pkg.defaulted_keys, "sha256"));
+            REQUIRE(contains(pkg.defaulted_keys, "size"));
+            REQUIRE(contains(pkg.defaulted_keys, "fn"));
+        }
+
         TEST_CASE("revision_diff")
         {
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());

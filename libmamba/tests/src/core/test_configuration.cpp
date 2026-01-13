@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <ranges>
 
 #include <catch2/catch_all.hpp>
 
@@ -599,7 +600,7 @@ namespace mamba
 
                 REQUIRE(envs_dirs.size() >= 1);
                 REQUIRE(
-                    std::find(envs_dirs.begin(), envs_dirs.end(), get_root_prefix_envs_dir())
+                    std::ranges::find(envs_dirs, fs::u8path(get_root_prefix_envs_dir()))
                     != envs_dirs.end()
                 );
             }

@@ -20,6 +20,7 @@
 #endif
 
 #include "mamba/core/channel_context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/prefix_data.hpp"
 
@@ -147,6 +148,11 @@ namespace mamba
 #ifndef _WIN32
         TEST_CASE("parse_segfault")
         {
+            // Ensure clean state before fork to avoid inheriting locked mutexes or dead threads.
+            // POSIX fork() only copies the calling thread; other threads (e.g., from MainExecutor)
+            // are not copied, leaving mutexes locked and thread handles invalid in the child.
+            MainExecutor::stop_default();
+
             pid_t child = fork();
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             if (child)

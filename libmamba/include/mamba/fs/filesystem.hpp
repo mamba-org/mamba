@@ -1139,6 +1139,9 @@ namespace mamba::fs
         return std::filesystem::last_write_time(path, new_time, std::forward<OtherArgs>(args)...);
     }
 
+    // Check if we have modification rights on a path
+    bool has_permissions(const u8path&, const fs::perms&);
+
     // void permissions(const path& p, perms prms, perm_options opts = perm_options::replace);
     // void permissions(const path& p, perms prms, error_code& ec) noexcept;
     // void permissions(const path& p, perms prms, perm_options opts, error_code& ec);

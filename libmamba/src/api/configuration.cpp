@@ -1678,8 +1678,7 @@ namespace mamba
                    .long_description(
                        "Enable interoperability between conda packages and pip packages.\n"
                        "When enabled, mamba will use pip-installed packages to satisfy dependencies,"
-                       "pip-installed packages to satisfy dependencies, and will remove pip-installed "
-                       "packages when replacing them with conda packages."
+                       "and will remove pip-installed packages when replacing them with conda packages."
                    ));
 
         insert(Configurable("pinned_packages", &m_context.pinned_packages)

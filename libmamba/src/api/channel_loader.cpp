@@ -466,6 +466,20 @@ namespace mamba
             const std::vector<std::string>& root_packages = {}
         ) -> expected_t<void, mamba_aggregated_error>
         {
+            // When sharded repodata is enabled, automatically disable safety_checks to avoid
+            // warnings about missing md5/sha256 in repodata_record.json files.
+            // This is necessary because packages loaded from shards don't include md5/sha256
+            // hashes in their repodata_record.json files (they are parsed from shard data but
+            // not written to the cached repodata_record.json), which would otherwise trigger
+            // validation warnings.
+            if (ctx.repodata_use_shards
+                && ctx.validation_params.safety_checks != VerificationLevel::Disabled)
+            {
+                LOG_DEBUG << "Sharded repodata is enabled, automatically disabling safety_checks "
+                          << "to avoid warnings about missing md5/sha256 in repodata_record.json";
+                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+            }
+
             std::vector<SubdirIndexLoader> subdirs;
 
             std::vector<solver::libsolv::Priorities> priorities;

@@ -284,17 +284,20 @@ namespace mamba
                     }
 
                     // Validate size
+                    bool size_valid = true;
                     if (s.size != 0)
                     {
-                        valid = repodata_record["size"].get<std::size_t>() == s.size;
-                        if (!valid)
+                        size_valid = repodata_record["size"].get<std::size_t>() == s.size;
+                        if (!size_valid)
                         {
                             LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                         << "' has invalid size";
+                            valid = false;
                         }
                     }
 
                     // Validate checksum
+                    bool checksum_validated = false;
                     if (!s.sha256.empty() && repodata_record.contains("sha256"))
                     {
                         // TODO handle case if repodata_record __does not__ contain any value
@@ -304,11 +307,14 @@ namespace mamba
                             LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                         << "' has invalid SHA-256 checksum";
                         }
-                        else if (s.size == 0)
+                        else
                         {
-                            // in case we have no s.size
-                            // set valid true here
-                            valid = true;
+                            checksum_validated = true;
+                            // If size is 0, we validated via checksum, so mark as valid
+                            if (s.size == 0)
+                            {
+                                valid = true;
+                            }
                         }
                     }
                     else if (!s.md5.empty() && repodata_record.contains("md5"))
@@ -320,19 +326,36 @@ namespace mamba
                                         << "' has invalid MD5 checksum";
                             valid = false;
                         }
-                        else if (s.size == 0)
+                        else
                         {
-                            // for explicit env, we have no size, nor sha256 so we need to
-                            // set valid true here
-                            valid = true;
+                            checksum_validated = true;
+                            // If size is 0, we validated via checksum, so mark as valid
+                            if (s.size == 0)
+                            {
+                                valid = true;
+                            }
                         }
                     }
-                    else if (s.size != 0)
+
+                    // If we have size but no checksums, validation depends on safety_checks setting
+                    if (!checksum_validated && s.size != 0)
                     {
-                        // cannot validate if we don't know either md5 or sha256
-                        LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                    << "' has no checksum";
-                        valid = false;
+                        if (params.safety_checks == VerificationLevel::Disabled)
+                        {
+                            // When safety_checks is disabled, accept cache if size matches
+                            // (size was already validated above)
+                            if (size_valid)
+                            {
+                                valid = true;
+                            }
+                        }
+                        else
+                        {
+                            // Cannot validate if we don't know either md5 or sha256
+                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                        << "' has no checksum";
+                            valid = false;
+                        }
                     }
 
                     // Validate URL

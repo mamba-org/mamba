@@ -611,18 +611,14 @@ namespace mamba
             // pip packages UNLESS the package is explicitly requested (to allow updates to work)
             if (!ctx.prefix_data_interoperability && prefix.pip_records().contains(pkg.name))
             {
-                // Check if this package is explicitly requested
-                bool is_requested = false;
-                for (const auto& spec : m_requested_specs)
-                {
-                    if (spec.name().is_exact() && spec.name().to_string() == pkg.name)
-                    {
-                        is_requested = true;
-                        break;
-                    }
-                }
                 // Skip if not explicitly requested (preserve pip package)
-                if (!is_requested)
+                const bool is_explicitly_requested = std::ranges::any_of(
+                    m_requested_specs,
+                    [&pkg](const auto& spec)
+                    { return spec.name().is_exact() && spec.name().to_string() == pkg.name; }
+                );
+
+                if (!is_explicitly_requested)
                 {
                     continue;
                 }

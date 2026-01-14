@@ -229,6 +229,7 @@ namespace mamba
                     pkg_info.package_url = util::url_concat(base_url, "/", filename);
                     pkg_info.dependencies = record.depends;
                     pkg_info.constrains = record.constrains;
+                    pkg_info.size = record.size;
                     if (record.sha256)
                     {
                         pkg_info.sha256 = *record.sha256;
@@ -280,6 +281,7 @@ namespace mamba
                     pkg_info.package_url = util::url_concat(base_url, "/", filename);
                     pkg_info.dependencies = record.depends;
                     pkg_info.constrains = record.constrains;
+                    pkg_info.size = record.size;
                     if (record.sha256)
                     {
                         pkg_info.sha256 = *record.sha256;

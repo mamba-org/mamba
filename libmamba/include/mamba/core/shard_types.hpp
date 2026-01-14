@@ -33,6 +33,7 @@ namespace mamba
         std::vector<std::string> depends;
         std::vector<std::string> constrains;
         std::optional<std::string> noarch;
+        std::size_t size = 0;
     };
 
     /**

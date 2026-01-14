@@ -275,6 +275,11 @@ namespace mamba
                             record.noarch = msgpack_object_to_string(val_obj);
                         }
                     }
+                    else if (key == "size")
+                    {
+                        // Handle size as integer (uint64 or int)
+                        record.size = msgpack_object_to_uint64(val_obj);
+                    }
                     // Ignore unknown fields (they might be present in the data but not needed)
                 }
                 catch (const std::exception& e)

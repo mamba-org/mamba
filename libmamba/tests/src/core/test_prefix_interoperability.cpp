@@ -142,6 +142,7 @@ namespace mamba
         fs::create_directories(prefix_path);
 
         auto& ctx = mambatests::context();
+        const auto original_prefix_data_interoperability = ctx.prefix_data_interoperability;
         auto channel_context = ChannelContext::make_simple(ctx);
 
         // Create a minimal conda environment
@@ -315,6 +316,9 @@ namespace mamba
             REQUIRE(found_boto3);
             REQUIRE(pip_pkg_count >= 3);  // At least our 3 pip packages
         }
+
+        // Restore original value
+        ctx.prefix_data_interoperability = original_prefix_data_interoperability;
     }
 
     TEST_CASE("Transaction: pip package removal", "[core][prefix-interop]")
@@ -351,6 +355,7 @@ namespace mamba
         fs::create_directories(prefix_path);
 
         auto& ctx = mambatests::context();
+        const auto original_prefix_data_interoperability = ctx.prefix_data_interoperability;
         auto channel_context = ChannelContext::make_simple(ctx);
 
         // Create a minimal conda environment
@@ -465,6 +470,9 @@ namespace mamba
             REQUIRE_FALSE(found_pip);
             REQUIRE(boto3_count == 1);
         }
+
+        // Restore original value
+        ctx.prefix_data_interoperability = original_prefix_data_interoperability;
     }
 
 }  // namespace mamba

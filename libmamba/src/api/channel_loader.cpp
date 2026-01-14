@@ -159,7 +159,27 @@ namespace mamba
 
             // Collect all PackageInfo objects from visited shards
             std::vector<specs::PackageInfo> package_infos;
-            const std::string base_url = shards->base_url();
+            // Use subdir.name() as base_url (for package downloads)
+            // subdir.name() returns the full subdir URL (e.g.,
+            // "https://prefix.dev/conda-forge/linux-64") which is exactly what we need for
+            // constructing package URLs
+            std::string base_url = subdir.name();
+            LOG_DEBUG << "Using base_url for package downloads: " << base_url;
+            // Ensure base_url doesn't end with trailing slash (url_concat handles it)
+            if (!base_url.empty() && base_url.back() == '/')
+            {
+                base_url.pop_back();
+            }
+            // Validate base_url is not empty and is a valid URL
+            if (base_url.empty())
+            {
+                LOG_ERROR << "base_url is empty (subdir.name() returned empty) for "
+                          << subdir.channel_id() << "/" << subdir.platform();
+                return make_unexpected(
+                    "Empty base_url for package downloads",
+                    mamba_error_code::repodata_not_loaded
+                );
+            }
             const specs::DynamicPlatform& platform = subdir.platform();
             const std::string channel_id = subdir.channel_id();
 

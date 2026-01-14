@@ -455,7 +455,30 @@ namespace mamba
         // To take correction of packages metadata (e.g. made using repodata patches) into account,
         // we insert the index into the repodata record to only add new fields from the index
         // while keeping the existing fields from the repodata record.
+        // However, preserve md5 and sha256 from m_package_info if they exist, as they may come
+        // from shards and be more accurate than what's in index.json
+        std::string preserved_md5;
+        std::string preserved_sha256;
+        if (repodata_record.contains("md5") && !repodata_record["md5"].is_null())
+        {
+            preserved_md5 = repodata_record["md5"].get<std::string>();
+        }
+        if (repodata_record.contains("sha256") && !repodata_record["sha256"].is_null())
+        {
+            preserved_sha256 = repodata_record["sha256"].get<std::string>();
+        }
+
         repodata_record.insert(index.cbegin(), index.cend());
+
+        // Restore preserved md5/sha256 if they were set
+        if (!preserved_md5.empty())
+        {
+            repodata_record["md5"] = preserved_md5;
+        }
+        if (!preserved_sha256.empty())
+        {
+            repodata_record["sha256"] = preserved_sha256;
+        }
 
         if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
         {

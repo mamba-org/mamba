@@ -232,10 +232,24 @@ namespace mamba
                     if (record.sha256)
                     {
                         pkg_info.sha256 = *record.sha256;
+                        LOG_DEBUG << "Set sha256 for package '" << pkg_info.name << "' ("
+                                  << filename << "): " << *record.sha256;
+                    }
+                    else
+                    {
+                        LOG_DEBUG << "No sha256 found for package '" << pkg_info.name << "' ("
+                                  << filename << ")";
                     }
                     if (record.md5)
                     {
                         pkg_info.md5 = *record.md5;
+                        LOG_DEBUG << "Set md5 for package '" << pkg_info.name << "' (" << filename
+                                  << "): " << *record.md5;
+                    }
+                    else
+                    {
+                        LOG_DEBUG << "No md5 found for package '" << pkg_info.name << "' ("
+                                  << filename << ")";
                     }
                     if (record.noarch)
                     {
@@ -269,10 +283,24 @@ namespace mamba
                     if (record.sha256)
                     {
                         pkg_info.sha256 = *record.sha256;
+                        LOG_DEBUG << "Set sha256 for conda package '" << pkg_info.name << "' ("
+                                  << filename << "): " << *record.sha256;
+                    }
+                    else
+                    {
+                        LOG_DEBUG << "No sha256 found for conda package '" << pkg_info.name << "' ("
+                                  << filename << ")";
                     }
                     if (record.md5)
                     {
                         pkg_info.md5 = *record.md5;
+                        LOG_DEBUG << "Set md5 for conda package '" << pkg_info.name << "' ("
+                                  << filename << "): " << *record.md5;
+                    }
+                    else
+                    {
+                        LOG_DEBUG << "No md5 found for conda package '" << pkg_info.name << "' ("
+                                  << filename << ")";
                     }
                     if (record.noarch)
                     {

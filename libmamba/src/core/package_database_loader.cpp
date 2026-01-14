@@ -5,6 +5,8 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <iterator>
+#include <ranges>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -166,25 +168,27 @@ namespace mamba
         // This is part of the prefix interoperability feature.
         if (ctx.prefix_data_interoperability)
         {
-            for (const auto& [name, pip_pkg] : prefix.pip_records())
-            {
-                // Check if there's already a conda package with the same name
-                auto conda_pkg_it = std::find_if(
-                    pkgs.begin(),
-                    pkgs.end(),
-                    [&name](const auto& pkg) { return pkg.name == name; }
-                );
+            // Filter pip packages to only those that don't have a conda equivalent
+            auto pip_packages_to_add = prefix.pip_records()
+                                       | std::ranges::views::filter(
+                                           [&pkgs](const auto& pair)
+                                           {
+                                               const auto& name = pair.first;
+                                               return !std::ranges::any_of(
+                                                   pkgs,
+                                                   [&name](const auto& pkg)
+                                                   { return pkg.name == name; }
+                                               );
+                                           }
+                                       )
+                                       | std::ranges::views::values;  // Extract the PackageInfo
+                                                                      // values
 
-                if (conda_pkg_it == pkgs.end())
-                {
-                    // No conda package with this name, add the pip package so it can be
-                    // tracked and removed if a conda package with the same name is installed
-                    pkgs.push_back(pip_pkg);
-                }
-                // If a conda package already exists, we don't add the pip package.
-                // This represents a conflict state that shouldn't normally exist, but if it does,
-                // the existing conda package takes precedence.
-            }
+            // Add filtered pip packages to pkgs
+            // If a conda package already exists, we don't add the pip package.
+            // This represents a conflict state that shouldn't normally exist, but if it does,
+            // the existing conda package takes precedence.
+            std::ranges::copy(pip_packages_to_add, std::back_inserter(pkgs));
         }
 
         // TODO(C++20): We only need a range that concatenate both

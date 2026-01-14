@@ -102,12 +102,6 @@ namespace mamba::specs
 
         all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
 
-        // WORKS BUT DOESNT MAKE THE RIGHT CHANNEL WORK WITH MANBAJS ENV LOCKFILES
-        for (const auto& url : additional_mirrors)
-        {
-            all_urls.push_back(url);
-        }
-
         prepare_mirrors(all_urls);
         m_mirror_urls = std::move(all_urls);
 

@@ -497,13 +497,8 @@ namespace mamba
                     .string();
             };
 
-            const auto args = std::array<std::string, 5>{ get_python_path(),
-                                                          "-m",
-                                                          "pip",
-                                                          "uninstall",
-                                                          "-y" };
-            std::vector<std::string> full_args(args.begin(), args.end());
-            full_args.push_back(name);
+            const std::vector<std::string> full_args{ get_python_path(), "-m", "pip",
+                                                      "uninstall",       "-y", name };
 
             const std::vector<std::pair<std::string, std::string>> env{
                 { "PYTHONIOENCODING", "utf-8" },

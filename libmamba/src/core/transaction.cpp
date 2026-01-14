@@ -449,9 +449,9 @@ namespace mamba
             {
                 // Check if this pip package conflicts with a conda package being installed or
                 // requested
-                bool conflicts = (packages_to_install_names.contains(name)
-                                  || requested_package_names.contains(name))
-                                 && !pip_package_names.contains(name);
+                const bool conflicts = (packages_to_install_names.contains(name)
+                                        || requested_package_names.contains(name))
+                                       && !pip_package_names.contains(name);
                 if (conflicts)
                 {
                     // This pip package conflicts with a conda package being installed/requested
@@ -552,11 +552,10 @@ namespace mamba
             // 2. Pip packages that conflict with packages being installed or requested
             for (const auto& [name, pip_pkg] : pip_records)
             {
-                bool in_removal = pip_package_names.contains(name);
-                bool in_install = packages_to_install_names.contains(name);
-                bool in_requested = requested_package_names.contains(name);
-                bool conflicts = in_removal || in_install || in_requested;
-
+                // Inlining the conditions for better performance
+                const bool conflicts = pip_package_names.contains(name)
+                                       || packages_to_install_names.contains(name)
+                                       || requested_package_names.contains(name);
                 if (conflicts)
                 {
                     pip_packages_to_uninstall.insert(name);
@@ -580,9 +579,9 @@ namespace mamba
 
             // Check if this is a pip package
             // Pip packages are already uninstalled before this loop, so we skip them here
-            bool is_pip_package
-                = (pip_package_names.contains(pkg.name) || prefix.pip_records().contains(pkg.name)
-                   || pkg.channel.find("pypi") != std::string::npos);
+            const bool is_pip_package = pip_package_names.contains(pkg.name)
+                                        || prefix.pip_records().contains(pkg.name)
+                                        || pkg.channel.find("pypi") != std::string::npos;
 
             if (is_pip_package)
             {

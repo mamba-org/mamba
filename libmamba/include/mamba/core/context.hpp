@@ -258,7 +258,8 @@ namespace mamba
 
         bool repodata_use_zst = true;
         bool repodata_use_shards = true;
-        std::size_t repodata_shards_ttl = 86400;  // 24 hours in seconds
+        std::size_t repodata_shards_ttl = 86400;   // 24 hours in seconds
+        std::size_t repodata_shards_threads = 10;  // Thread pool size for shard fetching
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // FIXME: Should not be stored here

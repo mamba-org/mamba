@@ -51,6 +51,7 @@ namespace mamba
         // Check if shards are available (must be true to fetch shard index)
         // If has_up_to_date_shards() returns false, it means shards are not available
         // and we should not try to fetch the index
+        // Note: TTL check is done in fetch_shards_index, not here
         if (!subdir.metadata().has_up_to_date_shards())
         {
             // Shards are not available (check request returned 404 or hasn't completed)
@@ -432,9 +433,18 @@ namespace mamba
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
         const download::Options& download_options,
-        const download::RemoteFetchParams& remote_fetch_params
+        const download::RemoteFetchParams& remote_fetch_params,
+        std::size_t shards_ttl
     ) -> expected_t<std::optional<ShardsIndexDict>>
     {
+        // Check if shards are available (using TTL if provided)
+        if (!subdir.metadata().has_up_to_date_shards(shards_ttl))
+        {
+            // Shards are not available (check request returned 404 or hasn't completed, or TTL
+            // expired)
+            return std::nullopt;
+        }
+
         // Check cache first
         fs::u8path cache_path = shard_index_cache_path(subdir);
         if (fs::exists(cache_path))

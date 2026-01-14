@@ -40,6 +40,8 @@ namespace mamba
          * @param mirrors Mirror map for downloads.
          * @param download_options Download options.
          * @param remote_fetch_params Remote fetch parameters.
+         * @param shards_ttl Time-to-live for shard cache check in seconds (0 = use default
+         * expiration).
          * @return Parsed shard index, or nullopt if shards not available.
          */
         static auto fetch_shards_index(
@@ -48,7 +50,8 @@ namespace mamba
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
             const download::Options& download_options,
-            const download::RemoteFetchParams& remote_fetch_params
+            const download::RemoteFetchParams& remote_fetch_params,
+            std::size_t shards_ttl = 0
         ) -> expected_t<std::optional<ShardsIndexDict>>;
 
         /**

@@ -315,7 +315,8 @@ namespace mamba
         const specs::Channel& channel,
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
-        const download::RemoteFetchParams& remote_fetch_params
+        const download::RemoteFetchParams& remote_fetch_params,
+        std::size_t download_threads
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -323,6 +324,7 @@ namespace mamba
         , m_auth_info(auth_info)
         , m_mirrors(mirrors)  // Reference, not copy
         , m_remote_fetch_params(remote_fetch_params)
+        , m_download_threads(download_threads)
     {
     }
 
@@ -764,7 +766,7 @@ namespace mamba
                 LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
                           << util::join(", ", packages_to_fetch) << "]";
                 download::Options download_options;
-                download_options.download_threads = 10;  // TODO: use context.repodata_threads
+                download_options.download_threads = m_download_threads;
 
                 auto download_results = download::download(
                     std::move(requests),

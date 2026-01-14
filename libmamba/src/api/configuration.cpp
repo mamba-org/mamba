@@ -1526,6 +1526,14 @@ namespace mamba
                        "controls when to re-check for updated shard indexes.\n"
                    ));
 
+        insert(Configurable("repodata_shards_threads", &m_context.repodata_shards_threads)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description(
+                       "Number of threads to use for parallel shard fetching. Higher values "
+                       "may improve performance when fetching many shards, but increase network "
+                       "and CPU usage.\n"
+                   ));
 
         insert(Configurable("repodata_has_zst", &m_context.repodata_has_zst)
                    .group("Repodata")

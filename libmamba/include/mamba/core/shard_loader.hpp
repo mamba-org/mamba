@@ -90,6 +90,7 @@ namespace mamba
          * @param auth_info Authentication information.
          * @param mirrors Mirror map for downloads.
          * @param remote_fetch_params Remote fetch parameters.
+         * @param download_threads Number of threads to use for parallel shard fetching.
          */
         Shards(
             ShardsIndexDict shards_index,
@@ -97,7 +98,8 @@ namespace mamba
             const specs::Channel& channel,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
-            const download::RemoteFetchParams& remote_fetch_params
+            const download::RemoteFetchParams& remote_fetch_params,
+            std::size_t download_threads = 10
         );
 
         [[nodiscard]] auto package_names() const -> std::vector<std::string> override;
@@ -140,6 +142,9 @@ namespace mamba
 
         /** Remote fetch parameters. */
         download::RemoteFetchParams m_remote_fetch_params;
+
+        /** Number of threads to use for parallel shard fetching. */
+        std::size_t m_download_threads;
 
         /** Visited shards, keyed by package name. */
         std::map<std::string, ShardDict> m_visited;

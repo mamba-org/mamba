@@ -232,10 +232,19 @@ namespace mamba
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
-    auto SubdirMetadata::has_up_to_date_shards() const -> bool
+    auto SubdirMetadata::has_up_to_date_shards(std::size_t ttl_seconds) const -> bool
     {
-        return m_has_shards.has_value() && m_has_shards.value().value
-               && !m_has_shards.value().has_expired();
+        if (!m_has_shards.has_value() || !m_has_shards.value().value)
+        {
+            return false;
+        }
+        // If TTL is provided, use it; otherwise use default expiration check
+        if (ttl_seconds > 0)
+        {
+            return std::difftime(std::time(nullptr), m_has_shards.value().last_checked)
+                   <= static_cast<double>(ttl_seconds);
+        }
+        return !m_has_shards.value().has_expired();
     }
 
     void SubdirMetadata::set_http_metadata(HttpMetadata data)

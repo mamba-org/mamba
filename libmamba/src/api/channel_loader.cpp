@@ -50,7 +50,7 @@ namespace mamba
                       << util::join(", ", root_packages) << "]";
 
             // Check if shards are available
-            if (!subdir.metadata().has_up_to_date_shards())
+            if (!subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl))
             {
                 LOG_DEBUG << "Shards not available for " << subdir.name();
                 return make_unexpected(
@@ -67,7 +67,8 @@ namespace mamba
                 ctx.authentication_info(),
                 ctx.mirrors,
                 ctx.download_options(),
-                ctx.remote_fetch_params
+                ctx.remote_fetch_params,
+                ctx.repodata_shards_ttl
             );
 
             if (!shard_index_result.has_value())
@@ -100,7 +101,8 @@ namespace mamba
                 subdir.channel(),
                 ctx.authentication_info(),
                 ctx.mirrors,
-                ctx.remote_fetch_params
+                ctx.remote_fetch_params,
+                ctx.repodata_shards_threads
             );
 
             LOG_DEBUG << "Created Shards object for " << subdir.name()
@@ -640,7 +642,7 @@ namespace mamba
                 if (ctx.repodata_use_shards && !root_packages.empty())
                 {
                     // Check if shards are available for this subdir
-                    if (subdir.metadata().has_up_to_date_shards())
+                    if (subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl))
                     {
                         // Skip downloading repodata.json if shards are available
                         needs_index = false;
@@ -725,7 +727,7 @@ namespace mamba
 
                 // Check if we can use shards (even if traditional cache is invalid)
                 bool can_use_shards = ctx.repodata_use_shards
-                                      && subdir.metadata().has_up_to_date_shards()
+                                      && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                       && !root_packages.empty();
 
                 // If cache is invalid and we can't use shards, skip this subdir

@@ -377,11 +377,16 @@ namespace mamba
         }
     }
 
+    struct InstallRequestOptions
+    {
+        bool freeze_installed = false;
+        bool prefix_data_interoperability = false;
+    };
+
     auto create_install_request(
         PrefixData& prefix_data,
         std::vector<std::string> specs,
-        bool freeze_installed,
-        bool prefix_data_interoperability
+        const InstallRequestOptions options = {}
     ) -> solver::Request
     {
         using Request = solver::Request;
@@ -389,10 +394,10 @@ namespace mamba
         const auto& prefix_pkgs = prefix_data.records();
 
         auto request = Request();
-        request.jobs.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
+        request.jobs.reserve(specs.size() + options.freeze_installed * prefix_pkgs.size());
 
         // Consider if a FreezeAll type in Request is relevant?
-        if (freeze_installed && !prefix_pkgs.empty())
+        if (options.freeze_installed && !prefix_pkgs.empty())
         {
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             for (const auto& [name, pkg] : prefix_pkgs)
@@ -410,7 +415,7 @@ namespace mamba
         // When prefix_data_interoperability is enabled, use Update requests instead of Install
         // for packages that conflict with pip packages. This tells the solver to replace the
         // pip package with the conda version.
-        if (prefix_data_interoperability)
+        if (options.prefix_data_interoperability)
         {
             const auto& pip_pkgs = prefix_data.pip_records();
             for (const auto& s : specs)
@@ -636,8 +641,8 @@ namespace mamba
             auto request = create_install_request(
                 prefix_data,
                 raw_specs,
-                freeze_installed,
-                ctx.prefix_data_interoperability
+                InstallRequestOptions{ .freeze_installed = freeze_installed,
+                                       .prefix_data_interoperability = ctx.prefix_data_interoperability }
             );
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;

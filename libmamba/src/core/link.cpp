@@ -653,14 +653,13 @@ namespace mamba
             {
                 LOG_DEBUG << "Could not compute SHA256 of existing file " << dst
                           << ", will remove it: " << e.what();
-                fs::remove(dst);
             }
             catch (...)
             {
                 LOG_DEBUG << "Could not compute SHA256 of existing file " << dst
                           << ", will remove it (unknown error)";
-                fs::remove(dst);
             }
+            fs::remove(dst);
 #else
             fs::remove(dst);
 #endif

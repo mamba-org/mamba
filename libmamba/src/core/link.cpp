@@ -584,11 +584,7 @@ namespace mamba
 
         json_file.close();
 
-        // Only remove the JSON file if it exists
-        if (fs::exists(json))
-        {
-            fs::remove(json);
-        }
+        fs::remove(json);
 
         return true;
     }

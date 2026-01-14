@@ -35,6 +35,30 @@ jobs:
           - { os: macos-latest, platform: osx, arch: "64" }
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
+      - name: Disk Space Before Clean Up
+        if: matrix.platform == 'linux'
+        run: |
+          df -h
+      - name: Free Disk Space (Base Runner)
+        if: matrix.platform == 'linux' && matrix.arch == '64'
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+          docker-images: false
+      - name: Free Disk Space (Container)
+        if: matrix.platform == 'linux' && matrix.arch != '64'
+        run: |
+          rm -rf /mnt/usr/local/lib/android
+          rm -rf /mnt/usr/share/dotnet
+          rm -rf /mnt/usr/local/share/boost
+          rm -rf /mnt/opt/ghc
+          rm -rf /mnt/opt/hostedtoolcache/CodeQL
+          rm -rf /mnt/usr/local/lib/node_modules
+      - name: Disk Space After Clean Up
+        if: matrix.platform == 'linux'
+        run: |
+          df -h
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v6
         with:

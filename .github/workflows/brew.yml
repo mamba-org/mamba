@@ -12,6 +12,20 @@ jobs:
       options: --user 0
 
     steps:
+      - name: Disk Space Before Clean Up
+        run: |
+          df -h
+      - name: Free Disk Space (Container)
+        run: |
+          rm -rf /mnt/usr/local/lib/android
+          rm -rf /mnt/usr/share/dotnet
+          rm -rf /mnt/usr/local/share/boost
+          rm -rf /mnt/opt/ghc
+          rm -rf /mnt/opt/hostedtoolcache/CodeQL
+          rm -rf /mnt/usr/local/lib/node_modules
+      - name: Disk Space After Clean Up
+        run: |
+          df -h
       # v1 required due to permissions error
       - name: Checkout mamba repository
         uses: actions/checkout@v6

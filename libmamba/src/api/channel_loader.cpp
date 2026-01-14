@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <set>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
@@ -21,6 +22,7 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/json.hpp"
 #include "mamba/util/string.hpp"
@@ -31,19 +33,26 @@ namespace mamba
     namespace
     {
         /**
-         * Load a subdir using sharded repodata if available.
+         * Load a subdir using sharded repodata if available, with support for cross-subdir
+         * dependencies.
          *
          * @param ctx Context
          * @param database Database to load into
          * @param subdir SubdirIndexLoader to load
+         * @param all_subdirs All subdirs from the same channel (for cross-subdir dependency
+         * traversal)
          * @param root_packages Optional root packages for dependency traversal
+         * @param loaded_subdirs Output parameter: set of subdir URLs that were loaded (including
+         * cross-subdir ones)
          * @return RepoInfo if successful, error otherwise
          */
         auto load_subdir_with_shards(
             const Context& ctx,
             solver::libsolv::Database& database,
             const SubdirIndexLoader& subdir,
-            const std::vector<std::string>& root_packages = {}
+            const std::vector<SubdirIndexLoader>& all_subdirs,
+            const std::vector<std::string>& root_packages,
+            std::set<std::string>& loaded_subdirs
         ) -> expected_t<solver::libsolv::RepoInfo>
         {
             LOG_DEBUG << "Loading subdir with shards: " << subdir.name() << " for root packages: ["
@@ -94,37 +103,94 @@ namespace mamba
             LOG_DEBUG << "Successfully fetched shard index for " << subdir.name() << " with "
                       << shard_index_opt->shards.size() << " package shards";
 
-            // Create Shards object
-            auto shards = std::make_shared<Shards>(
+            // Create Shards objects for all subdirs from the same channel that have shards
+            // available This enables cross-subdir dependency traversal (e.g., linux-64 packages
+            // depending on noarch)
+            std::vector<std::shared_ptr<ShardBase>> all_shards;
+            std::map<std::string, std::shared_ptr<Shards>> shards_by_url;  // Map subdir URL to
+                                                                           // Shards object
+
+            // Create Shards object for the current subdir
+            // Use subdir.name() as the URL identifier (e.g.,
+            // "https://prefix.dev/conda-forge/linux-64") This is used to identify which subdir this
+            // Shards object belongs to during traversal
+            auto current_shards = std::make_shared<Shards>(
                 *shard_index_opt,
-                subdir.metadata().url(),
+                subdir.name(),
                 subdir.channel(),
                 ctx.authentication_info(),
                 ctx.mirrors,
                 ctx.remote_fetch_params,
                 ctx.repodata_shards_threads
             );
+            all_shards.push_back(current_shards);
+            shards_by_url[subdir.name()] = current_shards;
 
-            LOG_DEBUG << "Created Shards object for " << subdir.name()
-                      << ", starting dependency traversal";
-            // Create RepodataSubset and traverse dependencies
-            RepodataSubset subset({ shards });
+            // Create Shards objects for other subdirs from the same channel that have shards
+            const std::string current_channel_id = subdir.channel_id();
+            for (const auto& other_subdir : all_subdirs)
+            {
+                // Skip if same subdir, different channel, or no shards available
+                if (other_subdir.name() == subdir.name()
+                    || other_subdir.channel_id() != current_channel_id
+                    || !other_subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl))
+                {
+                    continue;
+                }
 
-            // Filter root_packages to only include packages that exist in this subdir's shard index
+                // Fetch shard index for this subdir
+                auto other_shard_index_result = ShardIndexLoader::fetch_shards_index(
+                    other_subdir,
+                    ctx.subdir_download_params(),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    ctx.repodata_shards_ttl
+                );
+
+                if (other_shard_index_result.has_value()
+                    && other_shard_index_result.value().has_value())
+                {
+                    // Use other_subdir.name() as the URL identifier for cross-subdir Shards objects
+                    auto other_shards = std::make_shared<Shards>(
+                        other_shard_index_result.value().value(),
+                        other_subdir.name(),
+                        other_subdir.channel(),
+                        ctx.authentication_info(),
+                        ctx.mirrors,
+                        ctx.remote_fetch_params,
+                        ctx.repodata_shards_threads
+                    );
+                    all_shards.push_back(other_shards);
+                    shards_by_url[other_subdir.name()] = other_shards;
+                    LOG_DEBUG << "Added Shards object for " << other_subdir.name()
+                              << " to enable cross-subdir dependency traversal";
+                }
+            }
+
+            LOG_DEBUG << "Created " << all_shards.size()
+                      << " Shards object(s) for cross-subdir traversal, starting dependency traversal";
+            // Create RepodataSubset with all Shards objects to enable cross-subdir traversal
+            RepodataSubset subset(all_shards);
+
+            // Filter root_packages to only include packages that exist in the current subdir's
+            // shard index (dependencies will be discovered across all subdirs during traversal)
             std::vector<std::string> packages_to_traverse;
             if (root_packages.empty())
             {
-                // Fetch all packages from the shard index
-                packages_to_traverse = shards->package_names();
+                // Fetch all packages from the current subdir's shard index
+                packages_to_traverse = current_shards->package_names();
                 LOG_DEBUG << "No root packages specified, fetching all "
                           << packages_to_traverse.size() << " packages from shard index";
             }
             else
             {
-                // Filter root_packages to only those that exist in this subdir
+                // Filter root_packages to only those that exist in the current subdir's shard index
+                // (not other subdirs - those will be discovered as dependencies during traversal)
                 for (const auto& pkg : root_packages)
                 {
-                    if (shards->contains(pkg))
+                    if (current_shards->contains(pkg))
                     {
                         packages_to_traverse.push_back(pkg);
                     }
@@ -144,9 +210,31 @@ namespace mamba
                           << util::join(", ", packages_to_traverse) << "]";
             }
 
+            // Track if we need to add pip separately (not restricted to current subdir)
+            // We add pip when add_pip_as_python_dependency is enabled, as Python (which may be
+            // discovered as a dependency) will require pip
+            bool need_pip = ctx.add_pip_as_python_dependency;
+
             LOG_DEBUG << "Starting dependency traversal for " << packages_to_traverse.size()
                       << " root package(s): [" << util::join(", ", packages_to_traverse) << "]";
-            auto traversal_result = subset.reachable(packages_to_traverse, "pipelined");
+            // Pass current_shards to restrict root node creation to the current subdir
+            // (dependencies will still be discovered across all subdirs)
+            auto traversal_result = subset.reachable(packages_to_traverse, "pipelined", current_shards);
+
+            // If pip is needed, add it separately without restricting to current subdir
+            // This ensures pip is discovered from noarch (where newer versions are)
+            if (need_pip && traversal_result.has_value())
+            {
+                std::vector<std::string> pip_packages = { "pip" };
+                // Pass nullptr to not restrict to current subdir - let it be discovered from all
+                // subdirs
+                auto pip_traversal_result = subset.reachable(pip_packages, "pipelined", nullptr);
+                if (!pip_traversal_result.has_value())
+                {
+                    LOG_WARNING << "Failed to traverse 'pip' from all subdirs: "
+                                << pip_traversal_result.error().what();
+                }
+            }
             if (!traversal_result.has_value())
             {
                 LOG_WARNING << "Failed to traverse dependencies for " << subdir.name() << ": "
@@ -159,168 +247,189 @@ namespace mamba
 
             LOG_DEBUG << "Dependency traversal completed for " << subdir.name();
 
-            // Collect all PackageInfo objects from visited shards
-            std::vector<specs::PackageInfo> package_infos;
-            // Use subdir.name() as base_url (for package downloads)
-            // subdir.name() returns the full subdir URL (e.g.,
-            // "https://prefix.dev/conda-forge/linux-64") which is exactly what we need for
-            // constructing package URLs
-            std::string base_url = subdir.name();
-            LOG_DEBUG << "Using base_url for package downloads: " << base_url;
-            // Ensure base_url doesn't end with trailing slash (url_concat handles it)
-            if (!base_url.empty() && base_url.back() == '/')
-            {
-                base_url.pop_back();
-            }
-            // Validate base_url is not empty and is a valid URL
-            if (base_url.empty())
-            {
-                LOG_ERROR << "base_url is empty (subdir.name() returned empty) for "
-                          << subdir.channel_id() << "/" << subdir.platform();
-                return make_unexpected(
-                    "Empty base_url for package downloads",
-                    mamba_error_code::repodata_not_loaded
-                );
-            }
-            const specs::DynamicPlatform& platform = subdir.platform();
-            const std::string channel_id = subdir.channel_id();
+            // Collect all PackageInfo objects from visited shards, grouped by subdir
+            // We need to group by subdir because each subdir needs its own repo in the database
+            std::map<std::string, std::vector<specs::PackageInfo>> packages_by_subdir;
 
-            // Get all visited packages from the traversal nodes
-            std::set<std::string> visited_packages_set;
+            // Get all visited packages from the traversal nodes, grouped by channel URL
+            std::map<std::string, std::set<std::string>> visited_packages_by_url;
             for (const auto& [node_id, node] : subset.nodes())
             {
                 if (node.visited)
                 {
-                    visited_packages_set.insert(node.package);
+                    visited_packages_by_url[node_id.channel].insert(node_id.package);
                 }
             }
-            std::vector<std::string> visited_packages(
-                visited_packages_set.begin(),
-                visited_packages_set.end()
-            );
 
-            LOG_DEBUG << "Converting " << visited_packages.size()
-                      << " visited package shard(s) to PackageInfo";
-            // Load shards for all visited packages and convert to PackageInfo
-            for (const auto& package_name : visited_packages)
+            LOG_DEBUG << "Converting visited package shard(s) to PackageInfo across "
+                      << visited_packages_by_url.size() << " subdir(s)";
+            // Load shards for all visited packages and convert to PackageInfo, grouped by subdir
+            for (const auto& [subdir_url, visited_packages] : visited_packages_by_url)
             {
-                LOG_DEBUG << "Fetching shard for visited package '" << package_name
-                          << "' to convert to PackageInfo";
-                // Fetch the shard for this package
-                auto shard_result = shards->fetch_shard(package_name);
-                if (!shard_result.has_value())
+                auto shards_it = shards_by_url.find(subdir_url);
+                if (shards_it == shards_by_url.end())
                 {
-                    LOG_WARNING << "Failed to fetch shard for package " << package_name << ": "
-                                << shard_result.error().what();
+                    LOG_WARNING << "No Shards object found for subdir URL: " << subdir_url;
+                    continue;
+                }
+                auto& shards_for_subdir = shards_it->second;
+
+                // Find the corresponding SubdirIndexLoader to get platform and channel info
+                const SubdirIndexLoader* subdir_loader = nullptr;
+                for (const auto& sd : all_subdirs)
+                {
+                    if (sd.name() == subdir_url && sd.channel_id() == current_channel_id)
+                    {
+                        subdir_loader = &sd;
+                        break;
+                    }
+                }
+                if (subdir_loader == nullptr)
+                {
+                    LOG_WARNING << "No SubdirIndexLoader found for subdir URL: " << subdir_url;
                     continue;
                 }
 
-                const auto& shard = shard_result.value();
-
-                // Convert packages from shard to PackageInfo
-                for (const auto& [filename, record] : shard.packages)
+                std::string base_url = subdir_loader->name();
+                if (!base_url.empty() && base_url.back() == '/')
                 {
-                    specs::PackageInfo pkg_info;
-                    pkg_info.name = record.name;
-                    pkg_info.version = record.version;
-                    pkg_info.build_string = record.build;
-                    pkg_info.build_number = record.build_number;
-                    pkg_info.filename = filename;
-                    pkg_info.channel = channel_id;
-                    pkg_info.platform = platform;
-                    pkg_info.package_url = util::url_concat(base_url, "/", filename);
-                    pkg_info.dependencies = record.depends;
-                    pkg_info.constrains = record.constrains;
-                    pkg_info.size = record.size;
-                    if (record.sha256)
-                    {
-                        pkg_info.sha256 = *record.sha256;
-                        LOG_DEBUG << "Set sha256 for package '" << pkg_info.name << "' ("
-                                  << filename << "): " << *record.sha256;
-                    }
-                    else
-                    {
-                        LOG_DEBUG << "No sha256 found for package '" << pkg_info.name << "' ("
-                                  << filename << ")";
-                    }
-                    if (record.md5)
-                    {
-                        pkg_info.md5 = *record.md5;
-                        LOG_DEBUG << "Set md5 for package '" << pkg_info.name << "' (" << filename
-                                  << "): " << *record.md5;
-                    }
-                    else
-                    {
-                        LOG_DEBUG << "No md5 found for package '" << pkg_info.name << "' ("
-                                  << filename << ")";
-                    }
-                    if (record.noarch)
-                    {
-                        if (*record.noarch == "python")
-                        {
-                            pkg_info.noarch = specs::NoArchType::Python;
-                        }
-                        else if (*record.noarch == "generic")
-                        {
-                            pkg_info.noarch = specs::NoArchType::Generic;
-                        }
-                    }
-
-                    package_infos.push_back(std::move(pkg_info));
+                    base_url.pop_back();
                 }
-
-                // Convert conda packages from shard to PackageInfo
-                for (const auto& [filename, record] : shard.conda_packages)
+                if (base_url.empty())
                 {
-                    specs::PackageInfo pkg_info;
-                    pkg_info.name = record.name;
-                    pkg_info.version = record.version;
-                    pkg_info.build_string = record.build;
-                    pkg_info.build_number = record.build_number;
-                    pkg_info.filename = filename;
-                    pkg_info.channel = channel_id;
-                    pkg_info.platform = platform;
-                    pkg_info.package_url = util::url_concat(base_url, "/", filename);
-                    pkg_info.dependencies = record.depends;
-                    pkg_info.constrains = record.constrains;
-                    pkg_info.size = record.size;
-                    if (record.sha256)
+                    LOG_ERROR << "base_url is empty for " << subdir_loader->channel_id() << "/"
+                              << subdir_loader->platform();
+                    continue;
+                }
+                const specs::DynamicPlatform& platform = subdir_loader->platform();
+                const std::string channel_id = subdir_loader->channel_id();
+
+                LOG_DEBUG << "Processing " << visited_packages.size()
+                          << " visited package(s) from subdir " << subdir_url;
+
+                for (const auto& package_name : visited_packages)
+                {
+                    LOG_DEBUG << "Fetching shard for visited package '" << package_name
+                              << "' from subdir " << subdir_url << " to convert to PackageInfo";
+                    // Fetch the shard for this package
+                    auto shard_result = shards_for_subdir->fetch_shard(package_name);
+                    if (!shard_result.has_value())
                     {
-                        pkg_info.sha256 = *record.sha256;
-                        LOG_DEBUG << "Set sha256 for conda package '" << pkg_info.name << "' ("
-                                  << filename << "): " << *record.sha256;
-                    }
-                    else
-                    {
-                        LOG_DEBUG << "No sha256 found for conda package '" << pkg_info.name << "' ("
-                                  << filename << ")";
-                    }
-                    if (record.md5)
-                    {
-                        pkg_info.md5 = *record.md5;
-                        LOG_DEBUG << "Set md5 for conda package '" << pkg_info.name << "' ("
-                                  << filename << "): " << *record.md5;
-                    }
-                    else
-                    {
-                        LOG_DEBUG << "No md5 found for conda package '" << pkg_info.name << "' ("
-                                  << filename << ")";
-                    }
-                    if (record.noarch)
-                    {
-                        if (*record.noarch == "python")
-                        {
-                            pkg_info.noarch = specs::NoArchType::Python;
-                        }
-                        else if (*record.noarch == "generic")
-                        {
-                            pkg_info.noarch = specs::NoArchType::Generic;
-                        }
+                        LOG_WARNING << "Failed to fetch shard for package " << package_name
+                                    << " from " << subdir_url << ": " << shard_result.error().what();
+                        continue;
                     }
 
-                    package_infos.push_back(std::move(pkg_info));
-                }
-            }
+                    const auto& shard = shard_result.value();
+
+                    // Convert packages from shard to PackageInfo
+                    for (const auto& [filename, record] : shard.packages)
+                    {
+                        specs::PackageInfo pkg_info;
+                        pkg_info.name = record.name;
+                        pkg_info.version = record.version;
+                        pkg_info.build_string = record.build;
+                        pkg_info.build_number = record.build_number;
+                        pkg_info.filename = filename;
+                        pkg_info.channel = channel_id;
+                        pkg_info.platform = platform;
+                        pkg_info.package_url = util::url_concat(base_url, "/", filename);
+                        pkg_info.dependencies = record.depends;
+                        pkg_info.constrains = record.constrains;
+                        pkg_info.size = record.size;
+                        if (record.sha256)
+                        {
+                            pkg_info.sha256 = *record.sha256;
+                            LOG_DEBUG << "Set sha256 for package '" << pkg_info.name << "' ("
+                                      << filename << "): " << *record.sha256;
+                        }
+                        else
+                        {
+                            LOG_DEBUG << "No sha256 found for package '" << pkg_info.name << "' ("
+                                      << filename << ")";
+                        }
+                        if (record.md5)
+                        {
+                            pkg_info.md5 = *record.md5;
+                            LOG_DEBUG << "Set md5 for package '" << pkg_info.name << "' ("
+                                      << filename << "): " << *record.md5;
+                        }
+                        else
+                        {
+                            LOG_DEBUG << "No md5 found for package '" << pkg_info.name << "' ("
+                                      << filename << ")";
+                        }
+                        if (record.noarch)
+                        {
+                            if (*record.noarch == "python")
+                            {
+                                pkg_info.noarch = specs::NoArchType::Python;
+                            }
+                            else if (*record.noarch == "generic")
+                            {
+                                pkg_info.noarch = specs::NoArchType::Generic;
+                            }
+                        }
+
+                        packages_by_subdir[subdir_url].push_back(std::move(pkg_info));
+                    }
+
+                    // Convert conda packages from shard to PackageInfo
+                    for (const auto& [filename, record] : shard.conda_packages)
+                    {
+                        specs::PackageInfo pkg_info;
+                        pkg_info.name = record.name;
+                        pkg_info.version = record.version;
+                        pkg_info.build_string = record.build;
+                        pkg_info.build_number = record.build_number;
+                        pkg_info.filename = filename;
+                        pkg_info.channel = channel_id;
+                        pkg_info.platform = platform;
+                        pkg_info.package_url = util::url_concat(base_url, "/", filename);
+                        pkg_info.dependencies = record.depends;
+                        pkg_info.constrains = record.constrains;
+                        pkg_info.size = record.size;
+                        if (record.sha256)
+                        {
+                            pkg_info.sha256 = *record.sha256;
+                            LOG_DEBUG << "Set sha256 for conda package '" << pkg_info.name << "' ("
+                                      << filename << "): " << *record.sha256;
+                        }
+                        else
+                        {
+                            LOG_DEBUG << "No sha256 found for conda package '" << pkg_info.name
+                                      << "' (" << filename << ")";
+                        }
+                        if (record.md5)
+                        {
+                            pkg_info.md5 = *record.md5;
+                            LOG_DEBUG << "Set md5 for conda package '" << pkg_info.name << "' ("
+                                      << filename << "): " << *record.md5;
+                        }
+                        else
+                        {
+                            LOG_DEBUG << "No md5 found for conda package '" << pkg_info.name
+                                      << "' (" << filename << ")";
+                        }
+                        if (record.noarch)
+                        {
+                            if (*record.noarch == "python")
+                            {
+                                pkg_info.noarch = specs::NoArchType::Python;
+                            }
+                            else if (*record.noarch == "generic")
+                            {
+                                pkg_info.noarch = specs::NoArchType::Generic;
+                            }
+                        }
+
+                        packages_by_subdir[subdir_url].push_back(std::move(pkg_info));
+                    }
+                }  // End of loop over visited packages for this subdir
+            }  // End of loop over subdirs
+
+            // Collect packages for the current subdir (the one we're loading)
+            auto& package_infos = packages_by_subdir[subdir.name()];
 
             LOG_DEBUG << "Collected " << package_infos.size()
                       << " PackageInfo object(s) from shards for " << subdir.name();
@@ -334,6 +443,56 @@ namespace mamba
                 );
             }
 
+            // Sort packages by name, then by version (descending), then by build number
+            // (descending) This ensures that when libsolv processes packages, it sees them in the
+            // correct order (highest version/build first), which helps it select the latest version
+            std::sort(
+                package_infos.begin(),
+                package_infos.end(),
+                [](const specs::PackageInfo& a, const specs::PackageInfo& b)
+                {
+                    // First compare by package name
+                    if (a.name != b.name)
+                    {
+                        return a.name < b.name;
+                    }
+
+                    // Then compare by version (descending - highest first)
+                    auto version_a = specs::Version::parse(a.version);
+                    auto version_b = specs::Version::parse(b.version);
+
+                    if (version_a.has_value() && version_b.has_value())
+                    {
+                        if (version_a.value() != version_b.value())
+                        {
+                            return version_b.value() < version_a.value();  // Descending order
+                        }
+                    }
+                    else if (version_a.has_value() || version_b.has_value())
+                    {
+                        // If only one can be parsed, prefer the parsed one
+                        return !version_a.has_value();
+                    }
+                    else
+                    {
+                        // Fallback to string comparison if parsing fails
+                        if (a.version != b.version)
+                        {
+                            return b.version < a.version;  // Descending order
+                        }
+                    }
+
+                    // Finally compare by build number (descending - highest first)
+                    if (a.build_number != b.build_number)
+                    {
+                        return b.build_number < a.build_number;  // Descending order
+                    }
+
+                    // If everything else is equal, compare by build string
+                    return b.build_string < a.build_string;  // Descending order
+                }
+            );
+
             // Add packages directly to database
             // Note: add_repo_from_packages always succeeds (returns RepoInfo, not expected_t)
             // Once we call this, the repo is added and we MUST NOT fall back to avoid double-add
@@ -346,7 +505,107 @@ namespace mamba
             // cause memory corruption. The metadata is only used for caching solv files, which
             // we skip for sharded repos anyway. Using the standard add_repo_from_packages
             // without metadata.
+            // Use channel_id as repo name (same as traditional loading)
             auto repo_info = database.add_repo_from_packages(package_infos, subdir.channel_id(), add_pip);
+
+            // Also add packages from other subdirs that were discovered during traversal
+            // (e.g., noarch packages discovered when traversing linux-64 dependencies)
+            // Note: These subdirs will be skipped in the main loop to avoid double-loading
+            for (const auto& [other_subdir_url, other_packages] : packages_by_subdir)
+            {
+                if (other_subdir_url == subdir.name())
+                {
+                    continue;  // Already added above
+                }
+
+                if (other_packages.empty())
+                {
+                    continue;
+                }
+
+                // Find the SubdirIndexLoader for this subdir to get channel_id
+                const SubdirIndexLoader* other_subdir_loader = nullptr;
+                for (const auto& sd : all_subdirs)
+                {
+                    if (sd.name() == other_subdir_url && sd.channel_id() == current_channel_id)
+                    {
+                        other_subdir_loader = &sd;
+                        break;
+                    }
+                }
+                if (other_subdir_loader == nullptr)
+                {
+                    LOG_WARNING << "No SubdirIndexLoader found for cross-subdir packages from "
+                                << other_subdir_url;
+                    continue;
+                }
+
+                // Sort cross-subdir packages by version (descending) as well
+                auto sorted_other_packages = other_packages;
+                std::sort(
+                    sorted_other_packages.begin(),
+                    sorted_other_packages.end(),
+                    [](const specs::PackageInfo& a, const specs::PackageInfo& b)
+                    {
+                        // First compare by package name
+                        if (a.name != b.name)
+                        {
+                            return a.name < b.name;
+                        }
+
+                        // Then compare by version (descending - highest first)
+                        auto version_a = specs::Version::parse(a.version);
+                        auto version_b = specs::Version::parse(b.version);
+
+                        if (version_a.has_value() && version_b.has_value())
+                        {
+                            if (version_a.value() != version_b.value())
+                            {
+                                return version_b.value() < version_a.value();  // Descending order
+                            }
+                        }
+                        else if (version_a.has_value() || version_b.has_value())
+                        {
+                            // If only one can be parsed, prefer the parsed one
+                            return !version_a.has_value();
+                        }
+                        else
+                        {
+                            // Fallback to string comparison if parsing fails
+                            if (a.version != b.version)
+                            {
+                                return b.version < a.version;  // Descending order
+                            }
+                        }
+
+                        // Finally compare by build number (descending - highest first)
+                        if (a.build_number != b.build_number)
+                        {
+                            return b.build_number < a.build_number;  // Descending order
+                        }
+
+                        // If everything else is equal, compare by build string
+                        return b.build_string < a.build_string;  // Descending order
+                    }
+                );
+
+                LOG_DEBUG << "Adding " << sorted_other_packages.size()
+                          << " cross-subdir package(s) from " << other_subdir_url
+                          << " discovered during traversal";
+                // Add packages from this other subdir to the database
+                // Use the same channel_id since they're from the same channel
+                // Note: libsolv handles multiple repos with the same name internally
+                database.add_repo_from_packages(
+                    sorted_other_packages,
+                    other_subdir_loader->channel_id(),
+                    add_pip
+                );
+                // Mark this subdir as loaded to prevent double-loading in main loop
+                loaded_subdirs.insert(other_subdir_url);
+            }
+
+            // Mark the current subdir as loaded
+            loaded_subdirs.insert(subdir.name());
 
             // Write solv file if not on Windows
             // If this fails, we still return success since the repo is already added
@@ -721,6 +980,9 @@ namespace mamba
             }
             std::string prev_channel;
             bool loading_failed = false;
+            // Track which subdirs have already been loaded with shards to avoid double-loading
+            // when cross-subdir dependencies are discovered
+            std::set<std::string> loaded_subdirs_with_shards;
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 auto& subdir = subdirs[i];
@@ -743,6 +1005,14 @@ namespace mamba
                     continue;
                 }
 
+                // Skip if this subdir was already loaded as a cross-subdir dependency
+                if (loaded_subdirs_with_shards.find(subdir.name()) != loaded_subdirs_with_shards.end())
+                {
+                    LOG_DEBUG << "Skipping " << subdir.name()
+                              << " - already loaded as cross-subdir dependency";
+                    continue;
+                }
+
                 // Try sharded repodata first if available and enabled
                 expected_t<solver::libsolv::RepoInfo> result = make_unexpected(
                     "Not attempted",
@@ -751,10 +1021,16 @@ namespace mamba
 
                 if (can_use_shards)
                 {
-                    result = load_subdir_with_shards(ctx, database, subdir, root_packages);
+                    result = load_subdir_with_shards(
+                        ctx,
+                        database,
+                        subdir,
+                        subdirs,
+                        root_packages,
+                        loaded_subdirs_with_shards
+                    );
 
-                    // If sharded loading fails, skip this subdir entirely (no fallback to
-                    // traditional repodata)
+                    // If sharded loading fails, try to fall back to traditional repodata
                     if (!result.has_value())
                     {
                         std::string error_msg = result.error().what();
@@ -768,14 +1044,80 @@ namespace mamba
                             LOG_DEBUG
                                 << "Skipping " << subdir.name()
                                 << " (none of the root packages exist in this subdir's shards)";
+                            // Skip this subdir - don't load it at all
+                            continue;
                         }
                         else
                         {
                             LOG_WARNING << "Sharded repodata loading failed for " << subdir.name()
-                                        << ": " << error_msg << " (skipping subdir, no fallback)";
+                                        << ": " << error_msg
+                                        << " (falling back to traditional repodata)";
+                            // Fall back to traditional repodata
+                            if (subdir.valid_cache_found())
+                            {
+                                result = load_subdir_in_database(ctx, database, subdir);
+                            }
+                            else
+                            {
+                                // Try to download repodata.json for fallback
+                                LOG_DEBUG << "Attempting to download repodata.json for "
+                                          << subdir.name() << " as fallback from shard failure";
+                                std::vector<SubdirIndexLoader*> fallback_subdirs = { &subdir };
+                                auto index_requests = SubdirIndexLoader::build_all_index_requests(
+                                    fallback_subdirs.begin(),
+                                    fallback_subdirs.end(),
+                                    ctx.subdir_download_params()
+                                );
+                                if (!index_requests.empty())
+                                {
+                                    try
+                                    {
+                                        auto index_results = download::download(
+                                            std::move(index_requests),
+                                            ctx.mirrors,
+                                            ctx.remote_fetch_params,
+                                            ctx.authentication_info(),
+                                            ctx.download_options(),
+                                            nullptr  // monitor
+                                        );
+                                        // Check if download succeeded
+                                        bool download_succeeded = false;
+                                        for (auto& index_result : index_results)
+                                        {
+                                            if (index_result.has_value())
+                                            {
+                                                download_succeeded = true;
+                                                break;
+                                            }
+                                        }
+                                        if (download_succeeded && subdir.valid_cache_found())
+                                        {
+                                            result = load_subdir_in_database(ctx, database, subdir);
+                                        }
+                                        else
+                                        {
+                                            LOG_WARNING << "Failed to download repodata.json for "
+                                                        << subdir.name() << " as fallback";
+                                            continue;
+                                        }
+                                    }
+                                    catch (const std::exception& e)
+                                    {
+                                        LOG_WARNING
+                                            << "Exception while downloading repodata.json for "
+                                            << subdir.name() << " as fallback: " << e.what();
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    LOG_WARNING << "Cannot fall back to traditional repodata for "
+                                                << subdir.name()
+                                                << " - no cache found and cannot download";
+                                    continue;
+                                }
+                            }
                         }
-                        // Skip this subdir - don't load it at all
-                        continue;
                     }
                 }
                 else

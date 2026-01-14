@@ -232,22 +232,43 @@ namespace mamba
         return result;
     }
 
-    auto
-    RepodataSubset::visit_node(const Node& parent_node, const std::vector<std::string>& mentioned_packages)
-        -> std::vector<NodeId>
+    auto RepodataSubset::visit_node(
+        const Node& parent_node,
+        const std::vector<std::string>& mentioned_packages,
+        const std::shared_ptr<ShardBase>& restrict_to_shardlike
+    ) -> std::vector<NodeId>
     {
         std::vector<NodeId> pending;
 
+        // If restrict_to_shardlike is provided, only check that shardlike (for root packages)
+        // Otherwise, broadcast across all shardlikes (for dependencies)
+        const auto shardlikes_to_check = restrict_to_shardlike
+                                             ? std::vector<std::shared_ptr<ShardBase>>{ restrict_to_shardlike }
+                                             : m_shardlikes;
+
         for (const auto& package_name : mentioned_packages)
         {
-            // Broadcast mentioned packages across all channels
-            for (const auto& shardlike : m_shardlikes)
+            // Check packages in the specified shardlikes
+            for (const auto& shardlike : shardlikes_to_check)
             {
                 if (shardlike->contains(package_name))
                 {
-                    NodeId new_node_id{ package_name,
-                                        shardlike->url(),
-                                        shardlike->shard_url(package_name) };
+                    LOG_DEBUG << "Package '" << package_name
+                              << "' found in shardlike with URL: " << shardlike->url();
+                    std::string shard_url_str;
+                    try
+                    {
+                        shard_url_str = shardlike->shard_url(package_name);
+                        LOG_DEBUG << "Shard URL for package '" << package_name
+                                  << "': " << shard_url_str;
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_WARNING << "Failed to get shard URL for package '" << package_name
+                                    << "' from shardlike " << shardlike->url() << ": " << e.what();
+                        continue;  // Skip this package if we can't get its shard URL
+                    }
+                    NodeId new_node_id{ package_name, shardlike->url(), shard_url_str };
                     if (m_nodes.find(new_node_id) == m_nodes.end())
                     {
                         Node new_node;
@@ -258,6 +279,9 @@ namespace mamba
                         new_node.visited = false;
                         m_nodes[new_node_id] = new_node;
                         pending.push_back(new_node_id);
+                        LOG_DEBUG << "Created node for package '" << package_name
+                                  << "' with channel: " << new_node.channel
+                                  << ", shard_url: " << new_node.shard_url;
                     }
                 }
             }
@@ -305,17 +329,19 @@ namespace mamba
         return { have, need };
     }
 
-    auto
-    RepodataSubset::reachable(const std::vector<std::string>& root_packages, const std::string& strategy)
-        -> expected_t<void>
+    auto RepodataSubset::reachable(
+        const std::vector<std::string>& root_packages,
+        const std::string& strategy,
+        const std::shared_ptr<ShardBase>& root_shardlike
+    ) -> expected_t<void>
     {
         if (strategy == "bfs")
         {
-            return reachable_bfs(root_packages);
+            return reachable_bfs(root_packages, root_shardlike);
         }
         else if (strategy == "pipelined")
         {
-            return reachable_pipelined(root_packages);
+            return reachable_pipelined(root_packages, root_shardlike);
         }
         else
         {
@@ -326,13 +352,17 @@ namespace mamba
         }
     }
 
-    auto RepodataSubset::reachable_bfs(const std::vector<std::string>& root_packages)
-        -> expected_t<void>
+    auto RepodataSubset::reachable_bfs(
+        const std::vector<std::string>& root_packages,
+        const std::shared_ptr<ShardBase>& root_shardlike
+    ) -> expected_t<void>
     {
         // Initialize root nodes
         Node parent_node;
         parent_node.distance = 0;
-        auto root_node_ids = visit_node(parent_node, root_packages);
+        // If root_shardlike is provided, only create nodes for packages in that shardlike
+        // (ensures root packages are in the correct subdir)
+        auto root_node_ids = visit_node(parent_node, root_packages, root_shardlike);
 
         std::deque<NodeId> node_queue(root_node_ids.begin(), root_node_ids.end());
 
@@ -551,7 +581,21 @@ namespace mamba
                         auto shard_it = fetch_result.value().find(package);
                         if (shard_it != fetch_result.value().end())
                         {
-                            NodeId node_id{ package, channel_url, it->second->shard_url(package) };
+                            std::string shard_url_str;
+                            try
+                            {
+                                shard_url_str = it->second->shard_url(package);
+                                LOG_DEBUG << "Constructed shard URL for package '" << package
+                                          << "' from channel " << channel_url << ": "
+                                          << shard_url_str;
+                            }
+                            catch (const std::exception& e)
+                            {
+                                LOG_WARNING << "Failed to get shard URL for package '" << package
+                                            << "' from channel " << channel_url << ": " << e.what();
+                                continue;
+                            }
+                            NodeId node_id{ package, channel_url, shard_url_str };
                             fetched.emplace_back(node_id, shard_it->second);
                         }
                     }
@@ -595,8 +639,10 @@ namespace mamba
         }
     }
 
-    auto RepodataSubset::reachable_pipelined(const std::vector<std::string>& root_packages)
-        -> expected_t<void>
+    auto RepodataSubset::reachable_pipelined(
+        const std::vector<std::string>& root_packages,
+        const std::shared_ptr<ShardBase>& root_shardlike
+    ) -> expected_t<void>
     {
         // Get offline mode from context (we'll need to pass this in the future)
         // For now, assume online mode
@@ -625,7 +671,9 @@ namespace mamba
         m_nodes.clear();
         Node parent_node;
         parent_node.distance = 0;
-        auto root_node_ids = visit_node(parent_node, root_packages);
+        // If root_shardlike is provided, only create nodes for packages in that shardlike
+        // (ensures root packages are in the correct subdir)
+        auto root_node_ids = visit_node(parent_node, root_packages, root_shardlike);
         std::set<NodeId> pending(root_node_ids.begin(), root_node_ids.end());
 
         std::set<NodeId> in_flight;

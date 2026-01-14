@@ -73,10 +73,14 @@ namespace mamba
          *
          * @param root_packages List of package names to start traversal from.
          * @param strategy Traversal strategy ("bfs" or "pipelined").
+         * @param root_shardlike If provided, only create root nodes for packages in this shardlike
+         *                       (ensures root packages are in the correct subdir)
          */
-        auto
-        reachable(const std::vector<std::string>& root_packages, const std::string& strategy = "pipelined")
-            -> expected_t<void>;
+        auto reachable(
+            const std::vector<std::string>& root_packages,
+            const std::string& strategy = "pipelined",
+            const std::shared_ptr<ShardBase>& root_shardlike = nullptr
+        ) -> expected_t<void>;
 
         /**
          * Get all discovered nodes.
@@ -93,12 +97,18 @@ namespace mamba
         /**
          * Breadth-first search traversal.
          */
-        auto reachable_bfs(const std::vector<std::string>& root_packages) -> expected_t<void>;
+        auto reachable_bfs(
+            const std::vector<std::string>& root_packages,
+            const std::shared_ptr<ShardBase>& root_shardlike = nullptr
+        ) -> expected_t<void>;
 
         /**
          * Pipelined traversal with concurrent cache/network fetching.
          */
-        auto reachable_pipelined(const std::vector<std::string>& root_packages) -> expected_t<void>;
+        auto reachable_pipelined(
+            const std::vector<std::string>& root_packages,
+            const std::shared_ptr<ShardBase>& root_shardlike = nullptr
+        ) -> expected_t<void>;
 
         /**
          * Get neighbors (dependencies) of a node.
@@ -112,9 +122,17 @@ namespace mamba
 
         /**
          * Visit a node and discover its dependencies.
+         *
+         * @param parent_node The parent node (distance 0 for root packages)
+         * @param mentioned_packages Packages to create nodes for
+         * @param restrict_to_shardlike If provided, only create nodes for packages in this
+         * shardlike (used for root packages to ensure they're in the correct subdir)
          */
-        auto visit_node(const Node& parent_node, const std::vector<std::string>& mentioned_packages)
-            -> std::vector<NodeId>;
+        auto visit_node(
+            const Node& parent_node,
+            const std::vector<std::string>& mentioned_packages,
+            const std::shared_ptr<ShardBase>& restrict_to_shardlike = nullptr
+        ) -> std::vector<NodeId>;
 
         /**
          * Drain pending nodes, separating those already loaded from those needing fetch.

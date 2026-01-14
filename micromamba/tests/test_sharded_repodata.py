@@ -29,8 +29,8 @@ from .helpers import *  # noqa: F403
 class TestShardedRepodata:
     """Test suite for sharded repodata functionality."""
 
-    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
+    current_root_prefix = os.environ.get("MAMBA_ROOT_PREFIX", "")
+    current_prefix = os.environ.get("CONDA_PREFIX", "")
 
     env_name = helpers.random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))

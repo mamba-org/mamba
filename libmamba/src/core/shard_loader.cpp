@@ -379,9 +379,13 @@ namespace mamba
 
     auto Shards::shard_url(const std::string& package) const -> std::string
     {
+        LOG_DEBUG << "Constructing shard URL for package '" << package
+                  << "' from base_url: " << shards_base_url();
         auto it = m_shards_index.shards.find(package);
         if (it == m_shards_index.shards.end())
         {
+            LOG_DEBUG << "Package '" << package << "' not found in shard index (index contains "
+                      << m_shards_index.shards.size() << " packages)";
             throw std::runtime_error("Package " + package + " not found in shard index");
         }
 
@@ -390,8 +394,11 @@ namespace mamba
             reinterpret_cast<const std::byte*>(it->second.data()),
             reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
         );
+        LOG_DEBUG << "Package '" << package << "' found in shard index with hash: " << hex_hash;
         std::string shard_name = hex_hash + ".msgpack.zst";
-        return shards_base_url() + shard_name;
+        std::string url = shards_base_url() + shard_name;
+        LOG_DEBUG << "Constructed shard URL for package '" << package << "': " << url;
+        return url;
     }
 
     /**
@@ -609,12 +616,14 @@ namespace mamba
         // Build URLs for packages to fetch
         std::vector<std::string> urls;
         std::map<std::string, std::string> url_to_package;
+        LOG_DEBUG << "Building shard URLs for " << packages_to_fetch.size()
+                  << " package(s) from base_url: " << shards_base_url();
         for (const auto& package : packages_to_fetch)
         {
             try
             {
                 std::string url = shard_url(package);
-                LOG_DEBUG << "Building shard URL for package '" << package << "': " << url;
+                LOG_DEBUG << "Built shard URL for package '" << package << "': " << url;
                 urls.push_back(url);
                 url_to_package[url] = package;
             }
@@ -623,6 +632,8 @@ namespace mamba
                 LOG_WARNING << "Failed to get shard URL for " << package << ": " << e.what();
             }
         }
+        LOG_DEBUG << "Successfully built " << urls.size() << " shard URL(s) out of "
+                  << packages_to_fetch.size() << " package(s)";
 
         // Build network requests for all packages (no cache for now)
         if (!url_to_package.empty())

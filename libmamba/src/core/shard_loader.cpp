@@ -7,14 +7,17 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <thread>
 
+#include <fmt/format.h>
 #include <msgpack.h>
 #include <msgpack/zone.h>
 #include <zstd.h>
 
 #include "mamba/core/logging.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/shard_loader.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/util.hpp"

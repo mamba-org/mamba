@@ -9,11 +9,14 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <iostream>
 #include <mutex>
 #include <queue>
 #include <set>
 #include <thread>
 #include <unordered_set>
+
+#include <fmt/format.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/logging.hpp"
@@ -335,21 +338,43 @@ namespace mamba
         const std::shared_ptr<Shards>& root_shards
     ) -> expected_t<void>
     {
+        // Print starting message for shard fetching and parsing
+        std::cout << "\r"
+                  << fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "⧖ Starting")
+                  << std::flush;
+
+        expected_t<void> result;
         if (strategy == "bfs")
         {
-            return reachable_bfs(root_packages, root_shards);
+            result = reachable_bfs(root_packages, root_shards);
         }
         else if (strategy == "pipelined")
         {
-            return reachable_pipelined(root_packages, root_shards);
+            result = reachable_pipelined(root_packages, root_shards);
         }
         else
         {
-            return make_unexpected(
+            result = make_unexpected(
                 "Unknown traversal strategy: " + strategy,
                 mamba_error_code::incorrect_usage
             );
         }
+
+        // Print done message when finished
+        if (result.has_value())
+        {
+            std::cout << "\r"
+                      << fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "☑ Done")
+                      << std::endl;
+        }
+        else
+        {
+            std::cout << "\r"
+                      << fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "✘ Failed")
+                      << std::endl;
+        }
+
+        return result;
     }
 
     auto RepodataSubset::reachable_bfs(

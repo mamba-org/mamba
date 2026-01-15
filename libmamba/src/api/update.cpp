@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
+#include <fmt/format.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
@@ -233,6 +236,8 @@ namespace mamba
             // Console stream prints on destruction
         }
 
+        std::cout << "\r" << fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
+                  << std::flush;
         auto outcome = solver::libsolv::Solver()
                            .solve(
                                db,
@@ -242,6 +247,8 @@ namespace mamba
                                    : solver::libsolv::MatchSpecParser::Mixed
                            )
                            .value();
+        std::cout << "\r" << fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done")
+                  << std::endl;
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
             unsolvable->explain_problems_to(

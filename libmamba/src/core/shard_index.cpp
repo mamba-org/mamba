@@ -5,12 +5,15 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <iostream>
 
+#include <fmt/format.h>
 #include <msgpack.h>
 #include <msgpack/zone.h>
 #include <zstd.h>
 
 #include "mamba/core/logging.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/shard_index.hpp"
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
@@ -453,9 +456,23 @@ namespace mamba
             if (cached_index.has_value())
             {
                 LOG_DEBUG << "Using cached shard index for " << subdir.name();
+                std::string label = "Fetch Shards' Index for " + subdir.name();
+                if (label.length() > 85)
+                {
+                    label = label.substr(0, 82) + "...";
+                }
+                std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "✔ Done") << std::endl;
                 return std::optional<ShardsIndexDict>(std::move(cached_index.value()));
             }
         }
+
+        // Print message when fetching shard index (update on same line)
+        std::string label = "Fetch Shards' Index for " + subdir.name();
+        if (label.length() > 85)
+        {
+            label = label.substr(0, 82) + "...";
+        }
+        std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "⧖ Starting") << std::flush;
 
         // Build download request
         auto request_opt = build_shard_index_request(
@@ -507,7 +524,14 @@ namespace mamba
                 );
             }
 
-            // Parse the downloaded file
+            // Parse the downloaded file (update on same line)
+            // Reuse label variable from outer scope
+            label = "Fetch Shards' Index for " + subdir.name();
+            if (label.length() > 85)
+            {
+                label = label.substr(0, 82) + "...";
+            }
+            std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "⧖ Starting") << std::flush;
             auto index_result = parse_shard_index(downloaded_path);
             if (!index_result.has_value())
             {
@@ -521,6 +545,12 @@ namespace mamba
                 fs::copy_file(downloaded_path, cache_path, fs::copy_options::overwrite_existing);
             }
 
+            // Print final status and newline when done (reuse label variable)
+            if (label.length() > 85)
+            {
+                label = label.substr(0, 82) + "...";
+            }
+            std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "✔ Done") << std::endl;
             return std::optional<ShardsIndexDict>(std::move(index_result.value()));
         }
         catch (const std::exception& e)

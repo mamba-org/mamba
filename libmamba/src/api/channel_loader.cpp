@@ -241,28 +241,49 @@ namespace mamba
             }
             else
             {
-                // Filter root_packages to only those that exist in the current subdir's shard index
-                // (not other subdirs - those will be discovered as dependencies during traversal)
+                // Check root_packages across ALL subdirs, not just the current one
+                // This is important because packages like jupyter==1.1.1 might only exist in noarch
+                // even though an older version exists in linux-64
                 for (const auto& pkg : root_packages)
                 {
+                    bool found = false;
+
+                    // First check current subdir
                     if (current_shards->contains(pkg))
                     {
                         packages_to_traverse.push_back(pkg);
+                        found = true;
+                    }
+                    else
+                    {
+                        // Check all other subdirs
+                        for (const auto& [other_url, other_shards] : shards_by_url)
+                        {
+                            if (other_url != subdir.name() && other_shards->contains(pkg))
+                            {
+                                packages_to_traverse.push_back(pkg);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        LOG_WARNING << "Root package '" << pkg
+                                    << "' not found in any subdir's shard index";
                     }
                 }
+
                 if (packages_to_traverse.empty())
                 {
-                    LOG_DEBUG << "None of the root packages [" << util::join(", ", root_packages)
-                              << "] exist in " << subdir.name()
-                              << " shard index, skipping traversal";
+                    LOG_WARNING << "None of the root packages [" << util::join(", ", root_packages)
+                                << "] exist in any subdir's shard index, skipping traversal";
                     return make_unexpected(
-                        "No root packages found in shard index for " + subdir.name(),
+                        "No root packages found in any shard index",
                         mamba_error_code::repodata_not_loaded
                     );
                 }
-                LOG_DEBUG << "Filtered root packages for " << subdir.name() << ": ["
-                          << util::join(", ", root_packages) << "] -> ["
-                          << util::join(", ", packages_to_traverse) << "]";
             }
 
             // Track if we need to add pip separately (not restricted to current subdir)
@@ -272,9 +293,45 @@ namespace mamba
 
             LOG_DEBUG << "Starting dependency traversal for " << packages_to_traverse.size()
                       << " root package(s): [" << util::join(", ", packages_to_traverse) << "]";
-            // Pass current_shards to restrict root node creation to the current subdir
-            // (dependencies will still be discovered across all subdirs)
-            auto traversal_result = subset.reachable(packages_to_traverse, "pipelined", current_shards);
+
+            // Check if any root packages exist in multiple subdirs (including the current one)
+            // If so, we need to allow root nodes from all subdirs so the solver can pick the
+            // correct version This is important for packages like jupyter==1.1.1 which might only
+            // exist in noarch even though an older version exists in linux-64
+            bool root_packages_in_multiple_subdirs = false;
+            for (const auto& pkg : packages_to_traverse)
+            {
+                int subdir_count = 0;
+                if (current_shards->contains(pkg))
+                {
+                    subdir_count++;
+                }
+                for (const auto& [other_url, other_shards] : shards_by_url)
+                {
+                    if (other_url != subdir.name() && other_shards->contains(pkg))
+                    {
+                        subdir_count++;
+                    }
+                }
+                if (subdir_count > 1)
+                {
+                    root_packages_in_multiple_subdirs = true;
+                    break;
+                }
+            }
+
+            // If root packages exist in multiple subdirs, pass nullptr to allow root nodes from all
+            // subdirs This ensures the solver can pick the correct version (e.g., jupyter==1.1.1
+            // from noarch) Otherwise, restrict to current subdir (dependencies will still be
+            // discovered across all subdirs)
+            std::shared_ptr<Shards> root_shards_restriction = root_packages_in_multiple_subdirs
+                                                                  ? nullptr
+                                                                  : current_shards;
+            auto traversal_result = subset.reachable(
+                packages_to_traverse,
+                "pipelined",
+                root_shards_restriction
+            );
 
             // If pip is needed, add it separately without restricting to current subdir
             // This ensures pip is discovered from noarch (where newer versions are)
@@ -381,8 +438,9 @@ namespace mamba
                     for (const auto& [filename, record] : shard.packages)
                     {
                         auto pkg_info = to_package_info(record, filename, channel_id, platform, base_url);
-                        LOG_DEBUG << "Converted package '" << pkg_info.name << "' (" << filename
-                                  << ") from shard";
+                        LOG_DEBUG << "Converted package '" << pkg_info.name
+                                  << "==" << pkg_info.version << "=" << pkg_info.build_string
+                                  << "' (" << filename << ") from shard in subdir " << subdir_url;
                         if (pkg_info.sha256.empty())
                         {
                             LOG_DEBUG << "No sha256 found for package '" << pkg_info.name << "' ("

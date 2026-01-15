@@ -668,7 +668,13 @@ namespace mamba
         }
 
         // Initialize root nodes
-        m_nodes.clear();
+        // Only clear if this is the first traversal (m_nodes is empty)
+        // Otherwise, we're adding to an existing traversal (e.g., pip after root packages)
+        // and we want to preserve existing nodes
+        if (m_nodes.empty())
+        {
+            m_nodes.clear();
+        }
         Node parent_node;
         parent_node.distance = 0;
         // If root_shards is provided, only create nodes for packages in that shards

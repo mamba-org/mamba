@@ -24,60 +24,12 @@
 namespace mamba
 {
     /**
-     * Base class for shard-like objects.
-     *
-     * Provides a unified interface for both sharded repodata (Shards)
-     * and traditional repodata presented as shards (ShardLike).
-     */
-    class ShardBase
-    {
-    public:
-
-        virtual ~ShardBase() = default;
-
-        /** Return the names of all packages available in this shard collection. */
-        [[nodiscard]] virtual auto package_names() const -> std::vector<std::string> = 0;
-
-        /** Check if a package is available in this shard collection. */
-        [[nodiscard]] auto contains(const std::string& package) const -> bool;
-
-        /** Return shard URL for a given package. */
-        [[nodiscard]] virtual auto shard_url(const std::string& package) const -> std::string = 0;
-
-        /** Return True if the given package's shard is in memory. */
-        [[nodiscard]] virtual auto shard_loaded(const std::string& package) const -> bool = 0;
-
-        /** Return a shard that is already loaded in memory. */
-        [[nodiscard]] virtual auto visit_package(const std::string& package) const -> ShardDict = 0;
-
-        /** Store new shard data. */
-        virtual void visit_shard(const std::string& package, const ShardDict& shard) = 0;
-
-        /** Fetch an individual shard for the given package. */
-        virtual auto fetch_shard(const std::string& package) -> expected_t<ShardDict> = 0;
-
-        /** Fetch multiple shards in one go. */
-        virtual auto fetch_shards(const std::vector<std::string>& packages)
-            -> expected_t<std::map<std::string, ShardDict>>
-            = 0;
-
-        /** Return monolithic repodata including all visited shards. */
-        [[nodiscard]] virtual auto build_repodata() const -> RepodataDict = 0;
-
-        /** Get the base URL for packages. */
-        [[nodiscard]] virtual auto base_url() const -> std::string = 0;
-
-        /** Get the URL of this shard collection. */
-        [[nodiscard]] virtual auto url() const -> std::string = 0;
-    };
-
-    /**
      * Handle repodata_shards.msgpack.zst and individual per-package shards.
      *
      * This class manages fetching and caching of individual shards from
      * a sharded repodata index.
      */
-    class Shards : public ShardBase
+    class Shards
     {
     public:
 
@@ -102,26 +54,39 @@ namespace mamba
             std::size_t download_threads = 10
         );
 
-        [[nodiscard]] auto package_names() const -> std::vector<std::string> override;
+        /** Return the names of all packages available in this shard collection. */
+        [[nodiscard]] auto package_names() const -> std::vector<std::string>;
 
-        [[nodiscard]] auto shard_url(const std::string& package) const -> std::string override;
+        /** Check if a package is available in this shard collection. */
+        [[nodiscard]] auto contains(const std::string& package) const -> bool;
 
-        [[nodiscard]] auto shard_loaded(const std::string& package) const -> bool override;
+        /** Return shard URL for a given package. */
+        [[nodiscard]] auto shard_url(const std::string& package) const -> std::string;
 
-        [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict override;
+        /** Return True if the given package's shard is in memory. */
+        [[nodiscard]] auto shard_loaded(const std::string& package) const -> bool;
 
-        void visit_shard(const std::string& package, const ShardDict& shard) override;
+        /** Return a shard that is already loaded in memory. */
+        [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict;
 
-        auto fetch_shard(const std::string& package) -> expected_t<ShardDict> override;
+        /** Store new shard data. */
+        void visit_shard(const std::string& package, const ShardDict& shard);
 
+        /** Fetch an individual shard for the given package. */
+        auto fetch_shard(const std::string& package) -> expected_t<ShardDict>;
+
+        /** Fetch multiple shards in one go. */
         auto fetch_shards(const std::vector<std::string>& packages)
-            -> expected_t<std::map<std::string, ShardDict>> override;
+            -> expected_t<std::map<std::string, ShardDict>>;
 
-        [[nodiscard]] auto build_repodata() const -> RepodataDict override;
+        /** Return monolithic repodata including all visited shards. */
+        [[nodiscard]] auto build_repodata() const -> RepodataDict;
 
-        [[nodiscard]] auto base_url() const -> std::string override;
+        /** Get the base URL for packages. */
+        [[nodiscard]] auto base_url() const -> std::string;
 
-        [[nodiscard]] auto url() const -> std::string override;
+        /** Get the URL of this shard collection. */
+        [[nodiscard]] auto url() const -> std::string;
 
     private:
 
@@ -170,59 +135,6 @@ namespace mamba
         process_fetched_shard(const std::string& url, const std::string& package, const ShardDict& shard);
     };
 
-    /**
-     * Present a "classic" repodata.json as per-package shards.
-     *
-     * This adapter allows treating monolithic repodata.json as if it were
-     * sharded, enabling unified traversal algorithms.
-     */
-    class ShardLike : public ShardBase
-    {
-    public:
-
-        /**
-         * Create a ShardLike instance from monolithic repodata.
-         *
-         * @param repodata The monolithic repodata dictionary.
-         * @param url URL identifier for this repodata (must be unique).
-         */
-        ShardLike(RepodataDict repodata, std::string url);
-
-        [[nodiscard]] auto package_names() const -> std::vector<std::string> override;
-
-        [[nodiscard]] auto shard_url(const std::string& package) const -> std::string override;
-
-        [[nodiscard]] auto shard_loaded(const std::string& package) const -> bool override;
-
-        [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict override;
-
-        void visit_shard(const std::string& package, const ShardDict& shard) override;
-
-        auto fetch_shard(const std::string& package) -> expected_t<ShardDict> override;
-
-        auto fetch_shards(const std::vector<std::string>& packages)
-            -> expected_t<std::map<std::string, ShardDict>> override;
-
-        [[nodiscard]] auto build_repodata() const -> RepodataDict override;
-
-        [[nodiscard]] auto base_url() const -> std::string override;
-
-        [[nodiscard]] auto url() const -> std::string override;
-
-    private:
-
-        /** Repodata without packages (info section). */
-        RepodataDict m_repodata_no_packages;
-
-        /** Per-package shards split from monolithic repodata. */
-        std::map<std::string, ShardDict> m_shards;
-
-        /** Visited shards. */
-        std::map<std::string, ShardDict> m_visited;
-
-        /** URL identifier. */
-        std::string m_url;
-    };
 
 }
 

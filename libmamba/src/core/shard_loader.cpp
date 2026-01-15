@@ -296,16 +296,6 @@ namespace mamba
     }
 
     /******************
-     * ShardBase      *
-     ******************/
-
-    auto ShardBase::contains(const std::string& package) const -> bool
-    {
-        auto names = package_names();
-        return std::find(names.begin(), names.end(), package) != names.end();
-    }
-
-    /******************
      * Shards         *
      ******************/
 
@@ -337,6 +327,11 @@ namespace mamba
             names.push_back(name);
         }
         return names;
+    }
+
+    auto Shards::contains(const std::string& package) const -> bool
+    {
+        return m_shards_index.shards.find(package) != m_shards_index.shards.end();
     }
 
     auto Shards::shards_base_url() const -> std::string
@@ -1223,141 +1218,4 @@ namespace mamba
         return m_url;
     }
 
-    /******************
-     * ShardLike      *
-     ******************/
-
-    ShardLike::ShardLike(RepodataDict repodata, std::string url)
-        : m_url(std::move(url))
-    {
-        // Extract info section
-        m_repodata_no_packages.info = repodata.info;
-        m_repodata_no_packages.repodata_version = repodata.repodata_version;
-        m_repodata_no_packages.packages.clear();
-        m_repodata_no_packages.conda_packages.clear();
-
-        // Split packages into per-package shards
-        std::map<std::string, ShardDict> shards;
-
-        // Process .tar.bz2 packages
-        for (const auto& [filename, record] : repodata.packages)
-        {
-            std::string package_name = record.name;
-            if (shards.find(package_name) == shards.end())
-            {
-                shards[package_name] = ShardDict{};
-            }
-            shards[package_name].packages[filename] = record;
-        }
-
-        // Process .conda packages
-        for (const auto& [filename, record] : repodata.conda_packages)
-        {
-            std::string package_name = record.name;
-            if (shards.find(package_name) == shards.end())
-            {
-                shards[package_name] = ShardDict{};
-            }
-            shards[package_name].conda_packages[filename] = record;
-        }
-
-        m_shards = std::move(shards);
-    }
-
-    auto ShardLike::package_names() const -> std::vector<std::string>
-    {
-        std::vector<std::string> names;
-        names.reserve(m_shards.size());
-        for (const auto& [name, _] : m_shards)
-        {
-            names.push_back(name);
-        }
-        return names;
-    }
-
-    auto ShardLike::shard_url(const std::string& package) const -> std::string
-    {
-        if (m_shards.find(package) == m_shards.end())
-        {
-            throw std::runtime_error("Package " + package + " not found");
-        }
-        return m_url + "#" + package;
-    }
-
-    auto ShardLike::shard_loaded(const std::string& package) const -> bool
-    {
-        return m_shards.find(package) != m_shards.end();
-    }
-
-    auto ShardLike::visit_package(const std::string& package) const -> ShardDict
-    {
-        auto it = m_shards.find(package);
-        if (it == m_shards.end())
-        {
-            throw std::runtime_error("Package " + package + " not found");
-        }
-        return it->second;
-    }
-
-    void ShardLike::visit_shard(const std::string& package, const ShardDict& shard)
-    {
-        m_visited[package] = shard;
-    }
-
-    auto ShardLike::fetch_shard(const std::string& package) -> expected_t<ShardDict>
-    {
-        auto it = m_shards.find(package);
-        if (it == m_shards.end())
-        {
-            return make_unexpected("Package " + package + " not found", mamba_error_code::unknown);
-        }
-        m_visited[package] = it->second;
-        return it->second;
-    }
-
-    auto ShardLike::fetch_shards(const std::vector<std::string>& packages)
-        -> expected_t<std::map<std::string, ShardDict>>
-    {
-        std::map<std::string, ShardDict> results;
-        for (const auto& package : packages)
-        {
-            auto result = fetch_shard(package);
-            if (result.has_value())
-            {
-                results[package] = result.value();
-            }
-        }
-        return results;
-    }
-
-    auto ShardLike::build_repodata() const -> RepodataDict
-    {
-        RepodataDict repodata = m_repodata_no_packages;
-
-        for (const auto& [package, shard] : m_visited)
-        {
-            // Merge packages
-            for (const auto& [filename, record] : shard.packages)
-            {
-                repodata.packages[filename] = record;
-            }
-            // Merge conda packages
-            for (const auto& [filename, record] : shard.conda_packages)
-            {
-                repodata.conda_packages[filename] = record;
-            }
-        }
-
-        return repodata;
-    }
-
-    auto ShardLike::base_url() const -> std::string
-    {
-        return m_repodata_no_packages.info.base_url;
-    }
-
-    auto ShardLike::url() const -> std::string
-    {
-        return m_url;
-    }
 }

@@ -62,24 +62,24 @@ namespace mamba
     public:
 
         /**
-         * Create a repodata subset from shard-like objects.
+         * Create a repodata subset from shards objects.
          *
-         * @param shardlikes Collection of ShardBase objects (Shards or ShardLike).
+         * @param shards Collection of Shards objects.
          */
-        explicit RepodataSubset(std::vector<std::shared_ptr<ShardBase>> shardlikes);
+        explicit RepodataSubset(std::vector<std::shared_ptr<Shards>> shards);
 
         /**
          * Find all packages reachable from root packages.
          *
          * @param root_packages List of package names to start traversal from.
          * @param strategy Traversal strategy ("bfs" or "pipelined").
-         * @param root_shardlike If provided, only create root nodes for packages in this shardlike
-         *                       (ensures root packages are in the correct subdir)
+         * @param root_shards If provided, only create root nodes for packages in this shards
+         *                    (ensures root packages are in the correct subdir)
          */
         auto reachable(
             const std::vector<std::string>& root_packages,
             const std::string& strategy = "pipelined",
-            const std::shared_ptr<ShardBase>& root_shardlike = nullptr
+            const std::shared_ptr<Shards>& root_shards = nullptr
         ) -> expected_t<void>;
 
         /**
@@ -88,9 +88,9 @@ namespace mamba
         [[nodiscard]] auto nodes() const -> const std::map<NodeId, Node>&;
 
         /**
-         * Get shard-like objects.
+         * Get shards objects.
          */
-        [[nodiscard]] auto shardlikes() const -> const std::vector<std::shared_ptr<ShardBase>>&;
+        [[nodiscard]] auto shards() const -> const std::vector<std::shared_ptr<Shards>>&;
 
     private:
 
@@ -99,7 +99,7 @@ namespace mamba
          */
         auto reachable_bfs(
             const std::vector<std::string>& root_packages,
-            const std::shared_ptr<ShardBase>& root_shardlike = nullptr
+            const std::shared_ptr<Shards>& root_shards = nullptr
         ) -> expected_t<void>;
 
         /**
@@ -107,7 +107,7 @@ namespace mamba
          */
         auto reachable_pipelined(
             const std::vector<std::string>& root_packages,
-            const std::shared_ptr<ShardBase>& root_shardlike = nullptr
+            const std::shared_ptr<Shards>& root_shards = nullptr
         ) -> expected_t<void>;
 
         /**
@@ -125,13 +125,14 @@ namespace mamba
          *
          * @param parent_node The parent node (distance 0 for root packages)
          * @param mentioned_packages Packages to create nodes for
-         * @param restrict_to_shardlike If provided, only create nodes for packages in this
-         * shardlike (used for root packages to ensure they're in the correct subdir)
+         * @param restrict_to_shards If provided, only create nodes for packages in this
+         *                           shards (used for root packages to ensure they're in the correct
+         * subdir)
          */
         auto visit_node(
             const Node& parent_node,
             const std::vector<std::string>& mentioned_packages,
-            const std::shared_ptr<ShardBase>& restrict_to_shardlike = nullptr
+            const std::shared_ptr<Shards>& restrict_to_shards = nullptr
         ) -> std::vector<NodeId>;
 
         /**
@@ -139,11 +140,11 @@ namespace mamba
          */
         auto drain_pending(
             std::set<NodeId>& pending,
-            std::map<std::string, std::shared_ptr<ShardBase>>& shardlikes_by_url
+            std::map<std::string, std::shared_ptr<Shards>>& shards_by_url
         ) -> std::pair<std::vector<std::pair<NodeId, ShardDict>>, std::vector<NodeId>>;
 
-        /** Shard-like objects. */
-        std::vector<std::shared_ptr<ShardBase>> m_shardlikes;
+        /** Shards objects. */
+        std::vector<std::shared_ptr<Shards>> m_shards;
 
         /** Discovered nodes. */
         std::map<NodeId, Node> m_nodes;

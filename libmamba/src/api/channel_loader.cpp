@@ -106,7 +106,7 @@ namespace mamba
             // Create Shards objects for all subdirs from the same channel that have shards
             // available This enables cross-subdir dependency traversal (e.g., linux-64 packages
             // depending on noarch)
-            std::vector<std::shared_ptr<ShardBase>> all_shards;
+            std::vector<std::shared_ptr<Shards>> all_shards;
             std::map<std::string, std::shared_ptr<Shards>> shards_by_url;  // Map subdir URL to
                                                                            // Shards object
 

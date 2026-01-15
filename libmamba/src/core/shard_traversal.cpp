@@ -126,8 +126,8 @@ namespace mamba
      * RepodataSubset *
      ******************/
 
-    RepodataSubset::RepodataSubset(std::vector<std::shared_ptr<ShardBase>> shardlikes)
-        : m_shardlikes(std::move(shardlikes))
+    RepodataSubset::RepodataSubset(std::vector<std::shared_ptr<Shards>> shards)
+        : m_shards(std::move(shards))
     {
     }
 
@@ -136,9 +136,9 @@ namespace mamba
         return m_nodes;
     }
 
-    auto RepodataSubset::shardlikes() const -> const std::vector<std::shared_ptr<ShardBase>>&
+    auto RepodataSubset::shards() const -> const std::vector<std::shared_ptr<Shards>>&
     {
-        return m_shardlikes;
+        return m_shards;
     }
 
     auto RepodataSubset::extract_dependencies(const ShardDict& shard) -> std::vector<std::string>
@@ -151,28 +151,28 @@ namespace mamba
         std::vector<Node> result;
         std::set<std::string> discovered;
 
-        // Find the shardlike for this node's channel
-        std::shared_ptr<ShardBase> shardlike = nullptr;
-        for (const auto& sl : m_shardlikes)
+        // Find the shards for this node's channel
+        std::shared_ptr<Shards> shards = nullptr;
+        for (const auto& sl : m_shards)
         {
             if (sl->url() == node.channel)
             {
-                shardlike = sl;
+                shards = sl;
                 break;
             }
         }
 
-        if (!shardlike)
+        if (!shards)
         {
             return result;
         }
 
         // Fetch the shard if not already loaded
-        if (!shardlike->shard_loaded(node.package))
+        if (!shards->shard_loaded(node.package))
         {
             LOG_DEBUG << "Fetching shard for dependency package '" << node.package
                       << "' from channel " << node.channel;
-            auto fetch_result = shardlike->fetch_shard(node.package);
+            auto fetch_result = shards->fetch_shard(node.package);
             if (!fetch_result.has_value())
             {
                 LOG_WARNING << "Failed to fetch shard for package " << node.package;
@@ -186,7 +186,7 @@ namespace mamba
         }
 
         // Get the shard and extract dependencies
-        ShardDict shard = shardlike->visit_package(node.package);
+        ShardDict shard = shards->visit_package(node.package);
         LOG_DEBUG << "Extracting dependencies from shard for package '" << node.package << "'";
         std::vector<std::string> mentioned_packages = extract_dependencies(shard);
 
@@ -205,8 +205,8 @@ namespace mamba
             }
             discovered.insert(package_name);
 
-            // Check if package exists in any shardlike
-            for (const auto& sl : m_shardlikes)
+            // Check if package exists in any shards
+            for (const auto& sl : m_shards)
             {
                 if (sl->contains(package_name))
                 {
@@ -235,40 +235,40 @@ namespace mamba
     auto RepodataSubset::visit_node(
         const Node& parent_node,
         const std::vector<std::string>& mentioned_packages,
-        const std::shared_ptr<ShardBase>& restrict_to_shardlike
+        const std::shared_ptr<Shards>& restrict_to_shards
     ) -> std::vector<NodeId>
     {
         std::vector<NodeId> pending;
 
-        // If restrict_to_shardlike is provided, only check that shardlike (for root packages)
-        // Otherwise, broadcast across all shardlikes (for dependencies)
-        const auto shardlikes_to_check = restrict_to_shardlike
-                                             ? std::vector<std::shared_ptr<ShardBase>>{ restrict_to_shardlike }
-                                             : m_shardlikes;
+        // If restrict_to_shards is provided, only check that shards (for root packages)
+        // Otherwise, broadcast across all shards (for dependencies)
+        const auto shards_to_check = restrict_to_shards
+                                         ? std::vector<std::shared_ptr<Shards>>{ restrict_to_shards }
+                                         : m_shards;
 
         for (const auto& package_name : mentioned_packages)
         {
-            // Check packages in the specified shardlikes
-            for (const auto& shardlike : shardlikes_to_check)
+            // Check packages in the specified shards
+            for (const auto& shards : shards_to_check)
             {
-                if (shardlike->contains(package_name))
+                if (shards->contains(package_name))
                 {
                     LOG_DEBUG << "Package '" << package_name
-                              << "' found in shardlike with URL: " << shardlike->url();
+                              << "' found in shards with URL: " << shards->url();
                     std::string shard_url_str;
                     try
                     {
-                        shard_url_str = shardlike->shard_url(package_name);
+                        shard_url_str = shards->shard_url(package_name);
                         LOG_DEBUG << "Shard URL for package '" << package_name
                                   << "': " << shard_url_str;
                     }
                     catch (const std::exception& e)
                     {
                         LOG_WARNING << "Failed to get shard URL for package '" << package_name
-                                    << "' from shardlike " << shardlike->url() << ": " << e.what();
+                                    << "' from shards " << shards->url() << ": " << e.what();
                         continue;  // Skip this package if we can't get its shard URL
                     }
-                    NodeId new_node_id{ package_name, shardlike->url(), shard_url_str };
+                    NodeId new_node_id{ package_name, shards->url(), shard_url_str };
                     if (m_nodes.find(new_node_id) == m_nodes.end())
                     {
                         Node new_node;
@@ -292,7 +292,7 @@ namespace mamba
 
     auto RepodataSubset::drain_pending(
         std::set<NodeId>& pending,
-        std::map<std::string, std::shared_ptr<ShardBase>>& shardlikes_by_url
+        std::map<std::string, std::shared_ptr<Shards>>& shards_by_url
     ) -> std::pair<std::vector<std::pair<NodeId, ShardDict>>, std::vector<NodeId>>
     {
         std::vector<std::pair<NodeId, ShardDict>> have;
@@ -300,17 +300,17 @@ namespace mamba
 
         for (const auto& node_id : pending)
         {
-            auto it = shardlikes_by_url.find(node_id.channel);
-            if (it == shardlikes_by_url.end())
+            auto it = shards_by_url.find(node_id.channel);
+            if (it == shards_by_url.end())
             {
                 continue;
             }
 
-            auto& shardlike = it->second;
-            if (shardlike->shard_loaded(node_id.package))
+            auto& shards = it->second;
+            if (shards->shard_loaded(node_id.package))
             {
                 // Shard already in memory
-                ShardDict shard = shardlike->visit_package(node_id.package);
+                ShardDict shard = shards->visit_package(node_id.package);
                 have.emplace_back(node_id, shard);
             }
             else
@@ -332,16 +332,16 @@ namespace mamba
     auto RepodataSubset::reachable(
         const std::vector<std::string>& root_packages,
         const std::string& strategy,
-        const std::shared_ptr<ShardBase>& root_shardlike
+        const std::shared_ptr<Shards>& root_shards
     ) -> expected_t<void>
     {
         if (strategy == "bfs")
         {
-            return reachable_bfs(root_packages, root_shardlike);
+            return reachable_bfs(root_packages, root_shards);
         }
         else if (strategy == "pipelined")
         {
-            return reachable_pipelined(root_packages, root_shardlike);
+            return reachable_pipelined(root_packages, root_shards);
         }
         else
         {
@@ -354,28 +354,28 @@ namespace mamba
 
     auto RepodataSubset::reachable_bfs(
         const std::vector<std::string>& root_packages,
-        const std::shared_ptr<ShardBase>& root_shardlike
+        const std::shared_ptr<Shards>& root_shards
     ) -> expected_t<void>
     {
         // Initialize root nodes
         Node parent_node;
         parent_node.distance = 0;
-        // If root_shardlike is provided, only create nodes for packages in that shardlike
+        // If root_shards is provided, only create nodes for packages in that shards
         // (ensures root packages are in the correct subdir)
-        auto root_node_ids = visit_node(parent_node, root_packages, root_shardlike);
+        auto root_node_ids = visit_node(parent_node, root_packages, root_shards);
 
         std::deque<NodeId> node_queue(root_node_ids.begin(), root_node_ids.end());
 
-        // Build map of shardlikes by URL
-        std::map<std::string, std::shared_ptr<ShardBase>> shardlikes_by_url;
-        for (const auto& sl : m_shardlikes)
+        // Build map of shards by URL
+        std::map<std::string, std::shared_ptr<Shards>> shards_by_url;
+        for (const auto& sl : m_shards)
         {
-            shardlikes_by_url[sl->url()] = sl;
+            shards_by_url[sl->url()] = sl;
         }
 
         // Separate sharded from non-sharded
         std::vector<std::shared_ptr<Shards>> sharded;
-        for (const auto& sl : m_shardlikes)
+        for (const auto& sl : m_shards)
         {
             if (auto shards = std::dynamic_pointer_cast<Shards>(sl))
             {
@@ -419,8 +419,8 @@ namespace mamba
                 // TODO: Implement batch_retrieve_from_cache and batch_retrieve_from_network
                 for (const auto& node_id : to_retrieve)
                 {
-                    auto it = shardlikes_by_url.find(node_id.channel);
-                    if (it != shardlikes_by_url.end())
+                    auto it = shards_by_url.find(node_id.channel);
+                    if (it != shards_by_url.end())
                     {
                         LOG_DEBUG << "Fetching shard for dependency package '" << node_id.package
                                   << "' discovered during traversal";
@@ -531,13 +531,13 @@ namespace mamba
         void network_fetch_thread(
             ThreadSafeQueue<std::vector<NodeId>>& network_in_queue,
             ThreadSafeQueue<std::vector<std::pair<NodeId, ShardDict>>>& shard_out_queue,
-            const std::vector<std::shared_ptr<ShardBase>>& shardlikes
+            const std::vector<std::shared_ptr<Shards>>& shards
         )
         {
-            std::map<std::string, std::shared_ptr<ShardBase>> shardlikes_by_url;
-            for (const auto& sl : shardlikes)
+            std::map<std::string, std::shared_ptr<Shards>> shards_by_url;
+            for (const auto& sl : shards)
             {
-                shardlikes_by_url[sl->url()] = sl;
+                shards_by_url[sl->url()] = sl;
             }
 
             std::vector<NodeId> batch;
@@ -558,8 +558,8 @@ namespace mamba
                 // Fetch shards from each channel
                 for (const auto& [channel_url, packages] : packages_by_channel)
                 {
-                    auto it = shardlikes_by_url.find(channel_url);
-                    if (it == shardlikes_by_url.end())
+                    auto it = shards_by_url.find(channel_url);
+                    if (it == shards_by_url.end())
                     {
                         continue;
                     }
@@ -615,7 +615,7 @@ namespace mamba
         void offline_nofetch_thread(
             ThreadSafeQueue<std::vector<NodeId>>& network_in_queue,
             ThreadSafeQueue<std::vector<std::pair<NodeId, ShardDict>>>& shard_out_queue,
-            const std::vector<std::shared_ptr<ShardBase>>& /* shardlikes */
+            const std::vector<std::shared_ptr<Shards>>& /* shards */
         )
         {
             std::vector<NodeId> batch;
@@ -641,7 +641,7 @@ namespace mamba
 
     auto RepodataSubset::reachable_pipelined(
         const std::vector<std::string>& root_packages,
-        const std::shared_ptr<ShardBase>& root_shardlike
+        const std::shared_ptr<Shards>& root_shards
     ) -> expected_t<void>
     {
         // Get offline mode from context (we'll need to pass this in the future)
@@ -657,23 +657,23 @@ namespace mamba
             offline ? offline_nofetch_thread : network_fetch_thread,
             std::ref(network_in_queue),
             std::ref(shard_out_queue),
-            std::cref(m_shardlikes)
+            std::cref(m_shards)
         );
 
-        // Build map of shardlikes by URL
-        std::map<std::string, std::shared_ptr<ShardBase>> shardlikes_by_url;
-        for (const auto& sl : m_shardlikes)
+        // Build map of shards by URL
+        std::map<std::string, std::shared_ptr<Shards>> shards_by_url;
+        for (const auto& sl : m_shards)
         {
-            shardlikes_by_url[sl->url()] = sl;
+            shards_by_url[sl->url()] = sl;
         }
 
         // Initialize root nodes
         m_nodes.clear();
         Node parent_node;
         parent_node.distance = 0;
-        // If root_shardlike is provided, only create nodes for packages in that shardlike
+        // If root_shards is provided, only create nodes for packages in that shards
         // (ensures root packages are in the correct subdir)
-        auto root_node_ids = visit_node(parent_node, root_packages, root_shardlike);
+        auto root_node_ids = visit_node(parent_node, root_packages, root_shards);
         std::set<NodeId> pending(root_node_ids.begin(), root_node_ids.end());
 
         std::set<NodeId> in_flight;
@@ -684,7 +684,7 @@ namespace mamba
         while (true)
         {
             // Drain pending nodes
-            auto [have, need] = drain_pending(pending, shardlikes_by_url);
+            auto [have, need] = drain_pending(pending, shards_by_url);
 
             // Process nodes we already have
             for (const auto& [node_id, shard] : have)
@@ -696,8 +696,8 @@ namespace mamba
                 {
                     auto& node = node_it->second;
                     node.visited = true;  // Mark node as visited
-                    auto shardlike = shardlikes_by_url[node_id.channel];
-                    shardlike->visit_shard(node_id.package, shard);
+                    auto shards = shards_by_url[node_id.channel];
+                    shards->visit_shard(node_id.package, shard);
 
                     // Discover new dependencies
                     auto mentioned = shard_mentioned_packages(shard);
@@ -762,10 +762,10 @@ namespace mamba
 
                     auto& node = node_it->second;
                     node.visited = true;  // Mark node as visited
-                    auto shardlike = shardlikes_by_url[node_id.channel];
+                    auto shards = shards_by_url[node_id.channel];
                     LOG_DEBUG << "Visiting shard for dependency package '" << node_id.package
                               << "' from channel " << node_id.channel;
-                    shardlike->visit_shard(node_id.package, shard);
+                    shards->visit_shard(node_id.package, shard);
 
                     // Discover new dependencies
                     LOG_DEBUG << "Extracting dependencies from shard for package '"

@@ -394,7 +394,9 @@ namespace mamba
         const auto& prefix_pkgs = prefix_data.records();
 
         auto request = Request();
-        request.jobs.reserve(specs.size() + options.freeze_installed * prefix_pkgs.size());
+        request.jobs.reserve(
+            specs.size() + static_cast<size_t>(options.freeze_installed) * prefix_pkgs.size()
+        );
 
         // Consider if a FreezeAll type in Request is relevant?
         if (options.freeze_installed && !prefix_pkgs.empty())

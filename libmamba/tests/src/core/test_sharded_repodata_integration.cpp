@@ -123,15 +123,19 @@ TEST_CASE(
     // Test that sharded repodata can handle cross-subdir dependencies
     // e.g., Python (linux-64) depending on noarch packages
     Context& ctx = mambatests::context();
+    // Create a temporary directory for cache to avoid using existing cache
+    auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_python314";
+    fs::create_directories(tmp_cache_dir);
     const auto original_repodata_use_shards = ctx.repodata_use_shards;
     ctx.repodata_use_shards = true;
 
     ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
     solver::libsolv::Database db(channel_context.params());
-    MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
+    // Use temporary directory for cache to avoid using existing cache
+    MultiPackageCache package_caches({ tmp_cache_dir }, ctx.validation_params);
 
     // Set up channels (use conda-forge which has shards)
-    ctx.channels = { "conda-forge" };
+    ctx.channels = { "https://prefix.dev/conda-forge" };
     init_channels(ctx, channel_context);
 
     // Extract package names from specs (Python 3.14)
@@ -286,7 +290,8 @@ namespace
         Context& ctx,
         ChannelContext& channel_context,
         const std::vector<std::string>& specs,
-        bool use_shards
+        bool use_shards,
+        const fs::u8path& cache_path
     ) -> expected_t<Solution>
     {
         // Save original shard setting
@@ -304,8 +309,8 @@ namespace
             },
         };
 
-        // Create package cache
-        MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
+        // Create package cache using temporary directory to avoid using existing cache
+        MultiPackageCache package_caches{ { cache_path }, ctx.validation_params };
 
         // Extract root packages for sharded repodata
         std::vector<std::string> root_packages;
@@ -386,21 +391,24 @@ TEST_CASE(
     SECTION("Simple package resolution")
     {
         Context& ctx = mambatests::context();
+        // Create a temporary directory for cache to avoid using existing cache
+        auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_simple";
+        fs::create_directories(tmp_cache_dir);
         ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
 
         // Set up channels (use conda-forge which has shards)
-        ctx.channels = { "conda-forge" };
+        ctx.channels = { "https://prefix.dev/conda-forge" };
         init_channels(ctx, channel_context);
 
         // Test with a simple package
         std::vector<std::string> specs = { "python" };
 
         // Solve with traditional repodata
-        auto solution_traditional = solve_environment(ctx, channel_context, specs, false);
+        auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
         REQUIRE(solution_traditional.has_value());
 
         // Solve with sharded repodata
-        auto solution_sharded = solve_environment(ctx, channel_context, specs, true);
+        auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
         REQUIRE(solution_sharded.has_value());
 
         // Extract packages from both solutions
@@ -414,18 +422,21 @@ TEST_CASE(
     SECTION("Multiple packages resolution")
     {
         Context& ctx = mambatests::context();
+        // Create a temporary directory for cache to avoid using existing cache
+        auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_multiple";
+        fs::create_directories(tmp_cache_dir);
         ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        ctx.channels = { "conda-forge" };
+        ctx.channels = { "https://prefix.dev/conda-forge" };
         init_channels(ctx, channel_context);
 
         // Test with multiple packages
         std::vector<std::string> specs = { "python", "numpy", "pandas" };
 
-        auto solution_traditional = solve_environment(ctx, channel_context, specs, false);
+        auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
         REQUIRE(solution_traditional.has_value());
 
-        auto solution_sharded = solve_environment(ctx, channel_context, specs, true);
+        auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
         REQUIRE(solution_sharded.has_value());
 
         auto packages_traditional = extract_solution_packages(solution_traditional.value());
@@ -437,18 +448,21 @@ TEST_CASE(
     SECTION("Package with version constraint")
     {
         Context& ctx = mambatests::context();
+        // Create a temporary directory for cache to avoid using existing cache
+        auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_version";
+        fs::create_directories(tmp_cache_dir);
         ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        ctx.channels = { "conda-forge" };
+        ctx.channels = { "https://prefix.dev/conda-forge" };
         init_channels(ctx, channel_context);
 
         // Test with version constraint
         std::vector<std::string> specs = { "python>=3.10,<3.12" };
 
-        auto solution_traditional = solve_environment(ctx, channel_context, specs, false);
+        auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
         REQUIRE(solution_traditional.has_value());
 
-        auto solution_sharded = solve_environment(ctx, channel_context, specs, true);
+        auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
         REQUIRE(solution_sharded.has_value());
 
         auto packages_traditional = extract_solution_packages(solution_traditional.value());
@@ -460,18 +474,21 @@ TEST_CASE(
     SECTION("Complex dependency tree")
     {
         Context& ctx = mambatests::context();
+        // Create a temporary directory for cache to avoid using existing cache
+        auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_complex";
+        fs::create_directories(tmp_cache_dir);
         ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        ctx.channels = { "conda-forge" };
+        ctx.channels = { "https://prefix.dev/conda-forge" };
         init_channels(ctx, channel_context);
 
         // Test with a package that has many dependencies
         std::vector<std::string> specs = { "jupyter" };
 
-        auto solution_traditional = solve_environment(ctx, channel_context, specs, false);
+        auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
         REQUIRE(solution_traditional.has_value());
 
-        auto solution_sharded = solve_environment(ctx, channel_context, specs, true);
+        auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
         REQUIRE(solution_sharded.has_value());
 
         auto packages_traditional = extract_solution_packages(solution_traditional.value());
@@ -483,18 +500,21 @@ TEST_CASE(
     SECTION("Build string matching")
     {
         Context& ctx = mambatests::context();
+        // Create a temporary directory for cache to avoid using existing cache
+        auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_build";
+        fs::create_directories(tmp_cache_dir);
         ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
 
-        ctx.channels = { "conda-forge" };
+        ctx.channels = { "https://prefix.dev/conda-forge" };
         init_channels(ctx, channel_context);
 
         // Test that build strings match correctly
         std::vector<std::string> specs = { "python=3.11" };
 
-        auto solution_traditional = solve_environment(ctx, channel_context, specs, false);
+        auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
         REQUIRE(solution_traditional.has_value());
 
-        auto solution_sharded = solve_environment(ctx, channel_context, specs, true);
+        auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
         REQUIRE(solution_sharded.has_value());
 
         auto packages_traditional = extract_solution_packages(solution_traditional.value());
@@ -535,4 +555,144 @@ TEST_CASE(
         REQUIRE(python_version_traditional == python_version_sharded);
         REQUIRE(python_build_traditional == python_build_sharded);
     }
+}
+
+TEST_CASE(
+    "Package resolution consistency: python",
+    "[mamba::core][mamba::core::sharded_repodata][.integration][.consistency]"
+)
+{
+    Context& ctx = mambatests::context();
+    // Create a temporary directory for cache to avoid using existing cache
+    auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_consistency_python";
+    fs::create_directories(tmp_cache_dir);
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "python" };
+
+    auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
+    REQUIRE(solution_traditional.has_value());
+
+    auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
+    REQUIRE(solution_sharded.has_value());
+
+    auto packages_traditional = extract_solution_packages(solution_traditional.value());
+    auto packages_sharded = extract_solution_packages(solution_sharded.value());
+
+    REQUIRE(packages_traditional == packages_sharded);
+}
+
+TEST_CASE(
+    "Package resolution consistency: jupyter",
+    "[mamba::core][mamba::core::sharded_repodata][.integration][.consistency]"
+)
+{
+    Context& ctx = mambatests::context();
+    // Create a temporary directory for cache to avoid using existing cache
+    auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_consistency_jupyter";
+    fs::create_directories(tmp_cache_dir);
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "jupyter" };
+
+    auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
+    REQUIRE(solution_traditional.has_value());
+
+    auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
+    REQUIRE(solution_sharded.has_value());
+
+    auto packages_traditional = extract_solution_packages(solution_traditional.value());
+    auto packages_sharded = extract_solution_packages(solution_sharded.value());
+
+    REQUIRE(packages_traditional == packages_sharded);
+}
+
+TEST_CASE(
+    "Package resolution consistency: arcticdb",
+    "[mamba::core][mamba::core::sharded_repodata][.integration][.consistency]"
+)
+{
+    Context& ctx = mambatests::context();
+    // Create a temporary directory for cache to avoid using existing cache
+    auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_consistency_arcticdb";
+    fs::create_directories(tmp_cache_dir);
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "arcticdb" };
+
+    auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
+    REQUIRE(solution_traditional.has_value());
+
+    auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
+    REQUIRE(solution_sharded.has_value());
+
+    auto packages_traditional = extract_solution_packages(solution_traditional.value());
+    auto packages_sharded = extract_solution_packages(solution_sharded.value());
+
+    REQUIRE(packages_traditional == packages_sharded);
+}
+
+TEST_CASE(
+    "Package resolution consistency: pyarrow",
+    "[mamba::core][mamba::core::sharded_repodata][.integration][.consistency]"
+)
+{
+    Context& ctx = mambatests::context();
+    // Create a temporary directory for cache to avoid using existing cache
+    auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_consistency_pyarrow";
+    fs::create_directories(tmp_cache_dir);
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "pyarrow" };
+
+    auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
+    REQUIRE(solution_traditional.has_value());
+
+    auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
+    REQUIRE(solution_sharded.has_value());
+
+    auto packages_traditional = extract_solution_packages(solution_traditional.value());
+    auto packages_sharded = extract_solution_packages(solution_sharded.value());
+
+    REQUIRE(packages_traditional == packages_sharded);
+}
+
+TEST_CASE(
+    "Package resolution consistency: xtensor",
+    "[mamba::core][mamba::core::sharded_repodata][.integration][.consistency]"
+)
+{
+    Context& ctx = mambatests::context();
+    // Create a temporary directory for cache to avoid using existing cache
+    auto tmp_cache_dir = ctx.prefix_params.target_prefix / "test_cache_consistency_xtensor";
+    fs::create_directories(tmp_cache_dir);
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "xtensor" };
+
+    auto solution_traditional = solve_environment(ctx, channel_context, specs, false, tmp_cache_dir);
+    REQUIRE(solution_traditional.has_value());
+
+    auto solution_sharded = solve_environment(ctx, channel_context, specs, true, tmp_cache_dir);
+    REQUIRE(solution_sharded.has_value());
+
+    auto packages_traditional = extract_solution_packages(solution_traditional.value());
+    auto packages_sharded = extract_solution_packages(solution_sharded.value());
+
+    REQUIRE(packages_traditional == packages_sharded);
 }

@@ -325,104 +325,38 @@ namespace mamba
                     // Convert packages from shard to PackageInfo
                     for (const auto& [filename, record] : shard.packages)
                     {
-                        specs::PackageInfo pkg_info;
-                        pkg_info.name = record.name;
-                        pkg_info.version = record.version;
-                        pkg_info.build_string = record.build;
-                        pkg_info.build_number = record.build_number;
-                        pkg_info.filename = filename;
-                        pkg_info.channel = channel_id;
-                        pkg_info.platform = platform;
-                        pkg_info.package_url = util::url_concat(base_url, "/", filename);
-                        pkg_info.dependencies = record.depends;
-                        pkg_info.constrains = record.constrains;
-                        pkg_info.size = record.size;
-                        if (record.sha256)
-                        {
-                            pkg_info.sha256 = *record.sha256;
-                            LOG_DEBUG << "Set sha256 for package '" << pkg_info.name << "' ("
-                                      << filename << "): " << *record.sha256;
-                        }
-                        else
+                        auto pkg_info = to_package_info(record, filename, channel_id, platform, base_url);
+                        LOG_DEBUG << "Converted package '" << pkg_info.name << "' (" << filename
+                                  << ") from shard";
+                        if (pkg_info.sha256.empty())
                         {
                             LOG_DEBUG << "No sha256 found for package '" << pkg_info.name << "' ("
                                       << filename << ")";
                         }
-                        if (record.md5)
-                        {
-                            pkg_info.md5 = *record.md5;
-                            LOG_DEBUG << "Set md5 for package '" << pkg_info.name << "' ("
-                                      << filename << "): " << *record.md5;
-                        }
-                        else
+                        if (pkg_info.md5.empty())
                         {
                             LOG_DEBUG << "No md5 found for package '" << pkg_info.name << "' ("
                                       << filename << ")";
                         }
-                        if (record.noarch)
-                        {
-                            if (*record.noarch == "python")
-                            {
-                                pkg_info.noarch = specs::NoArchType::Python;
-                            }
-                            else if (*record.noarch == "generic")
-                            {
-                                pkg_info.noarch = specs::NoArchType::Generic;
-                            }
-                        }
-
                         packages_by_subdir[subdir_url].push_back(std::move(pkg_info));
                     }
 
                     // Convert conda packages from shard to PackageInfo
                     for (const auto& [filename, record] : shard.conda_packages)
                     {
-                        specs::PackageInfo pkg_info;
-                        pkg_info.name = record.name;
-                        pkg_info.version = record.version;
-                        pkg_info.build_string = record.build;
-                        pkg_info.build_number = record.build_number;
-                        pkg_info.filename = filename;
-                        pkg_info.channel = channel_id;
-                        pkg_info.platform = platform;
-                        pkg_info.package_url = util::url_concat(base_url, "/", filename);
-                        pkg_info.dependencies = record.depends;
-                        pkg_info.constrains = record.constrains;
-                        pkg_info.size = record.size;
-                        if (record.sha256)
-                        {
-                            pkg_info.sha256 = *record.sha256;
-                            LOG_DEBUG << "Set sha256 for conda package '" << pkg_info.name << "' ("
-                                      << filename << "): " << *record.sha256;
-                        }
-                        else
+                        auto pkg_info = to_package_info(record, filename, channel_id, platform, base_url);
+                        LOG_DEBUG << "Converted conda package '" << pkg_info.name << "' ("
+                                  << filename << ") from shard";
+                        if (pkg_info.sha256.empty())
                         {
                             LOG_DEBUG << "No sha256 found for conda package '" << pkg_info.name
                                       << "' (" << filename << ")";
                         }
-                        if (record.md5)
-                        {
-                            pkg_info.md5 = *record.md5;
-                            LOG_DEBUG << "Set md5 for conda package '" << pkg_info.name << "' ("
-                                      << filename << "): " << *record.md5;
-                        }
-                        else
+                        if (pkg_info.md5.empty())
                         {
                             LOG_DEBUG << "No md5 found for conda package '" << pkg_info.name
                                       << "' (" << filename << ")";
                         }
-                        if (record.noarch)
-                        {
-                            if (*record.noarch == "python")
-                            {
-                                pkg_info.noarch = specs::NoArchType::Python;
-                            }
-                            else if (*record.noarch == "generic")
-                            {
-                                pkg_info.noarch = specs::NoArchType::Generic;
-                            }
-                        }
-
                         packages_by_subdir[subdir_url].push_back(std::move(pkg_info));
                     }
                 }  // End of loop over visited packages for this subdir

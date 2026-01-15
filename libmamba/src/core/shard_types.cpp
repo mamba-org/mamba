@@ -5,8 +5,11 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/shard_types.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -102,5 +105,47 @@ namespace mamba
         }
 
         return result;
+    }
+
+    specs::PackageInfo to_package_info(
+        const ShardPackageRecord& record,
+        const std::string& filename,
+        const std::string& channel_id,
+        const specs::DynamicPlatform& platform,
+        const std::string& base_url
+    )
+    {
+        specs::PackageInfo pkg_info;
+        pkg_info.name = record.name;
+        pkg_info.version = record.version;
+        pkg_info.build_string = record.build;
+        pkg_info.build_number = record.build_number;
+        pkg_info.filename = filename;
+        pkg_info.channel = channel_id;
+        pkg_info.platform = platform;
+        pkg_info.package_url = util::url_concat(base_url, "/", filename);
+        pkg_info.dependencies = record.depends;
+        pkg_info.constrains = record.constrains;
+        pkg_info.size = record.size;
+        if (record.sha256)
+        {
+            pkg_info.sha256 = *record.sha256;
+        }
+        if (record.md5)
+        {
+            pkg_info.md5 = *record.md5;
+        }
+        if (record.noarch)
+        {
+            if (*record.noarch == "python")
+            {
+                pkg_info.noarch = specs::NoArchType::Python;
+            }
+            else if (*record.noarch == "generic")
+            {
+                pkg_info.noarch = specs::NoArchType::Generic;
+            }
+        }
+        return pkg_info;
     }
 }

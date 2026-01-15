@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/repo_data.hpp"
 
 namespace mamba
@@ -171,6 +172,28 @@ namespace mamba
      * This conversion is used when building repodata for the solver from shards.
      */
     specs::RepoData to_repo_data(const RepodataDict& repodata);
+
+    /**
+     * Convert ShardPackageRecord to specs::PackageInfo.
+     *
+     * This conversion is used when loading packages from shards into the package database.
+     * Requires additional metadata (filename, channel, platform, base_url) that is not
+     * present in ShardPackageRecord but needed for PackageInfo.
+     *
+     * @param record The shard package record to convert
+     * @param filename The package filename (e.g., "package-1.0.0-h123_0.tar.bz2")
+     * @param channel_id The channel identifier
+     * @param platform The platform for this package
+     * @param base_url The base URL for constructing package_url
+     * @return PackageInfo object with all fields populated
+     */
+    specs::PackageInfo to_package_info(
+        const ShardPackageRecord& record,
+        const std::string& filename,
+        const std::string& channel_id,
+        const specs::DynamicPlatform& platform,
+        const std::string& base_url
+    );
 
 }
 

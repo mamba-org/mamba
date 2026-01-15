@@ -33,6 +33,61 @@ namespace mamba
     namespace
     {
         /**
+         * Compare two PackageInfo objects for sorting.
+         *
+         * Sorts by: name (ascending), then version (descending - highest first),
+         * then build number (descending - highest first), then build string (descending).
+         * This ensures that when libsolv processes packages, it sees them in the correct
+         * order (highest version/build first), which helps it select the latest version.
+         *
+         * @param a First package to compare
+         * @param b Second package to compare
+         * @return true if a should come before b in sorted order
+         */
+        auto compare_package_info(const specs::PackageInfo& a, const specs::PackageInfo& b) -> bool
+        {
+            // First compare by package name
+            if (a.name != b.name)
+            {
+                return a.name < b.name;
+            }
+
+            // Then compare by version (descending - highest first)
+            auto version_a = specs::Version::parse(a.version);
+            auto version_b = specs::Version::parse(b.version);
+
+            if (version_a.has_value() && version_b.has_value())
+            {
+                if (version_a.value() != version_b.value())
+                {
+                    return version_b.value() < version_a.value();  // Descending order
+                }
+            }
+            else if (version_a.has_value() || version_b.has_value())
+            {
+                // If only one can be parsed, prefer the parsed one
+                return !version_a.has_value();
+            }
+            else
+            {
+                // Fallback to string comparison if parsing fails
+                if (a.version != b.version)
+                {
+                    return b.version < a.version;  // Descending order
+                }
+            }
+
+            // Finally compare by build number (descending - highest first)
+            if (a.build_number != b.build_number)
+            {
+                return b.build_number < a.build_number;  // Descending order
+            }
+
+            // If everything else is equal, compare by build string
+            return b.build_string < a.build_string;  // Descending order
+        }
+
+        /**
          * Load a subdir using sharded repodata if available, with support for cross-subdir
          * dependencies.
          *
@@ -380,52 +435,7 @@ namespace mamba
             // Sort packages by name, then by version (descending), then by build number
             // (descending) This ensures that when libsolv processes packages, it sees them in the
             // correct order (highest version/build first), which helps it select the latest version
-            std::sort(
-                package_infos.begin(),
-                package_infos.end(),
-                [](const specs::PackageInfo& a, const specs::PackageInfo& b)
-                {
-                    // First compare by package name
-                    if (a.name != b.name)
-                    {
-                        return a.name < b.name;
-                    }
-
-                    // Then compare by version (descending - highest first)
-                    auto version_a = specs::Version::parse(a.version);
-                    auto version_b = specs::Version::parse(b.version);
-
-                    if (version_a.has_value() && version_b.has_value())
-                    {
-                        if (version_a.value() != version_b.value())
-                        {
-                            return version_b.value() < version_a.value();  // Descending order
-                        }
-                    }
-                    else if (version_a.has_value() || version_b.has_value())
-                    {
-                        // If only one can be parsed, prefer the parsed one
-                        return !version_a.has_value();
-                    }
-                    else
-                    {
-                        // Fallback to string comparison if parsing fails
-                        if (a.version != b.version)
-                        {
-                            return b.version < a.version;  // Descending order
-                        }
-                    }
-
-                    // Finally compare by build number (descending - highest first)
-                    if (a.build_number != b.build_number)
-                    {
-                        return b.build_number < a.build_number;  // Descending order
-                    }
-
-                    // If everything else is equal, compare by build string
-                    return b.build_string < a.build_string;  // Descending order
-                }
-            );
+            std::sort(package_infos.begin(), package_infos.end(), compare_package_info);
 
             // Add packages directly to database
             // Note: add_repo_from_packages always succeeds (returns RepoInfo, not expected_t)
@@ -479,48 +489,7 @@ namespace mamba
                 std::sort(
                     sorted_other_packages.begin(),
                     sorted_other_packages.end(),
-                    [](const specs::PackageInfo& a, const specs::PackageInfo& b)
-                    {
-                        // First compare by package name
-                        if (a.name != b.name)
-                        {
-                            return a.name < b.name;
-                        }
-
-                        // Then compare by version (descending - highest first)
-                        auto version_a = specs::Version::parse(a.version);
-                        auto version_b = specs::Version::parse(b.version);
-
-                        if (version_a.has_value() && version_b.has_value())
-                        {
-                            if (version_a.value() != version_b.value())
-                            {
-                                return version_b.value() < version_a.value();  // Descending order
-                            }
-                        }
-                        else if (version_a.has_value() || version_b.has_value())
-                        {
-                            // If only one can be parsed, prefer the parsed one
-                            return !version_a.has_value();
-                        }
-                        else
-                        {
-                            // Fallback to string comparison if parsing fails
-                            if (a.version != b.version)
-                            {
-                                return b.version < a.version;  // Descending order
-                            }
-                        }
-
-                        // Finally compare by build number (descending - highest first)
-                        if (a.build_number != b.build_number)
-                        {
-                            return b.build_number < a.build_number;  // Descending order
-                        }
-
-                        // If everything else is equal, compare by build string
-                        return b.build_string < a.build_string;  // Descending order
-                    }
+                    compare_package_info
                 );
 
                 LOG_DEBUG << "Adding " << sorted_other_packages.size()

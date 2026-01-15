@@ -439,26 +439,15 @@ namespace mamba
                                 /* .clean_dependencies= */ false,
                             }
                         );
-                    }
-                    else
-                    {
-                        // No pip package conflict, use normal Install
-                        request.jobs.emplace_back(
-                            Request::Install{
-                                std::move(spec),
-                            }
-                        );
+                        continue;
                     }
                 }
-                else
-                {
-                    // No pip package conflict, use normal Install
-                    request.jobs.emplace_back(
-                        Request::Install{
-                            std::move(spec),
-                        }
-                    );
-                }
+                // No pip package conflict, use normal Install
+                request.jobs.emplace_back(
+                    Request::Install{
+                        std::move(spec),
+                    }
+                );
             }
         }
         else

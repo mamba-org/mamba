@@ -416,27 +416,42 @@ namespace mamba
                           << util::join(", ", packages_to_fetch) << "]";
 
                 // Batch fetch from cache and network
-                // TODO: Implement batch_retrieve_from_cache and batch_retrieve_from_network
+                // Group packages by channel for efficient batch fetching
+                std::map<std::string, std::vector<std::string>> packages_by_channel;
                 for (const auto& node_id : to_retrieve)
                 {
-                    auto it = shards_by_url.find(node_id.channel);
-                    if (it != shards_by_url.end())
+                    packages_by_channel[node_id.channel].push_back(node_id.package);
+                }
+
+                // Fetch shards in batch for each channel
+                for (const auto& [channel_url, packages] : packages_by_channel)
+                {
+                    auto it = shards_by_url.find(channel_url);
+                    if (it == shards_by_url.end())
                     {
-                        LOG_DEBUG << "Fetching shard for dependency package '" << node_id.package
-                                  << "' discovered during traversal";
-                        auto fetch_result = it->second->fetch_shard(node_id.package);
-                        if (fetch_result.has_value())
-                        {
-                            LOG_DEBUG
-                                << "Successfully fetched and visiting shard for dependency package '"
-                                << node_id.package << "'";
-                            it->second->visit_shard(node_id.package, fetch_result.value());
-                        }
-                        else
-                        {
-                            LOG_WARNING << "Failed to fetch shard for dependency package '"
-                                        << node_id.package << "'";
-                        }
+                        LOG_WARNING << "No Shards object found for channel " << channel_url;
+                        continue;
+                    }
+
+                    LOG_DEBUG << "Batch fetching " << packages.size()
+                              << " shard(s) for dependency packages from channel " << channel_url
+                              << ": [" << util::join(", ", packages) << "]";
+
+                    // Use batch fetch which handles both cache and network retrieval
+                    auto fetch_result = it->second->fetch_shards(packages);
+                    if (!fetch_result.has_value())
+                    {
+                        LOG_WARNING << "Failed to batch fetch shards for channel " << channel_url
+                                    << ": " << fetch_result.error().what();
+                        continue;
+                    }
+
+                    // Visit all fetched shards
+                    for (const auto& [package, shard] : fetch_result.value())
+                    {
+                        LOG_DEBUG << "Successfully fetched and visiting shard for dependency package '"
+                                  << package << "'";
+                        it->second->visit_shard(package, shard);
                     }
                 }
 

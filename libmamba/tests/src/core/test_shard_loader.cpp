@@ -194,7 +194,7 @@ TEST_CASE("Shard parsing - Package record parsing")
         );
 
         // Parse using msgpack
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         msgpack_unpack_return ret = msgpack_unpack_next(
             &unpacked,
@@ -228,7 +228,7 @@ TEST_CASE("Shard parsing - Package record parsing")
             false
         );
 
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         msgpack_unpack_next(
             &unpacked,
@@ -258,7 +258,7 @@ TEST_CASE("Shard parsing - Package record parsing")
             true  // md5_as_bytes
         );
 
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         msgpack_unpack_next(
             &unpacked,
@@ -276,7 +276,7 @@ TEST_CASE("Shard parsing - Package record parsing")
     {
         auto msgpack_data = create_shard_package_record_msgpack("minimal-pkg", "1.0.0", "0", 0);
 
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         msgpack_unpack_next(
             &unpacked,
@@ -297,7 +297,7 @@ TEST_CASE("Shard parsing - ShardDict parsing")
     {
         auto msgpack_data = create_minimal_shard_msgpack("test-pkg", "1.0.0", "0", { "dep1" });
 
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         msgpack_unpack_next(
             &unpacked,
@@ -342,7 +342,7 @@ TEST_CASE("Shard parsing - ShardDict parsing")
         );
         msgpack_sbuffer_destroy(&sbuf);
 
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         msgpack_unpack_next(
             &unpacked,
@@ -364,7 +364,7 @@ TEST_CASE("Shard parsing - ShardDict parsing")
         // The actual parsing is tested through the ShardCache interface
         auto msgpack_data = create_minimal_shard_msgpack("test-pkg", "1.0.0", "0", {});
 
-        msgpack_unpacked unpacked;
+        msgpack_unpacked unpacked = {};
         size_t offset = 0;
         auto ret = msgpack_unpack_next(
             &unpacked,

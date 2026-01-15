@@ -20,7 +20,48 @@ namespace mamba
      * Package record dictionary for shard data.
      *
      * This is a simplified representation of package metadata used in shards.
-     * It contains only the fields needed for dependency traversal.
+     * It exists separately from other package types for several reasons:
+     *
+     * **Comparison with specs::RepoDataPackage:**
+     * - Uses primitive types (string for version, string for noarch) instead of
+     *   complex types (Version object, NoArchType enum), making direct msgpack
+     *   deserialization faster and more straightforward.
+     * - Contains only fields needed for dependency traversal, reducing memory usage
+     *   when processing many shards.
+     * - Conversion to RepoDataPackage happens lazily when building repodata for
+     *   the solver, deferring parsing costs until needed.
+     *
+     * **Comparison with specs::PackageInfo:**
+     * - PackageInfo is the runtime representation used for installed packages,
+     *   transactions, and queries. It uses string for version (like ShardPackageRecord)
+     *   but NoArchType enum (like RepoDataPackage), and includes runtime-specific
+     *   fields like channel, package_url, platform, filename, signatures, etc.
+     * - ShardPackageRecord is purely for parsing msgpack shards and contains only
+     *   the minimal fields needed for dependency traversal.
+     * - PackageInfo is created from RepoDataPackage when packages are added to the
+     *   solver database, not directly from ShardPackageRecord.
+     *
+     * **Key design decisions:**
+     *
+     * 1. **Simpler msgpack parsing**: The msgpack format from Python shards uses simple
+     *    types that map directly to primitives, avoiding complex type parsing during
+     *    deserialization.
+     *
+     * 2. **Minimal storage**: Only fields needed for dependency traversal (name, version,
+     *    build, dependencies, constraints). Fields like license, timestamp, track_features
+     *    are not needed during traversal.
+     *
+     * 3. **Lazy conversion**: Conversion to specs::RepoDataPackage happens only when
+     *    building repodata for the solver (via to_repo_data_package()), deferring
+     *    Version/NoArchType parsing costs until actually needed.
+     *
+     * 4. **Flexible msgpack handling**: Custom parsing handles various msgpack types
+     *    for sha256/md5 (strings, bytes, EXT types), easier with a dedicated structure.
+     *
+     * @see specs::RepoDataPackage The canonical package record type used for repodata.json
+     * @see specs::PackageInfo The runtime package representation used throughout the codebase
+     * @see to_repo_data_package() Conversion function to RepoDataPackage
+     * @see from_repo_data_package() Conversion function from RepoDataPackage
      */
     struct ShardPackageRecord
     {

@@ -2197,6 +2197,12 @@ def test_create_dry_run(tmp_home, tmp_root_prefix, use_json):
     if not use_json:
         # Assert the non-JSON output is in the terminal.
         assert "Total download" in res
+        # Verify activation message is NOT printed during dry-run
+        assert "To activate this environment, use:" not in res
+        assert "Or to execute a single command in this environment, use" not in res
+        # Verify dry-run message is printed on the last line
+        lines = res.strip().split("\n")
+        assert lines[-1] == "Dry run. Not executing the transaction."
 
     # dry-run, shouldn't create an environment
     assert not os.path.isdir(env_prefix)

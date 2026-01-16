@@ -751,7 +751,7 @@ namespace mamba
                 trans.execute(ctx, channel_context, prefix_data);
 
                 // Print activation message only if the environment is freshly created
-                if (create_env)
+                if (create_env && !ctx.dry_run)
                 {
                     print_activation_message(ctx);
                 }
@@ -875,7 +875,7 @@ namespace mamba
                 transaction.execute(ctx, channel_context, prefix_data);
 
                 // Print activation message only if the environment is freshly created
-                if (create_env)
+                if (create_env && !ctx.dry_run)
                 {
                     print_activation_message(ctx);
                 }
